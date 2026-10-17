@@ -6,27 +6,24 @@ This card applies to `kag/` and every nested path.
 
 ## Role
 
-`kag/` owns the template and explicit publication route for independent
-Tree-of-Sophia KAG releases. Published provider homes live outside the software
-checkout. Authored ToS meaning remains in `ToS/`; bounded portable records give
+`kag/` owns the standalone source-return export for downstream KAG consumers.
+Consumer provider homes and indexing belong outside this repository. Authored ToS meaning remains in `ToS/`; bounded portable records give
 consumers exact handles back to that source.
 
 ## Operating Card
 
 | Field | Route |
 | --- | --- |
-| input | exact accepted corpus revision and bounded source-return export |
-| output | immutable external provider, source-return manifest and downstream status |
-| owner | `kag/AGENTS.md`, `kag/README.md`, `kag/provider-template.json` |
-| next route | explicit export -> selected aoa-kag producer and readers -> local integration release |
-| validation | local provider and export checks for the selected KAG artifact; independent of software merge |
+| input | exact accepted corpus revision and versioned ToS export producer |
+| output | bounded exact source export and source-return manifest |
+| owner | `kag/AGENTS.md`, `kag/README.md`, native source-export contract |
+| next route | native ToS export -> consumer-owned import and indexing outside ToS |
+| validation | native export membership, fixity and source-return checks; independent of software merge |
 
-TOS-D-0062 supersedes the universal source-currentness merge obligation in
-TOS-D-0044. Build KAG from an explicitly selected immutable ToS source/data
-revision, record that revision and the provider revision, and validate source
-refs, hashes, shards and parity before publishing that KAG artifact. A stale
-integration remains visibly stale; it does not become current because software
-CI passed. No regeneration is required for an unrelated software PR.
+Build exports from an explicitly selected immutable ToS corpus revision. ToS
+never invokes a consumer's checkout, interpreter, builder or validator. The
+consumer owns provider materialization, indexing and admission from its side.
+Unrelated software changes do not require a production export rebuild.
 
 ## Source Routes
 
@@ -37,13 +34,7 @@ CI passed. No regeneration is required for an unrelated software PR.
 
 ## Validation
 
-Use [`kag/VALIDATION.md`](VALIDATION.md) for the selected integration.
-`local_kag_provider` blocks publication of an invalid or falsely current KAG
-artifact, not standalone software merge or release. Source exports remain
-owned by their source builders and review routes.
-
-## Closeout
-
-Report corpus/export/integration identities, source-return verification and
-consumer validation. Keep current software, selected corpus, successful KAG
-publication and actual consuming runtime as separate states.
+Use [`kag/VALIDATION.md`](VALIDATION.md) for native export verification and the
+real standalone CLI fixture. Authored meaning, source review, rights and canon
+retain their source-owned routes. A valid export does not establish consumer
+index currentness or runtime admission.

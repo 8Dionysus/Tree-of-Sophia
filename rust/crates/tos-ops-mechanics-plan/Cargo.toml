@@ -66,11 +66,6 @@ path = "src/route_harness_main.rs"
 required-features = ["mechanics"]
 
 [[bin]]
-name = "tos-kag-provider-controls"
-path = "src/provider_controls_main.rs"
-required-features = ["mechanics"]
-
-[[bin]]
 name = "tos-kag-release"
 path = "src/kag_release_main.rs"
 required-features = ["mechanics"]
@@ -115,10 +110,6 @@ required-features = ["mechanics"]
 
 [[test]]
 name = "source_routes_native"
-required-features = ["mechanics"]
-
-[[test]]
-name = "provider_controls_native"
 required-features = ["mechanics"]
 
 [[test]]

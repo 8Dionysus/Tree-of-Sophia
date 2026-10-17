@@ -1,4 +1,4 @@
-//! Linux finite-validator guard paired with the abyss-machine private tmpfs launcher.
+//! Linux finite-validator guard paired with the ToS private tmpfs launcher.
 //! Install as tos-compiler::private_tmpfs_stage; host admission is a separate prerequisite.
 use crate::{
     Error, Result,
@@ -211,7 +211,7 @@ impl PrivateTmpfsStageIsolation {
         if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
             return Err(std::io::Error::last_os_error().into());
         }
-        let raw: i32 = bounded_env(b"ABYSS_STAGE_TICKET_FD\0", 32)?
+        let raw: i32 = bounded_env(b"TOS_STAGE_TICKET_FD\0", 32)?
             .into_string()
             .ok()
             .and_then(|value| value.parse().ok())
@@ -261,8 +261,8 @@ impl PrivateTmpfsStageIsolation {
             ));
         }
         let version_valid = match (ticket.schema.as_str(), ticket.persistent_store.as_ref()) {
-            ("abyss_machine_private_tmpfs_stage_v1", None) => true,
-            ("abyss_machine_private_tmpfs_stage_v2", Some(store)) => {
+            ("tos_private_tmpfs_stage_v1", None) => true,
+            ("tos_private_tmpfs_stage_v2", Some(store)) => {
                 store.quota_scope == "outside-private-tmpfs"
                     && store.root_device != ticket.root_device
                     && !store.root.starts_with(&ticket.root)
@@ -272,7 +272,7 @@ impl PrivateTmpfsStageIsolation {
                             && !Path::new(fallback).starts_with(&store.root)
                     })
             }
-            ("abyss_machine_private_tmpfs_stage_v3", None) => {
+            ("tos_private_tmpfs_stage_v3", None) => {
                 ticket.search_cache.as_ref().is_some_and(|cache| {
                     cache.quota_scope == "outside-private-tmpfs-original-io"
                         && cache.parent_device != ticket.root_device
@@ -295,8 +295,8 @@ impl PrivateTmpfsStageIsolation {
             }
             _ => false,
         };
-        let cache_version_valid = ticket.search_cache.is_none()
-            || ticket.schema == "abyss_machine_private_tmpfs_stage_v3";
+        let cache_version_valid =
+            ticket.search_cache.is_none() || ticket.schema == "tos_private_tmpfs_stage_v3";
         if !version_valid
             || !cache_version_valid
             || ticket.quota_bytes != quota_bytes
@@ -306,7 +306,7 @@ impl PrivateTmpfsStageIsolation {
             || ticket.capabilities != "dropped-before-exec"
             || ticket.write_confinement != "landlock-v3"
             || !ticket.consumer_requires_dumpable_zero
-            || bounded_env(b"ABYSS_STAGE_ROOT\0", MAX_PATH_BYTES)?.as_os_str()
+            || bounded_env(b"TOS_STAGE_ROOT\0", MAX_PATH_BYTES)?.as_os_str()
                 != ticket.root.as_os_str()
         {
             return Err(Error::Invalid(
@@ -346,7 +346,7 @@ impl PrivateTmpfsStageIsolation {
         if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
             return Err(std::io::Error::last_os_error().into());
         }
-        let raw: i32 = bounded_env(b"ABYSS_STAGE_TICKET_FD\0", 32)?
+        let raw: i32 = bounded_env(b"TOS_STAGE_TICKET_FD\0", 32)?
             .into_string()
             .ok()
             .and_then(|value| value.parse().ok())
@@ -779,7 +779,7 @@ mod persistent_boundary_controls {
     fn fixture_ticket() -> Ticket {
         serde_json::from_str(
             r#"{
-            "schema":"abyss_machine_private_tmpfs_stage_v1",
+            "schema":"tos_private_tmpfs_stage_v1",
             "quota_bytes":1048576,"inode_limit":128,"working_ram_bytes":268435456,
             "root":"/unselected-fixture-stage","root_device":7,"root_inode":8,
             "mount_id":9,"mount_namespace_inode":10,"parent_mount_namespace_inode":11,
@@ -797,7 +797,7 @@ mod persistent_boundary_controls {
         assert!(ticket.persistent_store.is_none());
         let mut encoded: serde_json::Value = serde_json::from_str(
             r#"{
-            "schema":"abyss_machine_private_tmpfs_stage_v2",
+            "schema":"tos_private_tmpfs_stage_v2",
             "quota_bytes":1048576,"inode_limit":128,"working_ram_bytes":268435456,
             "root":"/unselected-fixture-stage","root_device":7,"root_inode":8,
             "mount_id":9,"mount_namespace_inode":10,"parent_mount_namespace_inode":11,

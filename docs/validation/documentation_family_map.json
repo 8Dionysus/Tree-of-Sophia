@@ -588,7 +588,7 @@
     },
     {
       "id": "kag",
-      "label": "local KAG provider",
+      "label": "ToS source-return export",
       "match": {
         "prefix": "kag/"
       },
@@ -598,21 +598,21 @@
         "aoa-kag-mcp resource"
       ],
       "load_moment": "when a source-linked KAG/MCP projection is requested",
-      "owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag",
+      "owner": "kag/AGENTS.md and native ToS export contract",
       "roles": {
-        "authored": "provider route law",
-        "generated": "portable records/index family",
-        "executable": "provider validator",
-        "runtime": "KAG/MCP runtime external",
-        "tool": "KAG provider",
-        "receipt": "index and budget receipt"
+        "authored": "ToS source-export route law",
+        "generated": "bounded source-return export",
+        "executable": "native ToS export producer and verifier",
+        "runtime": "external consumer runtime",
+        "tool": "ToS source-return export",
+        "receipt": "exact export manifest"
       },
       "currentness_inputs": [
         "kag/AGENTS.md",
         "kag/VALIDATION.md",
-        "kag/provider-template.json",
+        "kag/README.md",
         "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
-        "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
+        "rust/crates/tos-ops-mechanics-plan/src/release_files.rs",
         "ToS/derived-exports/"
       ],
       "next_organ": [
@@ -626,7 +626,7 @@
         "max_tokens": 1600,
         "surfaces": [
           "kag/AGENTS.md",
-          "kag/provider-template.json"
+          "kag/README.md"
         ]
       },
       "public_safety": {
@@ -870,35 +870,34 @@
     },
     {
       "id": "manifests",
-      "label": "structured release and port manifests",
+      "label": "mechanics component and hook posture manifests",
       "match": {
         "prefix": "manifests/"
       },
       "consumer": [
-        "artifact validator",
-        "release lane",
-        "owner handoff"
+        "mechanics owner",
+        "downstream runtime reader"
       ],
-      "load_moment": "when a structured artifact or release contract is admitted",
-      "owner": "nearest manifest owner and the stronger artifact/release owner",
+      "load_moment": "when a named mechanic surface needs an observe-only component posture",
+      "owner": "manifests/AGENTS.md and the named mechanic source",
       "roles": {
-        "authored": "structured contract input",
-        "generated": "artifact/read-model declaration",
-        "executable": "validator input",
-        "runtime": "artifact runtime external",
-        "tool": "release/artifact carrier",
-        "receipt": "admission evidence"
+        "authored": "component posture and hook declaration",
+        "generated": "no runtime state is authored here",
+        "executable": "mechanic validator input",
+        "runtime": "execution belongs to the consuming runtime",
+        "tool": "observe-only posture carrier",
+        "receipt": "no execution or admission is asserted"
       },
       "currentness_inputs": [
         "manifests/",
         "manifests/VALIDATION.md",
         "docs/validation/validation_lanes.json",
-        "mechanics/release-support/"
+        "mechanics/agon/parts/threshold-registry/"
       ],
       "next_organ": [
-        "artifact owner",
-        "release lane",
-        "external abyss-machine trust gate"
+        "named mechanic owner",
+        "mechanic validation",
+        "consumer-owned runtime execution"
       ],
       "context": {
         "posture": "tool_on_demand",
@@ -915,11 +914,11 @@
           "host-local paths",
           "unbound runtime claims"
         ],
-        "boundary": "manifest is not a signature or human acceptance"
+        "boundary": "posture does not activate hooks or grant runtime authority"
       },
-      "validation_lane": "artifact_bundles",
+      "validation_lane": "mechanics_local",
       "authority_keys": [
-        "artifact_declaration"
+        "component_posture"
       ]
     },
     {
@@ -1171,17 +1170,17 @@
     },
     {
       "id": "kag_provider_route",
-      "owner": "kag/provider-template.json",
+      "owner": "kag/README.md",
       "strength": "tool",
       "family_id": "kag",
-      "family_owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag"
+      "family_owner": "kag/AGENTS.md and native ToS export contract"
     },
     {
       "id": "kag_source_return",
       "owner": "ToS/derived-exports/",
       "strength": "authored",
       "family_id": "kag",
-      "family_owner": "kag/AGENTS.md, kag/provider-template.json, and aoa-kag"
+      "family_owner": "kag/AGENTS.md and native ToS export contract"
     },
     {
       "id": "mechanics_operation",
@@ -1226,11 +1225,11 @@
       "family_owner": "rust/README.md and the exact crate or source-contract owner"
     },
     {
-      "id": "artifact_declaration",
+      "id": "component_posture",
       "owner": "manifests/",
       "strength": "authored",
       "family_id": "manifests",
-      "family_owner": "nearest manifest owner and the stronger artifact/release owner"
+      "family_owner": "manifests/AGENTS.md and the named mechanic source"
     },
     {
       "id": "memo_candidate_intake",
@@ -1275,8 +1274,8 @@
     {
       "id": "aoa-kag",
       "owner": "aoa-kag",
-      "handle": "kag/provider-template.json",
-      "role": "registry/composition and MCP consumer",
+      "handle": "kag/README.md",
+      "role": "consumer-owned registry, indexing and MCP integration",
       "authority": "stronger external owner"
     },
     {

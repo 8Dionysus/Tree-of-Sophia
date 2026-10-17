@@ -12,7 +12,7 @@ mod measurement;
 #[path = "open_work_queue/readiness.rs"]
 mod readiness;
 use crate::{
-    kag_release::{self, invalid},
+    release_files::{self, invalid},
     source_registry::Context,
 };
 use closure::*;
@@ -233,16 +233,16 @@ struct Repo<'a> {
 }
 impl<'a> Repo<'a> {
     fn new(root: &Path, cancel: &'a AtomicI32) -> Result<Self> {
-        let root = kag_release::safe_absolute(root)?;
-        kag_release::directory(&root)?;
+        let root = release_files::safe_absolute(root)?;
+        release_files::directory(&root)?;
         Ok(Self {
             root,
             context: Context::new(cancel),
         })
     }
     fn path(&self, rel: &str) -> Result<PathBuf> {
-        kag_release::relative(&json!(rel))?;
-        kag_release::safe_absolute(&self.root.join(rel))
+        release_files::relative(&json!(rel))?;
+        release_files::safe_absolute(&self.root.join(rel))
     }
     fn exists(&self, rel: &str) -> Result<bool> {
         Ok(self.path(rel)?.exists())
@@ -285,7 +285,7 @@ impl<'a> Repo<'a> {
         if !p.exists() {
             return Ok(vec![]);
         }
-        kag_release::directory(&p)?;
+        release_files::directory(&p)?;
         let mut todo = vec![p];
         let mut out = vec![];
         let mut n = 0;

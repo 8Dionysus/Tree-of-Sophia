@@ -23,7 +23,7 @@ remains authoritative for ToS meaning.
 | statistical question over a ToS population | `stats/` declaration and evidence-linked packet | `aoa-stats` owns shared grammar and cross-owner views, not ToS meaning |
 | KAG substrate, retrieval substrate, downstream graph handoff | bounded export route inside ToS | `aoa-kag` owns downstream substrate behavior |
 | standalone CLI, HTTP, native MCP, site, WebMCP, portable bundle | `access/` reads allowlisted ToS exports without authoring meaning | ToS owns the standalone product and read-only runtime |
-| AbyssOS deployment, service composition, Neo4j, ecosystem orchestration | `access/integrations/abyssos/` is an optional adapter seam | `abyss-stack` owns stack execution; sibling owners retain KAG, stats, and artifact policy |
+| AbyssOS deployment, service composition, Neo4j, ecosystem orchestration | ToS emits independently verifiable artifacts; the consumer owns its adapter | `abyss-stack` owns stack execution; sibling owners retain KAG, stats, and artifact policy |
 | memory, proof, evaluation, routing, SDK, playbook, skill, technique | ToS may supply philosophical source or boundary input | owning AoA repository or layer |
 
 ## Layer Boundaries
@@ -38,9 +38,11 @@ plane and its `aoa-routing` compatibility namespace retain authority over
 their own operational surfaces.
 
 The standalone runtime is a ToS-owned consumer of derived exports whose
-meanings are authored under `ToS/`. Existing projection fields that name `abyss-stack` remain a
-compatibility contract for that deployment profile; the consumer-neutral
-profile split is owned by `access/contracts/runtime-manifest.v1.json`.
+meanings are authored under `ToS/`. Retained versioned projection fields may
+name `abyss-stack` as a downstream consumer. Those labels preserve export
+compatibility; they do not select a service, checkout or runtime dependency.
+The software runtime contract is owned by
+`access/contracts/runtime-manifest.v1.json`.
 
 ## Growth Boundary
 
@@ -103,3 +105,13 @@ through their respective evidence routes.
 When the current public validator does not cover the touched surface, use
 `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` to review
 boundary-sensitive changes explicitly.
+
+## Repository Independence
+
+ToS source, build, ordinary operation and data export require no other ecosystem
+repository, its Python environment or its installed services. ToS owns its native
+launch and its export verification. AbyssOS, KAG, stats and other consumers
+integrate from their side using ToS artifacts. Their installation, trust,
+indexing and admission procedures are not ToS commands or release prerequisites.
+Useful libraries, databases, processing tools and public hosting remain normal
+explicit dependencies of the operations that use them.

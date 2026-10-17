@@ -67,7 +67,8 @@ The current repository move is:
   source authority, exact historical bytes and release boundaries retained;
 - keep the public site continuously available through the repository-driven
   Cloudflare edge profile, while native MCP and downloadable access remain
-  installable from ToS itself and AbyssOS capabilities stay optional;
+  installable from ToS itself and consumers integrate from their own repositories
+  under [TOS-D-0072](docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md);
 - let mechanics carry repeatable movement around the source home without
   becoming the source home.
 
@@ -83,10 +84,10 @@ family, and graph-review tree without widening canon:
 | philosophy atlas and planted tree | `ToS/philosophy/atlas/`, `ToS/philosophy/eras/`, `ToS/philosophy/graph-workbench/branch-fragments/`, `ToS/philosophy/graph-workbench/promotion-ledger/` |
 | graph review and source-returning projection | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
 | multilingual planting | `ToS/philosophy/atlas/multilingual/`, `ToS/philosophy/graph-workbench/language-packets/` |
-| bounded export and downstream trust | `mechanics/boundary-bridge/parts/derived-kag-seam/`, `mechanics/release-support/parts/artifact-bundles/`, `kag/` |
+| bounded source export | `mechanics/boundary-bridge/parts/derived-kag-seam/`, `kag/` |
 | owner-local reference measurement | `stats/`, `rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs` |
 | source-first corpus foundation | `ToS/source-witnesses/`, `ToS/contracts/`, `ToS/derived-exports/`, `ToS/research-packets/` |
-| portable provider and routing boundary | `kag/`, `aoa-sdk` consumer route, `aoa-kag` owner-family validation |
+| portable export and routing boundary | `kag/`, native ToS export verification, consumer-owned import |
 
 This contour keeps atlas rows, planted dossiers, graph-workbench material,
 multilingual packets, KAG records, and generated readmodels subordinate to
@@ -168,7 +169,7 @@ review the tree before canon promotion.
 | Field | Direction |
 | --- | --- |
 | Current posture | Root-entry, tiny-entry, KAG export, public compatibility, graph-view catalog, and graph projection are bounded downstream companions; `access/` supplies a standalone read-only product with Evidence Lens, shared page commands, a local research workspace, a visible WebMCP/fallback surface, a validated downloadable candidate, and a permanent repository-driven Cloudflare Worker/D1 profile over the same explicit data allowlist. |
-| Next honest move | Observe repository-driven deployment and ordinary-user acceptance for both the public edge and downloadable candidate, then let `abyss-stack` consume the same release through its optional adapter profile without reclaiming runtime authority. |
+| Next honest move | Observe repository-driven deployment and ordinary-user acceptance for both the public edge and downloadable candidate. Downstream consumers can integrate the same independently released artifact from their own repositories. |
 | Guardrail | Runtime can display or operate projections; ToS owns philosophical source and structural truth. |
 
 ## Phase Path
@@ -204,9 +205,8 @@ trigger is real.
 - Add stronger source-witness routes when a prepared branch needs published
   editions, translations, inscription corpora, or source-corpus anchors before
   canon movement.
-- Add each downstream runtime integration only through the optional adapter
-  profile after its exact consumer contract is stable; do not make it a
-  standalone installation dependency or ToS authority.
+- Keep downstream runtime adapters in their consumer repositories. ToS supplies
+  independently verifiable exports and retains its own runtime authority.
 - Add shared review receipt schemas only after repeated graph or canon review
   passes prove that prose packets are no longer enough.
 - Cut the next release contour when source-home growth, roadmap direction,

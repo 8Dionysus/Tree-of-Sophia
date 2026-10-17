@@ -108,7 +108,6 @@ const ALL_PROGRAM_SCHEMAS: &[&str] = &[
 ];
 const SOFTWARE_CONTRACT_PATHS: &[&str] = &[
     "access/contracts/runtime-manifest.v1.json",
-    "access/profiles/abyssos.v1.json",
     "access/contracts/web-actions.v1.json",
     "access/contracts/query-operations.v1.json",
     "access/contracts/knowledge-api.v1.json",
@@ -507,20 +506,12 @@ fn validate_software_contracts(meter: &mut Meter) -> Result<usize, String> {
     }) {
         return Err("runtime manifest must require the read-only knowledge lens engine".into());
     }
-    if runtime.get("integration_posture")
-        != Some(&json!({
-            "state":"paused", "scope":["abyssos"], "default_profile":"standalone",
-            "external_activation":"disabled", "unfreeze_requires":"explicit ToS operator command"
-        }))
+    if runtime.get("runtime_profiles")
+        != Some(&json!([
+            {"profile_id":"standalone","runtime_owner":"Tree-of-Sophia","requires_abyssos":false}
+        ]))
     {
-        return Err("AbyssOS integration posture must remain explicitly paused".into());
-    }
-    if documents["access/profiles/abyssos.v1.json"]
-        .get("availability")
-        .and_then(Value::as_str)
-        != Some("paused")
-    {
-        return Err("AbyssOS access profile must remain paused".into());
+        return Err("runtime profiles must be owned by standalone ToS".into());
     }
     let migration = &documents["access/contracts/web-actions.v1.json"];
     if migration.get("status").and_then(Value::as_str) != Some("superseded")

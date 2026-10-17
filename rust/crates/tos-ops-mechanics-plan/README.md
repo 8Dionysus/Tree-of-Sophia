@@ -78,12 +78,12 @@ A synthetic PID stream covers the prior count/byte cutoff without spawning
 thousands of live processes. No authored ToS meaning is admitted.
 
 `--execute` runs the native Growth pipeline and other selected mechanics.
-Agon registry, relation pack, Questbook, public mirror and artifact bundle
+Agon registry, relation pack, Questbook and public mirror
 routes bind directly to their native owner flags by package/part home. The
 route survives removal of Python wrappers; unexpected Python builders or
-validators in those homes fail discovery. Artifact validation retains the
-source-owned runtime integration pause and uses the selected external owner
-CLI when enabled. Mirror sync and KAG generation remain explicit writes.
+validators in those homes fail discovery. Artifact validation uses the native
+software or selected data export route. Consumers own their admission checks.
+Mirror sync and KAG generation remain explicit writes.
 Historical Growth assertions are retained evidence and have no executable oracle flag.
 
 `--mechanics-topology-validate` is a separate read-only native candidate for
@@ -214,21 +214,18 @@ refuse inputs the Python scripts previously read without limits.
 Caller costs include a second inventory snapshot for default build output,
 a second discovery walk during currentness verification and successful
 validator CLI recount, plus an existing-output read for `--check`. Rendering
-and local writes need an outer wall guard. The disposable native/Python cases
-exercise those real callers; the Python scripts, route-docs lane and actual
-generated carriers remain active pending coordinated owner cutover.
+and local writes retain the enclosing wall guard. Native route-card fixtures
+exercise these callers; `route_docs` runs the maintained native commands.
 
-The accepted validation-lanes, release-check, software-CI and topology
-command entries replace themselves with selected installed tools. Active naming
+The validation-lanes, release-check, software-CI and topology
+commands use the selected installed native tools. Active naming
 is invoked directly as `tos-ops-mechanics-plan --repo-root PATH --active-naming-validate`.
 `TOS_VALIDATION_LANES_EXECUTOR`, `TOS_RELEASE_CHECK_EXECUTOR` and
 `TOS_SOFTWARE_CI_EXECUTOR` select their corresponding standalone binaries;
-`TOS_OPS_MECHANICS_EXECUTOR` selects topology mode. Each retained entry uses
+`TOS_OPS_MECHANICS_EXECUTOR` selects topology mode. Each entry uses
 its exact override or the corresponding PATH binary, without compile-on-call
-or fallback. Existing argparse spelling, interpreter adapter, environment and
-exit status are preserved for those remaining adapters. Active naming and its
-optional feedback cache are native; other imported Python APIs remain pending
-their corresponding retirement. OPS owns installation and packaging availability independently
+or fallback. Active naming and its optional feedback cache are native.
+OPS owns installation and packaging availability independently
 from the prepared read-model fs-verity route; source wiring alone proves neither
 installed availability nor an actual release/CI execution.
 
@@ -238,17 +235,9 @@ baseline; otherwise `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT` applies. Initial
 introduction requires `--allow-initial-introduction` or the exact environment
 value `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`; the environment accepts
 only `0` or `1`. `--json` emits the maintained result shape. These flags require
-this mode. The existing Python executable entrypoint selects
-`TOS_OPS_MECHANICS_EXECUTOR` or installed `tos-ops-mechanics-plan` on PATH and
-replaces itself with this mode; no build or Python fallback occurs. Imported
-`validate_transition` and `main` remain available as reference APIs.
-
-The existing 13-case `tests/test_semantic_registry_transition.py` suite selects
-an explicitly retained native image with `TOS_SEMANTIC_REGISTRY_TEST_EXECUTABLE`.
-Without that test selector it preserves its Python reference route. The native
-route keeps baseline, replacement, ancestry, profile/version and historical
-schema assertions, using actual shallow Git metadata rather than a Python mock.
-Its three CLI assertions traverse the Python executable wrapper and native exec.
+this mode. Native `semantic_registry_transition_native` fixtures keep baseline,
+replacement, ancestry, profile/version and historical schema assertions, using
+actual shallow Git metadata. Their CLI cases invoke the native entry directly.
 Strict duplicate-key refusal accepts the backend's declared diagnostic wording;
 this does not assert general malformed-JSON diagnostic equality.
 
@@ -383,26 +372,14 @@ source identities at build, verify, and install. These source changes require
 matching native tests and the actual producer/download/package CI consumers;
 formatting or wrapper assertions alone do not establish that acceptance.
 
-## Independent KAG provider controls
+## Standalone source and stats exports
 
-`tos-kag-provider-controls` owns the complete bounded provider control closure.
-Its `template`, `materialize` and `verify` actions accept an explicit
-`--template PATH`; the latter two also require `--root PATH`. `verify` reads
-the ordered receipt array on stdin; each action returns JSON on stdout and
-reports refusal on stderr with a nonzero status. It uses the foundation's
-`CorpusSnapshotV1` canonical profile, preserving `corpus_store.canonical` bytes.
-The source template and emitted closure are capped at 64 KiB; the nine route
-files, duplicate rejection, finite JSON, nonblank cards, new regular output
-paths, sizes, hashes and unchanged template remain native owner checks.
-
-The native `tos-kag-release` publisher directly calls this module to materialize
-and verify the exact control closure. It invokes the explicitly selected
-external aoa-kag producer and its `validate_repo_local_kag_family.py
---probe-source` CLI for the owner's family and provider-home validation.
-Export, status and integration verification have no Python dependency. Native
-publication tests cover prior-success preservation, exact member verification,
-consumer mutation, source-return mismatch and historical four-program releases.
-These checks do not accept source meaning, rights, canon or runtime authority.
+`tos-kag-release export-build` and `export-verify` operate on the selected ToS
+corpus and exact source-return export. `tos-stats-release validate`, `build`,
+`verify` and `status` operate on ToS port bytes and immutable exports. Neither
+command selects an external checkout, interpreter, producer or validator.
+Consumer configuration, indexing and admission are implemented by consumers.
+See `kag/VALIDATION.md` and `stats/VALIDATION.md` for the native procedures.
 
 ## Maintained philosophy product commands
 
@@ -445,10 +422,9 @@ This is the bounded six-source return carrier from an actually admitted corpus
 revision. It retains the authoritative export verifier, eight-file inventory,
 source/producer/executing-image identity, private staging and atomic publication,
 8 MiB export input/output limit and original 600-second operation clock. The
-standalone `tos-kag-release` entry retains the same export engine; its broader
-KAG integration build/status/verify operations have a separate owner scope and
-still retain their existing host adapters. Neither export entry admits source
-meaning, rights or canon.
+standalone `tos-kag-release` entry retains the same export engine. Consumers own
+indexing and integration in their repositories. Neither export entry admits
+source meaning, rights or canon.
 
 ## Maintained currentness and root-entry commands
 
@@ -459,8 +435,7 @@ verification stay unchanged.
 
 Agent surface, documentation family, decision indexes and root-entry map use
 `tos-ops-mechanics-plan --repo-root PATH` directly in the validation manifest.
-Select `--agent-surface-build [--check]`, `--agent-surface-validate
-[--fetch-budget-bases]`, `--documentation-family-build [--check]`,
+Select `--agent-surface-build [--check]`, `--agent-surface-validate`, `--documentation-family-build [--check]`,
 `--documentation-cross-corpus-validate`, `--decision-index-build [--check]`,
 `--decision-records-validate`, `--root-entry-map-build [--check]`, or
 `--root-entry-map-validate`. The two root-entry operations accept an explicit
@@ -539,8 +514,6 @@ Agent-surface currentness and validation use `--agent-surface-build [--check]`
 and `--agent-surface-validate`. Their replaced Python builder, validator and
 executable test oracles are retired. Rust tests retain immutable profile binding,
 activation metadata, package fixity, tracked-file selection, context probes,
-public-safety and historical KAG receipt contracts. Historical receipt JSON is
-fixture data; its structural validity does not establish current source, shard
-or external producer-runtime identity. The default external-integration profile
-validates its authored publication routes without selecting an ambient KAG
-artifact or executing its producer.
+public-safety and ToS-owned source-export routes. Agent validation checks the
+local export contract, builder and navigation without selecting a consumer
+artifact, checkout, interpreter or runtime.

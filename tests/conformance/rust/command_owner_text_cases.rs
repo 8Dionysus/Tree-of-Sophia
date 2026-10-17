@@ -323,53 +323,6 @@ fn page_owner_ocr_fixture(repository: &Path, root: &Path) -> OwnerOCRFixture {
         receipt["output_sha256"].as_str().unwrap()
     );
 
-    let owner_source_root = PathBuf::from(
-        std::env::var_os("TOS_PRIVATE_JOURNAL_PAGE_OWNER_SOURCE_ROOT")
-            .expect("retained PageOCR owner source root"),
-    );
-    assert!(owner_source_root.is_absolute());
-    let owner_source_root = owner_source_root.canonicalize().unwrap();
-    let owner_source_root_text = owner_source_root.to_str().unwrap();
-    let owner_source_head = Command::new("/usr/bin/git")
-        .args(["-C", owner_source_root_text, "rev-parse", "HEAD"])
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .env_remove("GIT_COMMON_DIR")
-        .env_remove("GIT_INDEX_FILE")
-        .output()
-        .unwrap();
-    assert!(owner_source_head.status.success());
-    let owner_source_ref = format!(
-        "commit:{}",
-        String::from_utf8(owner_source_head.stdout).unwrap().trim()
-    );
-    assert_eq!(owner_source_ref, material["owner_source_ref"]);
-    let owner_source_status = Command::new("/usr/bin/git")
-        .args([
-            "-C",
-            owner_source_root_text,
-            "status",
-            "--porcelain=v1",
-            "--untracked-files=all",
-        ])
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .env_remove("GIT_COMMON_DIR")
-        .env_remove("GIT_INDEX_FILE")
-        .output()
-        .unwrap();
-    assert!(owner_source_status.status.success());
-    assert!(owner_source_status.stdout.is_empty());
-    let adapter = page_fixture_read(
-        &owner_source_root.join(
-            "mechanics/inference-pilots/parts/tos-foundation-lab/retained_page_tesseract_ocr.py",
-        ),
-        2_097_152,
-    );
-    assert_eq!(
-        page_fixture_sha256(&adapter),
-        material["adapter_sha256"].as_str().unwrap()
-    );
     let scope = receipt["source_scope"].clone();
     assert_eq!(scope["item_ref"], "tos.item.synthetic.native-binding");
     assert_eq!(scope["work_ref"], "tos.work.synthetic.native-binding");
@@ -604,7 +557,10 @@ fn page_owner_ocr_fixture(repository: &Path, root: &Path) -> OwnerOCRFixture {
     material["expires_at"] = serde_json::json!(expiry);
     // Exact-page permission for this isolated synthetic fixture, not a rights-record change.
     material["access_allowed"] = Value::Bool(true);
-    material["owner_source_root"] = serde_json::json!(owner_source_root_text);
+    material
+        .as_object_mut()
+        .unwrap()
+        .remove("owner_source_root");
     material["content_sha256"] = receipt["output_sha256"].clone();
     material["byte_size"] = receipt["output_bytes"].clone();
     let config = serde_json::json!({

@@ -50,38 +50,7 @@ ambient repository or output paths and only returns deterministic payload data.
 The old checkout-writing `--derived-kag-generate` and `--derived-kag-validate`
 flags are compatibility controls, not accepted-corpus export or publication.
 
-`rust/crates/tos-ops-mechanics-plan/src/kag_release.rs` owns the local handoff to an explicitly
-selected downstream KAG consumer and its release status. The foreign interpreter
-is explicit; ToS calls the aoa-kag validation CLI and contains no Python probe:
-
-```text
-tos-kag-release build --repo-root REPO --python KAG_PYTHON --store STORE --revision REVISION --kag-root KAG_ROOT --release-root RELEASE_ROOT
-tos-kag-release status --release-root RELEASE_ROOT --expected-revision REVISION
-```
-
-The selected KAG owner supplies the actual consumer and records consumer
-status/lag in its `kag/README.md` route. This ToS seam does not claim corpus
-admission, public deployment, or the consumer's semantic validation.
-
-## Current verification
-
-For an already built export, run the native `--kag-source-export-verify
---kag-export EXPORT` operation above. Verification checks the exact source membership, bytes, manifest
-identity, source return, capsule structure, and bounded relation targets.
-
-For a published downstream result, use the `status` command above. The release
-publisher rechecks the private export copy, the selected consumer's returned
-source identity, and the immutable release membership before reporting status.
-The `public_entry` sequence in `docs/validation/validation_lanes.json` owns
-broader route assurance.
-
-## Regeneration
-
-After the source owner has selected an accepted CorpusStore revision, build a
-fresh export with the explicit `build` command above. No in-checkout Git parity
-step or software merge gate is part of this export route; the selected revision
-and its verified source objects are the input boundary.
-
-If the downstream owner needs a release, invoke `tos-kag-release build` with explicit store, revision, KAG root, and release root paths. Keep
-consumer semantics, status, lag, admission, and deployment with their actual
-owners.
+The native `tos-kag-release export-build` and `export-verify` operations own
+this ToS export. They require only the selected ToS software and corpus. KAG
+provider construction, Python execution, index validation and integration
+status belong to the consuming repository. See [the independent export route](../../../../../kag/README.md).

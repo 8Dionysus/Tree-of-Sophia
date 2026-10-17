@@ -817,7 +817,7 @@ provenance and the executing software fingerprint remain separate identities.
 It is not a general arbitrary-corpus admission command.
 
 The host selects an authentic sealed private-stage ticket with a persistent store
-outside its tmpfs, passes `ABYSS_STAGE_TICKET_FD` and `ABYSS_STAGE_ROOT`, and applies
+outside its tmpfs, passes `TOS_STAGE_TICKET_FD` and `TOS_STAGE_ROOT`, and applies
 the whole-process resource envelope before execution. The request must match the
 selected ticket. The staging quota is at least 2,112 MiB; the complete persistent
 candidate is capped at 512 MiB and its manifest at 1 MiB. These are refusal bounds,
@@ -921,3 +921,19 @@ Returned spans preserve source coordinates, exact UTF-8 and full rights records.
 The operation rechecks the grant, context, sources and schema before return;
 it neither opens original Item payloads nor changes source or publication
 state. The ordinary source-command/HTTP dispatcher refuses this operation.
+
+## Portable signed OCR import
+
+The owner OCR commands consume independently pinned receipt, signature, public
+key and output bytes. Native ToS verifies their signature and source/language
+binding directly through the native RustCrypto P-256 verifier. It never opens a
+producer checkout or runs its Python adapter or Cosign. The accepted Sigstore
+message-signature profile uses P-256 with SHA-256 and the independently pinned
+public key. No host trust store, executable selection or network trust discovery
+participates. A legacy `owner_source_root` value in retained grants is inert
+provenance; new grants need no source-root field.
+
+The existing ToS grant still owns access, byte/receipt/key digests and expiry.
+Authenticated producer metadata does not establish source fidelity, rights,
+semantic acceptance or canon. A metadata replay reads only copied evidence;
+it does not require the original OCR text or rerun OCR.

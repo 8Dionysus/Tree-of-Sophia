@@ -333,21 +333,6 @@
       "disposition": "keep"
     },
     {
-      "path": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
-      "home": "rust/crates/tos-ops-mechanics-plan",
-      "home_scope": "product-local",
-      "family": "validator_behavior",
-      "validation_lane": "artifact_bundles",
-      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
-      "protects": "Exact partition closure, safe output paths, runtime integration pause, public markers and per-child isolated artifact owner scope",
-      "coverage_authority": "Cargo test discovery",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "artifact_bundle::tests",
-      "failure_route": "Fix the Tree artifact-bundle validator isolation boundary before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
       "path": "rust/crates/tos-compiler/src/antonovsky_structural/technical_markup.rs",
       "home": "rust/crates/tos-compiler",
       "home_scope": "product-local",

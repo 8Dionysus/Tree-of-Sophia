@@ -1767,7 +1767,6 @@ fn family_coverage(current: &Value, p: &Value, issues: &mut Vec<Issue>) -> io::R
 fn validate_existing_owner_contracts(
     root: &Path,
     s: &mut RouteSources,
-    interpreter: Option<&Path>,
     export: Option<&crate::kag_corpus_export::VerifiedExport>,
     cancel: &AtomicI32,
     issues: &mut Vec<Issue>,
@@ -1799,13 +1798,7 @@ fn validate_existing_owner_contracts(
             issue(issues, &location, format!("{prefix}: {message}"))?;
         }
     }
-    let agent = crate::agent_surface_validation::validate_manifest_with_sources(
-        root,
-        s,
-        false,
-        interpreter,
-        cancel,
-    )?;
+    let agent = crate::agent_surface_validation::validate_manifest_with_sources(root, s, cancel)?;
     if !agent.is_empty() {
         let mut lines = vec!["Agent surface validation failed.".to_string()];
         lines.extend(agent.into_iter().map(|(l, m)| format!("- {l}: {m}")));
@@ -1881,7 +1874,7 @@ fn run_validation_with_verified_export(
     root: &Path,
     s: &mut RouteSources,
     reuse_existing: bool,
-    interpreter: Option<&Path>,
+    _interpreter: Option<&Path>,
     export: Option<&crate::kag_corpus_export::VerifiedExport>,
     cancel: &AtomicI32,
 ) -> io::Result<Vec<Issue>> {
@@ -1951,7 +1944,7 @@ fn run_validation_with_verified_export(
     validate_public_safety(s, &p, &mut issues)?;
     validate_context_probes(s, &p, &mut issues)?;
     if reuse_existing {
-        validate_existing_owner_contracts(root, s, interpreter, export, cancel, &mut issues)?;
+        validate_existing_owner_contracts(root, s, export, cancel, &mut issues)?;
     }
     s.check()?;
     Ok(issues)

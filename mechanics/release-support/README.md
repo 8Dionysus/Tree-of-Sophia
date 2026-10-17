@@ -11,7 +11,7 @@
 | output | checked release route or failing owner surface |
 | owner | `mechanics/release-support/` |
 | stronger route | root release docs and scripts own release commands |
-| next route | [Artifact Bundles](parts/artifact-bundles/README.md) or [Source Release Gate](parts/source-release-gate/README.md) |
+| next route | [Source Release Gate](parts/source-release-gate/README.md) |
 | validation | `tos-release-check --repo-root "$PWD"` |
 
 ## Active Route

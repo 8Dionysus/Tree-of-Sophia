@@ -43,12 +43,12 @@ canon status require their own assessments.
 ## Validation
 
 Inspect the atlas population, route map, branch paths, and packet first. Then
-select [`stats/VALIDATION.md`](VALIDATION.md), which retains the compatible
-`aoa-stats` owner procedure and local test route. Use the root route for
+select [`stats/VALIDATION.md`](VALIDATION.md), which owns native ToS export checks
+and the standalone CLI regression. Consumer procedures run outside ToS. Use the root route for
 repository-wide validation.
 
 ## Closeout
 
 Report the Table I question, exact row and route populations, manual positive
-and negative cases, packet posture, central validation, and repository
+and negative cases, packet posture, local export validation, and repository
 validation.

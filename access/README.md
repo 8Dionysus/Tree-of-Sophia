@@ -149,26 +149,19 @@ includes selected main/identity/WAL/SHM handles, frame handles, native internals
 three association temporaries and six service-probe spawn descriptors. SQLite
 heap, allocator RSS and physical disk IO still require the host profile.
 
-The supported optional AbyssOS launch route is the existing host resource
-adapter, with a finite service lifetime established at creation:
+The standalone capture runs in an explicitly selected finite user service:
 
 ```sh
-ABS_ADMITTED_ABYSS_MACHINE resource launch --class CLASS --kind agent \
-  --activity foreground --unit UNIT.service --timeout OUTER_SECONDS \
-  --runtime-max-sec ORIGINAL_TOTAL_SECONDS \
-  --timeout-stop-sec ORIGINAL_CLEANUP_SECONDS \
-  --bytes OUTPUT_CAP --target ABS_SCRATCH \
-  --memory-demand-mib MEMORY --demand-owner OWNER --json -- \
-  ABS_INSTALLED_PREFIX/bin/tos edge-offline-capture \
-  --selected-request ABS_SELECTED_REQUEST
+systemd-run --user --wait --collect --pipe --unit UNIT.service \
+  -p MemoryMax=MEMORY_BYTES -p MemorySwapMax=0 \
+  -p RuntimeMaxSec=ORIGINAL_TOTAL_SECONDS -p TimeoutStopSec=ORIGINAL_CLEANUP_SECONDS \
+  -p KillMode=control-group -- \
+  ABS_INSTALLED_PREFIX/bin/tos edge-offline-capture --selected-request ABS_SELECTED_REQUEST
 ```
 
-The request selects that exact `UNIT.service`. The native entry verifies the
-actual service InvocationID, finite RuntimeMax/TimeoutStop, control-group
-killing, no restart/randomized extension, and its kernel cgroup and main
-process ancestry; environment strings cannot supply this capability. A host
-launcher lacking the finite creation options is unavailable for this operation.
-The resource adapter, its admission and physical caps remain host-owned.
+The request selects that exact `UNIT.service`. The native entry verifies its
+actual InvocationID, finite lifetime, cleanup and kernel cgroup/process custody.
+An external hosting policy may wrap this command; no ecosystem broker is needed.
 
 If native child release cannot be proved within the original cleanup clock,
 the CLI exits 125 with no success/adoption, retains immutable frames and
@@ -1587,14 +1580,10 @@ released snapshot performs bounded native integrity and member-binding checks;
   session packet for hypotheses, staged proposals, exclusions, route
   comparisons, notes, and its action journal.
 - `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
-- `profiles/standalone.v1.json` is the required no-AbyssOS profile.
-- `profiles/abyssos.v1.json` declares optional ecosystem adapters; the profile
-  is currently paused by the ToS integration posture until an explicit owner
-  command reopens it.
+- `profiles/standalone.v1.json` declares the ToS-owned installation profile.
 
-`tos verify --profile abyssos` additionally requires `TOS_ABYSSOS_ROOT` to
-point at an AbyssOS root containing `abyss-stack`; this setting is never
-required by the standalone profile.
+`tos doctor` and `tos verify` inspect ToS contracts and the selected data. They
+do not inspect neighboring source repositories or require an AbyssOS profile.
 
 ## Cloudflare production deployment
 
@@ -2044,9 +2033,12 @@ native product-selection route and refuses if none is available.
 
 ### Imported native query core
 
-Ordinary source SDK operations use the existing optional Abyss host launcher.
-Its installed host selection and provider-owned tmp/socket discovery are
-described in [the integration adapter](integrations/abyssos/README.md#native-sdk-host-paths).
+Ordinary source SDK operations use the native ToS launcher. It creates and
+checks its finite Linux scope, private tmpfs stage and bounded consumers itself.
+`TOS_SDK_SCRATCH_ROOT` selects an existing scratch parent; otherwise the launcher
+uses `XDG_RUNTIME_DIR` or the standard temporary directory. No host broker,
+policy socket or neighboring checkout is discovered. A prepared explicit
+`TOS_SDK_STAGE_CONFIG` retains the separate caller-owned bootstrap route.
 
 `NativeAccessCore` frames synchronous calls to the installed native MCP ABI.
 It returns the complete native packet. Rust owns query normalization, bounds,

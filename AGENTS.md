@@ -98,10 +98,10 @@ generated projection, validator, test, or public route. Change source or
 builder input before rebuilding a derived surface. If no durable rationale
 moved, do not create a decision record merely to narrate the diff.
 
-For material downloads, model/runtime work, heavy benchmarks, or large
-generated artifacts, follow `/etc/abyss-machine` storage policy and the
-`abyss-stack` laboratory route; do not turn this repository into runtime or
-cache storage.
+Keep material downloads, model runtimes, heavy benchmarks and large generated
+artifacts outside the source checkout, with explicit selected storage and finite
+budgets. Honor the executing host policy when supplied. No particular ecosystem
+host, laboratory checkout or installed service is a ToS prerequisite.
 
 ## Verify
 

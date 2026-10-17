@@ -82,8 +82,8 @@ Keep these boundaries visible:
 | identity, anchor, text-unit, sign, assertion, and translation law | `doctrine/` |
 | source corpus, generated catalogs, bibliographic records, physical artifacts, scholarly composites, payload route, fixity, provenance, rights, source-near text | `source-witnesses/` |
 | machine-checkable record shapes | `contracts/` |
-| extraction/OCR/LLM/embedding/graph experiment mechanics | `abyss-stack` |
-| host models, caches, runtimes, reservations, and large temporary data | `/etc/abyss-machine` and `/srv/abyss-machine` owner routes |
+| extraction/OCR/LLM/embedding/graph experiment mechanics | explicitly selected processing tools; ToS owns intake and evidence contracts |
+| host models, caches, runtimes, reservations, and large temporary data | explicitly selected external storage and the executing host policy |
 
 Paths speak; IDs persist. Every derived layer cites the exact input digest and
 transformation event. Graph and retrieval stores remain disposable readers.

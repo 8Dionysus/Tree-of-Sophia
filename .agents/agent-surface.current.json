@@ -1,6 +1,6 @@
 {
   "builder": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
-  "manifest_sha256": "130de8e79ac5fd7a23c27db52b5b4795b15534710fe51f7905cb68f62c4bf1bb",
+  "manifest_sha256": "ffef653dc966923c1d2951d83d37c04c948762027ebbbda6fea3264113210f43",
   "owner_ports": [
     {
       "id": "eval_port",
@@ -42,52 +42,42 @@
       "id": "kag_provider",
       "inputs": [
         {
-          "bytes": 2094,
+          "bytes": 1664,
           "path": "kag/AGENTS.md",
-          "sha256": "7ef05e98e563c3d882dbaebed19b85372c157b955bf33b19ef7593ad02c4464c"
+          "sha256": "ff5a01725072f8e839526a1eb9c8eb974d757f1434630a271d413f97e3a41f6c"
         },
         {
-          "bytes": 13576,
-          "path": "kag/provider-template.json",
-          "sha256": "e32247e0bd17193ffe18e0a07eda43e9f217f9e1b2300451884954a0544d3d52"
-        },
-        {
-          "bytes": 2921,
+          "bytes": 1633,
           "path": "kag/README.md",
-          "sha256": "26ac58519c0d01898bfb64049a63e8c94b2d86e34443e120ef24ea576d230dd9"
+          "sha256": "81aaeeafeec78b3a2cf833c9119b3f74005cd1bf92e5b6f486e94e5a5905d0b7"
         },
         {
-          "bytes": 3819,
+          "bytes": 1101,
           "path": "kag/VALIDATION.md",
-          "sha256": "814c50165c84b5a8a87a40d0b494b7c85755d492672575bc74f52bd8561c8f1a"
+          "sha256": "4d865b5feefabccb0e1f7211db3bee9a97a3b47597759522e594749a3a257e51"
         },
         {
-          "bytes": 8251,
-          "path": "rust/crates/tos-ops-mechanics-plan/src/provider_controls.rs",
-          "sha256": "3b60b60588b3ba02ec992e3b6f08b2125efa108d519fdfffb5f6f3347103477f"
-        },
-        {
-          "bytes": 30548,
+          "bytes": 30572,
           "path": "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs",
-          "sha256": "6f3604ae150c3906055df6536ef84012ca69ad50b5459789095a6b87a8893086"
+          "sha256": "d21c209c3799c8b3e0da90b2792adc9d352dddadfaaabd9c2c1fcbf5d3bc1fc0"
         },
         {
-          "bytes": 31142,
-          "path": "rust/crates/tos-ops-mechanics-plan/src/kag_release.rs",
-          "sha256": "b9603fce66007a76a723ac228f0af5c33b1068260b56b46218a42bffafcaeab1"
+          "bytes": 3250,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/kag_release_main.rs",
+          "sha256": "748b9af578b0045c6147de545bee14d64fa7b50f3ed1a7083a82fb9d58159019"
         },
         {
-          "bytes": 4136,
+          "bytes": 9703,
+          "path": "rust/crates/tos-ops-mechanics-plan/src/release_files.rs",
+          "sha256": "9657ef68790e5d6cbb93423271372d583d37c73032cd83b11a6105e4d191184b"
+        },
+        {
+          "bytes": 2610,
           "path": "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md",
-          "sha256": "5af42633167049ceebc9a3b0b70a9c29ecff42fbf7ad58b735d91685bf7ebfba"
-        },
-        {
-          "bytes": 6384,
-          "path": "docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md",
-          "sha256": "a21f53e286be49fd5950c18242a715c89be0fe39311675347322f62c1579b5cb"
+          "sha256": "c5d10ce10e255eeb71049c7c3cad7777ddd19699183626f96c798d70e2718d2e"
         }
       ],
-      "manifest": "kag/provider-template.json"
+      "manifest": "kag/README.md"
     },
     {
       "id": "memo_port",
@@ -124,9 +114,9 @@
       "id": "stats_port",
       "inputs": [
         {
-          "bytes": 2168,
+          "bytes": 2202,
           "path": "stats/AGENTS.md",
-          "sha256": "2dc41fe34854f4e80323be557c9188be5cb0ff35f83a422fbb2ee51060d4332b"
+          "sha256": "785cb3065c0f58172628fd4997f9ea8f78a7985958ae2c3352d51ebb463ba613"
         },
         {
           "bytes": 4095,
@@ -134,9 +124,9 @@
           "sha256": "67a1209a96acff52abe78fa80a58c0813b56cd667916c30d9e8505c65f6a854f"
         },
         {
-          "bytes": 2435,
+          "bytes": 3004,
           "path": "stats/README.md",
-          "sha256": "86af031ab31a74f81cb888f8de8544680c6f552e528dbb69a316334017ebea29"
+          "sha256": "2b87a35b928aacefec1ac5602d5bf46aded728f118ca7276feb790dd1888a8c7"
         },
         {
           "bytes": 2526,

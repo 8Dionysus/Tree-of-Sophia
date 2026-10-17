@@ -1,30 +1,25 @@
-//! Selected abyss-stack OCR verification for one owner-local TextLayer.
-//! The stronger owner verifies its own signed execution; this reader only
-//! checks the independently selected ToS grant and copies exact evidence.
-//! No path here invokes the owner's execute or render operations.
+//! Portable signed OCR import for one ToS-owned TextLayer. ToS verifies the
+//! independently pinned receipt, signer, source binding and exact output bytes.
+//! Producer implementation and runtime admission remain with the producer.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::active;
 use crate::source_text_owner::{normalized_absolute, read_absolute};
 use base64::Engine;
-use base64::alphabet::STANDARD as BASE64_ALPHABET;
-use base64::engine::general_purpose::{GeneralPurpose, GeneralPurposeConfig};
+use p256::ecdsa::{Signature, VerifyingKey, signature::Verifier};
+use p256::pkcs8::DecodePublicKey;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::os::unix::process::CommandExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, JsonValue, canonical_raw_bytes_v1};
 
-const ORIGINAL_ADAPTER: &str =
-    "mechanics/inference-pilots/parts/tos-foundation-lab/bounded_tesseract_ocr.py";
-const PAGE_ADAPTER: &str =
-    "mechanics/inference-pilots/parts/tos-foundation-lab/retained_page_tesseract_ocr.py";
 const EVIDENCE: [(&str, &str, &str); 3] = [
     ("owner-ocr-receipt.json", "receipt.json", "receipt_sha256"),
     (
@@ -34,7 +29,6 @@ const EVIDENCE: [(&str, &str, &str); 3] = [
     ),
     ("owner-ocr-signer.pub", "signer.pub", "public_key_sha256"),
 ];
-const MAX_STDOUT: usize = 512 * 1024;
 const MAX_STDERR: usize = 64 * 1024;
 
 fn evidence_cap(name: &str) -> usize {
@@ -103,7 +97,6 @@ pub(crate) fn bounded_process_with_stdin(
         .env_clear()
         .env("PATH", "/usr/bin")
         .env("LC_ALL", "C.UTF-8")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
         .process_group(0);
     if let Some(root) = cwd {
         command.current_dir(root);
@@ -217,54 +210,69 @@ pub(crate) fn bounded_process_with_stdin(
     streams[0].take().ok_or(invalid())
 }
 
-fn verified_adapter(
-    material: &JsonValue,
-    page: bool,
-    uid: u32,
+fn strict_evidence_json(raw: &[u8], max_bytes: usize) -> SourceCommandResult<Value> {
+    canonical_raw_bytes_v1(
+        raw,
+        CanonicalProfile::CorpusSnapshotV1,
+        JsonLimits {
+            max_bytes,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| invalid())?;
+    serde_json::from_slice(raw).map_err(|_| invalid())
+}
+
+fn verified_receipt(
+    copied: &BTreeMap<String, Vec<u8>>,
     end: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<PathBuf> {
-    let root = normalized_absolute(cmd::text(material, "owner_source_root")?)?;
-    if root.canonicalize().map_err(|_| invalid())? != root {
-        return Err(SourceCommandError::Denied(
-            "native owner OCR source root changed",
-        ));
-    }
-    let adapter = root.join(if page { PAGE_ADAPTER } else { ORIGINAL_ADAPTER });
-    let raw = read_absolute(&adapter, uid, false, 128 * 1024, end, cancelled)?;
-    if Digest256::of_bytes(&raw).to_hex() != cmd::text(material, "adapter_sha256")? {
-        return Err(SourceCommandError::Conflict(
-            "native owner OCR adapter changed",
-        ));
-    }
-    let revision = bounded_process(
-        "/usr/bin/git",
-        &["rev-parse", "HEAD"],
-        Some(&root),
-        256,
-        end,
-        cancelled,
+) -> SourceCommandResult<Value> {
+    active(end, cancelled)?;
+    let raw = copied.get("owner-ocr-receipt.json").ok_or(invalid())?;
+    let public = copied.get("owner-ocr-signer.pub").ok_or(invalid())?;
+    let bundle = strict_evidence_json(
+        copied
+            .get("owner-ocr-signature.sigstore.json")
+            .ok_or(invalid())?,
+        64 * 1024,
     )?;
-    let selected = cmd::text(material, "owner_source_ref")?;
-    if selected.strip_prefix("commit:") != Some(String::from_utf8_lossy(&revision).trim()) {
-        return Err(SourceCommandError::Conflict(
-            "native owner OCR source revision changed",
+    if !matches!(
+        bundle["mediaType"].as_str(),
+        Some("application/vnd.dev.sigstore.bundle.v0.3+json")
+            | Some("application/vnd.dev.sigstore.bundle.v0.2+json")
+            | Some("application/vnd.dev.sigstore.bundle.v0.1+json")
+    ) || bundle["messageSignature"]["messageDigest"]["algorithm"] != "SHA2_256"
+    {
+        return Err(SourceCommandError::Unsupported(
+            "OCR requires a key-pinned P-256/SHA-256 Sigstore message signature",
         ));
     }
-    let status = bounded_process(
-        "/usr/bin/git",
-        &["status", "--porcelain", "--untracked-files=normal"],
-        Some(&root),
-        65_536,
-        end,
-        cancelled,
-    )?;
-    if status.iter().any(|byte| !byte.is_ascii_whitespace()) {
+    let encoded_digest = bundle["messageSignature"]["messageDigest"]["digest"]
+        .as_str()
+        .ok_or(invalid())?;
+    let expected_digest = base64::engine::general_purpose::STANDARD
+        .decode(encoded_digest)
+        .map_err(|_| invalid())?;
+    if expected_digest.as_slice() != Digest256::of_bytes(raw).as_bytes() {
         return Err(SourceCommandError::Conflict(
-            "native owner OCR source is dirty",
+            "OCR signature bundle message digest differs",
         ));
     }
-    Ok(adapter)
+    let encoded_signature = bundle["messageSignature"]["signature"]
+        .as_str()
+        .ok_or(invalid())?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded_signature)
+        .map_err(|_| invalid())?;
+    let signature = Signature::from_der(&bytes).map_err(|_| invalid())?;
+    let public = std::str::from_utf8(public).map_err(|_| invalid())?;
+    let key = VerifyingKey::from_public_key_pem(public).map_err(|_| invalid())?;
+    key.verify(raw, &signature)
+        .map_err(|_| SourceCommandError::Denied("OCR receipt signature does not verify"))?;
+    active(end, cancelled)?;
+    let receipt = strict_evidence_json(raw, 128 * 1024)?;
+    Ok(receipt)
 }
 
 fn evidence_from_root(
@@ -294,35 +302,27 @@ fn evidence_from_root(
     Ok(copied)
 }
 
-fn checked_result(
-    response: &[u8],
+fn bound_receipt(
+    receipt: &Value,
     material: &JsonValue,
     scope: &JsonValue,
     language: &str,
     page: bool,
-    copied: &BTreeMap<String, Vec<u8>>,
-    disclose: bool,
-) -> SourceCommandResult<Option<Vec<u8>>> {
-    if response.len() > MAX_STDOUT {
-        return Err(SourceCommandError::Unsupported(
-            "native owner OCR result budget",
-        ));
-    }
-    let result: Value = serde_json::from_slice(response).map_err(|_| invalid())?;
-    let receipt = result.get("receipt").ok_or(invalid())?;
-    let receipt_raw = copied.get("owner-ocr-receipt.json").ok_or(invalid())?;
-    let selected_receipt: Value = serde_json::from_slice(receipt_raw).map_err(|_| invalid())?;
+) -> SourceCommandResult<()> {
     let selected_scope = serde(scope)?;
     let language = match language {
         "de" => "deu",
         "ru" => "rus",
         other => other,
     };
-    if result["ok"] != true
-        || receipt != &selected_receipt
-        || result["receipt_sha256"] != cmd::text(material, "receipt_sha256")?
-        || result["signature_sha256"] != cmd::text(material, "signature_sha256")?
-        || result["public_key_sha256"] != cmd::text(material, "public_key_sha256")?
+    if receipt["schema_version"]
+        != if page {
+            "tos_retained_pdf_page_ocr_execution_v1"
+        } else {
+            "tos_operator_synthetic_png_ocr_execution_v1"
+        }
+        || receipt["status"] != "completed"
+        || receipt["returncode"] != 0
         || receipt["owner"]["source_ref"] != cmd::text(material, "owner_source_ref")?
         || receipt["owner"]["adapter_sha256"] != cmd::text(material, "adapter_sha256")?
         || receipt["source_scope"] != selected_scope
@@ -334,10 +334,80 @@ fn checked_result(
             "native owner OCR receipt differs from grant",
         ));
     }
+    // Preserve the source/input and finite execution assertions of these two
+    // versioned receipt profiles, without importing a producer's host policy.
+    let limits = &receipt["limits"];
+    let output_limit = limits["max_output_bytes"]
+        .as_u64()
+        .filter(|v| (1..=131_072).contains(v));
+    let pixel_limit = limits["max_pixels"]
+        .as_u64()
+        .filter(|v| (1..=12_000_000).contains(v));
+    let seconds = limits["max_seconds"]
+        .as_f64()
+        .filter(|v| v.is_finite() && *v > 0.0 && *v <= 30.0);
+    let elapsed = receipt["elapsed_seconds"]
+        .as_f64()
+        .filter(|v| v.is_finite() && *v >= 0.0);
+    let source_cap = if page {
+        128 * 1024 * 1024
+    } else {
+        10 * 1024 * 1024
+    };
+    if receipt["source_sha256"] != selected_scope["file_sha256"]
+        || !receipt["source_bytes"]
+            .as_u64()
+            .is_some_and(|v| (1..=source_cap).contains(&v))
+        || !output_limit.is_some_and(|max| {
+            receipt["output_bytes"]
+                .as_u64()
+                .is_some_and(|n| n > 0 && n <= max)
+        })
+        || !seconds.zip(elapsed).is_some_and(|(max, n)| n <= max)
+        || pixel_limit.is_none()
+        || limits.as_object().is_none_or(|v| v.len() != 3)
+    {
+        return Err(SourceCommandError::Conflict(
+            "OCR source or execution bounds differ",
+        ));
+    }
+    let pixels = if page {
+        let binding = cmd::field(material, "input_representation")?;
+        validate_page_binding(binding)?;
+        cmd::integer(binding, "width_pixels")?.checked_mul(cmd::integer(binding, "height_pixels")?)
+    } else {
+        receipt["image_dimensions"]
+            .as_array()
+            .filter(|v| v.len() == 2)
+            .and_then(|v| v[0].as_u64().zip(v[1].as_u64()))
+            .and_then(|(w, h)| {
+                if w > 0 && h > 0 {
+                    w.checked_mul(h)
+                } else {
+                    None
+                }
+            })
+    };
+    if !pixels
+        .zip(pixel_limit)
+        .is_some_and(|(n, max)| n > 0 && n <= max)
+    {
+        return Err(SourceCommandError::Conflict(
+            "OCR input image bounds differ",
+        ));
+    }
     if page {
         if receipt["schema_version"] != "tos_retained_pdf_page_ocr_execution_v1"
             || receipt["input_representation"]
                 != serde(cmd::field(material, "input_representation")?)?
+            || receipt["input_verification"]["schema_version"]
+                != "tos_retained_pdf_page_verification_capture_v1"
+            || receipt["input_verification"]["event_type"] != "verification_capture"
+            || receipt["input_verification"]["status"] != "verified"
+            || receipt["input_verification"]["source_scope"] != selected_scope
+            || receipt["input_verification"]["source_bytes"] != receipt["source_bytes"]
+            || receipt["input_verification"]["input_representation"]
+                != receipt["input_representation"]
             || receipt["input_verification"]["render_execution"] != "not_performed"
             || receipt["input_verification"]["historical_receipt_signature"] != "absent"
         {
@@ -346,34 +416,7 @@ fn checked_result(
             ));
         }
     }
-    if !disclose {
-        if result.get("content_base64").is_some() {
-            return Err(SourceCommandError::Denied(
-                "native owner metadata verification disclosed text",
-            ));
-        }
-        return Ok(None);
-    }
-    let encoded = result["content_base64"].as_str().ok_or(invalid())?;
-    if encoded.len() > 174_764 {
-        return Err(SourceCommandError::Unsupported(
-            "native owner OCR encoded content budget",
-        ));
-    }
-    let python_base64 = GeneralPurpose::new(
-        &BASE64_ALPHABET,
-        GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
-    );
-    let content = python_base64.decode(encoded).map_err(|_| invalid())?;
-    if content.len() as u64 != cmd::integer(material, "byte_size")?
-        || Digest256::of_bytes(&content).to_hex() != cmd::text(material, "content_sha256")?
-        || std::str::from_utf8(&content).is_err()
-    {
-        return Err(SourceCommandError::Conflict(
-            "native owner OCR content differs",
-        ));
-    }
-    Ok(Some(content))
+    Ok(())
 }
 
 pub(crate) fn verify_initial(
@@ -388,36 +431,31 @@ pub(crate) fn verify_initial(
     // The owning command gives every owner check in this invocation the same
     // absolute 30-second ceiling. A later copied-record check cannot renew it.
     let end = deadline;
-    let adapter = verified_adapter(material, page, uid, end, cancelled)?;
-    let adapter_path = adapter.to_str().ok_or(invalid())?;
-    let receipt_root = cmd::text(material, "receipt_root")?;
-    let receipt_sha = cmd::text(material, "receipt_sha256")?;
-    let public_sha = cmd::text(material, "public_key_sha256")?;
-    let source_ref = cmd::text(material, "owner_source_ref")?;
-    let response = bounded_process(
-        "/usr/bin/python3",
-        &[
-            adapter_path,
-            "--emit-content",
-            "verify",
-            "--receipt-root",
-            receipt_root,
-            "--receipt-sha256",
-            receipt_sha,
-            "--public-key-sha256",
-            public_sha,
-            "--owner-source-ref",
-            source_ref,
-        ],
-        None,
-        MAX_STDOUT,
+    let root = normalized_absolute(cmd::text(material, "receipt_root")?)?;
+    let evidence = evidence_from_root(material, uid, end, cancelled)?;
+    let receipt = verified_receipt(&evidence, end, cancelled)?;
+    bound_receipt(&receipt, material, scope, language, page)?;
+    let content = read_absolute(
+        &root.join("content.txt"),
+        uid,
+        true,
+        131_072,
         end,
         cancelled,
     )?;
-    let evidence = evidence_from_root(material, uid, end, cancelled)?;
-    let content = checked_result(&response, material, scope, language, page, &evidence, true)?
-        .ok_or(invalid())?;
-    verified_adapter(material, page, uid, end, cancelled)?;
+    if content.len() as u64 != cmd::integer(material, "byte_size")?
+        || Digest256::of_bytes(&content).to_hex() != cmd::text(material, "content_sha256")?
+        || std::str::from_utf8(&content).is_err()
+    {
+        return Err(SourceCommandError::Conflict(
+            "native owner OCR content differs",
+        ));
+    }
+    if evidence_from_root(material, uid, end, cancelled)? != evidence {
+        return Err(SourceCommandError::Conflict(
+            "OCR evidence changed during signature verification",
+        ));
+    }
     Ok(OwnerOcrInitial { content, evidence })
 }
 
@@ -433,9 +471,6 @@ pub(crate) fn verify_record(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
     let end = deadline;
-    let adapter = verified_adapter(material, page, uid, end, cancelled)?;
-    let adapter_path = adapter.to_str().ok_or(invalid())?;
-    let mut paths = Vec::new();
     for (name, _, key) in EVIDENCE {
         let path = evidence_dir.join(name);
         let raw = read_absolute(&path, uid, true, evidence_cap(name), end, cancelled)?;
@@ -446,27 +481,26 @@ pub(crate) fn verify_record(
                 "native owner OCR copied evidence changed",
             ));
         }
-        paths.push(path);
     }
-    let args = [
-        adapter_path,
-        "verify-record",
-        "--receipt",
-        paths[0].to_str().ok_or(invalid())?,
-        "--signature",
-        paths[1].to_str().ok_or(invalid())?,
-        "--public-key",
-        paths[2].to_str().ok_or(invalid())?,
-        "--receipt-sha256",
-        cmd::text(material, "receipt_sha256")?,
-        "--public-key-sha256",
-        cmd::text(material, "public_key_sha256")?,
-        "--owner-source-ref",
-        cmd::text(material, "owner_source_ref")?,
-    ];
-    let response = bounded_process("/usr/bin/python3", &args, None, MAX_STDOUT, end, cancelled)?;
-    checked_result(&response, material, scope, language, page, copied, false)?;
-    verified_adapter(material, page, uid, end, cancelled)?;
+    let receipt = verified_receipt(copied, end, cancelled)?;
+    bound_receipt(&receipt, material, scope, language, page)?;
+    for (name, _, key) in EVIDENCE {
+        let raw = read_absolute(
+            &evidence_dir.join(name),
+            uid,
+            true,
+            evidence_cap(name),
+            end,
+            cancelled,
+        )?;
+        if copied.get(name) != Some(&raw)
+            || Digest256::of_bytes(&raw).to_hex() != cmd::text(material, key)?
+        {
+            return Err(SourceCommandError::Conflict(
+                "OCR evidence changed during signature verification",
+            ));
+        }
+    }
     Ok(())
 }
 
@@ -479,7 +513,6 @@ pub(crate) fn validate_material(material: &JsonValue, page: bool) -> SourceComma
         "receipt_sha256",
         "signature_sha256",
         "public_key_sha256",
-        "owner_source_root",
         "owner_source_ref",
         "adapter_sha256",
         "content_sha256",
@@ -487,6 +520,11 @@ pub(crate) fn validate_material(material: &JsonValue, page: bool) -> SourceComma
     ];
     if page {
         fields.push("input_representation");
+    }
+    // Immutable earlier grants may retain a historical source-root label. It
+    // is never resolved, inspected or used to choose executable code.
+    if material.object_get("owner_source_root").is_some() {
+        fields.push("owner_source_root");
     }
     cmd::exact_keys(material, &fields)?;
     if cmd::field(material, "access_allowed")? != &JsonValue::Bool(true)
@@ -512,7 +550,6 @@ pub(crate) fn validate_material(material: &JsonValue, page: bool) -> SourceComma
     {
         return Err(SourceCommandError::Denied("native owner OCR grant invalid"));
     }
-    normalized_absolute(cmd::text(material, "owner_source_root")?)?;
     normalized_absolute(cmd::text(material, "receipt_root")?)?;
     if page {
         validate_page_binding(cmd::field(material, "input_representation")?)?;
@@ -632,12 +669,9 @@ pub(crate) fn validate_page_anchor(
 mod tests {
     use super::*;
     use serde_json::{Value, json};
-
     fn source_value(value: &Value) -> JsonValue {
-        cmd::parse(&serde_json::to_vec(value).expect("encode synthetic OCR value"))
-            .expect("parse synthetic OCR value")
+        cmd::parse(&serde_json::to_vec(value).unwrap()).unwrap()
     }
-
     fn page_binding() -> Value {
         let source_sha = "1".repeat(64);
         let input_sha = "5".repeat(64);
@@ -666,122 +700,52 @@ mod tests {
         })
     }
 
-    fn fixture(
-        page: bool,
-    ) -> (
-        JsonValue,
-        JsonValue,
-        BTreeMap<String, Vec<u8>>,
-        Value,
-        Vec<u8>,
-    ) {
+    fn fixture(page: bool) -> (JsonValue, JsonValue, Value, Vec<u8>) {
         let content = b"Exact OCR: Gr\xc3\xbc\n".to_vec();
-        let scope_value = json!({
-            "work_ref": "tos.work.synthetic-ocr",
-            "expression_ref": "tos.expression.synthetic-ocr",
-            "edition_ref": "tos.edition.synthetic-ocr",
-            "item_ref": "tos.item.synthetic-ocr",
-            "file_ref": format!("tos.file.sha256.{}", "1".repeat(64)),
-            "file_sha256": "1".repeat(64)
-        });
-        let scope = source_value(&scope_value);
-        let content_sha = Digest256::of_bytes(&content).to_hex();
-        let owner_source_ref = format!("commit:{}", "a".repeat(40));
-        let adapter_sha = "b".repeat(64);
-        let signature_sha = "c".repeat(64);
-        let public_key_sha = "d".repeat(64);
-        let input = page_binding();
-        let receipt = if page {
-            json!({
-                "schema_version": "tos_retained_pdf_page_ocr_execution_v1",
-                "owner": {"source_ref": owner_source_ref, "adapter_sha256": adapter_sha},
-                "source_scope": scope_value,
-                "language": "deu",
-                "output_sha256": content_sha,
-                "output_bytes": content.len(),
-                "input_representation": input,
-                "input_verification": {
-                    "render_execution": "not_performed",
-                    "historical_receipt_signature": "absent"
-                }
-            })
-        } else {
-            json!({
-                "schema_version": "tos_operator_synthetic_png_ocr_execution_v1",
-                "owner": {"source_ref": owner_source_ref, "adapter_sha256": adapter_sha},
-                "source_scope": scope_value,
-                "language": "deu",
-                "output_sha256": content_sha,
-                "output_bytes": content.len()
-            })
-        };
-        let receipt_raw = serde_json::to_vec(&receipt).expect("encode synthetic receipt");
-        let receipt_sha = Digest256::of_bytes(&receipt_raw).to_hex();
-        let mut material_value = json!({
-            "receipt_sha256": receipt_sha,
-            "signature_sha256": signature_sha,
-            "public_key_sha256": public_key_sha,
-            "owner_source_ref": owner_source_ref,
-            "adapter_sha256": adapter_sha,
-            "content_sha256": content_sha,
-            "byte_size": content.len()
-        });
+        let mut receipt: Value = serde_json::from_slice(include_bytes!(
+            "../tests/fixtures/portable-ocr/receipt.json"
+        ))
+        .unwrap();
+        let scope = source_value(&receipt["source_scope"]);
+        let mut material = json!({"receipt_sha256":"1".repeat(64),"signature_sha256":"2".repeat(64),
+            "public_key_sha256":"3".repeat(64),"owner_source_ref":receipt["owner"]["source_ref"],
+            "adapter_sha256":receipt["owner"]["adapter_sha256"],
+            "content_sha256":Digest256::of_bytes(&content).to_hex(),"byte_size":content.len()});
         if page {
-            material_value["input_representation"] = input.clone();
+            let binding = page_binding();
+            receipt["schema_version"] = json!("tos_retained_pdf_page_ocr_execution_v1");
+            receipt["input_representation"] = binding.clone();
+            receipt["input_verification"] = json!({"schema_version":"tos_retained_pdf_page_verification_capture_v1","event_type":"verification_capture","status":"verified","source_scope":receipt["source_scope"],"source_bytes":receipt["source_bytes"],"input_representation":binding,"render_execution":"not_performed","historical_receipt_signature":"absent"});
+            material["input_representation"] = binding;
         }
-        let material = source_value(&material_value);
-        let response = json!({
-            "ok": true,
-            "receipt": receipt,
-            "receipt_sha256": receipt_sha,
-            "signature_sha256": signature_sha,
-            "public_key_sha256": public_key_sha,
-            "content_base64": base64::engine::general_purpose::STANDARD.encode(&content)
-        });
-        let copied = BTreeMap::from([("owner-ocr-receipt.json".to_owned(), receipt_raw)]);
-        (material, scope, copied, response, content)
+        (source_value(&material), scope, receipt, content)
     }
 
     #[test]
-    fn synthetic_result_keeps_exact_utf8_content_and_receipt_binding() {
-        let (material, scope, copied, mut response, content) = fixture(false);
-        let raw = serde_json::to_vec(&response).expect("encode synthetic verifier result");
-        assert_eq!(
-            checked_result(&raw, &material, &scope, "de", false, &copied, true).unwrap(),
-            Some(content)
-        );
-        response["receipt"]["source_scope"]["item_ref"] = json!("tos.item.other");
-        let raw = serde_json::to_vec(&response).expect("encode unbound synthetic result");
-        assert!(checked_result(&raw, &material, &scope, "de", false, &copied, true).is_err());
+    fn signed_receipt_binding_refuses_source_language_and_output_drift() {
+        let (material, scope, receipt, _) = fixture(false);
+        bound_receipt(&receipt, &material, &scope, "de", false).unwrap();
+        for field in [
+            "source_scope",
+            "language",
+            "output_sha256",
+            "source_sha256",
+            "source_bytes",
+            "limits",
+        ] {
+            let mut changed = receipt.clone();
+            changed[field] = json!("different");
+            assert!(bound_receipt(&changed, &material, &scope, "de", false).is_err());
+        }
     }
 
     #[test]
-    fn metadata_replay_accepts_receipt_only_and_refuses_disclosed_text() {
-        let (material, scope, copied, mut response, _) = fixture(false);
-        response.as_object_mut().unwrap().remove("content_base64");
-        let raw = serde_json::to_vec(&response).expect("encode metadata result");
-        assert_eq!(
-            checked_result(&raw, &material, &scope, "de", false, &copied, false).unwrap(),
-            None
-        );
-        response["content_base64"] = json!("ZXhhY3Q=");
-        let raw = serde_json::to_vec(&response).expect("encode disclosing metadata result");
-        assert!(checked_result(&raw, &material, &scope, "de", false, &copied, false).is_err());
-    }
-
-    #[test]
-    fn retained_page_result_requires_current_page_and_capture_posture() {
-        let (material, scope, copied, mut response, content) = fixture(true);
-        let binding = cmd::field(&material, "input_representation").unwrap();
-        validate_page_binding(binding).unwrap();
-        let raw = serde_json::to_vec(&response).expect("encode retained page result");
-        assert_eq!(
-            checked_result(&raw, &material, &scope, "de", true, &copied, true).unwrap(),
-            Some(content)
-        );
-        response["receipt"]["input_verification"]["render_execution"] = json!("performed");
-        let raw = serde_json::to_vec(&response).expect("encode false render posture");
-        assert!(checked_result(&raw, &material, &scope, "de", true, &copied, true).is_err());
+    fn retained_page_receipt_requires_current_input_and_capture_posture() {
+        let (material, scope, mut receipt, _) = fixture(true);
+        validate_page_binding(cmd::field(&material, "input_representation").unwrap()).unwrap();
+        bound_receipt(&receipt, &material, &scope, "de", true).unwrap();
+        receipt["input_verification"]["render_execution"] = json!("performed");
+        assert!(bound_receipt(&receipt, &material, &scope, "de", true).is_err());
     }
 
     #[test]
@@ -793,5 +757,160 @@ mod tests {
         binding["renderer"] = json!("poppler-pdftoppm");
         binding["input_file_ref"] = json!(format!("tos.file.sha256.{}", "6".repeat(64)));
         assert!(validate_page_binding(&source_value(&binding)).is_err());
+    }
+
+    #[test]
+    fn ambiguous_signed_json_is_refused() {
+        assert!(strict_evidence_json(br#"{"x":1,"x":2}"#, 1024).is_err());
+        assert!(strict_evidence_json(br#"{"x":1,"\u0078":2}"#, 1024).is_err());
+        assert!(strict_evidence_json(br#"{"x":1}"#, 1024).is_ok());
+    }
+
+    #[test]
+    fn portable_signed_import_and_metadata_replay_need_no_producer_checkout() {
+        use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+        let selected = std::env::temp_dir().join(format!(
+            "tos-portable-ocr-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::DirBuilder::new()
+            .mode(0o700)
+            .create(&selected)
+            .unwrap();
+        struct Cleanup(std::path::PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(selected.clone());
+        let evidence = [
+            (
+                "receipt.json",
+                include_bytes!("../tests/fixtures/portable-ocr/receipt.json").as_slice(),
+            ),
+            (
+                "signature.sigstore.json",
+                include_bytes!("../tests/fixtures/portable-ocr/signature.sigstore.json").as_slice(),
+            ),
+            (
+                "signer.pub",
+                include_bytes!("../tests/fixtures/portable-ocr/signer.pub").as_slice(),
+            ),
+        ];
+        for (name, raw) in evidence {
+            let path = selected.join(name);
+            std::fs::write(&path, raw).unwrap();
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+        let (material, scope, _, content) = fixture(false);
+        let mut material = serde(&material).unwrap();
+        material["authority_ref"] = json!("synthetic-independent-grant");
+        material["access_allowed"] = json!(true);
+        material["expires_at"] = json!("2099-01-01T00:00:00Z");
+        material["receipt_root"] = json!(selected);
+        // A historical root label is accepted as inert provenance; it is absent.
+        material["owner_source_root"] = json!("/not/available/producer-checkout");
+        for (index, key) in ["receipt_sha256", "signature_sha256", "public_key_sha256"]
+            .iter()
+            .enumerate()
+        {
+            material[*key] = json!(Digest256::of_bytes(evidence[index].1).to_hex());
+        }
+        std::fs::write(selected.join("content.txt"), &content).unwrap();
+        std::fs::set_permissions(
+            selected.join("content.txt"),
+            std::fs::Permissions::from_mode(0o600),
+        )
+        .unwrap();
+        let material = source_value(&material);
+        validate_material(&material, false).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let cancelled = AtomicBool::new(false);
+        let uid = unsafe { libc::geteuid() };
+        let initial =
+            verify_initial(&material, &scope, "de", false, uid, deadline, &cancelled).unwrap();
+        assert_eq!(initial.content, content);
+        let recorded = selected.join("record");
+        std::fs::DirBuilder::new()
+            .mode(0o700)
+            .create(&recorded)
+            .unwrap();
+        for (name, raw) in &initial.evidence {
+            let path = recorded.join(name);
+            std::fs::write(&path, raw).unwrap();
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+        std::fs::remove_file(selected.join("content.txt")).unwrap();
+        verify_record(
+            &material,
+            &scope,
+            "de",
+            false,
+            &recorded,
+            &initial.evidence,
+            uid,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        std::fs::write(selected.join("content.txt"), &content).unwrap();
+        std::fs::set_permissions(
+            selected.join("content.txt"),
+            std::fs::Permissions::from_mode(0o600),
+        )
+        .unwrap();
+        // A valid DER encoding with one changed signature bit, with all material
+        // hashes updated, must fail cryptographic verification itself.
+        let mut forged: Value = serde_json::from_slice(evidence[1].1).unwrap();
+        let mut signature = base64::engine::general_purpose::STANDARD
+            .decode(forged["messageSignature"]["signature"].as_str().unwrap())
+            .unwrap();
+        *signature.last_mut().unwrap() ^= 1;
+        Signature::from_der(&signature).unwrap();
+        forged["messageSignature"]["signature"] =
+            json!(base64::engine::general_purpose::STANDARD.encode(&signature));
+        let raw = serde_json::to_vec(&forged).unwrap();
+        std::fs::write(selected.join("signature.sigstore.json"), &raw).unwrap();
+        let mut tampered = serde(&material).unwrap();
+        tampered["signature_sha256"] = json!(Digest256::of_bytes(&raw).to_hex());
+        assert!(matches!(
+            verify_initial(
+                &source_value(&tampered),
+                &scope,
+                "de",
+                false,
+                uid,
+                deadline,
+                &cancelled
+            ),
+            Err(SourceCommandError::Denied(
+                "OCR receipt signature does not verify"
+            ))
+        ));
+        std::fs::write(selected.join("signature.sigstore.json"), evidence[1].1).unwrap();
+        // The receipt's independently selected bytes must also match the bundle.
+        let mut changed: Value = serde_json::from_slice(evidence[0].1).unwrap();
+        changed["language"] = json!("rus");
+        let raw = serde_json::to_vec(&changed).unwrap();
+        std::fs::write(selected.join("receipt.json"), &raw).unwrap();
+        let mut tampered = serde(&material).unwrap();
+        tampered["receipt_sha256"] = json!(Digest256::of_bytes(&raw).to_hex());
+        assert!(
+            verify_initial(
+                &source_value(&tampered),
+                &scope,
+                "de",
+                false,
+                uid,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
     }
 }

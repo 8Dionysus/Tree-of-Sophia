@@ -1,6 +1,6 @@
 //! Native software command roles shared by the build receipt and installed archive readers.
 //! This describes delivery only; execution, source selection and owner grants stay separate.
-pub const COMMANDS: [&str; 19] = [
+pub const COMMANDS: [&str; 18] = [
     "tos-native-owner-command",
     "tos-schema-worker",
     "tos-validation-lanes",
@@ -12,7 +12,6 @@ pub const COMMANDS: [&str; 19] = [
     "tos-reader",
     "tos-route-cards",
     "tos-agents-route-harness",
-    "tos-kag-provider-controls",
     "tos-kag-release",
     "tos-stats-release",
     "tos-unicode-tables",
@@ -21,13 +20,12 @@ pub const COMMANDS: [&str; 19] = [
     "tos-open-work-queue",
     "tos-research",
 ];
-pub const NO_DEFAULT_FEATURES: [&str; 11] = [
+pub const NO_DEFAULT_FEATURES: [&str; 10] = [
     "tos-validation-lanes",
     "tos-release-check",
     "tos-software-ci",
     "tos-route-cards",
     "tos-agents-route-harness",
-    "tos-kag-provider-controls",
     "tos-kag-release",
     "tos-stats-release",
     "tos-unicode-tables",
@@ -69,7 +67,6 @@ pub fn explicit_features(role: &str) -> &'static [&'static str] {
         "tos-constructor-library" | "tos-constructor-fragments" => &["source-tools"],
         "tos-route-cards"
         | "tos-agents-route-harness"
-        | "tos-kag-provider-controls"
         | "tos-kag-release"
         | "tos-stats-release" => &["mechanics"],
         _ => &[],

@@ -541,7 +541,7 @@ class NativeCoreSnapshotClient:
                 fds.append(sender.fileno())
             inherited = dict(os.environ)
             for key in tuple(inherited):
-                if key.startswith('TOS_') or key == 'ABYSS_STAGE_TICKET_FD':
+                if key.startswith('TOS_'):
                     inherited.pop(key, None)
             if admission is None:
                 from .native_core_session import owned_native_snapshot_exchange

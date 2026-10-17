@@ -9,6 +9,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::ops::{Deref, DerefMut};
+use std::os::fd::AsRawFd;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::os::unix::process::{CommandExt, ExitStatusExt};
 use std::path::{Path, PathBuf};
@@ -2281,51 +2282,21 @@ fn resource_snapshot(root: &Path) -> Result<ResourceSnapshot, String> {
     })
 }
 
-fn write_lease(output: &Path, unit: &str, cap: usize) -> Result<String, String> {
-    let canonical = fs::canonicalize(output).map_err(|e| format!("output directory: {e}"))?;
-    let result = Command::new("abyss-machine")
-        .args(["storage", "write-reservation", "list", "--json"])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .output()
-        .map_err(|e| format!("storage reservation list: {e}"))?;
-    if !result.status.success() || result.stdout.len() > 1_048_576 {
-        return Err("canonical storage reservation list failed or exceeded 1 MiB".into());
+// The output belongs to this invocation, not to an external host lease.
+// Hold an exclusive directory lock through terminal output and retain the
+// existing capped writers. The kernel checks available space before work.
+fn output_custody(output: &Path, cap: usize) -> Result<File, String> {
+    let held = File::open(output).map_err(|e| format!("output directory: {e}"))?;
+    if unsafe { libc::flock(held.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+        return Err("output directory is already owned by an active run".into());
     }
-    let value: Value =
-        serde_json::from_slice(&result.stdout).map_err(|_| "invalid storage reservation JSON")?;
-    let records = value
-        .get("records")
-        .and_then(Value::as_array)
-        .ok_or("storage reservation records absent")?;
-    let matching = records
-        .iter()
-        .filter(|r| {
-            r["active"] == true
-                && r["hold_until_terminal"] == true
-                && r["requested_bytes"].as_u64().unwrap_or(0) >= cap as u64
-                && r["target"].as_str().is_some_and(|p| {
-                    fs::canonicalize(p).ok().as_deref() == Some(canonical.as_path())
-                })
-                && r["execution_identity"].as_str().is_some_and(|v| {
-                    v.starts_with(&format!("resource-launch:{unit}:")) && v.ends_with(":execution")
-                })
-        })
-        .collect::<Vec<_>>();
-    if value["ok"] != true
-        || value["state_errors"]
-            .as_array()
-            .is_some_and(|v| !v.is_empty())
-        || matching.len() != 1
+    let mut stat = unsafe { std::mem::zeroed::<libc::statvfs>() };
+    if unsafe { libc::fstatvfs(held.as_raw_fd(), &mut stat) } != 0
+        || u128::from(stat.f_bavail) * u128::from(stat.f_frsize) < cap as u128
     {
-        return Err(
-            "fresh unique terminal output reservation bound to this unit is required".into(),
-        );
+        return Err("output storage budget unavailable".into());
     }
-    matching[0]["execution_identity"]
-        .as_str()
-        .map(str::to_owned)
-        .ok_or_else(|| "output lease execution identity absent".into())
+    Ok(held)
 }
 const VOLATILE_JSON_PATHS: &[&str] = &[
     "/result/revision",
@@ -8142,9 +8113,10 @@ fn main_result() -> Result<i32, String> {
         args.operation_count,
         args.channel_mix.as_ref(),
     )?;
-    let (_, needs_mcp, needs_owner) = validate_plan(&plan, &args, None)?;
+    let (_, _, needs_owner) = validate_plan(&plan, &args, None)?;
     let cgroup = cgroup_path(&args.unit)?;
-    let lease_execution = write_lease(&args.output, &args.unit, args.output_cap)?;
+    let _output_custody = output_custody(&args.output, args.output_cap)?;
+    let execution = format!("tos-load-readiness:{}:{}", args.unit, std::process::id());
     let owner_stage = prepare_owner_stage(&mut args, &mut plan, needs_owner, deadline)?;
     let mut paths = vec![args.query_binary.clone()];
     let prepared_model_index = args.model.as_ref().map(|path| {
@@ -8514,7 +8486,7 @@ fn main_result() -> Result<i32, String> {
                 "schedule_cap_bytes": args.schedule_cap,
                 "output_cap_bytes": args.output_cap
             },
-            "lease_execution": lease_execution,
+            "execution_identity": execution,
             "scope": "finite Rust protocol measurement; not capacity acceptance"
         }),
     )?;

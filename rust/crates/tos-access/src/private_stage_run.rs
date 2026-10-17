@@ -20,7 +20,6 @@ use std::{
     time::Duration,
 };
 use tos_foundation::{Digest256, Digest256Hasher};
-mod abyssos_host;
 const PATH_BYTES: usize = 4096;
 const PATH_PARTS: usize = 128;
 const ARGC: usize = 256;
@@ -28,7 +27,7 @@ const ARGV_BYTES: usize = 128 * 1024;
 const PINNED_IMAGE_MAX_BYTES: u64 = 256 * 1024 * 1024;
 const ELF64_HEADER_BYTES: usize = 64;
 const FALLBACKS: [&str; 3] = ["/var/tmp", "/usr/tmp", "/tmp"];
-const SCHEMA: &str = "abyss_machine_private_tmpfs_stage_v1";
+const SCHEMA: &str = "tos_private_tmpfs_stage_v1";
 static CANCELLED: AtomicBool = AtomicBool::new(false);
 extern "C" fn cancel(_: i32) {
     CANCELLED.store(true, Ordering::Relaxed);
@@ -2787,7 +2786,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         if info.dev() == meta.dev() {
             return Err("persistent store must be outside private tmpfs device".into());
         }
-        ticket["schema"] = serde_json::json!("abyss_machine_private_tmpfs_stage_v2");
+        ticket["schema"] = serde_json::json!("tos_private_tmpfs_stage_v2");
         ticket["persistent_store"] = serde_json::json!({"root":path,"root_device":info.dev(),"root_inode":info.ino(),"quota_scope":"outside-private-tmpfs"});
     }
     if let (Some(selected), Some(held)) = (&o.search_cache, &search_cache) {
@@ -2795,7 +2794,7 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         if info.dev() == meta.dev() {
             return Err("search cache must be outside private tmpfs device".into());
         }
-        ticket["schema"] = serde_json::json!("abyss_machine_private_tmpfs_stage_v3");
+        ticket["schema"] = serde_json::json!("tos_private_tmpfs_stage_v3");
         ticket["search_cache"] = serde_json::json!({"path":selected.path,"source_root":selected.source_root,"parent_device":info.dev(),"parent_inode":info.ino(),"parent_fd":held.as_raw_fd(),"max_build_bytes":selected.max_build_bytes,"max_temp_bytes":selected.max_temp_bytes,"quota_scope":"outside-private-tmpfs-original-io"});
     }
     let bytes = serde_json::to_vec(&ticket).map_err(|e| e.to_string())?;
@@ -2805,11 +2804,11 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     let fd = unsafe {
         libc::memfd_create(
             if search_cache.is_some() {
-                c"abyss_machine_private_tmpfs_stage_v3".as_ptr()
+                c"tos_private_tmpfs_stage_v3".as_ptr()
             } else if persistent.is_some() {
-                c"abyss_machine_private_tmpfs_stage_v2".as_ptr()
+                c"tos_private_tmpfs_stage_v2".as_ptr()
             } else {
-                c"abyss_machine_private_tmpfs_stage_v1".as_ptr()
+                c"tos_private_tmpfs_stage_v1".as_ptr()
             },
             libc::MFD_ALLOW_SEALING | libc::MFD_CLOEXEC,
         )
@@ -3008,8 +3007,8 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     }
     command
         .args(&o.command[1..])
-        .env("ABYSS_STAGE_ROOT", &i.root)
-        .env("ABYSS_STAGE_TICKET_FD", fd.to_string())
+        .env("TOS_STAGE_ROOT", &i.root)
+        .env("TOS_STAGE_TICKET_FD", fd.to_string())
         .env("TMPDIR", &temporary)
         .env("SQLITE_TMPDIR", &temporary);
     Err(io_failure("exec.consumer", command.exec()))
@@ -3738,8 +3737,8 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
         command
             .args(&o.command[1..])
             .env("TOS_SDK_STAGE_CONFIG", encoded)
-            .env_remove("ABYSS_STAGE_TICKET_FD")
-            .env_remove("ABYSS_STAGE_ROOT")
+            .env_remove("TOS_STAGE_TICKET_FD")
+            .env_remove("TOS_STAGE_ROOT")
             .env_remove("ABYSS_CONSUMER_CONTROL_FD")
             .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
         if let Some(p) = sdk_phase_as {
@@ -3841,7 +3840,8 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
 }
 
 // Normal optional Abyss host admission for one ordinary SDK operation.
-// This request is not a Stage grant: the host and systemd issue real leases.
+// This request is not a Stage grant: the native launcher and systemd issue
+// actual per-operation containment. No ecosystem admission service is needed.
 fn host_command(
     exe: &str,
     args: &[String],
@@ -3945,108 +3945,34 @@ fn host_command(
         (Err(a), Err(b)) => Err(format!("host request {a}; child cleanup {b}")),
     }
 }
-fn host_json(
-    exe: &str,
-    args: &[String],
-    end: Cutoff,
-    cleanup_only: bool,
-) -> Result<serde_json::Value, String> {
-    let j: serde_json::Value = serde_json::from_slice(&host_command(exe, args, end, cleanup_only)?)
-        .map_err(|e| e.to_string())?;
-    if j["ok"] != true {
-        return Err(format!("normal host owner refused: {}", j["decision"]));
+// The standalone launcher owns only its per-operation kernel limits and files.
+// A hosting application may choose the parent directory through this explicit
+// selector; no repository, host broker or admission daemon is discovered.
+fn sdk_scratch_parent() -> Result<(PathBuf, File), String> {
+    let path = std::env::var_os("TOS_SDK_SCRATCH_ROOT")
+        .or_else(|| std::env::var_os("XDG_RUNTIME_DIR"))
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let held = directory(&path)?;
+    let meta = held.metadata().map_err(|e| e.to_string())?;
+    let shared_sticky = meta.uid() == 0 && meta.mode() & 0o1000 != 0;
+    if (meta.uid() != unsafe { libc::geteuid() } && meta.uid() != 0)
+        || (meta.mode() & 0o022 != 0 && !shared_sticky)
+    {
+        return Err("SDK scratch parent must be owned or root-owned sticky storage".into());
     }
-    Ok(j)
+    Ok((path, held))
 }
-// Failure-only projection of the host owner's existing public admission reply.
-// No lease/request identities, capability, cgroup, raw plan or relief payload
-// crosses this diagnostic seam. All fields come from the SAME bounded reply.
-const HOST_REFUSAL_BYTES: usize = 4096;
-fn host_public_label(value: &serde_json::Value) -> serde_json::Value {
-    value
-        .as_str()
-        .filter(|text| text.len() <= 128 && text.bytes().all(|b| b.is_ascii_graphic() || b == b' '))
-        .map(|text| serde_json::Value::String(text.to_owned()))
-        .unwrap_or(serde_json::Value::Null)
-}
-fn host_public_counter(value: &serde_json::Value) -> serde_json::Value {
-    value
-        .as_number()
-        .filter(|number| number.to_string().len() <= 32)
-        .map(|number| serde_json::Value::Number(number.clone()))
-        .unwrap_or(serde_json::Value::Null)
-}
-fn host_refusal_diagnostic(
-    reply: &serde_json::Value,
-    request: &serde_json::Value,
-    response_bytes: usize,
-    cleanup_only: bool,
-) -> String {
-    let plan = &reply["plan"];
-    let mut diagnostic = serde_json::json!({
-        "schema":"tos_sdk_host_admission_refusal_v1",
-        "stage": if cleanup_only { "cleanup_release" } else { "workload_start" },
-        "decision":host_public_label(&reply["decision"]),
-        "command":host_public_label(&reply["command"]),
-        "response_bytes":response_bytes,
-        "memory_demand_mib":host_public_counter(&request["request"]["memory_demand_mib"]),
-        "error_type":host_public_label(&reply["error_type"]),
-        "projected_memory":{
-            "class":host_public_label(&plan["projected_memory"]["class"]),
-            "mem_available_mib":host_public_counter(&plan["projected_memory"]["mem_available_mib"])
-        },
-        "swap_reserve":{
-            "state":host_public_label(&plan["swap_reserve"]["state"]),
-            "free_mib":host_public_counter(&plan["swap_reserve"]["free_mib"]),
-            "target_free_mib":host_public_counter(&plan["swap_reserve"]["target_free_mib"]),
-            "shortfall_mib":host_public_counter(&plan["swap_reserve"]["shortfall_mib"])
-        },
-        "contract_errors_count":reply["contract_errors"].as_array().map(Vec::len),
-        "relief_action_executed":reply["relief"]["action_executed"].as_bool(),
-        "policy_fail_closed":reply["policy"]["fail_closed"].as_bool(),
-        "truncated":false
-    });
-    for key in [
-        "blocked_reasons",
-        "denied_reasons",
-        "warnings",
-        "contract_errors",
-    ] {
-        let values = reply
-            .get(key)
-            .or_else(|| plan.get(key))
-            .and_then(serde_json::Value::as_array);
-        let kept: Vec<_> = values
-            .into_iter()
-            .flatten()
-            .take(4)
-            .map(host_public_label)
-            .filter(|value| !value.is_null())
-            .collect();
-        let omitted = values.map_or(0, Vec::len).saturating_sub(kept.len());
-        diagnostic[key] = serde_json::Value::Array(kept);
-        diagnostic[format!("{key}_omitted")] = serde_json::json!(omitted);
+
+fn storage_available(held: &File, bytes: u64) -> Result<(), String> {
+    let mut stat = unsafe { std::mem::zeroed::<libc::statvfs>() };
+    if unsafe { libc::fstatvfs(held.as_raw_fd(), &mut stat) } != 0 {
+        return Err(error());
     }
-    let encoded = diagnostic.to_string();
-    if encoded.len() <= HOST_REFUSAL_BYTES {
-        return encoded;
+    if u128::from(stat.f_bavail) * u128::from(stat.f_frsize) < u128::from(bytes) {
+        return Err("SDK operation storage budget unavailable".into());
     }
-    // Labels can require JSON escaping. Preserve stage/decision/counters even
-    // when the admitted diagnostic would otherwise exceed its fixed bound.
-    for key in [
-        "blocked_reasons",
-        "denied_reasons",
-        "warnings",
-        "contract_errors",
-    ] {
-        let removed = diagnostic[key].as_array().map_or(0, Vec::len);
-        let omitted_key = format!("{key}_omitted");
-        let previous = diagnostic[&omitted_key].as_u64().unwrap_or(0);
-        diagnostic[omitted_key] = serde_json::json!(previous + removed as u64);
-        diagnostic[key] = serde_json::json!([]);
-    }
-    diagnostic["truncated"] = serde_json::json!(true);
-    diagnostic.to_string()
+    Ok(())
 }
 
 fn sdk_host_session(args: &[String]) -> Result<i32, String> {
@@ -4157,9 +4083,10 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
         return Err("host UUID unavailable".into());
     }
     let scope = format!("tos-sdk-session-{uuid}.scope");
-    let host_adapter = abyssos_host::Host::select(end)?;
-    let scratch = host_adapter.scratch(&scope)?;
-    let host = host_adapter.executable.as_str();
+    let (scratch_parent, scratch_parent_hold) = sdk_scratch_parent()?;
+    let scratch = scratch_parent.join(&scope);
+    path_shape(&scratch)?;
+    storage_available(&scratch_parent_hold, 65536)?;
     // The ordinary request chooses only the selected path. Bind it to the exact
     // logical Root already admitted above and issue physical caps from this
     // native SDK profile.
@@ -4183,10 +4110,6 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             return Err("ordinary search cache overlaps native scratch".into());
         }
     }
-    let mut lease: Option<String> = None;
-    let mut storage = false;
-    let mut cache_storage = false;
-    let cache_reservation_id = format!("{scope}-search-cache");
     let mut cache_anchor_hold: Option<File> = None;
     let mut cache_parent_hold: Option<File> = None;
     let mut created = false;
@@ -4245,95 +4168,14 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             "0".into(),
         ];
         host_command("/usr/bin/busctl", &busargs, end, false)?;
-        let common = loop {
+        loop {
             end.check()?;
             let candidate = membership()?;
             if candidate.file_name().and_then(OsStr::to_str) == Some(scope.as_str()) {
-                break candidate;
+                break;
             }
             thread::sleep(Duration::from_millis(5));
-        };
-        // The host owner contract uses the rooted hierarchy from
-        // /proc/self/cgroup, not a relative path or the filesystem mount path.
-        let cgroup = format!(
-            "/{}",
-            common
-                .strip_prefix("/sys/fs/cgroup")
-                .map_err(|e| e.to_string())?
-                .to_str()
-                .ok_or("cgroup text")?
-        );
-        // Conditional startup bill for cgroup-charged RAM under this native
-        // scope's configured MemoryMax and swap-zero envelope. This is a full
-        // ceiling forecast, not a measured peak or total host-overhead estimate.
-        // External caller buffers remain outside the migrated child scope and
-        // already enter the broker's current host facts; do not add them here.
-        let scope_ceiling_mib = SDK_SCOPE_BYTES.div_ceil(1024 * 1024);
-        let grant = host_adapter.admission(
-            serde_json::json!({"command":"reserve","request":{"operation":"workload_start","owner":"tos-access-sdk","workload_id":scope,"request_id":uuid,"release_token":uuid,"activity":"foreground","class":"medium","kind":"generic","memory_demand_mib":scope_ceiling_mib,"estimate_source":"native_sdk_configured_cgroup_ceiling","estimate_confidence":"conditional","owner_pid":std::process::id(),"owner_cgroup":cgroup,"recoverability":"preserve"}}),
-            end,
-            false,
-        )?;
-        if grant["lease"]["owner_pid"] != std::process::id()
-            || grant["lease"]["owner_cgroup"] != cgroup
-            || grant["lease"]["owner"] != "tos-access-sdk"
-            || grant["lease"]["workload_id"] != scope
-        {
-            return Err("host issued lease binding differs".into());
         }
-        lease = Some(
-            grant["lease"]["id"]
-                .as_str()
-                .ok_or("host lease identity absent")?
-                .to_string(),
-        );
-        end.check()?;
-        let preflight = host_json(
-            host,
-            &vec![
-                "storage".into(),
-                "write-preflight".into(),
-                "--kind".into(),
-                "tmp".into(),
-                "--bytes".into(),
-                "65536".into(),
-                "--target".into(),
-                scratch.display().to_string(),
-                "--json".into(),
-            ],
-            end,
-            false,
-        )?;
-        if preflight["decision"] != "allow"
-            || preflight["strict_write_decision"] != "allow"
-            || preflight["write_permission"] != true
-        {
-            return Err("normal storage preflight refused".into());
-        }
-        host_json(
-            host,
-            &vec![
-                "storage".into(),
-                "write-reservation".into(),
-                "acquire".into(),
-                "--reservation-id".into(),
-                scope.clone(),
-                "--kind".into(),
-                "tmp".into(),
-                "--bytes".into(),
-                "65536".into(),
-                "--target".into(),
-                scratch.display().to_string(),
-                "--owner".into(),
-                "tos-access-sdk".into(),
-                "--ttl-seconds".into(),
-                "60".into(),
-                "--json".into(),
-            ],
-            end,
-            false,
-        )?;
-        storage = true;
         if let Some(cache) = search_cache.as_ref() {
             let requested_bytes = cache
                 .max_build_bytes
@@ -4343,73 +4185,26 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
             // Reserve incremental build growth plus TEMP against a held existing
             // directory before creating a missing final parent. Existing main-file
             // bytes are neither charged as growth nor capped as a read.
-            let (target, anchor) = match fs::symlink_metadata(parent) {
-                Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => {
-                    (parent.to_path_buf(), directory(parent)?)
-                }
+            let anchor = match fs::symlink_metadata(parent) {
+                Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => directory(parent)?,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                     let ancestor = parent
                         .parent()
                         .ok_or("ordinary search cache ancestor absent")?;
-                    (ancestor.to_path_buf(), directory(ancestor)?)
+                    directory(ancestor)?
                 }
                 Ok(_) => {
                     return Err("ordinary search cache parent is not a directory".into());
                 }
                 Err(error) => return Err(error.to_string()),
             };
+            storage_available(&anchor, requested_bytes)?;
             cache_anchor_hold = Some(anchor);
-            let preflight = host_json(
-                host,
-                &vec![
-                    "storage".into(),
-                    "write-preflight".into(),
-                    "--kind".into(),
-                    "tmp".into(),
-                    "--bytes".into(),
-                    requested_bytes.to_string(),
-                    "--target".into(),
-                    target.display().to_string(),
-                    "--json".into(),
-                ],
-                end,
-                false,
-            )?;
-            if preflight["decision"] != "allow"
-                || preflight["strict_write_decision"] != "allow"
-                || preflight["write_permission"] != true
-            {
-                return Err("ordinary search cache storage preflight refused".into());
-            }
-            host_json(
-                host,
-                &vec![
-                    "storage".into(),
-                    "write-reservation".into(),
-                    "acquire".into(),
-                    "--reservation-id".into(),
-                    cache_reservation_id.clone(),
-                    "--kind".into(),
-                    "tmp".into(),
-                    "--bytes".into(),
-                    requested_bytes.to_string(),
-                    "--target".into(),
-                    target.display().to_string(),
-                    "--owner".into(),
-                    "tos-access-sdk".into(),
-                    "--ttl-seconds".into(),
-                    "60".into(),
-                    "--json".into(),
-                ],
-                end,
-                false,
-            )?;
-            cache_storage = true;
             let held = open_search_cache(cache)?;
             cache.verify(&held, &scratch)?;
             cache_parent_hold = Some(held);
         }
-        host_adapter.recheck_scratch_parent()?;
+        identical(&scratch_parent_hold, &directory(&scratch_parent)?)?;
         DirBuilder::new()
             .mode(0o700)
             .create(&scratch)
@@ -4500,57 +4295,8 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
                 cleanup_error = Some(format!("owned scratch cleanup: {error}"));
             }
         }
-        if cache_storage {
-            if let Err(error) = host_json(
-                host,
-                &vec![
-                    "storage".into(),
-                    "write-reservation".into(),
-                    "release".into(),
-                    "--reservation-id".into(),
-                    cache_reservation_id.clone(),
-                    "--json".into(),
-                ],
-                end,
-                true,
-            ) {
-                if cleanup_error.is_none() {
-                    cleanup_error = Some(error);
-                }
-            }
-        }
-        if storage {
-            if let Err(error) = host_json(
-                host,
-                &vec![
-                    "storage".into(),
-                    "write-reservation".into(),
-                    "release".into(),
-                    "--reservation-id".into(),
-                    scope.clone(),
-                    "--json".into(),
-                ],
-                end,
-                true,
-            ) {
-                if cleanup_error.is_none() {
-                    cleanup_error = Some(error);
-                }
-            }
-        }
         drop(cache_parent_hold.take());
         drop(cache_anchor_hold.take());
-        if let Some(id) = lease {
-            if let Err(error) = host_adapter.admission(
-                serde_json::json!({"command":"release","request":{"lease_id":id,"release_token":uuid}}),
-                end,
-                true,
-            ) {
-                if cleanup_error.is_none() {
-                    cleanup_error = Some(error);
-                }
-            }
-        }
         if let Some(error) = cleanup_error {
             return Err(error);
         }
@@ -4609,8 +4355,19 @@ pub fn run_if_requested(args: &[String]) -> Option<i32> {
 }
 
 #[cfg(test)]
-mod host_refusal_tests {
+mod stage_diagnostic_tests {
     use super::*;
+
+    #[test]
+    fn storage_budget_uses_the_held_directory_without_a_host_service() {
+        let root = std::env::temp_dir().canonicalize().unwrap();
+        let held = directory(&root).unwrap();
+        assert!(storage_available(&held, 0).is_ok());
+        assert_eq!(
+            storage_available(&held, u64::MAX).unwrap_err(),
+            "SDK operation storage budget unavailable"
+        );
+    }
 
     #[test]
     fn nested_stage_failure_preserves_owned_errno_without_private_text() {
@@ -4637,47 +4394,5 @@ mod host_refusal_tests {
             stage_failure("sdk-phase.restore", "/private/socket (os error 22)"),
             "namespace-inner site=sdk-phase.restore errno=22"
         );
-    }
-
-    #[test]
-    fn refusal_retains_same_reply_public_reasons_without_capabilities() {
-        let reply = serde_json::json!({"ok":false,"decision":"deny","command":"reserve",
-            "denied_reasons":["projected_memory_pressure"],"contract_errors":["invalid-field"],
-            "plan":{"projected_memory":{"class":"red","mem_available_mib":-512},
-                "swap_reserve":{"state":"shortfall","free_mib":3,"target_free_mib":5,"shortfall_mib":2},
-                "request":{"release_token":"PRIVATE_CAPABILITY"}},
-            "lease":{"id":"PRIVATE_CAPABILITY"},"release_token":"PRIVATE_CAPABILITY"});
-        let request = serde_json::json!({"request":{"memory_demand_mib":3840,
-            "release_token":"PRIVATE_CAPABILITY","owner_cgroup":"PRIVATE_CGROUP"}});
-        let encoded = host_refusal_diagnostic(&reply, &request, 1024, false);
-        assert!(encoded.len() <= HOST_REFUSAL_BYTES);
-        assert!(!encoded.contains("PRIVATE_CAPABILITY") && !encoded.contains("PRIVATE_CGROUP"));
-        let parsed: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-        assert_eq!(parsed["denied_reasons"], reply["denied_reasons"]);
-        assert_eq!(parsed["contract_errors"], reply["contract_errors"]);
-        assert_eq!(
-            parsed["projected_memory"],
-            reply["plan"]["projected_memory"]
-        );
-        assert_eq!(parsed["swap_reserve"], reply["plan"]["swap_reserve"]);
-        assert_eq!(parsed["stage"], "workload_start");
-        assert_eq!(parsed["memory_demand_mib"], 3840);
-    }
-
-    #[test]
-    fn refusal_escaping_and_large_lists_stay_bounded_with_omission_counts() {
-        let text = "\"".repeat(128);
-        let reasons = serde_json::json!(vec![text.clone(); 100]);
-        let reply = serde_json::json!({"decision":text,"command":text,"error_type":text,
-            "blocked_reasons":reasons,"denied_reasons":reasons,"warnings":reasons,
-            "plan":{"projected_memory":{"class":text},"swap_reserve":{"state":text}}});
-        let encoded = host_refusal_diagnostic(&reply, &serde_json::json!({}), 65536, true);
-        assert!(encoded.len() <= HOST_REFUSAL_BYTES);
-        let parsed: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-        assert_eq!(parsed["stage"], "cleanup_release");
-        for key in ["blocked_reasons", "denied_reasons", "warnings"] {
-            assert!(parsed[key].as_array().unwrap().len() <= 4);
-            assert!(parsed[format!("{key}_omitted")].as_u64().unwrap() >= 96);
-        }
     }
 }

@@ -44,7 +44,7 @@ This repository owns ToS-level truth about:
 
 ## Related owners
 
-The AoA constitution belongs to `Agents-of-Abyss`; deployment belongs to
+The AoA constitution belongs to `Agents-of-Abyss`; ecosystem deployment belongs to
 `abyss-stack`; derived knowledge infrastructure belongs to `aoa-kag`; typed
 routing belongs to `aoa-sdk`. ToS supplies source-traceable knowledge to those
 systems through its declared handoffs.
@@ -77,7 +77,7 @@ Treat related repositories as follows:
 
 - `Agents-of-Abyss` is the operational federation around ToS
 - `aoa-kag` is the derived knowledge substrate built from authoritative sources
-- `abyss-stack` is the runtime body beneath both
+- `abyss-stack` owns ecosystem deployment and can consume independently released ToS artifacts
 
 ## Long-term direction
 

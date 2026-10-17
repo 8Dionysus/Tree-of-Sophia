@@ -40,7 +40,7 @@ const privateFailure=await lstat(c.failure_directory);
 assert.ok(privateFailure.isDirectory()&&!privateFailure.isSymbolicLink()&&(privateFailure.mode&0o077)===0&&privateFailure.uid===process.getuid());
 assert.ok(c.failure_directory!==c.issuer.persistent_store&&within(c.failure_directory,c.issuer.persistent_store),'durable failure directory must be private child of selected store');
 const writable=[c.issuer.persistent_store,'/tmp','/var/tmp','/usr/tmp'];
-if(inner)writable.push(process.env.ABYSS_STAGE_ROOT);
+if(inner)writable.push(process.env.TOS_STAGE_ROOT);
 for(const path of [c.worker_node_modules,c.worker_shared_root])for(const root of writable){assert.ok(isAbsolute(root)&&!within(path,root)&&!within(root,path),'readonly software tree overlaps write-allowed root');}
 const own=fileURLToPath(import.meta.url);
 const pinned=async(path,sha,maximum)=>{assert.ok(/^[0-9a-f]{64}$/.test(sha));const raw=await read(path,maximum);assert.equal(hash(raw),sha);current();return raw;};
@@ -79,7 +79,7 @@ if(!inner){
   await childTransport('/usr/bin/bash',[i.delegate_script,c.native_binary,i.scratch_parent,i.persistent_store,c.work_deadline_ns,String(c.maximum_shutdown_milliseconds),'--',...command]);
  }
 }else{
- const root=process.env.ABYSS_STAGE_ROOT,ticket=Number(process.env.ABYSS_STAGE_TICKET_FD);
+ const root=process.env.TOS_STAGE_ROOT,ticket=Number(process.env.TOS_STAGE_TICKET_FD);
  assert.ok(isAbsolute(root)&&Number.isSafeInteger(ticket)&&ticket>=3&&ticket<64);assert.equal(await realpath(root),root);
  const output=join(root,'output'),spool=join(output,'spool'),scratch=join(output,'worker-scratch');
  await mkdir(spool,{mode:0o700});await mkdir(scratch,{mode:0o700});

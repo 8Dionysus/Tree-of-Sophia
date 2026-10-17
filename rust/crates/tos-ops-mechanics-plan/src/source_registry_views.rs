@@ -1,7 +1,7 @@
 //! Registry navigation over explicit owner records. A candidate match is never
 //! an identity merge; recorded acquisition and live custody are distinct views.
 use crate::{
-    kag_release::{self, invalid},
+    release_files::{self, invalid},
     source_registry::{Context, member},
 };
 use serde_json::{Value, json};
@@ -45,7 +45,7 @@ fn paths(
     if !root.exists() {
         return Ok(vec![]);
     }
-    kag_release::directory(root)?;
+    release_files::directory(root)?;
     let mut todo = vec![root.to_path_buf()];
     let mut result = Vec::new();
     let mut count = 0;
@@ -91,8 +91,8 @@ fn json_lines(context: &mut Context<'_>, path: &Path) -> io::Result<Vec<Value>> 
         .collect()
 }
 pub fn reconciliation(root: &Path, cancel: &AtomicI32) -> io::Result<Value> {
-    let root = kag_release::safe_absolute(root)?;
-    kag_release::directory(&root)?;
+    let root = release_files::safe_absolute(root)?;
+    release_files::directory(&root)?;
     let mut context = Context::new(cancel);
     let (snapshot, summary, documents) =
         crate::source_registry::current(&mut context, &root.join(rules::PACKET))?;
@@ -129,7 +129,7 @@ pub fn reconciliation(root: &Path, cancel: &AtomicI32) -> io::Result<Value> {
                 let manifest = context.json(&member(&root, &record["item_manifest_ref"])?)?;
                 let mut files = Vec::new();
                 for f in arr(&manifest["payload_files"])? {
-                    let rel = kag_release::relative(&f["relative_path"])?;
+                    let rel = release_files::relative(&f["relative_path"])?;
                     let parent = Path::new(manifest_ref)
                         .parent()
                         .ok_or_else(|| invalid("manifest parent absent"))?;
@@ -359,7 +359,7 @@ pub fn assess_target(
             ));
         }
         if verify_local {
-            let rel = kag_release::relative(&f["relative_path"])?;
+            let rel = release_files::relative(&f["relative_path"])?;
             let path = member(
                 root,
                 &json!(
@@ -423,8 +423,8 @@ pub fn assess_target(
     Ok(result)
 }
 pub fn coverage(root: &Path, verify_local: bool, cancel: &AtomicI32) -> io::Result<Value> {
-    let root = kag_release::safe_absolute(root)?;
-    kag_release::directory(&root)?;
+    let root = release_files::safe_absolute(root)?;
+    release_files::directory(&root)?;
     let mut context = Context::new(cancel);
     let packet = root.join(rules::PACKET);
     let reconciliation = context.json(&packet.join("reconciliation.current.json.gz"))?;
@@ -545,7 +545,7 @@ pub fn coverage(root: &Path, verify_local: bool, cancel: &AtomicI32) -> io::Resu
 pub fn markdown(value: &Value) -> io::Result<String> {
     let s = &value["summary"];
     let link = |v: &Value| -> io::Result<String> {
-        let reference = kag_release::relative(v)?;
+        let reference = release_files::relative(v)?;
         let from = rules::PACKET.split('/').collect::<Vec<_>>();
         let to = reference.split('/').collect::<Vec<_>>();
         let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
@@ -617,10 +617,10 @@ pub fn publish_view(
     cancel: &AtomicI32,
 ) -> io::Result<()> {
     use std::io::Write;
-    let source = kag_release::safe_absolute(source)?;
-    kag_release::directory(&source)?;
-    let output = kag_release::safe_absolute(output)?.join(rules::PACKET);
-    kag_release::safe_absolute(&output)?;
+    let source = release_files::safe_absolute(source)?;
+    release_files::directory(&source)?;
+    let output = release_files::safe_absolute(output)?.join(rules::PACKET);
+    release_files::safe_absolute(&output)?;
     if output.starts_with(&source) || source.starts_with(&output) {
         return Err(invalid("output root would mutate selected source root"));
     }

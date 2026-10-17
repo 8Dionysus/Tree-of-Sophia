@@ -5,32 +5,69 @@
   "source_authority_root": "ToS/",
   "derived_input_root": "ToS/derived-exports/",
   "default_profile": "standalone",
-  "integration_posture": {
-    "state": "paused",
-    "scope": ["abyssos"],
-    "default_profile": "standalone",
-    "external_activation": "disabled",
-    "unfreeze_requires": "explicit ToS operator command"
-  },
   "components": [
-    {"component_id": "query-core", "owner": "Tree-of-Sophia", "required": true},
-    {"component_id": "knowledge-lens-engine", "owner": "Tree-of-Sophia/access", "required": true, "posture": "read-only-derived-composition"},
-    {"component_id": "cli", "owner": "Tree-of-Sophia", "required": true},
-    {"component_id": "http-reader", "owner": "Tree-of-Sophia", "required": true},
-    {"component_id": "native-mcp", "owner": "Tree-of-Sophia", "required": true},
-    {"component_id": "web-app", "owner": "Tree-of-Sophia", "required": true},
-    {"component_id": "webmcp", "owner": "Tree-of-Sophia", "required": true, "posture": "feature-detected-experimental-browser-api"}
+    {
+      "component_id": "query-core",
+      "owner": "Tree-of-Sophia",
+      "required": true
+    },
+    {
+      "component_id": "knowledge-lens-engine",
+      "owner": "Tree-of-Sophia/access",
+      "required": true,
+      "posture": "read-only-derived-composition"
+    },
+    {
+      "component_id": "cli",
+      "owner": "Tree-of-Sophia",
+      "required": true
+    },
+    {
+      "component_id": "http-reader",
+      "owner": "Tree-of-Sophia",
+      "required": true
+    },
+    {
+      "component_id": "native-mcp",
+      "owner": "Tree-of-Sophia",
+      "required": true
+    },
+    {
+      "component_id": "web-app",
+      "owner": "Tree-of-Sophia",
+      "required": true
+    },
+    {
+      "component_id": "webmcp",
+      "owner": "Tree-of-Sophia",
+      "required": true,
+      "posture": "feature-detected-experimental-browser-api"
+    }
   ],
   "runtime_profiles": [
-    {"profile_id": "standalone", "runtime_owner": "Tree-of-Sophia", "requires_abyssos": false},
-    {"profile_id": "abyssos", "runtime_owner": "abyss-stack", "requires_abyssos": true, "adapter_only": true}
+    {
+      "profile_id": "standalone",
+      "runtime_owner": "Tree-of-Sophia",
+      "requires_abyssos": false
+    }
   ],
   "projection_compatibility": {
-    "tos_corpus_index": ["tos_corpus_index_v1"],
-    "philosophy_graph_projection": ["tos_philosophy_graph_projection_v1", "tos_philosophy_graph_projection_v2"],
-    "source_witness_bibliographic_graph": ["tos_source_witness_bibliographic_graph_v1"],
-    "semantic_entity_type_registry": ["tos_semantic_entity_type_registry_v1"],
-    "semantic_relation_type_registry": ["tos_semantic_relation_type_registry_v1"]
+    "tos_corpus_index": [
+      "tos_corpus_index_v1"
+    ],
+    "philosophy_graph_projection": [
+      "tos_philosophy_graph_projection_v1",
+      "tos_philosophy_graph_projection_v2"
+    ],
+    "source_witness_bibliographic_graph": [
+      "tos_source_witness_bibliographic_graph_v1"
+    ],
+    "semantic_entity_type_registry": [
+      "tos_semantic_entity_type_registry_v1"
+    ],
+    "semantic_relation_type_registry": [
+      "tos_semantic_relation_type_registry_v1"
+    ]
   },
   "authority_limit": "Access packets and runtime behavior do not author ToS meaning, review, rights, or canon."
 }

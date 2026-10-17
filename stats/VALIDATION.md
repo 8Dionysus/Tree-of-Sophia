@@ -1,40 +1,34 @@
-# Local stats-port validation
+# Local stats export validation
 
-Select the exact compatible `aoa-stats` program and the exported port explicitly:
-
-```bash
-tos-stats-release validate --stats-root /path/to/aoa-stats --port /path/to/export/stats/port.manifest.json --python /absolute/path/to/selected-owner-python
-cargo test -p tos-ops-mechanics-plan --no-default-features --test stats_release_native
-```
-
-The reference packet is not live state, and a green validator does not make a
-measurement authoritative beyond its declared population and evidence ref.
-The Rust adapter does not search siblings, `.deps`, environment variables or the
-working directory for either input. The selected Python interpreter belongs to
-the external `aoa-stats` validator; ToS staging, publication and status run in Rust.
-The direct `validate` operation preserves the owner's stdout, stderr and exit code. A failed integration keeps its prior
-verified artifact and is reported separately from software release status.
-
-The bounded local tests protect this explicit invocation and failure behavior.
-The historical reference packet is not required to equal today's atlas rows or
-routes. A new measured observation needs its own exact source revision and
-domain-owner derivation; changing the corpus never rewrites that old observation.
-
-Publish the port as a separate local integration:
+ToS validates its declaration, packet references, measurement identities,
+privacy posture and observed ratios with its own native implementation:
 
 ```sh
-tos-stats-release build --source-root /path/to/selected-source --stats-root /path/to/aoa-stats --release-root /path/to/stats-releases --python /absolute/path/to/selected-owner-python
-tos-stats-release status --release-root /path/to/stats-releases --expected-revision PORT_EXPORT_SHA256
+tos-stats-release validate --port /path/to/selected-source/stats/port.manifest.json
+cargo test --locked -p tos-ops-mechanics-plan --no-default-features --features mechanics --test stats_release_native
 ```
 
-The source revision returned by this command identifies the five exact port
-files. Corpus measurement retains its own observation identity. The observation keeps its original evidence
-revision, observation ID, time and reference posture. Status freshness compares
-the selected port bytes; it does not turn a reference observation into a live one.
+No consumer repository, interpreter or schema checkout is selected. Shared
+format identifiers and contract references are portable compatibility metadata;
+ToS does not fetch or execute their external owners. Consumers perform their
+additional grammar, composition and admission checks on their side.
 
-The selected owner validates a private copy before an immutable result is
-published in `releases/INTEGRATION_SHA256`. The result binds its complete files
-and the consumer's code, package, grammar, inventory and runtime identity.
-Changed or extra bytes, an invalid packet or a failed consumer cannot replace
-the last successful integration. Status verifies that successful artifact before
-returning its observation. Software release never invokes this operation.
+Publish and inspect the exact ToS export:
+
+```sh
+tos-stats-release build --source-root /path/to/selected-source --release-root /path/to/stats-releases
+tos-stats-release status --release-root /path/to/stats-releases --expected-revision PORT_EXPORT_SHA256
+tos-stats-release verify --release /path/to/stats-releases/releases/EXPORT_SHA256
+```
+
+The source revision binds the five selected port files. `export.json` binds the
+immutable export identity, full membership, hashes, evidence posture and original
+observation. Verification rejects changed, missing, extra or linked files. A
+failed preparation does not replace the previous successful export. Status checks
+that successful artifact before reporting it.
+
+A reference packet is not live state. Its observation ID, time and source revision
+remain historical. A new observation requires the exact population and derivation
+owned by ToS; do not rewrite an old observation when the current atlas changes.
+Validation does not turn route presence into source adequacy, philosophical
+quality, canon, live state or downstream admission.

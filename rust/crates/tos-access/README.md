@@ -168,7 +168,7 @@ grant and does not close a selected exploration execution or public activation.
 Corpus reads reuse the selected ABI5 original component and the real managed release's declared captured index/member closure. The maintained six HTTP GET/HEAD routes and eight MCP tools share the QRY kernel, with resources/packet MCP-only. Availability requires the original component plus verified raw source members under the release holder; status paths identify those actual selected members. No corpus CLI or raw source/payload grant is added.
 
 `tos-access --root SOURCE_DIRECTORY doctor [--json]` and `verify
-[--profile standalone|abyssos] [--json]` inspect the source-backed profile before
+[--profile standalone] [--json]` inspect the source-backed profile before
 managed-owner admission. `TOS_DATA_ROOT` and the maintained projection path
 selectors choose data; prepared reader/binding or a managed release selector is
 refused for this diagnostic. Default missing data remains beside the installed
@@ -197,10 +197,9 @@ selected data cannot replace them. Current native build products without that
 assembled companion correctly fail `web-assets`. Native MCP is built-in Rust
 stdio, so its dependency check validates the packaged operation descriptor
 instead of importing FastMCP. `verify` requires that check; `doctor` retains
-its optional posture. AbyssOS configuration reports only the selected
-`TOS_ABYSSOS_ROOT/abyss-stack` directory, and the packaged paused integration
-posture still blocks the abyssos profile. No directory/configuration check
-proves running integration or authorizes its activation.
+its optional posture. The only runtime profile is owned by standalone ToS.
+Diagnostics do not inspect neighboring repositories or require an ecosystem
+integration to be present or activated.
 
 ## Offline Edge capture
 
