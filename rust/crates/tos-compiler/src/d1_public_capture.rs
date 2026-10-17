@@ -226,11 +226,6 @@ impl PublicCaptureLimits {
 pub(crate) struct ControlledCaptureIdentity {
     token: Arc<()>,
 }
-impl ControlledCaptureIdentity {
-    pub(crate) fn same(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.token, &other.token)
-    }
-}
 
 #[derive(Clone, Copy)]
 struct CaptureOperation {
@@ -4446,12 +4441,6 @@ impl PublicCapture {
             creation_deadline,
             None,
         )
-    }
-
-    /// Immutable owner ceiling for restoring the same shared SQL hook after
-    /// final operation fences; this does not admit work or mutate any counter.
-    pub(crate) fn original_sql_vm_limit(&self) -> u64 {
-        self.limits.max_sql_vm_steps
     }
 
     fn model_creation_state_with_phase<'a>(

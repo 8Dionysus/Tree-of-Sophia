@@ -118,15 +118,6 @@ impl<'state, 'budget> DecodeBudget<'state, 'budget> {
         }
         Ok(())
     }
-    fn charge_text(&mut self, parts: &[&str], overhead: u64) -> Result<()> {
-        let mut total = overhead;
-        for part in parts {
-            total = total
-                .checked_add(part.len() as u64)
-                .ok_or(Error::Budget("catalog index decoded bytes"))?;
-        }
-        self.charge(total)
-    }
     fn hold(&self, bytes: usize) -> Result<Option<CreationStateHold<'state, 'budget>>> {
         self.creation
             .map(|creation| creation.hold(bytes))

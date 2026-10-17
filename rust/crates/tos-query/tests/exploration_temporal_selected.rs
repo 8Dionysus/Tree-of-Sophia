@@ -2,10 +2,7 @@
 //! Native producer and exact selected reads with explicit owner expectations.
 use std::{
     collections::BTreeMap,
-    sync::{
-        Arc, Mutex,
-        atomic::{AtomicUsize, Ordering},
-    },
+    sync::{Arc, Mutex},
 };
 use tos_compiler::knowledge_full_fixture::build_native_fixture;
 use tos_foundation::{
@@ -19,9 +16,9 @@ use tos_query::knowledge_exploration::{
 };
 use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
 use tos_query::{
-    AbortProbe, AbortReason, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget,
-    InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
-    bind_verified_knowledge, compare_temporal_operands, execute_selected_temporal,
+    AbortProbe, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget, InspectCurrentAuthority,
+    InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier, bind_verified_knowledge,
+    compare_temporal_operands, execute_selected_temporal,
 };
 fn get<'a>(v: &'a JsonValue, key: &str) -> &'a JsonValue {
     v.object_get(key).unwrap()
@@ -63,16 +60,6 @@ fn err(code: SearchV2ErrorCode) -> SearchV2Error {
     SearchV2Error {
         code,
         message: "synthetic checkpoint admission",
-    }
-}
-struct Probe {
-    calls: AtomicUsize,
-    after: usize,
-    reason: AbortReason,
-}
-impl AbortProbe for Probe {
-    fn reason(&self) -> Option<AbortReason> {
-        (self.calls.fetch_add(1, Ordering::Relaxed) >= self.after).then_some(self.reason)
     }
 }
 struct Lease;

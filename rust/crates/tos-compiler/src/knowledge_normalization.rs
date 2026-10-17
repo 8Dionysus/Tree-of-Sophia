@@ -375,24 +375,6 @@ impl SourceRow {
             _hold: Some(hold),
         })
     }
-    pub(crate) fn parse_with_owned_state(
-        raw: &[u8],
-        max_bytes: usize,
-        state: &crate::d1_public_capture::CreationState<'_>,
-    ) -> Result<Self> {
-        if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {
-            return Err(Error::Budget("normalization source row bytes"));
-        }
-        let value = state.serde_owned(raw, max_bytes)?;
-        if !value.is_object() {
-            return Err(Error::Invalid("normalization source object"));
-        }
-        Ok(Self {
-            value,
-            max_bytes,
-            max_output_bytes: max_bytes.saturating_mul(4).min(MAX_SOURCE_ROW_BYTES),
-        })
-    }
 
     pub fn parse(raw: &[u8], max_bytes: usize) -> Result<Self> {
         if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {

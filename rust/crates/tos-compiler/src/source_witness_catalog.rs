@@ -221,7 +221,6 @@ trait CandidateCatalogSchemas: CutSchemaExecutor {
     fn prepared_binding(&self) -> SchemaResult<CutPreparedSchemaExecutionBinding>;
     fn take_candidate_rejection_any(&mut self) -> SchemaResult<Option<Box<dyn std::any::Any>>>;
     fn cumulative_cost(&self) -> SchemaResult<CutSchemaDiagnosticsCumulativeCost>;
-    fn execution_count(&self) -> SchemaResult<usize>;
 }
 
 /// Opaque source-cut identity for one selected event compilation. The
@@ -326,10 +325,6 @@ impl<I: Copy + Eq + 'static> CandidateCatalogSchemas for BorrowedCandidateSchema
     fn cumulative_cost(&self) -> SchemaResult<CutSchemaDiagnosticsCumulativeCost> {
         self.guard()?;
         self.schemas.diagnostics_v2_cumulative_cost()
-    }
-    fn execution_count(&self) -> SchemaResult<usize> {
-        self.guard()?;
-        self.schemas.diagnostic_execution_count()
     }
 }
 

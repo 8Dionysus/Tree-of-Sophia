@@ -57,9 +57,6 @@ pub(crate) struct OwnedDictionary<'s, 'budget> {
     _hold: CreationStateHold<'s, 'budget>,
 }
 impl OwnedDictionary<'_, '_> {
-    pub(crate) fn as_bytes(&self) -> &[u8] {
-        &self.bytes
-    }
     pub(crate) fn verified(&self) -> Result<VerifiedDictionary<'_>> {
         Ok(VerifiedDictionary {
             bytes: &self.bytes,

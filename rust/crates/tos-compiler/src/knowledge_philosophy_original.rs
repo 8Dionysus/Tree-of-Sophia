@@ -475,24 +475,6 @@ pub(crate) fn receipt(db: &Connection) -> Result<PhilosophyOriginalReceipt> {
         .map_err(|e| Error::Source(e.to_string()))?;
     serde_json::from_slice(&raw).map_err(|_| Error::Invalid("philosophy original receipt"))
 }
-pub(crate) fn page(
-    db: &Connection,
-    collection: PhilosophyOriginalCollection,
-    after: Option<u64>,
-    max_rows: usize,
-    max_row_bytes: usize,
-    max_page_bytes: u64,
-) -> Result<PhilosophyOriginalPage> {
-    page_with_layout(
-        db,
-        collection,
-        after,
-        max_rows,
-        max_row_bytes,
-        max_page_bytes,
-        KnowledgePayloadLayout::InlineV1,
-    )
-}
 pub(crate) fn page_with_layout(
     db: &Connection,
     collection: PhilosophyOriginalCollection,

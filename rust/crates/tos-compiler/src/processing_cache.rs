@@ -1875,20 +1875,6 @@ fn trim_outputs(db: &Connection, limits: ProcessingCacheLimits) -> Result<u64> {
     }
 }
 
-impl ProcessingRunInner {
-    fn current_status(&self) -> Result<String> {
-        self.shared
-            .db
-            .borrow()
-            .query_row(
-                "SELECT status FROM tos_rust_processing_runs WHERE id=?1",
-                [&self.run_id],
-                |row| row.get(0),
-            )
-            .map_err(Error::from)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
