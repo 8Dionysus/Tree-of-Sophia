@@ -152,6 +152,142 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[cfg(target_os = "linux")]
+#[test]
+fn software_ci_large_diff_keeps_late_job_and_documentation_coverage() {
+    use std::{
+        fs,
+        io::Write,
+        path::Path,
+        process::{Command, Stdio},
+        time::{SystemTime, UNIX_EPOCH},
+    };
+    fn git(root: &Path, args: &[&str], input: Option<&[u8]>) -> String {
+        let mut command = Command::new("git");
+        command
+            .args(args)
+            .current_dir(root)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        if input.is_some() {
+            command.stdin(Stdio::piped());
+        }
+        let mut child = command.spawn().unwrap();
+        if let Some(bytes) = input {
+            child.stdin.take().unwrap().write_all(bytes).unwrap();
+        }
+        let result = child.wait_with_output().unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        String::from_utf8(result.stdout).unwrap().trim().to_owned()
+    }
+    let root = std::env::temp_dir().join(format!(
+        "tos-ci-large-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&root).unwrap();
+    git(&root, &["init", "--quiet"], None);
+    git(&root, &["config", "user.name", "Software CI fixture"], None);
+    git(
+        &root,
+        &["config", "user.email", "fixture@example.invalid"],
+        None,
+    );
+    git(&root, &["config", "commit.gpgsign", "false"], None);
+    git(&root, &["config", "core.hooksPath", "/dev/null"], None);
+    fs::write(root.join("target.md"), "synthetic link target\n").unwrap();
+    git(&root, &["add", "target.md"], None);
+    git(&root, &["commit", "--quiet", "-m", "baseline"], None);
+    let base = git(&root, &["rev-parse", "HEAD"], None);
+    let blob = git(
+        &root,
+        &["hash-object", "-w", "--stdin"],
+        Some(b"synthetic source\n"),
+    );
+    // Index-only source rows avoid thousands of irrelevant worktree files.
+    // HEAD still contains the complete real Git tree and exact changed paths.
+    let mut entries = (0..4097)
+        .map(|n| format!("100644 {blob}\taccess/web/fixture-{n:05}.ts\n"))
+        .collect::<String>();
+    entries.push_str(&format!("100644 {blob}\tzz-shared-contract.json\n"));
+    git(
+        &root,
+        &["update-index", "--index-info"],
+        Some(entries.as_bytes()),
+    );
+    fs::write(root.join("zz-late.md"), "[new](target.md)\n").unwrap();
+    git(&root, &["add", "zz-late.md"], None);
+    git(
+        &root,
+        &["commit", "--quiet", "-m", "large bounded migration"],
+        None,
+    );
+    let executable = std::env::var_os("TOS_SOFTWARE_CI_TEST_EXECUTABLE")
+        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-software-ci").into());
+    let invoke = |full: bool| {
+        let mut command = Command::new(&executable);
+        command
+            .args(["plan", "--repo-root"])
+            .arg(&root)
+            .arg("--base")
+            .arg(&base)
+            .env("GITHUB_OUTPUT", root.join("native-output"))
+            .current_dir(&root);
+        if full {
+            command.arg("--full");
+        }
+        command.output().unwrap()
+    };
+    for full in [false, true] {
+        let output = invoke(full);
+        assert_eq!(
+            output.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let selection: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(selection["changed_paths"].as_array().unwrap().len(), 4099);
+        assert_eq!(selection["changed_paths"][4097], "zz-late.md");
+        assert_eq!(selection["changed_paths"][4098], "zz-shared-contract.json");
+        assert_eq!(selection["software_mode"], "full");
+        assert_eq!(selection["worker"], true);
+        assert_eq!(selection["rust"], true);
+        assert_eq!(selection["forced_full"], full);
+    }
+    // The original base and all changed docs remain checked even after the
+    // former4096 threshold and when the caller explicitly requests full jobs.
+    fs::write(
+        root.join("zz-late.md"),
+        "<<<<<<< branch\n[new](absent.md)\n",
+    )
+    .unwrap();
+    let before = fs::read(root.join("native-output")).unwrap();
+    for full in [false, true] {
+        let output = invoke(full);
+        assert_eq!(output.status.code(), Some(1));
+        let error = String::from_utf8(output.stderr).unwrap();
+        assert!(
+            error.contains("zz-late.md: unresolved merge marker"),
+            "{error}"
+        );
+        assert!(
+            error.contains("zz-late.md: missing repository link target absent.md"),
+            "{error}"
+        );
+        assert!(output.stdout.is_empty());
+        assert_eq!(fs::read(root.join("native-output")).unwrap(), before);
+    }
+    fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn rust_product_changes_require_the_native_package_consumer() {
     for path in [

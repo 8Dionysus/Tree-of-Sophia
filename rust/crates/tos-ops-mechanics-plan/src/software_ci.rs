@@ -12,7 +12,6 @@ use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::{Duration, Instant};
 
-const MAX_PATHS: usize = 16_384;
 const MAX_PATH_BYTES: usize = 4 * 1024 * 1024;
 const MAX_DOCUMENT_BYTES: usize = 8 * 1024 * 1024;
 const MAX_TOTAL_BYTES: usize = 64 * 1024 * 1024;
@@ -35,33 +34,68 @@ pub struct Selection {
 /// The ordered path rules are the maintained software selector, including
 /// unknown/shared sources and empty selection requiring all checks.
 pub fn select(paths: Vec<String>, force_full: bool) -> io::Result<Selection> {
-    if paths.len() > MAX_PATHS
-        || paths
-            .iter()
-            .try_fold(0usize, |n, p| n.checked_add(p.len()))
-            .filter(|n| *n <= MAX_PATH_BYTES)
-            .is_none()
-    {
-        return Err(invalid("software CI changed-path budget exceeded"));
+    select_checked(paths, force_full, || Ok(()))
+}
+
+// PurePosixPath drops empty and '.' components; backslash is literal.
+// Borrow components so a slash-heavy path cannot allocate another Vec.
+fn path_components(path: &str) -> io::Result<(&str, usize)> {
+    if path.is_empty() || path.starts_with('/') || path.contains('\n') || path.contains('\0') {
+        return Err(invalid(format!("invalid Git path: {path:?}")));
     }
-    let (mut mode, mut worker, mut rust) = (0usize, false, false);
-    for path in &paths {
-        // PurePosixPath drops empty and '.' components; backslash is literal.
-        let parts: Vec<_> = path
-            .split('/')
-            .filter(|p| !p.is_empty() && *p != ".")
-            .collect();
-        if path.starts_with('/') || parts.contains(&"..") || path.contains('\n') {
+    let (mut name, mut count) = ("", 0usize);
+    for part in path.split('/').filter(|p| !p.is_empty() && *p != ".") {
+        if part == ".." {
             return Err(invalid(format!("invalid Git path: {path:?}")));
         }
-        let name = parts.last().copied().unwrap_or("");
+        name = part;
+        count += 1;
+    }
+    Ok((name, count))
+}
+
+fn retained_path_bytes(bytes: usize, capacity: usize) -> io::Result<usize> {
+    capacity
+        .checked_mul(std::mem::size_of::<String>())
+        .and_then(|slots| slots.checked_add(bytes))
+        .filter(|total| *total <= MAX_TOTAL_BYTES)
+        .ok_or_else(|| invalid("software CI retained-path byte budget exceeded"))
+}
+
+fn select_checked(
+    mut paths: Vec<String>,
+    force_full: bool,
+    mut check: impl FnMut() -> io::Result<()>,
+) -> io::Result<Selection> {
+    check()?;
+    // Bound the complete NUL-framed input before deduplication. Cardinality is
+    // not a proxy for work: small migrations may contain many short paths.
+    paths
+        .iter()
+        .try_fold(0usize, |n, p| n.checked_add(p.len())?.checked_add(1))
+        .filter(|n| *n <= MAX_PATH_BYTES)
+        .ok_or_else(|| invalid("software CI changed-path budget exceeded"))?;
+    // The caller owns any allocations made before entering this API. Bound
+    // the actual retained String capacities as well as the Vec's slots.
+    let string_bytes = paths
+        .iter()
+        .try_fold(0usize, |n, p| n.checked_add(p.capacity()))
+        .ok_or_else(|| invalid("software CI retained-path byte overflow"))?;
+    retained_path_bytes(string_bytes, paths.capacity())?;
+    paths.sort_unstable();
+    paths.dedup();
+    check()?;
+    let (mut mode, mut worker, mut rust) = (0usize, false, false);
+    for path in &paths {
+        check()?;
+        let (name, components) = path_components(path)?;
         let suffix = name
             .rsplit_once('.')
             .filter(|(stem, tail)| stem.chars().any(|c| c != '.') && !tail.is_empty())
             .map(|(_, tail)| tail);
         if suffix == Some("md")
             && name != "AGENTS.md"
-            && (parts.len() == 1 || path.starts_with("docs/") || path.starts_with("access/"))
+            && (components == 1 || path.starts_with("docs/") || path.starts_with("access/"))
         {
             continue;
         }
@@ -398,6 +432,68 @@ fn read_doc(path: &Path, remaining: usize) -> io::Result<String> {
     String::from_utf8(bytes).map_err(|e| invalid(e.to_string()))
 }
 
+fn decode_paths(
+    bytes: &[u8],
+    input_capacity: usize,
+    mut check: impl FnMut() -> io::Result<()>,
+) -> io::Result<Vec<String>> {
+    check()?;
+    if bytes.len() > MAX_PATH_BYTES || input_capacity < bytes.len() {
+        return Err(invalid("software CI changed-path budget exceeded"));
+    }
+    if !bytes.is_empty() && bytes.last() != Some(&0) {
+        return Err(invalid("Git changed paths lack the final NUL delimiter"));
+    }
+    let text = std::str::from_utf8(bytes).map_err(|e| invalid(e.to_string()))?;
+    // Preflight every borrowed record before creating the output Vec or any
+    // String buffer. Keep the live Git capture in the simultaneous cost model.
+    // Allocator bookkeeping/RSS are not claimed to equal these capacities.
+    let (mut count, mut string_bytes) = (0usize, 0usize);
+    for path in text.split_terminator('\0') {
+        check()?;
+        path_components(path)?;
+        count = count
+            .checked_add(1)
+            .ok_or_else(|| invalid("CI path layout overflow"))?;
+        string_bytes = string_bytes
+            .checked_add(path.len())
+            .ok_or_else(|| invalid("CI path layout overflow"))?;
+    }
+    retained_path_bytes(string_bytes, count)?
+        .checked_add(input_capacity)
+        .filter(|total| *total <= MAX_TOTAL_BYTES)
+        .ok_or_else(|| invalid("software CI live-path byte budget exceeded"))?;
+    check()?;
+    let mut paths = Vec::new();
+    paths
+        .try_reserve_exact(count)
+        .map_err(|error| invalid(format!("CI path reservation failed: {error}")))?;
+    // try_reserve_exact may report more capacity than requested. Recheck it
+    // before allocating the per-path String buffers; never grow by push.
+    retained_path_bytes(string_bytes, paths.capacity())?
+        .checked_add(input_capacity)
+        .filter(|total| *total <= MAX_TOTAL_BYTES)
+        .ok_or_else(|| invalid("software CI live-path byte budget exceeded"))?;
+    let mut actual_string_bytes = 0usize;
+    for path in text.split_terminator('\0') {
+        check()?;
+        let mut owned = String::new();
+        owned
+            .try_reserve_exact(path.len())
+            .map_err(|error| invalid(format!("CI path string reservation failed: {error}")))?;
+        actual_string_bytes = actual_string_bytes
+            .checked_add(owned.capacity())
+            .ok_or_else(|| invalid("CI path layout overflow"))?;
+        retained_path_bytes(actual_string_bytes, paths.capacity())?
+            .checked_add(input_capacity)
+            .filter(|total| *total <= MAX_TOTAL_BYTES)
+            .ok_or_else(|| invalid("software CI live-path byte budget exceeded"))?;
+        owned.push_str(path);
+        paths.push(owned);
+    }
+    Ok(paths)
+}
+
 /// Actual Git path selection plus current/new Markdown link validation.
 /// No rename detection: deletion and addition both influence the final mode.
 pub fn plan(
@@ -424,18 +520,8 @@ pub fn plan(
             "Git changed-path selection failed with exit code {code}"
         )));
     }
-    let mut paths = BTreeSet::new();
-    for path in bytes.split(|b| *b == 0).filter(|p| !p.is_empty()) {
-        if paths.len() >= MAX_PATHS {
-            return Err(invalid("CI changed-path count exceeded"));
-        }
-        paths.insert(
-            std::str::from_utf8(path)
-                .map_err(|e| invalid(e.to_string()))?
-                .to_owned(),
-        );
-    }
-    let selection = select(paths.into_iter().collect(), force_full)?;
+    let paths = decode_paths(&bytes, bytes.capacity(), || budget.charge(0))?;
+    let selection = select_checked(paths, force_full, || budget.charge(0))?;
     let docs = Docs::new()?;
     let mut errors = Vec::new();
     for name in &selection.changed_paths {
@@ -477,7 +563,97 @@ pub fn plan(
 mod tests {
     use super::*;
     #[test]
-    fn repository_wide_changes_keep_late_surfaces_and_count_bound() {
+    fn path_cardinality_is_bounded_by_bytes_and_all_paths_select_checks() {
+        for count in [4095, 4096, 4097, 10_000] {
+            let mut paths = (0..count)
+                .map(|n| format!("access/web/fixture-{n:05}.ts"))
+                .collect::<Vec<_>>();
+            let browser = select(paths.clone(), false).unwrap();
+            assert_eq!(browser.changed_paths.len(), count);
+            assert_eq!(
+                (browser.software_mode, browser.worker, browser.rust),
+                ("browser", false, false)
+            );
+            paths.push("zz-shared-contract.json".into());
+            let all = select(paths, false).unwrap();
+            assert_eq!(all.changed_paths.len(), count + 1);
+            assert_eq!(
+                (all.software_mode, all.worker, all.rust),
+                ("full", true, true)
+            );
+            let mut invalid = all.changed_paths;
+            invalid.push("zz/../escape".into());
+            assert!(select(invalid, true).is_err());
+        }
+    }
+
+    #[test]
+    fn duplicate_paths_cannot_hide_work_or_bypass_input_budgets() {
+        let mut paths = vec!["access/web/main.ts".to_owned(); 5000];
+        paths.push("access/deploy/cloudflare-worker/src/index.ts".into());
+        let result = select(paths, false).unwrap();
+        assert_eq!(result.changed_paths.len(), 2);
+        assert_eq!(
+            (result.software_mode, result.worker, result.rust),
+            ("browser", true, false)
+        );
+        let duplicate = "x".repeat(MAX_PATH_BYTES / 8);
+        assert!(select(vec![duplicate; 8], true).is_err());
+        assert!(retained_path_bytes(0, usize::MAX).is_err());
+        assert!(retained_path_bytes(MAX_TOTAL_BYTES, 1).is_err());
+        let exact = "x".repeat(MAX_PATH_BYTES - 1);
+        assert!(select(vec![exact], true).is_ok());
+        assert!(select(vec!["x".repeat(MAX_PATH_BYTES)], true).is_err());
+        assert!(
+            decode_paths(&vec![b'x'; MAX_PATH_BYTES + 1], MAX_PATH_BYTES + 1, || Ok(
+                ()
+            ))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn path_decode_and_full_selection_keep_refusal_and_cancellation() {
+        assert!(decode_paths(b"unterminated", b"unterminated".len(), || Ok(())).is_err());
+        assert!(decode_paths(b"one\0\0", b"one\0\0".len(), || Ok(())).is_err());
+        assert!(decode_paths(b"one\0\xff\0", b"one\0\xff\0".len(), || Ok(())).is_err());
+        let paths = decode_paths(b"one\0one\0", b"one\0one\0".len(), || Ok(())).unwrap();
+        assert_eq!(select(paths, true).unwrap().changed_paths, vec!["one"]);
+        for path in ["", "a\0b", "/absolute", "a/../b", "a\nb"] {
+            assert!(select(vec![path.into()], true).is_err());
+        }
+        assert!(decode_paths(b"one\0", b"one\0".len(), || Err(invalid("cancelled"))).is_err());
+        let mut checks = 0;
+        assert!(
+            select_checked(vec!["access/web/main.ts".into()], true, || {
+                checks += 1;
+                if checks >= 3 {
+                    Err(invalid("cancelled during selection"))
+                } else {
+                    Ok(())
+                }
+            })
+            .is_err()
+        );
+        let cancel = AtomicI32::new(1);
+        let mut budget = Budget {
+            deadline: Instant::now() + Duration::from_secs(1),
+            bytes: 0,
+            cancel: &cancel,
+        };
+        assert!(budget.charge(0).is_err());
+        cancel.store(0, Ordering::Relaxed);
+        budget.deadline = Instant::now();
+        assert!(budget.charge(0).is_err());
+        budget.deadline = Instant::now() + Duration::from_secs(1);
+        budget.bytes = MAX_TOTAL_BYTES;
+        assert!(budget.charge(1).is_err());
+    }
+
+    #[test]
+    fn repository_wide_changes_keep_late_surfaces_and_byte_bounds() {
+        // Preserve the cleanup owner's mixed-surface regression, while replacing
+        // its arbitrary16384 ceiling with the same byte-based admission law.
         let mut paths = (0..4_401)
             .map(|index| format!("docs/history/{index}.md"))
             .collect::<Vec<_>>();
@@ -487,15 +663,52 @@ mod tests {
             "access/web/src/main.ts".into(),
         ]);
         let result = select(paths.clone(), false).unwrap();
+        paths.sort_unstable();
         assert_eq!(result.changed_paths, paths);
         assert_eq!(
             (result.software_mode, result.worker, result.rust),
             ("browser", true, true)
         );
-        let too_many = (0..=MAX_PATHS)
+        let more_than_old_limit = (0..16_385)
             .map(|index| format!("docs/history/{index}.md"))
             .collect();
-        assert!(select(too_many, false).is_err());
+        let docs = select(more_than_old_limit, false).unwrap();
+        assert_eq!(docs.changed_paths.len(), 16_385);
+        assert_eq!(
+            (docs.software_mode, docs.worker, docs.rust),
+            ("none", false, false)
+        );
+    }
+
+    #[test]
+    fn decode_preflights_live_storage_before_reserving_path_buffers() {
+        assert!(decode_paths(b"a\0", MAX_TOTAL_BYTES, || Ok(())).is_err());
+        assert!(decode_paths(b"a\0", 1, || Ok(())).is_err());
+        let raw = "a\0".repeat(20_000);
+        let mut checks = 0;
+        assert!(
+            decode_paths(raw.as_bytes(), raw.len(), || {
+                checks += 1;
+                if checks == 10_000 {
+                    Err(invalid("cancel during preflight"))
+                } else {
+                    Ok(())
+                }
+            })
+            .is_err()
+        );
+        let decoded = decode_paths(raw.as_bytes(), raw.len(), || Ok(())).unwrap();
+        assert_eq!(decoded.len(), 20_000);
+        let retained_strings = decoded.iter().map(String::capacity).sum();
+        assert!(
+            retained_path_bytes(retained_strings, decoded.capacity()).unwrap() + raw.len()
+                <= MAX_TOTAL_BYTES
+        );
+        assert_eq!(select(decoded, false).unwrap().changed_paths, vec!["a"]);
+        let mut oversized = String::new();
+        oversized.try_reserve_exact(MAX_TOTAL_BYTES).unwrap();
+        oversized.push('a');
+        assert!(select(vec![oversized], false).is_err());
     }
 
     #[test]
