@@ -24,7 +24,8 @@ ToS authority.
 
 - Change source-owned inputs or generator logic before changing exports.
 - Keep generated fields pointing back to the source that gives them meaning.
-- Keep runtime graph, UI, MCP, Neo4j, and service behavior in `abyss-stack`.
+- Route standalone delivery to `access/`; consumers own ecosystem deployment,
+  Neo4j and service orchestration in their repositories.
 - Keep KAG, routing, and control-plane authority with owning downstream
   repositories.
 - Let the corpus index cover `ToS/` as an index that returns to authored
@@ -35,7 +36,7 @@ ToS authority.
 - Let the philosophy atlas projection expose atlas rows, prepared dossier
   pressure, and graph-view routes as a derived read model for review.
 - Let the philosophy graph-view catalog expose source-owned lens filters for
-  downstream switching while keeping runtime behavior in `abyss-stack`.
+  ToS access and downstream consumers. Consumers own their runtime adapters.
 - Let the philosophy graph projection materialize one source-ref-preserving
   node/edge set and publish each view as stable node/edge ID membership. Do not
   duplicate the same materialized records inside every view packet.
@@ -57,8 +58,8 @@ Use the relevant native check/query command or owner lane for the export
 touched: KAG export, root-entry map, corpus projection, lexical index, native
 philosophy products (`tos-ops-mechanics-plan --philosophy-product <id> --mode
 check or validate`), public mirror sync, or tiny-entry route.
-For release-facing generated readmodels, also run the OS Abyss artifact bundle
-route `tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT`, owned by
-`mechanics/release-support/parts/artifact-bundles/`.
+For release-facing artifacts, use native ToS software verification or the
+selected corpus/export procedure in [`docs/RELEASING.md`](../../docs/RELEASING.md).
+Consumers own additional trust and admission on their side.
 Select the matching generated-parity or public-entry route in
 [`ToS/VALIDATION.md`](../VALIDATION.md) after the export is known.

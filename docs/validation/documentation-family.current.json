@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 2281,
     "human_scope": {
-      "bytes": 7317403,
+      "bytes": 7317957,
       "count": 1072,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -116,12 +116,12 @@
           "lines": 1256
         },
         "tos": {
-          "bytes": 5005300,
+          "bytes": 5005854,
           "count": 726,
-          "lines": 82551
+          "lines": 82560
         }
       },
-      "lines": 120715
+      "lines": 120724
     },
     "surface_kind_counts": {
       "executable": 77,
@@ -173,7 +173,7 @@
         "human": 726,
         "structured": 3702
       },
-      "tracked_surface_bytes": 97911813,
+      "tracked_surface_bytes": 97912367,
       "tracked_surface_count": 4473
     },
     {
@@ -289,7 +289,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "88d7200eac08d4a595fed5a1e66023592f70826b2b41273fe026f77626ce8b18",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "670a1b99a18126b392fcff0b1ae4c9229a81980cf232967fee4ff7952d5a510b",
+  "tracked_surface_digest": "c780488ca535750b2a87437d7694314c7c9df51d0caad87d9f83dc3f74d11cc2",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -336,7 +336,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "fc1e0bff8ff405840f0f2a43fefed71fda09b87bd9da8094ef36c3614fc968fe",
+      "sha256": "02ef3ba33544b483c3ffca6b2e0658f3e7e41ea003e57fd18d5c1c02dc50d96d",
       "surface_kind": "structured"
     },
     {
@@ -3700,19 +3700,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 3618,
+      "bytes": 3691,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/AGENTS.md",
-      "sha256": "638f4aa0d60f08f3798f4ea1bf1da26697de3a527ec9afa79fad9191e552ffcd",
+      "sha256": "a027b35bd7e34e1bb7cf6b38b6ba17b555485a9ea503045a97938109a374763e",
       "surface_kind": "human"
     },
     {
-      "bytes": 12071,
+      "bytes": 11945,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/derived-exports/README.md",
-      "sha256": "7df538b952032ee45f9bb3b772f4410d802b96d7627b409c53f774f0656d9cc2",
+      "sha256": "edb0cf2c8f9ad6632259833865428a2be8fd17acad925cbeba7d6defbd9cfe63",
       "surface_kind": "human"
     },
     {
@@ -15996,11 +15996,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 42919,
+      "bytes": 43441,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/research-packets/foundation-laboratory-2026-07/README.md",
-      "sha256": "87281a03eddd4f80f1ef414abfd4032d2a7c5e08af05e52281f4afd3c4335565",
+      "sha256": "cd1fabfa932a40d21951c62f2cd75653182fd8d2ab38ea80126fc38034a6e10a",
       "surface_kind": "human"
     },
     {
@@ -19628,11 +19628,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 7961,
+      "bytes": 8055,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/AGENTS.md",
-      "sha256": "4aa4c1c125e8af5f930ff484103e330b68bbbf9c87591386ade497b29ebc843b",
+      "sha256": "c1e6b4fe7661bb43e3927555d2d7b52d7d9d6638d6937adf544c503ff521b38c",
       "surface_kind": "human"
     },
     {
@@ -19644,11 +19644,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 100074,
+      "bytes": 100065,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/source-witnesses/README.md",
-      "sha256": "62b07ce65c19101e599880f614655d33cfd2ec5c8577bdccf899c29fa9d0cfeb",
+      "sha256": "c5f2c945eb7fb0c1681d090b18f07ac0c93a4ccdb2513fc77d25eaeda0cf3fca",
       "surface_kind": "human"
     },
     {

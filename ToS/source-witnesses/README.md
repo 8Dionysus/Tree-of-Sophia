@@ -227,8 +227,8 @@ existing fields even when the display's 240-character title or 1024-character
 description is shortened.
 
 The complete local source-witness audit and generated-catalog parity use the
-native owner directly through this lane, run inside the abyss-machine
-private-tmpfs owner launcher:
+native owner directly through this lane, run inside the native ToS
+private-tmpfs stage issuer:
 
 ```sh
 TOS_NATIVE_FOUNDATION_INVOCATION=/absolute/protected-invocation.json \
@@ -239,7 +239,7 @@ The owner-issued `tos_local_native_foundation_invocation_v1` request must bind
 the installed `tos-native-owner-command` and schema-worker digests and select
 finite source, CPU, private-stage, state and output budgets; omit an explicit
 validation profile so the route retains the complete declared audit. The
-launcher-provided sealed `ABYSS_STAGE_TICKET_FD` and `ABYSS_STAGE_ROOT` remain
+launcher-provided sealed `TOS_STAGE_TICKET_FD` and `TOS_STAGE_ROOT` remain
 required and are verified by the native owner. The validation lane passes the
 FD only to this exact command. Missing or mismatched source, worker, invocation,
 or stage custody fails closed; no Python validation fallback is invoked.

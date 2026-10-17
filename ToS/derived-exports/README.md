@@ -125,7 +125,7 @@ The source-witness bibliographic graph separately projects the public-safe
 object/claim catalog into a claim-reified graph. Every edge returns to the
 claim packet, evidence, maker, provenance event, review posture, exact source
 line, and digest; it contains no unqualified subject-to-object edge and does
-not widen the atlas projection into a bibliographic owner. The local
+not widen the atlas projection into a bibliographic owner.
 The native `corpus-projection-query` owner verifies source-backed parity
 before answering exact claim, subject, identity-object, normalized identity,
 predicate, review-status, or visibility selectors. It returns deterministic
@@ -138,13 +138,11 @@ source-bearing SQLite/FTS5 sibling remains gitignored. The hashes are
 dictionary-recoverable, so the projection is not cleared for publication; both
 outputs remain subordinate to source, rights, linguistic, semantic, and
 runtime owners.
-Only the subjects explicitly listed in
-`mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json`
-enter the current ABI-only OS Abyss artifact bundle. The lexical projection
-has its own source-gated validator and does not enter that bundle.
-The source-witness bibliographic graph is release-validated in ToS but does not
-enter the artifact bundle until a downstream consumer contract explicitly
-admits it.
+Release validation follows the native software or selected corpus/export route
+in [the release procedure](../../docs/RELEASING.md). Each artifact binds its
+declared membership and bytes; source, rights and publication controls retain
+their actual scope. A consumer owns its trust policy, registry and admission
+after importing a ToS artifact.
 
 ## How to verify
 
@@ -157,7 +155,7 @@ Use:
 - `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-build --check --kag-export EXPORT`
 - `tos-ops-mechanics-plan --repo-root ABS --root-entry-map-validate --kag-export EXPORT`
 - Native tracked corpus-index and bibliographic-graph parity: see [`Data and corpus operations`](../../docs/RELEASING.md#data-and-corpus-operations).
-- `tos-research lexical-index validate-tracked --source-root /srv/AbyssOS/Tree-of-Sophia --local-output-root /srv/AbyssOS/Tree-of-Sophia`
+- `tos-research lexical-index validate-tracked --source-root /absolute/selected-source --derived-input-root /absolute/selected-data --local-output-root /absolute/private-artifacts`
 - `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode check`
 - `tos-ops-mechanics-plan --philosophy-product atlas --source-root "$PWD" --output-root "$PWD" --mode validate`
 - `tos-ops-mechanics-plan --philosophy-product views --source-root "$PWD" --output-root "$PWD" --mode check`
@@ -181,4 +179,3 @@ companion atomically only while its captured prior bytes remain current. An
 explicit `--output ABSOLUTE_PATH` chooses another generated destination.
 The Rust compiler is the only implementation; native failure has no fallback.
 - The corpus-projection owner recomposes and compares the tracked graph as part of its source-backed parity check.
-- `tos-ops-mechanics-plan --artifact-bundle --repo-root ROOT`
