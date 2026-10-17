@@ -274,6 +274,19 @@ pub(super) fn bounded_output_before(
     bounded_child_output_until(OwnedChild(child), stdout_max, deadline, None)
 }
 pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
+    hash_before(path, max, None)
+}
+pub(super) fn bounded_sha_before(path: &std::path::Path, max: u64, deadline: Instant) -> Digest256 {
+    hash_before(path, max, Some(deadline))
+}
+fn hash_before(path: &std::path::Path, max: u64, deadline: Option<Instant>) -> Digest256 {
+    let check = || {
+        assert!(
+            deadline.is_none_or(|end| Instant::now() < end),
+            "native hash deadline elapsed"
+        )
+    };
+    check();
     use std::os::unix::fs::MetadataExt;
     let file = tos_fd_open::open_absolute_regular(path, max).unwrap();
     let before = file.metadata().unwrap();
@@ -293,6 +306,7 @@ pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
     let mut hasher = Digest256Hasher::new();
     let mut bytes = [0u8; 64 * 1024];
     loop {
+        check();
         let read = reader.read(&mut bytes).unwrap();
         if read == 0 {
             break;
@@ -312,5 +326,6 @@ pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
         identity(&fs::symlink_metadata(path).unwrap()),
         "hash pathname changed while reading"
     );
+    check();
     hasher.finalize()
 }

@@ -646,7 +646,6 @@ impl VerifiedAddressedGeneration {
                 store_id: self.cut.store_id,
                 domain_digest: self.cut.domain_digest,
                 through_seq: self.cut.through_seq,
-                audit_generation: self.cut.audit_generation,
                 database_oid: self.cut.database_oid,
                 schema_profile_digest: self.cut.schema_profile_digest,
                 state_digest: self.state_digest,
