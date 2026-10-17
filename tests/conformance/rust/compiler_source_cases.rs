@@ -28,19 +28,29 @@ mod native_managed_corpus_consumer;
 mod retained_history_capture;
 
 // The frozen Python packets predate the source-history storage migration.
-// This descriptive field must follow the independently parsed authored input;
+// Description and manifest fixity follow the independently parsed authored input;
 // every other historical branch field and all projection assertions stay exact.
-fn reconcile_source_witness_role(expected: &mut Value, files: &BTreeMap<String, Vec<u8>>) {
-    let home: Value = serde_json::from_slice(&files["ToS/source_home.manifest.json"]).unwrap();
+fn reconcile_source_home_inputs(expected: &mut Value, files: &BTreeMap<String, Vec<u8>>) {
+    let home_raw = &files["ToS/source_home.manifest.json"];
+    let home: Value = serde_json::from_slice(home_raw).unwrap();
+    let home_sha256 = Digest256::of_bytes(home_raw).to_hex();
     let branch = home["branches"]
         .as_array()
         .unwrap()
         .iter()
         .find(|row| row["id"] == "source_witnesses")
         .unwrap();
-    fn visit(value: &mut Value, branch: &Value) -> usize {
+    fn visit(value: &mut Value, branch: &Value, home_sha256: &str) -> usize {
+        if value.get("manifest_kind").and_then(Value::as_str) == Some("source_home_manifest") {
+            assert_eq!(value["path"], "ToS/source_home.manifest.json");
+            assert_eq!(
+                value["sha256"],
+                "89d243df361586d2435748ec5d32b5929ddfa2a0742d6776f1e661319635126c"
+            );
+            value["sha256"] = json!(home_sha256);
+        }
         if value.get("id").and_then(Value::as_str) == Some("source_witnesses") {
-            for field in ["id", "path", "owner_surface", "authority_layer"] {
+            for field in ["id", "path", "owner_surface"] {
                 assert_eq!(value[field], branch[field], "unchanged branch {field}");
             }
             assert_eq!(
@@ -51,13 +61,19 @@ fn reconcile_source_witness_role(expected: &mut Value, files: &BTreeMap<String, 
             return 1;
         }
         match value {
-            Value::Array(rows) => rows.iter_mut().map(|row| visit(row, branch)).sum(),
-            Value::Object(fields) => fields.values_mut().map(|row| visit(row, branch)).sum(),
+            Value::Array(rows) => rows
+                .iter_mut()
+                .map(|row| visit(row, branch, home_sha256))
+                .sum(),
+            Value::Object(fields) => fields
+                .values_mut()
+                .map(|row| visit(row, branch, home_sha256))
+                .sum(),
             _ => 0,
         }
     }
     assert!(
-        visit(expected, branch) > 0,
+        visit(expected, branch, &home_sha256) > 0,
         "historical source-witness branch present"
     );
 }
@@ -179,19 +195,28 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
     assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     (authored, captured)
 }
-// The frozen Python captures predate this authored contract, while the current
+// The frozen Python captures predate these authored contracts, while the current
 // source-home capture includes all tracked ToS paths outside explicit exclusions.
-fn append_current_private_pg_text_contract_resource(resources: &mut Vec<Value>) {
-    const PATH: &str = "ToS/contracts/native-pg-private-text-read.schema.json";
-    assert!(
-        !resources.iter().any(|row| row["path"] == PATH),
-        "historical Python oracle predates the current private-text contract"
-    );
-    resources.push(json!({
-        "path":PATH, "resource_kind":"contract_schema", "owner_branch":"ToS/contracts",
-        "authority_layer":"contract", "sha256":"", "size_bytes":0,
-    }));
+fn append_current_contract_resources(resources: &mut Vec<Value>) {
+    for path in [
+        "ToS/contracts/native-pg-private-text-read.schema.json",
+        "ToS/contracts/retained-corpus-binding.schema.json",
+    ] {
+        assert!(
+            !resources.iter().any(|row| row["path"] == path),
+            "historical Python oracle predates current contract {path}"
+        );
+        resources.push(json!({
+            "path": path,
+            "resource_kind": "contract_schema",
+            "owner_branch": "ToS/contracts",
+            "authority_layer": "contract",
+            "sha256": "",
+            "size_bytes": 0,
+        }));
+    }
 }
+
 #[test]
 fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     let (authored, captured) = sources();
@@ -388,7 +413,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     .unwrap();
     render_repository_source_plan(&mut stage, &plan, &vocabulary, deadline, &cancelled).unwrap();
     let mut expected = crate::frozen_legacy_python_oracle("repository-topology");
-    reconcile_source_witness_role(&mut expected, &captured);
+    reconcile_source_home_inputs(&mut expected, &captured);
     let source = &vocabulary
         .sources
         .iter()
@@ -413,7 +438,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         }
         let mut wanted = expected[collection].as_array().unwrap().clone();
         if collection == "resources" {
-            append_current_private_pg_text_contract_resource(&mut wanted);
+            append_current_contract_resources(&mut wanted);
             for row in &mut wanted {
                 let path = required(row, "path");
                 let raw = captured.get(path).expect("selected topology resource");
@@ -1690,7 +1715,7 @@ fn native_corpus_composition_case(installed: bool) {
     }
     let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
     let mut expected: Value = serde_json::from_slice(&historical_raw).unwrap();
-    reconcile_source_witness_role(&mut expected, &files);
+    reconcile_source_home_inputs(&mut expected, &files);
     assert_eq!(
         expected["validation_refs"],
         serde_json::json!([
@@ -1714,7 +1739,7 @@ fn native_corpus_composition_case(installed: bool) {
         "path":vocabulary_path, "resource_kind":"json", "owner_branch":"ToS/doctrine",
         "authority_layer":"doctrine", "sha256":"", "size_bytes":0,
     }));
-    append_current_private_pg_text_contract_resource(resource_rows);
+    append_current_contract_resources(resource_rows);
     for row in resource_rows.iter_mut() {
         let path = row["path"].as_str().unwrap();
         let raw = files
@@ -1748,10 +1773,10 @@ fn native_corpus_composition_case(installed: bool) {
     .unwrap();
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
-    reconcile_source_witness_role(&mut query_oracle, &files);
-    // The selected native cut adds the vocabulary resource and current contract.
+    reconcile_source_home_inputs(&mut query_oracle, &files);
+    // The selected native cut adds the vocabulary and two current contracts.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(339));
+    assert_eq!(expected["counts"]["resources"], serde_json::json!(340));
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
@@ -1765,7 +1790,7 @@ fn native_corpus_composition_case(installed: bool) {
     ] {
         let count = query_oracle.pointer_mut(pointer).unwrap();
         assert_eq!(*count, serde_json::json!(337));
-        *count = serde_json::json!(339);
+        *count = expected["counts"]["resources"].clone();
         let parent = pointer.strip_suffix("/resources").unwrap();
         for (field, old, new) in [
             ("source_navigation_nodes", 6, 12),
