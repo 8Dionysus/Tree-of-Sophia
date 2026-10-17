@@ -2242,6 +2242,9 @@ mod command_work_cases;
 #[path = "command_text_cases.rs"]
 mod command_text_cases;
 
+#[path = "../../../rust/crates/tos-command/tests/support/retained_history.rs"]
+mod retained_history_capture;
+
 #[path = "compiler_source_cases.rs"]
 mod compiler_source_cases;
 

@@ -1,19 +1,23 @@
 # Frozen retained-history regression inputs
 
 These are the exact public metadata bytes selected from source commit
-`b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d` for the Item adoption/history,
-interleaved linguistic Claim corrections, typed two-receipt prefix tests, and
-corpus-composition conformance.
-The selection contains the scoped-research-selection Work, Expression, Edition
-and Item packages, the linguistic Claim package, their thirteen historical archive
-packages, the relation and entity registries, and the two selected reader schemas: 141 files, 1,256,694 source bytes.
+`b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d` for Item adoption/history,
+interleaved linguistic Claim corrections, typed two-receipt prefixes,
+corpus composition and Collection order conformance.
 
-The three native Git-capture files in `capture/` preserve every selected path, mode, Git blob
-OID and raw SHA-256. Historical members also match the retained record-revision
-source cut `ddd26dd23705517e3aef0d09f014028a371546d87e2b4a42d71c8b17e57ba5a4`.
+The selection contains the scoped-research-selection Work, Expression, Edition
+and Item packages, the linguistic Claim package, fifteen historical record
+archive packages, two exact metadata transactions, the relation and entity
+registries, and the selected reader schemas: 163 files, 1,358,351 source bytes.
+
+The three native Git-capture files in `capture/` preserve every selected path,
+mode, Git blob OID and raw SHA-256. Record history also matches the retained
+source cut `ddd26dd23705517e3aef0d09f014028a371546d87e2b4a42d71c8b17e57ba5a4`;
+metadata transports match
+`9b9bd7c63cada9ddd024b1b5b4e1cc892799148bb9adea734c379fa85a4ed1f3`.
 The isolated fixture Git commit is
-`b28f9ab19ddde64cae5e44207e64a63f21c7285b`, with tree
-`bac11ac1d67e2ff812317ed2ef0a99fbc5489475`. It describes only this bounded
+`c83a40969d69b99204cf2941ae9c7d9db7d654cf`, with tree
+`f04afc2ebdf6d3d9d42060b793e11d72562878ac`. It describes only this bounded
 selection; it grants no source admission or corpus completeness.
 
 Tests restore this pinned capture through the maintained native reader into

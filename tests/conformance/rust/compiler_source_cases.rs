@@ -24,9 +24,6 @@ include!("native_corpus_query.rs");
 #[path = "native_managed_corpus_consumer.rs"]
 mod native_managed_corpus_consumer;
 
-#[path = "../../../rust/crates/tos-command/tests/support/retained_history.rs"]
-mod retained_history_capture;
-
 // The frozen Python packets predate the source-history storage migration.
 // Description and manifest fixity follow the independently parsed authored input;
 // every other historical branch field and all projection assertions stay exact.
@@ -1193,7 +1190,7 @@ fn native_corpus_composition_case(installed: bool) {
     ] {
         add_tree(&repository, path, &mut files);
     }
-    let historical = retained_history_capture::retained_history(&repository);
+    let historical = super::retained_history_capture::retained_history(&repository);
     let historical_root = historical.path().join("source");
     for path in [
         "ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba",

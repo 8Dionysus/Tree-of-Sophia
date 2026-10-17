@@ -1647,16 +1647,22 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let history: Value =
         serde_json::from_slice(&files[&format!("{collection}/source-revision-history.json")])
             .unwrap();
+    let retained_history = super::retained_history_capture::retained_history(&repository);
+    let retained_root = retained_history.path().join("source");
     for receipt in history["receipts"].as_array().unwrap() {
         let path = receipt["archive_path"].as_str().unwrap();
-        let mut members = fs::read_dir(repository.join(path))
+        let mut members = fs::read_dir(retained_root.join(path))
             .unwrap()
             .map(|entry| entry.unwrap().path())
             .collect::<Vec<_>>();
         members.sort();
         assert!(members.len() <= 64);
         for member in members {
-            let relative = member.strip_prefix(&repository).unwrap().to_str().unwrap();
+            let relative = member
+                .strip_prefix(&retained_root)
+                .unwrap()
+                .to_str()
+                .unwrap();
             files.insert(relative.into(), fs::read(&member).unwrap());
         }
         // A historical Collection version is selected with its original
@@ -1671,7 +1677,7 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         assert_eq!(transaction_id.len(), 64);
         assert!(transaction_id.bytes().all(|byte| byte.is_ascii_hexdigit()));
         let transaction = format!("ToS/source-witnesses/.metadata-transactions/{transaction_id}");
-        let mut selected = fs::read_dir(repository.join(&transaction))
+        let mut selected = fs::read_dir(retained_root.join(&transaction))
             .unwrap()
             .map(|entry| entry.unwrap().path())
             .collect::<Vec<_>>();
@@ -1679,7 +1685,11 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         assert!(selected.len() <= 64);
         for member in selected {
             assert!(member.is_file());
-            let relative = member.strip_prefix(&repository).unwrap().to_str().unwrap();
+            let relative = member
+                .strip_prefix(&retained_root)
+                .unwrap()
+                .to_str()
+                .unwrap();
             assert!(
                 files
                     .insert(relative.into(), fs::read(&member).unwrap())
