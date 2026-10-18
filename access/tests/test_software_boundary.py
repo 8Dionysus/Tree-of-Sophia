@@ -22,6 +22,58 @@ from tos_access.locations import data_root
 
 
 class SoftwareBoundaryTests(unittest.TestCase):
+    def test_admitted_snapshot_passes_stage_root_and_fd_without_ambient_data_selectors(self):
+        from contextlib import contextmanager
+        from tos_access.native_core_snapshot import (
+            NativeCoreSnapshotClient, NativeCoreSnapshotSelection,
+            NativeCoreSnapshotAdmission, NativeCoreJsonLimits, NativeCoreColdLimits,
+            NativeCoreProcessLimits,
+        )
+        # This checks the real SDK-to-child handoff. Native sealed-ticket
+        # verification remains with the Rust issuer/receiver, not this stub.
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryFile() as ticket:
+            selection = NativeCoreSnapshotSelection.discover(directory)
+            admission = NativeCoreSnapshotAdmission(
+                absolute_deadline=time.monotonic() + 20, operation_seconds=20,
+                stage_ticket_fd=ticket.fileno(), max_build_seconds=10,
+                tmpfs_quota_bytes=1048576, inode_limit=64, working_ram_bytes=16777216,
+                whole_max_rows=16, whole_max_row_bytes=4096,
+                whole_max_graph_bytes=4096, whole_max_catalog_bytes=4096,
+                whole_max_catalog_inputs_bytes=4096, whole_max_state_bytes=4096,
+                json=NativeCoreJsonLimits(4096, 32, 1024, 20),
+                cold=NativeCoreColdLimits(4096, 100, 64, 16, 4096, 4096, 4096, 16),
+                process=NativeCoreProcessLimits(16777216, 4096),
+            )
+            observed = []
+            class Channel:
+                def write_input(self, payload, *, close):
+                    request = json.loads(payload)
+                    self_outer.assertEqual(request['admission']['stage_ticket_fd'], ticket.fileno())
+                    self_outer.assertTrue(close)
+                def frames(self):
+                    yield json.dumps({'schema_version': 'tos_native_core_snapshot_result_v1',
+                                      'ok': True, 'result': {'handoff': 'checked'}}).encode()
+            self_outer = self
+            @contextmanager
+            def child(arguments, **options):
+                observed.append(arguments)
+                self.assertEqual(options['env']['TOS_STAGE_ROOT'], directory)
+                self.assertEqual(options['pass_fds'], (ticket.fileno(),))
+                self.assertNotIn('TOS_STAGE_TICKET_FD', options['env'])
+                self.assertNotIn('TOS_DATA_ROOT', options['env'])
+                self.assertNotIn('TOS_QUERY_STORE_PATH', options['env'])
+                yield Channel()
+            client = NativeCoreSnapshotClient('/owned/software', selection, lambda _: admission)
+            with patch.dict(os.environ, {'TOS_STAGE_ROOT': directory,
+                    'TOS_STAGE_TICKET_FD': str(ticket.fileno()),
+                    'TOS_DATA_ROOT': '/unselected/data', 'TOS_QUERY_STORE_PATH': '/unselected/store'}), \
+                    patch('tos_access.native_core_snapshot.owned_exchange', child):
+                with client._operation('tos_corpus_header') as call:
+                    result, _, _ = client._exchange('tos_corpus_header', {}, call)
+            self.assertEqual(result, {'handoff': 'checked'})
+            self.assertEqual(len(observed), 1)
+            client.close()
+
     def test_native_dispatch_accepts_profiled_access_receipt_and_keeps_legacy_shape(self):
         from tos_access.native_dispatch import _proof
         source = 'b' * 40

@@ -541,7 +541,9 @@ class NativeCoreSnapshotClient:
                 fds.append(sender.fileno())
             inherited = dict(os.environ)
             for key in tuple(inherited):
-                if key.startswith('TOS_'):
+                # The explicit admitted child rebinds its ticket FD in Rust,
+                # but must retain the issuer's root to validate that ticket.
+                if key.startswith('TOS_') and key != 'TOS_STAGE_ROOT':
                     inherited.pop(key, None)
             if admission is None:
                 from .native_core_session import owned_native_snapshot_exchange
