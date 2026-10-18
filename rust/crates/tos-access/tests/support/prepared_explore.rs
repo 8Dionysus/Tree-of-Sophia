@@ -360,6 +360,18 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         &request_raw,
         profile,
     );
+    eprintln!(
+        "TOS_I_CHECKPOINT_ABA_RESPONSE {}",
+        value!({
+            "method":"POST", "route":"/api/knowledge/explore",
+            "request_bytes":&request_raw, "status":changed_path.status,
+            "response_body_bytes":&changed_path.body,
+            "retained_identity":{"dev":retained_identity.dev(),"ino":retained_identity.ino(),"bytes":retained_identity.len()},
+            "replacement_identity":{"dev":replaced_identity.dev(),"ino":replaced_identity.ino(),"bytes":replaced_identity.len()},
+            "retained_sha256":retained_before.to_hex(),
+            "replacement_sha256":replaced_before.to_hex()
+        })
+    );
     assert_eq!(
         changed_path.status,
         503,
