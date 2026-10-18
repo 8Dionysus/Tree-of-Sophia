@@ -45,7 +45,8 @@ tree should grow next.
   evidence-linked reference observation.
 - the Table I rows and prepared-dossier route map own the counted identities;
 - branch homes own their philosophical content and source posture;
-- `aoa-stats` owns shared validation and cross-owner composition.
+- ToS owns local port validation and export; `aoa-stats` owns the shared format
+  and cross-owner composition.
 
 ## Standalone export boundary
 

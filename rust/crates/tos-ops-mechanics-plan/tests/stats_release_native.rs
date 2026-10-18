@@ -124,6 +124,7 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         json!({"status":"observed","kind":"count","unit":"1","numerator":1,"denominator":2,"number":0.5}),
         json!({"status":"observed","kind":"ratio","unit":"wrong","numerator":1,"denominator":2,"number":0.5}),
         json!({"status":"unknown","kind":"ratio","unit":"1"}),
+        json!({"status":"unknown","kind":"ratio","unit":"1","reason":"unknown value with current freshness"}),
         json!({"status":"unknown","kind":"ratio","unit":"1","reason":"input unavailable","number":0}),
         json!({"status":"stale","kind":"ratio","unit":"1","reason":"old observation","number":0.5}),
     ] {
@@ -137,18 +138,106 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         assert!(!build().status.success());
         assert_eq!(status(revision)["export_revision"], identity);
     }
+    for (pointer, value) in [
+        ("/progress/state", json!("partial")),
+        ("/progress/completed", json!(1)),
+        ("/progress/total", json!(3)),
+        ("/uncertainty/method", json!("bootstrap")),
+        ("/uncertainty/status", json!("estimated")),
+        ("/uncertainty/sample_size", json!(1)),
+        (
+            "/uncertainty",
+            json!({"status":"not_applicable","method":"not_applicable","sample_size":2,"lower":0.1,"upper":0.9}),
+        ),
+        ("/window/end", json!("2026-10-17T00:00:01Z")),
+        (
+            "/provenance/evidence_refs/0/ref",
+            json!("/private/operator/evidence.json"),
+        ),
+        (
+            "/provenance/evidence_refs/0/ref",
+            json!(".aoa/sessions/raw-session.jsonl"),
+        ),
+    ] {
+        let mut changed = packet_document.clone();
+        *changed.pointer_mut(pointer).unwrap() = value;
+        fs::write(&packet, serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(!validate().status.success(), "accepted {pointer}");
+        assert!(!build().status.success(), "published {pointer}");
+        assert_eq!(status(revision)["export_revision"], identity);
+    }
+    fs::write(&packet, serde_json::to_vec(&packet_document).unwrap()).unwrap();
+    for (pointer, value) in [
+        ("/measurements/0/uncertainty/required", json!(true)),
+        ("/measurements/0/uncertainty/methods", json!(["bootstrap"])),
+        ("/measurements/0/aggregation/operator", json!("sum")),
+    ] {
+        let mut changed = port_document.clone();
+        *changed.pointer_mut(pointer).unwrap() = value;
+        fs::write(&port, serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(!validate().status.success(), "accepted {pointer}");
+        assert!(!build().status.success(), "published {pointer}");
+        assert_eq!(status(revision)["export_revision"], identity);
+    }
+    let mut zero_port = port_document.clone();
+    let mut zero = packet_document.clone();
+    zero["value"]["numerator"] = json!(0);
+    zero["value"]["number"] = json!(0.0);
+    fs::write(&port, serde_json::to_vec(&zero_port).unwrap()).unwrap();
+    fs::write(&packet, serde_json::to_vec(&zero).unwrap()).unwrap();
+    assert!(validate().status.success());
+    zero_port["measurements"][0]["missingness"]["zero_is_observation"] = json!(false);
+    fs::write(&port, serde_json::to_vec(&zero_port).unwrap()).unwrap();
+    assert!(!validate().status.success());
+    let mut foreign_port = port_document.clone();
+    let mut foreign_packet = packet_document.clone();
+    for value in [
+        &mut foreign_port["measurements"][0]["measurement_id"],
+        &mut foreign_packet["measurement_id"],
+    ] {
+        *value = json!("Unrelated-Owner/synthetic-ratio");
+    }
+    foreign_port["exports"][0]["measurement_id"] = json!("Unrelated-Owner/synthetic-ratio");
+    fs::write(&port, serde_json::to_vec(&foreign_port).unwrap()).unwrap();
+    fs::write(&packet, serde_json::to_vec(&foreign_packet).unwrap()).unwrap();
+    assert!(!validate().status.success());
+    fs::write(&port, serde_json::to_vec(&port_document).unwrap()).unwrap();
     for state in ["missing", "unknown", "stale"] {
         altered = serde_json::from_slice(&raw).unwrap();
         altered["value"] = json!({"status":state,"kind":"ratio","unit":"1","reason":"synthetic input unavailable"});
         if state == "stale" {
             altered["posture"]["freshness"] = json!("stale");
+        } else if state == "unknown" {
+            altered["posture"]["freshness"] = json!("unknown");
         }
         fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
         assert!(validate().status.success());
     }
     altered["value"] = json!({"status":"stale","kind":"ratio","unit":"1","reason":"old observation","number":0.5,"numerator":1,"denominator":2});
     fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
+    assert!(!validate().status.success());
+    assert!(!build().status.success());
+    assert_eq!(status(revision)["export_revision"], identity);
+    let mut partial = packet_document.clone();
+    partial["value"] =
+        json!({"status":"unknown","kind":"ratio","unit":"1","reason":"census incomplete"});
+    partial["posture"]["freshness"] = json!("unknown");
+    partial["sample"]["size"] = json!(1);
+    partial["uncertainty"]["sample_size"] = json!(1);
+    partial["progress"] = json!({"state":"partial","completed":1,"total":2});
+    fs::write(&packet, serde_json::to_vec(&partial).unwrap()).unwrap();
     assert!(validate().status.success());
+    let mut pending_port = port_document.clone();
+    pending_port["measurements"][0]["uncertainty"]["methods"] = json!(["not_estimated"]);
+    partial["uncertainty"]["status"] = json!("not_estimated");
+    partial["uncertainty"]["method"] = json!("not_estimated");
+    fs::write(&port, serde_json::to_vec(&pending_port).unwrap()).unwrap();
+    fs::write(&packet, serde_json::to_vec(&partial).unwrap()).unwrap();
+    assert!(validate().status.success());
+    partial["progress"]["completed"] = json!(2);
+    fs::write(&packet, serde_json::to_vec(&partial).unwrap()).unwrap();
+    assert!(!validate().status.success());
+    fs::write(&port, serde_json::to_vec(&port_document).unwrap()).unwrap();
     for posture in [
         json!({"raw_content_included":false,"live_state":null,"privacy":"public","freshness":"current"}),
         json!({"raw_content_included":false,"live_state":"live","privacy":"public","freshness":"current"}),

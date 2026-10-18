@@ -22,9 +22,11 @@ Start with root `AGENTS.md` and this card. Open `CHARTER.md`, `BOUNDARIES.md`,
 or `ROADMAP.md` only when repository orientation changes the measurement task.
 For a Table I question, open the philosophy atlas route and its README when
 human explanation is relevant, then open `stats/port.manifest.json`, rows, and
-the dossier map. When local port usage is part of the selected measurement,
-open `stats/README.md`; open the `aoa-stats` contracts only when that
-measurement requires them.
+the dossier map.
+When local port usage is selected, open `stats/README.md`.
+When packet structure changes, use the [embedded portable format](../rust/crates/tos-ops-mechanics-plan/schemas/README.md).
+ToS owns native port validation and export; shared format evolution and
+cross-owner composition remain with `aoa-stats`.
 
 ## Boundaries
 

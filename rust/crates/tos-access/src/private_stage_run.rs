@@ -3843,7 +3843,7 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
     result
 }
 
-// Normal optional Abyss host admission for one ordinary SDK operation.
+// Bounded Linux scope operations for one ordinary SDK invocation.
 // This request is not a Stage grant: the native launcher and systemd issue
 // actual per-operation containment. No ecosystem admission service is needed.
 fn host_command(

@@ -234,12 +234,10 @@ fn validate_ratio_value(contract: &Value, value: &Value) -> io::Result<()> {
                 return Err(invalid("stats status is not declared by the measurement"));
             }
             nonempty(&value["reason"])?;
-            if has_number && status != "stale" {
-                return Err(invalid("missing or unknown stats cannot assert a number"));
+            if has_number {
+                return Err(invalid("non-observed stats cannot assert a number"));
             }
-            if !has_number {
-                return Ok(());
-            }
+            return Ok(());
         }
         _ => return Err(invalid("unsupported stats value status")),
     }
@@ -257,8 +255,78 @@ fn validate_ratio_value(contract: &Value, value: &Value) -> io::Result<()> {
         .as_f64()
         .filter(|v| v.is_finite())
         .ok_or_else(|| invalid("stats ratio number"))?;
-    if numerator > denominator || (number - numerator as f64 / denominator as f64).abs() > 1e-12 {
+    if numerator > denominator
+        || (number - numerator as f64 / denominator as f64).abs() > 1e-12
+        || (number == 0.0 && contract["missingness"]["zero_is_observation"] != true)
+    {
         return Err(invalid("stats ratio is inconsistent"));
+    }
+    Ok(())
+}
+
+fn validate_census_packet(contract: &Value, packet: &Value) -> io::Result<()> {
+    let count = |value: &Value| {
+        value
+            .as_u64()
+            .ok_or_else(|| invalid("stats census count is unsupported"))
+    };
+    let sample = count(&packet["sample"]["size"])?;
+    let population = (!packet["population"]["size"].is_null())
+        .then(|| count(&packet["population"]["size"]))
+        .transpose()?;
+    let progress = &packet["progress"];
+    let completed = count(&progress["completed"])?;
+    let total = (!progress["total"].is_null())
+        .then(|| count(&progress["total"]))
+        .transpose()?;
+    if population.is_some_and(|n| sample > n)
+        || total
+            .is_some_and(|n| completed > n || (progress["state"] == "partial" && completed >= n))
+    {
+        return Err(invalid(
+            "stats census sample or progress exceeds its population",
+        ));
+    }
+    if packet["window"]["start"] != packet["window"]["end"] {
+        return Err(invalid("stats instant window endpoints differ"));
+    }
+    let uncertainty = &packet["uncertainty"];
+    let method = nonempty(&uncertainty["method"])?;
+    if count(&uncertainty["sample_size"])? != sample
+        || !contract["uncertainty"]["methods"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v == method)
+        || !matches!(method, "not_applicable" | "not_estimated")
+        || uncertainty["status"] != method
+        || uncertainty.get("lower").is_some()
+        || uncertainty.get("upper").is_some()
+    {
+        return Err(invalid(
+            "stats census uncertainty differs from its contract",
+        ));
+    }
+    if packet["value"]["status"] == "observed" {
+        let population = population.ok_or_else(|| invalid("stats census population is unknown"))?;
+        if count(&packet["value"]["denominator"])? != population
+            || sample != population
+            || progress["state"] != "terminal"
+            || completed != population
+            || total != Some(population)
+            || method != "not_applicable"
+            || contract["uncertainty"]["required"] != false
+        {
+            return Err(invalid("stats ratio lacks a completed reference census"));
+        }
+    }
+    for evidence in packet["provenance"]["evidence_refs"].as_array().unwrap() {
+        let reference = nonempty(&evidence["ref"])?;
+        if reference.starts_with(['/', '~']) || reference.to_lowercase().contains(".aoa/sessions") {
+            return Err(invalid(
+                "stats evidence reference exposes private host or session material",
+            ));
+        }
     }
     Ok(())
 }
@@ -319,6 +387,12 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
             || contract["privacy"]["raw_content_allowed"] != false
             || !questions.contains(nonempty(&contract["question_ref"])?)
             || contract["population"]["sampling"] != "census"
+            || !nonempty(&contract["measurement_id"])?.starts_with("Tree-of-Sophia/")
+            || contract["window"]["temporality"] != "instant"
+            || !matches!(
+                contract["aggregation"]["operator"].as_str(),
+                Some("none" | "ratio_of_sums")
+            )
         {
             return Err(invalid(
                 "stats measurement identity differs or is duplicated",
@@ -326,8 +400,19 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
         }
         let mut dimension_names = std::collections::BTreeSet::new();
         for dimension in contract["dimensions"]["allowed"].as_array().unwrap() {
-            if !dimension_names.insert(nonempty(&dimension["name"])?) {
-                return Err(invalid("stats dimension declaration is duplicated"));
+            let name = nonempty(&dimension["name"])?;
+            if !dimension_names.insert(name)
+                || contract["dimensions"]["prohibited"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|v| v == name)
+                || (dimension["sensitivity"] == "sensitive"
+                    && contract["privacy"]["sensitive_dimensions_allowed"] != true)
+            {
+                return Err(invalid(
+                    "stats dimension declaration conflicts with its contract",
+                ));
             }
         }
     }
@@ -374,6 +459,7 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                 || packet["posture"]["privacy"] != privacy
                 || !matches!(packet["posture"]["freshness"].as_str(), Some("current" | "unknown" | "stale"))
                 || (packet["value"]["status"] == "stale" && packet["posture"]["freshness"] != "stale")
+                || (packet["value"]["status"] == "unknown" && packet["posture"]["freshness"] != "unknown")
                 || packet["object_ref"]["kind"] != contract["object_kind"]
                 || packet["window"]["temporality"] != contract["window"]["temporality"]
                 || packet["population"]["definition_ref"] != format!("stats/port.manifest.json#/measurements/{index}/population")
@@ -385,12 +471,7 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                 return Err(invalid("stats observation identity is duplicated"));
             }
             validate_ratio_value(contract, &packet["value"])?;
-            if packet["value"].get("denominator").is_some()
-                && (packet["value"]["denominator"] != packet["population"]["size"]
-                    || packet["sample"]["size"] != packet["population"]["size"])
-            {
-                return Err(invalid("stats census population differs from the ratio"));
-            }
+            validate_census_packet(contract, &packet)?;
             let allowed = contract["dimensions"]["allowed"].as_array().unwrap();
             let prohibited = contract["dimensions"]["prohibited"].as_array().unwrap();
             for (name, value) in packet["dimensions"].as_object().unwrap() {

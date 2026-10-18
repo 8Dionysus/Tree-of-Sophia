@@ -8,14 +8,24 @@ tos-stats-release validate --port /path/to/selected-source/stats/port.manifest.j
 cargo test --locked -p tos-ops-mechanics-plan --no-default-features --features mechanics --test stats_release_native
 ```
 
-The current export supports census ratios with matching `kind` and unit.
+The current export supports instant census ratios with matching `kind` and unit.
 `observed` requires the complete consistent numerator, positive denominator
 and number. Declared `missing`, `unknown` and `stale` values require a reason;
-missing or unknown cannot assert a number. Stale may retain a complete checked
-ratio. Unsupported statuses, kinds and partial values refuse publication.
+these non-observed states carry no numeric value. Historical numerical
+observations remain in prior immutable exports. Unsupported statuses, kinds and
+partial values refuse publication.
 The port's `reference_only` capability requires a packet `reference` posture,
 matching measurement capability and privacy, and supported freshness. A stale
-value must declare stale freshness. These checks never promote a reference
+value must declare stale freshness; an unknown value declares unknown freshness.
+Numeric census results require terminal progress with sample, population,
+denominator, completed and total counts all matching. Their admitted uncertainty
+method and status are `not_applicable`, with the exact sample size and no
+estimate bounds. Required statistical estimation needs its own implementation.
+Non-numeric missing states may retain partial progress and a declared
+`not_estimated` uncertainty. Instant window endpoints use the same timestamp
+declaration, or are both null. Ratio aggregation declarations permit `none` or
+`ratio_of_sums`; evidence references exclude private host and raw session paths.
+These checks never promote a reference
 observation to live state.
 
 No consumer repository, interpreter or schema checkout is selected. Shared
