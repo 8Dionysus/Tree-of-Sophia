@@ -22,8 +22,11 @@ systemd-run --user --wait --collect --pipe --unit=tos-load-readiness.service \
 
 Choose the actual memory and storage budgets for the selected workload. A host
 may supply its own outer policy externally. The runner checks its real cgroup,
-private output ownership, available storage and exclusive directory custody.
-Its existing capped writers enforce the output bound. No reservation-service
+private output ownership and exclusive directory custody. Before setup it
+allocates the full report cap in the actual report inode without extending its
+JSONL payload. Concurrent runs allocate separate blocks. Completion and error
+return release the unused tail while retaining the written report. Its capped
+writers enforce the output bound. No reservation-service
 identity is accepted as a substitute for the actual kernel limits.
 
 Use the existing `capacity-fixture` and owner-only arguments described by the

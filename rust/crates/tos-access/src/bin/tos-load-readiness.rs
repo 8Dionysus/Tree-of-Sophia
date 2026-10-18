@@ -2283,20 +2283,71 @@ fn resource_snapshot(root: &Path) -> Result<ResourceSnapshot, String> {
 }
 
 // The output belongs to this invocation, not to an external host lease.
-// Hold an exclusive directory lock through terminal output and retain the
-// existing capped writers. The kernel checks available space before work.
-fn output_custody(output: &Path, cap: usize) -> Result<File, String> {
+// Hold an exclusive directory lock through terminal output. Report capacity
+// is allocated separately in the exact inode consumed by the capped writer.
+fn output_custody(output: &Path) -> Result<File, String> {
     let held = File::open(output).map_err(|e| format!("output directory: {e}"))?;
     if unsafe { libc::flock(held.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
         return Err("output directory is already owned by an active run".into());
     }
-    let mut stat = unsafe { std::mem::zeroed::<libc::statvfs>() };
-    if unsafe { libc::fstatvfs(held.as_raw_fd(), &mut stat) } != 0
-        || u128::from(stat.f_bavail) * u128::from(stat.f_frsize) < cap as u128
-    {
-        return Err("output storage budget unavailable".into());
-    }
     Ok(held)
+}
+
+struct ReportOutput(File);
+impl ReportOutput {
+    fn create(output: &Path, cap: usize) -> Result<Self, String> {
+        let length = i64::try_from(cap).map_err(|_| "report allocation overflow")?;
+        if length <= 0 || cap > 67_108_864 {
+            return Err("report allocation outside its finite output bound".into());
+        }
+        let report = Self(
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .custom_flags(libc::O_NOFOLLOW)
+                .open(output.join("measurements.jsonl"))
+                .map_err(|e| format!("exclusive report open: {e}"))?,
+        );
+        // KEEP_SIZE reserves blocks without extending the JSONL payload. A
+        // concurrent run on this filesystem must allocate its own blocks.
+        if unsafe { libc::fallocate(report.as_raw_fd(), libc::FALLOC_FL_KEEP_SIZE, 0, length) } != 0
+        {
+            return Err(format!(
+                "report storage allocation: {}",
+                io::Error::last_os_error()
+            ));
+        }
+        Ok(report)
+    }
+
+    fn trim_unused(&self) -> io::Result<()> {
+        self.0.set_len(self.0.metadata()?.len())
+    }
+
+    fn finish(&self) -> Result<(), String> {
+        self.trim_unused()
+            .and_then(|()| self.0.sync_all())
+            .map_err(|e| format!("report finalization: {e}"))
+    }
+}
+impl Deref for ReportOutput {
+    type Target = File;
+    fn deref(&self) -> &File {
+        &self.0
+    }
+}
+impl DerefMut for ReportOutput {
+    fn deref_mut(&mut self) -> &mut File {
+        &mut self.0
+    }
+}
+impl Drop for ReportOutput {
+    fn drop(&mut self) {
+        // Preserve a partial report on error/unwind without retaining the
+        // unwritten allocation. Normal completion propagates trim/sync errors.
+        let _ = self.trim_unused();
+    }
 }
 const VOLATILE_JSON_PATHS: &[&str] = &[
     "/result/revision",
@@ -8115,7 +8166,8 @@ fn main_result() -> Result<i32, String> {
     )?;
     let (_, _, needs_owner) = validate_plan(&plan, &args, None)?;
     let cgroup = cgroup_path(&args.unit)?;
-    let _output_custody = output_custody(&args.output, args.output_cap)?;
+    let _output_custody = output_custody(&args.output)?;
+    let mut output = ReportOutput::create(&args.output, args.output_cap)?;
     let execution = format!("tos-load-readiness:{}:{}", args.unit, std::process::id());
     let owner_stage = prepare_owner_stage(&mut args, &mut plan, needs_owner, deadline)?;
     let mut paths = vec![args.query_binary.clone()];
@@ -8363,13 +8415,6 @@ fn main_result() -> Result<i32, String> {
     } else {
         Vec::new()
     };
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .custom_flags(libc::O_NOFOLLOW)
-        .open(args.output.join("measurements.jsonl"))
-        .map_err(|e| format!("exclusive report open: {e}"))?;
     let mut written = 0usize;
     let sdk_identities = sdk_indexes
         .values()
@@ -9560,7 +9605,7 @@ fn main_result() -> Result<i32, String> {
         }),
     );
     emit(&mut output, &mut written, args.output_cap, &finish_report)?;
-    output.sync_all().map_err(|e| format!("report sync: {e}"))?;
+    output.finish()?;
     Ok(
         if errors == 0 && load_operations_not_started == 0 && !resource_stop_observed {
             0
@@ -9574,19 +9619,77 @@ fn main_result() -> Result<i32, String> {
 mod tests {
     use super::{
         MAX_POSTLOAD_SOURCE_READ_WORK_VALUE, Operation, RECORD_REVISE_RESULT_SCHEMA,
-        RECORD_REVISE_SEMANTIC_ORACLE_SCHEMA, copy_stage_tree, exact_source_projection_operation,
-        exact_source_projection_response_matches, record_revise_semantic_oracle_valid,
+        RECORD_REVISE_SEMANTIC_ORACLE_SCHEMA, ReportOutput, copy_stage_tree, emit,
+        exact_source_projection_operation, exact_source_projection_response_matches,
+        output_custody, record_revise_semantic_oracle_valid,
         record_revise_semantic_replay_response_matches, record_revise_semantic_response_matches,
         sha,
     };
     use serde_json::{Value, json};
     use std::fs;
-    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static NEXT_TEMP_ID: AtomicUsize = AtomicUsize::new(0);
+
+    #[test]
+    fn report_capacity_is_allocated_per_run_and_trimmed_on_error() {
+        let (root, _) = source_tree();
+        let first_dir = root.join("first");
+        let peer_dir = root.join("peer");
+        for dir in [&first_dir, &peer_dir] {
+            fs::create_dir(dir).unwrap();
+            fs::set_permissions(dir, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let first_custody = output_custody(&first_dir).unwrap();
+        let peer_custody = output_custody(&peer_dir).unwrap();
+        let peer = ReportOutput::create(&peer_dir, 65_536).unwrap();
+        let peer_blocks = peer.metadata().unwrap().blocks();
+        assert!(peer_blocks * 512 >= 65_536);
+        assert_eq!(peer.metadata().unwrap().len(), 0);
+        let value = json!({"event":"retained partial result"});
+        let failed = || -> Result<(), String> {
+            let mut report = ReportOutput::create(&first_dir, 65_536)?;
+            assert!(report.metadata().unwrap().blocks() * 512 >= 65_536);
+            assert_eq!(report.metadata().unwrap().len(), 0);
+            let mut written = 0;
+            emit(&mut report, &mut written, 65_536, &value)?;
+            emit(
+                &mut report,
+                &mut written,
+                65_536,
+                &json!({"oversized":"x".repeat(65_536)}),
+            )
+        };
+        assert!(failed().unwrap_err().contains("output cap exceeded"));
+        let bytes = fs::read(first_dir.join("measurements.jsonl")).unwrap();
+        assert_eq!(serde_json::from_slice::<Value>(&bytes).unwrap(), value);
+        let after = fs::metadata(first_dir.join("measurements.jsonl")).unwrap();
+        assert_eq!(after.len(), bytes.len() as u64);
+        assert!(after.blocks() * 512 < 65_536);
+        assert_eq!(peer.metadata().unwrap().blocks(), peer_blocks);
+        peer.finish().unwrap();
+        assert_eq!(peer.metadata().unwrap().blocks(), 0);
+        drop(peer);
+        drop(first_custody);
+        drop(peer_custody);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn report_custody_and_exclusive_creation_preserve_an_existing_report() {
+        let (root, output) = source_tree();
+        let custody = output_custody(&output).unwrap();
+        assert!(output_custody(&output).is_err());
+        let path = output.join("measurements.jsonl");
+        fs::write(&path, b"existing result\n").unwrap();
+        assert!(ReportOutput::create(&output, 65_536).is_err());
+        assert_eq!(fs::read(&path).unwrap(), b"existing result\n");
+        drop(custody);
+        fs::remove_dir_all(root).unwrap();
+    }
 
     fn source_tree() -> (PathBuf, PathBuf) {
         let nonce = SystemTime::now()
