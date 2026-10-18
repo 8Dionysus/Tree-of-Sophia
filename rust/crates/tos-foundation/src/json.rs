@@ -711,6 +711,32 @@ impl Parser<'_, '_> {
     }
     fn string(&mut self) -> Result<JsonString> {
         self.take(b'"')?;
+        // Whole-input UTF-8 preflight already ran. Preserve the original
+        // parser for escapes, non-ASCII, controls and unterminated strings,
+        // and whenever state/cancellation/work admission is selected.
+        if self.state.is_none() && self.poll.check.is_none() && self.poll.admit.is_none() {
+            let remaining = &self.raw[self.at..];
+            if let Some(length) = remaining
+                .iter()
+                .position(|byte| matches!(*byte, b'"' | b'\\' | 0..=31 | 128..=255))
+            {
+                if remaining[length] == b'"' {
+                    let text = std::str::from_utf8(&remaining[..length])
+                        .map_err(|_| self.error(Code::InvalidUtf8, "JSON input is not UTF-8"))?;
+                    // Keep the original per-unit Vec growth/capacity so that
+                    // later retained-storage accounting has the same price.
+                    let mut units = Vec::new();
+                    for byte in &remaining[..length] {
+                        units.push(*byte as u16);
+                    }
+                    self.at += length + 1;
+                    return Ok(JsonString {
+                        units,
+                        utf8: Some(text.to_owned()),
+                    });
+                }
+            }
+        }
         let mut units = Vec::new();
         loop {
             self.check()?;
