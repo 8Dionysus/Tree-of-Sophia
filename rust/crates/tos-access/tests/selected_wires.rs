@@ -5796,7 +5796,7 @@ mod prepared_compressed {
         let profile =
             tos_access::prepared_local::profile().with_query_timeout(Duration::from_secs(5));
         assert_eq!(profile.max_request_bytes, 65_536);
-        assert_eq!(profile.max_response_bytes, 4 * 1024 * 1024);
+        assert_eq!(profile.max_response_bytes, 16 * 1024 * 1024);
         let cli_page = |cursor: Option<&str>| {
             let mut args = vec![
                 "knowledge".into(),
