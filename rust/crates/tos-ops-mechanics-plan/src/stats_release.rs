@@ -253,10 +253,15 @@ fn validate_ratio_value(contract: &Value, value: &Value) -> io::Result<()> {
         .ok_or_else(|| invalid("stats denominator"))?;
     let number = value["number"]
         .as_f64()
-        .filter(|v| v.is_finite())
+        .filter(|v| v.is_finite() && (0.0..=1.0).contains(v))
         .ok_or_else(|| invalid("stats ratio number"))?;
+    let expected = numerator as f64 / denominator as f64;
+    // Count conversion and division may round. Scale that allowance with the
+    // ratio itself; a small nonzero census must never be admitted as zero.
+    let rounding_tolerance = 8.0 * f64::EPSILON * expected;
     if numerator > denominator
-        || (number - numerator as f64 / denominator as f64).abs() > 1e-12
+        || ((number == 0.0) != (numerator == 0))
+        || (number - expected).abs() > rounding_tolerance
         || (number == 0.0 && contract["missingness"]["zero_is_observation"] != true)
     {
         return Err(invalid("stats ratio is inconsistent"));

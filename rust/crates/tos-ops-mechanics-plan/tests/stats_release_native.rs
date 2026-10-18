@@ -179,6 +179,45 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         assert!(!build().status.success(), "published {pointer}");
         assert_eq!(status(revision)["export_revision"], identity);
     }
+    // Keep complete census metadata valid so the ratio check itself must
+    // distinguish tiny observations, genuine zero and floating-point rounding.
+    fs::write(&port, serde_json::to_vec(&port_document).unwrap()).unwrap();
+    for (numerator, denominator, number, accepted) in [
+        (1, 10_000_000_000_000, 1e-13, true),
+        (1, 10_000_000_000_000, 0.0, false),
+        (1, 10_000_000_000_000, 2e-13, false),
+        (0, 10_000_000_000_000, 1e-300, false),
+        (1, u64::MAX, 1.0 / u64::MAX as f64, true),
+        (1, u64::MAX, 0.0, false),
+        (1, 3, 1.0 / 3.0, true),
+        (1, 3, f64::from_bits((1.0_f64 / 3.0).to_bits() + 1), true),
+    ] {
+        let mut census = packet_document.clone();
+        for pointer in [
+            "/population/size",
+            "/sample/size",
+            "/progress/completed",
+            "/progress/total",
+            "/uncertainty/sample_size",
+        ] {
+            *census.pointer_mut(pointer).unwrap() = json!(denominator);
+        }
+        census["value"]["numerator"] = json!(numerator);
+        census["value"]["denominator"] = json!(denominator);
+        census["value"]["number"] = json!(number);
+        fs::write(&packet, serde_json::to_vec(&census).unwrap()).unwrap();
+        let checked = validate();
+        assert_eq!(
+            checked.status.success(),
+            accepted,
+            "ratio {numerator}/{denominator} as {number}: {}",
+            String::from_utf8_lossy(&checked.stderr)
+        );
+        if !accepted {
+            assert!(!build().status.success());
+            assert_eq!(status(revision)["export_revision"], identity);
+        }
+    }
     let mut zero_port = port_document.clone();
     let mut zero = packet_document.clone();
     zero["value"]["numerator"] = json!(0);
