@@ -1,9 +1,5 @@
 # Boundary Bridge Provenance Bridge
 
-Use current routes first: [README](README.md), [PARTS](PARTS.md), and
-[Derived KAG Seam](parts/derived-kag-seam/README.md) or
-[Public Mirror Sync](parts/public-mirror-sync/README.md).
-
-Immutable Git history preserves moved-path accounting from the former
-`ToS/doctrine/KAG_EXPORT.md` placement. Current derived KAG seam work starts
-from `parts/derived-kag-seam/`.
+Compatibility entry for existing links and external readers whose membership is unknown.
+Use [README.md#history](README.md#history) for the current owner route. This file is optional for
+compact topology and carries no separate operation contract.

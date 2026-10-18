@@ -1,5 +1,5 @@
 # Source Witnessing Parts
 
-| Part | Function |
-| --- | --- |
-| [Witness Route](parts/witness-route/README.md) | keep source witnesses distinct from branch, candidate, and canon material |
+Compatibility entry for existing links and external readers whose membership is unknown.
+Use [README.md#operations](README.md#operations) for the current owner route. This file is optional for
+compact topology and carries no separate operation contract.

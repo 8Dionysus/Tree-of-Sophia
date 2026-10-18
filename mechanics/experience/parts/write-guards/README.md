@@ -1,19 +1,10 @@
 # Write Guards
 
-## Operating Card
+The [packet operation](../../README.md#write-guards) carries input, output, owner
+and the shared review-only boundary. The distinct `docs/`, `schemas/` and
+`examples/` here retain their existing contract bytes.
 
-| Field | Route |
-| --- | --- |
-| role | prevent direct cross-owner writes into ToS canon or runtime routes |
-| input | no-direct-write risk, center/runtime pressure |
-| output | guard contract and example |
-| owner | `mechanics/experience/parts/write-guards/` |
-| next route | owning source or runtime layer |
-| tools | docs, schemas, examples |
-| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
-
-## Payload
-
-- `docs/`
-- `schemas/`
-- `examples/`
+<a id="operating-card"></a>
+<a id="payload"></a>
+This entry preserves existing links and the native assertion home; it is not
+a second statement of the common boundary.

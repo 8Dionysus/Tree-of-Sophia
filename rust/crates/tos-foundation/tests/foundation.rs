@@ -689,3 +689,155 @@ fn checked_object_writer_preserves_order_duplicates_and_cancellation_at_fast_pat
         );
     }
 }
+
+#[test]
+fn unescaped_ascii_string_matches_checked_parser_and_retained_storage() {
+    use tos_foundation::parse_json_with_check;
+    for length in [
+        0, 1, 3, 4, 5, 7, 8, 9, 15, 16, 17, 127, 128, 129, 4095, 4096, 4097, 131_072, 262_144,
+        393_216, 491_520, 983_040,
+    ] {
+        let raw = format!("\"{}\"", "x".repeat(length));
+        let limits = JsonLimits::default();
+        let plain = parse_json(raw.as_bytes(), JsonMode::PublishedStrict, limits).unwrap();
+        let mut checks = 0usize;
+        let checked = parse_json_with_check(
+            raw.as_bytes(),
+            JsonMode::PublishedStrict,
+            limits,
+            &mut || {
+                checks += 1;
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(plain.root(), checked.root(), "length={length}");
+        assert_eq!(
+            plain.root().retained_storage_bytes().unwrap(),
+            checked.root().retained_storage_bytes().unwrap(),
+            "allocation price changed at length={length}"
+        );
+        assert!(checks > 0);
+        let JsonValue::String(text) = plain.root() else {
+            panic!("string root required");
+        };
+        assert_eq!(text.as_str().unwrap().len(), length);
+        assert_eq!(text.units().len(), length);
+    }
+}
+
+#[test]
+fn unescaped_ascii_path_preserves_profiles_unicode_and_exact_refusals() {
+    use tos_foundation::parse_json_with_check;
+    let mut cases = vec![
+        br#"{"a":"plain","z":["", "x\ny", "quote\"slash\\"]}"#.to_vec(),
+        br#"{"a":1,"\u0061":2}"#.to_vec(),
+        br#""\ud800""#.to_vec(),
+        br#""\ud834\udd1e""#.to_vec(),
+        br#""unterminated"#.to_vec(),
+        br#""bad\q""#.to_vec(),
+        b"\"raw\x01control\"".to_vec(),
+        b"[\"valid\",\"\xff\"]".to_vec(),
+        b"\"plain\" trailing".to_vec(),
+    ];
+    cases.push("{\"ключ\":\"é𝄞\",\"a\":\"ascii\"}".as_bytes().to_vec());
+    for mode in [
+        JsonMode::PublishedStrict,
+        JsonMode::RequestLastWins,
+        JsonMode::LegacyPythonObserved,
+    ] {
+        for raw in &cases {
+            let actual = parse_json(raw, mode, JsonLimits::default()).map(|d| d.into_root());
+            let checked = parse_json_with_check(raw, mode, JsonLimits::default(), &mut || Ok(()))
+                .map(|d| d.into_root());
+            assert_eq!(actual, checked, "mode={mode:?}, raw={raw:?}");
+        }
+    }
+    assert_eq!(
+        parse_json(
+            br#"{"a":1,"\u0061":2}"#,
+            JsonMode::PublishedStrict,
+            JsonLimits::default()
+        )
+        .unwrap_err()
+        .code,
+        FoundationErrorCode::DuplicateMember
+    );
+    assert_eq!(
+        parse_json(
+            b"[\"valid\",\"\xff\"]",
+            JsonMode::PublishedStrict,
+            JsonLimits::default()
+        )
+        .unwrap_err()
+        .code,
+        FoundationErrorCode::InvalidUtf8
+    );
+}
+
+#[test]
+fn ascii_string_keeps_state_cancellation_and_work_admission_selected() {
+    use tos_foundation::{
+        FoundationError, parse_json_with_check, parse_json_with_state_budget,
+        parse_json_with_state_budget_and_admission, parse_json_with_state_budget_and_check,
+    };
+    let raw = format!("\"{}\"", "x".repeat(262_144));
+    for available in [0, 4096, 4 * 1024 * 1024] {
+        let selected = parse_json_with_state_budget(
+            raw.as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+            available,
+        )
+        .map(|d| d.into_root());
+        let checked = parse_json_with_state_budget_and_check(
+            raw.as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+            available,
+            &mut || Ok(()),
+        )
+        .map(|d| d.into_root());
+        assert_eq!(selected, checked, "state remainder={available}");
+    }
+    let refusal = FoundationError::new(FoundationErrorCode::BudgetExceeded, "test caller cutoff");
+    let mut calls = 0usize;
+    let cancelled = parse_json_with_check(
+        raw.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+        &mut || {
+            calls += 1;
+            if calls == 9 {
+                Err(refusal.clone())
+            } else {
+                Ok(())
+            }
+        },
+    )
+    .unwrap_err();
+    assert_eq!(cancelled, refusal);
+    assert_eq!(calls, 9);
+    let mut admitted_bytes = 0usize;
+    let mut admitted_visits = 0usize;
+    let admission = parse_json_with_state_budget_and_admission(
+        raw.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+        4 * 1024 * 1024,
+        &mut || Ok(()),
+        &mut |bytes, visits| {
+            admitted_bytes += bytes;
+            admitted_visits += visits;
+            if visits > 0 {
+                Err(refusal.clone())
+            } else {
+                Ok(())
+            }
+        },
+    )
+    .unwrap_err();
+    assert_eq!(admission, refusal);
+    assert_eq!(admitted_bytes, raw.len());
+    assert_eq!(admitted_visits, 1);
+}

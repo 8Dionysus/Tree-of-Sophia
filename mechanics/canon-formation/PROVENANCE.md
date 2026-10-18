@@ -1,7 +1,5 @@
 # Canon Formation Provenance Bridge
 
-Use current routes first: [README](README.md), [PARTS](PARTS.md), and
-[Promotion Gate](parts/promotion-gate/README.md).
-
-No package-local `legacy/` archive is maintained. Candidate and canon material remains in
-the `ToS/` source home.
+Compatibility entry for existing links and external readers whose membership is unknown.
+Use [README.md#history](README.md#history) for the current owner route. This file is optional for
+compact topology and carries no separate operation contract.

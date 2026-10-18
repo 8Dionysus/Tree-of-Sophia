@@ -5796,7 +5796,7 @@ mod prepared_compressed {
         let profile =
             tos_access::prepared_local::profile().with_query_timeout(Duration::from_secs(5));
         assert_eq!(profile.max_request_bytes, 65_536);
-        assert_eq!(profile.max_response_bytes, 4 * 1024 * 1024);
+        assert_eq!(profile.max_response_bytes, 16 * 1024 * 1024);
         let cli_page = |cursor: Option<&str>| {
             let mut args = vec![
                 "knowledge".into(),
@@ -6128,6 +6128,45 @@ mod local_reading {
             String::from_utf8_lossy(&actual.stderr)
         );
         same_capability(&capability, &json(&actual.stdout));
+        // Explicit managed selection remains authoritative in either CLI order.
+        let missing_release = fixture.root.join("irrelevant-release-root");
+        for release_first in [true, false] {
+            let mut command = std::process::Command::new(&retained);
+            command.env("TOS_RELEASE_ROOT", &missing_release);
+            if release_first {
+                command.arg("--release-root").arg(&missing_release);
+            }
+            command.arg("--root").arg(&fixture.roots.source_root);
+            if !release_first {
+                command.arg("--release-root").arg(&missing_release);
+            }
+            command.args(&args);
+            let refused = crate::native_child::bounded_output_until(
+                &mut command,
+                profile.max_response_bytes + 1,
+                Duration::from_secs(5),
+            );
+            assert_eq!(refused.status.code(), Some(3));
+            assert!(refused.stdout.is_empty());
+            assert!(
+                String::from_utf8_lossy(&refused.stderr)
+                    .contains("managed release root unavailable")
+            );
+        }
+        // TOS_DATA_ROOT alone must not override a selected release fallback.
+        let refused = crate::native_child::bounded_output_until(
+            std::process::Command::new(&retained)
+                .env("TOS_RELEASE_ROOT", &missing_release)
+                .env("TOS_DATA_ROOT", &fixture.roots.source_root)
+                .args(&args),
+            profile.max_response_bytes + 1,
+            Duration::from_secs(5),
+        );
+        assert_eq!(refused.status.code(), Some(3));
+        assert!(refused.stdout.is_empty());
+        assert!(
+            String::from_utf8_lossy(&refused.stderr).contains("managed release root unavailable")
+        );
         let missing = handle_get(
             &tos_access::NoOwner,
             "GET",

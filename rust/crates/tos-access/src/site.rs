@@ -1,4 +1,5 @@
 //! Installed software delivery. Explicit data selection cannot supply code.
+use crate::software_archive::installed::{SelectedRole, selected_role_proof};
 use crate::{AccessError, AccessErrorCode, AccessProfile, DisclosureFence, ScopedAccessExecutor};
 use std::{
     fs::File,
@@ -45,6 +46,19 @@ fn identity(file: &File) -> Result<Identity, AccessError> {
         m.ctime(),
         m.ctime_nsec(),
     ))
+}
+fn check_executable(file: &File) -> Result<(), AccessError> {
+    let mut header = [0u8; 64];
+    file.read_exact_at(&mut header, 0)
+        .map_err(|_| unavailable("installed executable header unavailable"))?;
+    let mode = file
+        .metadata()
+        .map_err(|_| unavailable("installed executable mode unavailable"))?
+        .mode();
+    if mode & 0o111 == 0 || &header[..7] != b"\x7fELF\x02\x01\x01" || header[18..20] != [0x3e, 0] {
+        return Err(unavailable("installed executable format or mode differs"));
+    }
+    Ok(())
 }
 fn child(root: &File, path: &str) -> Result<File, AccessError> {
     RelativePath::parse(path).map_err(|_| {
@@ -124,6 +138,7 @@ pub struct SoftwareSite {
     executable: File,
     executable_identity: Identity,
     required_assets: Vec<(File, String, Identity)>,
+    web_assets: bool,
 }
 const SCHEMA_WORKER: &str = "native/bin/tos-schema-worker";
 pub(crate) const WORD_OPERATION: &str = "tos.zarathustra.word_analysis_task";
@@ -358,8 +373,9 @@ impl InstalledSchemaWorker {
 }
 impl SoftwareSite {
     /// Standalone raw binaries retain existing MCP fixture behavior without
-    /// claiming an installed provider. A recognized installed layout must verify;
-    /// integrity failures never fall back to absent software authority.
+    /// claiming an installed provider. A recognized installed layout must verify
+    /// its native role; web routes separately admit assets. Integrity failures
+    /// never fall back to absent software authority.
     pub fn installed_for_mcp(probe: Arc<dyn AbortProbe>) -> Result<Option<Arc<Self>>, AccessError> {
         let executable =
             std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
@@ -373,12 +389,23 @@ impl SoftwareSite {
         if !executable.ends_with(PROGRAM) {
             return Ok(None);
         }
-        Self::open_running(&executable, probe).map(Some)
+        let running = File::open("/proc/self/exe")
+            .map_err(|_| unavailable("actual running image unavailable"))?;
+        Self::open_inner(&executable, probe, Some(running), false).map(Some)
     }
     pub fn installed(probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
         let executable =
             std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
         Self::open_running(&executable, probe)
+    }
+    /// Native exact-source startup selects code and its release bindings. Web
+    /// assets are admitted separately if this holder later serves a web route.
+    pub(crate) fn installed_source(probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
+        let executable =
+            std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
+        let running = File::open("/proc/self/exe")
+            .map_err(|_| unavailable("actual running image unavailable"))?;
+        Self::open_inner(&executable, probe, Some(running), false)
     }
     /// Kernel-bound production image. An explicit path can locate the layout,
     /// but cannot substitute a different ELF for the currently running image.
@@ -388,18 +415,20 @@ impl SoftwareSite {
     ) -> Result<Arc<Self>, AccessError> {
         let running = File::open("/proc/self/exe")
             .map_err(|_| unavailable("actual running image unavailable"))?;
-        Self::open_inner(executable, probe, Some(running))
+        Self::open_inner(executable, probe, Some(running), true)
     }
     /// Explicit software integrity fixture/inspection route. This does not
     /// assert that its ELF is running; the server uses installed/open_running.
     pub fn open(executable: &Path, probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
-        Self::open_inner(executable, probe, None)
+        Self::open_inner(executable, probe, None, true)
     }
     fn open_inner(
         executable: &Path,
         probe: Arc<dyn AbortProbe>,
         running: Option<File>,
+        web_assets: bool,
     ) -> Result<Arc<Self>, AccessError> {
+        crate::knowledge::check_abort(&probe)?;
         let root_path = executable
             .parent()
             .and_then(|p| p.parent())
@@ -441,58 +470,10 @@ impl SoftwareSite {
         {
             return Err(unavailable("installed software manifest profile differs"));
         }
-        let proof = manifest
-            .object_get("native_access")
-            .ok_or_else(|| unavailable("installed native build proof absent"))?;
-        let schema = field(proof, "schema_version")?;
-        let access_v2 = schema == "tos_native_access_build_v2";
-        let legacy_keys: &[&str] = &[
-            "schema_version",
-            "sha256",
-            "size_bytes",
-            "target",
-            "source_commit",
-            "source_tree",
-            "lock_sha256",
-            "toolchain",
-            "profile",
-        ];
-        let v2_keys: &[&str] = &[
-            "schema_version",
-            "sha256",
-            "size_bytes",
-            "target",
-            "source_commit",
-            "source_tree",
-            "lock_sha256",
-            "toolchain",
-            "profile",
-            "opt_level",
-        ];
-        let keys = if access_v2 { v2_keys } else { legacy_keys };
-        let fields = proof
-            .as_object()
-            .ok_or_else(|| unavailable("installed native proof invalid"))?;
-        let profile = field(proof, "profile")?;
-        let profile_valid = if access_v2 {
-            profile == "debug" && matches!(field(proof, "opt_level")?, "0" | "1")
-        } else {
-            matches!(profile, "debug" | "release")
-        };
-        if fields.len() != keys.len()
-            || fields
-                .iter()
-                .any(|(key, _)| !key.as_str().is_some_and(|key| keys.contains(&key)))
-            || !profile_valid
-        {
-            return Err(unavailable("installed native proof fields differ"));
-        }
-        if (!access_v2 && schema != "tos_native_access_build_v1")
-            || field(proof, "target")? != "x86_64-unknown-linux-gnu"
-            || field(proof, "source_commit")? != field(&manifest, "software_ref")?
-        {
-            return Err(unavailable("installed native build source binding differs"));
-        }
+        // Share the existing installed role grammar and exact release binding;
+        // transport startup does not invent another proof/admission system.
+        let proof = selected_role_proof(&manifest, SelectedRole::Access)
+            .map_err(|_| unavailable("installed native build source binding differs"))?;
         let mut proof_guards = Vec::new();
         let lock = child(&root, "Cargo.lock")?;
         let lock_identity = identity(&lock)?;
@@ -533,6 +514,7 @@ impl SoftwareSite {
         proof_guards.push((pin, "rust-toolchain.toml".to_owned(), pin_identity));
         let path_image = child(&root, PROGRAM)?;
         let path_identity = identity(&path_image)?;
+        let require_executable = running.is_some() || !web_assets;
         let executable = if let Some(running) = running {
             if identity(&running)? != path_identity {
                 return Err(unavailable("installed path differs from running image"));
@@ -542,6 +524,9 @@ impl SoftwareSite {
             path_image
         };
         let executable_identity = identity(&executable)?;
+        if require_executable {
+            check_executable(&executable)?;
+        }
         let expected_size = size(proof)?;
         let native_sha = field(proof, "sha256")?.to_owned();
         if executable_identity.2 != expected_size as u64
@@ -559,12 +544,13 @@ impl SoftwareSite {
             executable,
             executable_identity,
             required_assets: proof_guards,
+            web_assets,
         };
         // Assembly must declare finite size for every installed static member;
         // no count from today's fixture is treated as a production rule.
         let mut total = 0u64;
         for item in site.members()? {
-            if field(item, "path")?.starts_with(STATIC_PREFIX) {
+            if web_assets && field(item, "path")?.starts_with(STATIC_PREFIX) {
                 let bytes = size(item)?;
                 if bytes > MAX_STATIC_BYTES {
                     return Err(unavailable("installed static member exceeds software cap"));
@@ -577,11 +563,16 @@ impl SoftwareSite {
         // Only the manifest integer sum is representable. This is not an
         // aggregate resource quota; the actual body cap is per request.
         let _encoded_static_size_sum = total;
-        for required in [
-            PROGRAM,
-            "access/src/tos_access/web_dist/assets/tos-graph.js",
-            "access/src/tos_access/web_dist/assets/tos-graph.css",
-        ] {
+        let required: &[&str] = if web_assets {
+            &[
+                PROGRAM,
+                "access/src/tos_access/web_dist/assets/tos-graph.js",
+                "access/src/tos_access/web_dist/assets/tos-graph.css",
+            ]
+        } else {
+            &[PROGRAM]
+        };
+        for &required in required {
             let matches = site
                 .members()?
                 .iter()
@@ -613,6 +604,7 @@ impl SoftwareSite {
             }
         }
         site.check()?;
+        crate::knowledge::check_abort(&probe)?;
         Ok(Arc::new(site))
     }
     /// Select only the installed schema worker, using the archive's existing
@@ -623,16 +615,8 @@ impl SoftwareSite {
         probe: Arc<dyn AbortProbe>,
     ) -> Result<InstalledSchemaWorker, AccessError> {
         self.check()?;
-        let proof = self
-            .manifest
-            .object_get("native_commands")
-            .and_then(|roles| roles.object_get("tos-schema-worker"))
-            .ok_or_else(|| unavailable("installed schema worker proof absent"))?;
-        let access = self
-            .manifest
-            .object_get("native_access")
-            .ok_or_else(|| unavailable("installed native build proof absent"))?;
-        crate::software_archive::command_proof("tos-schema-worker", proof, access)
+        crate::knowledge::check_abort(&probe)?;
+        let proof = selected_role_proof(&self.manifest, SelectedRole::Command("tos-schema-worker"))
             .map_err(|_| unavailable("installed schema worker cohort differs"))?;
         let declared = size(proof)?;
         if declared > max_image_bytes {
@@ -660,14 +644,8 @@ impl SoftwareSite {
         let original = identity(&file)?;
         let sha256 = Digest256::from_hex(field(proof, "sha256")?)
             .map_err(|_| unavailable("installed schema worker digest invalid"))?;
-        let mut header = [0u8; 64];
-        file.read_exact_at(&mut header, 0)
-            .map_err(|_| unavailable("installed schema worker header unavailable"))?;
-        if &header[..7] != b"\x7fELF\x02\x01\x01"
-            || header[18..20] != [0x3e, 0]
-            || original.2 != declared as u64
-            || hash_file(&file, declared, &probe)? != sha256
-        {
+        check_executable(&file)?;
+        if original.2 != declared as u64 || hash_file(&file, declared, &probe)? != sha256 {
             return Err(unavailable("installed schema worker image binding differs"));
         }
         let worker = InstalledSchemaWorker {
@@ -712,6 +690,27 @@ impl SoftwareSite {
         }
         Ok(())
     }
+    /// Upgrade a source-only holder at the web boundary. Both associations
+    /// must still name the same admitted manifest and executable. The returned
+    /// holder pins JS/CSS through final flush just like ordinary web startup.
+    fn with_web_assets(
+        self: &Arc<Self>,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<Arc<Self>, AccessError> {
+        crate::knowledge::check_abort(&probe)?;
+        self.check()?;
+        if self.web_assets {
+            return Ok(Arc::clone(self));
+        }
+        let web = Self::open_inner(&self.root_path.join(PROGRAM), probe, None, true)?;
+        self.check()?;
+        if web.manifest_identity != self.manifest_identity
+            || web.executable_identity != self.executable_identity
+        {
+            return Err(unavailable("installed web association changed"));
+        }
+        Ok(web)
+    }
     pub(crate) fn asset(
         self: &Arc<Self>,
         relative: &str,
@@ -720,6 +719,11 @@ impl SoftwareSite {
         RelativePath::parse(relative).map_err(|_| {
             AccessError::new(AccessErrorCode::InvalidRequest, "invalid static path")
         })?;
+        if !self.web_assets {
+            return self
+                .with_web_assets(Arc::clone(&probe))?
+                .asset(relative, probe);
+        }
         let path = format!("{STATIC_PREFIX}{relative}");
         let matches = self
             .members()?
@@ -847,6 +851,11 @@ impl SoftwareSite {
         profile: AccessProfile,
         probe: Arc<dyn AbortProbe>,
     ) -> Result<(crate::PreparedPacket<'hold>, String), AccessError> {
+        if !self.web_assets {
+            return self
+                .with_web_assets(Arc::clone(&probe))?
+                .shell(executor, profile, probe);
+        }
         crate::knowledge::check_abort(&probe)?;
         self.check()?;
         let mut holds = Vec::new();
@@ -1213,5 +1222,284 @@ printf '%s\n' "$@" > "$TOS_ORIGIN_CAPTURE_ARGS"
             .output()
             .unwrap();
         assert!(!output.status.success());
+    }
+}
+
+#[cfg(test)]
+mod native_source_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let root = std::env::temp_dir().join(format!(
+                "tos-native-source-{}-{}",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            let fixture = Self(root);
+            let mut elf = [0u8; 64];
+            elf[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
+            elf[18..20].copy_from_slice(&[0x3e, 0]);
+            fixture.write(PROGRAM, &elf);
+            fixture.write(SCHEMA_WORKER, &elf);
+            for path in [PROGRAM, SCHEMA_WORKER] {
+                std::fs::set_permissions(
+                    fixture.0.join(path),
+                    std::fs::Permissions::from_mode(0o755),
+                )
+                .unwrap();
+            }
+            let lock = b"version = 4\n";
+            let pin = include_bytes!("../../../../rust-toolchain.toml");
+            fixture.write("Cargo.lock", lock);
+            fixture.write("rust-toolchain.toml", pin);
+            let channel = include_str!("../../../../rust-toolchain.toml")
+                .lines()
+                .find_map(|line| line.trim().strip_prefix("channel = \""))
+                .unwrap()
+                .trim_end_matches('"');
+            let commit = "b54cbf8e30ff46aeddeec5c47a5e7aa1f370977d";
+            let mut access = serde_json::json!({
+                "schema_version": "tos_native_access_build_v1",
+                "sha256": Digest256::of_bytes(&elf).to_hex(), "size_bytes": elf.len(),
+                "target": "x86_64-unknown-linux-gnu", "source_commit": commit,
+                "source_tree": "5f4276ef03d5253160510727dcd76da27b7c57c2",
+                "lock_sha256": Digest256::of_bytes(lock).to_hex(),
+                "toolchain": channel, "profile": "debug"
+            });
+            let mut worker = access.clone();
+            worker["schema_version"] = "tos_native_software_command_build_v1".into();
+            worker["features"] = serde_json::json!(
+                tos_foundation::native_software_roles::features("tos-schema-worker").unwrap()
+            );
+            // Access v2 and command v1 are allowed to use distinct build profiles.
+            access["schema_version"] = "tos_native_access_build_v2".into();
+            access["opt_level"] = "1".into();
+            let member = |path: &str, raw: &[u8]| {
+                serde_json::json!({
+                    "path": path, "sha256": Digest256::of_bytes(raw).to_hex(), "size_bytes": raw.len()
+                })
+            };
+            fixture.manifest(&serde_json::json!({
+                "schema_version": "tos_software_bundle_manifest_v1", "software_ref": commit,
+                "data_included": false, "source_dirty": false, "native_access": access,
+                "native_commands": {"tos-schema-worker": worker},
+                "members": [member(PROGRAM, &elf), member(SCHEMA_WORKER, &elf),
+                            member("Cargo.lock", lock), member("rust-toolchain.toml", pin)]
+            }));
+            fixture
+        }
+        fn write(&self, path: &str, raw: &[u8]) {
+            let path = self.0.join(path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, raw).unwrap();
+        }
+        fn manifest(&self, manifest: &serde_json::Value) {
+            self.write(
+                "software.manifest.json",
+                &serde_json::to_vec(manifest).unwrap(),
+            );
+        }
+        fn read_manifest(&self) -> serde_json::Value {
+            serde_json::from_slice(&std::fs::read(self.0.join("software.manifest.json")).unwrap())
+                .unwrap()
+        }
+        fn web(&self) {
+            let mut manifest = self.read_manifest();
+            for (path, raw) in [
+                (
+                    "access/src/tos_access/web_dist/assets/tos-graph.js",
+                    b"export {};".as_slice(),
+                ),
+                (
+                    "access/src/tos_access/web_dist/assets/tos-graph.css",
+                    b"body{}".as_slice(),
+                ),
+            ] {
+                self.write(path, raw);
+                manifest["members"].as_array_mut().unwrap().push(serde_json::json!({
+                    "path": path, "sha256": Digest256::of_bytes(raw).to_hex(), "size_bytes": raw.len()
+                }));
+            }
+            self.manifest(&manifest);
+        }
+        fn open(
+            &self,
+            web: bool,
+            probe: Arc<dyn AbortProbe>,
+        ) -> Result<Arc<SoftwareSite>, AccessError> {
+            SoftwareSite::open_inner(&self.0.join(PROGRAM), probe, None, web)
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    fn probe() -> Arc<dyn AbortProbe> {
+        AccessProfile::new(65_536, 1_048_576, 65_536)
+            .with_query_timeout(Duration::from_secs(30))
+            .deadline_probe()
+    }
+
+    #[test]
+    fn native_source_needs_only_its_exact_executables_and_release_bindings() {
+        let fixture = Fixture::new();
+        let site = fixture.open(false, probe()).unwrap();
+        let worker = site.source_schema_worker(1024, probe()).unwrap();
+        assert_eq!(worker.path(), fixture.0.join(SCHEMA_WORKER));
+        worker.verify().unwrap();
+        assert!(!fixture.0.join("access/src/tos_access/web_dist").exists());
+        assert!(fixture.open(true, probe()).is_err());
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+        assert!(site.shell(&crate::NoOwner, profile, probe()).is_err());
+        assert!(site.asset("assets/tos-graph.js", probe()).is_err());
+        worker.verify().unwrap();
+        assert!(SoftwareSite::open_running(&fixture.0.join(PROGRAM), probe()).is_err());
+    }
+
+    #[test]
+    fn web_upgrade_requires_both_assets_and_retains_them_through_flush() {
+        for asset in ["tos-graph.js", "tos-graph.css"] {
+            let fixture = Fixture::new();
+            fixture.web();
+            let site = fixture.open(false, probe()).unwrap();
+            let worker = site.source_schema_worker(1024, probe()).unwrap();
+            let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
+            let (mut packet, _) = site.shell(&crate::NoOwner, profile, probe()).unwrap();
+            packet.fence.recheck().unwrap();
+            let path = fixture.0.join(format!("{STATIC_PREFIX}assets/{asset}"));
+            // Same-length replacement must be caught by identity/digest, not size.
+            let bytes = std::fs::read(&path).unwrap();
+            std::fs::write(&path, vec![b'x'; bytes.len()]).unwrap();
+            assert!(packet.fence.recheck().is_err());
+            assert!(fixture.open(true, probe()).is_err());
+            assert!(site.shell(&crate::NoOwner, profile, probe()).is_err());
+            assert!(site.asset("assets/tos-graph.js", probe()).is_err());
+            worker.verify().unwrap();
+            std::fs::remove_file(path).unwrap();
+            assert!(fixture.open(false, probe()).is_ok());
+            assert!(fixture.open(true, probe()).is_err());
+        }
+    }
+
+    #[test]
+    fn native_and_web_refuse_code_lock_and_cohort_substitution() {
+        for web in [false, true] {
+            for path in [PROGRAM, SCHEMA_WORKER, "Cargo.lock", "rust-toolchain.toml"] {
+                let fixture = Fixture::new();
+                fixture.web();
+                let site = fixture.open(web, probe()).unwrap();
+                let worker = site.source_schema_worker(1024, probe()).unwrap();
+                let target = fixture.0.join(path);
+                let mut bytes = std::fs::read(&target).unwrap();
+                *bytes.last_mut().unwrap() ^= 1;
+                std::fs::write(target, bytes).unwrap();
+                assert!(worker.verify().is_err(), "retained {path}");
+                let reopened = fixture
+                    .open(web, probe())
+                    .and_then(|site| site.source_schema_worker(1024, probe()));
+                assert!(reopened.is_err(), "reopened {path}");
+            }
+            for key in [
+                "source_commit",
+                "source_tree",
+                "lock_sha256",
+                "toolchain",
+                "target",
+                "features",
+            ] {
+                let fixture = Fixture::new();
+                fixture.web();
+                let mut manifest = fixture.read_manifest();
+                manifest["native_commands"]["tos-schema-worker"][key] = serde_json::json!("wrong");
+                fixture.manifest(&manifest);
+                let site = fixture.open(web, probe()).unwrap();
+                assert!(site.source_schema_worker(1024, probe()).is_err(), "{key}");
+            }
+        }
+    }
+
+    #[test]
+    fn selected_worker_keeps_its_cap_and_exact_member_closure() {
+        let fixture = Fixture::new();
+        let site = fixture.open(false, probe()).unwrap();
+        assert_eq!(
+            site.source_schema_worker(63, probe()).err().unwrap().code,
+            AccessErrorCode::BudgetExceeded
+        );
+        for duplicate in [false, true] {
+            let fixture = Fixture::new();
+            let mut manifest = fixture.read_manifest();
+            let members = manifest["members"].as_array_mut().unwrap();
+            let worker = members
+                .iter()
+                .position(|member| member["path"] == SCHEMA_WORKER)
+                .unwrap();
+            let member = members.remove(worker);
+            if duplicate {
+                members.extend([member.clone(), member]);
+            }
+            fixture.manifest(&manifest);
+            let site = fixture.open(false, probe()).unwrap();
+            assert!(site.source_schema_worker(1024, probe()).is_err());
+        }
+        let fixture = Fixture::new();
+        std::fs::remove_file(fixture.0.join(SCHEMA_WORKER)).unwrap();
+        let site = fixture.open(false, probe()).unwrap();
+        assert!(site.source_schema_worker(1024, probe()).is_err());
+    }
+
+    #[test]
+    fn native_role_mode_replacement_and_operation_abort_remain_fenced() {
+        for path in [PROGRAM, SCHEMA_WORKER] {
+            let fixture = Fixture::new();
+            let site = fixture.open(false, probe()).unwrap();
+            let worker = site.source_schema_worker(1024, probe()).unwrap();
+            let target = fixture.0.join(path);
+            std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o644)).unwrap();
+            assert!(worker.verify().is_err());
+            assert!(
+                fixture
+                    .open(false, probe())
+                    .and_then(|site| site.source_schema_worker(1024, probe()))
+                    .is_err()
+            );
+            std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o755)).unwrap();
+            let site = fixture.open(false, probe()).unwrap();
+            let worker = site.source_schema_worker(1024, probe()).unwrap();
+            std::fs::rename(&target, target.with_extension("old")).unwrap();
+            std::fs::copy(target.with_extension("old"), &target).unwrap();
+            assert!(
+                worker.verify().is_err(),
+                "same-byte inode replacement {path}"
+            );
+        }
+        struct Cancelled;
+        impl AbortProbe for Cancelled {
+            fn reason(&self) -> Option<tos_query::AbortReason> {
+                Some(tos_query::AbortReason::Cancelled)
+            }
+        }
+        let fixture = Fixture::new();
+        for web in [false, true] {
+            assert_eq!(
+                fixture.open(web, Arc::new(Cancelled)).err().unwrap().code,
+                AccessErrorCode::Cancelled
+            );
+            let expired = AccessProfile::new(65_536, 1_048_576, 65_536)
+                .with_query_timeout(Duration::ZERO)
+                .deadline_probe();
+            assert_eq!(
+                fixture.open(web, expired).err().unwrap().code,
+                AccessErrorCode::DeadlineExceeded
+            );
+        }
     }
 }

@@ -10,12 +10,11 @@ source witnesses, canon, Zarathustra, or the philosophy domain tree changes.
 ## Route
 
 1. Choose the package from the map below.
-2. Before editing, read the nearest `AGENTS.md`; use package `README.md` and
-   `PARTS.md` to select the active part.
-3. Follow that part's `README.md` to its payload, executable, and check.
+2. Before editing, read the nearest `AGENTS.md`; use the package README operation map to select the exact contract.
+3. Follow a direct contract link; use a part entry only when its operation detail is needed.
 4. Read payload docs, schemas, examples, or manifests only for the operation at
-   hand. Use `PROVENANCE.md` only for former placement or source lineage, and
-   `ROADMAP.md` only for future pressure.
+   hand. Use `README.md#history` only for former placement or source lineage, and
+   `README.md#growth-conditions` only for future pressure.
 5. Run the named owner check, then the repository-level mechanics gate.
 
 ## Shared Package Map
@@ -51,8 +50,8 @@ This entrypoint routes; the strongest carrier below owns the current detail.
 
 | Task | Strongest carrier | Exact next route |
 | --- | --- | --- |
-| Understand a repeated operation | Authored part contract and its payload docs | Package `PARTS.md` -> active part `README.md` -> named docs/schema/config |
-| Choose a package or part | Human map here plus machine map in [`topology.json`](topology.json) | Package `PARTS.md`; do not infer ownership from a directory tour |
+| Understand a repeated operation | Authored part contract and its payload docs | Package README operation map -> exact docs/schema/config |
+| Choose a package or part | Human map here plus machine map in [`topology.json`](topology.json) | Package `README.md#operations`; do not infer ownership from a directory tour |
 | Run a builder or validator | Executable script/CLI; blocking order in [`validation_lanes.json`](../docs/validation/validation_lanes.json) | Part `README.md` `tools`/`check` -> owning lane; mechanics-local discovery remains [`tos-ops-mechanics-plan`](../rust/crates/tos-ops-mechanics-plan/README.md) |
 | Change a schema, config, or manifest | Part-local schema/config/manifest | Source contract -> builder -> generated companion -> validator; generated output is never authoring truth |
 | Check release or validation state | Validation lane manifest and release entrypoint | [`mechanics/release-support`](release-support/README.md) -> [`docs/RELEASING.md`](../docs/RELEASING.md) -> named lane |
@@ -63,9 +62,9 @@ This entrypoint routes; the strongest carrier below owns the current detail.
 
 Always-on context stays here: what mechanics own, where package selection starts,
 and which owner carries each task. Everything else is on demand: the nearest
-`AGENTS.md` for edit law, `PARTS.md` for selection, the active part `README.md`
+`AGENTS.md` for edit law, `README.md#operations` for selection, the active part `README.md`
 for operation, and its payload or executable for detail. Historical placement
-and future growth remain behind `PROVENANCE.md` and `ROADMAP.md` respectively.
+and future growth remain behind `README.md#history` and `README.md#growth-conditions` respectively.
 
 ## Status Semantics
 
@@ -91,10 +90,10 @@ Root `mechanics/` owns only:
 Do not add root rosters, migration ledgers, backlogs, notes, `_meta/`,
 scratch, or root `legacy/` holding areas. Active operation detail belongs in
 the owning package or part. Durable rationale belongs in `docs/decisions/`.
-Former-path accounting belongs in package `PROVENANCE.md` and its exact Git
+Former-path accounting belongs in package `README.md#history` and its exact Git
 history route, consulted only when current work needs historical context.
 
-Package `ROADMAP.md` files own future pressure contours: what the mechanic is
+The package README growth section owns future pressure contours: what the mechanic is
 currently holding, what condition would make it grow, and what boundary keeps
 that growth honest. They are not backlogs, validation inventories, script
 placement plans, or migration ledgers.
@@ -106,7 +105,7 @@ placement plans, or migration ledgers.
   package.
 - Mechanic-owned docs, schemas, examples, config, generated companions,
   manifests, builders, and focused tests live under the nearest active part.
-- Root `quests/` stays the public quest item store. `mechanics/questbook/`
+- Root `QUESTBOOK.md` owns obligation membership, owners and return conditions. Root `quests/` retains exact record evidence for the named native compatibility consumer. `mechanics/questbook/`
   owns obligation compatibility and dispatch posture.
 - Root scripts stay in `scripts/` when they are repo-wide validators,
   builders, or public compatibility entrypoints.
@@ -117,11 +116,11 @@ placement plans, or migration ledgers.
 
 Historical archives remain recoverable in Git, outside the current checkout.
 The owning package links an immutable commit and original path through
-`PROVENANCE.md` when old paths, receipts, or names need historical accounting.
+`README.md#history` when old paths, receipts, or names need historical accounting.
 
 The route is:
 
-`active package -> PARTS.md -> PROVENANCE.md -> immutable Git source`
+`active package -> README.md#history -> immutable Git source`
 
 Do not recreate `legacy/` directories or empty accounting scaffolds. Current
 operational receipts and candidate evidence stay with the active owning part.
@@ -137,3 +136,8 @@ The `mechanics_topology` and `route_docs` sequences in
 For release-facing changes, repository-wide verification routes through the
 `release_check` sequence in `docs/validation/validation_lanes.json` and its
 script entrypoint.
+
+Compact packages declare `compact_routes` in the existing topology. Owner,
+selection, source return, exact history and validation may share the package
+README; no five-document family is required. Old navigation files are narrow
+compatibility entries for existing and unknown external readers.

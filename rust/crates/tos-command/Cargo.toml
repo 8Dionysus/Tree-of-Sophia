@@ -7,6 +7,8 @@ rust-version.workspace = true
 license.workspace = true
 
 [features]
+# Explicit resource-admitted cfg(test) diagnostics; no production capability.
+capacity-d-diagnostics = []
 research = ["tos-validation/research"]
 postgres-lab = []
 conformance-owner-local-source-resolver = []

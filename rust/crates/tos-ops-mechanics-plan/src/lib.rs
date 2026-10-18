@@ -77,7 +77,7 @@ pub mod questbook;
 pub mod relation_pack;
 #[cfg(feature = "mechanics")]
 pub mod root_entry_map;
-#[cfg(feature = "mechanics")]
+#[cfg(any(feature = "mechanics", feature = "philosophy-library"))]
 pub mod route_cards;
 #[cfg(feature = "mechanics")]
 pub mod route_harness;

@@ -357,6 +357,25 @@
         "stats federation",
         "public deployment"
       ]
+    },
+    "capacity_d_diagnostics": {
+      "label": "D assessment capacity diagnostics",
+      "layer": "bounded-runtime-diagnostic",
+      "mode": "on-demand",
+      "owner_surface": "rust/crates/tos-command/tests/fixtures/capacity-d-v1/README.md",
+      "purpose": "Run eight separately source-owned diagnostics: one real precharged quota control, four natural echo/history obligations, and three terminal byte targets with unchanged runtime guards. Ordinary software does not accept them.",
+      "command_sequence": "capacity_d_diagnostics",
+      "required_environment": [
+        "CARGO_TARGET_DIR",
+        "TOS_SCHEMA_WORKER_PATH"
+      ],
+      "failure_route": "rust/crates/tos-command/tests/fixtures/capacity-d-v1/README.md",
+      "does_not_own": [
+        "resource admission or budget extension",
+        "selection or acceptance of an experimental worker profile",
+        "production corpus or source admission",
+        "generic-error substitution for exact count or byte-boundary evidence"
+      ]
     }
   },
   "shared_commands": {
@@ -1411,6 +1430,179 @@
           "mechanics",
           "--test",
           "stats_release_native"
+        ]
+      }
+    ],
+    "capacity_d_diagnostics": [
+      {
+        "label": "build selected native schema worker for capacity diagnostics",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "-p",
+          "tos-validation",
+          "--bin",
+          "tos-schema-worker"
+        ]
+      },
+      {
+        "label": "compile explicit capacity diagnostic test image",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "--no-run",
+          "--message-format=json"
+        ]
+      },
+      {
+        "label": "control actual precharged scalar receipt quota (separate from natural history)",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_precharged_scalar_quota_control",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
+        "label": "diagnose d_r4_echo_128k_never_commits_unreadable_head",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_echo_128k_never_commits_unreadable_head",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
+        "label": "diagnose d_r4_echo_256k_never_commits_unreadable_head",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_echo_256k_never_commits_unreadable_head",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
+        "label": "diagnose d_r4_echo_384k_never_commits_unreadable_head",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_echo_384k_never_commits_unreadable_head",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
+        "label": "diagnose d_r4_echo_480k_twice_never_commits_unreadable_head",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_echo_480k_twice_never_commits_unreadable_head",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
+        "label": "diagnose d_r4_producer_history_32mib_minus_one",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_minus_one",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
+        "label": "diagnose d_r4_producer_history_32mib_exact",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_exact",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
+        "label": "diagnose d_r4_producer_history_32mib_plus_one_never_breaks_reopen",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_plus_one_never_breaks_reopen",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
         ]
       }
     ]

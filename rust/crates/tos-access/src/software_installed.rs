@@ -38,6 +38,26 @@ impl SelectedRole {
     }
 }
 
+/// The installed-role receipt boundary, shared with source-only startup.
+/// Only the selected command is required; unrelated optional roles and web
+/// members do not become dependencies of a native reader.
+pub(crate) fn selected_role_proof(manifest: &JsonValue, role: SelectedRole) -> Result<&JsonValue> {
+    role.validate()?;
+    let access = field(manifest, "native_access")?;
+    proof(access, string(manifest, "software_ref")?)?;
+    if uint(access, "size_bytes")? > IMAGE_BYTES {
+        return Err("installed Access proof exceeds 512 MiB".into());
+    }
+    match role {
+        SelectedRole::Access => Ok(access),
+        SelectedRole::Command(name) => {
+            let selected = field(field(manifest, "native_commands")?, name)?;
+            super::command_proof(name, selected, access)?;
+            Ok(selected)
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct InstalledAccessLimits {
     /// Caller-selected image ceiling; the installed dispatch upper bound is 512 MiB.
@@ -627,21 +647,14 @@ pub fn verify_installed_role(
     {
         return Err("explicit prefix lacks native software-only manifest".into());
     }
-    let access = field(&manifest, "native_access")?;
-    proof(access, string(&manifest, "software_ref")?)?;
-    if uint(access, "size_bytes")? > IMAGE_BYTES {
-        return Err("installed Access proof exceeds 512 MiB".into());
-    }
+    let access = selected_role_proof(&manifest, SelectedRole::Access)?;
     let commands = match role {
         SelectedRole::Access => None,
         SelectedRole::Command(_) => Some(
             command_closure(&manifest, access)?.ok_or("installed command role closure absent")?,
         ),
     };
-    let native = match role {
-        SelectedRole::Access => access,
-        SelectedRole::Command(name) => field(commands.expect("selected command closure"), name)?,
-    };
+    let native = selected_role_proof(&manifest, role)?;
     let bytes = uint(native, "size_bytes")?;
     if bytes > budget.limits.max_image_bytes {
         return Err("selected installed ELF exceeds caller image ceiling".into());

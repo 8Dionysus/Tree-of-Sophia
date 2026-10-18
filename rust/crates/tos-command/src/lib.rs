@@ -73,6 +73,7 @@ mod source_cohort_private_alignment;
 mod source_cohort_private_text;
 pub(crate) use durable_adapter::source_cohort::revision::PgRecordRevisionIdentity;
 pub(crate) use source_creation_store::work_transaction as source_work_transaction;
+mod source_assessment_capacity;
 mod source_assessment_journal;
 pub mod source_forms;
 pub mod source_forms_compiler;

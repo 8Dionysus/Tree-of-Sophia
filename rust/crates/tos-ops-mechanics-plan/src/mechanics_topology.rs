@@ -1,6 +1,6 @@
 //! Read-only owner route, topology and documentation checks for mechanics/.
-//! This is the existing mechanics_topology lane's native consumer; the Python
-//! source remains an independent oracle until the whole route is accepted.
+//! This is the mechanics_topology lane's native consumer. Compact source-owned
+//! routes and the retained expanded form share the same bounded input checks.
 
 use crate::{documentation_family, route_cards::RouteSources};
 use regex::Regex;
@@ -280,13 +280,20 @@ fn validate_package(
             format!("package slug is not normalized: {slug_name}"),
         )?;
     }
-    for filename in [
-        "AGENTS.md",
-        "README.md",
-        "PARTS.md",
-        "PROVENANCE.md",
-        "ROADMAP.md",
-    ] {
+    // A compact package carries the same routes in its entrypoint. Historical
+    // expanded packages remain readable without making five files universal.
+    let filenames: &[&str] = if entry.get("compact_routes").is_some() {
+        &["AGENTS.md", "README.md"]
+    } else {
+        &[
+            "AGENTS.md",
+            "README.md",
+            "PARTS.md",
+            "PROVENANCE.md",
+            "ROADMAP.md",
+        ]
+    };
+    for filename in filenames {
         required(source, issues, &format!("mechanics/{slug_name}/{filename}"))?;
     }
     if !matches!(
@@ -1089,8 +1096,16 @@ fn route_map(
             .iter()
             .map(|link| reference_parts(link).0.to_owned())
             .collect();
-        for companion in ["PARTS.md", "PROVENANCE.md", "ROADMAP.md"] {
-            if !links.contains(companion) {
+        let compact = packages[slug].get("compact_routes");
+        if let Some(routes) = compact {
+            compact_routes(source, issues, patterns, slug, routes, &text)?;
+        }
+        for companion in if compact.is_some() {
+            &[][..]
+        } else {
+            &["PARTS.md", "PROVENANCE.md", "ROADMAP.md"][..]
+        } {
+            if !links.contains(*companion) {
                 push(
                     issues,
                     &path,
@@ -1098,7 +1113,11 @@ fn route_map(
                 )?;
             }
         }
-        let parts_path = format!("mechanics/{slug}/PARTS.md");
+        let parts_path = if compact.is_some() {
+            path.clone()
+        } else {
+            format!("mechanics/{slug}/PARTS.md")
+        };
         let Some(parts_text) = source.read(&parts_path)? else {
             continue;
         };
@@ -1123,6 +1142,118 @@ fn route_map(
                     format!("active part {part} is not present in the package selection map"),
                 )?;
             }
+        }
+    }
+    Ok(())
+}
+
+// Routes, not document counts, prove compact completeness. Prose remains an
+// authored judgment; this guard proves resolvable ownership, return, history,
+// selection and validation carriers and never grants their authority.
+fn compact_routes(
+    source: &mut Source<'_>,
+    issues: &mut Vec<Issue>,
+    patterns: &Patterns,
+    slug: &str,
+    routes: &Value,
+    entry_text: &str,
+) -> io::Result<()> {
+    if !routes.is_object() {
+        return push(
+            issues,
+            TOPOLOGY,
+            format!("{slug}.compact_routes must be an object"),
+        );
+    }
+    let package = format!("mechanics/{slug}/");
+    for field in [
+        "owner",
+        "selection",
+        "history",
+        "source_return",
+        "validation",
+    ] {
+        let Some(reference) = routes
+            .get(field)
+            .and_then(Value::as_str)
+            .filter(|v| !v.is_empty())
+        else {
+            push(
+                issues,
+                TOPOLOGY,
+                format!("{slug}.compact_routes lacks {field}"),
+            )?;
+            continue;
+        };
+        let (path, fragment) = reference_parts(reference);
+        let bounded = match field {
+            "owner" => path == format!("{package}AGENTS.md") && fragment.is_empty(),
+            "selection" | "history" => {
+                path == format!("{package}README.md") && !fragment.is_empty()
+            }
+            "source_return" => {
+                path.starts_with("ToS/") && path.ends_with("AGENTS.md") && fragment.is_empty()
+            }
+            "validation" => path == "mechanics/VALIDATION.md" && fragment.is_empty(),
+            _ => false,
+        };
+        if !bounded {
+            push(
+                issues,
+                TOPOLOGY,
+                format!("{slug}.compact_routes.{field} escapes its owner route"),
+            )?;
+            continue;
+        }
+        let target = source.path(path)?;
+        if source.read(path)?.is_none_or(|text| text.trim().is_empty()) {
+            push(
+                issues,
+                TOPOLOGY,
+                format!("{slug}.compact_routes.{field} has no source carrier"),
+            )?;
+        } else if !fragment.is_empty()
+            && !document_has_fragment(source, &target, fragment, patterns)?
+        {
+            push(
+                issues,
+                TOPOLOGY,
+                format!("{slug}.compact_routes.{field} has no source fragment"),
+            )?;
+        }
+    }
+    let revision = routes
+        .get("history_revision")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let path = routes
+        .get("history_path")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    if revision.len() != 40
+        || !revision
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        || !path.starts_with(&package)
+        || source.path(path).is_err()
+    {
+        push(
+            issues,
+            TOPOLOGY,
+            format!("{slug}.compact_routes requires immutable history revision and package path"),
+        )?;
+    } else {
+        let history = format!("https://github.com/8Dionysus/Tree-of-Sophia/blob/{revision}/{path}");
+        let rendered = rendered_markdown(entry_text, patterns)?;
+        let (count, bytes) = source.remaining_references();
+        let (links, _) = references(&rendered, patterns, count, bytes)?;
+        source.charge_references(links.len(), reference_bytes(&links)?)?;
+        if !links.contains(&history) {
+            push(
+                issues,
+                TOPOLOGY,
+                format!("{slug}.compact_routes immutable history is not linked from entrypoint"),
+            )?;
         }
     }
     Ok(())

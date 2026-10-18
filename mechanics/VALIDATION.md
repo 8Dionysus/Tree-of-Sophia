@@ -14,7 +14,7 @@ the selected software/corpus export route. Mechanics checks
 prove operation shape only; they do not author ToS meaning or runtime policy.
 
 The installed `tos-ops-mechanics-plan` executor runs the retained Agon,
-Experience and Questbook assertion bodies as native children. Their five
+Experience and Questbook assertion bodies as native children. Their
 independent Cargo tests share those same bodies; the installed invocation reads
 the selected repository's current authored schema/example bytes. Growth Cycle's
 maintained behavior route is `rust_workspace`: it builds the native owner and
@@ -59,3 +59,11 @@ Cargo test images directly, and exact isolated steps retain their existing route
 The generic workspace/Conformance remainder excludes those same owned classes,
 so source changes cannot silently omit a new class or run the old isolated case
 twice. These markers are not shell programs or interpreter fallbacks.
+
+Compact topology is checked by the native `mechanics_contracts` integration
+subject as well as the full topology route. The synthetic package omits all
+three former navigation companions and retains owner, source return, exact
+history and validation refusal checks. Questbook assertions cover the original
+compatibility records plus a core register without the demonstration quartet.
+Current membership and return conditions live in `QUESTBOOK.md`; schema/examples
+remain a named compatibility consumer, not runtime dispatch authority.

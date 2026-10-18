@@ -231,6 +231,11 @@ fn main() {
         };
         *slot = Some(value.into());
     }
+    // Explicit standalone data selectors override only an inherited release.
+    // A CLI --release-root still owns managed admission and its source fence.
+    if !explicit_release && (explicit_data_root || prepared_model.is_some()) {
+        release_root = None;
+    }
     let source_text_search = match source_text_search_selection.as_deref() {
         Some(path) => {
             match tos_access::source_text_search::SelectedPgSourceTextSearch::new(Path::new(path)) {

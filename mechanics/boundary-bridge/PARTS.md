@@ -1,15 +1,8 @@
 # Boundary Bridge Parts
 
-Each part owns one bridge operation route.
+Compatibility entry for existing links and external readers whose membership is unknown.
+Use [README.md#operations](README.md#operations) for the current owner route. This file is optional for
+compact topology and carries no separate operation contract.
 
-## Part Map
-
-| Part | Function | Stronger owner route |
-| --- | --- | --- |
-| [Derived KAG Seam](parts/derived-kag-seam/README.md) | keep KAG/public handoff bounded and downstream | `ToS/` authored truth and downstream KAG owner |
-| [Public Mirror Sync](parts/public-mirror-sync/README.md) | keep public compatibility mirrors aligned with canon without making them canon | `ToS/canon/` and source review |
-
-## Provenance Bridge
-
-Use [PROVENANCE](PROVENANCE.md) for old-path accounting. If older material
-changes current behavior, update the owning part first.
+<a id="part-map"></a>
+<a id="provenance-bridge"></a>

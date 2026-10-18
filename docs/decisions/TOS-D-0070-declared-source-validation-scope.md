@@ -123,8 +123,15 @@ this decision record is weaker than current contracts and implementation.
 
 ## Validation
 
-Regenerate decision indexes with `scripts/generate_decision_indexes.py`,
-then run its `--check` mode and `scripts/validate_decision_records.py`.
+Use the maintained native decision owner described in
+[documentation validation](../VALIDATION.md):
+
+```sh
+tos-ops-mechanics-plan --repo-root "$PWD" --decision-index-build
+tos-ops-mechanics-plan --repo-root "$PWD" --decision-index-build --check
+tos-ops-mechanics-plan --repo-root "$PWD" --decision-records-validate
+```
+
 Parser and identity regressions cover explicit profile selection, unknown
 and conflicting flags, declaration identity and scope-dependent validator
 identity. Genuine native admission and missing-reference controls remain

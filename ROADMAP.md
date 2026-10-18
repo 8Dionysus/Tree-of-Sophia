@@ -105,7 +105,7 @@ contour without promoting that material to canon.
 | source home | `ToS/README.md`, `ToS/AGENTS.md`, `ToS/philosophy/README.md` |
 | philosophy atlas | `ToS/philosophy/atlas/`, `ToS/philosophy/atlas/master-tables/`, `ToS/derived-exports/philosophy_atlas_projection.min.json` |
 | trunk law | `ToS/philosophy/trunk/branch-law/`, `chronology/`, `evidence-status/`, `graph-layers/`, `node-kinds/`, `relation-kinds/`, `source-posture/` |
-| prepared-dossier planting | complete Tables I–II and the supplied `T3-01`–`T3-45` slice under `ToS/philosophy/atlas/`, `eras/`, `frontiers/`, and `graph-workbench/` |
+| prepared-dossier planting | indexed Tables I–III with 48, 58, and 84 admitted dossiers respectively under `ToS/philosophy/atlas/`, `eras/`, `frontiers/`, and `graph-workbench/` |
 | graph review | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `promotion-ledger/` |
 | owner-local measurement | `stats/port.manifest.json`, `stats/packets/table-i-prepared-dossier-route-ratio.reference.json` |
 | downstream read models | `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
@@ -114,6 +114,10 @@ contour without promoting that material to canon.
 This contour is tree preparation. It exposes candidate nodes, proposed
 relations, graph views, layers, clusters, and review packets so a human can
 review the tree before canon promotion.
+
+Index coverage does not establish semantic completeness. The prose-only
+`T3-57` artifact still projects no structured semantic rows and requires a
+source-completed successor before semantic promotion.
 
 ## Horizon: Source Home Depth
 

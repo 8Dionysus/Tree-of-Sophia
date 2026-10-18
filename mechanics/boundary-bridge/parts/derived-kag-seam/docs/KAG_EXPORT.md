@@ -54,3 +54,30 @@ The native `tos-kag-release export-build` and `export-verify` operations own
 this ToS export. They require only the selected ToS software and corpus. KAG
 provider construction, Python execution, index validation and integration
 status belong to the consuming repository. See [the independent export route](../../../../../kag/README.md).
+
+## Root-entry materialization
+
+A source clone omits generated root-map data. The authored declaration does
+not materialize or verify it. This ToS projection preserves exact source return;
+consumer indexing, trust and runtime admission remain consumer-owned.
+
+Select an accepted CorpusStore revision and the exact source software closure
+for `SELECTED_ROOT`. Build and verify its export with the installed native
+tools, then build, check and validate the root map with the same export:
+
+```text
+tos-kag-release export-build --repo-root SELECTED_ROOT --store STORE --revision REVISION --output EXPORT
+tos-kag-release export-verify --release EXPORT
+tos-ops-mechanics-plan --repo-root SELECTED_ROOT --root-entry-map-build --kag-export EXPORT
+tos-ops-mechanics-plan --repo-root SELECTED_ROOT --root-entry-map-build --check --kag-export EXPORT
+tos-ops-mechanics-plan --repo-root SELECTED_ROOT --root-entry-map-validate --kag-export EXPORT
+```
+
+`VerifiedExport::bind_repo` requires all six selected source files in
+`SELECTED_ROOT` to match that export's exact bytes and digests. Keep the export
+selection unchanged through build, check and validation. Missing, changed or
+stale data blocks this selected materialization; it does not establish
+an installed runtime failure or turn KAG into a software-release prerequisite.
+Never copy the authored JSON into the generated path or return generated
+root-map data to Git. Corpus admission, consumer semantics and runtime
+activation retain their actual owners; this operation requires no new service.

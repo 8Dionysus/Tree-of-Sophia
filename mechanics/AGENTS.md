@@ -21,7 +21,7 @@ witnesses, canon, Zarathustra, and the philosophy domain tree route through
 | input | repeatable ToS operation pressure, package route change, part contract, provenance bridge, or validation movement |
 | output | mechanics package, part-local contract, provenance bridge, generated companion, or validator route |
 | owner | `mechanics/AGENTS.md`, `mechanics/README.md`, `mechanics/topology.json`, and the nearest package or part route |
-| next route | package `AGENTS.md` -> `PARTS.md` -> `PROVENANCE.md` -> active part route; open package README only for human orientation |
+| next route | package `AGENTS.md` -> package README operation map -> exact contract; history and growth conditions are on demand |
 | validation | mechanics topology, nested route-card check, package validator, or part validator |
 
 ## Boundary Routes
@@ -32,15 +32,18 @@ witnesses, canon, Zarathustra, and the philosophy domain tree route through
   existing shared parent.
 - Shared mechanics become ToS-local only when ToS has its own operation, owner
   split, boundary, and validation route.
-- `parts/` holds active functioning operation contracts with their input,
-result, owner and validation route.
-- Package `ROADMAP.md` holds future pressure and growth conditions; backlogs,
+- An active part under `parts/` holds a functioning operation contract with its
+  input, result, owner and validation route.
+- Package `README.md#growth-conditions` holds future pressure and growth conditions; backlogs,
   validation inventories, script/test refactor plans, and landing ledgers route
   to their owning surfaces.
-- Package `PROVENANCE.md` bridges active routes to former placement or source
+- Package `README.md#history` bridges active routes to former placement or source
   lineage.
 - Historical moved-path, raw-receipt, and old-name accounting returns through
-  `PROVENANCE.md` to an immutable Git commit and original path. Current receipts remain with the active owning part.
+  `README.md#history` to an immutable Git commit and original path. Current receipts remain with the active owning part.
+- Retained package `PARTS.md`, `PROVENANCE.md`, and `ROADMAP.md` are historical
+  compatibility carriers; follow package `README.md#history` to their owning
+  successor and immutable Git source before interpreting earlier state.
 - Source witnesses, philosophy branches, canon nodes, review ledgers, and the
   Zarathustra core route to `ToS/`.
 - Runtime activation, proof verdicts, memory truth, SDK authority, AoA
@@ -60,5 +63,5 @@ release-facing.
 ## Closeout
 
 Report which mechanic package changed, whether pressure was shared or local,
-which part owns the payload, whether historical retrieval through `PROVENANCE.md` was needed,
+which part owns the payload, whether historical retrieval through `README.md#history` was needed,
 which stronger owner stayed stronger, and which validator proved the topology.

@@ -9,6 +9,15 @@ Tracking starts with the community-docs baseline for this repository.
 
 ### Changed
 
+- Updates the Rust execution and declared source-validation decisions to the
+  maintained native decision-index and record-validation commands, preserving
+  their rationale, status and index metadata.
+
+- Aligns the current Growth contour with the 48, 58 and 84 indexed dossiers in
+  Tables I–III. Index coverage does not establish semantic completeness;
+  `T3-57` retains its prose-only, zero-structured-projection restriction and
+  requires a source-completed successor before semantic promotion.
+
 - Rewrites foundation guidance, node templates, semantic definitions and current
   source descriptions around their subject, purpose and evidence. Explanatory
   prose is editable within typed contracts; source and Claim revisions preserve

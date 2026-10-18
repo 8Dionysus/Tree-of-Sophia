@@ -207,12 +207,20 @@ fn validate_inner(
     export: Option<&VerifiedExport>,
     cancel: &AtomicI32,
 ) -> io::Result<()> {
+    if !s.is_file(OUTPUT)? {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!(
+                "{OUTPUT} is not materialized; run --root-entry-map-build with the selected verified --kag-export before source-return delivery; a source clone alone is not materialization"
+            ),
+        ));
+    }
     let expected = build_payload_verified(root, s, export, cancel)?;
     let current = parse(&s.bytes(OUTPUT)?)?;
     schema(s, &current, cancel)?;
     if current != expected {
         return Err(io::Error::other(format!(
-            "{OUTPUT} does not match the canonical rebuild"
+            "{OUTPUT} does not match the canonical rebuild; rematerialize with the same verified KAG export before source-return delivery"
         )));
     }
     // Exact canonical equality makes every field/type/identity check below
@@ -438,6 +446,11 @@ mod tests {
         );
         write(SOURCE, source);
         let cancel = AtomicI32::new(0);
+        let missing = validate(&root, &mut RouteSources::new(&root).unwrap(), &cancel).unwrap();
+        assert_eq!(missing.len(), 1);
+        assert!(missing[0].1.contains("not materialized"));
+        assert!(missing[0].1.contains("selected verified --kag-export"));
+        assert!(!root.join(OUTPUT).exists());
         assert!(
             build(
                 &root,

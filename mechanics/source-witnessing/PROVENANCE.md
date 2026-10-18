@@ -1,8 +1,5 @@
 # Source Witnessing Provenance Bridge
 
-Use current routes first: [README](README.md), [PARTS](PARTS.md), and
-[Witness Route](parts/witness-route/README.md).
-
-Immutable Git history preserves moved-path accounting from the former
-`ToS/doctrine/MANUAL_CORPUS_ENTRY_GATE.md` placement. Source texts remain
-active source-home witnesses, not mechanics legacy.
+Compatibility entry for existing links and external readers whose membership is unknown.
+Use [README.md#history](README.md#history) for the current owner route. This file is optional for
+compact topology and carries no separate operation contract.
