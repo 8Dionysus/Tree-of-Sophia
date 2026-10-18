@@ -363,7 +363,7 @@
       "layer": "bounded-runtime-diagnostic",
       "mode": "on-demand",
       "owner_surface": "rust/crates/tos-command/tests/fixtures/capacity-d-v1/README.md",
-      "purpose": "Run all seven source-owned synthetic echo/history capacity diagnostics with unchanged runtime guards in an explicitly admitted window. Ordinary software checks do not accept these obligations.",
+      "purpose": "Run eight separately source-owned diagnostics: one real precharged quota control, four natural echo/history obligations, and three terminal byte targets with unchanged runtime guards. Ordinary software does not accept them.",
       "command_sequence": "capacity_d_diagnostics",
       "required_environment": [
         "CARGO_TARGET_DIR",
@@ -1459,6 +1459,24 @@
           "--lib",
           "--no-run",
           "--message-format=json"
+        ]
+      },
+      {
+        "label": "control actual precharged scalar receipt quota (separate from natural history)",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "tos-command",
+          "--features",
+          "capacity-d-diagnostics",
+          "--lib",
+          "source_native_cli::private_assessment::capacity_d_r4::d_r4_precharged_scalar_quota_control",
+          "--",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
         ]
       },
       {

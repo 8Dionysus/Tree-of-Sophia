@@ -1,5 +1,5 @@
 {
-  "schema": "tos_d_r4_explicit_operation_routes_v2",
+  "schema": "tos_d_r4_explicit_operation_routes_v3",
   "base_sha": "75315785221c58304f3e9079ea5b1ee65c6f5cfe",
   "tree": "493b1723c39e87c44a8ec0c4d0ac1e91ac142511",
   "compilation": "No feature-routing successor compilation receipt is supplied by this source proposal.",
@@ -20,12 +20,13 @@
     "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_minus_one",
     "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_exact",
     "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_plus_one_never_breaks_reopen",
-    "source_native_cli::private_assessment::capacity_d_r4::d_r4_withdrawal_retains_history_and_old_echo_identity"
+    "source_native_cli::private_assessment::capacity_d_r4::d_r4_withdrawal_retains_history_and_old_echo_identity",
+    "source_native_cli::private_assessment::capacity_d_r4::d_r4_precharged_scalar_quota_control"
   ],
   "features": {
-    "tos-command": "Six ordinary selectors use default crate features; all seven diagnostics explicitly require --features capacity-d-diagnostics. No postgres-lab/research feature is added by this route.",
+    "tos-command": "Six ordinary selectors use defaultfeatures; eight diagnostics (originalseven+separateprechargedcontrol) require --features capacity-d-diagnostics. Runtime guards unchanged.",
     "tos-validation": "default native; asserted-source-candidate schema profile",
-    "all_features": "Selects all13 tests; requires explicit diagnostic resource admission and does not imply their acceptance."
+    "all_features": "Selects all14 tests; explicit resource admission and matching run receipts required."
   },
   "commands_after_window": [
     [
@@ -69,6 +70,22 @@
       "tos-command",
       "--lib",
       "source_native_cli::private_assessment::capacity_d_r4::d_r4_positive_qualified_echo_control",
+      "--",
+      "--exact",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    [
+      "cargo",
+      "test",
+      "--locked",
+      "--offline",
+      "-p",
+      "tos-command",
+      "--lib",
+      "--features",
+      "capacity-d-diagnostics",
+      "source_native_cli::private_assessment::capacity_d_r4::d_r4_precharged_scalar_quota_control",
       "--",
       "--exact",
       "--nocapture",
@@ -268,8 +285,9 @@
     "positive_control": "must pass before interpreting long cases",
     "D_R4_REPRODUCED_UNREADABLE_HEAD_or_EXACT": "published H+next>L and actual reader Invalid complete history byte budget; confirms one concrete defect only",
     "D_R4_EARLY_GATE_or_OTHER_GATE": "inconclusive crossing; record exact phase/error/state, not pass",
-    "D_R4_BOUNDED_BYTE_REFUSAL": "only real prepare/publish byte-budget refusal with unchanged head/inodes/membership and readable predecessor is accepted safety outcome",
-    "count_input_earlier_refusals": "negative request/evaluation coverage only, not committed1023/1024/1025-event history acceptance"
+    "D_R4_BOUNDED_BYTE_REFUSAL": "Strict480KiB/twoecho selector only: real prepare/publish exact byte-budget refusal, unchanged head/inodes/membership and readable predecessor. This verdict cannot accept the proposed small3 natural-quota goals; terminal-minus/exact/plus have their separate unchanged helpers.",
+    "count_input_earlier_refusals": "negative request/evaluation coverage only, not committed1023/1024/1025-event history acceptance",
+    "D_R4_NATURAL_RECEIPT_FRONTIER": "Proposed small3 selectors only after owner goal acceptance: exact typed final-prepare scalar129/128 with128completed, fullnatural40prefix bytebound and unchangedsnapshot/cold40. Any early byte,CPU,deadline,protocol or generic refusal fails or is incomplete."
   },
   "early_gates": [
     "request raw/canonical1MiB",
@@ -479,6 +497,7 @@
       "source_native_cli::private_assessment::capacity_d_r4::d_r4_withdrawal_retains_history_and_old_echo_identity"
     ],
     "explicit_capacity_diagnostics": [
+      "source_native_cli::private_assessment::capacity_d_r4::d_r4_precharged_scalar_quota_control",
       "source_native_cli::private_assessment::capacity_d_r4::d_r4_echo_128k_never_commits_unreadable_head",
       "source_native_cli::private_assessment::capacity_d_r4::d_r4_echo_256k_never_commits_unreadable_head",
       "source_native_cli::private_assessment::capacity_d_r4::d_r4_echo_384k_never_commits_unreadable_head",
@@ -540,16 +559,17 @@
         "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_minus_one",
         "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_exact",
         "source_native_cli::private_assessment::capacity_d_r4::d_r4_producer_history_32mib_plus_one_never_breaks_reopen",
-        "source_native_cli::private_assessment::capacity_d_r4::d_r4_withdrawal_retains_history_and_old_echo_identity"
+        "source_native_cli::private_assessment::capacity_d_r4::d_r4_withdrawal_retains_history_and_old_echo_identity",
+        "source_native_cli::private_assessment::capacity_d_r4::d_r4_precharged_scalar_quota_control"
       ],
-      "expected_count": 13
+      "expected_count": 14
     }
   ],
   "selection_contract": {
     "pre_run": "Compare actual module-scoped --list names and counts with selection_checks_after_window; listing is not test execution.",
     "exact_run": "Every exact selected run must report exactly1 selected test and0 ignored;0 selected is a routing failure even with Cargo exit0.",
     "outcome": "Retain real pass/failure/deadline/CPU/other-refusal classification. Exact selection does not turn an early generic refusal into byte/count acceptance.",
-    "owner": "I owns normative validation_lanes selection and explicit seven-obligation schedule/receipts; ordinary lane alone never closesD."
+    "owner": "I owns normative validation_lanes selection and explicit eight-diagnostic schedule/receipts: seven existing obligations plus the separate precharged control; ordinary lane alone never closesD."
   },
   "environment_binding": "The historical D environment values retained below are provenance examples, not live assignments. I must bind its own isolated target/tmp and exact selected worker/profile identity; do not inherit D experimental O3 or a stale target/debug path by inference.",
   "resource_admission_contract": {
@@ -561,5 +581,34 @@
     "operator_window": "Use explicit current owner admission/deadlines and reserve/storage guards. This plan grants no duration, memory, storage or profile extension.",
     "historical_estimates": "Original source-only requests/estimates are retained only in operation-scenarios.source-only-v1.json."
   },
-  "source_proposal_scope": "Companion metadata/commands only; no bound5cb source/image,420 plan, production guard or runtime ABI change."
+  "source_proposal_scope": "Companion metadata/commands only; no bound5cb source/image,420 plan, production guard or runtime ABI change.",
+  "echo_frontier_successor": {
+    "status": "source_proposal_not_compiled_or_executed",
+    "natural_small": [
+      "128KiB",
+      "256KiB",
+      "384KiB"
+    ],
+    "separate_control": {
+      "name": "source_native_cli::private_assessment::capacity_d_r4::d_r4_precharged_scalar_quota_control",
+      "actual_prelude_checks": 117,
+      "actual_completed_receipts": 128,
+      "attempted": 129,
+      "seed_history": 1,
+      "cold_after": 1,
+      "not_natural_or_byte_proof": true
+    },
+    "480KiB_two_echo": "originalstrictbytecrossing obligation retained",
+    "existing_three_terminal_targets": "unchanged",
+    "original_source_only_v1": "retained_byte_exact",
+    "proposed_goal_requires_owner_acceptance": "actual40producedbatches; originaltypedscalar129/128 finalprepare refusal;128completedreceipts; unchangedfullsnapshot/cold40; H<=41*r+78+40*20000<33554432",
+    "goal_change_authorized": false,
+    "runtime_window_granted": false,
+    "verdict_partition": {
+      "small3": "Only exact typed natural40 scalar quota can PASS; early byte refusal cannot PASS.",
+      "strict480": "Only exact prepare/publish history-byte refusal can PASS; scalar quota cannot PASS.",
+      "unknown_layout": "fails closed before fixture execution",
+      "terminal3": "separate unchanged helper bodies"
+    }
+  }
 }

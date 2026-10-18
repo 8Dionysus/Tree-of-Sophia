@@ -68,6 +68,170 @@ fn snapshot(root: &Path) -> Snapshot {
     result
 }
 
+// Test-only evidence before the existing prepare error mapping. All executor
+// methods delegate to the exact real worker; no quota or verdict is synthesized.
+#[cfg(feature = "capacity-d-diagnostics")]
+mod echo_observer {
+    use super::*;
+    use std::cell::RefCell;
+    use tos_validation::executor::{BatchBudget, BatchStreamBudget, SharedSchemaWorkerQuota};
+    use tos_validation::item_rules::ItemRefusal;
+    use tos_validation::source_cut::{
+        CutPreparedSchemaExecutionBinding, CutSchemaCheck, CutSchemaInputCost,
+    };
+
+    #[derive(Debug, Clone)]
+    pub(super) struct Refusal {
+        pub method: &'static str,
+        pub path: String,
+        pub contract: String,
+        pub raw_bytes: usize,
+        pub before: usize,
+        pub after: usize,
+        pub cost: Option<CutSchemaInputCost>,
+        pub error: ItemRefusal,
+    }
+    pub(super) struct Observer<'a> {
+        pub inner: CutWorkerSchemaExecutor,
+        pub refusal: &'a RefCell<Option<Refusal>>,
+    }
+    impl std::ops::Deref for Observer<'_> {
+        type Target = CutWorkerSchemaExecutor;
+        fn deref(&self) -> &Self::Target {
+            &self.inner
+        }
+    }
+    impl std::ops::DerefMut for Observer<'_> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.inner
+        }
+    }
+    impl Observer<'_> {
+        fn observe<T>(
+            &self,
+            method: &'static str,
+            path: &str,
+            contract: &str,
+            raw_bytes: usize,
+            before: usize,
+            cost: Option<CutSchemaInputCost>,
+            result: &Result<T, ItemRefusal>,
+        ) {
+            if let Err(error) = result {
+                *self.refusal.borrow_mut() = Some(Refusal {
+                    method,
+                    path: path.into(),
+                    contract: contract.into(),
+                    raw_bytes,
+                    before,
+                    after: self.inner.receipt_count(),
+                    cost,
+                    error: error.clone(),
+                });
+            }
+        }
+    }
+    impl CutSchemaExecutor for Observer<'_> {
+        fn schema_profile(&self) -> Option<FormatProfile> {
+            self.inner.schema_profile()
+        }
+        fn prepared_execution_binding(&self) -> Option<CutPreparedSchemaExecutionBinding> {
+            <CutWorkerSchemaExecutor as CutSchemaExecutor>::prepared_execution_binding(&self.inner)
+        }
+        fn selected_source_revision(&self) -> Option<SourceRevision> {
+            self.inner.selected_source_revision()
+        }
+        fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+            self.inner.selected_contract_digest(contract)
+        }
+        fn check(
+            &mut self,
+            path: &str,
+            raw: &[u8],
+            contract: &str,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<bool, ItemRefusal> {
+            let before = self.inner.receipt_count();
+            let cost = self
+                .inner
+                .schema_input_cost(path, raw, contract, before as u64)
+                .ok();
+            let result = self.inner.check(path, raw, contract, deadline, cancelled);
+            self.observe("check", path, contract, raw.len(), before, cost, &result);
+            result
+        }
+        fn check_reusing_scalar(
+            &mut self,
+            path: &str,
+            raw: &[u8],
+            contract: &str,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<bool, ItemRefusal> {
+            let before = self.inner.receipt_count();
+            let cost = self
+                .inner
+                .schema_input_cost(path, raw, contract, before as u64)
+                .ok();
+            let result = self
+                .inner
+                .check_reusing_scalar(path, raw, contract, deadline, cancelled);
+            self.observe(
+                "check_reusing_scalar",
+                path,
+                contract,
+                raw.len(),
+                before,
+                cost,
+                &result,
+            );
+            result
+        }
+        fn schema_input_cost(
+            &self,
+            path: &str,
+            raw: &[u8],
+            contract: &str,
+            ordinal: u64,
+        ) -> Result<CutSchemaInputCost, ItemRefusal> {
+            self.inner.schema_input_cost(path, raw, contract, ordinal)
+        }
+        fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
+            self.inner.set_operation_budget(budget)
+        }
+        fn set_shared_schema_worker_quota(
+            &mut self,
+            quota: SharedSchemaWorkerQuota,
+        ) -> Result<(), ItemRefusal> {
+            self.inner.set_shared_schema_worker_quota(quota)
+        }
+        fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+            self.inner.finish(deadline, cancelled)
+        }
+        fn check_batch(
+            &mut self,
+            checks: &[CutSchemaCheck],
+            budget: BatchBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<Vec<bool>, ItemRefusal> {
+            let before = self.inner.receipt_count();
+            let result = self.inner.check_batch(checks, budget, deadline, cancelled);
+            self.observe(
+                "check_batch",
+                "<batch>",
+                "<batch>",
+                checks.iter().map(|v| v.raw.len()).sum(),
+                before,
+                None,
+                &result,
+            );
+            result
+        }
+    }
+}
+
 struct Fixture {
     _temporary: tempfile::TempDir,
     owner: ProtectedAssessmentJournal,
@@ -82,6 +246,10 @@ struct Fixture {
     records: Vec<JsonValue>,
     cut: CorpusCutReader,
     context: CommandContext,
+    #[cfg(feature = "capacity-d-diagnostics")]
+    echo_prelude: std::cell::Cell<usize>,
+    #[cfg(feature = "capacity-d-diagnostics")]
+    echo_refusal: std::cell::RefCell<Option<echo_observer::Refusal>>,
 }
 impl Fixture {
     fn new() -> Self {
@@ -229,6 +397,10 @@ impl Fixture {
             records,
             cut,
             context,
+            #[cfg(feature = "capacity-d-diagnostics")]
+            echo_prelude: std::cell::Cell::new(0),
+            #[cfg(feature = "capacity-d-diagnostics")]
+            echo_refusal: std::cell::RefCell::new(None),
         }
     }
     fn resume_exact(root: &Path) -> Self {
@@ -376,6 +548,37 @@ impl Fixture {
             .lock_subjects(&[SUBJECT.to_owned()], deadline, &cancelled)
             .map_err(|e| ("lock", e))?;
         let mut worker = self.worker(deadline, &cancelled);
+        #[cfg(feature = "capacity-d-diagnostics")]
+        let mut worker = {
+            self.echo_refusal.replace(None);
+            let mut observed = echo_observer::Observer {
+                inner: worker,
+                refusal: &self.echo_refusal,
+            };
+            let prelude = self.echo_prelude.replace(0);
+            if prelude != 0 {
+                assert_eq!(
+                    prelude, 117,
+                    "only the separate precharged control selects a prelude"
+                );
+                let raw = cmd::canonical(&self.event).unwrap();
+                for ordinal in 0..prelude {
+                    assert!(
+                        observed
+                            .check(
+                                &format!("capacity/quota-prelude/{ordinal}"),
+                                &raw,
+                                "ToS/contracts/knowledge-assessment.schema.json",
+                                deadline,
+                                &cancelled
+                            )
+                            .expect("PRECHARGED_QUOTA_CONTROL earlier real-worker refusal")
+                    );
+                }
+                assert_eq!(observed.receipt_count(), 117);
+            }
+            observed
+        };
         let history = fence
             .read(SUBJECT, &self.context, &mut worker, deadline, &cancelled)
             .map_err(|error| {
@@ -606,7 +809,80 @@ fn d_r4_positive_qualified_echo_control() {
 }
 
 #[cfg(feature = "capacity-d-diagnostics")]
+fn assert_exact_scalar_quota(f: &Fixture, phase: &str, error: &SourceCommandError) {
+    use tos_validation::item_rules::ItemRefusal;
+    assert_eq!(phase, "prepare");
+    assert!(matches!(
+        error,
+        SourceCommandError::Invalid("assessment batch schema execution")
+    ));
+    let observed = f.echo_refusal.borrow();
+    let observed = observed
+        .as_ref()
+        .expect("typed worker refusal was not observed");
+    assert_eq!(observed.method, "check");
+    assert_eq!(observed.path, "assessment/native-journal-batch");
+    assert_eq!(observed.contract, BATCH_SCHEMA);
+    assert_eq!((observed.before, observed.after), (128, 128));
+    assert_eq!(
+        observed.error,
+        ItemRefusal::BudgetCheck {
+            check: "Cut scalar receipt count",
+            used: Some(129),
+            limit: Some(128)
+        }
+    );
+    assert!(observed.raw_bytes > 0 && observed.raw_bytes <= 1_048_576);
+    let cost = observed
+        .cost
+        .as_ref()
+        .expect("quota evidence requires actual non-executing cost query");
+    assert_eq!(cost.remaining_receipts, 0);
+    assert!(cost.receipt_bytes <= cost.remaining_receipt_bytes);
+    assert!(cost.decoded_instance_bytes <= 1_048_576);
+    eprintln!("D_R4_TYPED_SCALAR_QUOTA {observed:?}");
+}
+
+// This is a real, deliberately precharged worker control. It does not replace
+// any natural-history selector or establish the complete-history byte ceiling.
+#[cfg(feature = "capacity-d-diagnostics")]
+#[test]
+fn d_r4_precharged_scalar_quota_control() {
+    let f = Fixture::new();
+    let seed = f.event("tos.review.capacity-seed", 1);
+    f.attempt(vec![seed.clone()], "seed", None, Mode::Normal)
+        .unwrap();
+    assert_eq!(f.cold().unwrap(), (1, 1));
+    let before = snapshot(&f.journal);
+    f.echo_prelude.set(117);
+    let (phase, error) = match f.attempt(
+        vec![seed, f.event("tos.review.capacity-next", 1)],
+        "quota-control",
+        None,
+        Mode::Normal,
+    ) {
+        Ok(_) => panic!("PRECHARGED_QUOTA_CONTROL did not refuse"),
+        Err(failure) => failure,
+    };
+    assert_exact_scalar_quota(&f, phase, &error);
+    assert_eq!(before, snapshot(&f.journal));
+    assert_eq!(f.cold().unwrap(), (1, 1));
+    eprintln!(
+        "D_R4_PRECHARGED_QUOTA_CONTROL real117prelude/128completed/129attempted; not natural-history or byte proof"
+    );
+}
+
+#[cfg(feature = "capacity-d-diagnostics")]
 fn crossing(rationale: usize, echoes: usize) {
+    // These four entry selectors have disjoint proposed verdict contracts.
+    // Unknown layouts must not inherit either successful refusal path.
+    let (selector, natural_quota_goal) = match (rationale, echoes) {
+        (131_072, 1) => ("d_r4_echo_128k_never_commits_unreadable_head", true),
+        (262_144, 1) => ("d_r4_echo_256k_never_commits_unreadable_head", true),
+        (393_216, 1) => ("d_r4_echo_384k_never_commits_unreadable_head", true),
+        (491_520, 2) => ("d_r4_echo_480k_twice_never_commits_unreadable_head", false),
+        _ => panic!("D_R4 unknown echo selector layout rationale={rationale} echoes={echoes}"),
+    };
     let f = Fixture::new();
     let seed = f.event("tos.review.capacity-seed", rationale);
     f.attempt(vec![seed.clone()], "seed", None, Mode::Normal)
@@ -661,20 +937,39 @@ fn crossing(rationale: usize, echoes: usize) {
                     snapshot(&f.journal),
                     "D_R4 refusal changed head/membership phase={phase}"
                 );
-                assert!(f.cold().is_ok(), "D_R4 early refusal broke cold reopen");
-                if matches!(phase, "prepare" | "publish")
+                let reopened = f.cold();
+                assert!(reopened.is_ok(), "D_R4 early refusal broke cold reopen");
+                if natural_quota_goal {
+                    assert_exact_scalar_quota(&f, phase, &error);
+                    assert_eq!(
+                        i, 40,
+                        "natural quota frontier must come from the complete produced prefix"
+                    );
+                    let natural_h: usize = before
+                        .iter()
+                        .filter(|(path, _)| path.ends_with(".json"))
+                        .map(|(_, (_, _, _, bytes, _))| *bytes)
+                        .sum();
+                    let bound = 41 * rationale + 78 + 40 * 20_000;
+                    assert!(natural_h <= bound && bound < limit);
+                    assert_eq!(reopened.unwrap(), (40, 40));
+                    eprintln!(
+                        "D_R4_NATURAL_RECEIPT_FRONTIER selector={selector} rationale={rationale} committed=40 H={natural_h} upper={bound}; not32MiB proof"
+                    );
+                    return;
+                } else if matches!(phase, "prepare" | "publish")
                     && matches!(
                         &error,
                         SourceCommandError::Invalid("assessment complete history byte budget")
                     )
                 {
                     eprintln!(
-                        "D_R4_BOUNDED_BYTE_REFUSAL rationale={rationale} echoes={echoes} i={i} L={limit}"
+                        "D_R4_BOUNDED_BYTE_REFUSAL selector={selector} rationale={rationale} echoes={echoes} i={i} L={limit}"
                     );
                     return;
                 }
                 panic!(
-                    "D_R4_EARLY_GATE rationale={rationale} echoes={echoes} i={i} phase={phase} error={error:?}; crossing not reached"
+                    "D_R4_EARLY_GATE selector={selector} rationale={rationale} echoes={echoes} i={i} phase={phase} error={error:?}; crossing not reached"
                 );
             }
         }
