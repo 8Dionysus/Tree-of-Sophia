@@ -847,12 +847,12 @@ pub fn verify_issued_consumer_control(
     work: u64,
 ) -> Result<IssuedConsumerControl, String> {
     let selected =
-        std::env::var("ABYSS_CONSUMER_CONTROL_FD").map_err(|_| "issued control FD absent")?;
+        std::env::var("TOS_CONSUMER_CONTROL_FD").map_err(|_| "issued control FD absent")?;
     if selected.parse::<i32>().map_err(|e| e.to_string())? != fd {
         return Err("native control CLI/env FD mismatch".into());
     }
-    let raw = std::env::var("ABYSS_CONSUMER_CONTROL_AUTH")
-        .map_err(|_| "issued control metadata absent")?;
+    let raw =
+        std::env::var("TOS_CONSUMER_CONTROL_AUTH").map_err(|_| "issued control metadata absent")?;
     if raw.len() > 4096 {
         return Err("control metadata exceeds finite cap".into());
     }
@@ -2985,6 +2985,8 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
         None => Command::new(&o.command[0]),
     };
     command
+        .env_remove("TOS_CONSUMER_CONTROL_FD")
+        .env_remove("TOS_CONSUMER_CONTROL_AUTH")
         .env_remove("ABYSS_CONSUMER_CONTROL_FD")
         .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
     if let Some(held) = search_cache.as_ref() {
@@ -2999,9 +3001,9 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     }
     if let (Some(control_fd), Some(auth)) = (o.control_fd, i.control_auth.as_ref()) {
         command
-            .env("ABYSS_CONSUMER_CONTROL_FD", control_fd.to_string())
+            .env("TOS_CONSUMER_CONTROL_FD", control_fd.to_string())
             .env(
-                "ABYSS_CONSUMER_CONTROL_AUTH",
+                "TOS_CONSUMER_CONTROL_AUTH",
                 serde_json::to_string(auth).map_err(|e| e.to_string())?,
             );
     }
@@ -3739,6 +3741,8 @@ fn sdk_python_run(args: &[String]) -> Result<i32, String> {
             .env("TOS_SDK_STAGE_CONFIG", encoded)
             .env_remove("TOS_STAGE_TICKET_FD")
             .env_remove("TOS_STAGE_ROOT")
+            .env_remove("TOS_CONSUMER_CONTROL_FD")
+            .env_remove("TOS_CONSUMER_CONTROL_AUTH")
             .env_remove("ABYSS_CONSUMER_CONTROL_FD")
             .env_remove("ABYSS_CONSUMER_CONTROL_AUTH");
         if let Some(p) = sdk_phase_as {
