@@ -1338,8 +1338,6 @@ mod portable_profile_tests {
             validate_manifest_with_sources(
                 &self.root,
                 &mut RouteSources::new(&self.root).unwrap(),
-                false,
-                None,
                 &cancel,
             )
             .unwrap()
