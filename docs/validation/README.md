@@ -34,8 +34,8 @@ sequence executes all its ordered steps. Unknown or ambiguous references refuse.
 
 The `source_witness_foundation` lane runs the native full audit and catalog
 parity through `tos-native-owner-command foundation`. Run it inside the
-abyss-machine private-tmpfs owner launcher, which supplies the sealed
-`ABYSS_STAGE_TICKET_FD` and matching `ABYSS_STAGE_ROOT`. Select the owner-issued
+ToS private-tmpfs owner launcher, which supplies the sealed
+`TOS_STAGE_TICKET_FD` and matching `TOS_STAGE_ROOT`. Select the owner-issued
 protected invocation explicitly as
 `TOS_NATIVE_FOUNDATION_INVOCATION=/absolute/path/to/invocation.json`; it binds
 the installed command and schema-worker digests plus the finite source, CPU,

@@ -22,9 +22,11 @@ Start with root `AGENTS.md` and this card. Open `CHARTER.md`, `BOUNDARIES.md`,
 or `ROADMAP.md` only when repository orientation changes the measurement task.
 For a Table I question, open the philosophy atlas route and its README when
 human explanation is relevant, then open `stats/port.manifest.json`, rows, and
-the dossier map. When local port usage is part of the selected measurement,
-open `stats/README.md`; open the `aoa-stats` contracts only when that
-measurement requires them.
+the dossier map.
+When local port usage is selected, open `stats/README.md`.
+When packet structure changes, use the [embedded portable format](../rust/crates/tos-ops-mechanics-plan/schemas/README.md).
+ToS owns native port validation and export; shared format evolution and
+cross-owner composition remain with `aoa-stats`.
 
 ## Boundaries
 
@@ -43,12 +45,12 @@ canon status require their own assessments.
 ## Validation
 
 Inspect the atlas population, route map, branch paths, and packet first. Then
-select [`stats/VALIDATION.md`](VALIDATION.md), which retains the compatible
-`aoa-stats` owner procedure and local test route. Use the root route for
+select [`stats/VALIDATION.md`](VALIDATION.md), which owns native ToS export checks
+and the standalone CLI regression. Consumer procedures run outside ToS. Use the root route for
 repository-wide validation.
 
 ## Closeout
 
 Report the Table I question, exact row and route populations, manual positive
-and negative cases, packet posture, central validation, and repository
+and negative cases, packet posture, local export validation, and repository
 validation.

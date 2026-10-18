@@ -106,8 +106,9 @@ package. Backend selection does not broaden owner grants or replace assessment,
 rights, publication or canon authority.
 
 The distinct `owner-local-text-layer-record-owner-ocr` handler records one
-authenticated signed `abyss-stack` OCR result under a separate protected grant.
-It calls only the pinned owner's verification modes, never OCR execution;
+authenticated signed OCR result under a separate protected grant.
+ToS verifies the pinned signer and exact receipt natively without producer code,
+interpreter selection or OCR execution;
 copied signed metadata remains independently verifiable without reading text.
 The distinct `owner-local-text-layer-record-owner-page-ocr` handler retains
 the original PDF identity and separately pinned retained page image, authenticates

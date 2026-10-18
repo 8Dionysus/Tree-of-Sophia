@@ -165,3 +165,7 @@
 ## 2026-10-11
 
 - [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
+
+## 2026-10-17
+
+- [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)

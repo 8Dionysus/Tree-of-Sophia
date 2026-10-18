@@ -118,7 +118,7 @@ impl NativeOrdinarySnapshotStartup {
             working_ram_bytes,
             process,
         )?;
-        let stage_ticket_fd = std::env::var("ABYSS_STAGE_TICKET_FD")
+        let stage_ticket_fd = std::env::var("TOS_STAGE_TICKET_FD")
             .map_err(|_| "Core ordinary snapshot actual stage ticket absent")?
             .parse::<i32>()
             .map_err(|_| "Core ordinary snapshot stage ticket descriptor")?;
@@ -404,7 +404,7 @@ impl Startup {
         {
             return Err("Core session original startup association");
         }
-        let actual_stage_fd = std::env::var("ABYSS_STAGE_TICKET_FD")
+        let actual_stage_fd = std::env::var("TOS_STAGE_TICKET_FD")
             .map_err(|_| "Core session actual issuer stage ticket absent")?
             .parse::<i32>()
             .map_err(|_| "Core session issuer stage descriptor")?;

@@ -2,6 +2,15 @@
 
 Status: research scaffold with bounded executed laboratory evidence, not source witness, doctrine, canon, or graph truth
 
+Current execution follows
+[TOS-D-0072](../../../docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md).
+Host-specific commands and admission thresholds in these retained packets
+describe their original research environment. Current ToS operations use the
+[native source route](../../source-witnesses/README.md),
+[standalone access](../../../access/README.md) and
+[release procedure](../../../docs/RELEASING.md). ToS execution and export require
+neither that host installation nor a consumer checkout.
+
 Research snapshot: 2026-07-23; local software/LLM admission refreshed
 2026-07-26; semantic-annotation assurance and historical-German
 morphology/lemmatization admission refreshed 2026-07-29; eKGWB rights and

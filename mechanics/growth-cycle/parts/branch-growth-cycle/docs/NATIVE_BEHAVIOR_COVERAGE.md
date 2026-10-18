@@ -31,10 +31,10 @@ does not claim that every negative control or lifecycle is covered. Reuse these
 owners and existing cases before proposing a new engine or broad test cohort.
 
 The Python owner-OCR callers and v6 assessment journal entry are retired. Owner
-signed recording and comparison remain on the native Rust route; the external
-abyss-stack verifier retains cryptographic authority. The eight
-`owner_page_ocr_preflight_tests` and four `source_text_owner_ocr::tests` are
-synthetic Rust unit checks. They make no claim about a live owner process or
+signed recording and comparison remain on the native Rust route. ToS authenticates
+the independently pinned receipt and signer with its native P-256 verifier. The eight
+`owner_page_ocr_preflight_tests` and five `source_text_owner_ocr::tests` are
+synthetic Rust checks, including genuine signature verification and forged-signature refusal. They make no claim about a live owner process or
 source-visible assessment. The two signed `command_owner_text_cases.rs`
 comparisons remain ignored until their retained producer inputs and admitted
 native products are selected.
@@ -63,7 +63,7 @@ acceptance of the currently ignored tests or this patch.
 | `test_metadata_version_reader.py` | `source_read_owner.rs` | `command_record_cases.rs` | every current/historical semantic family and complete-chain negative controls |
 | `test_native_layer_quality_journal.py` | `source_private_assessment_layers.rs` | `command_owner_text_cases.rs` | quality closure, own dependencies, renewed basis, deferred form refs and reviewer revocation |
 | retired `test_native_page_ocr_assessment.py` | `source_private_assessment_layers.rs::owner_page_ocr_preflight_tests` | `command_owner_text_cases.rs::native_private_assessment_v6_retained_signed_ocr_comparison_preserves_source` and `native_retained_page_ocr_assessment_comparison_preserves_original_and_signed_capture` | eight active pure Rust cases cover exact image/disclosure grants, metadata-only refusal, image fixity drift, and the v5 boundary; signed end-to-end comparison remains ignored without retained producer inputs and admitted native products |
-| retired owner-OCR bridge cases from `test_source_text_layer_commands.py` | `source_text_owner_ocr.rs::tests` | the same two signed owner-OCR comparisons above | four active pure Rust cases cover exact UTF-8 result and source/receipt binding, metadata-only replay without content disclosure, and retained-page capture posture; external abyss-stack code remains the signature authority |
+| retired owner-OCR bridge cases from `test_source_text_layer_commands.py` | `source_text_owner_ocr.rs::tests` | the same two signed owner-OCR comparisons above | five active Rust cases cover genuine pinned P-256 signatures, forged-signature and ambiguous-JSON refusal, UTF-8/source/receipt binding, metadata-only replay and retained-page capture posture; no external verifier or producer checkout is used |
 | `test_native_text_assessment.py` | `source_private_assessment_layers.rs` | `command_owner_text_cases.rs` | initial extraction comparison, source-language scope and retained text mismatch |
 | `test_native_text_layer_assessment.py` | `source_private_assessment_layers.rs` | `command_owner_text_cases.rs` | derived lineage comparison and exact current quality withdrawal |
 | `test_occurrence_assessment_guard.py` | `source_private_assessment_sources.rs` | `command_private_claim_cases.rs` | native occurrence bound-source quality and late withdrawal |
@@ -91,7 +91,7 @@ acceptance of the currently ignored tests or this patch.
 | `test_source_responsibility_commands.py` | `source_expression_responsibility.rs` | `command_responsibility_cases.rs` | qualified responsibility endpoints, external rights and retained replay |
 | `test_source_revisions.py` | `source_revisions.rs` | `command_record_cases.rs` | flat/profile/native exact predecessor chain and independent current authority |
 | `test_source_selected_revisions.py` | `source_revisions.rs` | `command_metadata_publication_cases.rs` | selected-file history/current publication, retained receipt and reaper/recovery |
-| `test_source_text_layer_commands.py` | `source_text_owner.rs` | `command_text_cases.rs` | structural extraction, correction, normalization and supplied OCR/transcription grants; owner-signed recording has its native Rust and external-verifier route above |
+| `test_source_text_layer_commands.py` | `source_text_owner.rs` | `command_text_cases.rs` | structural extraction, correction, normalization and supplied OCR/transcription grants; owner-signed recording has its portable native signature route above |
 | `test_source_text_unit_commands.py` | `source_text_owner.rs` | `command_text_cases.rs` | private unit bootstrap, scopes, exact original retry and retention |
 
 ## Completion route

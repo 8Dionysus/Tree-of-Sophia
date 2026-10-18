@@ -116,24 +116,11 @@ fn actual_cli_preserves_probe_owner_currentness_and_public_safety_diagnostics() 
 
     write(".agents/AGENTS.md", b"# Local owner\n");
     write(".agents/README.md", b"# Public entry\n");
-    let mut source = manifest();
-    // Preserve the declared historical selected-family contract.
-    source["owner_ports"]["kag_provider"]["generated_family"]["scope"] =
-        json!("selected_local_family");
+    let source = manifest();
     for port in source["owner_ports"].as_object().unwrap().values() {
         for route in port["currentness_inputs"].as_array().unwrap() {
             write(route.as_str().unwrap(), b"bounded synthetic owned input\n");
         }
-    }
-    for key in ["segments", "receipt_root"] {
-        fs::create_dir_all(
-            root.join(
-                source["owner_ports"]["kag_provider"]["generated_family"][key]
-                    .as_str()
-                    .unwrap(),
-            ),
-        )
-        .unwrap();
     }
     let write_manifest = |m: &Value| {
         write(
@@ -175,7 +162,7 @@ fn actual_cli_preserves_probe_owner_currentness_and_public_safety_diagnostics() 
     write_manifest(&source);
     build();
     let findings = compare();
-    assert!(findings.contains("generated KAG family manifest is missing"));
+    assert!(!findings.contains("generated KAG family manifest is missing"));
     assert!(!findings.contains("generated currentness is stale"));
     let mut changed = source.clone();
     let probe = changed["task_probes"][0].clone();
@@ -217,82 +204,6 @@ fn actual_cli_preserves_probe_owner_currentness_and_public_safety_diagnostics() 
     assert!(compare().contains("stale repository-local projection remains"));
 }
 
-#[test]
-fn budget_scope_truth_table_retains_relation_base_and_requested_scope_as_independent_inputs() {
-    use std::sync::atomic::AtomicI32;
-    use tos_ops_mechanics_plan::agent_surface_budget::{
-        budget_exceedance_relation, budget_receipt_contract_issues, canonical_budget_scope,
-    };
-    use tos_ops_mechanics_plan::route_cards::RouteSources;
-    let root =
-        std::fs::canonicalize(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.."))
-            .unwrap();
-    let cases = [
-        (10, 10, 20, 20, None),
-        (11, 10, 20, 20, Some("generated_delta")),
-        (10, 10, 21, 20, Some("tracked_size")),
-        (11, 10, 21, 20, Some("generated_delta_and_tracked_size")),
-    ];
-    for (changed, limit, tracked, tracked_limit, relation) in cases {
-        assert_eq!(
-            budget_exceedance_relation(
-                &json!(changed),
-                &json!(limit),
-                &json!(tracked),
-                &json!(tracked_limit)
-            )
-            .unwrap(),
-            relation
-        );
-        for base_v3 in [false, true] {
-            for requested in [
-                "v2_to_v3_migration",
-                "generated_delta",
-                "tracked_size",
-                "generated_delta_and_tracked_size",
-            ] {
-                let digest = "a".repeat(64);
-                let m = json!({"schema_version":"aoa-repo-local-kag-family-manifest-v3","repo":{"name":"Tree-of-Sophia","git_ref":"git-index-source-tree"},"budgets":{"changed_generated_bytes_max":limit,"tracked_bytes_max":tracked_limit},"summary":{"tracked_bytes":tracked},"family_identity":{"content_digest":digest}});
-                let receipt = json!({"schema_version":"aoa-repo-local-kag-budget-receipt-v1","repo":"Tree-of-Sophia","scope":requested,"base_ref":"b".repeat(40),"head_family_digest":digest,"changed_generated_bytes":changed,"changed_generated_files":1,"default_limit_bytes":limit,"allowed_bytes":changed,"tracked_bytes":tracked,"tracked_bytes_max":tracked_limit,"allowed_tracked_bytes":tracked,"reason":"focused budget scope control","approved_by":"test-owner","decision_ref":"aoa-kag:docs/decisions/AOA-KAG-D-0017-portable-content-addressed-repository-family.md"});
-                let issues = budget_receipt_contract_issues(
-                    &root,
-                    &mut RouteSources::new(&root).unwrap(),
-                    &m,
-                    &receipt,
-                    &digest,
-                    "focused-budget-receipt.json",
-                    Some(base_v3),
-                    false,
-                    false,
-                    &AtomicI32::new(0),
-                    None,
-                )
-                .unwrap();
-                let accepted = relation.is_some()
-                    && Some(requested) == canonical_budget_scope(relation, base_v3);
-                assert_eq!(
-                    issues.is_empty(),
-                    accepted,
-                    "base_v3={base_v3} relation={relation:?} requested={requested} issues={issues:?}"
-                );
-            }
-        }
-    }
-    assert!(
-        budget_exceedance_relation(&json!(true), &json!(10), &json!(20), &json!(20))
-            .unwrap_err()
-            .to_string()
-            .contains("must be integers")
-    );
-    assert!(
-        budget_exceedance_relation(&json!(-1), &json!(10), &json!(20), &json!(20))
-            .unwrap_err()
-            .to_string()
-            .contains("must not be negative")
-    );
-}
-
-#[cfg(target_os = "linux")]
 #[test]
 fn actual_builder_preserves_nonempty_package_fixity_and_git_selection() {
     use std::fs;
@@ -440,17 +351,16 @@ fn actual_builder_preserves_nonempty_package_fixity_and_git_selection() {
 }
 
 #[test]
-fn external_kag_scope_requires_authored_routes_without_claiming_unselected_artifacts() {
+fn source_export_port_checks_only_its_tos_routes() {
     use std::{
         fs,
-        sync::atomic::AtomicI32,
         time::{SystemTime, UNIX_EPOCH},
     };
     use tos_ops_mechanics_plan::{
-        agent_surface_budget::generated_family_issues, route_cards::RouteSources,
+        agent_surface_exports::source_export_issues, route_cards::RouteSources,
     };
     let root = std::env::temp_dir().join(format!(
-        "tos-agent-external-{}-{}",
+        "tos-agent-export-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -466,87 +376,31 @@ fn external_kag_scope_requires_authored_routes_without_claiming_unselected_artif
     }
     let _cleanup = Cleanup(root.clone());
     let mut port = manifest()["owner_ports"]["kag_provider"].clone();
-    let source_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     for field in [
-        "provider_template",
+        "source_contract",
         "owner_route",
-        "publication_route",
+        "builder",
         "validation_route",
     ] {
         let path = port["generated_family"][field].as_str().unwrap();
-        let destination = root.join(path);
-        fs::create_dir_all(destination.parent().unwrap()).unwrap();
-        fs::write(destination, fs::read(source_root.join(path)).unwrap()).unwrap();
+        let dest = root.join(path);
+        fs::create_dir_all(dest.parent().unwrap()).unwrap();
+        fs::write(dest, b"owned route\n").unwrap();
     }
-    let cancel = AtomicI32::new(0);
-    let check = |port: &Value| {
-        generated_family_issues(
-            &root,
-            &mut RouteSources::new(&root).unwrap(),
-            port,
-            false,
-            None,
-            &cancel,
-        )
-        .unwrap()
-    };
-    assert!(
-        !root
-            .join(port["generated_family"]["manifest"].as_str().unwrap())
-            .exists()
-    );
+    let check =
+        |port: &Value| source_export_issues(&mut RouteSources::new(&root).unwrap(), port).unwrap();
     assert_eq!(check(&port), vec![]);
-    let template = port["generated_family"]["provider_template"]
+    let path = port["generated_family"]["builder"]
         .as_str()
         .unwrap()
         .to_owned();
-    let original = fs::read(root.join(&template)).unwrap();
-    fs::write(root.join(&template), b"{").unwrap();
-    assert_eq!(check(&port), vec![(template.clone(), "external KAG provider template does not bind its schema, owner, record classes and publication route".into())]);
-    fs::write(root.join(&template), original).unwrap();
-    let owner = port["generated_family"]["owner_route"]
-        .as_str()
-        .unwrap()
-        .to_owned();
-    fs::remove_file(root.join(&owner)).unwrap();
+    fs::remove_file(root.join(&path)).unwrap();
     assert_eq!(
         check(&port),
-        vec![(
-            owner.clone(),
-            "external KAG owner_route route is missing".into()
-        )]
+        vec![(path, "source export builder route is missing".into())]
     );
-    fs::write(root.join(&owner), b"# Owner\n").unwrap();
-    fs::remove_file(root.join(&template)).unwrap();
-    assert_eq!(
-        check(&port),
-        vec![(
-            template,
-            "external KAG provider_template route is missing".into()
-        )]
-    );
-    port["generated_family"]["scope"] = json!("selected_local_family");
-    let family = &port["generated_family"];
-    let local = root.join(family["manifest"].as_str().unwrap());
-    fs::create_dir_all(local.parent().unwrap()).unwrap();
-    fs::write(
-        local,
-        br#"{"family_identity":{"content_digest":"corrupt"}}"#,
-    )
-    .unwrap();
-    for field in ["segments", "receipt_root"] {
-        fs::create_dir_all(root.join(family[field].as_str().unwrap())).unwrap();
-    }
-    let expected = vec![(
-        family["manifest"].as_str().unwrap().into(),
-        "generated KAG family digest must be 64 lowercase hex characters".into(),
-    )];
-    assert_eq!(check(&port), expected);
-    port["generated_family"]
-        .as_object_mut()
-        .unwrap()
-        .remove("scope");
-    assert_eq!(check(&port), expected);
+    port["generated_family"]["scope"] = json!("external_integration_release");
+    assert!(!check(&port).is_empty());
 }
 
 #[test]

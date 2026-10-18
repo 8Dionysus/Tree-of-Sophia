@@ -1,6 +1,6 @@
 //! Agent surface authored contracts and bounded generated currentness checks.
 use crate::agent_surface::{self, CURRENTNESS_PATH, MANIFEST_PATH, SKILLS_ROOT};
-use crate::agent_surface_budget;
+use crate::agent_surface_exports;
 use crate::route_cards::{self, RouteSources};
 use num_bigint::BigInt;
 use regex::Regex;
@@ -518,26 +518,13 @@ fn local_reference_issues(sources: &mut RouteSources, package: &str) -> io::Resu
     }
     Ok(issues)
 }
-pub fn validate_manifest(
-    root: &Path,
-    fetch_missing_budget_base: bool,
-    interpreter: Option<&Path>,
-    cancel: &AtomicI32,
-) -> io::Result<Vec<Issue>> {
+pub fn validate_manifest(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>> {
     let mut sources = RouteSources::new(root)?;
-    validate_manifest_with_sources(
-        root,
-        &mut sources,
-        fetch_missing_budget_base,
-        interpreter,
-        cancel,
-    )
+    validate_manifest_with_sources(root, &mut sources, cancel)
 }
 pub fn validate_manifest_with_sources(
     root: &Path,
     sources: &mut RouteSources,
-    fetch_missing_budget_base: bool,
-    interpreter: Option<&Path>,
     cancel: &AtomicI32,
 ) -> io::Result<Vec<Issue>> {
     let mut issues = Vec::new();
@@ -937,14 +924,7 @@ pub fn validate_manifest_with_sources(
                 }
             }
             if port_id == "kag_provider" {
-                issues.extend(agent_surface_budget::generated_family_issues(
-                    root,
-                    sources,
-                    port,
-                    fetch_missing_budget_base,
-                    interpreter,
-                    cancel,
-                )?);
+                issues.extend(agent_surface_exports::source_export_issues(sources, port)?);
             }
         }
     }

@@ -151,60 +151,6 @@ pub(crate) fn capture_ci_git(
     }
 }
 
-/// The selected KAG owner's Python producer/probe are host adapters. Reuse the
-/// existing bounded subreaper custody; the publisher owns result validation.
-#[cfg(feature = "mechanics")]
-pub(crate) fn capture_kag_owner(
-    root: &Path,
-    argv: Vec<String>,
-    limits: Limits,
-    cancel: &AtomicI32,
-) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
-    capture_ci_git(root, argv, limits, cancel)
-}
-
-/// The external artifact owner's declared CLI, with one explicit store scope.
-/// The environment belongs only to the child; nested rehearsals cannot alter
-/// this process or acquire ambient host stores.
-#[cfg(feature = "compiler-backed-validators")]
-pub(crate) fn capture_artifact_owner(
-    root: &Path,
-    argv: Vec<String>,
-    store: &Path,
-    limits: Limits,
-    cancel: &AtomicI32,
-) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
-    #[cfg(target_os = "linux")]
-    {
-        let store = store
-            .to_str()
-            .filter(|s| !s.is_empty())
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "artifact store path"))?;
-        let plan = selected_plan(
-            &[(String::new(), argv)],
-            "tos_artifact_owner_capture_v1",
-            "artifact_owner",
-        );
-        let mut streams = [Vec::new(), Vec::new()];
-        let overrides = [(
-            "ABYSS_MACHINE_ARTIFACT_SUBJECT_STORE_ISOLATED_ROOT".into(),
-            store.into(),
-        )];
-        let code =
-            native::run_captured_with_env(root, &plan, limits, cancel, &mut streams, &overrides)?;
-        let [stdout, stderr] = streams;
-        Ok((code, stdout, stderr))
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = (root, argv, store, limits, cancel);
-        Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "artifact owner requires Linux process custody",
-        ))
-    }
-}
-
 /// The philosophy CLI's existing Linux custody, with its original deadline
 /// captured before option/worker setup. Other executor clients keep their law.
 #[cfg(any(feature = "philosophy-library", test))]
@@ -229,87 +175,6 @@ pub(crate) fn run_philosophy_product(
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "philosophy CLI requires Linux subreaper/pidfd custody",
-        ))
-    }
-}
-
-/// Exact interpreter facts observation for the KAG receipt admission check.
-/// Isolated standard-library metadata only; no repository imports or fallback.
-#[cfg(feature = "mechanics")]
-pub(crate) fn capture_agent_surface_runtime(
-    root: &Path,
-    interpreter: &Path,
-    distributions: &[String],
-    remaining: Duration,
-    cancel: &AtomicI32,
-) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
-    const PROBE: &str = r#"import sys,json,importlib.metadata
-versions={}
-for name in json.loads(sys.argv[1]):
- try: versions[name]={'state':'installed','version':importlib.metadata.version(name)}
- except importlib.metadata.PackageNotFoundError: versions[name]={'state':'missing'}
- except (TypeError,ValueError) as exc: versions[name]={'state':'error','error':str(exc)[:1024]}
-print(json.dumps({'implementation':sys.implementation.name,'version':list(sys.version_info[:3]),'dependencies':versions},separators=(',',':')))
-"#;
-    if !interpreter.is_absolute() || !interpreter.is_file() || interpreter.as_os_str().len() > 4096
-    {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "explicit Python interpreter must be an absolute executable file",
-        ));
-    }
-    if distributions.len() > 64
-        || distributions
-            .iter()
-            .any(|n| n.is_empty() || n.len() > 256 || n.chars().any(|c| c < ' ' || c == '\u{7f}'))
-        || remaining.is_zero()
-    {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "invalid bounded runtime facts request",
-        ));
-    }
-    let argv = vec![
-        interpreter
-            .to_str()
-            .ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidInput, "non-UTF-8 Python interpreter")
-            })?
-            .to_owned(),
-        "-I".into(),
-        "-c".into(),
-        PROBE.into(),
-        serde_json::to_string(distributions).map_err(io::Error::other)?,
-    ];
-    #[cfg(target_os = "linux")]
-    {
-        let plan = selected_plan(
-            &[(String::new(), argv)],
-            "tos_agent_surface_runtime_facts_v1",
-            "agent_surface_runtime",
-        );
-        let mut streams = [Vec::new(), Vec::new()];
-        let code = native::run_captured(
-            root,
-            &plan,
-            Limits {
-                command_wall: remaining.min(Duration::from_secs(10)),
-                lane_wall: remaining.min(Duration::from_secs(10)),
-                cleanup_grace: Duration::from_secs(1),
-                output_bytes: 16384,
-            },
-            cancel,
-            &mut streams,
-        )?;
-        let [stdout, stderr] = streams;
-        Ok((code, stdout, stderr))
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = (root, argv, cancel);
-        Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "runtime facts require Linux execution custody",
         ))
     }
 }
@@ -763,15 +628,15 @@ mod native {
         if !is_native_foundation_command(argv) {
             return Ok(None);
         }
-        let raw = std::env::var("ABYSS_STAGE_TICKET_FD")
-            .map_err(|_| error("native foundation lane requires issuer ABYSS_STAGE_TICKET_FD"))?;
+        let raw = std::env::var("TOS_STAGE_TICKET_FD")
+            .map_err(|_| error("native foundation lane requires issuer TOS_STAGE_TICKET_FD"))?;
         let fd = raw
             .parse::<i32>()
             .ok()
             .filter(|fd| *fd > 2)
-            .ok_or_else(|| error("invalid issuer ABYSS_STAGE_TICKET_FD"))?;
+            .ok_or_else(|| error("invalid issuer TOS_STAGE_TICKET_FD"))?;
         if unsafe { libc::fcntl(fd, libc::F_GETFD) } < 0 {
-            return Err(error("issuer ABYSS_STAGE_TICKET_FD is not open"));
+            return Err(error("issuer TOS_STAGE_TICKET_FD is not open"));
         }
         Ok(Some(fd))
     }
@@ -839,27 +704,6 @@ mod native {
             Some(streams),
             None,
             &[],
-        )
-    }
-    #[cfg(feature = "compiler-backed-validators")]
-
-    pub(super) fn run_captured_with_env(
-        root: &Path,
-        plan: &Plan,
-        limits: Limits,
-        cancel: &AtomicI32,
-        streams: &mut [Vec<u8>; 2],
-        overrides: &[(String, String)],
-    ) -> io::Result<i32> {
-        run_inner(
-            root,
-            plan,
-            limits,
-            cancel,
-            Style::Capture,
-            Some(streams),
-            None,
-            overrides,
         )
     }
     #[cfg(any(feature = "philosophy-library", test))]

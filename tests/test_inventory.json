@@ -309,12 +309,12 @@
       "family": "native_source_contract",
       "validation_lane": "source_witness_foundation",
       "owner_surface": "mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md",
-      "protects": "exact owner OCR receipt and source binding, UTF-8 output closure, metadata-only replay without content disclosure, and retained-page capture posture; external abyss-stack verifier retains signature authority",
+      "protects": "genuine pinned P-256 signature and forged-signature refusal, exact OCR receipt/source/UTF-8 closure, metadata-only replay and retained-page capture posture; no producer checkout or external verifier",
       "coverage_authority": "Cargo test discovery and native behavior coverage matrix",
       "mode": "blocking",
       "runtime_cost": "fast",
       "focused_target": "source_text_owner_ocr::tests",
-      "failure_route": "Fix native receipt/source closure without replacing the external signature verifier or claiming ToS executed OCR.",
+      "failure_route": "Fix native signature and receipt/source closure without claiming ToS executed OCR or assessed source fidelity.",
       "disposition": "keep"
     },
     {
@@ -330,21 +330,6 @@
       "runtime_cost": "fast",
       "focused_target": "rust/crates/tos-ops-mechanics-plan/tests/executor_native.rs",
       "failure_route": "Fix validation lane authority or release_check delegation before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
-      "path": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
-      "home": "rust/crates/tos-ops-mechanics-plan",
-      "home_scope": "product-local",
-      "family": "validator_behavior",
-      "validation_lane": "artifact_bundles",
-      "owner_surface": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
-      "protects": "Exact partition closure, safe output paths, runtime integration pause, public markers and per-child isolated artifact owner scope",
-      "coverage_authority": "Cargo test discovery",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "artifact_bundle::tests",
-      "failure_route": "Fix the Tree artifact-bundle validator isolation boundary before changing test expectations.",
       "disposition": "keep"
     },
     {

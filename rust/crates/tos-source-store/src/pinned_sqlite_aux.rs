@@ -1396,9 +1396,67 @@ impl AuxContext {
 
 // Reuse the auxiliary ledger policy for a strict MAIN-only VFS. This holds a
 // descriptor until before its reservation drops; it does not grant aux opens.
-struct MainOnlyPolicy {
+pub(super) struct MainOnlyPolicy {
     _file: File,
     inner: AuxPolicy,
+}
+impl MainOnlyPolicy {
+    pub(super) fn reserve_file_capacity(&self) -> Result<()> {
+        self.adjust_capacity(false)
+    }
+
+    pub(super) fn release_unused_capacity(&self) -> Result<()> {
+        self.adjust_capacity(true)
+    }
+
+    fn adjust_capacity(&self, release_unused: bool) -> Result<()> {
+        use crate::pinned_sqlite::FdIoPolicy;
+        use rustix::fs::{FallocateFlags, fallocate};
+        if !self.check_operation() {
+            return Err(budget_error("private SQLite capacity operation is stopped"));
+        }
+        let metadata = self
+            ._file
+            .metadata()
+            .map_err(|error| StoreError::io("private SQLite capacity metadata", error))?;
+        let cap = self.inner.state.logical_cap;
+        if !metadata.is_file()
+            || metadata.nlink() != 0
+            || metadata.mode() & 0o7777 != 0o600
+            || metadata.uid() != crate::pinned_sqlite::current_fs_uid()?
+            || metadata.len() > cap
+            || (!release_unused && metadata.len() != 0)
+        {
+            return Err(invalid(
+                "private SQLite capacity requires its unnamed inode",
+            ));
+        }
+        if cap > self.inner.state.allocated_cap {
+            return Err(budget_error(
+                "private SQLite allocation cannot cover its logical ceiling",
+            ));
+        }
+        let result = if release_unused {
+            // Keep the exact logical EOF while dropping allocations past it.
+            // Punching a hole starting at EOF can leave that tail allocated.
+            self._file.set_len(metadata.len())
+        } else {
+            fallocate(&self._file, FallocateFlags::KEEP_SIZE, 0, cap).map_err(std::io::Error::from)
+        };
+        // Allocation can change even on an interrupted syscall. Keep the
+        // original physical ledger current before propagating any failure.
+        let observed = self.after_mutation(&self._file);
+        if let Err(error) = result {
+            self.failed_io();
+            return Err(StoreError::io("private SQLite file capacity failed", error));
+        }
+        if !observed {
+            return Err(budget_error(
+                "private SQLite capacity exceeds its original envelope",
+            ));
+        }
+        Ok(())
+    }
 }
 impl crate::pinned_sqlite::FdIoPolicy for MainOnlyPolicy {
     fn begin_read(&self, bytes: u64) -> bool {
@@ -1435,7 +1493,7 @@ pub(super) fn strict_main_policy(
     allocated_cap: u64,
     deadline: Instant,
     cancelled: Arc<AtomicBool>,
-) -> Result<Arc<dyn crate::pinned_sqlite::FdIoPolicy>> {
+) -> Result<Arc<MainOnlyPolicy>> {
     if logical_cap == 0
         || logical_cap == u64::MAX
         || allocated_cap == 0
@@ -2487,6 +2545,101 @@ fn invalid(detail: &'static str) -> StoreError {
 #[cfg(test)]
 mod io_restriction_tests {
     use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn private_cache_capacity_is_kernel_allocated_and_trimmed_without_payload_change() {
+        use crate::PinnedSqliteConnection;
+        let root = tempfile::tempdir().unwrap();
+        std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+        let directory = File::open(root.path()).unwrap();
+        let first = create_unnamed(&directory).unwrap();
+        let second = create_unnamed(&directory).unwrap();
+        let io = PinnedSqliteIoBudget::new(4 * 1024 * 1024, 4 * 1024 * 1024).unwrap();
+        let space = PinnedSqliteSpaceBudget::new(256 * 1024).unwrap();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let deadline = Instant::now() + std::time::Duration::from_secs(10);
+        let open = |file: &File| {
+            PinnedSqliteConnection::open_private_derived_budgeted_unconfigured(
+                file,
+                io.clone(),
+                space.clone(),
+                64 * 1024,
+                128 * 1024,
+                deadline,
+                cancelled.clone(),
+            )
+            .unwrap()
+        };
+        let (db, guard) = open(&first);
+        let (peer_db, peer_guard) = open(&second);
+        guard.reserve_file_capacity().unwrap();
+        peer_guard.reserve_file_capacity().unwrap();
+        assert_eq!(first.metadata().unwrap().len(), 0);
+        assert_eq!(second.metadata().unwrap().len(), 0);
+        let peer_blocks = second.metadata().unwrap().blocks() * 512;
+        assert!(first.metadata().unwrap().blocks() * 512 >= 64 * 1024);
+        assert!(peer_blocks >= 64 * 1024);
+        assert_eq!(io.snapshot().write_returned_bytes, 0);
+        assert_eq!(
+            space.snapshot().actual_observed_current_bytes,
+            first.metadata().unwrap().blocks() * 512 + peer_blocks
+        );
+        db.execute_batch("PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA temp_store=MEMORY; CREATE TABLE sample(value TEXT); INSERT INTO sample VALUES('retained payload');").unwrap();
+        assert!(first.metadata().unwrap().blocks() * 512 >= 64 * 1024);
+        db.close().unwrap();
+        peer_db.close().unwrap();
+        first.sync_all().unwrap();
+        let metadata = first.metadata().unwrap();
+        let mut payload = vec![0u8; metadata.len() as usize];
+        first.read_exact_at(&mut payload, 0).unwrap();
+        guard.release_unused_capacity().unwrap();
+        let trimmed = first.metadata().unwrap();
+        assert_eq!(trimmed.len(), metadata.len());
+        assert!(trimmed.blocks() < metadata.blocks());
+        let mut after = vec![0u8; payload.len()];
+        first.read_exact_at(&mut after, 0).unwrap();
+        assert_eq!(after, payload);
+        assert_eq!(second.metadata().unwrap().blocks() * 512, peer_blocks);
+        assert_eq!(
+            space.snapshot().actual_observed_current_bytes,
+            trimmed.blocks() * 512 + peer_blocks
+        );
+        drop(first);
+        drop(guard);
+        assert_eq!(space.snapshot().actual_observed_current_bytes, peer_blocks);
+        drop(second);
+        drop(peer_guard);
+        assert_eq!(space.snapshot().actual_observed_current_bytes, 0);
+        assert_eq!(space.snapshot().reserved_current_bytes, 0);
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn stopped_private_cache_does_not_allocate_blocks() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+        let directory = File::open(root.path()).unwrap();
+        let file = create_unnamed(&directory).unwrap();
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let io = PinnedSqliteIoBudget::new(1024 * 1024, 1024 * 1024).unwrap();
+        let space = PinnedSqliteSpaceBudget::new(128 * 1024).unwrap();
+        let (db, guard) =
+            crate::PinnedSqliteConnection::open_private_derived_budgeted_unconfigured(
+                &file,
+                io,
+                space,
+                64 * 1024,
+                128 * 1024,
+                Instant::now() + std::time::Duration::from_secs(10),
+                cancelled.clone(),
+            )
+            .unwrap();
+        cancelled.store(true, Ordering::Release);
+        assert!(guard.reserve_file_capacity().is_err());
+        assert_eq!(file.metadata().unwrap().blocks(), 0);
+        db.close().unwrap();
+    }
 
     #[test]
     fn shared_write_pool_precharges_two_local_producers_and_preserves_actual_returns() {

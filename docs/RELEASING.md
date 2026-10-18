@@ -141,9 +141,9 @@ owner surfaces.
    JSON and web closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.
-   CI uses this native route with the nineteen native command roles for its software
+   CI uses this native route with the eighteen native command roles for its software
    candidate. It builds receipts for the exact feature sets in the shared native command
-   descriptor, and derives package byte limits from the actual twenty
+   descriptor, and derives package byte limits from the actual nineteen
    executables, web assets and bounded software inputs; it does not reuse an
    access-only byte cap. The job builds the same native archive and sidecar
    twice and compares their bytes before verify/install, retaining the legacy
@@ -360,11 +360,11 @@ or deletion of unique corpus evidence is part of release.
 
 ## Integration and historical audits
 
-A KAG or stats artifact names its exact ToS source/data revision and external
-owner revision, validates its own integrity and compatibility, and blocks its
-own publication on failure. It does not block unrelated source/software merge.
-Consumers must expose revision and staleness rather than claim that an older
-integration follows the latest source. See `kag/VALIDATION.md` for KAG checks.
+ToS builds and verifies source-return and stats exports from its own selected
+source/data revision, without consumer source code, Python environments or
+services. See `kag/VALIDATION.md` and `stats/VALIDATION.md`. Consumers import those
+artifacts and own indexing, composition, trust and admission on their side.
+Consumer release identities and currentness do not gate a ToS software release.
 
 The former full repository aggregate is retired. Select the affected source,
 data or external integration operation directly; individual owner procedures

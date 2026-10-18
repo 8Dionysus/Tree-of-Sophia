@@ -347,7 +347,6 @@ fn load(path: &Path) -> Result<Value> {
         "runtime",
         "launcher",
         "server",
-        "resource",
         "service_unit",
         "worker_unit",
     ];
@@ -360,7 +359,7 @@ fn load(path: &Path) -> Result<Value> {
         ));
     }
     for k in [
-        "release", "browser", "profile", "cache", "runtime", "launcher", "server", "resource",
+        "release", "browser", "profile", "cache", "runtime", "launcher", "server",
     ] {
         if !absolute(text(&v, k)?) {
             return Err(bad(format!("{k} must be absolute")));
@@ -537,44 +536,28 @@ fn ensure(v: &Value) -> Result<Value> {
         "no verified desktop response within45seconds; no process was killed",
     ))
 }
-fn resource(v: &Value, command: Vec<String>, browser: bool) -> Result<Vec<String>> {
+// Transient user units provide the desktop process limits directly. No
+// ecosystem resource broker participates in standalone desktop installation.
+fn resource(command: Vec<String>, browser: bool) -> Result<Vec<String>> {
     let unit = if browser {
         format!("{APP}-window-{}", std::process::id())
     } else {
         format!("{APP}-http")
     };
     let mut out = vec![
-        text(v, "resource")?.into(),
-        "resource".into(),
-        "launch".into(),
-        "--class".into(),
-        if browser { "medium" } else { "light" }.into(),
-        "--kind".into(),
-        "generic".into(),
-        "--activity".into(),
-        "foreground".into(),
-        "--latency".into(),
-        "interactive".into(),
-        "--unit".into(),
-        unit,
-        "--timeout".into(),
-        "0".into(),
-        "--memory-demand-mib".into(),
-        if browser { "768" } else { "64" }.into(),
-        "--demand-owner".into(),
-        "tree-of-sophia".into(),
-        "--demand-key".into(),
-        if browser {
-            "desktop-browser"
-        } else {
-            "desktop-http"
-        }
-        .into(),
-        "--estimate-source".into(),
-        "owner-declared-desktop-startup".into(),
-        "--estimate-confidence".into(),
-        "conservative".into(),
-        "--no-same-dir".into(),
+        "systemd-run".into(),
+        "--user".into(),
+        "--quiet".into(),
+        "--wait".into(),
+        "--collect".into(),
+        "--pipe".into(),
+        format!("--unit={unit}"),
+        format!(
+            "--property=MemoryMax={}",
+            if browser { "768M" } else { "64M" }
+        ),
+        "--property=MemorySwapMax=0".into(),
+        "--property=KillMode=control-group".into(),
         "--".into(),
     ];
     out.extend(command);
@@ -597,7 +580,7 @@ fn launch(path: &Path, mode: &str) -> Result<i32> {
         "--dry-run" => {
             println!(
                 "{}",
-                json!({"url":"http://127.0.0.1:44339/constructor.html","release":v["release"],"service":v["service_unit"],"resource_server_argv":resource(&v,worker(&v)?,false)?,"browser_argv":browser(&v)?,"installs":false,"starts":false})
+                json!({"url":"http://127.0.0.1:44339/constructor.html","release":v["release"],"service":v["service_unit"],"resource_server_argv":resource(worker(&v)?,false)?,"browser_argv":browser(&v)?,"installs":false,"starts":false})
             );
         }
         "--status" => {
@@ -633,7 +616,7 @@ fn launch(path: &Path, mode: &str) -> Result<i32> {
             let runtime = Path::new(text(&v, "runtime")?);
             private_dir(runtime)?;
             redirect(&runtime.join("server.log"))?;
-            let args = resource(&v, worker(&v)?, false)?;
+            let args = resource(worker(&v)?, false)?;
             return Ok(Command::new(&args[0])
                 .args(&args[1..])
                 .stdin(Stdio::null())
@@ -655,7 +638,6 @@ fn launch(path: &Path, mode: &str) -> Result<i32> {
         "" => {
             ensure(&v)?;
             let args = resource(
-                &v,
                 vec![
                     text(&v, "launcher")?.into(),
                     "launch".into(),
@@ -737,7 +719,7 @@ fn install(args: &BTreeMap<String, String>, commit: bool, replace: bool) -> Resu
     let desktop = applications.join(format!("{APP}.desktop"));
     let service = units.join(format!("{APP}.service"));
     let digest = release_digest(&release)?;
-    let cfg = json!({"schema":"tos_sophia_demo_desktop_native_v1","release":release,"release_digest":digest,"port":44339,"browser":browser,"profile":runtime.join("profile"),"cache":cache,"runtime":runtime,"launcher":binary,"server":binary,"resource":program("abyss-machine")?,"service_unit":format!("{APP}.service"),"worker_unit":format!("{APP}-http.service")});
+    let cfg = json!({"schema":"tos_sophia_demo_desktop_native_v1","release":release,"release_digest":digest,"port":44339,"browser":browser,"profile":runtime.join("profile"),"cache":cache,"runtime":runtime,"launcher":binary,"server":binary,"service_unit":format!("{APP}.service"),"worker_unit":format!("{APP}-http.service")});
     let invoke = vec![
         binary.to_string_lossy().into_owned(),
         "launch".into(),
@@ -1035,7 +1017,7 @@ mod tests {
         let runtime = f.0.join("runtime");
         let config = f.0.join("config.json");
         let exe = std::env::current_exe().unwrap();
-        let value = json!({"schema":"tos_sophia_demo_desktop_native_v1","release":f.0,"release_digest":release_digest(&f.0).unwrap(),"port":44339,"browser":"/usr/bin/true","profile":runtime.join("profile"),"cache":f.0.join("cache"),"runtime":runtime,"launcher":exe,"server":exe,"resource":"/usr/bin/true","service_unit":"tos-sophia-demo.service","worker_unit":"tos-sophia-demo-http.service"});
+        let value = json!({"schema":"tos_sophia_demo_desktop_native_v1","release":f.0,"release_digest":release_digest(&f.0).unwrap(),"port":44339,"browser":"/usr/bin/true","profile":runtime.join("profile"),"cache":f.0.join("cache"),"runtime":runtime,"launcher":exe,"server":exe,"service_unit":"tos-sophia-demo.service","worker_unit":"tos-sophia-demo-http.service"});
         fs::write(&config, serde_json::to_vec(&value).unwrap()).unwrap();
         assert_eq!(launch(&config, "--dry-run").unwrap(), 0);
         assert!(!runtime.exists());

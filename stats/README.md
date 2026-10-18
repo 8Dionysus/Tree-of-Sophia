@@ -25,10 +25,10 @@ The packet is a public reference snapshot of the owner-controlled atlas and
 route map at a named source revision. Its observation time and source revision fix the snapshot; terminal progress
 records completion of that declared census.
 
-Port publication has its own immutable integration identity and status, separate
+Port publication has its own immutable export identity and status, separate
 from software and corpus releases. The publication command preserves the
 observation's original source revision and time. See [VALIDATION.md](VALIDATION.md)
-for explicit export, consumer and status selection. The original observation
+for explicit export and status selection. The original observation
 identity persists across publications.
 
 ## Authority
@@ -45,4 +45,15 @@ tree should grow next.
   evidence-linked reference observation.
 - the Table I rows and prepared-dossier route map own the counted identities;
 - branch homes own their philosophical content and source posture;
-- `aoa-stats` owns shared validation and cross-owner composition.
+- ToS owns local port validation and export; `aoa-stats` owns the shared format
+  and cross-owner composition.
+
+## Standalone export boundary
+
+`tos-stats-release validate --port /absolute/selected-source/stats/port.manifest.json`
+performs the ToS-owned export checks. `build --source-root PATH --release-root PATH`
+publishes the port metadata and every declared packet with an immutable `export.json`; `verify` and
+`status` check that artifact. No external checkout, Python interpreter or
+consumer validator participates. The consumer owns additional compatibility
+and composition checks after importing the ToS export. Native verification does
+not turn the retained reference observation into a live measurement.

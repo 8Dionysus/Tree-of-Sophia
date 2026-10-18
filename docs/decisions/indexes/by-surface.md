@@ -41,6 +41,7 @@
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 - [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
+- [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
 
 ## agent route
 
@@ -193,6 +194,7 @@
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 - [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 - [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
+- [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
 
 ## docs/testing
 
@@ -273,6 +275,7 @@
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
 - [TOS-D-0065 - TOS-D-0065 Bounded Segmented KAG Provider Pin](../TOS-D-0065-bounded-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0065-bounded-segmented-kag-provider-pin.md`)
 - [TOS-D-0066 - TOS-D-0066 Landed Segmented KAG Provider Pin](../TOS-D-0066-landed-segmented-kag-provider-pin.md) (`docs/decisions/TOS-D-0066-landed-segmented-kag-provider-pin.md`)
+- [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
 
 ## legacy/provenance
 
@@ -421,6 +424,7 @@
 - [TOS-D-0068 - Subject-first foundation wording with exact historical continuity](../TOS-D-0068-subject-first-foundation-wording-and-retained-history.md) (`docs/decisions/TOS-D-0068-subject-first-foundation-wording-and-retained-history.md`)
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 - [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
+- [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
 
 ## source-home
 

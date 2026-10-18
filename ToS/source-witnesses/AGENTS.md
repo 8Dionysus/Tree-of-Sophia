@@ -114,8 +114,10 @@ membership Claims.
   remains intact; rights decisions remain bound to the actual source and permitted use.
 - Route commentary to doctrine, review, candidate intake, philosophy, or canon
   according to owner.
-- Route extraction runtimes, model caches, benchmarks, and large working
-  derivatives to the `abyss-stack` laboratory and host storage owners.
+- Keep extraction runtimes, model caches, benchmarks, and large working
+  derivatives outside the Git source home. ToS operations select explicit
+  artifact paths and use ToS-owned native tools; consumers own their stack
+  orchestration.
 
 ## Validation
 

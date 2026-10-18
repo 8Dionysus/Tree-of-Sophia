@@ -35,7 +35,7 @@ for(const key of ['native_binary','native_request_path','worker_root','failure_d
 }
 for(const key of ['maximum_seconds','maximum_response_bytes','maximum_marker_bytes','maximum_source_bytes','maximum_native_state_bytes','maximum_startup_receipt_bytes','maximum_native_log_bytes','maximum_readiness_milliseconds','maximum_shutdown_milliseconds','maximum_inherited_fds'])assert.ok(positive(selected[key]));
 assert.ok(selected.stage_ticket_fd>=3&&selected.stage_ticket_fd<selected.maximum_inherited_fds);
-assert.equal(process.env.ABYSS_STAGE_TICKET_FD,String(selected.stage_ticket_fd));
+assert.equal(process.env.TOS_STAGE_TICKET_FD,String(selected.stage_ticket_fd));
 const rawManifest=await read(selected.source_input_manifest,262144);
 assert.equal(digest(rawManifest),selected.source_input_manifest_sha256);
 const manifest=observe(rawManifest);assert.equal(await realpath(manifest.root),manifest.root);

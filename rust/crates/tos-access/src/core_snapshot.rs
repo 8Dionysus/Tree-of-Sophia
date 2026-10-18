@@ -96,7 +96,7 @@ impl Admission {
         if unsafe { libc::fcntl(self.stage_ticket_fd, libc::F_GETFD) } < 0 {
             return Err("Core inherited stage ticket absent");
         }
-        if let Some(ambient) = std::env::var_os("ABYSS_STAGE_TICKET_FD") {
+        if let Some(ambient) = std::env::var_os("TOS_STAGE_TICKET_FD") {
             if ambient.to_str().and_then(|v| v.parse::<i32>().ok()) != Some(self.stage_ticket_fd) {
                 return Err("Core stage ticket binding");
             }
@@ -1332,10 +1332,7 @@ fn bind_ticket(admission: &Admission) -> Result<()> {
     // Entry is called directly from the single-threaded CLI before any producer
     // is selected. The sealed ticket owner validates the actual FD after this binding.
     unsafe {
-        std::env::set_var(
-            "ABYSS_STAGE_TICKET_FD",
-            admission.stage_ticket_fd.to_string(),
-        );
+        std::env::set_var("TOS_STAGE_TICKET_FD", admission.stage_ticket_fd.to_string());
     }
     Ok(())
 }

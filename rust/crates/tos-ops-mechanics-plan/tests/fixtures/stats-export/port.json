@@ -1,0 +1,103 @@
+{
+  "schema_version": "aoa_stats_local_port_v1",
+  "contract_version": "1.0.0",
+  "owner_repo": "Tree-of-Sophia",
+  "status": "active",
+  "owner_boundary_ref": "stats/AGENTS.md",
+  "central_contract_refs": [
+    "aoa-stats:stats/measurement-contract/measurement-contract.schema.json",
+    "aoa-stats:stats/measurement-contract/measurement-packet.schema.json"
+  ],
+  "evidence_posture": {
+    "live_state": "reference_only",
+    "privacy": "public",
+    "raw_content_allowed": false
+  },
+  "questions": [
+    {
+      "id": "question:synthetic-ratio",
+      "question": "What fraction of two synthetic rows is selected?",
+      "consumer_refs": [
+        "stats/README.md"
+      ]
+    }
+  ],
+  "measurements": [
+    {
+      "schema_version": "aoa_stats_measurement_contract_v1",
+      "measurement_id": "Tree-of-Sophia/synthetic-ratio",
+      "contract_version": "1.0.0",
+      "owner_repo": "Tree-of-Sophia",
+      "question_ref": "question:synthetic-ratio",
+      "semantic_class": "statistic",
+      "statistic": "ratio",
+      "object_kind": "synthetic-row",
+      "unit": {
+        "symbol": "1",
+        "quantity": "proportion"
+      },
+      "population": {
+        "subject": "two synthetic rows",
+        "definition": "two explicit fixture identities",
+        "inclusion_rule": "both fixture rows",
+        "exclusion_rule": "all non-fixture rows",
+        "sampling": "census"
+      },
+      "window": {
+        "temporality": "instant",
+        "clock": "owner_defined"
+      },
+      "dimensions": {
+        "allowed": [],
+        "prohibited": []
+      },
+      "aggregation": {
+        "operator": "none",
+        "across": []
+      },
+      "missingness": {
+        "states": [
+          "missing",
+          "unknown",
+          "stale"
+        ],
+        "zero_is_observation": true
+      },
+      "uncertainty": {
+        "required": false,
+        "methods": [
+          "not_applicable"
+        ]
+      },
+      "provenance": {
+        "evidence_refs_required": true,
+        "source_revision_required": true
+      },
+      "lifecycle": {
+        "status": "active",
+        "compatible_with": []
+      },
+      "privacy": {
+        "classification": "public",
+        "raw_content_allowed": false,
+        "sensitive_dimensions_allowed": false
+      },
+      "live_state": {
+        "capability": "reference_only"
+      },
+      "authority_ceiling": "Synthetic export fixture only; no source or semantic admission."
+    }
+  ],
+  "exports": [
+    {
+      "measurement_id": "Tree-of-Sophia/synthetic-ratio",
+      "posture": "reference",
+      "packet_refs": [
+        "stats/packets/table-i-prepared-dossier-route-ratio.reference.json"
+      ],
+      "evidence_refs": [
+        "synthetic:fixture-v1"
+      ]
+    }
+  ]
+}

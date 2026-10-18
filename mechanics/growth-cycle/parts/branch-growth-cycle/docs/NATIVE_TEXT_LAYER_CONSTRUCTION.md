@@ -309,23 +309,21 @@ the exact acquired PDF, never the derived PNG. It retains all independently
 issued source, derivation, output and authenticated-evidence grants of the
 owner OCR route, plus exact `material.input_representation` binding to the
 retained image, one-based page, frozen render manifest/sample plan and unsigned
-historical receipt. The fixed `abyss-stack` retained-page verifier authenticates
-the new OCR execution and honest current input-verification capture. ToS never
+historical receipt. Native ToS verifies the pinned signature and exact source,
+output and retained-page capture assertions. Signature authentication does not
+independently prove OCR fidelity or producer execution. ToS never
 runs a renderer or OCR provider through this recording operation. This profile
 is served only by the native Rust command; Python layer construction and
 metadata readers do not accept owner-OCR configurations.
 
-These selected owner-OCR handlers have an optional external-verifier runtime
-prerequisite. Their protected grant selects an `abyss-stack` source root and
-commit, exact adapter digest, and receipt/signature/public-key digests. The
-native command invokes only the selected adapter's `verify` or `verify-record`
-mode via `/usr/bin/python3`; it never invokes OCR execution. The adapter imports
-Pillow and checks the signed receipt with machine-managed Cosign and its trusted
-root. These requirements apply only when one of the owner-OCR handlers is
-selected; ordinary ToS native use and the installed default client do not gain
-a Python dependency. Discovery remains static and does not probe verifier
-availability; missing dependencies and verification failures refuse the
-selected operation.
+These owner-OCR handlers authenticate portable signed evidence locally. The
+protected grant pins the receipt, signature, public key, exact output and source
+binding. Producer commit and adapter digests are provenance; no checkout is
+opened or executed. Native ToS uses P-256/SHA-256 message-signature verification,
+without Python, Pillow, Cosign, a host trust store or network discovery. A legacy
+`owner_source_root` field is inert; new grants need none. Invalid signatures,
+changed evidence and mismatched source/output/capture assertions refuse the
+selected operation. Recording neither runs OCR nor admits textual quality.
 
 The immutable 12-file package includes copied signed receipt, signature and
 public key. Metadata-only source resolution authenticates these three files

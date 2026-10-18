@@ -8,8 +8,9 @@ tos-validation-lanes --repo-root "$PWD" --run mechanics_topology
 tos-validation-lanes --repo-root "$PWD" --run mechanics_local
 ```
 
-Use `experience_contracts`, `questbook_surface`, `public_entry`, or
-`artifact_bundles` when that named package surface changed. Mechanics checks
+Use `experience_contracts`, `questbook_surface` or `public_entry` when that
+named package surface changed. Native artifact checks follow `access/` and
+the selected software/corpus export route. Mechanics checks
 prove operation shape only; they do not author ToS meaning or runtime policy.
 
 The installed `tos-ops-mechanics-plan` executor runs the retained Agon,

@@ -7,8 +7,8 @@ ToS changes leave a clean route without turning release machinery into meaning.
 
 - Keep source-release-gate around release-facing ToS surfaces and public claim
   posture.
-- Keep artifact-bundles around generated export readmodels that need OS Abyss
-  ABI verification without turning JSON exports into media credentials.
+- Keep native software and data export checks at their ToS owners. Consumers
+  own signatures, registries, trust policy and admission in their repositories.
 - Keep release support below source, branch, canon, and decision authority.
 - Keep public support claims tied to the ToS surface they support.
 - Keep graph projection, atlas projection, and public compatibility claims
@@ -26,7 +26,7 @@ ToS changes leave a clean route without turning release machinery into meaning.
 Time has come when: release receipts, artifact bundles, or public support
 reports become repeated reviewed objects.
 
-Move: add payload to `source-release-gate` or `artifact-bundles`, or split
+Move: add payload to `source-release-gate`, or split
 public support, rollback posture, and downstream handoff into narrower parts.
 
 Guardrail: release support can defend a public claim; source meaning remains

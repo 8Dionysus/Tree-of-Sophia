@@ -149,7 +149,7 @@ fn native_desktop_preserves_owned_startup_concurrency_pipe_lifetime_and_install_
         runtime.join("server.log").to_string_lossy().to_string(),
     ];
     guard.managed = Some((state.clone(), worker.clone()));
-    let value = json!({"schema":"tos_sophia_demo_desktop_native_v1","release":release,"release_digest":digest,"port":44339,"browser":"/usr/bin/true","profile":runtime.join("profile"),"cache":root.join("cache"),"runtime":runtime,"launcher":binary,"server":binary,"resource":"/usr/bin/true","service_unit":"tos-sophia-demo.service","worker_unit":"tos-sophia-demo-http.service"});
+    let value = json!({"schema":"tos_sophia_demo_desktop_native_v1","release":release,"release_digest":digest,"port":44339,"browser":"/usr/bin/true","profile":runtime.join("profile"),"cache":root.join("cache"),"runtime":runtime,"launcher":binary,"server":binary,"service_unit":"tos-sophia-demo.service","worker_unit":"tos-sophia-demo-http.service"});
     fs::write(&config, serde_json::to_vec(&value).unwrap()).unwrap();
     let command_text = worker
         .iter()
@@ -257,7 +257,6 @@ fn native_desktop_preserves_owned_startup_concurrency_pipe_lifetime_and_install_
     unsafe {
         libc::kill(pid as i32, libc::SIGTERM);
     }
-    exec(&tools.join("abyss-machine"), "#!/bin/sh\nexit 0\n");
     exec(&tools.join("chromium"), "#!/bin/sh\nexit 0\n");
     let installed = root.join("installed");
     let mut install = Command::new(&binary);

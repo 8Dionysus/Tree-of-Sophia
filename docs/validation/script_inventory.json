@@ -1122,27 +1122,6 @@
       "disposition": "keep"
     },
     {
-      "path": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
-      "family": "release_validator",
-      "organ_lane": "mechanics/part-owned",
-      "owner_surface": "mechanics/release-support/parts/artifact-bundles/README.md",
-      "source_truth": [
-        "mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json",
-        "ToS/derived-exports/root_entry_map.min.json",
-        "ToS/derived-exports/AGENTS.md"
-      ],
-      "reads": [
-        "mechanics/release-support/parts/artifact-bundles/manifests/generated_readmodel.bundle.json",
-        "ToS/derived-exports/*.json"
-      ],
-      "writes": [],
-      "side_effects": "ignored dist/ abyss-machine artifact bundle sidecars, durable registry read-model, and materialized subject-store evidence outside tracked source",
-      "validation_lane": "artifact_bundles",
-      "ci_inclusion": "release",
-      "test_target": "rust/crates/tos-ops-mechanics-plan/src/artifact_bundle.rs",
-      "disposition": "keep"
-    },
-    {
       "path": "rust/crates/tos-ops-mechanics-plan/src/validation_lanes.rs",
       "family": "lane_loader",
       "organ_lane": "validation-authority",

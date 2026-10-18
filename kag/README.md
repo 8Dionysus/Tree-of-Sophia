@@ -1,44 +1,30 @@
-# Tree-of-Sophia KAG integration
+# ToS source-return export
 
-ToS publishes KAG independently from its software and corpus admission. This directory owns the bounded provider template and operator route.
-Published provider data lives in the selected immutable integration release.
+ToS builds and verifies its own bounded export from an explicitly selected
+immutable corpus revision. The output preserves canonical source bytes, exact
+membership, hashes and source-return identities. It contains no consumer index
+family, runtime installation or neighbor-repository configuration.
 
-The installed `tos-kag-release` command owns export and publication. Provider
-controls use the same native module in publication; direct checks select
-`tos-kag-provider-controls`. Both commands are part of the native software
-package. Retained Python fixtures are historical compatibility evidence only.
+```sh
+tos-kag-release export-build --repo-root /path/to/tos-software \
+  --store /path/to/corpus-store --revision CORPUS_SHA256 --output /path/to/new-export
+tos-kag-release export-verify --release /path/to/new-export
+```
 
-The native local contour refuses exports over 8 MiB, V1 revision manifests over
-64 MiB, generated releases over 1 GiB or 100,000 members, and manifests over
-16 MiB. Publication shares a 600-second deadline; each selected owner child is
-limited to 300 seconds and 16 MiB combined output. Status lock waits are bounded
-to five seconds. Filesystem operations poll cancellation between bounded reads;
-kernel calls retain the host execution envelope. Pre-cleanup failures retain
-their staging bytes; a failure during polled cleanup retains only remaining
-bytes, and a status failure after full cleanup can leave no staging directory.
-Cleanup enumerates at most 100,000 members, unlinks regular files individually,
-then removes directories deepest first, checking the whole clock throughout.
+The native implementation is
+[`kag_corpus_export.rs`](../rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs).
+The export has an 8 MiB bound and binds all declared source members plus the
+bounded KAG capsule. Missing, undeclared, linked or changed files are refused.
+The selected corpus supplies source bytes; the software checkout supplies the
+versioned producer. No neighboring checkout or Python interpreter is selected.
 
-`provider-template.json` describes the portable node, edge, index, projection
-and receipt routes. The publisher combines these declarations with one exact
-corpus export in a new external directory. The selected aoa-kag producer builds
-its complete family there, and its family and provider-home readers validate
-the result before local publication. Template receipts declare the route. Completed validation receipts and the
-selected release identify the observed integration state.
+A KAG consumer imports this artifact, constructs its indexes and validates its
+own provider, schemas, shards and admission in its own repository. The former
+ToS commands for consumer build/status/verification, Python program identity
+and provider-template materialization have been retired. Existing consumer
+artifacts remain the consuming owner's responsibility.
 
-Use [VALIDATION.md](VALIDATION.md) to build an export, publish an integration and
-inspect its status. Every result lives in `releases/<integration_revision>` and
-binds its corpus/export revision, consumer program hashes and complete bytes.
-A consumer update may create a new integration for the same corpus. Failures
-retain the last successful release and remain visible in downstream status.
-
-Existing aoa-kag consumers select the published `provider/Tree-of-Sophia` root,
-including through their explicit `TREE_OF_SOPHIA_ROOT` configuration. Its cold
-shards are retained inside that immutable local provider, so the provider-home
-reader needs no ambient corpus checkout or hidden artifact cache. Exact queries
-can also select the release's separate `artifacts` directory explicitly.
-
-The selected provider exports a bounded source-return route to ToS
-philosophical graphs and authored sources. Federation, MCP services and
-AbyssOS installation require separate activation by their consuming owners. A pinned older integration stays an older
-integration; software CI cannot make it current.
+Software, corpus and export identities stay separate. Successful byte
+verification does not accept philosophical meaning, rights, review or canon.
+See [validation](VALIDATION.md) and the
+[source export contract](../mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md).

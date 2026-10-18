@@ -34,9 +34,7 @@ enum Action {
     AgentSurfaceBuild {
         check: bool,
     },
-    AgentSurfaceValidate {
-        fetch_budget_bases: bool,
-    },
+    AgentSurfaceValidate,
     AgentsRouteCurrentnessBuild {
         check: bool,
     },
@@ -90,7 +88,7 @@ struct SemanticOptions {
 #[cfg(target_os = "linux")]
 extern "C" fn cancelled(signal: i32) {
     CANCEL.store(signal, Ordering::Relaxed);
-    tos_ops_mechanics_plan::kag_release::cancel(signal);
+    tos_ops_mechanics_plan::release_files::cancel(signal);
     if let Some(flag) = PRODUCT_CANCEL.get() {
         flag.store(true, Ordering::Relaxed);
     }
@@ -137,7 +135,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
     let mut kag_source_export_verify = false;
     let mut decision_records_validate = false;
     let mut decision_index_build = false;
-    let mut fetch_budget_bases = false;
     #[cfg(feature = "compiler-backed-validators")]
     let mut philosophy_graph_views = false;
     #[cfg(not(feature = "compiler-backed-validators"))]
@@ -228,7 +225,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
             }
             "--decision-records-validate" => decision_records_validate = true,
             "--decision-index-build" => decision_index_build = true,
-            "--fetch-budget-bases" => fetch_budget_bases = true,
             "--output" => {
                 semantic.output = Some(PathBuf::from(args.next().ok_or("missing output path")?))
             }
@@ -321,7 +317,6 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
                 || anchor_table.is_some()
                 || anchor_row.is_some()
                 || anchor_label.is_some()))
-        || (fetch_budget_bases && !agent_surface_validate)
         || (semantic.feedback_cache.is_some() && !active_naming_validate)
         || (semantic.output.is_some()
             && !(documentation_family_build
@@ -396,7 +391,7 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
     } else if agent_surface_build {
         Action::AgentSurfaceBuild { check }
     } else if agent_surface_validate {
-        Action::AgentSurfaceValidate { fetch_budget_bases }
+        Action::AgentSurfaceValidate
     } else if agents_route_currentness_build {
         Action::AgentsRouteCurrentnessBuild { check }
     } else if agents_route_harness_check {
@@ -445,36 +440,9 @@ fn arguments() -> Result<(PathBuf, Action, Limits, SemanticOptions), String> {
 }
 
 fn main() {
+    #[cfg(feature = "compiler-backed-validators")]
     let product_started = std::time::Instant::now();
     let product_entry = env::args().nth(1);
-    if product_entry.as_deref() == Some("--artifact-bundle") {
-        #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
-        {
-            unsafe {
-                let mut handler: libc::sigaction = std::mem::zeroed();
-                handler.sa_sigaction = cancelled as *const () as usize;
-                libc::sigemptyset(&mut handler.sa_mask);
-                for signal in [libc::SIGINT, libc::SIGTERM] {
-                    if libc::sigaction(signal, &handler, std::ptr::null_mut()) != 0 {
-                        eprintln!("[error] {}", std::io::Error::last_os_error());
-                        std::process::exit(1);
-                    }
-                }
-            }
-            let args = env::args().skip(2).collect::<Vec<_>>();
-            std::process::exit(tos_ops_mechanics_plan::artifact_bundle::cli(
-                &args,
-                product_started,
-                &CANCEL,
-            ));
-        }
-        #[cfg(not(all(feature = "compiler-backed-validators", target_os = "linux")))]
-        {
-            eprintln!("artifact bundle requires compiler-backed Linux process custody");
-            std::process::exit(1);
-        }
-    }
-
     if matches!(
         product_entry.as_deref(),
         Some(
@@ -619,13 +587,13 @@ fn main() {
         let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
             " | --philosophy-graph-views-validate"
         } else { "" };
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate [--fetch-budget-bases] | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --prepare-source-anchor --atlas-row ID --source-table-index N --source-row-index N --source-label LABEL | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute [--native-contracts-only] | --growth-native-plan | --local-contracts HOME | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate [--feedback-cache ABS] | --agent-surface-build [--check] | --agent-surface-validate | --agents-route-currentness-build [--check] [--output PATH] | --nested-agents-validate | --agents-route-harness-check | --tiny-entry-validate | --lived-witness-validate | --intake-pack-validate | --documentation-family-build [--check] [--output PATH] | --documentation-cross-corpus-validate | --decision-records-validate | --decision-index-build [--check] | --root-entry-map-build [--check] [--kag-export PATH] | --root-entry-map-validate [--kag-export PATH] | --kag-source-export-build --store PATH --revision SHA256 --output PATH | --kag-source-export-verify --kag-export PATH | --source-home | --witness-structure-validate | --prepare-source-anchor --atlas-row ID --source-table-index N --source-row-index N --source-label LABEL | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     if matches!(
         action,
         Action::AgentSurfaceBuild { .. }
-            | Action::AgentSurfaceValidate { .. }
+            | Action::AgentSurfaceValidate
             | Action::DocumentationFamilyBuild { .. }
             | Action::DocumentationCrossCorpusValidate
             | Action::DecisionRecordsValidate
@@ -798,7 +766,7 @@ fn main() {
                 .expect("export output required by arguments"),
         )
         .and_then(|value| {
-            let bytes = tos_ops_mechanics_plan::kag_release::canonical(&value)?;
+            let bytes = tos_ops_mechanics_plan::release_files::canonical(&value)?;
             std::io::stdout().lock().write_all(&bytes).map(|()| 0)
         }),
         Action::KagSourceExportVerify => tos_ops_mechanics_plan::kag_corpus_export::verify_export(
@@ -808,18 +776,16 @@ fn main() {
                 .expect("KAG export required by arguments"),
         )
         .and_then(|value| {
-            let bytes = tos_ops_mechanics_plan::kag_release::canonical(&value)?;
+            let bytes = tos_ops_mechanics_plan::release_files::canonical(&value)?;
             std::io::stdout().lock().write_all(&bytes).map(|()| 0)
         }),
         Action::AgentSurfaceBuild { check } => root
             .canonicalize()
             .and_then(|root| tos_ops_mechanics_plan::agent_surface::run(&root, check, &CANCEL)),
-        Action::AgentSurfaceValidate { fetch_budget_bases } => {
+        Action::AgentSurfaceValidate => {
             root.canonicalize().and_then(|root| {
                 tos_ops_mechanics_plan::agent_surface_validation::validate_manifest(
                     &root,
-                    fetch_budget_bases,
-                    semantic.selected_interpreter.as_deref(),
                     &CANCEL,
                 )
                 .map(|issues| {
@@ -1210,9 +1176,7 @@ fn main() {
                 Action::DerivedKagValidate | Action::DerivedKagGenerate => "derived KAG",
                 Action::MechanicsTopologyValidate => "mechanics topology",
                 Action::ActiveNamingValidate => "active naming",
-                Action::AgentSurfaceBuild { .. } | Action::AgentSurfaceValidate { .. } => {
-                    "agent surface"
-                }
+                Action::AgentSurfaceBuild { .. } | Action::AgentSurfaceValidate => "agent surface",
                 Action::DocumentationFamilyBuild { .. }
                 | Action::DocumentationCrossCorpusValidate => "documentation",
                 Action::RootEntryMapBuild { .. } | Action::RootEntryMapValidate => "root-entry map",

@@ -1930,53 +1930,21 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
     assert_eq!(prepared.status.code(), Some(2));
     assert!(prepared.stdout.is_empty());
     assert!(String::from_utf8_lossy(&prepared.stderr).contains("source-backed profile"));
-    let abyss = directory.join("AbyssOS");
-    fs::create_dir_all(abyss.join("abyss-stack")).unwrap();
-    let abyss = Command::new(env!("CARGO_BIN_EXE_tos-access"))
-        .arg("--root")
-        .arg(&directory)
-        .args(["verify", "--profile=abyssos", "--json"])
-        .env("TOS_ABYSSOS_ROOT", format!(" {} ", abyss.display()))
-        .env_remove("TOS_RELEASE_ROOT")
-        .env_remove("TOS_QUERY_STORE_PATH")
-        .env_remove("TOS_DATA_ROOT")
-        .env_remove("TOS_CORPUS_INDEX_PATH")
-        .env_remove("TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH")
-        .env_remove("TOS_EVIDENCE_PROJECTION_PATH")
-        .env_remove("TOS_BIBLIOGRAPHIC_GRAPH_PATH")
-        .output()
-        .unwrap();
-    assert_eq!(abyss.status.code(), Some(1));
-    let abyss = parse_json(
-        &abyss.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap();
-    assert_eq!(
-        abyss
+    let retired = run(&["verify", "--profile=abyssos"]);
+    assert_eq!(retired.status.code(), Some(2));
+    assert!(retired.stdout.is_empty());
+    assert!(
+        !report
             .root()
             .object_get("checks")
             .unwrap()
             .as_array()
             .unwrap()
             .iter()
-            .find(|row| row.object_get("check_id").unwrap().as_str() == Some("abyssos-integration"))
-            .unwrap()
-            .object_get("ok"),
-        Some(&tos_foundation::JsonValue::Bool(true)),
-        "maintained profile trims configured root and freeze remains a separate check"
-    );
-    assert!(
-        abyss
-            .root()
-            .object_get("required_failures")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|id| id.as_str() == Some("abyssos-integration-freeze")),
-        "selected data cannot unpause packaged software integration"
+            .any(|row| row
+                .object_get("check_id")
+                .and_then(|v| v.as_str())
+                .is_some_and(|id| id.starts_with("abyssos")))
     );
     let invalid = run(&["verify", "--profile=unknown"]);
     assert_eq!(invalid.status.code(), Some(2));

@@ -803,9 +803,8 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             append(
                 get("--github-env"),
                 format!(
-                    "TOS_KAG_RELEASE_BIN={}\nTOS_KAG_PROVIDER_CONTROLS_BIN={}\n",
-                    images.join("tos-kag-release").display(),
-                    images.join("tos-kag-provider-controls").display()
+                    "TOS_KAG_RELEASE_BIN={}\n",
+                    images.join("tos-kag-release").display()
                 )
                 .as_bytes(),
                 &b,

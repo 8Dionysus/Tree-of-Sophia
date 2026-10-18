@@ -18,6 +18,7 @@ sha1 = "=0.10.6"
 tos-ops-mechanics-plan = { path = "../tos-ops-mechanics-plan", default-features = false, features = ["philosophy-library"] }
 rusqlite = { version = "0.37", features = ["bundled", "hooks", "limits"] }
 base64 = "=0.22.1"
+p256 = { version = "=0.14.0", default-features = false, features = ["ecdsa", "pem"] }
 crc32fast = "=1.5.2"
 flate2 = "=1.1.10"
 tos-foundation = { path = "../tos-foundation" }

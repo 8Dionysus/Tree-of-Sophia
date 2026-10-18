@@ -195,7 +195,7 @@ pub fn doctor_report(
     require_mcp: bool,
     program_directory: &Path,
 ) -> Result<JsonValue, String> {
-    if !matches!(profile, "standalone" | "abyssos") {
+    if profile != "standalone" {
         return Err(format!("unknown access profile: {profile}"));
     }
     let root = absolute(root)?;
@@ -563,82 +563,6 @@ pub fn doctor_report(
             ("implementation", text("built-in-rust-stdio")),
         ],
     );
-    let abyss = std::env::var_os("TOS_ABYSSOS_ROOT")
-        .filter(|raw| !raw.to_string_lossy().trim().is_empty())
-        .map(|raw| PathBuf::from(raw.to_string_lossy().trim()))
-        .map(|path| absolute(&path))
-        .transpose()?;
-    let available = abyss
-        .as_ref()
-        .is_some_and(|path| path.join("abyss-stack").is_dir());
-    check(
-        &mut checks,
-        "abyssos-integration",
-        available,
-        profile == "abyssos",
-        vec![
-            ("available", JsonValue::Bool(available)),
-            (
-                "configured_root",
-                abyss
-                    .as_ref()
-                    .map(|path| text(&path.to_string_lossy()))
-                    .unwrap_or(JsonValue::Null),
-            ),
-            (
-                "install_hint",
-                if available {
-                    JsonValue::Null
-                } else {
-                    text("set TOS_ABYSSOS_ROOT to an AbyssOS root containing abyss-stack")
-                },
-            ),
-            ("posture", text("optional-adapter")),
-        ],
-    );
-    if profile == "abyssos" {
-        let posture = contracts
-            .as_ref()
-            .ok()
-            .and_then(|values| values.first())
-            .map(|value| field(value, "integration_posture"));
-        let paused = posture.is_some_and(|value| {
-            field(value, "state").as_str() == Some("paused")
-                && field(value, "scope")
-                    .as_array()
-                    .is_some_and(|v| v.iter().any(|v| v.as_str() == Some("abyssos")))
-        });
-        check(
-            &mut checks,
-            "abyssos-integration-freeze",
-            contracts_ok && !paused,
-            true,
-            vec![
-                (
-                    "state",
-                    posture
-                        .map(|v| field(v, "state").clone())
-                        .unwrap_or(JsonValue::Null),
-                ),
-                (
-                    "activation",
-                    posture
-                        .map(|v| field(v, "external_activation").clone())
-                        .unwrap_or(JsonValue::Null),
-                ),
-                (
-                    "reason",
-                    if paused {
-                        text(
-                            "ToS has paused AbyssOS activation; an explicit ToS operator command is required",
-                        )
-                    } else {
-                        JsonValue::Null
-                    },
-                ),
-            ],
-        );
-    }
     if let Some(store_reader) = query_store.as_ref() {
         match store_reader.verify_currentness() {
             Ok(()) => check(
@@ -803,7 +727,7 @@ pub fn run_if_requested(
                 at += 1;
                 args.get(at).map(String::as_str).unwrap_or("")
             };
-            if !matches!(profile, "standalone" | "abyssos") {
+            if profile != "standalone" {
                 let _ = writeln!(stderr, "invalid_request: unknown access profile: {profile}");
                 return Some(2);
             }

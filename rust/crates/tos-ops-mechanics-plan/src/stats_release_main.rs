@@ -1,15 +1,8 @@
-use std::{
-    collections::BTreeMap,
-    io::Write,
-    path::PathBuf,
-    sync::atomic::{AtomicI32, Ordering},
-};
-use tos_ops_mechanics_plan::{kag_release, stats_release};
-static CANCEL: AtomicI32 = AtomicI32::new(0);
+use std::{collections::BTreeMap, io::Write, path::PathBuf};
+use tos_ops_mechanics_plan::{release_files, stats_release};
 #[cfg(target_os = "linux")]
 extern "C" fn cancelled(signal: i32) {
-    CANCEL.store(signal, Ordering::Relaxed);
-    kag_release::cancel(signal);
+    release_files::cancel(signal);
 }
 fn main() {
     #[cfg(target_os = "linux")]
@@ -24,20 +17,15 @@ fn main() {
             .ok_or("expected build, status, verify or validate")?;
         if operation == "--help" {
             println!(
-                "usage: tos-stats-release build --source-root PATH --stats-root PATH --release-root PATH --python ABSOLUTE_INTERPRETER\n       tos-stats-release status --release-root PATH --expected-revision SHA256\n       tos-stats-release verify --release PATH\n       tos-stats-release validate --stats-root PATH --port PATH --python ABSOLUTE_INTERPRETER"
+                "usage: tos-stats-release build --source-root PATH --release-root PATH\n       tos-stats-release status --release-root PATH --expected-revision SHA256\n       tos-stats-release verify --release PATH\n       tos-stats-release validate --port PATH"
             );
             return Ok(());
         }
         let allowed: &[&str] = match operation.as_str() {
-            "build" => &[
-                "--source-root",
-                "--stats-root",
-                "--release-root",
-                "--python",
-            ],
+            "build" => &["--source-root", "--release-root"],
             "status" => &["--release-root", "--expected-revision"],
             "verify" => &["--release"],
-            "validate" => &["--stats-root", "--port", "--python"],
+            "validate" => &["--port"],
             _ => return Err("expected build, status, verify or validate".to_owned()),
         };
         let mut options = BTreeMap::new();
@@ -61,47 +49,26 @@ fn main() {
         let path = |key: &str| get(key).map(PathBuf::from);
         let value = match operation.as_str() {
             "build" => {
-                let manifest = stats_release::build_release(
-                    &path("--source-root")?,
-                    &path("--stats-root")?,
-                    &path("--release-root")?,
-                    &path("--python")?,
-                    &CANCEL,
-                )
-                .map_err(|e| e.to_string())?;
+                let manifest =
+                    stats_release::build_release(&path("--source-root")?, &path("--release-root")?)
+                        .map_err(|e| e.to_string())?;
                 serde_json::json!({"source_kind":stats_release::SOURCE_KIND,
-                    "source_revision":manifest["source_revision"],"integration_revision":manifest["integration_revision"]})
+                    "source_revision":manifest["source_revision"],"export_revision":manifest["export_revision"]})
             }
             "status" => {
                 stats_release::status_release(&path("--release-root")?, get("--expected-revision")?)
                     .map_err(|e| e.to_string())?
             }
             "verify" => {
-                stats_release::verify_integration(&path("--release")?).map_err(|e| e.to_string())?
+                stats_release::verify_export(&path("--release")?).map_err(|e| e.to_string())?
             }
             "validate" => {
-                let (code, out, err) = stats_release::validate_port(
-                    &path("--stats-root")?,
-                    &path("--port")?,
-                    &path("--python")?,
-                    &CANCEL,
-                )
-                .map_err(|e| e.to_string())?;
-                std::io::stdout()
-                    .write_all(&out)
-                    .map_err(|e| e.to_string())?;
-                std::io::stderr()
-                    .write_all(&err)
-                    .map_err(|e| e.to_string())?;
-                if code != 0 {
-                    std::process::exit(if (1..=255).contains(&code) { code } else { 1 });
-                }
-                return Ok(());
+                stats_release::validate_port(&path("--port")?).map_err(|e| e.to_string())?
             }
             _ => unreachable!(),
         };
         std::io::stdout()
-            .write_all(&kag_release::canonical(&value).map_err(|e| e.to_string())?)
+            .write_all(&release_files::canonical(&value).map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())
     })();
     if let Err(error) = result {

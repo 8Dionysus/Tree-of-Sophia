@@ -6,11 +6,9 @@ pub mod active_naming;
 #[cfg(feature = "mechanics")]
 pub mod agent_surface;
 #[cfg(feature = "mechanics")]
-pub mod agent_surface_budget;
+pub mod agent_surface_exports;
 #[cfg(feature = "mechanics")]
 pub mod agent_surface_validation;
-#[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
-pub mod artifact_bundle;
 pub mod ci_artifacts;
 #[cfg(target_os = "linux")]
 pub mod ci_verification;
@@ -33,8 +31,6 @@ pub mod intake_pack;
 pub mod kag_corpus_export;
 #[cfg(all(feature = "mechanics", target_os = "linux"))]
 pub mod kag_downstream_status;
-#[cfg(all(feature = "mechanics", target_os = "linux"))]
-pub mod kag_release;
 #[cfg(feature = "mechanics")]
 pub mod lived_witness;
 #[path = "../tests/mechanics_contracts/native.rs"]
@@ -60,6 +56,8 @@ pub mod prepared_dossier_native_directory;
 pub mod prepared_dossier_readiness;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
 pub mod prepared_dossier_render;
+#[cfg(all(feature = "mechanics", target_os = "linux"))]
+pub mod release_files;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
 pub mod source_registry;
 #[cfg(all(feature = "compiler-backed-validators", target_os = "linux"))]
@@ -71,8 +69,6 @@ pub mod tiny_entry;
 #[cfg(feature = "compiler-backed-validators")]
 pub mod tree_nodes;
 
-#[cfg(feature = "mechanics")]
-pub mod provider_controls;
 #[cfg(feature = "mechanics")]
 pub mod public_mirror;
 #[cfg(feature = "mechanics")]
@@ -247,12 +243,6 @@ const NATIVE_MECHANICS: &[(&str, &str, &str, bool)] = &[
         "mechanics/relation-weaving/parts/graph-promotion",
         "validator",
         "--relation-pack-validate",
-        false,
-    ),
-    (
-        "mechanics/release-support/parts/artifact-bundles",
-        "validator",
-        "--artifact-bundle",
         false,
     ),
 ];
@@ -645,7 +635,7 @@ mod tests {
     }
 
     #[test]
-    fn fixed_native_routes_survive_wrapper_retirement_and_preserve_artifact_prefix() {
+    fn fixed_native_routes_survive_wrapper_and_external_admission_retirement() {
         let root = fixture();
         for home in [
             "mechanics/agon/parts/threshold-registry",
@@ -658,7 +648,7 @@ mod tests {
             fs::create_dir_all(root.join(home)).unwrap();
         }
         let plan = discover(&root).unwrap();
-        assert_eq!(plan.commands.len(), 9);
+        assert_eq!(plan.commands.len(), 8);
         assert_eq!(
             plan.commands
                 .iter()
@@ -671,20 +661,13 @@ mod tests {
                 .iter()
                 .filter(|c| c.kind == "validator")
                 .count(),
-            5
+            4
         );
         assert!(
             plan.commands
                 .iter()
                 .all(|c| { !c.argv.iter().any(|v| v.ends_with(".py")) })
         );
-        let artifact = plan
-            .commands
-            .iter()
-            .find(|c| c.home.ends_with("/artifact-bundles"))
-            .unwrap();
-        assert_eq!(artifact.argv[1], "--artifact-bundle");
-        assert_eq!(artifact.argv[2], "--repo-root");
         touch(&root, "mechanics/questbook/scripts/validate_unreviewed.py");
         assert!(
             discover(&root)

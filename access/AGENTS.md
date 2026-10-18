@@ -24,8 +24,8 @@ derived-export owners remain stronger than every packet emitted here.
 - `contracts/` and `profiles/` own the portable consumer-facing ABI.
 - `packaging/` contains explicit data-generation/validation tools only; the
   native software archive owner assembles software subjects.
-- `integrations/abyssos/` may adapt to ecosystem services but must remain
-  optional; its absence is a capability state, not an installation failure.
+- ToS operates and releases its own data without ecosystem source checkouts,
+  services or interpreters. Integrators adapt to ToS from their own repositories.
 - Runtime packets must preserve `source_ref` and must not claim review,
   rights, canon, or semantic authority.
 - Software build/test/package uses versioned contracts and representative

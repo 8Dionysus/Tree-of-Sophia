@@ -1,5 +1,5 @@
 //! Explicit-root registry import, history and inspection over the shared rules.
-use crate::kag_release::{self, invalid};
+use crate::release_files::{self, invalid};
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -36,7 +36,7 @@ impl<'a> Context<'a> {
     }
     pub fn read(&mut self, path: &Path) -> io::Result<Vec<u8>> {
         self.check(1).map_err(invalid)?;
-        let before = kag_release::regular(path)?;
+        let before = release_files::regular(path)?;
         if before.len() > rules::MAX_FILE as u64 {
             return Err(invalid("registry file size limit"));
         }
@@ -82,12 +82,12 @@ impl<'a> Context<'a> {
     }
 }
 pub fn member(root: &Path, name: &Value) -> io::Result<PathBuf> {
-    let name = kag_release::relative(name)?;
-    kag_release::safe_absolute(&root.join(name))
+    let name = release_files::relative(name)?;
+    release_files::safe_absolute(&root.join(name))
 }
 fn directory(root: &Path) -> io::Result<PathBuf> {
-    let root = kag_release::safe_absolute(root)?;
-    kag_release::directory(&root)?;
+    let root = release_files::safe_absolute(root)?;
+    release_files::directory(&root)?;
     Ok(root)
 }
 fn processor(context: &mut Context<'_>) -> io::Result<Value> {
@@ -98,7 +98,7 @@ fn processor(context: &mut Context<'_>) -> io::Result<Value> {
 }
 
 fn snapshot_path(packet: &Path, pointer: &Value) -> io::Result<PathBuf> {
-    let id = kag_release::hex(&pointer["snapshot_id"])?;
+    let id = release_files::hex(&pointer["snapshot_id"])?;
     Ok(packet.join("snapshots").join(id))
 }
 pub fn current(context: &mut Context<'_>, root: &Path) -> io::Result<(PathBuf, Value, Vec<Value>)> {
@@ -151,7 +151,7 @@ fn immutable(context: &mut Context<'_>, path: &Path, body: &[u8]) -> io::Result<
         }
         return Ok(());
     }
-    kag_release::safe_absolute(path)?;
+    release_files::safe_absolute(path)?;
     fs::create_dir_all(path.parent().ok_or_else(|| invalid("missing parent"))?)?;
     let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
     file.write_all(body)?;
@@ -173,7 +173,7 @@ pub fn normalize(
         None
     } else {
         let path = packet.join(".registry-import.lock");
-        kag_release::safe_absolute(&path)?;
+        release_files::safe_absolute(&path)?;
         let f = OpenOptions::new()
             .read(true)
             .write(true)

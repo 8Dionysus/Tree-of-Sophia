@@ -62,7 +62,22 @@ impl DerefMut for PinnedSqliteConnection {
 /// Keeps the original allocated-space reservation and exact inode custody
 /// alive after SQLite close, through bounded external publication. No grant.
 pub struct PinnedSqliteDerivedWriteGuard {
-    _policy: Arc<dyn FdIoPolicy>,
+    policy: Arc<crate::pinned_sqlite_aux::MainOnlyPolicy>,
+}
+impl PinnedSqliteDerivedWriteGuard {
+    /// Reserve the admitted logical range in this guard's exact unnamed inode.
+    /// The kernel allocation remains with the file across SQLite close or
+    /// process death; it does not rely on a host reservation service.
+    pub fn reserve_file_capacity(&self) -> Result<()> {
+        self.policy.reserve_file_capacity()
+    }
+
+    /// Release unwritten allocation beyond EOF before naming a completed file.
+    /// Neither logical length nor payload bytes change. The physical ledger is
+    /// updated while this guard still owns the original admitted reservation.
+    pub fn release_unused_capacity(&self) -> Result<()> {
+        self.policy.release_unused_capacity()
+    }
 }
 impl PinnedSqliteConnection {
     /// One registered FD VFS descriptor remains live for this native process.
@@ -189,7 +204,7 @@ impl PinnedSqliteConnection {
             file, io, space, logical, allocated, deadline, cancelled,
         )?;
         let db = Self::open_with_policy(file, false, Some(policy.clone()), true)?;
-        Ok((db, PinnedSqliteDerivedWriteGuard { _policy: policy }))
+        Ok((db, PinnedSqliteDerivedWriteGuard { policy }))
     }
     pub fn budgeted_derived_rust_state_upper_bound() -> Result<usize> {
         crate::pinned_sqlite_aux::strict_main_declared_custody_bytes()?

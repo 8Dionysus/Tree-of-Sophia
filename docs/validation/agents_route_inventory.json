@@ -418,7 +418,7 @@
     },
     {
       "id": "standalone_access_product",
-      "prompt": "Build or inspect the portable ToS access product while preserving source authority and optional AbyssOS integration.",
+      "prompt": "Build or inspect the portable ToS access product while preserving source authority and repository-independent operation.",
       "target": "access/README.md",
       "owner_route": "access/AGENTS.md",
       "required_scopes": [
@@ -436,7 +436,7 @@
       "boundary_markers": [
         "read-only delivery",
         "does not author philosophical meaning",
-        "optional; its absence",
+        "without ecosystem source checkouts",
         "publication"
       ],
       "on_demand_surfaces": [
@@ -460,7 +460,7 @@
       ],
       "handoff_routes": [
         "ToS/derived-exports/AGENTS.md",
-        "access/integrations/abyssos/README.md"
+        "access/load-readiness/README.md"
       ]
     },
     {
@@ -789,8 +789,8 @@
     },
     {
       "id": "kag_port",
-      "prompt": "Refresh the local KAG provider route while returning to ToS derived exports and keeping runtime/MCP authority downstream.",
-      "target": "kag/provider-template.json",
+      "prompt": "Update the ToS-owned source-return export route; consumer indexing and runtime remain outside ToS.",
+      "target": "kag/README.md",
       "owner_route": "kag/AGENTS.md",
       "required_scopes": [
         "derived export",
@@ -799,19 +799,18 @@
         "runtime boundary"
       ],
       "required_markers": [
-        "KAG provider",
-        "derived-exports",
-        "MCP",
-        "runtime"
+        "ToS",
+        "export",
+        "source",
+        "consumer"
       ],
       "boundary_markers": [
         "source-return",
-        "derived",
-        "MCP"
+        "consumer",
+        "runtime"
       ],
       "on_demand_surfaces": [
         "kag/README.md",
-        "kag/provider-template.json",
         "kag/VALIDATION.md",
         "mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md"
       ],
@@ -825,7 +824,7 @@
       ],
       "completion_evidence": [
         "kag/AGENTS.md",
-        "kag/provider-template.json",
+        "kag/README.md",
         "rust/crates/tos-ops-mechanics-plan/src/kag_corpus_export.rs"
       ],
       "handoff_routes": [

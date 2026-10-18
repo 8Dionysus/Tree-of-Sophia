@@ -43,7 +43,7 @@ dist/
 /ToS/derived-exports/runtime/knowledge.sqlite3.*.building*
 
 # Independent KAG releases are built in an explicitly selected external root.
-# Only authored route cards and provider-template.json belong in this checkout.
+# Authored export routes belong in this checkout; consumer indexes do not.
 /kag/manifest.json
 /kag/nodes/
 /kag/edges/
