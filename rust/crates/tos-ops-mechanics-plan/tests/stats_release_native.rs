@@ -31,11 +31,16 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         let raw = match name {
             "stats/port.manifest.json" => serde_json::to_vec(&port_document).unwrap(),
-            name if name == packet_ref => serde_json::to_vec(&packet_document).unwrap(),
             _ => b"# Synthetic ToS stats export fixture\n".to_vec(),
         };
         fs::write(path, raw).unwrap();
     }
+    fs::create_dir_all(source.join("stats/packets")).unwrap();
+    fs::write(
+        source.join(packet_ref),
+        serde_json::to_vec(&packet_document).unwrap(),
+    )
+    .unwrap();
     let binary = env!("CARGO_BIN_EXE_tos-stats-release");
     let build = || {
         Command::new(binary)
@@ -215,6 +220,55 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
         assert!(!validate().status.success());
     }
     fs::write(&packet, serde_json::to_vec(&packet_document).unwrap()).unwrap();
+    let second_ref = "stats/packets/another-declared-observation.json";
+    let mut second_packet = packet_document.clone();
+    second_packet["observation_id"] = json!("Tree-of-Sophia:synthetic-ratio:second");
+    let mut expanded_port = port_document.clone();
+    expanded_port["exports"][0]["packet_refs"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!(second_ref));
+    fs::write(&port, serde_json::to_vec(&expanded_port).unwrap()).unwrap();
+    assert!(
+        !validate().status.success(),
+        "a declared missing packet must not validate"
+    );
+    fs::write(
+        source.join(second_ref),
+        serde_json::to_vec(&second_packet).unwrap(),
+    )
+    .unwrap();
+    assert!(validate().status.success());
+    let expanded = build();
+    assert!(
+        expanded.status.success(),
+        "{}",
+        String::from_utf8_lossy(&expanded.stderr)
+    );
+    let expanded: Value = serde_json::from_slice(&expanded.stdout).unwrap();
+    let selected = release
+        .join("releases")
+        .join(expanded["export_revision"].as_str().unwrap());
+    let checked = Command::new(binary)
+        .args(["verify", "--release"])
+        .arg(selected)
+        .env("PATH", root.join("no-tools"))
+        .output()
+        .unwrap();
+    assert!(
+        checked.status.success(),
+        "{}",
+        String::from_utf8_lossy(&checked.stderr)
+    );
+    let checked: Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert_eq!(checked["observations"].as_array().unwrap().len(), 2);
+    assert!(
+        checked["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|f| f["path"] == second_ref)
+    );
     let exported = release.join("releases").join(identity);
     fs::write(exported.join("extra.json"), b"{}").unwrap();
     assert!(

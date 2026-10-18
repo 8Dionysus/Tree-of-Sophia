@@ -15,15 +15,13 @@ use tos_foundation::Digest256;
 pub const SOURCE_SCHEMA: &str = "tos_stats_port_export_v1";
 pub const SCHEMA: &str = "tos_stats_export_release_v1";
 pub const SOURCE_KIND: &str = "stats_port_export";
-pub const SOURCE_PATHS: [&str; 5] = [
+pub const SOURCE_PATHS: [&str; 4] = [
     "stats/AGENTS.md",
     "stats/README.md",
     "stats/VALIDATION.md",
-    "stats/packets/table-i-prepared-dossier-route-ratio.reference.json",
     "stats/port.manifest.json",
 ];
 const PORT: &str = "stats/port.manifest.json";
-const PACKET: &str = "stats/packets/table-i-prepared-dossier-route-ratio.reference.json";
 const MAX_SOURCE: u64 = 1024 * 1024;
 
 fn validate_shape(kind: &str, value: &Value) -> io::Result<()> {
@@ -68,19 +66,34 @@ fn nonempty(value: &Value) -> io::Result<&str> {
         .filter(|s| !s.is_empty())
         .ok_or_else(|| invalid("stats observation text absent"))
 }
+fn source_paths(port: &Value) -> io::Result<Vec<String>> {
+    validate_shape("port", port)?;
+    let mut paths: std::collections::BTreeSet<String> =
+        SOURCE_PATHS.iter().map(|p| (*p).to_owned()).collect();
+    for export in port["exports"].as_array().unwrap() {
+        for reference in export["packet_refs"].as_array().unwrap() {
+            let reference = shared::relative(reference)?;
+            if !reference.starts_with("stats/packets/") || !paths.insert(reference.to_owned()) {
+                return Err(invalid("stats packet path differs or is duplicated"));
+            }
+        }
+    }
+    Ok(paths.into_iter().collect())
+}
 fn records(root: &Path) -> io::Result<Value> {
     directory(root)?;
     let mut total = 0u64;
     let mut records = Vec::new();
-    for name in SOURCE_PATHS {
+    let port = shared::strict_json(&read_bounded(&root.join(PORT), MAX_SOURCE)?)?;
+    for name in source_paths(&port)? {
         budget_check()?;
-        let path = root.join(name);
+        let path = root.join(&name);
         let bytes = regular(&path)?.len();
         total = total
             .checked_add(bytes)
             .filter(|v| *v <= MAX_SOURCE)
             .ok_or_else(|| invalid("stats source exceeds 1 MiB"))?;
-        records.push(json!({"path":name,"sha256":digest(&path)?,"size_bytes":bytes}));
+        records.push(json!({"path":name,"sha256":Digest256::of_bytes(&read_bounded(&path, bytes)?).to_hex(),"size_bytes":bytes}));
     }
     Ok(Value::Array(records))
 }
@@ -110,20 +123,28 @@ fn posture(port: &Value) -> io::Result<Value> {
         .cloned()
         .ok_or_else(|| invalid("stats port lacks evidence_posture object"))
 }
-fn expected_files(manifest: bool) -> Vec<String> {
-    let mut files: Vec<_> = SOURCE_PATHS
-        .iter()
-        .map(|p| format!("Tree-of-Sophia/{p}"))
-        .collect();
+fn expected_files(records: &Value, manifest: bool) -> io::Result<Vec<String>> {
+    let mut files = Vec::new();
+    for record in records
+        .as_array()
+        .ok_or_else(|| invalid("stats source records"))?
+    {
+        files.push(format!(
+            "Tree-of-Sophia/{}",
+            shared::relative(&record["path"])?
+        ));
+    }
     if manifest {
         files.push("export.json".into());
     }
     files.sort();
-    files
+    Ok(files)
 }
-fn verify_members(root: &Path, manifest: bool) -> io::Result<()> {
+fn verify_members(root: &Path, manifest: bool, records: &Value) -> io::Result<()> {
     let (files, _) = tree(root)?;
-    if files.into_iter().map(|(name, _)| name).collect::<Vec<_>>() != expected_files(manifest) {
+    if files.into_iter().map(|(name, _)| name).collect::<Vec<_>>()
+        != expected_files(records, manifest)?
+    {
         return Err(invalid("stats stage has undeclared or missing files"));
     }
     Ok(())
@@ -138,6 +159,41 @@ fn read_bounded(path: &Path, max: u64) -> io::Result<Vec<u8>> {
         return Err(invalid("stats dependency grew past byte bound"));
     }
     Ok(raw)
+}
+fn selected_record<'a>(records: &'a Value, name: &str) -> io::Result<&'a Value> {
+    records
+        .as_array()
+        .and_then(|records| records.iter().find(|r| r["path"] == name))
+        .ok_or_else(|| invalid("stats declared closure changed"))
+}
+fn read_record(root: &Path, record: &Value) -> io::Result<Vec<u8>> {
+    let name = shared::relative(&record["path"])?;
+    let cap = record["size_bytes"]
+        .as_u64()
+        .filter(|n| *n <= MAX_SOURCE)
+        .ok_or_else(|| invalid("stats source record byte bound"))?;
+    let raw = read_bounded(&root.join(name), cap)?;
+    if raw.len() as u64 != cap || Digest256::of_bytes(&raw).to_hex() != hex(&record["sha256"])? {
+        return Err(invalid("stats source record changed"));
+    }
+    Ok(raw)
+}
+fn observations(root: &Path, records: &Value) -> io::Result<Value> {
+    let mut observations = Vec::new();
+    for record in records
+        .as_array()
+        .ok_or_else(|| invalid("stats source records"))?
+    {
+        let path = shared::relative(&record["path"])?;
+        if !path.starts_with("stats/packets/") {
+            continue;
+        }
+        let packet = shared::strict_json(&read_record(root, record)?)?;
+        let mut observed = observation(&packet)?;
+        observed["packet_ref"] = json!(path);
+        observations.push(observed);
+    }
+    Ok(Value::Array(observations))
 }
 
 // This export owns census ratios. New statistic kinds need an explicit local
@@ -222,7 +278,8 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
     if root.join(PORT) != port {
         return Err(invalid("stats port location differs"));
     }
-    let document = read_json(&port)?;
+    let retained = records(root)?;
+    let document = shared::strict_json(&read_record(root, selected_record(&retained, PORT)?)?)?;
     validate_shape("port", &document)?;
     let evidence = &document["evidence_posture"];
     let privacy = nonempty(&evidence["privacy"])?;
@@ -267,6 +324,7 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
         }
     }
     let mut packets = std::collections::BTreeSet::new();
+    let mut observation_ids = std::collections::BTreeSet::new();
     let mut exported = std::collections::BTreeSet::new();
     for export in exports {
         let id = nonempty(&export["measurement_id"])?;
@@ -290,7 +348,8 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
             if !reference.starts_with("stats/packets/") || !packets.insert(reference.to_owned()) {
                 return Err(invalid("stats packet path differs or is duplicated"));
             }
-            let packet = read_json(&root.join(reference))?;
+            let packet =
+                shared::strict_json(&read_record(root, selected_record(&retained, reference)?)?)?;
             validate_shape("packet", &packet)?;
             if packet["schema_version"] != "aoa_stats_measurement_packet_v1"
                 || packet["measurement_id"] != id
@@ -312,6 +371,9 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                 return Err(invalid("stats packet binding differs"));
             }
             observation(&packet)?;
+            if !observation_ids.insert(nonempty(&packet["observation_id"])?.to_owned()) {
+                return Err(invalid("stats observation identity is duplicated"));
+            }
             validate_ratio_value(contract, &packet["value"])?;
             if packet["value"].get("denominator").is_some()
                 && (packet["value"]["denominator"] != packet["population"]["size"]
@@ -334,6 +396,9 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
     if exported != identities {
         return Err(invalid("stats measurement lacks an export"));
     }
+    if records(root)? != retained {
+        return Err(invalid("stats source changed during validation"));
+    }
     Ok(json!({"valid":true,"owner_repo":"Tree-of-Sophia",
         "measurements":measurements.len(),"packets":packets.len(),"grants_semantic_acceptance":false}))
 }
@@ -350,7 +415,7 @@ pub fn verify_export(root: &Path) -> io::Result<Value> {
             "source_kind",
             "source_revision",
             "evidence_posture",
-            "observation",
+            "observations",
             "files",
             "export_revision",
         ],
@@ -372,12 +437,11 @@ pub fn verify_export(root: &Path) -> io::Result<Value> {
     if manifest["files"] != observed || manifest["source_revision"] != revision(&observed)? {
         return Err(invalid("stats export source binding differs"));
     }
-    verify_members(&root, true)?;
+    verify_members(&root, true, &observed)?;
     validate_port(&root.join("Tree-of-Sophia").join(PORT))?;
     if manifest["evidence_posture"]
         != posture(&read_json(&root.join("Tree-of-Sophia").join(PORT))?)?
-        || manifest["observation"]
-            != observation(&read_json(&root.join("Tree-of-Sophia").join(PACKET))?)?
+        || manifest["observations"] != observations(&root.join("Tree-of-Sophia"), &observed)?
     {
         return Err(invalid(
             "stats export posture/observation differs from source",
@@ -413,11 +477,12 @@ pub fn build_release(source: &Path, release: &Path) -> io::Result<Value> {
         fs::create_dir(&stage)?;
         let tree_root = stage.join("Tree-of-Sophia");
         fs::create_dir(&tree_root)?;
-        for name in SOURCE_PATHS {
+        for record in before.as_array().unwrap() {
+            let name = shared::relative(&record["path"])?;
             budget_check()?;
             let dest = tree_root.join(name);
             fs::create_dir_all(dest.parent().unwrap())?;
-            let raw = read_bounded(&source.join(name), MAX_SOURCE)?;
+            let raw = read_record(&source, record)?;
             OpenOptions::new()
                 .write(true)
                 .create_new(true)
@@ -428,16 +493,16 @@ pub fn build_release(source: &Path, release: &Path) -> io::Result<Value> {
             return Err(invalid("stats staged source differs"));
         }
         let selected_posture = posture(&read_json(&tree_root.join(PORT))?)?;
-        let selected_observation = observation(&read_json(&tree_root.join(PACKET))?)?;
-        verify_members(&stage, false)?;
+        let selected_observations = observations(&tree_root, &before)?;
+        verify_members(&stage, false, &before)?;
         validate_port(&tree_root.join(PORT))?;
         if records(&source)? != before || records(&tree_root)? != before {
             return Err(invalid("stats source changed during export"));
         }
-        verify_members(&stage, false)?;
+        verify_members(&stage, false, &before)?;
         let mut manifest = json!({"schema_version":SCHEMA,"source_kind":SOURCE_KIND,
             "source_revision":source_revision,"evidence_posture":selected_posture,
-            "observation":selected_observation,"files":before});
+            "observations":selected_observations,"files":before});
         let identity = hash_value(&manifest)?;
         manifest["export_revision"] = Value::String(identity.clone());
         OpenOptions::new()
@@ -463,7 +528,7 @@ pub fn build_release(source: &Path, release: &Path) -> io::Result<Value> {
             return Err(invalid("existing stats export differs"));
         }
         if stage.exists() {
-            verify_members(&stage, true)?;
+            verify_members(&stage, true, &before)?;
             let (files, directories) = tree(&stage)?;
             for (_, path) in files {
                 fs::remove_file(path)?;
@@ -505,7 +570,7 @@ pub fn status_release(release: &Path, expected: &str) -> io::Result<Value> {
         crate::kag_downstream_status::Status::new(&release, "stats")?.status(expected)?;
     result["source_kind"] = Value::String(SOURCE_KIND.into());
     result["export_revision"] = Value::Null;
-    result["observation"] = Value::Null;
+    result["observations"] = Value::Null;
     let success = &result["state"]["last_success"];
     if success.is_null() {
         return Ok(result);
@@ -519,6 +584,6 @@ pub fn status_release(release: &Path, expected: &str) -> io::Result<Value> {
         return Err(invalid("last successful stats export binding differs"));
     }
     result["export_revision"] = manifest["export_revision"].clone();
-    result["observation"] = manifest["observation"].clone();
+    result["observations"] = manifest["observations"].clone();
     Ok(result)
 }

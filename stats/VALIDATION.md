@@ -38,9 +38,12 @@ tos-stats-release status --release-root /path/to/stats-releases --expected-revis
 tos-stats-release verify --release /path/to/stats-releases/releases/EXPORT_SHA256
 ```
 
-The source revision binds the five selected port files. `export.json` binds the
+The source revision binds the four port metadata files and every declared packet.
+The declaration owns packet paths; adding or renaming a packet needs no program
+edit. `export.json` binds the
 immutable export identity, full membership, hashes, evidence posture and original
-observation. Verification rejects changed, missing, extra or linked files. A
+observations, each with its packet ref. Validation and publication require the
+same bounded source closure. Verification rejects changed, missing, extra or linked files. A
 failed preparation does not replace the previous successful export. Status checks
 that successful artifact before reporting it.
 

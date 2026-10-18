@@ -51,7 +51,7 @@ tree should grow next.
 
 `tos-stats-release validate --port /absolute/selected-source/stats/port.manifest.json`
 performs the ToS-owned export checks. `build --source-root PATH --release-root PATH`
-publishes the five exact port files and an immutable `export.json`; `verify` and
+publishes the port metadata and every declared packet with an immutable `export.json`; `verify` and
 `status` check that artifact. No external checkout, Python interpreter or
 consumer validator participates. The consumer owns additional compatibility
 and composition checks after importing the ToS export. Native verification does
