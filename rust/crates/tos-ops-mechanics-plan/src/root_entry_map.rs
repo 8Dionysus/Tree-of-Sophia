@@ -531,7 +531,7 @@ mod tests {
         assert_eq!(identity["contract_version"], SCHEMA);
         assert_eq!(
             identity["trust_layer"],
-            serde_json::json!(["abi_contract_signature", "source_schema_validation"])
+            serde_json::json!(["source_schema_validation"])
         );
         assert!(
             identity["consumer_expectation"]
