@@ -98,15 +98,19 @@ returns an error without writing an oversized frame. Initialize is accepted
 only after its response is flushed. Tool advertisement includes only actual
 executor-ready operations and their exact descriptor schemas.
 
-These caller checks do not close the full maintained 60-parser/50-HTTP/50-MCP
-inventory. Global prepared/source selection, doctor/verify/profile/site
-assembly, remaining domain engines and authentic owner binding remain
-requirements of the existing API2 inventory. The native binary is an additive
-closed candidate, not a replacement claiming these missing functions. Its
-bounded compact JSON and typed native error/exit profile remain explicit:
+The 60-parser/50-HTTP/50-MCP inventory describes the historical caller-only
+milestone retained in the Rust cutover commit `b54cbf8e` (2026-10-16), not a
+current list of missing native functions. Current native dispatch lives in
+`src/main.rs`, `src/http.rs` and `src/mcp.rs`; standalone contracts and the
+installed-product checks have their own routes in
+[the access guide](../../../access/README.md) and
+[release guidance](../../../docs/RELEASING.md). These wire fixtures alone do
+not establish whole-product parity: selected source/prepared inputs, diagnostics,
+assets, domain behavior and actual owner binding need their corresponding
+checks. The bounded compact JSON and typed native error/exit profile remain explicit:
 0 successful flush, 1 query/disclosure/output failure, 2 request/file/usage
-failure, 3 unavailable selected capability. Maintained Python pretty JSON and
-FastMCP serialization are not silently substituted for this declared profile.
+failure, 3 unavailable selected capability. Historical Python pretty JSON and
+FastMCP serialization are not silently substituted for this declared native profile.
 
 Maintained knowledge search now defaults to the selected legacy v1 engine,
 including the optional empty query, offset, filters and explicit legacy mode.
@@ -151,8 +155,10 @@ packet projection is duplicated in transport. Original header/node/edge grants
 share one final-flush hold even when no normalized graph carrier is consulted.
 The existing producer fixture and QRY differential own domain parity; the native
 wire case checks thirteen complete packets, HEAD lengths and final withdrawal,
-cancellation and deadline refusal. These source checks do not establish installed
-managed execution while the named host fs-verity prerequisite remains unavailable.
+cancellation and deadline refusal. These source checks alone do not establish
+installed managed execution. Kernel fs-verity, process custody and the actual
+installed entrypoint need their own admitted verification; an earlier host
+prerequisite refusal is not a current host-availability verdict.
 
 The maintained exploration-contracts GET/HEAD and MCP tool disclose the four
 packaged v1/v2 request/result schemas independently of source selection. Data
@@ -160,10 +166,18 @@ roots and request parameters cannot override those compiled software bytes.
 The maintained `/api/knowledge/explore/capabilities` GET/HEAD returns the same
 current capability value without embedding the four schemas.
 Unselected `NoOwner` reports exploration unavailable with zero configured
-checkpoint/work/session limits. The managed selected executor reports its real
-process checkpoint and QRY budgets only while its current release is available;
-it never claims restart survival. This capability snapshot issues no source
-grant and does not close a selected exploration execution or public activation.
+checkpoint/work/session limits.
+Selected executors report checkpoint and QRY limits only while their source
+selection is available. Default process-local checkpoints do not survive restart.
+For prepared PublishedD1, explicit `--exploration-checkpoints ABS` selects the
+private SQLite store and reports `restart_survival: true`; replay still checks
+the selected binding, expiry and execution configuration. The managed-release
+executor also accepts a checkpoint path, but its current generic capability
+packet retains `restart_survival: false`; that path must not be described as an
+already verified managed restart guarantee. See `src/prepared_local.rs`,
+`src/managed_local.rs` and [the access guide](../../../access/README.md) for the
+separate selections and bounds. This capability snapshot issues no source grant
+and does not close selected exploration execution or public activation.
 
 Corpus reads reuse the selected ABI5 original component and the real managed release's declared captured index/member closure. The maintained six HTTP GET/HEAD routes and eight MCP tools share the QRY kernel, with resources/packet MCP-only. Availability requires the original component plus verified raw source members under the release holder; status paths identify those actual selected members. No corpus CLI or raw source/payload grant is added.
 

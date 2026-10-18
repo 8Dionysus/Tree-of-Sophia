@@ -1,5 +1,5 @@
 # Canon Formation Parts
 
-| Part | Function |
-| --- | --- |
-| [Promotion Gate](parts/promotion-gate/README.md) | route reviewed candidates into canonical ToS surfaces without bypassing source review |
+Compatibility entry for existing links and external readers whose membership is unknown.
+Use [README.md#operations](README.md#operations) for the current owner route. This file is optional for
+compact topology and carries no separate operation contract.

@@ -16,3 +16,9 @@
 
 - `schemas/`
 - `examples/`
+
+The native Questbook compatibility assertions are the named consumer of these
+retained schemas/examples. Membership and return conditions belong to the
+existing [register](../../../../QUESTBOOK.md). Core validation accepts a register
+without this demonstration set; if retained projections exist they must match
+the registered legacy records exactly. These examples do not activate dispatch.

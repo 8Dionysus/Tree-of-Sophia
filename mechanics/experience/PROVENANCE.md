@@ -1,27 +1,9 @@
 # Experience Provenance Bridge
 
-This is the active bridge from current Experience routes to former-path
-accounting. Former source material remains recoverable in immutable Git history.
+Compatibility entry for existing links and external readers whose membership is unknown.
+Use [README.md#history](README.md#history) for the current owner route. This file is optional for
+compact topology and carries no separate operation contract.
 
-## Current Route First
-
-- [README](README.md)
-- [PARTS](PARTS.md)
-- [parts/candidate-review](parts/candidate-review/README.md)
-- [parts/adoption-boundary](parts/adoption-boundary/README.md)
-- [parts/governance-boundary](parts/governance-boundary/README.md)
-- [parts/installation-boundary](parts/installation-boundary/README.md)
-- [parts/service-office-boundary](parts/service-office-boundary/README.md)
-- [parts/pattern-review](parts/pattern-review/README.md)
-- [parts/write-guards](parts/write-guards/README.md)
-
-If those surfaces answer the task, stop there.
-
-## Legacy Route
-
-Historical old-path accounting is preserved in [TOS-D-0043](../../docs/decisions/TOS-D-0043-spark-and-legacy-scaffolding-retirement.md).
-
-## Distillation Rule
-
-When former Experience material changes current behavior, update the owning
-active part first, then this bridge with an exact immutable history reference.
+<a id="current-route-first"></a>
+<a id="legacy-route"></a>
+<a id="distillation-rule"></a>

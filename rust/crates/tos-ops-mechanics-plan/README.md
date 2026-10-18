@@ -1,5 +1,11 @@
 # Mechanics-local command planning and execution
 
+The `philosophy-library` feature exposes bounded philosophy producers to
+native command owners without standalone mechanics families. `tos-command`
+selects that subset. Default `compiler-backed-validators` retains both
+`philosophy-library` and `mechanics`; the default validator contract and
+no-default-feature CI profile remain intact.
+
 The `philosophy-library` feature exposes the bounded philosophy producers to native
 command owners. `tos-command` selects that library subset. Standalone OPS binaries keep
 the default `compiler-backed-validators` feature, which includes it together with the
@@ -14,9 +20,9 @@ assertions by home, builder checks, then validators.
 `--repo-root ABSOLUTE_PATH` is required. `--execute` runs the native Growth
 pipeline with the other selected native mechanics from that root. Unexpected
 Python test/build/validator files fail discovery before any command starts.
-The global `--python COMMAND` option selects external-owner adapters used by
-mechanics operations. Maintained validation and release commands do not accept
-it or pass an interpreter to their authored command sequences.
+ToS operations do not select a neighboring repository or its interpreter.
+Consumers own integration, indexing, trust and admission. Maintained validation
+and release sequences use native ToS commands.
 
 The first nonzero child stops execution. Child stdout and stderr retain their
 streams; diagnostic traceback wording and cross-stream interleaving are not
@@ -66,8 +72,8 @@ The three CI entries (`tos-software-ci`, `tos-validation-lanes` and
 `tos-release-check`) build with `--no-default-features`. That selection compiles
 the shared command, process-custody and Cargo-product checks without source
 storage, schema engines, publication tools or embedded mechanics assertions.
-The `mechanics` feature adds those owner routes; default compiler-backed
-validators and the CMD `philosophy-library` selection enable it explicitly.
+The `mechanics` feature adds those owner routes. Default compiler-backed
+validators enable it; the CMD `philosophy-library` subset does not.
 
 Discovery visits only immediate `mechanics/*` and `mechanics/*/parts/*`
 homes, rejects encountered symlinks and caps scanned entries. The

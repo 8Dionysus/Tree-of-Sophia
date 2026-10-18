@@ -1,5 +1,6 @@
 //! The current Questbook obligation and dispatch compatibility surface.
-//! Authored quests and schema files remain the source; this is a read-only check.
+//! QUESTBOOK.md owns membership and follow-through; original records and
+//! schemas retain their evidence/compatibility role. This is a read-only check.
 
 use jsonschema::paths::LocationSegment;
 use jsonschema::{Draft, Validator};
@@ -24,9 +25,6 @@ const CATALOG: &str =
     "mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json";
 const DISPATCH: &str =
     "mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json";
-// These IDs and the exceptional second dispatch are this owner's present
-// compatibility contract, not an algorithmic quest-count or corpus rule.
-const QUEST_IDS: &[&str] = &["TOS-Q-0001", "TOS-Q-0002", "TOS-Q-0003", "TOS-Q-0004"];
 const QUEST_REQUIRED: &[&str] = &[
     "schema_version",
     "id",
@@ -62,28 +60,6 @@ const DISPATCH_REQUIRED: &[&str] = &[
     "write_scope",
     "activation_mode",
     "public_safe",
-];
-const QUEST_TOKENS: &[&str] = &[
-    "Use it for:",
-    "Do not use it for:",
-    "## Frontier",
-    "## Near",
-    "## Latent / parked",
-    "## Backing files",
-    "mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json",
-    "mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json",
-];
-const INTEGRATION_TOKENS: &[&str] = &[
-    "## Core boundary",
-    "## Good uses in ToS",
-    "## Bad uses in ToS",
-    "## Good anchors in this repo",
-    "## Initial posture",
-    "QUESTBOOK.md",
-    "CHARTER.md",
-    "BOUNDARIES.md",
-    "ToS/doctrine/KNOWLEDGE_MODEL.md",
-    "mechanics/questbook/parts/dispatch-contracts/examples/",
 ];
 const FORBIDDEN: &[&str] = &["ATM10-Agent", "aoa-sdk"];
 
@@ -686,7 +662,7 @@ pub(crate) fn dispatch_entry(id: &str, quest: &Value) -> io::Result<Value> {
                 "quest {id} activation.mode must be a non-empty string"
             ))
         })?;
-    let artifacts = if id == "TOS-Q-0002" {
+    let artifacts = if quest.get("kind").and_then(Value::as_str) == Some("guardrail") {
         vec!["bounded_plan", "guardrail_check", "verification_result"]
     } else {
         vec!["bounded_plan", "work_result", "verification_result"]
@@ -720,51 +696,209 @@ fn dispatch_entry_reports_missing_activation_mode_before_projection_fields() {
     assert!(error.to_string().contains("activation.mode"));
 }
 
-/// Validate the current package-owned surface. A successful check is only a
-/// mechanics compatibility result, never a quest acceptance or canon grant.
+/// The existing public register owns membership and follow-through. Its
+/// bounded data block is independent of headings, sample IDs and task count.
+fn obligations(root: &Path, document: &str) -> io::Result<Vec<Value>> {
+    let marker = "```tos-obligations-v1\n";
+    let (before, tail) = document
+        .split_once(marker)
+        .ok_or_else(|| invalid("QUESTBOOK.md lacks obligation register"))?;
+    let (raw, after) = tail
+        .split_once("\n```")
+        .ok_or_else(|| invalid("unterminated obligation register"))?;
+    if before.contains(marker) || after.contains(marker) {
+        return Err(invalid("duplicate obligation register"));
+    }
+    // Published membership cannot hide a duplicate key behind serde's last
+    // value wins behavior. Keep foundation depth/visit/byte limits unchanged.
+    tos_foundation::parse_json(
+        raw.as_bytes(),
+        tos_foundation::JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .map_err(|error| invalid(format!("invalid obligation register: {error}")))?;
+    let register: Value = serde_json::from_str(raw)
+        .map_err(|error| invalid(format!("invalid obligation register: {error}")))?;
+    if register.get("schema_version").and_then(Value::as_str) != Some("tos_obligations_v1") {
+        return Err(invalid("unsupported obligation register schema"));
+    }
+    for field in ["runtime_execution", "canon_admission"] {
+        if register.get(field) != Some(&Value::Bool(false)) {
+            return Err(invalid(format!(
+                "obligation register {field} must remain false"
+            )));
+        }
+    }
+    let rows = register
+        .get("records")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("obligation register records must be an array"))?;
+    let mut ids = std::collections::BTreeSet::new();
+    let mut sources = std::collections::BTreeSet::new();
+    let mut source_bytes = document.len();
+    let id_pattern = Regex::new(r"^TOS-Q-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$")
+        .map_err(|error| invalid(error.to_string()))?;
+    for row in rows {
+        let value = object(row, "obligation")?;
+        let id = value.get("id").and_then(Value::as_str).unwrap_or("");
+        if !id_pattern.is_match(id) || !ids.insert(id) {
+            return Err(invalid("invalid or duplicate obligation id"));
+        }
+        if !matches!(
+            value.get("state").and_then(Value::as_str),
+            Some(
+                "captured"
+                    | "triaged"
+                    | "ready"
+                    | "active"
+                    | "blocked"
+                    | "reanchor"
+                    | "deferred"
+                    | "review_pending"
+                    | "done"
+                    | "dropped"
+            )
+        ) {
+            return Err(invalid(format!("{id} lacks explicit obligation state")));
+        }
+        for field in ["owner_ref", "source_return", "record_ref"] {
+            let reference = value.get(field).and_then(Value::as_str).unwrap_or("");
+            let path = Path::new(reference);
+            if reference.is_empty()
+                || !path
+                    .components()
+                    .all(|p| matches!(p, std::path::Component::Normal(_)))
+                || (field == "source_return" && !reference.starts_with("ToS/"))
+            {
+                return Err(invalid(format!("{id} invalid {field}")));
+            }
+            let target = root.join(path);
+            if fs::canonicalize(&target).ok().as_ref() != Some(&target) {
+                return Err(invalid(format!(
+                    "{id} missing or unsafe {field}: {reference}"
+                )));
+            }
+            if sources.insert(reference) {
+                // Dynamic membership charges each distinct source once. The
+                // legacy phase rereads only registered record bytes, bounded
+                // by this same aggregate, plus four fixed schema/projections.
+                let bytes = read(root, reference)?;
+                source_bytes = source_bytes
+                    .checked_add(bytes.len())
+                    .ok_or_else(|| invalid("obligation source byte overflow"))?;
+                if source_bytes > JsonLimits::default().max_bytes {
+                    return Err(invalid("obligation sources exceed aggregate input bound"));
+                }
+                if std::str::from_utf8(&bytes)
+                    .map_err(|_| invalid("non-UTF-8 obligation source"))?
+                    .trim()
+                    .is_empty()
+                {
+                    return Err(invalid(format!("{id} empty {field}: {reference}")));
+                }
+            }
+        }
+        if value
+            .get("return_when")
+            .and_then(Value::as_str)
+            .is_none_or(|s| s.trim().is_empty())
+        {
+            return Err(invalid(format!("{id} lacks return condition")));
+        }
+        let history = value
+            .get("history_ref")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let prefix = "https://github.com/8Dionysus/Tree-of-Sophia/blob/";
+        let history_tail = history.strip_prefix(prefix).unwrap_or("");
+        let (revision, historical_path) = history_tail.split_once('/').unwrap_or(("", ""));
+        if revision.len() != 40
+            || !revision
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            || historical_path != value["record_ref"].as_str().unwrap_or("")
+        {
+            return Err(invalid(format!(
+                "{id} lacks exact immutable record history"
+            )));
+        }
+        if !matches!(
+            value.get("record_kind").and_then(Value::as_str),
+            Some("legacy_yaml" | "authored_note")
+        ) {
+            return Err(invalid(format!("{id} has unsupported record kind")));
+        }
+    }
+    // Removing a register row cannot silently abandon a retained record.
+    // An absent/empty store is valid; its membership is never a fixed quartet.
+    let record_refs: std::collections::BTreeSet<_> = rows
+        .iter()
+        .filter_map(|row| row["record_ref"].as_str())
+        .collect();
+    let store = root.join("quests");
+    match fs::symlink_metadata(&store) {
+        Ok(metadata) if !metadata.is_dir() || metadata.file_type().is_symlink() => {
+            return Err(invalid("obligation store must be a regular directory"));
+        }
+        Ok(_) => (),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => (),
+        Err(error) => return Err(error),
+    }
+    match fs::read_dir(&store) {
+        Ok(entries) => {
+            for (index, entry) in entries.enumerate() {
+                if index >= JsonLimits::default().max_visits {
+                    return Err(invalid("obligation store entry bound exceeded"));
+                }
+                let entry = entry?;
+                let name = entry
+                    .file_name()
+                    .into_string()
+                    .map_err(|_| invalid("non-UTF-8 obligation filename"))?;
+                if name.starts_with("TOS-Q-") && (name.ends_with(".yaml") || name.ends_with(".md"))
+                {
+                    let reference = format!("quests/{name}");
+                    if !record_refs.contains(reference.as_str()) {
+                        return Err(invalid(format!(
+                            "unregistered retained obligation: {reference}"
+                        )));
+                    }
+                }
+            }
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => (),
+        Err(error) => return Err(error),
+    }
+    Ok(rows.clone())
+}
+
+/// Validate obligation membership first. Retained schema/examples are a narrow
+/// compatibility consumer, optional for a register without legacy YAML records.
+/// A pass accepts neither an obligation, source text, rights nor canon.
 pub fn validate_surface(root: &Path) -> io::Result<()> {
     if !root.is_absolute() || fs::canonicalize(root)? != root {
         return Err(invalid(
             "repository root must be an absolute path without symlinks",
         ));
     }
-    let required_paths = [
-        "QUESTBOOK.md",
-        INTEGRATION,
-        QUEST_SCHEMA,
-        DISPATCH_SCHEMA,
-        CATALOG,
-        DISPATCH,
-    ]
-    .into_iter()
-    .map(str::to_owned)
-    .chain(QUEST_IDS.iter().map(|id| format!("quests/{id}.yaml")));
-    for relative in required_paths {
-        if !root.join(&relative).exists() {
-            return Err(invalid(format!("missing required file: {relative}")));
-        }
+    if text(root, INTEGRATION)?.trim().is_empty() {
+        return Err(invalid("obligation integration boundary is empty"));
     }
-    let questbook = text(root, "QUESTBOOK.md")?;
-    for token in QUEST_TOKENS {
-        if !questbook.contains(token) {
-            return Err(invalid(format!("QUESTBOOK.md must contain '{token}'")));
+    let records = obligations(root, &text(root, "QUESTBOOK.md")?)?;
+    let legacy: Vec<_> = records
+        .iter()
+        .filter(|r| r["record_kind"] == "legacy_yaml")
+        .collect();
+    if legacy.is_empty() {
+        // No example quartet is a prerequisite for a complete core register.
+        for path in [CATALOG, DISPATCH] {
+            if root.join(path).exists() && json_file(root, path)? != json!([]) {
+                return Err(invalid(format!(
+                    "{path} must stay aligned with registered legacy records"
+                )));
+            }
         }
-    }
-    for token in FORBIDDEN {
-        if questbook.contains(token) {
-            return Err(invalid(format!("QUESTBOOK.md must not mention '{token}'")));
-        }
-    }
-    let integration = text(root, INTEGRATION)?;
-    for token in INTEGRATION_TOKENS {
-        if !integration.contains(token) {
-            return Err(invalid(format!("{INTEGRATION} must contain '{token}'")));
-        }
-    }
-    for token in FORBIDDEN {
-        if integration.contains(token) {
-            return Err(invalid(format!("{INTEGRATION} must not mention '{token}'")));
-        }
+        return Ok(());
     }
     let quest_schema = json_file(root, QUEST_SCHEMA)?;
     schema_envelope(
@@ -782,33 +916,23 @@ pub fn validate_surface(root: &Path) -> io::Result<()> {
         "quest_dispatch_v1",
         DISPATCH_REQUIRED,
     )?;
-    let mut quest_validator = None;
-    let mut dispatch_validator = None;
-    let mut catalog = Vec::with_capacity(QUEST_IDS.len());
-    let mut dispatch = Vec::with_capacity(QUEST_IDS.len());
-    let mut active = Vec::new();
-    let mut closed = Vec::new();
-    for id in QUEST_IDS {
+    let quest_validator = validator(&quest_schema, QUEST_SCHEMA)?;
+    let dispatch_validator = validator(&dispatch_schema, DISPATCH_SCHEMA)?;
+    let mut catalog = Vec::new();
+    let mut dispatch = Vec::new();
+    for record in legacy {
+        let id = record["id"]
+            .as_str()
+            .ok_or_else(|| invalid("missing obligation id"))?;
         let path = format!("quests/{id}.yaml");
-        let quest = yaml_file(root, &path)?;
-        object(&quest, &path).map_err(|_| invalid(format!("{path} must be a YAML object")))?;
-        if quest_validator.is_none() {
-            quest_validator = Some(validator(&quest_schema, QUEST_SCHEMA)?);
-        }
-        validate(
-            &quest,
-            quest_validator
-                .as_ref()
-                .ok_or_else(|| invalid("quest schema unavailable"))?,
-            &path,
-            QUEST_SCHEMA,
-        )?;
-        if quest.get("schema_version").and_then(Value::as_str) != Some("work_quest_v1") {
+        if record["record_ref"] != path {
             return Err(invalid(format!(
-                "{id} schema_version must equal 'work_quest_v1'"
+                "{id} legacy record path must equal '{path}'"
             )));
         }
-        if quest.get("id").and_then(Value::as_str) != Some(*id) {
+        let quest = yaml_file(root, &path)?;
+        validate(&quest, &quest_validator, &path, QUEST_SCHEMA)?;
+        if quest.get("id").and_then(Value::as_str) != Some(id) {
             return Err(invalid(format!("{path} id must equal '{id}'")));
         }
         if quest.get("repo").and_then(Value::as_str) != Some("Tree-of-Sophia") {
@@ -817,13 +941,10 @@ pub fn validate_surface(root: &Path) -> io::Result<()> {
         if quest.get("public_safe") != Some(&Value::Bool(true)) {
             return Err(invalid(format!("{id} public_safe must be true")));
         }
-        if matches!(
-            quest.get("state").and_then(Value::as_str),
-            Some("done" | "dropped")
-        ) {
-            closed.push(*id);
-        } else {
-            active.push(*id);
+        if quest.get("state") != record.get("state") {
+            return Err(invalid(format!(
+                "{id} legacy state differs from obligation register"
+            )));
         }
         let notes = quest
             .get("notes")
@@ -837,56 +958,37 @@ pub fn validate_surface(root: &Path) -> io::Result<()> {
         }
         catalog.push(catalog_entry(id, &quest)?);
         let derived = dispatch_entry(id, &quest)?;
-        if dispatch_validator.is_none() {
-            dispatch_validator = Some(validator(&dispatch_schema, DISPATCH_SCHEMA)?);
-        }
         validate(
             &derived,
-            dispatch_validator
-                .as_ref()
-                .ok_or_else(|| invalid("dispatch schema unavailable"))?,
+            &dispatch_validator,
             &format!("derived dispatch entry for {id}"),
             DISPATCH_SCHEMA,
         )?;
         dispatch.push(derived);
     }
-    for id in active {
-        if !questbook.contains(id) {
-            return Err(invalid(format!(
-                "QUESTBOOK.md must reference active quest id '{id}'"
-            )));
-        }
-    }
-    for id in closed {
-        if questbook.contains(id) {
-            return Err(invalid(format!(
-                "QUESTBOOK.md must not list closed quest id '{id}'"
-            )));
-        }
-    }
-    if json_file(root, CATALOG)? != Value::Array(catalog) {
+    if root.join(CATALOG).exists() && json_file(root, CATALOG)? != Value::Array(catalog) {
         return Err(invalid(format!(
-            "{CATALOG} must stay aligned with quests/*.yaml"
+            "{CATALOG} must stay aligned with registered legacy records"
         )));
     }
-    let actual_dispatch = json_file(root, DISPATCH)?;
-    let rows = actual_dispatch
-        .as_array()
-        .ok_or_else(|| invalid(format!("{DISPATCH} must be a JSON array")))?;
-    for (index, row) in rows.iter().enumerate() {
-        validate(
-            row,
-            dispatch_validator
-                .as_ref()
-                .ok_or_else(|| invalid("dispatch schema unavailable"))?,
-            &format!("{DISPATCH}[{index}]"),
-            DISPATCH_SCHEMA,
-        )?;
-    }
-    if actual_dispatch != Value::Array(dispatch) {
-        return Err(invalid(format!(
-            "{DISPATCH} must stay aligned with quests/*.yaml"
-        )));
+    if root.join(DISPATCH).exists() {
+        let actual = json_file(root, DISPATCH)?;
+        let rows = actual
+            .as_array()
+            .ok_or_else(|| invalid(format!("{DISPATCH} must be a JSON array")))?;
+        for (index, row) in rows.iter().enumerate() {
+            validate(
+                row,
+                &dispatch_validator,
+                &format!("{DISPATCH}[{index}]"),
+                DISPATCH_SCHEMA,
+            )?;
+        }
+        if actual != Value::Array(dispatch) {
+            return Err(invalid(format!(
+                "{DISPATCH} must stay aligned with registered legacy records"
+            )));
+        }
     }
     Ok(())
 }

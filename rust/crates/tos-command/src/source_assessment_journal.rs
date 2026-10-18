@@ -24,9 +24,19 @@ use tos_validation::source_cut::{
 };
 
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
-const MAX_EVENTS: usize = 1024;
-const MAX_BATCH_BYTES: usize = 1_048_576;
-const MAX_HISTORY_BYTES: usize = 33_554_432;
+use crate::source_assessment_capacity::{
+    CapacityRefusal, HistoryCapacity, Limits, MAX_BATCH_BYTES, MAX_EVENTS, MAX_HISTORY_BYTES,
+    StorageEnvelope,
+};
+
+fn capacity_refusal(error: CapacityRefusal) -> SourceCommandError {
+    SourceCommandError::Invalid(match error {
+        CapacityRefusal::BatchBytes => "assessment batch byte budget",
+        CapacityRefusal::HistoryBytes => "assessment complete history byte budget",
+        CapacityRefusal::Batches => "assessment complete history budget",
+        CapacityRefusal::Events => "assessment complete history event budget",
+    })
+}
 
 fn protected(file: &File, uid: u32, directory: bool) -> SourceCommandResult<()> {
     let m = file
@@ -1266,6 +1276,8 @@ pub(crate) struct AssessmentHistory {
     pub(crate) submissions: Vec<tos_validation::assessment::AssessmentSubmissionInput>,
     members: Vec<HeldJournalMember>,
     input_bytes: usize,
+    capacity: HistoryCapacity,
+    storage_envelope: StorageEnvelope,
 }
 
 /// Assessment's PG package writer. The only package members are the current
@@ -1787,6 +1799,8 @@ impl AssessmentHistory {
                 submissions: Vec::new(),
                 members: Vec::new(),
                 input_bytes: 0,
+                capacity: HistoryCapacity::EMPTY,
+                storage_envelope: StorageEnvelope::PgPackage,
             });
         };
         if package_history.family != Some(PrivateOwnerPackageFamilyV1::Assessment)
@@ -1870,7 +1884,7 @@ impl AssessmentHistory {
                 "assessment current package head differs from history",
             ));
         }
-        let submissions = validate_assessment_history_batches(
+        let (submissions, canonical_bytes) = validate_assessment_history_batches(
             subject,
             head.as_deref(),
             &batches,
@@ -1881,6 +1895,14 @@ impl AssessmentHistory {
             deadline,
             cancelled,
         )?;
+        let capacity = HistoryCapacity::observed(
+            total_bytes,
+            canonical_bytes,
+            batches.len(),
+            submissions.len(),
+            Limits::V1,
+        )
+        .map_err(capacity_refusal)?;
         Ok(Self {
             subject_id: subject.to_owned(),
             head,
@@ -1888,7 +1910,34 @@ impl AssessmentHistory {
             submissions,
             members: Vec::new(),
             input_bytes: total_bytes,
+            capacity,
+            storage_envelope: StorageEnvelope::PgPackage,
         })
+    }
+
+    /// A new payload uses the same capacity predicate as authenticated reader
+    /// state. Replay, qualification and dedup stay in common prepare. This does
+    /// not replace currentness, source fences, worker checks or operation costs.
+    pub(crate) fn checked_successor_payload(
+        &self,
+        batch: &JsonValue,
+    ) -> SourceCommandResult<Vec<u8>> {
+        let payload = cmd::canonical(batch)?;
+        // Check the capacity prefix before parsing events, preserving the
+        // existing malformed-batch refusal order. Both calls use the same pure
+        // O(1) predicate; zero is only a precheck, never a published event count.
+        self.capacity
+            .append(payload.len(), 0, self.storage_envelope, Limits::V1)
+            .map_err(capacity_refusal)?;
+        self.capacity
+            .append(
+                payload.len(),
+                cmd::array(batch, "events")?.len(),
+                self.storage_envelope,
+                Limits::V1,
+            )
+            .map_err(capacity_refusal)?;
+        Ok(payload)
     }
 
     /// Raw authenticated journal bytes retained by this selected history.
@@ -2127,10 +2176,7 @@ impl AssessmentJournalFence<'_> {
                 "assessment batch predecessor differs from expected revision",
             ));
         }
-        let payload = cmd::canonical(batch)?;
-        if payload.len() > MAX_BATCH_BYTES {
-            return Err(SourceCommandError::Invalid("assessment batch byte budget"));
-        }
+        let payload = history.checked_successor_payload(batch)?;
         let revision = cmd::record_digest(batch)?.to_hex();
         let batch_name = format!("{revision}.json");
         history.verify_current(self, deadline, cancelled)?;
@@ -2313,7 +2359,10 @@ fn validate_assessment_history_batches(
     expected_source_revision: Option<SourceRevision>,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<Vec<tos_validation::assessment::AssessmentSubmissionInput>> {
+) -> SourceCommandResult<(
+    Vec<tos_validation::assessment::AssessmentSubmissionInput>,
+    usize,
+)> {
     if total_bytes > MAX_HISTORY_BYTES || chain.len() > MAX_EVENTS {
         return Err(SourceCommandError::Invalid(
             "assessment complete history budget",
@@ -2456,7 +2505,7 @@ fn validate_assessment_history_batches(
             "assessment history final head binding",
         ));
     }
-    Ok(submissions)
+    Ok((submissions, batch_bytes_total))
 }
 
 fn read_head<V: AssessmentJournalReadView>(
@@ -2625,7 +2674,7 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
         .ok_or(SourceCommandError::Unsupported(
             "selected assessment batch schema absent",
         ))?;
-    let submissions = validate_assessment_history_batches(
+    let (submissions, canonical_bytes) = validate_assessment_history_batches(
         subject,
         head.as_deref(),
         &chain,
@@ -2644,6 +2693,14 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
                 "assessment history input byte total overflow",
             ))
     })?;
+    let capacity = HistoryCapacity::observed(
+        byte_count,
+        canonical_bytes,
+        chain.len(),
+        submissions.len(),
+        Limits::V1,
+    )
+    .map_err(capacity_refusal)?;
     let history = AssessmentHistory {
         subject_id: subject.to_owned(),
         head,
@@ -2651,7 +2708,15 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
         submissions,
         members,
         input_bytes,
+        capacity,
+        storage_envelope: StorageEnvelope::Local,
     };
     history.verify_current(view, deadline, cancelled)?;
     Ok(history)
+}
+
+/// Test-only introspection; no publication or authority bypass.
+#[cfg(test)]
+pub(crate) fn capacity_limits_for_test() -> (usize, usize, usize) {
+    (MAX_EVENTS, MAX_BATCH_BYTES, MAX_HISTORY_BYTES)
 }

@@ -4,15 +4,20 @@ This is the human entrypoint for the repository's model-facing companion
 surface. It maps selection and handoff to owner skills, ports, `AGENTS.md` contracts
 and AoA sources.
 
-## Profile-owned discovery
+## Contributor validation and optional profile
 
 Tree-of-Sophia has no repository-local projection of shared or sibling-owned
-skills. The selected Codex user profile `os-user-default` is the one discovery
-carrier for the current bundles. Its authored binding is recorded in
-`agent-surface.manifest.json`; the profile source and installer remain owned by
-`aoa-skills`.
+skills. Default contributor validation checks portable declarations, owner
+references, duplicate boundaries, owner ports and task probes. It does not
+require a personal Codex profile, sibling repositories or installed profile
+tools, and it does not inspect the contributor's HOME or installation.
 
-The binding selects seven shared `aoa-skills` bundles, nine admitted owner-port
+The optional historical `os-user-default` binding is recorded in
+`agent-surface.manifest.json`. Its profile source and installer remain owned by
+`aoa-skills`. The checked-in binding records a possible explicit selection; it
+does not select, install or activate that profile for a contributor.
+
+This historical binding selects seven shared `aoa-skills` bundles, nine admitted owner-port
 bundles from `aoa-evals`, `aoa-memo`, `aoa-stats`, `aoa-kag`, `aoa-agents`,
 `abyss-machine`, and `abyss-stack`, plus two `.aoa` session-memory owner links.
 The profile uses Codex user scope and managed copies. The binding records selection and ownership. Installation, live visibility,
@@ -25,6 +30,9 @@ This repository carries no copy of that completed migration.
 
 ## Read by load moment
 
+The profile carrier rows apply when that profile is explicitly selected.
+Contributor owner-port routes remain available without it.
+
 | Moment | Carrier | What it owns | Next route |
 | --- | --- | --- | --- |
 | always discovered | the selected profile package description and activation metadata | short selection signal and display policy | trigger the selected profile bundle only when its boundary fits |
@@ -36,8 +44,9 @@ This repository carries no copy of that completed migration.
 The machine map is `agent-surface.manifest.json`. The generated structural
 read model is `agent-surface.current.json`. The map is authored here; the
 currentness file is rebuilt, never hand-edited. The generated file records zero
-repository-local package entries, the 18 selected profile bindings, task-probe
-depth, and owner-port inputs.
+repository-local package entries, the 18 declared optional profile bindings,
+task-probe depth, and owner-port inputs. These counts do not prove installation
+or activation. Rebuild after the authored map and companion documents settle.
 The manifest is a machine validation and migration input; discovery starts from
 this entrypoint and reads the manifest on demand.
 
@@ -89,7 +98,11 @@ Use the `agent_surface` lane in
 through the command routes in [root validation](../VALIDATION.md).
 
 The builder proves parity for the authored map and generated read model. The
-validator proves profile-binding shape, zero local projections, owner-port
-inputs, task-probe negative controls, and public safety.
+default validator checks contributor declaration shape, zero local projections,
+owner-port inputs, task-probe negative controls, and public safety.
+`contributor_profile_binding_issues` checks portable shape and owner references;
+the separate `profile_binding_issues` API preserves the exact historical
+`os-user-default` v1 identity check for explicit callers. An exact declaration
+check still does not establish installation or runtime health.
 Profile installation, fresh-session discovery, model behavior, owner
 acceptance and release/runtime states require their own current checks.

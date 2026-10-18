@@ -92,7 +92,7 @@ impl Selection {
             return Err(unavailable());
         }
         crate::knowledge::check_abort(&probe)?;
-        let site = crate::site::SoftwareSite::installed(Arc::clone(&probe))?;
+        let site = crate::site::SoftwareSite::installed_source(Arc::clone(&probe))?;
         let worker = Arc::new(site.source_schema_worker(512 * 1024 * 1024, Arc::clone(&probe))?);
         let identity = ExactWorkerIdentity {
             absolute_path: worker.path().to_owned(),

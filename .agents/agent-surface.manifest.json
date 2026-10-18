@@ -590,5 +590,17 @@
       "This declaration records profile selection and route ownership only.",
       "It does not prove installation, fresh-session visibility, invocation, runtime health, behavioral benefit, or owner acceptance."
     ]
+  },
+  "profile_binding_usage": {
+    "required_for_contributor_validation": false,
+    "selection": "explicit-only",
+    "contributor_check": "contributor_profile_binding_issues validates declaration shape, owner references and duplicate boundaries without host discovery.",
+    "selected_identity_check": "profile_binding_issues preserves the exact admitted os-user-default v1 declaration for explicit callers.",
+    "installation_owner": "aoa-skills",
+    "claim_limits": [
+      "A checked-in optional binding does not select, install or activate a user profile.",
+      "Contributor checks do not require sibling repositories or installed profile tools.",
+      "Consumers verify their own integration/runtime evidence separately."
+    ]
   }
 }

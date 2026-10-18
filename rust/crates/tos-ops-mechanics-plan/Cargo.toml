@@ -9,8 +9,8 @@ license.workspace = true
 [features]
 default = ["compiler-backed-validators"]
 # CMD needs the philosophy producer library without standalone validator families.
-philosophy-library = ["mechanics", "dep:tos-compiler"]
-compiler-backed-validators = ["philosophy-library"]
+philosophy-library = ["dep:tos-compiler", "dep:unicode-general-category", "dep:jsonschema"]
+compiler-backed-validators = ["philosophy-library", "mechanics"]
 # The CI selector/executors need no source, schema, publication or mechanics bodies.
 mechanics = [
     "dep:csv", "dep:jsonschema", "dep:num-bigint", "dep:rusqlite",

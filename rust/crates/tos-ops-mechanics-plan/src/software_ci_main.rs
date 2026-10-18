@@ -16,28 +16,49 @@ fn usage() -> &'static str {
     "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install} --repo-root ABS [--installed-prefix ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
 }
 
+fn output_cancel_check() -> io::Result<()> {
+    if CANCEL.load(Ordering::Relaxed) != 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::Interrupted,
+            "CI output cancelled",
+        ));
+    }
+    Ok(())
+}
+
 fn github_output(path: &Path, selection: &software_ci::Selection) -> io::Result<()> {
+    output_cancel_check()?;
+    let record = format!(
+        "software_mode={}\nworker={}\nrust={}\n",
+        selection.software_mode, selection.worker, selection.rust
+    );
     let mut options = fs::OpenOptions::new();
     options.append(true).create(true);
     #[cfg(target_os = "linux")]
     {
         use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NOFOLLOW);
+        // Match the artifact-output boundary: opening a FIFO must not wait
+        // for a reader before we can refuse a non-regular output.
+        options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
         options.mode(0o600);
     }
     let mut stream = options.open(path)?;
     let meta = stream.metadata()?;
-    if !meta.is_file() || meta.len() > 1024 * 1024 {
+    if !meta.is_file()
+        || meta
+            .len()
+            .checked_add(record.len() as u64)
+            .is_none_or(|length| length > 1024 * 1024)
+    {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "GITHUB_OUTPUT must be a bounded regular file",
         ));
     }
-    write!(
-        stream,
-        "software_mode={}\nworker={}\nrust={}\n",
-        selection.software_mode, selection.worker, selection.rust
-    )
+    output_cancel_check()?;
+    stream.write_all(record.as_bytes())?;
+    stream.flush()?;
+    output_cancel_check()
 }
 
 fn run() -> Result<(), String> {
@@ -170,5 +191,94 @@ fn main() {
         eprintln!("error: {error}");
         let signal = CANCEL.load(Ordering::Relaxed);
         std::process::exit(if signal == 0 { 1 } else { 128 + signal });
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod output_tests {
+    use super::*;
+    use std::sync::Mutex;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    static OUTPUT_TEST: Mutex<()> = Mutex::new(());
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let root = env::temp_dir().join(format!(
+                "tos-ci-output-{}-{}",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            fs::create_dir(&root).unwrap();
+            Self(root)
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            CANCEL.store(0, Ordering::Relaxed);
+            fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+
+    #[test]
+    fn output_final_size_respects_existing_limit() {
+        let _serial = OUTPUT_TEST.lock().unwrap_or_else(|p| p.into_inner());
+        let root = Fixture::new();
+        let selected = software_ci::select(Vec::new(), false).unwrap();
+        let record = b"software_mode=full\nworker=true\nrust=true\n";
+        let cap = 1024 * 1024;
+        let output = root.0.join("output");
+        fs::write(&output, b"prior=kept\n").unwrap();
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&output)
+            .unwrap()
+            .set_len(cap - record.len() as u64)
+            .unwrap();
+        github_output(&output, &selected).unwrap();
+        let exact = fs::read(&output).unwrap();
+        assert_eq!(exact.len(), cap as usize);
+        assert!(exact.starts_with(b"prior=kept\n"));
+        assert!(exact.ends_with(record));
+        for length in [cap - record.len() as u64 + 1, cap, cap + 1] {
+            fs::OpenOptions::new()
+                .write(true)
+                .open(&output)
+                .unwrap()
+                .set_len(length)
+                .unwrap();
+            let before = fs::read(&output).unwrap();
+            assert!(
+                github_output(&output, &selected).is_err(),
+                "final length {length}+record must refuse"
+            );
+            assert_eq!(
+                fs::read(&output).unwrap(),
+                before,
+                "refusal must not append"
+            );
+        }
+    }
+
+    #[test]
+    fn output_cancelled_after_selection_preserves_existing_and_absent_file() {
+        let _serial = OUTPUT_TEST.lock().unwrap_or_else(|p| p.into_inner());
+        let root = Fixture::new();
+        let selected = software_ci::select(Vec::new(), false).unwrap();
+        let output = root.0.join("output");
+        fs::write(&output, b"prior=kept\n").unwrap();
+        CANCEL.store(libc::SIGTERM, Ordering::Relaxed);
+        let error = github_output(&output, &selected).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::Interrupted);
+        assert_eq!(fs::read(&output).unwrap(), b"prior=kept\n");
+        let absent = root.0.join("absent");
+        assert_eq!(
+            github_output(&absent, &selected).unwrap_err().kind(),
+            io::ErrorKind::Interrupted
+        );
+        assert!(!absent.exists(), "cancelled output must not create a file");
     }
 }

@@ -1,19 +1,10 @@
 # Installation Boundary
 
-## Operating Card
+The [packet operation](../../README.md#installation-boundary) carries input, output, owner
+and the shared review-only boundary. The distinct `docs/`, `schemas/` and
+`examples/` here retain their existing contract bytes.
 
-| Field | Route |
-| --- | --- |
-| role | keep installation dossiers from becoming runtime or canon writes |
-| input | installation dossier and install-write guard |
-| output | installation boundary packet |
-| owner | `mechanics/experience/parts/installation-boundary/` |
-| next route | installation or runtime owner |
-| tools | docs, schemas, examples |
-| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
-
-## Payload
-
-- `docs/`
-- `schemas/`
-- `examples/`
+<a id="operating-card"></a>
+<a id="payload"></a>
+This entry preserves existing links and the native assertion home; it is not
+a second statement of the common boundary.

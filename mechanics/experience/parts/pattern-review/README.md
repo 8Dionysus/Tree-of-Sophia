@@ -1,19 +1,10 @@
 # Pattern Review
 
-## Operating Card
+The [packet operation](../../README.md#pattern-review) carries input, output, owner
+and the shared review-only boundary. The distinct `docs/`, `schemas/` and
+`examples/` here retain their existing contract bytes.
 
-| Field | Route |
-| --- | --- |
-| role | hold pattern review notes without turning patterns into canon |
-| input | pattern proposal and source-review state |
-| output | review note and return route |
-| owner | `mechanics/experience/parts/pattern-review/` |
-| next route | `ToS/` review or stronger owner handoff |
-| tools | docs, schemas, examples |
-| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
-
-## Payload
-
-- `docs/`
-- `schemas/`
-- `examples/`
+<a id="operating-card"></a>
+<a id="payload"></a>
+This entry preserves existing links and the native assertion home; it is not
+a second statement of the common boundary.

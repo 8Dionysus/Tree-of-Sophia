@@ -1,19 +1,10 @@
 # Service Office Boundary
 
-## Operating Card
+The [packet operation](../../README.md#service-office-boundary) carries input, output, owner
+and the shared review-only boundary. The distinct `docs/`, `schemas/` and
+`examples/` here retain their existing contract bytes.
 
-| Field | Route |
-| --- | --- |
-| role | keep service and office packets out of direct ToS writes |
-| input | service dossier, office runtime guard |
-| output | service-office boundary packet |
-| owner | `mechanics/experience/parts/service-office-boundary/` |
-| next route | service, office, or runtime owner |
-| tools | docs, schemas, examples |
-| check | `tos-ops-mechanics-plan --repo-root ROOT --mechanics-topology-validate` |
-
-## Payload
-
-- `docs/`
-- `schemas/`
-- `examples/`
+<a id="operating-card"></a>
+<a id="payload"></a>
+This entry preserves existing links and the native assertion home; it is not
+a second statement of the common boundary.

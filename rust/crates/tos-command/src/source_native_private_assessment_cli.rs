@@ -4306,13 +4306,14 @@ pub(crate) fn prepare_assessment_append<W: CutSchemaExecutor>(
         ),
         ("admission_at_commit", append_admission),
     ]);
-    if cmd::canonical(&batch)?.len() > MAX_RECORD_BYTES {
+    let payload = history.checked_successor_payload(&batch)?;
+    if payload.len() > MAX_RECORD_BYTES {
         return Err(SourceCommandError::Invalid("assessment batch byte budget"));
     }
     if !worker
         .check(
             "assessment/native-journal-batch",
-            &cmd::canonical(&batch)?,
+            &payload,
             BATCH_SCHEMA,
             deadline,
             cancelled,
@@ -5344,3 +5345,7 @@ fn materialization_stop(
     }
     result
 }
+
+#[cfg(test)]
+#[path = "../tests/fixtures/capacity-d-v1/assessment_operation_tests.rs"]
+mod capacity_d_r4;

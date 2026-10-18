@@ -142,8 +142,16 @@ workloads and recovery cases.
 
 ## Validation
 
-Generate decision indexes through `scripts/generate_decision_indexes.py`, check
-their parity and run `scripts/validate_decision_records.py`. Check the affected
-roadmap/documentation route and each changed software owner route. Subsequent
+Use the maintained native decision owner described in
+[documentation validation](../VALIDATION.md):
+
+```sh
+tos-ops-mechanics-plan --repo-root "$PWD" --decision-index-build
+tos-ops-mechanics-plan --repo-root "$PWD" --decision-index-build --check
+tos-ops-mechanics-plan --repo-root "$PWD" --decision-records-validate
+```
+
+Check the affected roadmap/documentation route and each changed software owner
+route. Subsequent
 implementation packages supply their own exact source, installed-artifact,
 compatibility, recovery and capacity evidence under this transition.

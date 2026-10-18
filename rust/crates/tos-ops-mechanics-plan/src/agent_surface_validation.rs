@@ -196,7 +196,114 @@ pub fn public_safety_issues(sources: &mut RouteSources) -> io::Result<Vec<Issue>
     }
     Ok(issues)
 }
+/// Contributor validation checks a portable declaration, without selecting or
+/// inspecting a host profile. An absent optional binding selects no skills.
+pub fn contributor_profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>) {
+    let mut issues = Vec::new();
+    let usage = value(manifest, "profile_binding_usage");
+    if !usage.is_null() {
+        let location = format!("{MANIFEST_PATH}#profile_binding_usage");
+        required_scalars(
+            &mut issues,
+            usage,
+            &location,
+            &[
+                ("required_for_contributor_validation", json!(false)),
+                ("selection", json!("explicit-only")),
+            ],
+        );
+        claim_limits(&mut issues, usage, &location);
+    }
+    if value(manifest, "profile_binding").is_null() {
+        return (issues, BTreeSet::new());
+    }
+    let (binding_issues, selected) = check_profile_binding(manifest, false);
+    issues.extend(binding_issues);
+    (issues, selected)
+}
+
+/// Explicit check of the historically admitted os-user-default v1 selection.
+/// Retained as a separate API for existing callers. Success proves declaration
+/// identity only; the aoa-skills owner must verify installation and live tools.
 pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>) {
+    check_profile_binding(manifest, true)
+}
+
+fn portable_owner_path(path: &str) -> bool {
+    safe_relative(path)
+        && !path.contains('\\')
+        && !path.contains(':')
+        && !path.chars().any(char::is_control)
+        && path.split('/').all(|part| !part.is_empty() && part != ".")
+}
+
+fn profile_identifier(s: &str) -> bool {
+    !s.is_empty()
+        && s.bytes()
+            .all(|c| c.is_ascii_alphanumeric() || b"-_.".contains(&c))
+        && s != "."
+        && s != ".."
+}
+
+fn profile_shape_issues(issues: &mut Vec<Issue>, binding: &Value, location: &str) {
+    required_scalars(
+        issues,
+        binding,
+        location,
+        &[("schema_version", json!("tos_os_skill_profile_binding_v1"))],
+    );
+    for key in ["profile", "runtime", "scope", "install_mode"] {
+        if text(binding, key).is_none_or(|s| !profile_identifier(s)) {
+            issue(
+                issues,
+                location,
+                format!("{key} must be a portable identifier"),
+            );
+        }
+    }
+    let selected_owner = text(binding, "source_ref").and_then(|s| s.split_once('@'));
+    if selected_owner.is_none_or(|(owner, revision)| {
+        !profile_identifier(owner)
+            || revision.len() != 40
+            || !revision
+                .bytes()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+    }) {
+        issue(
+            issues,
+            location,
+            "source_ref must be an owner@lowercase-commit identity",
+        );
+    }
+    for key in ["source_manifest", "resolver"] {
+        if text(binding, key)
+            .and_then(|s| s.split_once(':'))
+            .is_none_or(|(owner, path)| {
+                selected_owner.is_none_or(|(selected, _)| owner != selected)
+                    || !portable_owner_path(path)
+            })
+        {
+            issue(
+                issues,
+                location,
+                format!("{key} must be a safe reference to the selected source owner"),
+            );
+        }
+    }
+    // This is a portable location declaration, never a filesystem probe.
+    if text(binding, "install_root").is_none_or(|s| {
+        let relative = s.strip_prefix("$HOME/").unwrap_or(s);
+        !portable_owner_path(relative) || relative.contains('$')
+    }) {
+        issue(
+            issues,
+            location,
+            "install_root must be a portable relative or $HOME path",
+        );
+    }
+}
+
+fn check_profile_binding(manifest: &Value, exact: bool) -> (Vec<Issue>, BTreeSet<String>) {
     let mut issues = Vec::new();
     let location = format!("{MANIFEST_PATH}#profile_binding");
     let binding = value(manifest, "profile_binding");
@@ -206,31 +313,34 @@ pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>
             BTreeSet::new(),
         );
     }
-    required_scalars(
-        &mut issues,
-        binding,
-        &location,
-        &[
-            ("schema_version", json!("tos_os_skill_profile_binding_v1")),
-            ("profile", json!("os-user-default")),
-            ("runtime", json!("codex")),
-            ("scope", json!("user")),
-            ("install_root", json!("$HOME/.codex/skills")),
-            ("install_mode", json!("managed-copy")),
-            (
-                "source_manifest",
-                json!("aoa-skills:config/os_skill_profiles.json"),
-            ),
-            (
-                "source_ref",
-                json!("aoa-skills@616ce49eed8a605782fb2f295060ae916e04c7a6"),
-            ),
-            (
-                "resolver",
-                json!("aoa-skills:scripts/bundles/install_os_skill_profile.py"),
-            ),
-        ],
-    );
+    profile_shape_issues(&mut issues, binding, &location);
+    if exact {
+        required_scalars(
+            &mut issues,
+            binding,
+            &location,
+            &[
+                ("schema_version", json!("tos_os_skill_profile_binding_v1")),
+                ("profile", json!("os-user-default")),
+                ("runtime", json!("codex")),
+                ("scope", json!("user")),
+                ("install_root", json!("$HOME/.codex/skills")),
+                ("install_mode", json!("managed-copy")),
+                (
+                    "source_manifest",
+                    json!("aoa-skills:config/os_skill_profiles.json"),
+                ),
+                (
+                    "source_ref",
+                    json!("aoa-skills@616ce49eed8a605782fb2f295060ae916e04c7a6"),
+                ),
+                (
+                    "resolver",
+                    json!("aoa-skills:scripts/bundles/install_os_skill_profile.py"),
+                ),
+            ],
+        );
+    }
     let sources = value(binding, "sources");
     if !sources.is_array() || list(sources).is_empty() {
         issue(&mut issues, &location, "sources must be a non-empty list");
@@ -238,6 +348,7 @@ pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>
     }
     let mut actual = Vec::new();
     let mut selected = Vec::new();
+    let mut declared_sources = BTreeSet::new();
     for (index, source) in list(sources).iter().enumerate() {
         let loc = format!("{location}.sources[{index}]");
         if !source.is_object() {
@@ -269,10 +380,13 @@ pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>
                 "shared-home and owner-port sources must not declare owner_operation",
             );
         }
-        if repo.is_none_or(str::is_empty) {
-            issue(&mut issues, &loc, "repo must be a non-empty string");
+        if repo.is_none_or(|s| !profile_identifier(s)) {
+            issue(&mut issues, &loc, "repo must be a portable owner name");
         }
-        if root.is_none_or(|s| !safe_relative(s)) {
+        if !declared_sources.insert((kind, repo, root)) {
+            issue(&mut issues, &loc, "duplicate profile source");
+        }
+        if root.is_none_or(|s| !portable_owner_path(s)) {
             issue(&mut issues, &loc, "root must be a safe relative owner root");
         }
         let skills = value(source, "skills");
@@ -303,7 +417,7 @@ pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>
                     continue;
                 }
                 if text(skill, "path")
-                    .is_none_or(|s| !s.starts_with("skills/") || s.split('/').any(|p| p == ".."))
+                    .is_none_or(|s| !s.starts_with("skills/") || !portable_owner_path(s))
                 {
                     issue(
                         &mut issues,
@@ -326,6 +440,13 @@ pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>
                 }
             }
             let name = name.unwrap().to_string();
+            if !profile_identifier(&name) {
+                issue(
+                    &mut issues,
+                    &skill_loc,
+                    "profile skill name must be a portable identifier",
+                );
+            }
             source_names.insert(name.clone());
             selected.push(name);
         }
@@ -339,97 +460,99 @@ pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>
             ));
         }
     }
-    let expected = vec![
-        (
-            "shared-home",
-            "aoa-skills",
-            "self",
-            None,
-            &[
-                "aoa-decision",
-                "aoa-eval",
-                "aoa-knowledge-stewardship",
-                "aoa-checkpoint-closeout-bridge",
-                "aoa-memo-writeback",
-                "aoa-session-harvest",
-                "aoa-session-recovery",
-            ][..],
-        ),
-        (
-            "owner-port",
-            "aoa-evals",
-            "aoa-evals",
-            None,
-            &["aoa-evals-skills"][..],
-        ),
-        (
-            "owner-port",
-            "aoa-memo",
-            "aoa-memo",
-            None,
-            &["aoa-memo"][..],
-        ),
-        (
-            "owner-port",
-            "aoa-stats",
-            "aoa-stats",
-            None,
-            &["aoa-stats"][..],
-        ),
-        ("owner-port", "aoa-kag", "aoa-kag", None, &["aoa-kag"][..]),
-        (
-            "owner-port",
-            "aoa-agents",
-            "aoa-agents",
-            None,
-            &[
-                "aoa-agents-skills",
-                "aoa-session-progression-lift",
-                "aoa-summon",
-            ][..],
-        ),
-        (
-            "owner-port",
-            "abyss-machine",
-            "abyss-machine",
-            None,
-            &["os-abyss-artifact-trust-loop"][..],
-        ),
-        (
-            "owner-port",
-            "abyss-stack",
-            "abyss-stack",
-            None,
-            &["abyss-self-diagnostic-spine"][..],
-        ),
-        (
-            "owner-link",
-            ".aoa",
-            ".aoa",
-            Some("install-user-skill"),
-            &[
-                "aoa-session-memory-global-route",
-                "aoa-session-memory-evidence-route",
-            ][..],
-        ),
-    ]
-    .into_iter()
-    .map(|(kind, repo, root, operation, skills)| {
-        (
-            kind.into(),
-            repo.into(),
-            root.into(),
-            operation.map(|s| json!(s)).unwrap_or(Value::Null),
-            names(skills),
-        )
-    })
-    .collect::<Vec<_>>();
-    if actual != expected {
-        issue(
-            &mut issues,
-            &location,
-            "sources do not match the accepted os-user-default selection",
-        );
+    if exact {
+        let expected = vec![
+            (
+                "shared-home",
+                "aoa-skills",
+                "self",
+                None,
+                &[
+                    "aoa-decision",
+                    "aoa-eval",
+                    "aoa-knowledge-stewardship",
+                    "aoa-checkpoint-closeout-bridge",
+                    "aoa-memo-writeback",
+                    "aoa-session-harvest",
+                    "aoa-session-recovery",
+                ][..],
+            ),
+            (
+                "owner-port",
+                "aoa-evals",
+                "aoa-evals",
+                None,
+                &["aoa-evals-skills"][..],
+            ),
+            (
+                "owner-port",
+                "aoa-memo",
+                "aoa-memo",
+                None,
+                &["aoa-memo"][..],
+            ),
+            (
+                "owner-port",
+                "aoa-stats",
+                "aoa-stats",
+                None,
+                &["aoa-stats"][..],
+            ),
+            ("owner-port", "aoa-kag", "aoa-kag", None, &["aoa-kag"][..]),
+            (
+                "owner-port",
+                "aoa-agents",
+                "aoa-agents",
+                None,
+                &[
+                    "aoa-agents-skills",
+                    "aoa-session-progression-lift",
+                    "aoa-summon",
+                ][..],
+            ),
+            (
+                "owner-port",
+                "abyss-machine",
+                "abyss-machine",
+                None,
+                &["os-abyss-artifact-trust-loop"][..],
+            ),
+            (
+                "owner-port",
+                "abyss-stack",
+                "abyss-stack",
+                None,
+                &["abyss-self-diagnostic-spine"][..],
+            ),
+            (
+                "owner-link",
+                ".aoa",
+                ".aoa",
+                Some("install-user-skill"),
+                &[
+                    "aoa-session-memory-global-route",
+                    "aoa-session-memory-evidence-route",
+                ][..],
+            ),
+        ]
+        .into_iter()
+        .map(|(kind, repo, root, operation, skills)| {
+            (
+                kind.into(),
+                repo.into(),
+                root.into(),
+                operation.map(|s| json!(s)).unwrap_or(Value::Null),
+                names(skills),
+            )
+        })
+        .collect::<Vec<_>>();
+        if actual != expected {
+            issue(
+                &mut issues,
+                &location,
+                "sources do not match the accepted os-user-default selection",
+            );
+        }
     }
     let selected_set: BTreeSet<String> = selected.iter().cloned().collect();
     if selected.len() != selected_set.len() {
@@ -439,7 +562,7 @@ pub fn profile_binding_issues(manifest: &Value) -> (Vec<Issue>, BTreeSet<String>
             "profile selection contains duplicate skills",
         );
     }
-    if selected_set != names(EXPECTED_PROFILE_SKILLS) {
+    if exact && selected_set != names(EXPECTED_PROFILE_SKILLS) {
         issue(
             &mut issues,
             &location,
@@ -596,7 +719,7 @@ pub fn validate_manifest_with_sources(
             );
         }
     }
-    let (profile_issues, profile_skill_set) = profile_binding_issues(&manifest);
+    let (profile_issues, profile_skill_set) = contributor_profile_binding_issues(&manifest);
     issues.extend(profile_issues);
     let packages = value(&manifest, "skills");
     if !packages.is_array() {
@@ -772,6 +895,7 @@ pub fn validate_manifest_with_sources(
             "stale repository-local projection remains; selected bundles belong to the OS user profile",
         );
     }
+    let has_profile_binding = !value(&manifest, "profile_binding").is_null();
     let families = value(&manifest, "skill_families");
     if !families.is_object() {
         issue(
@@ -819,7 +943,7 @@ pub fn validate_manifest_with_sources(
             for member in list(members) {
                 if let Some(member) = member.as_str() {
                     family_members.insert(member.to_string());
-                    if !profile_skill_set.contains(member) {
+                    if has_profile_binding && !profile_skill_set.contains(member) {
                         issue(
                             &mut issues,
                             MANIFEST_PATH,
@@ -836,7 +960,7 @@ pub fn validate_manifest_with_sources(
             }
         }
     }
-    if family_members != profile_skill_set {
+    if has_profile_binding && family_members != profile_skill_set {
         issue(
             &mut issues,
             MANIFEST_PATH,
@@ -979,10 +1103,7 @@ pub fn validate_manifest_with_sources(
             );
         }
         for skill in list(value(probe, "skill_ids")) {
-            if skill
-                .as_str()
-                .is_none_or(|s| !profile_skill_set.contains(s))
-            {
+            if skill.as_str().is_none_or(|s| !family_members.contains(s)) {
                 issue(
                     &mut issues,
                     MANIFEST_PATH,
@@ -1146,4 +1267,286 @@ fn bounded_manifest(manifest: &Value) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod portable_profile_tests {
+    use super::*;
+
+    fn manifest() -> Value {
+        serde_json::from_str(include_str!(
+            "../../../../.agents/agent-surface.manifest.json"
+        ))
+        .unwrap()
+    }
+
+    struct ContributorFixture {
+        root: std::path::PathBuf,
+    }
+
+    impl ContributorFixture {
+        fn new(source: &Value) -> Self {
+            let fixture = Self {
+                root: std::env::temp_dir().join(format!(
+                    "tos-contributor-entrypoint-{}-{}",
+                    std::process::id(),
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_nanos()
+                )),
+            };
+            std::fs::create_dir(&fixture.root).unwrap();
+            for key in ["owner_surface", "human_entrypoint", "builder", "validator"] {
+                fixture.write(
+                    source[key].as_str().unwrap(),
+                    b"bounded synthetic owner route\n",
+                );
+            }
+            for port in source["owner_ports"].as_object().unwrap().values() {
+                for input in port["currentness_inputs"].as_array().unwrap() {
+                    fixture.write(input.as_str().unwrap(), b"bounded synthetic owner input\n");
+                }
+            }
+            // Manifest-selected standalone export inputs above suffice.
+            // No consumer provider template, repository or interpreter is
+            // required or installed for this contributor fixture.
+            fixture
+        }
+
+        fn write(&self, relative: &str, raw: &[u8]) {
+            let path = self.root.join(relative);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, raw).unwrap();
+        }
+
+        fn validate(&self, source: &Value) -> Vec<Issue> {
+            let mut source = source.clone();
+            let profile_bindings = agent_surface::profile_skill_ids(&source).len();
+            source["package_inventory"]["profile_skill_bindings"] = json!(profile_bindings);
+            self.write(MANIFEST_PATH, &serde_json::to_vec_pretty(&source).unwrap());
+            let cancel = AtomicI32::new(0);
+            // Rebuild the companion through its actual owner for every case:
+            // negative reference tests must not pass only due to stale output.
+            let current = agent_surface::build_currentness(&self.root, &cancel).unwrap();
+            self.write(
+                CURRENTNESS_PATH,
+                route_cards::render_currentness(&current)
+                    .unwrap()
+                    .as_bytes(),
+            );
+            validate_manifest_with_sources(
+                &self.root,
+                &mut RouteSources::new(&self.root).unwrap(),
+                false,
+                None,
+                &cancel,
+            )
+            .unwrap()
+        }
+    }
+
+    impl Drop for ContributorFixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.root);
+        }
+    }
+
+    #[test]
+    fn full_contributor_entrypoint_accepts_optional_profiles_and_preserves_reference_checks() {
+        let original = manifest();
+        let mut absent = original.clone();
+        absent.as_object_mut().unwrap().remove("profile_binding");
+        let mut null = original.clone();
+        null["profile_binding"] = Value::Null;
+        let mut alternative = original;
+        alternative["profile_binding"]["profile"] = json!("contributor-example");
+        alternative["profile_binding"]["runtime"] = json!("other-agent");
+        alternative["profile_binding"]["install_root"] = json!(".local/skills");
+        alternative["profile_binding"]["source_ref"] =
+            json!(format!("aoa-skills@{}", "a".repeat(40)));
+        assert!(!profile_binding_issues(&alternative).0.is_empty());
+
+        for (case, source) in [
+            ("absent", absent),
+            ("null", null),
+            ("alternative", alternative),
+        ] {
+            let fixture = ContributorFixture::new(&source);
+            assert!(
+                !fixture.root.join(".agents/skills").exists(),
+                "fixture must not install a local profile"
+            );
+            let issues = fixture.validate(&source);
+            assert!(issues.is_empty(), "{case}: {issues:?}");
+
+            let mut broken_probe = source.clone();
+            let probe_id = broken_probe["task_probes"][0]["id"]
+                .as_str()
+                .unwrap()
+                .to_owned();
+            broken_probe["task_probes"][0]["skill_ids"] = json!(["undeclared-probe-skill"]);
+            let issues = fixture.validate(&broken_probe);
+            assert!(
+                issues.iter().any(|(_, message)| message
+                    == &format!("{probe_id} names unknown profile skill undeclared-probe-skill")),
+                "{case}: {issues:?}"
+            );
+
+            // Remove a family member that a declared probe still references.
+            // This must fail even when no personal profile binding exists.
+            let probe = source["task_probes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|probe| {
+                    probe["skill_ids"]
+                        .as_array()
+                        .is_some_and(|skills| !skills.is_empty())
+                })
+                .unwrap();
+            let skill = probe["skill_ids"][0].as_str().unwrap();
+            let probe_id = probe["id"].as_str().unwrap();
+            let mut broken_family = source.clone();
+            for family in broken_family["skill_families"]
+                .as_object_mut()
+                .unwrap()
+                .values_mut()
+            {
+                family["profile_skills"]
+                    .as_array_mut()
+                    .unwrap()
+                    .retain(|v| v.as_str() != Some(skill));
+            }
+            let issues = fixture.validate(&broken_family);
+            assert!(
+                issues.iter().any(|(_, message)| message
+                    == &format!("{probe_id} names unknown profile skill {skill}")),
+                "{case}: {issues:?}"
+            );
+            if case == "alternative" {
+                assert!(issues.iter().any(|(_, message)| message
+                    == "profile skill families do not cover exactly the selected profile skills"));
+                let mut unselected_family = source.clone();
+                unselected_family["skill_families"]["shared_profile"]["profile_skills"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!("undeclared-family-skill"));
+                let issues = fixture.validate(&unselected_family);
+                assert!(
+                    issues.iter().any(|(_, message)| message
+                        == "shared_profile names unknown profile skill undeclared-family-skill"),
+                    "{issues:?}"
+                );
+            }
+
+            let mut broken_port = source.clone();
+            broken_port["task_probes"][0]["port_id"] = json!("undeclared-port");
+            let issues = fixture.validate(&broken_port);
+            assert!(
+                issues
+                    .iter()
+                    .any(|(_, message)| message.contains("names unknown port undeclared-port")),
+                "{case}: {issues:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn contributor_profile_is_optional_and_does_not_select_personal_identity() {
+        for source in [json!({}), json!({"profile_binding": null})] {
+            let (issues, selected) = contributor_profile_binding_issues(&source);
+            assert!(issues.is_empty(), "{issues:?}");
+            assert!(selected.is_empty());
+            assert!(!profile_binding_issues(&source).0.is_empty());
+        }
+        let mut source = manifest();
+        assert!(contributor_profile_binding_issues(&source).0.is_empty());
+        assert!(profile_binding_issues(&source).0.is_empty());
+        source["profile_binding"]["profile"] = json!("contributor-example");
+        source["profile_binding"]["runtime"] = json!("other-agent");
+        source["profile_binding"]["install_root"] = json!(".local/skills");
+        source["profile_binding"]["source_ref"] = json!(format!("aoa-skills@{}", "a".repeat(40)));
+        let (issues, _) = contributor_profile_binding_issues(&source);
+        assert!(issues.is_empty(), "{issues:?}");
+        assert!(!profile_binding_issues(&source).0.is_empty());
+    }
+
+    #[test]
+    fn contributor_profile_still_refuses_unbound_refs_paths_and_duplicate_skills() {
+        for (key, bad) in [
+            ("source_ref", "aoa-skills@moving-branch"),
+            ("source_manifest", "other-owner:config/profile.json"),
+            ("resolver", "aoa-skills:../execute.py"),
+            ("install_root", "/private/skills"),
+            ("install_root", "$HOME/../skills"),
+            ("install_root", "$OTHER/skills"),
+        ] {
+            let mut source = manifest();
+            source["profile_binding"][key] = json!(bad);
+            assert!(
+                !contributor_profile_binding_issues(&source).0.is_empty(),
+                "{key}={bad}"
+            );
+        }
+        for bad in [
+            "../owner",
+            "owner\\skills",
+            "owner//skills",
+            "owner/./skills",
+        ] {
+            let mut source = manifest();
+            source["profile_binding"]["sources"][0]["root"] = json!(bad);
+            assert!(
+                !contributor_profile_binding_issues(&source).0.is_empty(),
+                "{bad}"
+            );
+        }
+        let mut source = manifest();
+        let skill = source["profile_binding"]["sources"][0]["skills"][0].clone();
+        source["profile_binding"]["sources"][0]["skills"]
+            .as_array_mut()
+            .unwrap()
+            .push(skill);
+        assert!(
+            contributor_profile_binding_issues(&source)
+                .0
+                .iter()
+                .any(|(_, m)| m == "profile selection contains duplicate skills")
+        );
+        assert!(
+            !contributor_profile_binding_issues(&json!({"profile_binding": false}))
+                .0
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn explicitly_selected_v1_profile_keeps_exact_revision_sources_and_skill_set() {
+        let source = manifest();
+        assert!(profile_binding_issues(&source).0.is_empty());
+        for key in [
+            "profile",
+            "runtime",
+            "scope",
+            "install_root",
+            "install_mode",
+            "source_manifest",
+            "source_ref",
+            "resolver",
+        ] {
+            let mut changed = source.clone();
+            changed["profile_binding"][key] = json!("different-selection");
+            assert!(!profile_binding_issues(&changed).0.is_empty(), "{key}");
+        }
+        let mut changed = source.clone();
+        changed["profile_binding"]["sources"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(!profile_binding_issues(&changed).0.is_empty());
+        let mut changed = source;
+        changed["profile_binding"]["sources"][0]["skills"][0] = json!("different-skill");
+        assert!(!profile_binding_issues(&changed).0.is_empty());
+    }
 }
