@@ -269,6 +269,46 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
             .iter()
             .any(|f| f["path"] == second_ref)
     );
+    let mut dimensioned_port = expanded_port.clone();
+    dimensioned_port["measurements"][0]["dimensions"]["allowed"] =
+        json!([{"name":"cohort","max_cardinality":2,"sensitivity":"public"}]);
+    let mut dimensioned_packet = packet_document.clone();
+    dimensioned_packet["dimensions"] = json!({"cohort":"first"});
+    second_packet["dimensions"] = json!({"cohort":"second"});
+    fs::write(&port, serde_json::to_vec(&dimensioned_port).unwrap()).unwrap();
+    fs::write(&packet, serde_json::to_vec(&dimensioned_packet).unwrap()).unwrap();
+    fs::write(
+        source.join(second_ref),
+        serde_json::to_vec(&second_packet).unwrap(),
+    )
+    .unwrap();
+    assert!(validate().status.success());
+    let dimensioned = build();
+    assert!(
+        dimensioned.status.success(),
+        "{}",
+        String::from_utf8_lossy(&dimensioned.stderr)
+    );
+    let dimensioned: Value = serde_json::from_slice(&dimensioned.stdout).unwrap();
+    dimensioned_port["measurements"][0]["dimensions"]["allowed"][0]["sensitivity"] =
+        json!("sensitive");
+    fs::write(&port, serde_json::to_vec(&dimensioned_port).unwrap()).unwrap();
+    assert!(!validate().status.success());
+    dimensioned_port["measurements"][0]["dimensions"]["allowed"][0]["sensitivity"] =
+        json!("public");
+    dimensioned_port["measurements"][0]["dimensions"]["allowed"][0]["max_cardinality"] = json!(1);
+    fs::write(&port, serde_json::to_vec(&dimensioned_port).unwrap()).unwrap();
+    assert!(!validate().status.success());
+    dimensioned_port["measurements"][0]["dimensions"]["allowed"][0]["max_cardinality"] = json!(2);
+    fs::write(&port, serde_json::to_vec(&dimensioned_port).unwrap()).unwrap();
+    dimensioned_packet["dimensions"]["undeclared"] = json!("refuse");
+    fs::write(&packet, serde_json::to_vec(&dimensioned_packet).unwrap()).unwrap();
+    assert!(!validate().status.success());
+    assert!(!build().status.success());
+    assert_eq!(
+        status(dimensioned["source_revision"].as_str().unwrap())["export_revision"],
+        dimensioned["export_revision"]
+    );
     let exported = release.join("releases").join(identity);
     fs::write(exported.join("extra.json"), b"{}").unwrap();
     assert!(

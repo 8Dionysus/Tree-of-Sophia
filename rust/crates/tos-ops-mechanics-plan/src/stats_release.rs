@@ -283,14 +283,16 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
     validate_shape("port", &document)?;
     let evidence = &document["evidence_posture"];
     let privacy = nonempty(&evidence["privacy"])?;
+    let privacy_classes = ["public", "internal", "sensitive"];
     if document["schema_version"] != "aoa_stats_local_port_v1"
         || document["owner_repo"] != "Tree-of-Sophia"
         || evidence["raw_content_allowed"] != false
         || evidence["live_state"] != "reference_only"
-        || !["public", "internal", "sensitive"].contains(&privacy)
+        || !privacy_classes.contains(&privacy)
     {
         return Err(invalid("unsupported ToS stats port"));
     }
+    let privacy_level = privacy_classes.iter().position(|v| *v == privacy).unwrap();
     nonempty(&document["contract_version"])?;
     let measurements = document["measurements"]
         .as_array()
@@ -322,6 +324,12 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                 "stats measurement identity differs or is duplicated",
             ));
         }
+        let mut dimension_names = std::collections::BTreeSet::new();
+        for dimension in contract["dimensions"]["allowed"].as_array().unwrap() {
+            if !dimension_names.insert(nonempty(&dimension["name"])?) {
+                return Err(invalid("stats dimension declaration is duplicated"));
+            }
+        }
     }
     let mut packets = std::collections::BTreeSet::new();
     let mut observation_ids = std::collections::BTreeSet::new();
@@ -339,6 +347,8 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
             .enumerate()
             .find(|(_, v)| v["measurement_id"] == id)
             .unwrap();
+        let mut dimension_values =
+            std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
         for reference in export["packet_refs"]
             .as_array()
             .filter(|v| !v.is_empty())
@@ -383,13 +393,30 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
             }
             let allowed = contract["dimensions"]["allowed"].as_array().unwrap();
             let prohibited = contract["dimensions"]["prohibited"].as_array().unwrap();
-            if packet["dimensions"]
-                .as_object()
-                .unwrap()
-                .keys()
-                .any(|key| !allowed.iter().any(|v| v == key) || prohibited.iter().any(|v| v == key))
-            {
-                return Err(invalid("stats packet dimension is not admitted"));
+            for (name, value) in packet["dimensions"].as_object().unwrap() {
+                let declaration = allowed
+                    .iter()
+                    .find(|v| v["name"] == name.as_str())
+                    .ok_or_else(|| invalid("stats packet dimension is not admitted"))?;
+                let sensitivity = privacy_classes
+                    .iter()
+                    .position(|v| declaration["sensitivity"] == *v)
+                    .unwrap();
+                if prohibited.iter().any(|v| v == name.as_str())
+                    || sensitivity > privacy_level
+                    || (declaration["sensitivity"] == "sensitive"
+                        && contract["privacy"]["sensitive_dimensions_allowed"] != true)
+                {
+                    return Err(invalid("stats packet dimension is not admitted"));
+                }
+                let values = dimension_values.entry(name.clone()).or_default();
+                values.insert(serde_json::to_string(value)?);
+                let limit = declaration["max_cardinality"]
+                    .as_u64()
+                    .ok_or_else(|| invalid("stats dimension cardinality limit is unsupported"))?;
+                if values.len() as u64 > limit {
+                    return Err(invalid("stats dimension exceeds its cardinality limit"));
+                }
             }
         }
     }
