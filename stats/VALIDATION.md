@@ -23,6 +23,13 @@ format identifiers and contract references are portable compatibility metadata;
 ToS does not fetch or execute their external owners. Consumers perform their
 additional grammar, composition and admission checks on their side.
 
+The native validator embeds the complete frozen v1 port, measurement and packet
+structure from the [portable format snapshot](../rust/crates/tos-ops-mechanics-plan/schemas/README.md).
+All schema references resolve inside that software product, in offline mode.
+Required fields and types are checked before the ToS-owned question, census,
+dimension, ratio, export-posture and observation bindings. This is a versioned
+format dependency, with no consumer source or runtime dependency.
+
 Publish and inspect the exact ToS export:
 
 ```sh

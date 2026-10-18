@@ -8,6 +8,7 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{self, Read, Write},
     path::Path,
+    sync::OnceLock,
 };
 use tos_foundation::Digest256;
 
@@ -24,6 +25,40 @@ pub const SOURCE_PATHS: [&str; 5] = [
 const PORT: &str = "stats/port.manifest.json";
 const PACKET: &str = "stats/packets/table-i-prepared-dossier-route-ratio.reference.json";
 const MAX_SOURCE: u64 = 1024 * 1024;
+
+fn validate_shape(kind: &str, value: &Value) -> io::Result<()> {
+    static PORT: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
+    static PACKET: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
+    let slot = match kind {
+        "port" => &PORT,
+        "packet" => &PACKET,
+        _ => return Err(invalid("unsupported embedded stats format")),
+    };
+    budget_check()?;
+    let validator = slot
+        .get_or_init(|| {
+            let mut schema: Value = serde_json::from_slice(include_bytes!(
+                "../schemas/stats-export-format.v1.schema.json"
+            ))
+            .map_err(|e| e.to_string())?;
+            schema["$ref"] = json!(format!("#/$defs/{kind}"));
+            jsonschema::options()
+                .with_draft(jsonschema::Draft::Draft202012)
+                .should_validate_formats(true)
+                .offline()
+                .build(&schema)
+                .map_err(|e| e.to_string())
+        })
+        .as_ref()
+        .map_err(|e| invalid(format!("embedded stats format: {e}")))?;
+    if let Some(error) = validator.iter_errors(value).next() {
+        return Err(invalid(format!(
+            "stats {kind} structure differs at {}",
+            error.instance_path()
+        )));
+    }
+    budget_check()
+}
 fn hash_value(value: &Value) -> io::Result<String> {
     Ok(Digest256::of_bytes(&canonical(value)?).to_hex())
 }
@@ -188,6 +223,7 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
         return Err(invalid("stats port location differs"));
     }
     let document = read_json(&port)?;
+    validate_shape("port", &document)?;
     let evidence = &document["evidence_posture"];
     let privacy = nonempty(&evidence["privacy"])?;
     if document["schema_version"] != "aoa_stats_local_port_v1"
@@ -208,6 +244,12 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
         .filter(|v| !v.is_empty())
         .ok_or_else(|| invalid("stats exports absent"))?;
     let mut identities = std::collections::BTreeSet::new();
+    let mut questions = std::collections::BTreeSet::new();
+    for question in document["questions"].as_array().unwrap() {
+        if !questions.insert(nonempty(&question["id"])?) {
+            return Err(invalid("stats question identity is duplicated"));
+        }
+    }
     for contract in measurements {
         nonempty(&contract["contract_version"])?;
         if contract["schema_version"] != "aoa_stats_measurement_contract_v1"
@@ -216,6 +258,8 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
             || contract["live_state"]["capability"] != evidence["live_state"]
             || contract["privacy"]["classification"] != privacy
             || contract["privacy"]["raw_content_allowed"] != false
+            || !questions.contains(nonempty(&contract["question_ref"])?)
+            || contract["population"]["sampling"] != "census"
         {
             return Err(invalid(
                 "stats measurement identity differs or is duplicated",
@@ -226,7 +270,10 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
     let mut exported = std::collections::BTreeSet::new();
     for export in exports {
         let id = nonempty(&export["measurement_id"])?;
-        if !identities.contains(id) || !exported.insert(id.to_owned()) {
+        if !identities.contains(id)
+            || !exported.insert(id.to_owned())
+            || export["posture"] != "reference"
+        {
             return Err(invalid("stats export measurement differs or is duplicated"));
         }
         let (index, contract) = measurements
@@ -244,6 +291,7 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                 return Err(invalid("stats packet path differs or is duplicated"));
             }
             let packet = read_json(&root.join(reference))?;
+            validate_shape("packet", &packet)?;
             if packet["schema_version"] != "aoa_stats_measurement_packet_v1"
                 || packet["measurement_id"] != id
                 || packet["writer_repo"] != "Tree-of-Sophia"
@@ -257,11 +305,30 @@ pub fn validate_port(port: &Path) -> io::Result<Value> {
                 || packet["posture"]["privacy"] != privacy
                 || !matches!(packet["posture"]["freshness"].as_str(), Some("current" | "unknown" | "stale"))
                 || (packet["value"]["status"] == "stale" && packet["posture"]["freshness"] != "stale")
+                || packet["object_ref"]["kind"] != contract["object_kind"]
+                || packet["window"]["temporality"] != contract["window"]["temporality"]
+                || packet["population"]["definition_ref"] != format!("stats/port.manifest.json#/measurements/{index}/population")
             {
                 return Err(invalid("stats packet binding differs"));
             }
             observation(&packet)?;
             validate_ratio_value(contract, &packet["value"])?;
+            if packet["value"].get("denominator").is_some()
+                && (packet["value"]["denominator"] != packet["population"]["size"]
+                    || packet["sample"]["size"] != packet["population"]["size"])
+            {
+                return Err(invalid("stats census population differs from the ratio"));
+            }
+            let allowed = contract["dimensions"]["allowed"].as_array().unwrap();
+            let prohibited = contract["dimensions"]["prohibited"].as_array().unwrap();
+            if packet["dimensions"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .any(|key| !allowed.iter().any(|v| v == key) || prohibited.iter().any(|v| v == key))
+            {
+                return Err(invalid("stats packet dimension is not admitted"));
+            }
         }
     }
     if exported != identities {

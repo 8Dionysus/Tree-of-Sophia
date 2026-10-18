@@ -29,15 +29,15 @@
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
-    "tracked_surface_count": 5294,
+    "tracked_surface_count": 5299,
     "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 2281,
     "human_scope": {
-      "bytes": 7318514,
-      "count": 1072,
+      "bytes": 7320500,
+      "count": 1074,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
@@ -96,9 +96,9 @@
           "lines": 3106
         },
         "rust": {
-          "bytes": 163806,
-          "count": 16,
-          "lines": 2431
+          "bytes": 165308,
+          "count": 18,
+          "lines": 2455
         },
         "scripts": {
           "bytes": 9116,
@@ -106,9 +106,9 @@
           "lines": 163
         },
         "stats": {
-          "bytes": 7621,
+          "bytes": 8105,
           "count": 3,
-          "lines": 156
+          "lines": 163
         },
         "tests": {
           "bytes": 63703,
@@ -121,15 +121,15 @@
           "lines": 82560
         }
       },
-      "lines": 120734
+      "lines": 120765
     },
     "surface_kind_counts": {
       "executable": 77,
-      "human": 1072,
-      "structured": 4145
+      "human": 1074,
+      "structured": 4148
     },
-    "tracked_path_count": 7575,
-    "tracked_surface_count": 5294,
+    "tracked_path_count": 7580,
+    "tracked_surface_count": 5299,
     "unhandled_family_count": 0,
     "unhandled_paths": []
   },
@@ -209,7 +209,7 @@
         "human": 3,
         "structured": 2
       },
-      "tracked_surface_bytes": 14242,
+      "tracked_surface_bytes": 14726,
       "tracked_surface_count": 5
     },
     {
@@ -241,11 +241,11 @@
     {
       "family_id": "rust",
       "surface_kind_counts": {
-        "human": 16,
-        "structured": 279
+        "human": 18,
+        "structured": 282
       },
-      "tracked_surface_bytes": 4609728,
-      "tracked_surface_count": 295
+      "tracked_surface_bytes": 4640880,
+      "tracked_surface_count": 300
     },
     {
       "family_id": "tests",
@@ -289,7 +289,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "88d7200eac08d4a595fed5a1e66023592f70826b2b41273fe026f77626ce8b18",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "cb18e95048aa87be5db3561582e103b6c8061bc20399b35f46a94b0ec795c68f",
+  "tracked_surface_digest": "ce93241809f84ca4fc2fea575e6ea118f493cd19fbd03ab87e45b72276db7e04",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -336,7 +336,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "4129a0cb319e33afbef8d70f0283c2a284add767952c21da65d0b08537415815",
+      "sha256": "8ac86a0a85d2d0d5668443485d04e122223ff7763bfc4f0b7da4b9f9367f7d6d",
       "surface_kind": "structured"
     },
     {
@@ -41460,6 +41460,22 @@
       "surface_kind": "human"
     },
     {
+      "bytes": 1233,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-ops-mechanics-plan/schemas/README.md",
+      "sha256": "6b321609c50d5e4a3b4f94cc9904a9eb986e493a35fafffe3d7ac3bca93c1d1d",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 25184,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-ops-mechanics-plan/schemas/stats-export-format.v1.schema.json",
+      "sha256": "2049547c2a59669fe38542cccf203ff79419c03ee4022e4516ea6920bb247105",
+      "surface_kind": "structured"
+    },
+    {
       "bytes": 4162,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
@@ -41569,6 +41585,30 @@
       "family_id": "rust",
       "path": "rust/crates/tos-ops-mechanics-plan/tests/fixtures/source_registry/views-source.json",
       "sha256": "fc7dff1cc3a743eeed5ee4dd3132eff10f3de7055a54ef2f6eb82f7221c297c3",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 269,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-ops-mechanics-plan/tests/fixtures/stats-export/README.md",
+      "sha256": "7d24b5db151a34b59625181d9b67da159ae88a2502e42d570a8823878cf1f861",
+      "surface_kind": "human"
+    },
+    {
+      "bytes": 1724,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-ops-mechanics-plan/tests/fixtures/stats-export/packet.json",
+      "sha256": "97779e3b1f383a703ebaf31197641d967dca13ab84993fd395ccd628fc42e8a7",
+      "surface_kind": "structured"
+    },
+    {
+      "bytes": 2742,
+      "currentness": "tracked_source_snapshot",
+      "family_id": "rust",
+      "path": "rust/crates/tos-ops-mechanics-plan/tests/fixtures/stats-export/port.json",
+      "sha256": "162a6a871fd55b48fcfa987957c3df9a973de4f972f68e19de89a943e1c17c87",
       "surface_kind": "structured"
     },
     {
@@ -41924,11 +41964,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 2415,
+      "bytes": 2899,
       "currentness": "tracked_source_snapshot",
       "family_id": "stats",
       "path": "stats/VALIDATION.md",
-      "sha256": "e59286a3c62044dcabcf3c780876e29c8c2901158b67273f1519151dd78fe73a",
+      "sha256": "494b27f8f860b2c0ba15e0029e2c18ed27a36f5de637cc70e8f2eedfd7baaae2",
       "surface_kind": "human"
     },
     {

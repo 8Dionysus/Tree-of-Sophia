@@ -22,28 +22,10 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
     // Software tests exercise the export protocol, independently of the
     // current authored observation and the checkout's sparse input selection.
     let packet_ref = "stats/packets/table-i-prepared-dossier-route-ratio.reference.json";
-    let measurement = "Tree-of-Sophia/synthetic-ratio";
-    let port_document = json!({
-        "schema_version":"aoa_stats_local_port_v1", "contract_version":"1.0.0",
-        "owner_repo":"Tree-of-Sophia",
-        "evidence_posture":{"raw_content_allowed":false,"live_state":"reference_only","privacy":"public"},
-        "measurements":[{"schema_version":"aoa_stats_measurement_contract_v1",
-            "measurement_id":measurement,"contract_version":"1.0.0",
-            "owner_repo":"Tree-of-Sophia","statistic":"ratio","unit":{"symbol":"1"},
-            "live_state":{"capability":"reference_only"},
-            "privacy":{"classification":"public","raw_content_allowed":false},
-            "missingness":{"states":["missing","unknown","stale"]}}],
-        "exports":[{"measurement_id":measurement,"packet_refs":[packet_ref]}]
-    });
-    let packet_document = json!({
-        "schema_version":"aoa_stats_measurement_packet_v1",
-        "contract_ref":"stats/port.manifest.json#/measurements/0","contract_version":"1.0.0",
-        "measurement_id":measurement,"writer_repo":"Tree-of-Sophia",
-        "observation_id":"synthetic-ratio:fixture-v1","observed_at":"2026-10-17T00:00:00Z",
-        "provenance":{"source_revision":"synthetic-source:fixture-v1"},
-        "posture":{"raw_content_included":false,"live_state":"reference","privacy":"public","freshness":"current"},
-        "value":{"status":"observed","kind":"ratio","unit":"1","numerator":1,"denominator":2,"number":0.5}
-    });
+    let port_document: Value =
+        serde_json::from_slice(include_bytes!("fixtures/stats-export/port.json")).unwrap();
+    let packet_document: Value =
+        serde_json::from_slice(include_bytes!("fixtures/stats-export/packet.json")).unwrap();
     for name in SOURCE_PATHS {
         let path = source.join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -142,6 +124,9 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
     ] {
         altered = serde_json::from_slice(&raw).unwrap();
         altered["value"] = bad;
+        if altered["value"]["status"] == "stale" {
+            altered["posture"]["freshness"] = json!("stale");
+        }
         fs::write(&packet, serde_json::to_vec(&altered).unwrap()).unwrap();
         assert!(!validate().status.success());
         assert!(!build().status.success());
@@ -187,6 +172,49 @@ fn stats_release_uses_only_tos_inputs_and_preserves_last_success_on_invalid_sour
                 .success()
         );
     }
+    let original_port = fs::read(&port).unwrap();
+    for posture in [Value::Null, json!("live"), json!("declaration_only")] {
+        let mut changed = port_document.clone();
+        changed["exports"][0]["posture"] = posture;
+        fs::write(&port, serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(!validate().status.success());
+        assert!(!build().status.success());
+        assert_eq!(status(revision)["export_revision"], identity);
+    }
+    fs::write(&port, &original_port).unwrap();
+    // The embedded format owns complete field presence/type checks, beyond
+    // the export-specific ratio and custody bindings above.
+    for field in [
+        "status",
+        "questions",
+        "central_contract_refs",
+        "measurements",
+        "exports",
+    ] {
+        let mut changed = port_document.clone();
+        changed.as_object_mut().unwrap().remove(field);
+        fs::write(&port, serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(!validate().status.success());
+    }
+    fs::write(&port, original_port).unwrap();
+    for field in [
+        "observed_at",
+        "object_ref",
+        "population",
+        "sample",
+        "window",
+        "uncertainty",
+        "provenance",
+        "reporting_rule",
+        "posture",
+        "progress",
+    ] {
+        let mut changed = packet_document.clone();
+        changed.as_object_mut().unwrap().remove(field);
+        fs::write(&packet, serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(!validate().status.success());
+    }
+    fs::write(&packet, serde_json::to_vec(&packet_document).unwrap()).unwrap();
     let exported = release.join("releases").join(identity);
     fs::write(exported.join("extra.json"), b"{}").unwrap();
     assert!(
