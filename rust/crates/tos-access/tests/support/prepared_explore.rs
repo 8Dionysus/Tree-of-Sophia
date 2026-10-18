@@ -340,6 +340,20 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
     let displaced = dir.join("aba-displaced.sqlite");
     fs::rename(&aba_path, &displaced).unwrap();
     fs::copy(&displaced, &aba_path).unwrap();
+    use std::os::unix::fs::MetadataExt;
+    let retained_identity = fs::metadata(&displaced).unwrap();
+    let replaced_identity = fs::metadata(&aba_path).unwrap();
+    assert_ne!(
+        (retained_identity.dev(), retained_identity.ino()),
+        (replaced_identity.dev(), replaced_identity.ino()),
+        "the fixture must actually replace the checkpoint inode"
+    );
+    let retained_before = crate::native_child::bounded_sha(&displaced, retained_identity.len());
+    let replaced_before = crate::native_child::bounded_sha(&aba_path, replaced_identity.len());
+    assert_eq!(
+        retained_before, replaced_before,
+        "byte-identical ABA fixture"
+    );
     let changed_path = handle_post(
         &aba_executor,
         "/api/knowledge/explore",
@@ -347,8 +361,25 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         profile,
     );
     assert_eq!(
-        changed_path.status, 409,
-        "replacement inode must be rejected"
+        changed_path.status,
+        503,
+        "replacement inode must be rejected: {}",
+        String::from_utf8_lossy(&changed_path.body)
+    );
+    assert_eq!(
+        serde_json::from_slice::<Value>(&changed_path.body).unwrap(),
+        value!({"code":"corrupt_selected_carrier","error":"persistent checkpoint framing or custody changed"}),
+        "the ABA refusal must come from the retained custody guard"
+    );
+    assert_eq!(
+        crate::native_child::bounded_sha(&displaced, retained_identity.len()),
+        retained_before,
+        "refusal must not change the retained checkpoint"
+    );
+    assert_eq!(
+        crate::native_child::bounded_sha(&aba_path, replaced_identity.len()),
+        replaced_before,
+        "refusal must not reset or change the replacement checkpoint"
     );
     fs::remove_file(&aba_path).unwrap();
     fs::rename(&displaced, &aba_path).unwrap();
