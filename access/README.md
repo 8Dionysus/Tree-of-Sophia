@@ -2040,6 +2040,13 @@ uses `XDG_RUNTIME_DIR` or the standard temporary directory. No host broker,
 policy socket or neighboring checkout is discovered. A prepared explicit
 `TOS_SDK_STAGE_CONFIG` retains the separate caller-owned bootstrap route.
 
+When a search cache needs rebuilding, the native writer reserves its admitted
+capacity in the new unnamed inode before SQLite writes. The same file consumes
+those blocks throughout construction; unused allocation beyond EOF is released
+before publication. Existing valid caches remain read-only. Filesystem capacity
+checks and kernel allocation run without a host reservation registry.
+The new-build logical ceiling must fit its physical allocation ceiling.
+
 `NativeAccessCore` frames synchronous calls to the installed native MCP ABI.
 It returns the complete native packet. Rust owns query normalization, bounds,
 selected-source compatibility and disclosure fences; Python owns argv, the

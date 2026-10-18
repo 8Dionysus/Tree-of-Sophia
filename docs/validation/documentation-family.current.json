@@ -36,14 +36,14 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 2281,
     "human_scope": {
-      "bytes": 7321705,
+      "bytes": 7322164,
       "count": 1074,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
         "access": {
-          "bytes": 595391,
+          "bytes": 595850,
           "count": 44,
-          "lines": 9491
+          "lines": 9498
         },
         "agents-other": {
           "bytes": 8916,
@@ -121,7 +121,7 @@
           "lines": 82560
         }
       },
-      "lines": 120781
+      "lines": 120788
     },
     "surface_kind_counts": {
       "executable": 77,
@@ -183,7 +183,7 @@
         "human": 44,
         "structured": 48
       },
-      "tracked_surface_bytes": 1489899,
+      "tracked_surface_bytes": 1490358,
       "tracked_surface_count": 122
     },
     {
@@ -289,7 +289,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "88d7200eac08d4a595fed5a1e66023592f70826b2b41273fe026f77626ce8b18",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "e5917b8167fe8d2a127ba27c5253a4503cced214043dd3d2886206423a5909ae",
+  "tracked_surface_digest": "503b09bae547f7756ad129a6046496f300133fd890b254d642f09cc10f3f8e4b",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -336,7 +336,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "40fdc357a96442e8d742ea709c517a817f7bed12ce24d908546c81ef22038e84",
+      "sha256": "65fe6309ba4f17a112324019153d366a5e5404af384b5fbcc36dbbc688fea671",
       "surface_kind": "structured"
     },
     {
@@ -36332,11 +36332,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 154926,
+      "bytes": 155385,
       "currentness": "tracked_source_snapshot",
       "family_id": "access",
       "path": "access/README.md",
-      "sha256": "15c70d903fe420a883c2e493833e340d7a3d0a932f6abdc365cb996e3b303f1a",
+      "sha256": "f5f3ba481d6a2f099a293e92266ca71879c12009b60faf22d116b9270c9a4e46",
       "surface_kind": "human"
     },
     {

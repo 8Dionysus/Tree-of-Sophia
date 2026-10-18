@@ -4186,9 +4186,9 @@ fn sdk_host_session(args: &[String]) -> Result<i32, String> {
                 .checked_add(cache.max_temp_bytes)
                 .ok_or("ordinary search cache storage reservation overflow")?;
             let parent = cache.parent()?;
-            // Reserve incremental build growth plus TEMP against a held existing
-            // directory before creating a missing final parent. Existing main-file
-            // bytes are neither charged as growth nor capped as a read.
+            // Preflight the declared envelope before creating a missing parent.
+            // The cache builder reserves actual blocks in its unnamed output
+            // before SQLite writes. Existing main-file bytes are not new growth.
             let anchor = match fs::symlink_metadata(parent) {
                 Ok(meta) if meta.is_dir() && !meta.file_type().is_symlink() => directory(parent)?,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {

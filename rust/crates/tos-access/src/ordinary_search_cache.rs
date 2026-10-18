@@ -310,6 +310,10 @@ pub(crate) fn with_ordinary_search_cache(
             cancelled.clone(),
         )
         .map_err(store)?;
+        // Reserve actual blocks in the same inode that SQLite will write.
+        // Concurrent builders therefore cannot spend the same free-space
+        // sample; crash cleanup is the kernel lifetime of this unnamed file.
+        reservation.reserve_file_capacity().map_err(store)?;
         let build = BudgetedBuildInode {
             file: fresh,
             reservation,
@@ -331,6 +335,7 @@ pub(crate) fn with_ordinary_search_cache(
         built?;
         closing?;
         fresh_guard()?;
+        build.reservation.release_unused_capacity().map_err(store)?;
         // A genuine close and fsync precede named publication. The reservation
         // guard keeps original disk allocation admitted through rename/fsync.
         fresh.sync_all()?;
