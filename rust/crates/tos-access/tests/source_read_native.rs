@@ -388,6 +388,10 @@ impl McpClient {
             }),
         );
         assert_eq!(init["result"]["protocolVersion"], "2025-11-25");
+        assert_eq!(
+            init["result"]["serverInfo"]["version"],
+            env!("CARGO_PKG_VERSION")
+        );
         client
             .input
             .write_all(b"{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n")

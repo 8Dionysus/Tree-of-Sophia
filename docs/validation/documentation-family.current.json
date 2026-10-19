@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 2284,
     "human_scope": {
-      "bytes": 7369823,
+      "bytes": 7401832,
       "count": 1076,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -61,9 +61,9 @@
           "lines": 315
         },
         "github": {
-          "bytes": 76885,
+          "bytes": 77179,
           "count": 5,
-          "lines": 1142
+          "lines": 1148
         },
         "kag": {
           "bytes": 4398,
@@ -91,14 +91,14 @@
           "lines": 202
         },
         "root": {
-          "bytes": 187179,
+          "bytes": 216373,
           "count": 14,
-          "lines": 3197
+          "lines": 3625
         },
         "rust": {
-          "bytes": 171628,
+          "bytes": 174149,
           "count": 19,
-          "lines": 2560
+          "lines": 2602
         },
         "scripts": {
           "bytes": 9116,
@@ -121,7 +121,7 @@
           "lines": 82560
         }
       },
-      "lines": 121467
+      "lines": 121943
     },
     "surface_kind_counts": {
       "executable": 77,
@@ -139,7 +139,7 @@
       "surface_kind_counts": {
         "human": 14
       },
-      "tracked_surface_bytes": 187179,
+      "tracked_surface_bytes": 216373,
       "tracked_surface_count": 14
     },
     {
@@ -163,7 +163,7 @@
         "executable": 1,
         "human": 5
       },
-      "tracked_surface_bytes": 81661,
+      "tracked_surface_bytes": 81955,
       "tracked_surface_count": 6
     },
     {
@@ -192,7 +192,7 @@
         "human": 90,
         "structured": 6
       },
-      "tracked_surface_bytes": 951944,
+      "tracked_surface_bytes": 952496,
       "tracked_surface_count": 96
     },
     {
@@ -244,7 +244,7 @@
         "human": 19,
         "structured": 284
       },
-      "tracked_surface_bytes": 4679961,
+      "tracked_surface_bytes": 4684923,
       "tracked_surface_count": 303
     },
     {
@@ -289,7 +289,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "88d7200eac08d4a595fed5a1e66023592f70826b2b41273fe026f77626ce8b18",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "768038ada3dfd61d2941731662ec5a6983f74363f21f8209bee89c81c048e9f8",
+  "tracked_surface_digest": "2888ce664b916a2bd8a7144d3a1d81c70eebed4ced98d2a99e30afc343a7fce8",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -336,7 +336,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "fafc582fdee7037395bef1174ec4554fee09d828e9c53e221536c4904f2bb72d",
+      "sha256": "672bf8446b85e5e3d4cc3510c686642e4b7751ee72d001b96b8a35e23a53f1e5",
       "surface_kind": "structured"
     },
     {
@@ -372,11 +372,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 67672,
+      "bytes": 67966,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "95873a217b1a051ecd9b6f9554a07a1039037d60b3c4cb09b8166a54b4a72b9a",
+      "sha256": "750fa5f69e8ad5c3969ff1020bfc2dd7351cad0d30bee8fb4f21e6618b0bc945",
       "surface_kind": "human"
     },
     {
@@ -404,11 +404,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 103826,
+      "bytes": 133020,
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "CHANGELOG.md",
-      "sha256": "52c2b84a065830e2e1fcfd036a94facf3e0a039cb59416f3c2838b0eb93976fb",
+      "sha256": "2941e1e3b90bdb5c0bca35e49e6740c9743f589335b39da758e10cc1e460f7ba",
       "surface_kind": "human"
     },
     {
@@ -464,7 +464,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "root",
       "path": "README.md",
-      "sha256": "7b4ccb17f72386ab9da27081fb0a974685b79d8cd648177f2d402ffcf30da591",
+      "sha256": "86d93a8a340e993e2ea3d568b221a588f3837089c8bc41ef8f1105c21851589d",
       "surface_kind": "human"
     },
     {
@@ -38012,11 +38012,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 46003,
+      "bytes": 46555,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/validation_lanes.json",
-      "sha256": "35ce826bc709ffbb70a4bff43b8668122abb0735f87b0313f83ab33110576cac",
+      "sha256": "c55e7146780aefab5def0f884af884f926c729fe0a70eea7ec3a6637e82b5169",
       "surface_kind": "structured"
     },
     {
@@ -39572,19 +39572,19 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 5020,
+      "bytes": 7541,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/capacity-d-v1/README.md",
-      "sha256": "e40dea938a5ad6157acab95ad2beeea24c5f2fdca37294db32f5f779ba944db2",
+      "sha256": "7f7597d0ba6bdec10efd7fcfa59747b75be24c0f63b42ee729d9531b0e6140c4",
       "surface_kind": "human"
     },
     {
-      "bytes": 20132,
+      "bytes": 22573,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/capacity-d-v1/operation-scenarios.json",
-      "sha256": "734f47ba51aeff19961c89ddd238addf65eb927755917dbea28cb7d3d102abe4",
+      "sha256": "714fe977a5eac2be83776bb0ad8bc0d2fda293f09d589183d50be4bfd8975691",
       "surface_kind": "structured"
     },
     {
