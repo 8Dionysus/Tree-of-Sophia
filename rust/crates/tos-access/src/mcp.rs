@@ -186,7 +186,12 @@ impl McpSession {
                 return Some(rpc_error(&id, -32602, "Unsupported MCP protocol version"));
             }
             self.pending_initialize = true;
-            return Some(rpc_result(&id, br#"{"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":false},"resources":{"subscribe":false,"listChanged":false},"prompts":{"listChanged":false}},"serverInfo":{"name":"tree-of-sophia","version":"0.0.0"}}"#));
+            let result = concat!(
+                r#"{"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":false},"resources":{"subscribe":false,"listChanged":false},"prompts":{"listChanged":false}},"serverInfo":{"name":"tree-of-sophia","version":""#,
+                env!("CARGO_PKG_VERSION"),
+                r#""}}"#
+            );
+            return Some(rpc_result(&id, result.as_bytes()));
         }
         if !self.initialized {
             return Some(rpc_error(&id, -32002, "MCP session is not initialized"));

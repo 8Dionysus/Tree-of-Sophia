@@ -132,6 +132,18 @@ fn mcp_streamable_http_real_session_packets_and_transport_boundaries() {
             .as_str(),
         Some("2025-11-25")
     );
+    assert_eq!(
+        parsed
+            .root()
+            .object_get("result")
+            .unwrap()
+            .object_get("serverInfo")
+            .unwrap()
+            .object_get("version")
+            .unwrap()
+            .as_str(),
+        Some(env!("CARGO_PKG_VERSION"))
+    );
     let id = head
         .lines()
         .find_map(|line| line.strip_prefix("MCP-Session-Id: "))
