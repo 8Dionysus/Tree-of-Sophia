@@ -7,183 +7,611 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-19
+
+This release covers changes since v0.5.0 through the accepted integration
+base `ac184b9335396bec4d370ed8176c7919529cc2df`.
+
+Tree-of-Sophia now has a native Rust foundation for source growth, exact history,
+research and delivery. PostgreSQL transactions keep source changes and their
+durable work queue; independently maintained projections serve navigation and
+search. Portable models, research datasets and software remain separately
+selected products. This software release does not activate the public site,
+Worker, D1 or production data, accept all research inputs into canon, or qualify
+the later large-capacity and 250-Luna exercises.
+
+### Added
+
+#### Native foundation and WebAssembly
+
+- Added the Rust workspace and native products for exact source reads, source
+  commands, schema execution, compilation, query, mechanics, research, packaging
+  and installation. The installed `tos` entry and native MCP run without a Python
+  host. Optional imported Python SDK adapters frame calls to selected native
+  products; they do not supply another maintained query engine or a runtime
+  fallback.
+- Added shared native/WASM rules for codecs, knowledge requests, temporal
+  comparison, inspection, lens execution, exploration and browser state. Browser
+  DOM, Fetch, platform storage, presentation and asynchronous I/O retain their
+  host roles. Generated binding checks cover actual Node/workerd/browser
+  consumers rather than treating WASM compilation as product acceptance.
+- Defined exact versioned JSON and identity profiles: strict published JSON
+  rejects duplicate decoded keys; request compatibility retains last-value
+  semantics where declared. Integer lexemes, finite float spelling, member order,
+  historical whole-form serialization and trailing-newline rules remain distinct
+  contracts. Unicode 16 lowercase, strip, full casefold and simple scalar folding
+  have explicit profiles. Byte, Unicode code-point and browser UTF-16 offsets
+  keep their own units.
+
+#### Source custody and corpus admission
+
+- Added descriptor-anchored exact corpus readers and a separate immutable
+  segment store with content-bound frames, retained pin/attempt journals, exact
+  locators and cold recovery. Path traversal rejects symlinks and substitution;
+  the raw Linux reader stages verified bytes before stdout. Custody establishes
+  exact bytes and retained identity; access and admission are supplied by their
+  owning adapters.
+- Added explicit native AdmissionStore V2 publication, authenticated trees,
+  retained typed revisions, packed objects and bounded disk-backed closure
+  checks. V1 remains an explicit compatible reader. V2 exact source-ID and
+  member-path reads, warm successors, committed-revision verification and fresh
+  target restoration preserve original source/history identities. A failed
+  verification cannot publish a new revision or select an incomplete copy.
+- Added native Git capture, bounded import/restore and chunk transport. A fresh
+  source capture can compose disjoint explicitly retained subtrees into one
+  content-addressed pool while preserving each original snapshot and receipt.
+  Overlapping namespaces, changed membership and incompatible source modes are
+  refused. Imported custody does not select a current corpus or grant semantic
+  admission.
+- Added declared `full-audit`, `selected-source-closure` and
+  `selected-record-closure` validation profiles. The record profile binds exact
+  logical roots and physical ledger slots, including row/offset/delimiter and
+  raw/canonical digests. Required dependencies remain mandatory; unrelated rows
+  in the same physical file receive no acceptance from the selected result.
+  Profile and selection bytes participate in validator identity. Labs and
+  Goldsets outside a selected scope are reported absent rather than passed.
+- Added offline schema execution with pinned disposable native workers, exact
+  schema/resource closure, finite request/response/state limits, deadlines and
+  cancellation. Shared source rule kernels cover records, text, layers, forms,
+  provenance, relations, registries, rights and reference closure. Reuse applies
+  only to identical documents and schema selectors inside the held operation;
+  source, authorization and publication checks still run.
+
+#### Source records and human forms
+
+- Expanded source-owned creation, preparation, correction, inspection and replay
+  across Agent, Work, Expression, Edition, Item, File, Collection, Artifact, Link,
+  descriptive metadata and qualified Claim families. Compound operations retain
+  exact responsibility, membership, parent, source-home and provenance bindings.
+  Collection order is bound to particular retained membership versions. Shared
+  File identity preserves each Item's separate representation and rights context.
+- Added versioned semantic entity/relation registries with labels, definitions,
+  ownership, lifecycle, hierarchy, source crosswalks and relation domain/range,
+  direction, cardinality and evidence rules. Stable semantic IDs accompany source
+  kinds and predicates. Original public records remain lossless source returns;
+  unknown mappings stay explicit. Graph joins preserve reified Claims, evidence,
+  maker, review, version and supersession instead of inferring identity from names.
+- Expanded source-declared profiles for people, collectives and institutions;
+  authorship and other participant roles; events, processes, biographical phases,
+  places and historical environment; intellectual objects, documents, letters,
+  fragments and material carriers. Problems, positions, distinctions, arguments,
+  methods, thought moves, imagery and values retain their own scoped descriptions.
+  Production, reception and conceptual transformations are evidence-bearing
+  relations rather than facts inferred from a label or a directory. Type, role,
+  property, classification, identity and similarity remain distinguishable.
+- Added source-described Conception and CrosscuttingConcept profiles, scoped
+  structures, research corpora, Occurrences and qualified motif proposals. A
+  Conception has a contestable scope and continuity criterion. A multi-member
+  motif remains one Claim-scoped hypothesis with every selected participant in
+  its mandatory reading closure; it does not issue a Sign identity. Sign
+  promotion requires its separate assessment and source-owner delegation.
+- Added exact semantic-identity and continuity proposal routes for explicitly
+  supported subjects, including a separately granted semantic-subject profile.
+  A proposal can report a merge, split or continuity question without executing
+  that identity change. Unknown, absent and false values remain distinct; a
+  versioned description correction does not silently change the referent.
+- Added exact current and historical HumanForms, source-copy materialization,
+  freeform forms and source-owned compact Claim display fields. Name, caption,
+  hover, statement, grounds and history retain their exact subject, language,
+  source/version/digest, assessment and required context. Source descriptions
+  can be corrected through authorized versioned operations while preserving
+  predecessors and rebinding forms.
+- Added lossless shared-context HumanForm delivery v2 alongside inline v1.
+  Common packet values and repeated limits are encoded once and reconstructed
+  under separate expansion bounds. Missing, malformed or over-budget context
+  withholds the affected wording with its exact inspection reference; it is
+  never shortened by dropping qualifications. Consumers and restored saved
+  selections must understand the declared envelope version.
+- Added source-owned Claim navigation templates and explicit typed time readers.
+  Historical time, source wording and a catalogue's attributed document date,
+  origin or destination remain distinct. Comparisons retain precision, calendar,
+  uncertainty, alternatives and exact operand versions; unsupported roles or
+  unknown coordinates return an explicit undetermined result. Claim-scoped
+  reference values declare their actual member slot instead of interpreting
+  arbitrary JSON as references.
+- Kept world/event time, witness time, acquisition and review time distinct in
+  the source and history model. Exact retained-version reads and typed temporal
+  comparison do not promise an arbitrary global as-of reconstruction.
+- Added attributed Letter 705 carrier, catalogue date/place/direction and
+  source-copy/display-form records, plus source-backed corrections and retained
+  Claim histories. Catalogue attribution remains visible; these records do not
+  turn a reported catalogue field into an unqualified historical fact.
+
+#### Text, OCR and alignment
+
+- Added native TextLayer and TextUnit creation, bounded exact public/private
+  unit return, derived-layer capture and edit replay, public project Text and
+  Occurrence construction, and physical-part composition. Exact source
+  coordinates, layer identity, derivation, fixity, rights and source-visible
+  assessment remain available through the resulting bindings.
+- Added immutable native translation alignment, retained mapping inspection and
+  bilingual capture/replay. Alignment records preserve the exact source and
+  target units, selectors, mapping, lineage and grant; their existence alone
+  does not establish equivalence or translation quality.
+- Added retained-page OCR recording and a separate source-image comparison
+  route. Signed OCR import verifies the independently pinned P-256/SHA-256
+  signer, receipt, source/language binding and exact output bytes through native
+  cryptography. Producer source/digests are provenance; no producer checkout,
+  Python adapter, Cosign execution or network trust discovery is required.
+  Signature verification and image/text comparison remain separate from
+  fidelity, reuse rights, interpretation and canon judgments.
+
+#### Assessment and access conditions
+
+- Added source-visible assessment by competent authorized humans or agents and
+  separately derived current scoped admission. Assessment binds the assertion,
+  evidence/counterevidence, policy, reviewer, competence and execution profile.
+  Reusable grants can cover a declared language/layer/purpose scope without
+  fabricating a human review for each record. Disagreement, deferral,
+  withdrawal, reviewer independence and dependency invalidation remain visible.
+- Added purpose-specific text quality and dependent-use checks for citation,
+  linguistic analysis, semantics and search. A changed layer, comparison or
+  required source dependency can invalidate use even when the Claim wording
+  stays unchanged. Rights, consent, publication and canon keep their actual
+  owner decisions.
+- Added protected confidential source contexts and native local Text, Profile,
+  Claim, assessment and alignment profiles. Explicit private roots, owner-only
+  files/directories, exact logical bindings, expiry and operation grants govern
+  access. Historical private reads recheck current rights. Ordinary HTTP and
+  source dispatch do not expose these private write profiles.
+- Added native CMD-local PostgreSQL rights revocation with stable command retry
+  and expected-rights-version checks. Revocation blocks pending writes, replay
+  and current/historical delivery within that domain; it does not erase the
+  immutable evidence or decide broader legal rights. Committed creation evidence
+  remains inspectable after an issuing grant expires, without renewing access.
+
+#### Search, lenses and exact reading
+
+- Added the standalone `access/` product with native CLI, loopback HTTP, native
+  stdio/Streamable HTTP MCP and read-only WebMCP contracts. Catalog, node/relation
+  inspection, philosophy/corpus views, source descent, dossier, exact source,
+  bounded CSV-row and native TextUnit reads preserve selected source versions
+  and disclosure conditions. Capability discovery advertises available owners
+  and supported contracts; it does not issue grants.
+- Added a backend-defined knowledge catalog and LensSpec grammar shared by human
+  and agent consumers: node/relation filters, exact focus, path witnesses,
+  endpoint closure, grouping, sorting and stored views. Catalogs expose observed
+  vocabulary, semantic mappings, facets, limits and unavailable entity routes.
+  Lossless source packets stay separate from query attributes and clearly
+  marked metadata-derived display descriptions.
+- Added resumable bounded graph exploration with exact snapshot/configuration
+  binding, deterministic replay, expiry and cancellation. Prepared local readers
+  can explicitly select private SQLite checkpoints that survive restart; Worker
+  continuations use separate TTL-bound D1 state and concurrent-winner admission.
+  Process-local, prepared, managed-release and Worker checkpoint guarantees and
+  cursors remain profile-specific.
+- Added versioned knowledge search engines: maintained legacy substring/count
+  behavior, indexed-v2 candidate verification/continuation, and explicitly
+  prepared compressed-v3 storage. Unicode grams, rare-gram intersection,
+  bounded verification prefixes and compressed posting blocks reduce unnecessary
+  work without treating candidates as complete matches. Engine discovery drives
+  the UI; offsets, native cursors and Worker tokens are not silently converted.
+- Added durable PostgreSQL source-text search over declared titles, labels,
+  quotations and HumanForms, with exact-ID lookup, weighted ranking and source
+  revision returns. Its v2 profile adds current Agent source-copy forms through
+  exact record/form dependencies. Technical keys, paths and arbitrary nested
+  JSON are not indexed text. This first source-text profile returns bounded hits
+  without promising pagination or a total count.
+- Added independently authorized exact source and private text reading, including
+  guarded history and current-policy rechecks through final native transport
+  flush. MCP budgets account for both text and structured copies, escaping,
+  request ID and framing; a fitting query packet is not automatically a fitting
+  MCP frame. Native compact serialization and typed error/exit behavior are
+  explicit compatibility contracts.
+
+#### Research interface and constructor
+
+- Added Evidence Lens, contextual WebMCP actions, visible connection/tool state,
+  native-MCP fallback, bilingual examples and source-gap research routes. Research
+  cards expose source facts, provenance, Claim qualifications, related material
+  and exact exports with readable localized labels. Same-named materials and
+  different predicates remain distinguishable; grouped links retain each relation.
+- Added a persistent local research workspace with collections/shelves, saved
+  passages, notes, drafts, reading positions, scene state and import/export.
+  Pending notes, exact source paths and exits survive UI transitions. Missing
+  text discovery does not hide an available exact source record. Catalog reuse,
+  stale replay invalidation and atomic detach/update rules preserve selection.
+- Added the constructor and original-language reader, source-bound material and
+  fragment libraries, bounded live exploration, source commands and exact-reading
+  handoffs. Rust/WASM owns authoring transitions, hierarchy, draft conditions,
+  saved poses, atomic edits and bounded undo/redo; the browser owns interaction
+  and storage. Live startup and demo initialization are separate entries.
+  Native desktop delivery provides its local launcher and HTTP boundary.
+- Replaced per-boolean browser/WASM observation sessions with whole held-value
+  validation where applicable. Original JS object identity, UTF-16 keys,
+  sparse arrays, getter order, callbacks and thrown errors retain their host
+  behavior. This reduces bridge/state duplication without claiming an extra
+  browser heap limit.
+
+#### Research inputs and philosophy dossiers
+
+- Completed the indexed prepared-dossier sets at 48, 58 and 84 for Tables I–III,
+  with master-row/identity checks, multilingual extraction, source-anchor
+  backlogs, language packets, candidate nodes/relations and post-planting audit.
+  Readiness and planting use owner-declared package/route maps rather than one
+  hard-coded table. Weak confidence and review dispositions remain explicit.
+- Added non-era frontier treatment for cross-geography/cross-chronology
+  khipu/rongorongo and a distinct Andean information-system route. Table III
+  keeps a non-universalizing navigation window. The undeciphered-script frontier
+  remains undeciphered; the prose-only dossier produces zero structured semantic
+  candidates and needs a source-completed successor before semantic promotion.
+- Added source-registry normalization, reconciliation, immutable snapshots,
+  history and inspection. Corpus, document, logical record and versioned
+  occurrence identities are separate. Raw DOCX/OOXML fields retain their exact
+  original-file digests and locators; unsupported mappings and anonymous edited
+  row identities require explicit treatment rather than title-based merging.
+- Added the generic XML/UXLC A/B/C laboratory and native consumer. Its reviewed
+  result prefers an exact-file generic element topology, retains opaque capture
+  and a separate UXLC-specific derived projection, and rejects the specialized
+  projection as a generic owner. Private source text stays withheld. This
+  laboratory result does not itself promote a public inventory contract or Item.
+
+#### Source-bound research tools
+
+- Added source-bound Zarathustra word/concept search and a multilingual candidate
+  workbench returning exact German occurrences, historical Antonovsky comparison,
+  morphology, speaker/context candidates and English tasks on demand. Low-frequency
+  forms and verse remain included; semantic neighbors and negative controls stay
+  separate. Request/version identity, optional technical successor plans and
+  explicit first-time identity issuance prevent unrelated requests sharing objects.
+- Added the whole-work Reading workbench with exact code-point spans,
+  sentence/clause anchors, quotation scopes, voice candidates, occurrence
+  crosswalks, sparse repeated-formula families and explicit coverage/gap ledgers.
+  It uses separately selected private source/analysis roots. Heuristic morphology,
+  coreference, literary attribution, semantic similarity and translations retain
+  candidate or deferred status; private datasets are not installed by software CI.
+- Ported maintained lexical, structural, paragraph-alignment, source/target text,
+  German triangulation, collation, recurrence, usage/morphology, transfer,
+  source-visible review-receipt and visual-result recipes to bounded native
+  `tos-research` producers/validators. DTA lexical build/validate has its own
+  exact source/payload/schema and private SQLite contract. Frozen historical
+  recipes, receipts and control outputs retain their original identities;
+  equality claims are scoped to the checked logical outputs, not arbitrary
+  physical SQLite bytes or every downstream consumer.
+- Preserved the bibliography and acquisition distinctions needed for artifact
+  images and multi-volume scholarly composites: physical witness, editorial
+  composite, exact File and reusable text are separate. Prepared research,
+  structural green checks and a generated graph do not accept their historical
+  assertions or admit a complete philosophical corpus.
+
+#### Discovery and acquired material
+
+- Added the reviewed open-work candidate loop with immutable terminal receipts,
+  frozen targets, exact queue snapshots, source-backed readiness and per-channel
+  timing evidence. Chronological and readiness selection remain explicit modes.
+  Zero-result or metadata-only outcomes can advance without claiming acquired
+  bytes; a held-witness outcome requires a resolved actual witness/acquisition.
+- Added bounded acquisition handoff verify/adapt and custody checks for one
+  explicitly selected frozen handoff, including Item manifests, File membership,
+  rights, provenance, payload digests, ownership and read-only file state.
+  Credential-bearing provider URLs, duplicate evidence keys, FIFOs, hardlink or
+  path races and incomplete identity closure are refused. Local-only Items no
+  longer require a server plan; server transfer requires its separate scope.
+
 ### Changed
 
-- Updates the Rust execution and declared source-validation decisions to the
-  maintained native decision-index and record-validation commands, preserving
-  their rationale, status and index metadata.
+#### Transactional source updates
 
-- Aligns the current Growth contour with the 48, 58 and 84 indexed dossiers in
-  Tables I–III. Index coverage does not establish semantic completeness;
-  `T3-57` retains its prose-only, zero-structured-projection restriction and
-  requires a source-completed successor before semantic promotion.
+- Moved the central update direction to durable PostgreSQL source transactions
+  with exact STO custody, atomic current/history/receipt/log/outbox changes,
+  current rights/rule/schema/job fences, cancellation and retained replay.
+  Explicit Agent creation and selected-record revision read addressed inputs and
+  affected predicates rather than rebuilding the complete Site. Independent
+  unchanged source updates can coexist under their readsets. Other command
+  families retain their declared full-cut preparation costs.
+- Added explicit protected PG source bootstrap, initial Agent/public Text and
+  selected revision routes, including separate schema provisioning. Ordinary
+  mutations do not run implicit DDL. Mixed-source commitments and complete
+  audit coverage bind maintained record/Claim/Text/File families; older
+  Agent-only commitments need a fresh compatible bootstrap.
+- Separated initial work from routine updates. Streamed bootstrap retains
+  bounded ORIGINAL batches and can resume assessment after their complete EOF,
+  or finish addressed packing after a committed assessment. Partial original
+  writes or changed inputs/authority refuse resume. Source-text initial build
+  commits each selected source and its progress atomically; search remains
+  pending until complete EOF publishes the captured head.
+- Projection consumers apply exact committed source revisions and commit output
+  with their durable progress position. Interrupted events remain pending and
+  reopen resumes completed work. Queue telemetry distinguishes sequence lag,
+  server-clock age and unknown historical enqueue time. Source commit,
+  projection publication and current reader selection are different outcomes.
 
-- Rewrites foundation guidance, node templates, semantic definitions and current
-  source descriptions around their subject, purpose and evidence. Explanatory
-  prose is editable within typed contracts; source and Claim revisions preserve
-  exact predecessors and rebind their forms. Explicit public scope-wording
-  delegation, retained provenance inputs and versioned inventory generation
-  preserve compatibility under TOS-D-0068.
+#### Projection publication and continuation
 
-- Separates standalone software build, tests, packaging and merge from corpus
-  admission, full data snapshots, KAG currentness and stats federation under
-  TOS-D-0062. Required Repo Validation builds and installs a software-only
-  archive and tests program behavior against bounded fixtures. Public
-  site/Worker/D1 activation remains deferred.
+- Added guarded prepared-model bootstrap, addressed source/catalog/semantic/search
+  deltas, exact dependency maintenance, coherent source/prepared pairing and
+  explicit implementation/profile transitions. Changed rows and deletion keys
+  are staged against an exact predecessor and published atomically. Replay,
+  interruption, stale binding and A→B→A replacement checks preserve the last
+  coherent result. Full bootstrap/schema replacement remains a separately
+  selected maintenance operation.
+- Added opt-in content-bound processing reuse and dependency lineage. Reuse keys
+  include actual inputs, processor/schema/registry identities and relevant absent
+  dependencies; global identity and closure checks remain. Completed reused
+  work is distinguished from newly executed work. No cache result grants source
+  acceptance or current disclosure.
+- Made bounded event-range publication the maintained navigation writer.
+  Complete selected Claim streams bind their own histories, causal dependencies
+  and full predecessor inventory, including unchanged companion Claims. New
+  Records require creation evidence; admitted original Records retain their
+  bootstrap provenance. Exact empty files remain distinct from absence.
+- Added authenticated navigation cohort maps, coverage/adjacency roots,
+  verified-prefix checkpoints and resumable initial Original capture. Ordinary
+  PG navigation reads authenticate bounded admitted metadata and current policy
+  without reopening the SQLite anchor or scanning all historical events.
+  Unchanged scopes can remain readable while unrelated source work lags;
+  changed dependencies return `publication_pending`.
+- Added receipt-sequence lower bounds for source descent across CLI, HTTP,
+  MCP and WebMCP. Canonical decimal strings preserve 64-bit sequences in browser
+  transports. A lagging publication refuses immediately without forcing
+  processing. D1 has no equivalent CMD sequence and refuses that parameter.
 
-- Delivers the integrated knowledge reader, browser and Worker contracts
-  independently of the pending bulk corpus migration. Data selection is
-  explicit; selected data cannot override program schemas or web assets.
-  Browser build output is no longer committed to Git.
+#### Portable models and resource accounting
 
-- Runs the root validation collection once through pytest, retaining all
-  `unittest.TestCase` coverage while including the eight top-level pytest
-  regressions previously omitted by unittest discovery; the same route emits
-  bounded slow-test diagnostics without duplicating the full suite.
+- Deduplicated graph view membership and partitioned growing projections into
+  bounded content-addressed collections. Offline compilers produce explicit
+  disposable query artifacts; ordinary reads consume completed snapshots and
+  do not trigger a hidden rebuild.
+- Added native carrier-once model formats through V4: exact original packets
+  stored once, authenticated compression dictionaries, packed rank fields and
+  compact posting runs. Decoded bytes and ordering preserve the selected
+  semantics. Older inline and CarrierOnce ABIs retain their versioned readers;
+  similar bytes never silently upgrade the selected format.
+- Separated reader libraries from capture, source tools, full model producers,
+  mechanics, research and native-model dependencies through explicit Cargo
+  features. Lightweight reader and CI-executor builds omit those operations;
+  installed roles select their required features and assets. Features select
+  code availability, while runtime ownership and rights remain explicit.
+- Reduced repeated source scans, tree/value copies, validation and retained
+  buffers; added indexed branch-parent lookup, bounded keyset seeks, streamed
+  metadata/cold audits and per-owner dependency forecasts. Parser/decoded state,
+  logical reads, SQLite VM work, file limits, temporary-space quotas, process
+  memory and device I/O remain separately accounted dimensions.
+- Added prospective assessment-history capacity checks before prepare/publish,
+  sharing the authenticated reader's byte/count predicate. Local raw history and
+  canonical bytes are checked independently; PG packages also charge the new
+  64-byte head while retaining old raw heads. Overflow and over-limit successors
+  refuse before publication. Limits remain 1 MiB per batch, 32 MiB history and
+  1,024 batches/events; source qualification, replay and current-head fences remain.
+- Avoided redundant decoding when constructing already checked ASCII JSON
+  strings without callbacks. UTF-8 preflight, checked/fallback parsing, work,
+  cancellation and storage guards remain; quotas and worker CPU ceilings were
+  not raised.
 
-- Searches active naming references from retired-token occurrences instead of
-  rechecking every unrelated path-shaped word. Length-preserving case mapping
-  retains Unicode boundaries, exact allowlists, and original diagnostics while
-  reducing whole-corpus validator work without a persistent result cache.
+#### Cloudflare delivery
 
-- Finds source-navigation branch parents through a per-build path index
-  instead of comparing every branch with every other branch. The nearest
-  authored ancestor, path-alias tie-break, output order, and complete generated
-  corpus index remain unchanged; focused corpus checks avoid the quadratic
-  traversal without persistent caches or skipped validation.
+- Added repository-owned Worker/Static Assets and generated D1 delivery for the
+  site, API, Evidence Lens, graph/lens operations and scale exports, with Tunnel
+  retained as a recovery deployment profile. Exact source/schema revision
+  comparison avoids D1 row writes for code-only rebuilds; addressed transitions
+  include guarded catch-up, forward/rollback artifacts and integrity checks.
+- Moved maintained Worker query/temporal/inspect/lens/exploration semantics to
+  shared Rust/WASM while retaining D1 I/O and publication checks in the host.
+  Snapshot/epoch checks guard final whole-packet body handoff; Worker Response
+  construction alone does not establish delivery. Software contracts, web assets
+  and schemas come from software, never a selected data root.
+- Added native offline prepared-pair/navigation capture and bounded SQL framing
+  and local import products. Capture writes unapplied local SQL/manifests; remote
+  import and consumer switching require their separate operation.
+- Added an optional authenticated source-text gateway to a separately selected
+  native PostgreSQL consumer. Fixed origin/path, distinct inbound Access JWT
+  verification and outbound service credentials, bounded JSON bodies and one
+  deadline protect the transport. D1 does not become a source-text store, and
+  configured capability reports are not runtime probes.
+- Restored the production analytics beacon/referral collection path, prevented
+  duplicate injection and retained geography/security/cache behavior. Local
+  previews omit the production beacon. Previously uncollected referral history
+  is not reconstructed, and this release performs no hosting activation.
+- Added Social Connector service pages and retained service records as optional
+  UI inputs. Research operation remains usable when those records are absent.
 
-- Speeds up focused source-witness negatives by testing the same payload and
-  rights guards used by full corpus validation, without rebuilding unrelated
-  schema and corpus checks. The aggregate planting CLI test uses minimal
-  package inputs; separate real DOCX readiness integrations remain in place.
+#### Independent execution and exports
 
-- Moves the public `treeofsophia.com` access product from an operator-machine
-  Cloudflare Tunnel to a repository-driven Cloudflare Worker with Static
-  Assets and a generated D1 read model. Merges to `main` can rebuild and
-  deploy the site, API, Evidence Lens, and streaming scale exports without a
-  continuously powered origin machine; `www` redirects to the apex, the
-  tunnel remains a recovery profile, and the frozen KAG family is not a build
-  or runtime dependency. Deployment compares the generated source-and-schema
-  revision with live D1 metadata, so code-only rebuilds and retries write zero
-  D1 rows while read-model changes cannot silently reuse stale structure.
-- Adds the self-contained `access/` product: a portable v1/v2 query core,
-  `tos doctor/verify/serve/mcp`, native MCP, loopback JSON runtime, the
-  constellation web app, a WebMCP-ready read-only action ABI, optional
-  AbyssOS adapters, and an allowlist-only fingerprinted standalone bundle.
-- Completes the first WebMCP product shell with a visible connection and tool
-  status, graceful native-MCP fallback, bilingual demonstration prompts,
-  compact agent envelopes, a persistent local-only research workspace, real
-  browser-contract coverage, explicit HTTP security headers, and a validated
-  standalone candidate uploaded by `Repo Validation`.
+- Separated software builds/tests/packages from corpus admission/data snapshots
+  and independent KAG/stats/integration releases. Required software CI uses
+  bounded fixtures and a software-only install. Each data or consumer release
+  retains its own exact input, compatibility, currentness and acceptance evidence.
+- Removed sibling checkout, ecosystem Python environment, host-service and
+  admission-broker prerequisites from ToS execution. The native ToS launcher
+  owns per-operation Linux containment, private storage, kernel checks, deadlines,
+  cancellation and cleanup using explicitly selected paths. Useful libraries,
+  PostgreSQL and optional deployment services retain their normal roles.
+- Made KAG/source-return and stats exports ToS-owned native products.
+  `tos-kag-release export-build/export-verify` and
+  `tos-stats-release validate/build/verify/status` operate on selected ToS bytes.
+  Consumers configure their own providers, indexes, additional grammar, trust,
+  registries and admission. The earlier temporary KAG freeze and provider-pin
+  campaigns are history, not current ToS release prerequisites.
 
-- Completes Table II at 58 of 58 master-aligned prepared dossiers, including
-  the corrected T2-26 nominalism packet and T2-51–T2-58, with generated
-  medieval-worlds branches, graph-workbench candidates, language packets,
-  fixity manifests, and explicit extraction coverage.
-- Completes Table III at 84 of 84 master-aligned prepared dossiers under a
-  non-universalizing modernity-and-contemporary-worlds navigation window.
-  `T3-76` remains an explicit undeciphered-script frontier rather than an era
-  or deciphered tradition claim; the prose-only `T3-57` artifact is admitted
-  for fixity and coverage while producing no structured semantic candidates.
-- Recognizes semantically equivalent prepared-dossier table headers across
-  Russian and English variants, recovering the T3-66/T3-69 relation tables and
-  the T3-84 node and transmission tables while normalizing node-kind ids; a
-  reviewed T3-77 punctuation override keeps an analytic enumeration distinct
-  from an active repository path or id.
-- Moves the philosophy graph projection to contract v2: nodes and edges are
-  materialized once, while each of the eleven lenses carries stable node/edge
-  ID membership. This preserves the complete source-returning projection and
-  reduces the generated file from 125,123,899 to 30,023,000 bytes.
-- Routes T2-56 to an Andean information-system frontier distinct from A48's
-  cross-chronology khipu/rongorongo boundary, preserving the limits between an
-  information system, a readable text corpus, and a philosophical canon.
-- Generalizes prepared-dossier planting from one hard-coded Table I package to
-  owner-declared package sections and route maps while preserving Table I byte
-  parity, legacy manifest links, pre-canon posture, and manual review for weak
-  status or confidence.
-- Completes the Table I prepared A-series planting from 30 to 48 dossiers,
-  with owner-declared DOCX sections, tracked fixity/capture posture, explicit
-  extraction coverage, and reviewed Russian/English dossier labels.
-- Adds one bounded non-era philosophy frontier for A48 instead of forcing the
-  cross-geography, cross-chronology khipu/rongorongo guardrail into an era or
-  tradition. A44–A48 retain explicit manual-review posture, and all planted
-  material remains research-derived and pre-canon.
-- Rebinds the bounded segmented KAG consumer and hosted owner-family action to
-  the landed public `aoa-kag` revision
-  `1a0342087b18d0a1f5630036937a548b6526e0e9` after provider PR #234. The
-  published `aoa-kag@v0.5.0` identity remains distinct from this current
-  source/CI pin, and the generated ToS family remains a derived carrier.
-- Adds an explicit `workflow_dispatch` entry to `Repo Validation` so an owner
-  can rerun the exact hosted required gate when GitHub delivers a branch push
-  but omits the corresponding pull-request workflow event; this is a trigger
-  route, not a bypass or a substitute for the required check.
-- Makes the separate KAG action ABI explicit in current source: the published
-  `aoa-kag@v0.5.0` provider remains pinned to immutable
-  `f46f146cc79a26fa81ad0f400b9c5774df293e57`, while the current provider
-  source snapshot is `47598411fba56f126a8530cb1e7e91bed57f5fef` and the
-  executable `repo-local-kag-index` workflow action is pinned to
-  `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`.
-- Adds an executable parity guard and owner decision so neither identity is
-  misreported as the other. This is a current-source compatibility repair
-  only; it does not create or rewrite a tag or Release.
-- Makes an explicitly supplied Tree subject-store root authoritative for the
-  validator process, so the missing-store rehearsal cannot fall through to an
-  ambient host default. The host store remains untouched; the deny-before-
-  materialization and post-materialization intent states remain separate.
-- Adds an exact-source CI check for the current `aoa-kag` provider snapshot at
-  `47598411fba56f126a8530cb1e7e91bed57f5fef` and independently fetches the
-  executable action at `25cd6263ae2c860c58f86cf3a0747f2070eb45ff`, proving the
-  two immutable action snapshots remain distinct. The published `v0.5.0`
-  provider identity remains `f46f146cc79a26fa81ad0f400b9c5774df293e57`; no
-  tag or Release is rewritten. The provider checkout is completed to full
-  history before its history-dependent owner validator runs, so a shallow CI
-  fetch cannot manufacture a generated-index drift verdict.
-- Keeps the subject-store isolation regression standalone-safe by testing the
-  Tree-owned process binding with a local resolver double; the full
-  `abyss-machine` owner path remains exercised by the release audit.
-- Preserves the raw subject-store CLI value until owner resolution, rejecting
-  empty or repository-root values before materialization so an empty shell
-  expansion cannot become `Path('.')` and fall through to the checkout.
-- Rebinds the module default as well as environment roots during the nested
-  materialized-store rehearsal, so its trust gate inspects the temporary store
-  rather than the already-populated primary store.
-- Isolates the negative precondition gate on every invocation, including
-  `--no-clean` reruns, so retained materialized subjects cannot turn the
-  required deny-before-materialization state into an allow. The rehearsal uses
-  both a fresh registry and an empty temporary store.
+#### Mechanics and contributor routes
 
-### Validation
+- Reorganized human and agent entry routes around source owners, short inherited
+  route cards and on-demand validation. Native builders/checkers maintain route,
+  agent-surface, documentation-family, root-entry and decision companions.
+  The validation manifest owns ordered commands; its shared command references
+  avoid duplicate procedure bodies.
+- Added native mechanics discovery/execution, Agon thresholds, Questbook,
+  relation-pack, mirror, Experience contract and Growth assertion routes.
+  Active parts/topology and contributor fixtures follow current native APIs;
+  source-owner operation guidance names explicit read/prepare/write routes.
+  Mirror sync, planting, generation and publication remain explicit writes.
+- Added Linux pidfd/subreaper process custody, per-command/whole-lane deadlines,
+  output caps, cancellation, first-failure propagation and bounded descendant
+  cleanup for native command lanes. Unavailable facilities or incomplete cleanup
+  return failure with residual/unknown custody evidence. External supervision
+  remains necessary if the supervisor itself is killed or crashes.
+- Preserved token-first active-naming checks, nearest authored branch-parent
+  selection, optional external feedback-cache behavior and native topology and
+  dossier checks. Cache failure falls back to live validation; CI/release do not
+  select the feedback cache. Historical Python performance steps are consolidated
+  into the current native behavior rather than retained as a pytest runtime gate.
 
-- The Cloudflare edge lane rebuilds the allowlisted web/data surfaces,
-  type-checks and unit-tests the Worker, imports the generated model into
-  local D1, compares bounded and scale-export responses with the Python core,
-  and validates the deployment bundle. Public runtime and repository-driven
-  deployment acceptance remain separate landing checks.
-- Prepared-dossier, multilingual, topology, atlas/graph projection, and
-  post-planting checks account for 190 admitted dossiers across Tables I–III,
-  7,193 proposed nodes, 8,564 proposed relations, and 1,278 text-bearing
-  language packets. Structural green status does not verify DOCX origin,
-  citations, historical claims, source-witness identity, semantic review, or
-  canon acceptance.
-- The workflow and release-contract parity tests require the exact provider
-  and action refs and assert their intentional inequality. Action execution,
-  provider source identity, artifact admission, runtime, proof, delivery,
-  closure, and acceptance remain separate claims.
-- The artifact-bundle isolation regression proves that an empty explicit root
-  is the only store candidate during the rehearsal and that process state is
-  restored afterward. This is an Unreleased source/tooling repair only; no
-  tag, Release, artifact verdict, runtime, proof, or acceptance claim changes.
-- The CLI regression covers both raw empty input and an explicit current-
-  directory root; both fail closed before any subject-store writes.
-- The nested-scope regression proves temporary-store binding and restoration of
-  the outer and ambient defaults around the adversarial trust gate.
-- The owner validator keeps its deny-before-materialization rehearsal on an
-  empty temporary root and fresh registry even when a prior materialized store
-  is retained.
-- The hosted workflow validates the exact provider source and separate action
-  snapshots before the Tree release audit. These checks prove source-level
-  compatibility evidence only; they do not prove artifact admission, runtime,
-  proof, delivery, closure, or owner/human acceptance.
+#### Packaging, backup and recovery
+
+- Added native deterministic software archive build/verify and fresh-prefix
+  installation, binding commit/tree, lockfile, toolchain, Cargo features, native
+  build profiles, exact executables, contracts and web assets. Optional roles are
+  explicit. The current software package includes no working production corpus;
+  installation neither chooses data nor starts services.
+- Added bounded native PostgreSQL/STO backup and fresh-target restore with exact
+  pinned PostgreSQL 16 tools and an independently retained receipt digest.
+  Backup v11 covers navigation maps and resumable initial capture. Readers for
+  v1–v10 preserve their original receipt/census rules. Restore verifies source,
+  SQL ABI, dump/store bytes and complete cold closure before later selection.
+- Added explicit installed Agent correction/publication inspection and retained
+  recovery routes. After interrupted projection publication, inspect the saved
+  outcome before retrying; recreating the source is not publication recovery.
+  A verified restored store still needs current authorization and explicit
+  reader activation.
+
+### Removed
+
+- Retired the maintained Python CLI, wheel/runtime fallback, source handlers,
+  producers, validation/release/CI entrypoints and replaced executable tests.
+  Native owners and independent frozen vectors retain the documented contracts.
+  Exact historical builder/schema/metadata bytes remain provenance inputs under
+  their original digests; they are not executed as a fallback.
+- Removed the synthetic CMD1 PostgreSQL coordinator, its independent SQL schema
+  and protocol-only target. Durable CMD/STO now owns the maintained commit,
+  conflict, replay, cancellation and cold-history obligations. Former synthetic
+  prefix/reverse/interval APIs did not establish a supported source reader or
+  completeness law and receive no implied replacement guarantee.
+- Removed the first-generation navigation-only SQLite pipeline, unused
+  single-event publishers/backlog driver, unconsumed compiler producer generations,
+  full-scan/materializing readers, closed admission/reader helpers and private
+  D1-pair prototype. Current event-range, prepared and portable readers keep their
+  explicit formats; no blanket equivalence is claimed for every removed API.
+- Removed WEB.1, the source-codec feasibility product and its verification route.
+  It was a migration probe, not the ToS website. Maintained Foundation and
+  domain/WASM products have their own contracts.
+- Removed the Antifragility, Checkpoint, Recurrence, Method Growth and RPG routing
+  packages. Audit, Growth and Questbook retain their applicable responsibilities
+  and active routes. Spark/legacy scaffolding and the copied foreign skill
+  crosswalk leave active topology; shared skill discovery belongs to its owner
+  user profile.
+- Removed duplicate `.record-revisions` and `.metadata-transactions` trees from
+  the current checkout in favor of retained-corpus bindings and a bounded shared
+  native fixture capture. Historical locators and source bytes remain exact.
+  Full historical corpus use requires a separately retained corpus or restoration
+  of its pinned Git state; a software-only checkout is insufficient.
+- Removed tracked reproducible browser bundles, bulk generated catalogs,
+  projections, KAG family/receipt churn and superseded glue from ordinary source
+  delivery. Those derived products are selected data/export artifacts. Authored
+  sources, unique provenance and original records retain their owner routes.
+- Removed obsolete `abyssos` / `abyss-sdk-host` diagnostic profiles, ToS-owned
+  provider-control orchestration, ecosystem host discovery and producer-checkout
+  OCR execution. Standalone diagnostics and ToS exports are the maintained routes.
+
+### Compatibility and upgrade
+
+- Install into a fresh prefix and retain the previous prefix plus its matching
+  verifier. The current verifier deliberately rejects the previous mixed
+  Python/native archive layout. Software/data rollback selects a compatible
+  verified pair and cannot reverse a rights revocation. Other internal Cargo
+  components may retain independent `0.0.0` / `0.1.0` versions. The `tos-access`
+  CLI for this release is version `0.6.0`; the GitHub tag and source/build
+  manifests identify the complete release.
+- Select data and operations explicitly. An explicit local root takes precedence
+  over an inherited release selection in its supported route; an explicitly
+  selected managed release retains its own admission checks. Missing selected
+  data never authorizes checkout discovery or substitution. Data cannot override
+  packaged schemas or web assets. Source-only/headless reader roles and web roles
+  have different asset requirements.
+- Rebuild/rebootstrap only through the declared source-backed compatibility
+  route when moving from older Agent-only inventory commitments, unsupported
+  SQL/audit profiles, archive-file-owned bootstrap nodes or earlier navigation
+  admission/checkpoint profiles. Reviewed cold transitions preserve the original
+  activation/journal history and verify the complete source before a new cut.
+  Unknown schema/DDL profiles remain incompatible; arbitrary automatic migration
+  is not provided.
+- Upgrade range producers and readers together for the new 14-field manifests
+  with complete stream predecessors. The exact older 13-field shape remains
+  readable by its historical contract; an older reader rejects the new shape.
+  Reified navigation producer/profile changes require explicit derived rebuilds,
+  preserving source Claim/Agent IDs and command history.
+- Discover search and continuation capabilities on the selected consumer.
+  PostgreSQL navigation anchors intentionally omit portable offline search
+  indexes; those indexes still belong to full portable models. Source-text v2
+  requires a new consumer/profile build, not relabeling v1. Prepared restart
+  checkpoints do not establish managed-release restart survival or cursor
+  portability between services.
+- Update automation to native executables and the separate `tos-research`
+  command. Replace private-stage environment names with `TOS_STAGE_TICKET_FD`
+  and `TOS_STAGE_ROOT`. Select `verify --profile standalone`; removed integration
+  profile names are no longer accepted. Consumers import ToS exports from their
+  own side instead of invoking retired provider orchestration.
+- Preserve exact OCR receipt/signature/output and independently selected signer
+  key. Historical `owner_source_root` is inert provenance. A valid signature
+  neither renews an expired grant nor accepts the text for a new use.
+- The descriptor-relative raw reader requires Linux 5.6+ `openat2` and has no
+  weaker path fallback. Managed fs-verity/containment profiles require their
+  actual supported kernel, filesystem, private mounts, finite process/cgroup
+  limits and selected custody. A finite file cap is not a total temporary-space
+  quota, and a successful build is not measured whole-corpus fit.
+- Current backup transport is PostgreSQL 16 over numeric loopback NoTls with
+  exact tools, a truly quiescent source and a fresh independent private target.
+  Historical receipt wire support is not arbitrary old SQL-ABI or remote-TLS
+  restore support. SQL restoration and copied filesystem state are separate
+  effects; preserve a failed target rather than treating it as an atomic rollback
+  or retrying into it.
+- Native CLI compact JSON, framing, errors, profile limits and frozen cursor
+  formats are explicit contracts; Python pretty output/FastMCP serialization and
+  unsupported external APIs are not compatibility promises. New finite bounds
+  can refuse inputs that older unbounded helpers attempted to read.
+
+### Validation and software evidence
+
+- Accepted `main` passed all five selected post-merge Repo Validation jobs in
+  run `39175345318`: plan/document checks, software/browser/installed package,
+  Rust/reader/WASM, Worker and the aggregate gate. The saved software evidence
+  records 801 browser unit tests, 20 browser scenarios and 297 Worker tests.
+- The exact main software job built the 19-product native package twice,
+  compared archive and sidecar bytes, verified it and installed into a fresh
+  prefix. Current receipts bind tree `d4648c3ba4c297511daec7bc70edce5502279220`.
+  Earlier twenty-product/private-image receipts keep their original scope.
+- Selected PostgreSQL 16 evidence covers 45 active tests, with four child-entry
+  controls intentionally ignored, plus the explicit navigation, backup-cut and
+  owner-metadata checks and addressed current-writer/V1-wire restoration.
+  The V1-wire leg uses a current SQL dump in an old receipt envelope; it does
+  not qualify an authentic historical SQL ABI. Unselected real-Parmenides,
+  extended OCR, independent-source and capacity profiles retain separate
+  return conditions.
+- Natural assessment-echo/quota and terminal-history diagnostics retain their
+  exact source/image, worker and observed frontier. Receipt-quota refusal,
+  byte-boundary refusal, arithmetic checks and cold reopen are different evidence.
+  The prospective guard does not by itself establish every 32 MiB or PostgreSQL
+  operational capacity target.
+- CI selection now uses native changed-path planning and a fail-closed aggregate
+  gate; unknown/shared changes select the full software route. Exact sparse
+  runtime inputs include the assessment policy, owner cards, quest Markdown and
+  retained-storage bindings. Required assertions and security/deadline controls
+  are preserved. This changelog preparation ran no new build, test or CI job.
+- PR #250's queued multi-handoff proposal remains open/unmerged and is excluded
+  from shipped capabilities. Software acceptance does not close corpus semantic
+  admission, public activation, research-registry core evaluation, the parallel
+  ToC dialogue, the common starting point or the later 250-Luna check. No new
+  ontology decisions from that parallel dialogue are included here.
+
 
 ## [0.5.0] - 2026-08-23
 
