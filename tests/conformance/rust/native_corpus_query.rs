@@ -2435,6 +2435,7 @@ fn navigation_reference_variants_body(
     l.fixed(8)?;
     l.work.diagnostic_stage("compat-controls", 0);
     reference_move_controls(l)?;
+    l.work.diagnostic_expected_controls_consumed();
     assert_eq!(nav_label(Some(""), Some("preferred"), "node"), "node");
     assert_eq!(nav_label(None, Some("preferred"), "node"), "preferred");
     l.work.diagnostic_stage("duplicate-and-pointer-controls", 0);

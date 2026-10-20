@@ -348,6 +348,20 @@ impl CurrentReference {
             diagnostic.stage_visits = self.visits_left;
         }
     }
+    // Called only after the COMPLETE expected-negative family returned Ok.
+    // A legitimate depth guard need not reach either counter, but the existing
+    // Budget assertion can also consume a counter refusal. Such a candidate is
+    // not the later propagated error. Clear observation only, never resources.
+    fn diagnostic_expected_controls_consumed(&mut self) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            diagnostic.first = None;
+            diagnostic.stage = "post-expected-controls";
+            diagnostic.item = 0;
+            diagnostic.stage_bytes = self.left;
+            diagnostic.stage_visits = self.visits_left;
+            // reported/used/buffers and every execution counter stay unchanged.
+        }
+    }
     #[track_caller]
     fn note_refusal(&mut self, kind: &'static str, bytes: Option<usize>, visits: Option<usize>) {
         if let Some(diagnostic) = self.diagnostic.as_mut() {
@@ -364,10 +378,6 @@ impl CurrentReference {
                     left: self.left,
                     visits_left: self.visits_left,
                 });
-                // Emit at the first primitive refusal too, so an existing
-                // assertion catching Budget cannot conceal this observation.
-                // The outer Result boundary will not retry a short/failed write.
-                diagnostic.report("Budget", self.left, self.visits_left);
             }
         }
     }
