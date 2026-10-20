@@ -589,8 +589,8 @@ impl ReferenceLimits<'_> {
         // Caller-owned plan/root and return/move holders coexist with either
         // private workspace; pay them BEFORE constructing the first plan.
         self.bytes(
-            std::mem::size_of::<CanonicalMeta>()
-                .checked_add(std::mem::size_of::<NavResult<CanonicalMeta>>())
+            std::mem::size_of::<CanonicalPlan>()
+                .checked_add(std::mem::size_of::<NavResult<CanonicalPlan>>())
                 .and_then(|n| n.checked_add(std::mem::size_of::<tos_foundation::JsonValue>()))
                 .and_then(|n| {
                     n.checked_add(std::mem::size_of::<NavResult<tos_foundation::JsonValue>>())
@@ -600,9 +600,9 @@ impl ReferenceLimits<'_> {
                 .ok_or(ReferenceError::Budget)?,
         )?;
         let plan = canonical_preflight(v, self)?;
-        let root = canonical_construct(v, self)?;
+        let root = canonical_construct(v, plan.max_frames, self)?;
         // Same complete retained walk/debit; construction is not a free tree.
-        self.step(plan.values)?;
+        self.step(plan.meta.values)?;
         self.bytes(
             root.retained_storage_bytes()
                 .map_err(|_| ReferenceError::Budget)?,
@@ -790,16 +790,40 @@ enum CanonicalPlanFrame<'a> {
         pending: Option<CanonicalKey>,
     },
 }
+struct CanonicalPlan {
+    meta: CanonicalMeta,
+    max_frames: usize,
+}
 struct CanonicalPlanState<'a> {
-    frames: [Option<CanonicalPlanFrame<'a>>; 97],
+    frames: Vec<CanonicalPlanFrame<'a>>,
     next: Option<&'a serde_json::Value>,
     ready: Option<CanonicalMeta>,
     depth: usize,
+    max_frames: usize,
+    available: usize,
 }
 fn canonical_plan_workspace() -> NavResult<usize> {
     use std::mem::size_of;
     size_of::<CanonicalPlanState<'_>>()
-        .checked_add(size_of::<[Option<CanonicalPlanFrame<'_>>; 97]>())
+        .checked_add(
+            size_of::<Vec<CanonicalPlanFrame<'_>>>()
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Result<(), std::collections::TryReserveError>>().checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<CanonicalPlan>()
+                    .max(size_of::<NavResult<CanonicalPlan>>())
+                    .checked_mul(2)?,
+            )
+        })
         .and_then(|n| {
             n.checked_add(
                 size_of::<CanonicalPlanFrame<'_>>()
@@ -838,19 +862,64 @@ fn canonical_plan_workspace() -> NavResult<usize> {
         .and_then(|n| n.checked_add(size_of::<&serde_json::Number>().checked_mul(2)?))
         .ok_or(ReferenceError::Budget)
 }
+// Only the currently full borrowed-frame stack grows. No source shape pass.
+fn canonical_plan_room(
+    frames: &mut Vec<CanonicalPlanFrame<'_>>,
+    available: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use std::mem::size_of;
+    l.step(1)?;
+    let len = frames.len();
+    let capacity = frames.capacity();
+    let needed = len.checked_add(1).ok_or(ReferenceError::Budget)?;
+    if needed > 97 || capacity > 97 {
+        return Err(ReferenceError::Budget);
+    }
+    if len == capacity {
+        let next = capacity
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?
+            .max(4)
+            .min(97)
+            .max(needed);
+        let slots = next
+            .checked_mul(size_of::<CanonicalPlanFrame<'_>>())
+            .ok_or(ReferenceError::Budget)?;
+        let old = capacity
+            .checked_mul(size_of::<CanonicalPlanFrame<'_>>())
+            .ok_or(ReferenceError::Budget)?;
+        let moved = len
+            .checked_mul(size_of::<CanonicalPlanFrame<'_>>())
+            .ok_or(ReferenceError::Budget)?;
+        canonical_state_room(old, slots, available)?;
+        l.bytes(slots.checked_add(moved).ok_or(ReferenceError::Budget)?)?;
+        l.step(1)?;
+        frames
+            .try_reserve_exact(next.checked_sub(len).ok_or(ReferenceError::Budget)?)
+            .map_err(|_| ReferenceError::Budget)?;
+        // Pinned requested-capacity law, not an after-allocation admission.
+        if frames.capacity() != next {
+            return Err(ReferenceError::Budget);
+        }
+    }
+    Ok(())
+}
 fn canonical_preflight(
     v: &serde_json::Value,
     l: &mut ReferenceLimits<'_>,
-) -> NavResult<CanonicalMeta> {
+) -> NavResult<CanonicalPlan> {
     use serde_json::Value;
     l.step(1)?;
     reference_move_layout()?;
-    l.bytes(canonical_plan_workspace()?)?; // BEFORE either fixed array/state
+    l.bytes(canonical_plan_workspace()?)?; // BEFORE Vec/header/transition state
     let mut state = CanonicalPlanState {
-        frames: [const { None }; 97],
+        frames: Vec::new(),
         next: Some(v),
         ready: None,
         depth: 0,
+        max_frames: 0,
+        available: l.work.left,
     };
     loop {
         l.step(1)?;
@@ -900,7 +969,9 @@ fn canonical_preflight(
                     })
                 }
                 Value::Array(values) => {
-                    state.frames[state.depth] = Some(CanonicalPlanFrame::Array {
+                    canonical_plan_room(&mut state.frames, state.available, l)?;
+                    l.bytes(std::mem::size_of::<CanonicalPlanFrame<'_>>())?;
+                    state.frames.push(CanonicalPlanFrame::Array {
                         remaining: values.iter(),
                         meta: CanonicalMeta {
                             wire: 2,
@@ -910,10 +981,13 @@ fn canonical_preflight(
                         members: 0,
                     });
                     state.depth += 1;
+                    state.max_frames = state.max_frames.max(state.depth);
                     None
                 }
                 Value::Object(values) => {
-                    state.frames[state.depth] = Some(CanonicalPlanFrame::Object {
+                    canonical_plan_room(&mut state.frames, state.available, l)?;
+                    l.bytes(std::mem::size_of::<CanonicalPlanFrame<'_>>())?;
+                    state.frames.push(CanonicalPlanFrame::Object {
                         remaining: values.iter(),
                         meta: CanonicalMeta {
                             wire: 2,
@@ -924,6 +998,7 @@ fn canonical_preflight(
                         pending: None,
                     });
                     state.depth += 1;
+                    state.max_frames = state.max_frames.max(state.depth);
                     None
                 }
             };
@@ -941,10 +1016,14 @@ fn canonical_preflight(
                 if child.raw > l.max_output_bytes {
                     return Err(ReferenceError::Budget);
                 }
-                return Ok(child);
+                return Ok(CanonicalPlan {
+                    meta: child,
+                    max_frames: state.max_frames,
+                });
             }
-            let (meta, members, key) = match state.frames[state.depth - 1]
-                .as_mut()
+            let (meta, members, key) = match state
+                .frames
+                .get_mut(state.depth - 1)
                 .ok_or(ReferenceError::InvalidBinding)?
             {
                 CanonicalPlanFrame::Array { meta, members, .. } => (meta, members, None),
@@ -993,8 +1072,9 @@ fn canonical_preflight(
         if state.depth == 0 {
             return Err(ReferenceError::InvalidBinding);
         }
-        let frame = state.frames[state.depth - 1]
-            .as_mut()
+        let frame = state
+            .frames
+            .get_mut(state.depth - 1)
             .ok_or(ReferenceError::InvalidBinding)?;
         state.next = match frame {
             CanonicalPlanFrame::Array { remaining, .. } => remaining.next(),
@@ -1027,11 +1107,9 @@ fn canonical_preflight(
             }
         };
         if state.next.is_none() {
+            l.bytes(std::mem::size_of::<CanonicalPlanFrame<'_>>())?;
             state.depth -= 1;
-            let meta = match state.frames[state.depth]
-                .take()
-                .ok_or(ReferenceError::InvalidBinding)?
-            {
+            let meta = match state.frames.pop().ok_or(ReferenceError::InvalidBinding)? {
                 CanonicalPlanFrame::Array { meta, .. } => meta,
                 CanonicalPlanFrame::Object {
                     meta,
@@ -1061,7 +1139,7 @@ enum CanonicalBuildFrame<'a> {
     },
 }
 struct CanonicalBuildState<'a> {
-    frames: [Option<CanonicalBuildFrame<'a>>; 97],
+    frames: Vec<CanonicalBuildFrame<'a>>,
     next: Option<&'a serde_json::Value>,
     ready: Option<tos_foundation::JsonValue>,
     depth: usize,
@@ -1072,7 +1150,13 @@ fn canonical_build_workspace() -> NavResult<usize> {
     use std::mem::size_of;
     use tos_foundation::{JsonDocument, JsonString, JsonValue as Source};
     size_of::<CanonicalBuildState<'_>>()
-        .checked_add(size_of::<[Option<CanonicalBuildFrame<'_>>; 97]>())
+        .checked_add(
+            size_of::<Vec<CanonicalBuildFrame<'_>>>()
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
         .and_then(|n| {
             n.checked_add(
                 size_of::<CanonicalBuildFrame<'_>>()
@@ -1282,15 +1366,29 @@ fn canonical_number(
 }
 fn canonical_construct(
     v: &serde_json::Value,
+    max_frames: usize,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<tos_foundation::JsonValue> {
     use serde_json::Value;
     use std::mem::size_of;
     use tos_foundation::JsonValue as Source;
     l.step(1)?;
-    l.bytes(canonical_build_workspace()?)?; // BEFORE frame array/initializers
+    l.bytes(canonical_build_workspace()?)?; // BEFORE state/Vec/transition holders
+    if max_frames > 97 {
+        return Err(ReferenceError::Budget);
+    }
+    l.bytes(
+        max_frames
+            .checked_mul(size_of::<CanonicalBuildFrame<'_>>())
+            .ok_or(ReferenceError::Budget)?,
+    )?; // persistent slots BEFORE allocation
+    l.step(1)?;
+    let frames = Vec::with_capacity(max_frames);
+    if frames.capacity() != max_frames {
+        return Err(ReferenceError::Budget);
+    }
     let mut state = CanonicalBuildState {
-        frames: [const { None }; 97],
+        frames,
         next: Some(v),
         ready: None,
         depth: 0,
@@ -1314,6 +1412,15 @@ fn canonical_construct(
                     l,
                 )?)),
                 Value::Array(values) => {
+                    if state
+                        .frames
+                        .len()
+                        .checked_add(1)
+                        .ok_or(ReferenceError::Budget)?
+                        > max_frames
+                    {
+                        return Err(ReferenceError::Budget);
+                    }
                     let bytes = values
                         .len()
                         .checked_mul(size_of::<Source>())
@@ -1325,7 +1432,8 @@ fn canonical_construct(
                         .held
                         .checked_add(bytes)
                         .ok_or(ReferenceError::Budget)?;
-                    state.frames[state.depth] = Some(CanonicalBuildFrame::Array {
+                    l.bytes(size_of::<CanonicalBuildFrame<'_>>())?;
+                    state.frames.push(CanonicalBuildFrame::Array {
                         remaining: values.iter(),
                         output: Vec::with_capacity(values.len()),
                     });
@@ -1333,6 +1441,15 @@ fn canonical_construct(
                     None
                 }
                 Value::Object(values) => {
+                    if state
+                        .frames
+                        .len()
+                        .checked_add(1)
+                        .ok_or(ReferenceError::Budget)?
+                        > max_frames
+                    {
+                        return Err(ReferenceError::Budget);
+                    }
                     let bytes = values
                         .len()
                         .checked_mul(size_of::<(tos_foundation::JsonString, Source)>())
@@ -1344,7 +1461,8 @@ fn canonical_construct(
                         .held
                         .checked_add(bytes)
                         .ok_or(ReferenceError::Budget)?;
-                    state.frames[state.depth] = Some(CanonicalBuildFrame::Object {
+                    l.bytes(size_of::<CanonicalBuildFrame<'_>>())?;
+                    state.frames.push(CanonicalBuildFrame::Object {
                         remaining: values.iter(),
                         output: Vec::with_capacity(values.len()),
                         pending: None,
@@ -1360,8 +1478,9 @@ fn canonical_construct(
             if state.depth == 0 {
                 return Ok(value);
             }
-            match state.frames[state.depth - 1]
-                .as_mut()
+            match state
+                .frames
+                .get_mut(state.depth - 1)
                 .ok_or(ReferenceError::InvalidBinding)?
             {
                 CanonicalBuildFrame::Array { output, .. } => {
@@ -1380,8 +1499,9 @@ fn canonical_construct(
         if state.depth == 0 {
             return Err(ReferenceError::InvalidBinding);
         }
-        state.next = match state.frames[state.depth - 1]
-            .as_mut()
+        state.next = match state
+            .frames
+            .get_mut(state.depth - 1)
             .ok_or(ReferenceError::InvalidBinding)?
         {
             CanonicalBuildFrame::Array { remaining, .. } => remaining.next(),
@@ -1400,12 +1520,10 @@ fn canonical_construct(
             }
         };
         if state.next.is_none() {
+            l.bytes(size_of::<CanonicalBuildFrame<'_>>())?;
             state.depth -= 1;
             state.ready = Some(
-                match state.frames[state.depth]
-                    .take()
-                    .ok_or(ReferenceError::InvalidBinding)?
-                {
+                match state.frames.pop().ok_or(ReferenceError::InvalidBinding)? {
                     CanonicalBuildFrame::Array { output, .. } => Source::Array(output),
                     CanonicalBuildFrame::Object {
                         output,
