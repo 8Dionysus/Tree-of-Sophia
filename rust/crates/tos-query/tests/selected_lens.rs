@@ -779,15 +779,19 @@ fn added_mapping_is_unrelated(
 fn verify_historical_registry_semantics() {
     let historical = historical_oracle("contracts", OracleMode::CurrentDeclared);
     let mut work = JsonLimits::default().max_visits;
-    let seed = parse_json(
+    let seed_document = parse_json(
         include_bytes!(
             "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
         ),
         JsonMode::PublishedStrict,
-        JsonLimits::default(),
+        JsonLimits {
+            max_visits: work,
+            ..JsonLimits::default()
+        },
     )
-    .unwrap()
-    .into_root();
+    .unwrap();
+    work = work.checked_sub(seed_document.visits()).unwrap();
+    let seed = seed_document.into_root();
     let mut used = BTreeSet::<&str>::new();
     fn source_strings<'a>(
         v: &'a JsonValue,
