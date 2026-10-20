@@ -194,11 +194,48 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
 }
 // The frozen Python captures predate these authored contracts, while the current
 // source-home capture includes all tracked ToS paths outside explicit exclusions.
-fn append_current_contract_resources(resources: &mut Vec<Value>) {
-    for path in [
-        "ToS/contracts/native-pg-private-text-read.schema.json",
-        "ToS/contracts/retained-corpus-binding.schema.json",
-    ] {
+fn append_current_contract_resources(
+    resources: &mut Vec<Value>,
+    selected: &BTreeMap<String, Vec<u8>>,
+) {
+    let contracts = [
+        (
+            "ToS/contracts/native-pg-private-text-read.schema.json",
+            None,
+        ),
+        ("ToS/contracts/retained-corpus-binding.schema.json", None),
+        (
+            "ToS/contracts/chronology-version-record.schema.json",
+            Some((
+                6384,
+                "4918c0775d3aca4ceb7c11dc974d1c448f7d2ae6dbb5e588642f6d8d4800b975",
+            )),
+        ),
+        (
+            "ToS/contracts/temporal-crosswalk-record.schema.json",
+            Some((
+                4976,
+                "1568c0346d12e9074a487283a6c2d5dffc3d06b8887bf62081877f21d7a0a5f5",
+            )),
+        ),
+    ];
+    for (index, (path, reviewed)) in contracts.iter().enumerate() {
+        let path = *path;
+        assert!(
+            contracts[..index].iter().all(|(prior, _)| *prior != path),
+            "current contract extension has no duplicate path"
+        );
+        let raw = selected
+            .get(path)
+            .unwrap_or_else(|| panic!("reviewed contract absent from selected input: {path}"));
+        if let Some((size, sha256)) = reviewed {
+            assert_eq!(raw.len(), *size, "reviewed contract size: {path}");
+            assert_eq!(
+                Digest256::of_bytes(raw).to_hex(),
+                *sha256,
+                "reviewed contract bytes: {path}"
+            );
+        }
         assert!(
             !resources.iter().any(|row| row["path"] == path),
             "historical Python oracle predates current contract {path}"
@@ -435,7 +472,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         }
         let mut wanted = expected[collection].as_array().unwrap().clone();
         if collection == "resources" {
-            append_current_contract_resources(&mut wanted);
+            append_current_contract_resources(&mut wanted, &captured);
             for row in &mut wanted {
                 let path = required(row, "path");
                 let raw = captured.get(path).expect("selected topology resource");
@@ -444,7 +481,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
             }
             // The source-home capture assigns resource ordinals in selected
             // inventory path order. The historical oracle is already sorted;
-            // restore that order after appending the current contract row.
+            // restore that order after the closed 202 + 4 contract extension.
             wanted.sort_by_key(|v| v["path"].as_str().unwrap().to_owned());
         }
         for (ordinal, row) in wanted.iter().enumerate() {
@@ -2653,7 +2690,7 @@ fn native_corpus_composition_case(installed: bool) {
         "path":vocabulary_path, "resource_kind":"json", "owner_branch":"ToS/doctrine",
         "authority_layer":"doctrine", "sha256":"", "size_bytes":0,
     }));
-    append_current_contract_resources(resource_rows);
+    append_current_contract_resources(resource_rows, &files);
     for row in resource_rows.iter_mut() {
         let path = row["path"].as_str().unwrap();
         let raw = files
@@ -2688,9 +2725,10 @@ fn native_corpus_composition_case(installed: bool) {
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     reconcile_source_home_inputs(&mut query_oracle, &files);
-    // The selected native cut adds the vocabulary and two current contracts.
+    // The selected native cut adds the vocabulary and four declared contracts:
+    // 337 historical resources + 1 vocabulary + 4 contracts = 342.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(340));
+    assert_eq!(expected["counts"]["resources"], serde_json::json!(342));
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
