@@ -2259,9 +2259,9 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
     l.step(1)?;
     reference_move_layout()?; // the comparison reservation uses the SAME pinned layout
     l.bytes(
-        std::mem::size_of::<[&[u8]; 17]>()
+        std::mem::size_of::<[&[u8]; 16]>()
             .checked_add(std::mem::size_of::<[&[u8]; 6]>())
-            .and_then(|n| n.checked_add(std::mem::size_of::<[&[u8]; 10]>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<[&[u8]; 11]>()))
             .and_then(|n| n.checked_add(std::mem::size_of::<serde_json::Value>().checked_mul(2)?))
             .and_then(|n| n.checked_add(std::mem::size_of::<&str>().checked_mul(8)?))
             .ok_or(ReferenceError::Budget)?,
@@ -2274,7 +2274,6 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
         &b"1.0"[..],
         &b"18446744073709551616"[..],
         &b"-9223372036854775809"[..],
-        &b"1e9999"[..],
         &b"-1e-9999"[..],
         &br#""\uD834\uDD1E\n\u0000""#[..],
         &br#"[]"#[..],
@@ -2345,6 +2344,9 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
         &b"1e"[..],
         &b"NaN"[..],
         &b"Infinity"[..],
+        // serde arbitrary_precision accepts this token, but PublishedStrict
+        // rejects its nonfinite f64 interpretation BEFORE either bridge.
+        &b"1e9999"[..],
     ] {
         l.step(1)?;
         assert_eq!(
