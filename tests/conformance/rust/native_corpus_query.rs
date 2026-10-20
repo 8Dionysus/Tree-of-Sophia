@@ -14,6 +14,333 @@ enum ReferenceError {
 }
 type NavResult<T> = Result<T, ReferenceError>;
 
+// PRIVATE move bridge: only a fully admitted PublishedStrict JsonDocument may
+// enter. It preserves the entire tree, not a projection. The pinned serde map
+// first-key protocol is intentionally outside this reference profile.
+enum ReferenceMoveFrame {
+    Array {
+        remaining: std::vec::IntoIter<tos_foundation::JsonValue>,
+        output: Vec<serde_json::Value>,
+    },
+    Object {
+        remaining: std::vec::IntoIter<(tos_foundation::JsonString, tos_foundation::JsonValue)>,
+        output: serde_json::Map<String, serde_json::Value>,
+        pending_key: Option<String>,
+    },
+}
+struct ReferenceMoveState {
+    frames: [Option<ReferenceMoveFrame>; 97],
+    depth: usize,
+    next: Option<tos_foundation::JsonValue>,
+    ready: Option<serde_json::Value>,
+}
+
+// These are requested logical construction bounds for the pinned preserve_order
+// representation, not allocator usable size, compiler stack or RSS bounds.
+fn reference_move_layout() -> NavResult<()> {
+    use std::mem::{align_of, size_of};
+    if !cfg!(all(target_arch = "x86_64", target_pointer_width = "64"))
+        || size_of::<usize>() != 8
+        || size_of::<String>() != 24
+        || size_of::<Vec<serde_json::Value>>() != 24
+        || size_of::<serde_json::Map<String, serde_json::Value>>() != 72
+        || size_of::<serde_json::Number>() != 24
+        || size_of::<serde_json::Value>() > 128
+        || align_of::<usize>() > 8
+        || align_of::<String>() > 8
+        || align_of::<serde_json::Value>() > 8
+        || align_of::<serde_json::Number>() > 8
+        || align_of::<serde_json::Map<String, serde_json::Value>>() > 8
+    {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    Ok(())
+}
+fn reference_move_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    // Explicit outside holders: document/move carriers; frame/value transitions;
+    // scalar parse result; moved keys; checked arithmetic; admission results;
+    // helper arguments. No unused scratch array stands in for those holders.
+    // Use each holder's largest actual Option/Result/moved spelling rather than
+    // assuming an unverified enum niche/layout identity for those transitions.
+    size_of::<ReferenceMoveState>()
+        .checked_add(
+            size_of::<tos_foundation::JsonDocument>()
+                .max(size_of::<Option<tos_foundation::JsonValue>>())
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<ReferenceMoveFrame>()
+                    .max(size_of::<Option<ReferenceMoveFrame>>())
+                    .max(size_of::<NavResult<ReferenceMoveFrame>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<serde_json::Value>()
+                    .max(size_of::<Option<serde_json::Value>>())
+                    .max(size_of::<NavResult<serde_json::Value>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Result<serde_json::Number, serde_json::Error>>()))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Option<String>>()
+                    .max(size_of::<NavResult<String>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        // Implementation inventory amendment: iterator pair/result and pattern
+        // move holders; fat key borrows / frame-helper references; scalar
+        // parameters outside the checked-arithmetic result slots above. All are
+        // prepaid in the SAME remainder, not new workspace or a fresh pool.
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Option<(tos_foundation::JsonString, tos_foundation::JsonValue)>>()
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn reference_move_map_backing(m: usize) -> NavResult<usize> {
+    use std::mem::{align_of, size_of};
+    if m == 0 {
+        return Ok(0);
+    }
+    // Q bounds IndexMap's hash/key/value Bucket including alignment. Fresh
+    // exact-M construction plus exactly M distinct insertions prevents growth.
+    let a = align_of::<usize>()
+        .max(align_of::<String>())
+        .max(align_of::<serde_json::Value>());
+    let q = size_of::<usize>()
+        .checked_add(size_of::<String>())
+        .and_then(|n| n.checked_add(size_of::<serde_json::Value>()))
+        .and_then(|n| n.checked_add(a.checked_mul(4)?))
+        .and_then(|n| n.checked_add(a.checked_sub(1)?))
+        .map(|n| n / a * a)
+        .ok_or(ReferenceError::Budget)?;
+    let b = m
+        .checked_mul(2)
+        .map(|n| n.max(4))
+        .and_then(usize::checked_next_power_of_two)
+        .ok_or(ReferenceError::Budget)?;
+    // Hashbrown: aligned usize buckets, B control bytes and one trailing group.
+    m.checked_mul(q)
+        .and_then(|n| {
+            b.checked_mul(size_of::<usize>())
+                .and_then(|x| x.checked_add(15))
+                .map(|x| x / 16 * 16)
+                .and_then(|x| n.checked_add(x))
+        })
+        .and_then(|n| n.checked_add(b))
+        .and_then(|n| n.checked_add(16))
+        .ok_or(ReferenceError::Budget)
+}
+fn reference_move_number(
+    number: tos_foundation::JsonNumber,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    // Same pinned scalar primitive as serde Value deserialization. The lexeme
+    // is a COMPLETE number token validated by the preceding whole strict parse.
+    // No f64 cast, unchecked constructor, normalization or arbitrary-string API.
+    l.step(1)?;
+    let length = number.lexeme.len();
+    let capacity = length
+        .max(16)
+        .checked_next_power_of_two()
+        .ok_or(ReferenceError::Budget)?;
+    l.bytes(
+        capacity
+            .checked_add(length.max(20))
+            .and_then(|n| n.checked_add(256))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.bytes(
+        length
+            .checked_mul(3)
+            .and_then(|n| n.checked_add(32))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    number
+        .lexeme
+        .parse::<serde_json::Number>()
+        .map(serde_json::Value::Number)
+        .map_err(|_| ReferenceError::InvalidBinding)
+}
+fn move_reference_document(
+    doc: tos_foundation::JsonDocument,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    use serde_json::Value;
+    use tos_foundation::JsonValue as Source;
+    l.step(1)?;
+    if doc.mode() != tos_foundation::JsonMode::PublishedStrict {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    reference_move_layout()?;
+    l.bytes(reference_move_workspace()?)?; // BEFORE constructing the 97-slot state
+    let mut state = ReferenceMoveState {
+        frames: [const { None }; 97],
+        depth: 0,
+        next: Some(doc.into_root()),
+        ready: None,
+    };
+    loop {
+        l.step(1)?; // transition, including terminal/error transitions
+        if let Some(value) = state.next.take() {
+            l.step(1)?; // complete source node, before inspecting/moving it
+            match value {
+                Source::Null => state.ready = Some(Value::Null),
+                Source::Bool(value) => state.ready = Some(Value::Bool(value)),
+                Source::String(value) => {
+                    state.ready = Some(Value::String(
+                        value.into_utf8().ok_or(ReferenceError::InvalidBinding)?,
+                    ));
+                }
+                Source::Number(value) => state.ready = Some(reference_move_number(value, l)?),
+                Source::Array(values) => {
+                    if state.depth == state.frames.len() {
+                        return Err(ReferenceError::Budget);
+                    }
+                    l.bytes(
+                        values
+                            .len()
+                            .checked_mul(std::mem::size_of::<Value>())
+                            .ok_or(ReferenceError::Budget)?,
+                    )?;
+                    state.frames[state.depth] = Some(ReferenceMoveFrame::Array {
+                        output: Vec::with_capacity(values.len()),
+                        remaining: values.into_iter(),
+                    });
+                    state.depth += 1;
+                }
+                Source::Object(values) => {
+                    if state.depth == state.frames.len() {
+                        return Err(ReferenceError::Budget);
+                    }
+                    if let Some((key, _)) = values.first() {
+                        l.step(1)?;
+                        let key = key.as_str().ok_or(ReferenceError::InvalidBinding)?;
+                        l.bytes(
+                            key.len()
+                                .min(29)
+                                .checked_mul(2)
+                                .ok_or(ReferenceError::Budget)?,
+                        )?;
+                        if key == "$serde_json::private::Number"
+                            || key == "$serde_json::private::RawValue"
+                        {
+                            return Err(ReferenceError::UnsupportedSourceProfile);
+                        }
+                    }
+                    l.bytes(reference_move_map_backing(values.len())?)?;
+                    state.frames[state.depth] = Some(ReferenceMoveFrame::Object {
+                        output: serde_json::Map::with_capacity(values.len()),
+                        remaining: values.into_iter(),
+                        pending_key: None,
+                    });
+                    state.depth += 1;
+                }
+            }
+            continue;
+        }
+        if state.ready.is_some() {
+            if state.depth == 0 {
+                return state.ready.take().ok_or(ReferenceError::InvalidBinding);
+            }
+            l.step(1)?; // parent insertion, before key hashing / child move
+            match state.frames[state.depth - 1]
+                .as_mut()
+                .ok_or(ReferenceError::InvalidBinding)?
+            {
+                ReferenceMoveFrame::Array { output, .. } => {
+                    if output.len() == output.capacity() {
+                        return Err(ReferenceError::InvalidBinding);
+                    }
+                    output.push(state.ready.take().ok_or(ReferenceError::InvalidBinding)?);
+                }
+                ReferenceMoveFrame::Object {
+                    output,
+                    pending_key,
+                    ..
+                } => {
+                    l.bytes(
+                        pending_key
+                            .as_ref()
+                            .ok_or(ReferenceError::InvalidBinding)?
+                            .len()
+                            .checked_add(std::mem::size_of::<usize>())
+                            .ok_or(ReferenceError::Budget)?,
+                    )?;
+                    if output
+                        .insert(
+                            pending_key.take().ok_or(ReferenceError::InvalidBinding)?,
+                            state.ready.take().ok_or(ReferenceError::InvalidBinding)?,
+                        )
+                        .is_some()
+                    {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                }
+            }
+            continue;
+        }
+        if state.depth == 0 {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        l.step(1)?; // next child/key or completed frame, before iterator access
+        match state.frames[state.depth - 1]
+            .as_mut()
+            .ok_or(ReferenceError::InvalidBinding)?
+        {
+            ReferenceMoveFrame::Array { remaining, .. } => {
+                state.next = remaining.next();
+            }
+            ReferenceMoveFrame::Object {
+                remaining,
+                pending_key,
+                ..
+            } => {
+                if pending_key.is_some() {
+                    return Err(ReferenceError::InvalidBinding);
+                }
+                if let Some((key, child)) = remaining.next() {
+                    l.step(1)?;
+                    *pending_key = Some(key.into_utf8().ok_or(ReferenceError::InvalidBinding)?);
+                    state.next = Some(child);
+                }
+            }
+        }
+        if state.next.is_none() {
+            l.step(1)?; // take the finished frame; never clone its output
+            state.depth -= 1;
+            state.ready = Some(
+                match state.frames[state.depth]
+                    .take()
+                    .ok_or(ReferenceError::InvalidBinding)?
+                {
+                    ReferenceMoveFrame::Array { output, .. } => Value::Array(output),
+                    ReferenceMoveFrame::Object {
+                        output,
+                        pending_key: None,
+                        ..
+                    } => Value::Object(output),
+                    _ => return Err(ReferenceError::InvalidBinding),
+                },
+            );
+        }
+    }
+}
+
 struct ReferenceLimits<'a> {
     work: &'a mut CurrentReference,
     cancelled: &'a AtomicBool,
@@ -213,16 +540,7 @@ impl ReferenceLimits<'_> {
                 .retained_storage_bytes()
                 .map_err(|_| ReferenceError::Budget)?,
         )?;
-        // The strict admission tree bounds the separate ordinary serde conversion.
-        // Keys/text are bounded by raw bytes, values by the parser's actual count.
-        let conversion = doc
-            .visits()
-            .checked_mul(128)
-            .and_then(|n| raw.len().checked_mul(4).and_then(|b| n.checked_add(b)))
-            .ok_or(ReferenceError::Budget)?;
-        self.step(doc.visits())?;
-        self.bytes(conversion)?;
-        serde_json::from_slice(raw).map_err(|_| ReferenceError::InvalidBinding)
+        move_reference_document(doc, self)
     }
     fn canonical_value(&mut self, v: &serde_json::Value) -> NavResult<Vec<u8>> {
         use tos_foundation::{
@@ -1658,6 +1976,107 @@ fn nav_variant_raw(v: &serde_json::Value, l: &mut ReferenceLimits<'_>) -> NavRes
     l.bytes(bound)?;
     serde_json::to_vec(v).map_err(|_| ReferenceError::InvalidBinding)
 }
+fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+    // Borrowed authored literals, not SUT output or a second source oracle. The
+    // tiny old-serde comparison is ONLY pinned representation compatibility.
+    // All controls use the containing case's SAME remainder and cancellation.
+    l.step(1)?;
+    reference_move_layout()?; // the comparison reservation uses the SAME pinned layout
+    l.bytes(
+        std::mem::size_of::<[&[u8]; 17]>()
+            .checked_add(std::mem::size_of::<[&[u8]; 6]>())
+            .and_then(|n| n.checked_add(std::mem::size_of::<[&[u8]; 10]>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<serde_json::Value>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(std::mem::size_of::<&str>().checked_mul(8)?))
+            .ok_or(ReferenceError::Budget)?,
+    )?; // BEFORE constructing borrowed literal arrays / comparison holders
+    for raw in [
+        &b"null"[..],
+        &b"true"[..],
+        &b"false"[..],
+        &b"-0"[..],
+        &b"1.0"[..],
+        &b"18446744073709551616"[..],
+        &b"-9223372036854775809"[..],
+        &b"1e9999"[..],
+        &b"-1e-9999"[..],
+        &br#""\uD834\uDD1E\n\u0000""#[..],
+        &br#"[]"#[..],
+        &br#"{}"#[..],
+        &br#"{"a":[null,true,false,-0,1.0,"x"],"b":{"c":[]},"d":{}}"#[..],
+        &br#"{"ordinary":0,"$serde_json::private::Number":"123","last":true}"#[..],
+        &br#"{"ordinary":0,"$serde_json::private::RawValue":"[1]","last":true}"#[..],
+        &br#"{"outer":{"ordinary":0,"$serde_json::private::Number":"123","$serde_json::private::RawValue":"null"}}"#[..],
+        &br#"{"\uD834\uDD1E":"paired key","controls":"\b\f\r\t"}"#[..],
+    ] {
+        l.step(1)?;
+        // Each literal has <=32 values/keys. Cover the old scalar/control
+        // decoder's tree/text plus whole comparison BEFORE either action.
+        // This is a control-only reservation, never the new bridge's input law.
+        l.bytes(
+            raw.len()
+                .checked_mul(16)
+                .and_then(|n| n.checked_add(32 * 128 + 4096))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        l.step(96)?;
+        let expected: serde_json::Value =
+            serde_json::from_slice(raw).map_err(|_| ReferenceError::InvalidBinding)?;
+        let actual = l.parse(raw, l.max_record_bytes)?;
+        assert_eq!(actual, expected);
+        // Value equality alone does not certify IndexMap insertion order. The
+        // bounded root/child objects in these authored controls check it too.
+        if let (Some(actual), Some(expected)) = (actual.as_object(), expected.as_object()) {
+            assert!(actual.keys().eq(expected.keys()));
+            for (actual, expected) in actual.values().zip(expected.values()) {
+                if let (Some(actual), Some(expected)) = (actual.as_object(), expected.as_object()) {
+                    assert!(actual.keys().eq(expected.keys()));
+                }
+            }
+        }
+    }
+    for raw in [
+        &br#"{"$serde_json::private::Number":"123"}"#[..],
+        &br#"{"$serde_json::private::RawValue":"null"}"#[..],
+        &br#"[{"$serde_json::private::Number":"123"}]"#[..],
+        &br#"{"outer":{"$serde_json::private::RawValue":"null"}}"#[..],
+        &br#"{"\u0024serde_json::private::Number":"123"}"#[..],
+        &br#"{"\u0024serde_json::private::RawValue":"null"}"#[..],
+    ] {
+        l.step(1)?;
+        assert_eq!(
+            l.parse(raw, l.max_record_bytes),
+            Err(ReferenceError::UnsupportedSourceProfile)
+        );
+    }
+    for raw in [
+        &br#"{"$serde_json::private::Number":"123","tail":]}"#[..],
+        &br#"{"$serde_json::private::RawValue":"null","a":1,"\u0061":2}"#[..],
+        &br#"{"a":1,"\u0061":2}"#[..],
+        &br#""\uD800""#[..],
+        &br#"{"\uD800":0}"#[..],
+        &b"\"\xff\""[..],
+        &b"01"[..],
+        &b"1e"[..],
+        &b"NaN"[..],
+        &b"Infinity"[..],
+    ] {
+        l.step(1)?;
+        assert_eq!(
+            l.parse(raw, l.max_record_bytes),
+            Err(ReferenceError::InvalidBinding)
+        );
+    }
+    // One borrowed over-depth literal, with no generated runtime input buffer.
+    // The strict parser rejects it BEFORE the move workspace/profile is entered.
+    let too_deep = b"[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+    l.step(1)?;
+    assert_eq!(
+        l.parse(too_deep, l.max_record_bytes),
+        Err(ReferenceError::Budget)
+    );
+    Ok(())
+}
 fn navigation_reference_variants(
     historical: &serde_json::Value,
     original: &serde_json::Value,
@@ -1666,6 +2085,7 @@ fn navigation_reference_variants(
 ) -> NavResult<()> {
     use serde_json::{Value, json};
     l.fixed(8)?;
+    reference_move_controls(l)?;
     assert_eq!(nav_label(Some(""), Some("preferred"), "node"), "node");
     assert_eq!(nav_label(None, Some("preferred"), "node"), "preferred");
     let sample = inputs
