@@ -899,11 +899,81 @@ fn nav_label<'a>(display: Option<&'a str>, preferred: Option<&'a str>, id: &'a s
         .filter(|s| !s.is_empty())
         .unwrap_or(id)
 }
+// Operation-local, successful-result reuse of immutable SOURCE views only.
+// No Claim/form value or SUT response is stored here.
+struct NavigationRegistryProfile {
+    files: usize,
+    input: usize,
+    file: usize,
+    record: usize,
+    claim_rows: usize,
+    claim_bytes: usize,
+    rows: usize,
+    row: usize,
+    output: usize,
+}
+impl NavigationRegistryProfile {
+    fn matches(&self, l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+        l.step(9)?; // all scalar reads/comparisons plus cutoff/cancellation
+        if self.files != l.max_files
+            || self.input != l.max_input_bytes
+            || self.file != l.max_file_bytes
+            || self.record != l.max_record_bytes
+            || self.claim_rows != l.max_claim_rows
+            || self.claim_bytes != l.max_claim_bytes
+            || self.rows != l.max_rows
+            || self.row != l.max_row_bytes
+            || self.output != l.max_output_bytes
+        {
+            return Err(ReferenceError::UnsupportedSourceProfile);
+        }
+        Ok(())
+    }
+}
+struct NavigationRegistryView {
+    value: serde_json::Value,
+    sha: std::cell::OnceCell<String>,
+}
+impl NavigationRegistryView {
+    fn digest<'a>(
+        &'a self,
+        profile: &NavigationRegistryProfile,
+        l: &mut ReferenceLimits<'_>,
+    ) -> NavResult<&'a str> {
+        profile.matches(l)?;
+        l.step(3)?; // cell lookup and successful initialization/read boundary
+        if self.sha.get().is_none() {
+            // Old digest route owns its wire/strict DOM/canonical bytes/string.
+            // These additional extents cover cell construction/move holders.
+            l.bytes(
+                std::mem::size_of::<String>()
+                    .checked_mul(2) // returned sha and cell-set argument/move
+                    .and_then(|n| n.checked_add(std::mem::size_of::<Result<(), String>>()))
+                    .and_then(|n| n.checked_add(std::mem::size_of::<Option<&str>>()))
+                    .and_then(|n| n.checked_add(std::mem::size_of::<NavResult<&str>>()))
+                    .and_then(|n| n.checked_add(std::mem::size_of::<&str>().checked_mul(4)?))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            let sha = l.digest(&self.value)?;
+            // Only a COMPLETE successful old-domain digest is ever retained.
+            self.sha
+                .set(sha)
+                .map_err(|_| ReferenceError::InvalidBinding)?;
+        }
+        self.sha
+            .get()
+            .map(String::as_str)
+            .ok_or(ReferenceError::InvalidBinding)
+    }
+}
 struct NavigationRegistries {
     entities: tos_foundation::JsonValue,
     relations: tos_foundation::JsonValue,
     type_index: BTreeMap<String, usize>,
     predicate_index: BTreeMap<String, (usize, usize)>,
+    projection_profile: NavigationRegistryProfile,
+    relation_views: Vec<std::cell::OnceCell<NavigationRegistryView>>,
+    template_view: std::cell::OnceCell<NavigationRegistryView>,
 }
 struct NavigationSource {
     path: String,
@@ -982,23 +1052,122 @@ impl NavigationRegistries {
                 }
             }
         }
+        let count = reference_source_array(&relations, "relations", l)?.len();
+        // Fixed-capacity slots: no payload conversion/digest for unused rows.
+        // Pay storage, header/move holders and every slot BEFORE construction.
+        l.bytes(
+            count
+                .checked_mul(std::mem::size_of::<
+                    std::cell::OnceCell<NavigationRegistryView>,
+                >())
+                .and_then(|n| {
+                    n.checked_add(
+                        std::mem::size_of::<Vec<std::cell::OnceCell<NavigationRegistryView>>>()
+                            .checked_mul(2)?,
+                    )
+                })
+                .and_then(|n| {
+                    n.checked_add(
+                        std::mem::size_of::<std::cell::OnceCell<NavigationRegistryView>>()
+                            .checked_mul(3)?,
+                    )
+                })
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<NavigationRegistryProfile>().checked_mul(2)?)
+                })
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        l.step(
+            count
+                .checked_mul(3)
+                .and_then(|n| n.checked_add(9))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let projection_profile = NavigationRegistryProfile {
+            files: l.max_files,
+            input: l.max_input_bytes,
+            file: l.max_file_bytes,
+            record: l.max_record_bytes,
+            claim_rows: l.max_claim_rows,
+            claim_bytes: l.max_claim_bytes,
+            rows: l.max_rows,
+            row: l.max_row_bytes,
+            output: l.max_output_bytes,
+        };
+        let mut relation_views = Vec::with_capacity(count);
+        for _ in 0..count {
+            relation_views.push(std::cell::OnceCell::new());
+        }
         Ok(Self {
             entities,
             relations,
             type_index,
             predicate_index,
+            projection_profile,
+            relation_views,
+            template_view: std::cell::OnceCell::new(),
         })
     }
-    fn relation(&self, index: usize, l: &mut ReferenceLimits<'_>) -> NavResult<serde_json::Value> {
+    fn source_view<'a>(
+        &'a self,
+        source: &tos_foundation::JsonValue,
+        cell: &'a std::cell::OnceCell<NavigationRegistryView>,
+        l: &mut ReferenceLimits<'_>,
+    ) -> NavResult<&'a NavigationRegistryView> {
+        self.projection_profile.matches(l)?;
+        l.step(3)?; // lookup, initialization branch and resulting shared view
+        if cell.get().is_none() {
+            l.bytes(
+                std::mem::size_of::<NavigationRegistryView>()
+                    .checked_mul(2) // view constructor and cell-set argument/move
+                    .and_then(|n| {
+                        n.checked_add(std::mem::size_of::<Result<(), NavigationRegistryView>>())
+                    })
+                    .and_then(|n| n.checked_add(std::mem::size_of::<serde_json::Value>()))
+                    .and_then(|n| {
+                        n.checked_add(std::mem::size_of::<Option<&NavigationRegistryView>>())
+                    })
+                    .and_then(|n| {
+                        n.checked_add(std::mem::size_of::<NavResult<&NavigationRegistryView>>())
+                    })
+                    .and_then(|n| {
+                        n.checked_add(std::mem::size_of::<&serde_json::Value>().checked_mul(4)?)
+                    })
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            // FIRST view still executes the complete old clone/bridge route.
+            let value = reference_requested_value(source, l)?;
+            cell.set(NavigationRegistryView {
+                value,
+                sha: std::cell::OnceCell::new(),
+            })
+            .map_err(|_| ReferenceError::InvalidBinding)?;
+        }
+        cell.get().ok_or(ReferenceError::InvalidBinding)
+    }
+    fn relation_view(
+        &self,
+        index: usize,
+        l: &mut ReferenceLimits<'_>,
+    ) -> NavResult<&NavigationRegistryView> {
+        // Preserve the paid SOURCE-index lookup even on a retained-view hit.
         let row = reference_source_array(&self.relations, "relations", l)?
             .get(index)
             .ok_or(ReferenceError::InvalidBinding)?;
-        reference_requested_value(row, l)
+        l.step(1)?;
+        let cell = self
+            .relation_views
+            .get(index)
+            .ok_or(ReferenceError::InvalidBinding)?;
+        self.source_view(row, cell, l)
     }
-    fn template(&self, l: &mut ReferenceLimits<'_>) -> NavResult<serde_json::Value> {
+    fn relation(&self, index: usize, l: &mut ReferenceLimits<'_>) -> NavResult<&serde_json::Value> {
+        self.relation_view(index, l).map(|view| &view.value)
+    }
+    fn template_view(&self, l: &mut ReferenceLimits<'_>) -> NavResult<&NavigationRegistryView> {
         let row = reference_source_member(&self.relations, "claim_navigation_template", l)?
             .ok_or(ReferenceError::InvalidBinding)?;
-        reference_requested_value(row, l)
+        self.source_view(row, &self.template_view, l)
     }
 }
 impl<'a> DeclaredNavigationInputs<'a> {
@@ -1466,8 +1635,8 @@ fn nav_descriptor(
         .predicate_index
         .get(nav_str(c, "predicate")?)
         .ok_or(ReferenceError::UnsupportedSourceProfile)?;
-    let requested_relation = reg.relation(ri, l)?;
-    let relation = &requested_relation;
+    let relation_view = reg.relation_view(ri, l)?;
+    let relation = &relation_view.value;
     let mapping = &relation["source_mappings"][mi];
     let profile = &relation["source_claim_profile"];
     if relation["abstract"] != false
@@ -1520,8 +1689,8 @@ fn nav_descriptor(
     {
         return Err(ReferenceError::UnsupportedSourceProfile);
     }
-    let requested_template = reg.template(l)?;
-    let template = &requested_template;
+    let template_view = reg.template_view(l)?;
+    let template = &template_view.value;
     if template["reader"] != "claim-navigation-v1" || template["purpose"] != "claim-navigation-only"
     {
         return Err(ReferenceError::UnsupportedSourceProfile);
@@ -1629,10 +1798,18 @@ fn nav_descriptor(
     };
     let sub = endpoint(subject, l)?;
     let obj = endpoint(object, l)?;
-    let template_value = json!({"id":nav_str(template,"template_id")?,"version":template["template_version"],"sha256":l.digest(template)?});
+    let template_id = nav_str(template, "template_id")?;
+    let template_sha = template_view.digest(&reg.projection_profile, l)?;
+    l.bytes(template_sha.len())?; // independent output String, not a free hit copy
+    let template_value =
+        json!({"id":template_id,"version":template["template_version"],"sha256":template_sha});
     let claim_value =
         json!({"id":nav_str(c,"claim_id")?,"version":c["claim_version"],"sha256":claim.sha});
-    let predicate = json!({"id":nav_str(c,"predicate")?,"relation_type_id":nav_str(relation,"relation_type_id")?,"sha256":l.digest(relation)?,"mapping_sha256":l.digest(mapping)?});
+    let predicate_id = nav_str(c, "predicate")?;
+    let relation_type_id = nav_str(relation, "relation_type_id")?;
+    let relation_sha = relation_view.digest(&reg.projection_profile, l)?;
+    l.bytes(relation_sha.len())?; // output owns its own digest String
+    let predicate = json!({"id":predicate_id,"relation_type_id":relation_type_id,"sha256":relation_sha,"mapping_sha256":l.digest(mapping)?});
     let statuses = json!({"epistemic_status":{"present":true,"value":c["epistemic_status"]},"review_status":{"present":true,"value":c["review_status"]}});
     nav_object(
         [
@@ -2847,8 +3024,7 @@ fn navigation_reference_variants_body(
             .predicate_index
             .get(nav_str(&claim.value, "predicate")?)
             .ok_or(ReferenceError::UnsupportedSourceProfile)?;
-        let requested_relation = inputs.registries.relation(*index, l)?;
-        let relation = &requested_relation;
+        let relation = inputs.registries.relation(*index, l)?;
         for schema in nav_array(&relation["source_claim_profile"], "schemas")? {
             l.step(1)?;
             if schema["schema_version"] != claim.value["schema_version"] {
