@@ -2599,6 +2599,17 @@ fn native_corpus_composition_case(installed: bool) {
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);
+    // This larger caller copy is distinct from sources()'s discarded capture.
+    // Charge the same counter again; no credit/refund for that earlier copy.
+    let capture_copy = files
+        .iter()
+        .try_fold(0usize, |sum, (path, raw)| {
+            sum.checked_add(path.len())?
+                .checked_add(raw.len())?
+                .checked_add(256)
+        })
+        .expect("reference caller capture copy overflow");
+    reference.charge(capture_copy).unwrap();
     let mut captured = files.clone();
     // The native capture binds one exact maintained compiler implementation
     // beside the authored ToS cut; neither one becomes the other's authority.
