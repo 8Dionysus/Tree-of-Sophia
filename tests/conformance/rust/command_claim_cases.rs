@@ -581,7 +581,7 @@ fn check_declared_claim_context(
     request: &Value,
     base: SourceRevision,
     b: &mut ClaimReferenceBudget<'_>,
-) -> ClaimReferenceResult<(Digest256, Digest256)> {
+) -> ClaimReferenceResult<(Digest256, Digest256, Digest256)> {
     b.work(0, 64)?;
     if ctx.files.len() > 4096 {
         return Err(ClaimReferenceError::Limit);
@@ -640,9 +640,11 @@ fn check_declared_claim_context(
             .ok_or(ClaimReferenceError::Limit)?,
         8,
     )?;
+    b.work(ctx.configuration_raw.len(), 8)?;
     Ok((
         Digest256::of_bytes(&config_bytes),
         Digest256::of_bytes(&request_bytes),
+        Digest256::of_bytes(&ctx.configuration_raw),
     ))
 }
 
@@ -1280,10 +1282,7 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
         simple_context_digests.0
     );
     assert_eq!(preview.request_canonical_sha256, simple_context_digests.1);
-    assert_eq!(
-        preview.configuration_raw_sha256,
-        Digest256::of_bytes(&preview_ctx.configuration_raw)
-    );
+    assert_eq!(preview.configuration_raw_sha256, simple_context_digests.2);
     claim_reference_equal(
         &preview_response["source_bindings"],
         &simple_reference,
@@ -1920,10 +1919,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         simple_context_digests.0
     );
     assert_eq!(preview.request_canonical_sha256, simple_context_digests.1);
-    assert_eq!(
-        preview.configuration_raw_sha256,
-        Digest256::of_bytes(&context.configuration_raw)
-    );
+    assert_eq!(preview.configuration_raw_sha256, simple_context_digests.2);
     // The live request binds to the native preview; the captured Python
     // dependency fingerprint remains historical packet data.
     assert_eq!(expected["source_bindings"], oracle["bindings"]);
@@ -2501,7 +2497,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     );
     assert_eq!(
         prepared_correction.configuration_raw_sha256,
-        Digest256::of_bytes(&revision_context.configuration_raw)
+        retained_context_digests.2
     );
     // Current expected dependencies come from the native owner/source cut;
     // `independent` retains the frozen historical Python packet.
