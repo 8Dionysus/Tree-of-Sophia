@@ -805,17 +805,21 @@ impl ReferenceLimits<'_> {
 enum PreflightPurpose {
     CanonicalConstruction,
     MergeReadGuard,
+    VariantWire,
 }
 #[derive(Clone, Copy)]
 struct CanonicalMeta {
     wire: usize,
     raw: usize,
     values: usize,
+    reread: usize,
+    keys: usize,
 }
 #[derive(Clone, Copy)]
 struct CanonicalKey {
     wire: usize,
     raw: usize,
+    input_len: usize,
 }
 struct CanonicalText {
     raw: usize,
@@ -1040,11 +1044,15 @@ fn canonical_preflight_for(
                     wire: 4,
                     raw: 4,
                     values: 1,
+                    reread: 0,
+                    keys: 0,
                 }),
                 Value::Bool(b) => Some(CanonicalMeta {
                     wire: 5,
                     raw: if *b { 4 } else { 5 },
                     values: 1,
+                    reread: 0,
+                    keys: 0,
                 }),
                 Value::Number(n) => {
                     let raw = n.as_str(); // pinned arbitrary_precision serialization spelling
@@ -1057,10 +1065,17 @@ fn canonical_preflight_for(
                     } else {
                         return Err(ReferenceError::UnsupportedSourceProfile);
                     };
+                    l.step(1)?;
                     Some(CanonicalMeta {
                         wire,
                         raw: raw.len(),
                         values: 1,
+                        reread: if purpose == PreflightPurpose::VariantWire {
+                            raw.len()
+                        } else {
+                            0
+                        },
+                        keys: 0,
                     })
                 }
                 Value::String(text) => {
@@ -1070,15 +1085,22 @@ fn canonical_preflight_for(
                         .and_then(|n| n.checked_add(2))
                         .ok_or(ReferenceError::Budget)?;
                     l.step(1)?; // purpose/length metadata, not a fictitious copy
-                    let metrics = if purpose == PreflightPurpose::CanonicalConstruction {
+                    let metrics = if purpose != PreflightPurpose::MergeReadGuard {
                         canonical_text(text, l)?
                     } else {
                         CanonicalText { raw: 0, units: 0 }
                     };
+                    l.step(1)?;
                     Some(CanonicalMeta {
                         wire,
                         raw: metrics.raw,
                         values: 1,
+                        reread: if purpose == PreflightPurpose::VariantWire {
+                            text.len()
+                        } else {
+                            0
+                        },
+                        keys: 0,
                     })
                 }
                 Value::Array(values) => {
@@ -1090,6 +1112,8 @@ fn canonical_preflight_for(
                             wire: 2,
                             raw: 2,
                             values: 1,
+                            reread: 0,
+                            keys: 0,
                         },
                         members: 0,
                     });
@@ -1106,6 +1130,8 @@ fn canonical_preflight_for(
                             wire: 2,
                             raw: 2,
                             values: 1,
+                            reread: 0,
+                            keys: 0,
                         },
                         members: 0,
                         pending: None,
@@ -1173,12 +1199,25 @@ fn canonical_preflight_for(
             }
             .ok_or(ReferenceError::Budget)?;
             l.step(1)?;
-            if purpose == PreflightPurpose::CanonicalConstruction {
+            if purpose != PreflightPurpose::MergeReadGuard {
                 meta.raw = meta
                     .raw
                     .checked_add(raw_extra)
                     .and_then(|n| n.checked_add(child.raw))
                     .and_then(|n| n.checked_add(usize::from(*members != 0)))
+                    .ok_or(ReferenceError::Budget)?;
+            }
+            l.step(2)?; // exact-wire input rereads/key count, no extra tree pass
+            if purpose == PreflightPurpose::VariantWire {
+                meta.reread = meta
+                    .reread
+                    .checked_add(child.reread)
+                    .and_then(|n| n.checked_add(key.map_or(0, |k| k.input_len)))
+                    .ok_or(ReferenceError::Budget)?;
+                meta.keys = meta
+                    .keys
+                    .checked_add(child.keys)
+                    .and_then(|n| n.checked_add(usize::from(key.is_some())))
                     .ok_or(ReferenceError::Budget)?;
             }
             meta.values = meta
@@ -1214,7 +1253,7 @@ fn canonical_preflight_for(
                     // its old clone admission is replaced by actual constructor work.
                     wire.checked_add(96).ok_or(ReferenceError::Budget)?;
                     l.step(1)?; // purpose/length metadata, BEFORE child
-                    let metrics = if purpose == PreflightPurpose::CanonicalConstruction {
+                    let metrics = if purpose != PreflightPurpose::MergeReadGuard {
                         canonical_text(key, l)?
                     } else {
                         CanonicalText { raw: 0, units: 0 }
@@ -1223,6 +1262,7 @@ fn canonical_preflight_for(
                     *pending = Some(CanonicalKey {
                         wire,
                         raw: metrics.raw,
+                        input_len: key.len(),
                     });
                     Some(value)
                 } else {
@@ -3479,13 +3519,112 @@ fn nav_rewrite_strings(
     }
     Ok(())
 }
+// Explicit logical simultaneous holders of the pinned compact serializer.
+// This is not a compiler-stack/RSS or arbitrary user-Serialize certificate.
+fn variant_wire_holders(depth: usize) -> NavResult<usize> {
+    use serde_json::ser::{CompactFormatter, Compound};
+    use std::mem::size_of;
+    type Ser = serde_json::Serializer<&'static mut Vec<u8>, CompactFormatter>;
+    type Part = Compound<'static, &'static mut Vec<u8>, CompactFormatter>;
+    let container = size_of::<Part>()
+        .checked_add(
+            size_of::<std::slice::Iter<'_, serde_json::Value>>()
+                .max(size_of::<serde_json::map::Iter<'_>>()),
+        )
+        .and_then(|n| n.checked_add(size_of::<Option<(&String, &serde_json::Value)>>()))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&String>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Ser>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Part>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Result<(), serde_json::Error>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .ok_or(ReferenceError::Budget)?;
+    let root = size_of::<Ser>()
+        .checked_add(
+            size_of::<Vec<u8>>()
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| n.checked_add(size_of::<CanonicalPlan>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<CanonicalPlan>>()))
+        .and_then(|n| n.checked_add(size_of::<Result<(), serde_json::Error>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<Vec<u8>>>()))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<u8>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .ok_or(ReferenceError::Budget)?;
+    let leaf = size_of::<Part>()
+        .checked_add(
+            size_of::<&str>()
+                .checked_mul(8)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<Option<(&u8, &[u8])>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<(&[u8], &[u8])>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Ser>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<u8>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<std::io::Result<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Result<(), serde_json::Error>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<serde_json::ser::CharEscape>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<u8>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<u8>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(6))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .ok_or(ReferenceError::Budget)?;
+    root.checked_add(depth.checked_mul(container).ok_or(ReferenceError::Budget)?)
+        .and_then(|n| n.checked_add(leaf))
+        .ok_or(ReferenceError::Budget)
+}
 fn nav_variant_raw(v: &serde_json::Value, l: &mut ReferenceLimits<'_>) -> NavResult<Vec<u8>> {
-    let bound = l.value_bound(v, 0)?;
+    use std::mem::size_of;
+    l.step(1)?;
+    // BEFORE purpose/Plan/result and checked payment/holder-calculation locals.
+    // Serializer holders below are an additional, separately named debit.
+    l.bytes(
+        size_of::<CanonicalPlan>()
+            .checked_add(size_of::<NavResult<CanonicalPlan>>())
+            .and_then(|n| n.checked_add(size_of::<PreflightPurpose>()))
+            .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+            .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let plan = canonical_preflight_for(v, l, PreflightPurpose::VariantWire)?;
+    let bound = plan.meta.wire;
     if bound > l.max_record_bytes {
         return Err(ReferenceError::Budget);
     }
-    l.bytes(bound)?;
-    serde_json::to_vec(v).map_err(|_| ReferenceError::InvalidBinding)
+    l.bytes(bound)?; // original output reservation retained WITHOUT credit
+    l.step(4)?;
+    let capacity = plan.meta.raw.checked_add(1).ok_or(ReferenceError::Budget)?;
+    l.bytes(
+        capacity
+            .checked_mul(2) // requested buffer + actual emission (one spare newline)
+            .and_then(|n| n.checked_add(plan.meta.reread)) // separate serializer scan
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.bytes(variant_wire_holders(plan.max_frames)?)?;
+    l.step(
+        plan.meta
+            .values
+            .checked_add(plan.meta.keys)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    // SAME compact serializer as to_vec, with prospective exact capacity.
+    // All final sources are immutably borrowed after their last mutation.
+    let mut output = Vec::with_capacity(capacity);
+    serde_json::to_writer(&mut output, v).map_err(|_| ReferenceError::InvalidBinding)?;
+    l.step(1)?;
+    if output.len() != plan.meta.raw {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    Ok(output)
 }
 fn canonical_depth_input(
     depth: usize,
