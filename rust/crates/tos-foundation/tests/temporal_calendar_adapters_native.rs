@@ -714,6 +714,59 @@ fn crosswalk_record_guards_reject_tampered_bindings_without_writes() {
             "{defect}"
         );
     }
+    // Rehash the complete candidate payload, so valid byte fixity cannot mask
+    // an invalid predecessor relationship on either public route.
+    for (defect, version, prior_id, prior_version) in [
+        ("wrong-id", 2, "other-id", 1),
+        ("self-version", 2, "opaque-id", 2),
+        ("future-version", 2, "opaque-id", 3),
+        ("skipped-version", 3, "opaque-id", 1),
+        ("version-overflow", 2, "opaque-id", u64::MAX),
+    ] {
+        let prior = if prior_version == 1 {
+            crosswalk_record(prior_id, prior_version, r#"{"4":42}"#, 10, None)
+        } else {
+            let before = crosswalk_record(prior_id, prior_version - 1, r#"{"4":41}"#, 10, None);
+            crosswalk_record(prior_id, prior_version, r#"{"4":42}"#, 10, Some(&before))
+        };
+        let candidate = crosswalk_record("opaque-id", version, r#"{"4":43}"#, 20, Some(&prior));
+        let mut req = record_request(&candidate);
+        let original = req.clone();
+        let expected = tos_foundation::temporal::TemporalError::MalformedRequest(
+            "crosswalk predecessor stream or version mismatch",
+        );
+        assert_eq!(
+            convert_crosswalk_record(&req, &parse("{}"), TemporalBudget::default()),
+            Err(expected.clone()),
+            "{defect} direct conversion"
+        );
+        assert_eq!(req, original, "{defect} conversion input");
+        set(&mut req, "predecessor_record", prior);
+        let original = req.clone();
+        assert_eq!(
+            prepare_crosswalk_version(&req, &parse("{}"), TemporalBudget::default()),
+            Err(expected),
+            "{defect} preparation"
+        );
+        assert_eq!(req, original, "{defect} preparation input");
+    }
+    let v3 = crosswalk_record("opaque-id", 3, r#"{"4":44}"#, 20, Some(&v2));
+    let mut req = record_request(&v3);
+    let original = req.clone();
+    // Direct conversion still requires only the exact supplied revision.
+    let out = convert_crosswalk_record(&req, &parse("{}"), TemporalBudget::default()).unwrap();
+    assert_eq!(s(&out, "status"), Some("Unique"));
+    assert_eq!(f(f(&out, "position"), "value"), &parse("44"));
+    assert_eq!(f(&out, "crosswalk_record_ref"), f(&v3, "record_ref"));
+    assert_eq!(f(&out, "preserved_input"), &original);
+    assert_eq!(req, original);
+    set(&mut req, "predecessor_record", v2.clone());
+    let original = req.clone();
+    let out = prepare_crosswalk_version(&req, &parse("{}"), TemporalBudget::default()).unwrap();
+    assert_eq!(s(&out, "status"), Some("PreparedCrosswalkVersionCandidate"));
+    assert_eq!(f(&out, "candidate_record"), &v3);
+    assert_eq!(f(&out, "preserved_input"), &original);
+    assert_eq!(req, original);
     let req = record_request(&v1);
     let mut budget = TemporalBudget::default();
     budget.max_expression_bytes = 1;

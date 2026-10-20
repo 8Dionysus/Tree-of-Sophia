@@ -146,7 +146,14 @@ fn validate(v: &Verified, budget: TemporalBudget) -> Result<Option<JsonValue>, T
         (1, true) => {}
         (_, true) => return Err(malformed("crosswalk predecessor reference required")),
         (_, false) => {
-            exact_ref(field(p, "predecessor"))?;
+            let prior = exact_ref(field(p, "predecessor"))?;
+            if prior.id != v.reference.id
+                || prior.version.get().checked_add(1) != Some(v.reference.version.get())
+            {
+                return Err(malformed(
+                    "crosswalk predecessor stream or version mismatch",
+                ));
+            }
         }
     }
     Ok(None)
