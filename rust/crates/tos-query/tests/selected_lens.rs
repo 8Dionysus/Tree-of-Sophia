@@ -1006,11 +1006,13 @@ fn verify_historical_registry_semantics() {
             );
             for parent in field(row, parents).as_array().unwrap() {
                 reference_unit(&mut work);
-                assert!(
-                    pending.len() < 16_384,
-                    "bounded reference ancestor frontier"
-                );
-                pending.push(parent.as_str().unwrap());
+                let parent = parent.as_str().unwrap();
+                if !queued.contains(parent) {
+                    assert!(queued.len() < 4096, "existing ancestor/type ceiling");
+                    assert!(pending.len() < 4096, "existing ancestor frontier ceiling");
+                    assert!(queued.insert(parent));
+                    pending.push(parent);
+                }
             }
         }
         if i == 0 {
@@ -2319,8 +2321,8 @@ fn normalized_selected_contracts_require_exact_registry_carriers_and_current_hol
         &mut reference_visits,
     );
     assert_eq!(
-        field(field(&variant, "contracts"), "entity_type_registry"),
-        &other
+        canonical(field(field(&variant, "contracts"), "entity_type_registry")),
+        canonical(&other)
     );
     assert_eq!(
         field(&variant, "source_refs"),
