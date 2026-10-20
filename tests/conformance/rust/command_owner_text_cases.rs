@@ -1,5 +1,6 @@
 //! Non-OCR owner-local initial TextLayer through the maintained default CLI.
 //! Recovery reconstructs its genuine completed native stage, without a crash claim.
+use super::command_text_cases::{TextFixtureReference, TextFixtureTransition};
 use super::*;
 use std::collections::BTreeMap;
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
@@ -1138,6 +1139,7 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
+    let mut ledger = TextFixtureReference::new(deadline, &cancelled);
     let temporary = tempfile::Builder::new()
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
@@ -1149,7 +1151,18 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
-    let captured_v5: Value = serde_json::from_slice(&fs::read(&owner).unwrap()).unwrap();
+    let owner_raw = ledger.read(&owner);
+    let captured_v5 = ledger.parse(&owner_raw);
+    let mut expected_config = TextFixtureTransition::new(&captured_v5, &mut ledger);
+    let mut expected_fixture = TextFixtureTransition::new(&fixture, &mut ledger);
+    ledger.pay(256);
+    expected_config.set(
+        "/schema_version",
+        &Value::from("tos_local_assessment_owner_v4"),
+        &mut ledger,
+    );
+    expected_config.remove("quality_dependencies", &mut ledger);
+    expected_config.remove("native_text_layers", &mut ledger);
     assert_eq!(
         captured_v5["schema_version"],
         "tos_local_assessment_owner_v5"
@@ -1171,7 +1184,9 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
             .remove("native_text_layers")
             .is_some()
     );
-    fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+    assert!(expected_config.matches(&config, &mut ledger));
+    let raw = ledger.encoded(&config);
+    ledger.write(&owner, &raw);
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     assert_eq!(config["schema_version"], "tos_local_assessment_owner_v4");
     assert!(config.get("quality_dependencies").is_none());
@@ -1207,32 +1222,93 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
     // V4 input from that relocated configuration, rebinding its exact byte
     // dependencies before the preservation baseline; the captured V5 archive
     // and its historical references remain unchanged.
-    let context_value: Value = serde_json::from_slice(&fs::read(&context).unwrap()).unwrap();
+    let context_raw = ledger.read(&context);
+    let context_value = ledger.parse(&context_raw);
     let private_root = PathBuf::from(context_value["private_root"].as_str().unwrap());
     let selection = &mut config["native_text_units"][0]["binding"];
     let layer_path = private_root.join(selection["text_layer"]["record_ref"].as_str().unwrap());
-    let mut layer: Value = serde_json::from_slice(&fs::read(&layer_path).unwrap()).unwrap();
+    let layer_raw = ledger.read(&layer_path);
+    let mut layer = ledger.parse(&layer_raw);
+    assert_eq!(
+        layer["derivation"]["input_layers"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(layer["layer_id"], selection["text_layer"]["layer_id"]);
+    assert_eq!(
+        layer["layer_version"],
+        selection["text_layer"]["layer_version"]
+    );
+    let mut expected_layer = TextFixtureTransition::new(&layer, &mut ledger);
     let configuration = private_root.join(
         layer["derivation"]["maker"]["configuration_ref"]
             .as_str()
             .unwrap(),
     );
-    let configuration_digest = Digest256::of_bytes(&fs::read(configuration).unwrap()).to_hex();
+    let configuration_raw = ledger.read(&configuration);
+    let configuration_digest = ledger.hex(&configuration_raw);
+    let digest_value = ledger.text(&configuration_digest);
+    expected_layer.set(
+        "/derivation/maker/configuration_digest",
+        &digest_value,
+        &mut ledger,
+    );
+    ledger.pay(256);
     layer["derivation"]["maker"]["configuration_digest"] =
         Value::from(configuration_digest.clone());
-    for anchor_ref in layer["source_binding"]["anchors"].as_array_mut().unwrap() {
+    for (i, anchor_ref) in layer["source_binding"]["anchors"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .enumerate()
+    {
         let anchor_path = private_root.join(anchor_ref["anchor_record_ref"].as_str().unwrap());
-        let mut anchor: Value = serde_json::from_slice(&fs::read(&anchor_path).unwrap()).unwrap();
+        let anchor_raw = ledger.read(&anchor_path);
+        let mut anchor = ledger.parse(&anchor_raw);
+        assert_eq!(anchor["anchor_id"], anchor_ref["anchor_id"]);
+        assert_eq!(
+            private_root.join(
+                anchor["selector_method"]["configuration_ref"]
+                    .as_str()
+                    .unwrap()
+            ),
+            configuration
+        );
+        let mut expected_anchor = TextFixtureTransition::new(&anchor, &mut ledger);
+        expected_anchor.set(
+            "/selector_method/configuration_digest",
+            &digest_value,
+            &mut ledger,
+        );
+        ledger.pay(256);
         anchor["selector_method"]["configuration_digest"] =
             Value::from(configuration_digest.clone());
-        let raw = canonical_json(&anchor);
-        fs::write(&anchor_path, &raw).unwrap();
-        anchor_ref["anchor_record_sha256"] = Value::from(Digest256::of_bytes(&raw).to_hex());
+        assert!(expected_anchor.matches(&anchor, &mut ledger));
+        let raw = ledger.canonical(&anchor);
+        let digest = ledger.hex(&raw);
+        let value = ledger.text(&digest);
+        ledger.pay(256);
+        expected_layer.set(
+            &format!("/source_binding/anchors/{i}/anchor_record_sha256"),
+            &value,
+            &mut ledger,
+        );
+        ledger.write(&anchor_path, &raw);
+        anchor_ref["anchor_record_sha256"] = value;
     }
-    let layer_raw = canonical_json(&layer);
-    fs::write(&layer_path, &layer_raw).unwrap();
-    selection["text_layer"]["record_sha256"] =
-        Value::from(Digest256::of_bytes(&layer_raw).to_hex());
+    assert!(expected_layer.matches(&layer, &mut ledger));
+    let layer_raw = ledger.canonical(&layer);
+    let digest = ledger.hex(&layer_raw);
+    let value = ledger.text(&digest);
+    expected_config.set(
+        "/native_text_units/0/binding/text_layer/record_sha256",
+        &value,
+        &mut ledger,
+    );
+    ledger.write(&layer_path, &layer_raw);
+    selection["text_layer"]["record_sha256"] = value;
     let setup_authored = super::command_text_cases::authored_text_files(&public);
     let setup_store = temporary.path().join("v4-setup-cut");
     let setup_revision =
@@ -1266,23 +1342,45 @@ fn native_private_assessment_v4_append_replay_and_revocation_preserve_native_byt
         )
         .unwrap();
         let id = record["id"].as_str().unwrap();
+        assert!(!id.contains('/') && !id.contains('~'));
+        assert!(fixture["layer_subject"]["id"] == id || fixture["unit_subject"]["id"] == id);
+        ledger.pay(id.len().checked_mul(4).unwrap().checked_add(4096).unwrap());
         let reference = serde_json::json!({"id":id,"version":record["version"],
             "digest":Digest256::of_bytes(&command_binding_bytes(&record["payload"])).to_prefixed()});
         if let Some(subject) = config["subjects"].get_mut(id) {
+            assert_eq!(subject["record"]["id"], id);
+            expected_config.set(&format!("/subjects/{id}/record"), &reference, &mut ledger);
             subject["record"] = reference.clone();
         }
         if fixture["layer_subject"]["id"] == id {
-            fixture["unit_template"]["assessments"][0]["evidence"] = serde_json::json!([
+            ledger.pay(4096);
+            let evidence = serde_json::json!([
                 {"record":reference,"stance":"supports","locator":"Exact synthetic source layer; no substantive assessment."}
             ]);
+            expected_fixture.set(
+                "/unit_template/assessments/0/evidence",
+                &evidence,
+                &mut ledger,
+            );
+            fixture["unit_template"]["assessments"][0]["evidence"] = evidence;
         }
         if fixture["unit_subject"]["id"] == id {
+            expected_fixture.set("/unit_subject", &reference, &mut ledger);
+            expected_fixture.set("/unit_template/expected_subject", &reference, &mut ledger);
+            expected_fixture.set(
+                "/unit_template/assessments/0/subject",
+                &reference,
+                &mut ledger,
+            );
             fixture["unit_subject"] = reference.clone();
             fixture["unit_template"]["expected_subject"] = reference.clone();
             fixture["unit_template"]["assessments"][0]["subject"] = reference;
         }
     }
-    fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+    assert!(expected_config.matches(&config, &mut ledger));
+    assert!(expected_fixture.matches(&fixture, &mut ledger));
+    let raw = ledger.encoded(&config);
+    ledger.write(&owner, &raw);
 
     let preserved: BTreeMap<PathBuf, Vec<u8>> = fixture["preserved"]
         .as_array()
@@ -1542,75 +1640,209 @@ fn rebind_journal_fixture(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) {
-    fn replace_digest(value: &mut Value, old: &str, new: &str) {
-        match value {
-            Value::String(s) if s == old => *s = new.to_owned(),
-            Value::Array(rows) => rows.iter_mut().for_each(|v| replace_digest(v, old, new)),
-            Value::Object(rows) => rows.values_mut().for_each(|v| replace_digest(v, old, new)),
-            _ => {}
-        }
-    }
-    fn rebind_layer(root: &Path, reference: &str, depth: usize) -> String {
+    fn rebind_layer(
+        root: &Path,
+        reference: &str,
+        depth: usize,
+        ledger: &mut TextFixtureReference<'_>,
+    ) -> String {
         assert!(depth < 4, "bounded synthetic lineage");
-        let path = root.join(reference);
-        let mut layer: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-        let configuration_path = root.join(
-            layer["derivation"]["maker"]["configuration_ref"]
-                .as_str()
+        ledger.pay(
+            reference
+                .len()
+                .checked_mul(4)
+                .unwrap()
+                .checked_add(256)
                 .unwrap(),
         );
-        let mut configuration: Value =
-            serde_json::from_slice(&fs::read(&configuration_path).unwrap()).unwrap();
-        let predecessors = layer["derivation"]["input_layers"]
-            .as_array()
+        assert!(!reference.starts_with('/') && !reference.contains('\\'));
+        assert!(
+            reference
+                .split('/')
+                .all(|part| !part.is_empty() && part != "." && part != "..")
+        );
+        let path = root.join(reference);
+        let raw = ledger.read(&path);
+        let mut layer = ledger.parse(&raw);
+        let mut expected_layer = TextFixtureTransition::new(&layer, ledger);
+        ledger.pay(
+            layer["derivation"]["maker"]["configuration_ref"]
+                .as_str()
+                .unwrap()
+                .len()
+                .checked_mul(4)
+                .unwrap()
+                .checked_add(256)
+                .unwrap(),
+        );
+        let configuration_ref = layer["derivation"]["maker"]["configuration_ref"]
+            .as_str()
             .unwrap()
-            .clone();
-        for predecessor in predecessors {
-            let new = rebind_layer(root, predecessor["record_ref"].as_str().unwrap(), depth + 1);
-            let old = predecessor["record_sha256"].as_str().unwrap();
-            replace_digest(&mut configuration, old, &new);
-            replace_digest(&mut layer, old, &new);
-        }
-        fs::write(&configuration_path, canonical_json(&configuration)).unwrap();
-        let configuration_digest =
-            Digest256::of_bytes(&fs::read(&configuration_path).unwrap()).to_hex();
+            .to_owned();
+        let configuration_path = root.join(&configuration_ref);
+        let configuration_raw = ledger.read(&configuration_path);
+        let mut configuration = ledger.parse(&configuration_raw);
+        let mut expected_configuration = TextFixtureTransition::new(&configuration, ledger);
+        ledger.pay(256);
         let old_configuration_digest = layer["derivation"]["maker"]["configuration_digest"]
             .as_str()
             .unwrap()
             .to_owned();
-        replace_digest(&mut layer, &old_configuration_digest, &configuration_digest);
-        for binding in layer["source_binding"]["anchors"].as_array_mut().unwrap() {
+        // Refuse a wrong responsibility binding before rewriting this config
+        // or recursing into its declared source lineage.
+        if let Some(operations) = layer.pointer("/derivation/change_payload/operations") {
+            assert!(operations.as_array().unwrap().len() <= 1);
+            for operation in operations.as_array().unwrap() {
+                assert!(super::command_text_cases::text_configuration_matches(
+                    &operation["responsibility"],
+                    &configuration_ref,
+                    &old_configuration_digest,
+                    ledger
+                ));
+            }
+        }
+        let predecessor_count = layer["derivation"]["input_layers"]
+            .as_array()
+            .unwrap()
+            .len();
+        assert!(
+            predecessor_count <= 1,
+            "closed captured journal input profile"
+        );
+        for i in 0..predecessor_count {
+            let predecessor = &layer["derivation"]["input_layers"][i];
+            assert_eq!(configuration["input"]["kind"], "text_layer");
+            let binding = &configuration["input"]["binding"]["text_layer"];
+            assert!(super::command_text_cases::text_predecessor_matches(
+                binding,
+                predecessor,
+                ledger
+            ));
+            let prior_ref = predecessor["record_ref"].as_str().unwrap();
+            let original_prior_raw = ledger.read(&root.join(prior_ref));
+            let original_prior = ledger.parse(&original_prior_raw);
+            assert!(super::command_text_cases::text_predecessor_record_matches(
+                binding,
+                &original_prior,
+                ledger
+            ));
+            let new = rebind_layer(root, prior_ref, depth + 1, ledger);
+            let prior_raw = ledger.read(&root.join(prior_ref));
+            let prior = ledger.parse(&prior_raw);
+            assert_eq!(prior["layer_id"], predecessor["layer_id"]);
+            assert!(super::command_text_cases::text_predecessor_record_matches(
+                binding, &prior, ledger
+            ));
+            let value = ledger.text(&new);
+            expected_configuration.set("/input/binding/text_layer/record_sha256", &value, ledger);
+            ledger.pay(256);
+            let pointer = format!("/derivation/input_layers/{i}/record_sha256");
+            expected_layer.set(&pointer, &value, ledger);
+            configuration["input"]["binding"]["text_layer"]["record_sha256"] = ledger.copy(&value);
+            layer["derivation"]["input_layers"][i]["record_sha256"] = value;
+        }
+        assert!(expected_configuration.matches(&configuration, ledger));
+        let configuration_raw = ledger.canonical(&configuration);
+        let configuration_digest = ledger.hex(&configuration_raw);
+        ledger.write(&configuration_path, &configuration_raw);
+        let digest_value = ledger.text(&configuration_digest);
+        expected_layer.set(
+            "/derivation/maker/configuration_digest",
+            &digest_value,
+            ledger,
+        );
+        if let Some(operations) = layer.pointer("/derivation/change_payload/operations") {
+            assert!(operations.as_array().unwrap().len() <= 1);
+            for (i, operation) in operations.as_array().unwrap().iter().enumerate() {
+                assert!(super::command_text_cases::text_configuration_matches(
+                    &operation["responsibility"],
+                    &configuration_ref,
+                    &old_configuration_digest,
+                    ledger
+                ));
+                ledger.pay(256);
+                let pointer = format!(
+                    "/derivation/change_payload/operations/{i}/responsibility/configuration_digest"
+                );
+                expected_layer.set(&pointer, &digest_value, ledger);
+            }
+        }
+        layer["derivation"]["maker"]["configuration_digest"] = ledger.copy(&digest_value);
+        if let Some(operations) = layer.pointer_mut("/derivation/change_payload/operations") {
+            for operation in operations.as_array_mut().unwrap() {
+                operation["responsibility"]["configuration_digest"] = ledger.copy(&digest_value);
+            }
+        }
+        let anchor_count = layer["source_binding"]["anchors"].as_array().unwrap().len();
+        for i in 0..anchor_count {
+            ledger.check();
+            let binding = &layer["source_binding"]["anchors"][i];
             let anchor_path = root.join(binding["anchor_record_ref"].as_str().unwrap());
-            let mut anchor: Value =
-                serde_json::from_slice(&fs::read(&anchor_path).unwrap()).unwrap();
+            let anchor_raw = ledger.read(&anchor_path);
+            let mut anchor = ledger.parse(&anchor_raw);
+            assert_eq!(anchor["anchor_id"], binding["anchor_id"]);
+            let mut expected_anchor = TextFixtureTransition::new(&anchor, ledger);
             let config_ref = anchor["selector_method"]["configuration_ref"]
                 .as_str()
                 .unwrap();
-            anchor["selector_method"]["configuration_digest"] = Value::from(
-                Digest256::of_bytes(&fs::read(root.join(config_ref)).unwrap()).to_hex(),
-            );
-            let raw = canonical_json(&anchor);
-            fs::write(&anchor_path, &raw).unwrap();
-            binding["anchor_record_sha256"] = Value::from(Digest256::of_bytes(&raw).to_hex());
+            let config_raw = ledger.read(&root.join(config_ref));
+            let digest = ledger.hex(&config_raw);
+            let digest = ledger.text(&digest);
+            expected_anchor.set("/selector_method/configuration_digest", &digest, ledger);
+            anchor["selector_method"]["configuration_digest"] = digest;
+            assert!(expected_anchor.matches(&anchor, ledger));
+            let raw = ledger.canonical(&anchor);
+            let digest = ledger.hex(&raw);
+            let value = ledger.text(&digest);
+            ledger.pay(256);
+            let pointer = format!("/source_binding/anchors/{i}/anchor_record_sha256");
+            expected_layer.set(&pointer, &value, ledger);
+            layer["source_binding"]["anchors"][i]["anchor_record_sha256"] = value;
+            ledger.write(&anchor_path, &raw);
         }
-        let raw = canonical_json(&layer);
-        fs::write(path, &raw).unwrap();
-        Digest256::of_bytes(&raw).to_hex()
+        assert!(expected_layer.matches(&layer, ledger));
+        let raw = ledger.canonical(&layer);
+        let digest = ledger.hex(&raw);
+        ledger.write(&path, &raw);
+        digest
     }
+    let mut ledger = TextFixtureReference::new(deadline, cancelled);
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
-    let context_value: Value = serde_json::from_slice(&fs::read(&context).unwrap()).unwrap();
+    let context_raw = ledger.read(&context);
+    let context_value = ledger.parse(&context_raw);
     let private = PathBuf::from(context_value["private_root"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
-    let mut config: Value = serde_json::from_slice(&fs::read(&owner).unwrap()).unwrap();
+    let owner_raw = ledger.read(&owner);
+    let mut config = ledger.parse(&owner_raw);
+    let mut expected_config = TextFixtureTransition::new(&config, &mut ledger);
+    let mut expected_fixture = TextFixtureTransition::new(fixture, &mut ledger);
     for key in ["native_text_layers", "native_text_units"] {
-        for selected in config[key].as_array_mut().unwrap() {
+        for (i, selected) in config[key].as_array_mut().unwrap().iter_mut().enumerate() {
             let binding = &mut selected["binding"]["text_layer"];
-            let digest = rebind_layer(&private, binding["record_ref"].as_str().unwrap(), 0);
-            binding["record_sha256"] = Value::from(digest);
+            let reference = binding["record_ref"].as_str().unwrap();
+            let digest = rebind_layer(&private, reference, 0, &mut ledger);
+            let raw = ledger.read(&private.join(reference));
+            let record = ledger.parse(&raw);
+            assert_eq!(record["layer_id"], binding["layer_id"]);
+            assert_eq!(record["layer_version"], binding["layer_version"]);
+            let value = ledger.text(&digest);
+            ledger.pay(256);
+            expected_config.set(
+                &format!("/{key}/{i}/binding/text_layer/record_sha256"),
+                &value,
+                &mut ledger,
+            );
+            binding["record_sha256"] = value;
         }
     }
     // This grant belongs to the newly constructed synthetic run, not to the
     // expired comparison grant recorded in the immutable historical fixture.
+    let expiry = ledger.text("2099-01-01T00:00:00Z");
+    expected_config.set(
+        "/native_text_layers/0/payload_access/expires_at",
+        &expiry,
+        &mut ledger,
+    );
     config["native_text_layers"][0]["payload_access"]["expires_at"] =
         Value::from("2099-01-01T00:00:00Z");
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
@@ -1645,22 +1877,43 @@ fn rebind_journal_fixture(
         )
         .unwrap();
         let id = record["id"].as_str().unwrap();
+        assert!(!id.contains('/') && !id.contains('~'));
+        assert!(fixture["layer_subject"]["id"] == id || fixture["unit_subject"]["id"] == id);
+        ledger.pay(id.len().checked_mul(4).unwrap().checked_add(4096).unwrap());
         let reference = serde_json::json!({"id":id,"version":record["version"],
             "digest":Digest256::of_bytes(&command_binding_bytes(&record["payload"])).to_prefixed()});
         if let Some(subject) = config["subjects"].get_mut(id) {
+            assert_eq!(subject["record"]["id"], id);
+            expected_config.set(&format!("/subjects/{id}/record"), &reference, &mut ledger);
             subject["record"] = reference.clone();
         }
         for kind in ["layer", "unit"] {
             let subject = format!("{kind}_subject");
             let template = format!("{kind}_template");
             if fixture[&subject]["id"] == id {
+                expected_fixture.set(&format!("/{subject}"), &reference, &mut ledger);
+                expected_fixture.set(
+                    &format!("/{template}/expected_subject"),
+                    &reference,
+                    &mut ledger,
+                );
+                expected_fixture.set(
+                    &format!("/{template}/assessments/0/subject"),
+                    &reference,
+                    &mut ledger,
+                );
                 fixture[&subject] = reference.clone();
                 fixture[&template]["expected_subject"] = reference.clone();
                 fixture[&template]["assessments"][0]["subject"] = reference.clone();
             }
         }
     }
-    fs::write(owner, serde_json::to_vec(&config).unwrap()).unwrap();
+    // Resolved records supply issued current source/request bindings only;
+    // neither this transition nor the frozen oracle certifies that resolver.
+    assert!(expected_config.matches(&config, &mut ledger));
+    assert!(expected_fixture.matches(fixture, &mut ledger));
+    let raw = ledger.encoded(&config);
+    ledger.write(&owner, &raw);
 }
 
 fn native_layer_journal_case(derived: bool) {

@@ -29,6 +29,309 @@ const INITIAL_TEXT_NATIVE_OWNER_PATHS: &[&str] = &[
     "rust/crates/tos-command/src/source_text_unit_entry.rs",
 ];
 
+/// Additional, monotonic logical accounting for these fixture derivatives.
+/// This does not account for all earlier archive restoration or native work.
+pub(super) struct TextFixtureReference<'a> {
+    bytes: usize,
+    visits: usize,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+
+impl<'a> TextFixtureReference<'a> {
+    pub(super) fn new(deadline: Instant, cancelled: &'a AtomicBool) -> Self {
+        Self {
+            bytes: 33_554_432,
+            visits: 300_000,
+            deadline,
+            cancelled,
+        }
+    }
+
+    pub(super) fn check(&mut self) {
+        assert!(Instant::now() < self.deadline, "fixture reference deadline");
+        assert!(!self.cancelled.load(std::sync::atomic::Ordering::Relaxed));
+        self.visits = self
+            .visits
+            .checked_sub(1)
+            .expect("fixture reference visits");
+    }
+
+    pub(super) fn pay(&mut self, bytes: usize) {
+        self.check();
+        self.bytes = self
+            .bytes
+            .checked_sub(bytes)
+            .expect("fixture reference bytes");
+    }
+
+    fn value_cost(&mut self, value: &Value, depth: usize) -> usize {
+        self.check();
+        // Preflight plus up to three following copy/sort/emit/equality visits.
+        self.check();
+        self.check();
+        self.check();
+        assert!(depth <= 64);
+        let mut cost = 128usize;
+        match value {
+            Value::String(text) => {
+                cost = cost
+                    .checked_add(text.len().checked_mul(4).unwrap())
+                    .unwrap()
+            }
+            Value::Number(number) => {
+                // The bounded raw parse has already admitted this number.
+                self.pay(4300);
+                let text = number.to_string();
+                assert!(text.len() <= 4300);
+                cost = cost
+                    .checked_add(text.len().checked_mul(4).unwrap())
+                    .unwrap();
+            }
+            Value::Array(rows) => {
+                for row in rows {
+                    cost = cost.checked_add(self.value_cost(row, depth + 1)).unwrap();
+                }
+            }
+            Value::Object(rows) => {
+                for (key, row) in rows {
+                    cost = cost
+                        .checked_add(128)
+                        .unwrap()
+                        .checked_add(key.len().checked_mul(4).unwrap())
+                        .unwrap();
+                    cost = cost.checked_add(self.value_cost(row, depth + 1)).unwrap();
+                }
+            }
+            _ => {}
+        }
+        cost
+    }
+
+    pub(super) fn copy(&mut self, value: &Value) -> Value {
+        let cost = self.value_cost(value, 0);
+        self.pay(cost);
+        value.clone()
+    }
+
+    pub(super) fn read(&mut self, path: &Path) -> Vec<u8> {
+        use std::io::Read as _;
+        self.check();
+        assert!(path.symlink_metadata().unwrap().is_file());
+        let file = fs::File::open(path).unwrap();
+        let metadata = file.metadata().unwrap();
+        assert!(metadata.is_file() && metadata.len() <= 8_388_608);
+        let length = usize::try_from(metadata.len()).unwrap();
+        self.pay(length.checked_mul(2).unwrap().checked_add(258).unwrap());
+        let mut raw = Vec::new();
+        file.take(u64::try_from(length.checked_add(1).unwrap()).unwrap())
+            .read_to_end(&mut raw)
+            .unwrap();
+        assert_eq!(raw.len(), length);
+        self.check();
+        raw
+    }
+
+    pub(super) fn parse(&mut self, raw: &[u8]) -> Value {
+        self.check();
+        // Conservative per-input-byte logical construction envelope for BOTH
+        // simultaneously live strict/Serde trees, not a measured allocator cap.
+        self.pay(
+            raw.len()
+                .checked_mul(512)
+                .unwrap()
+                .checked_add(256)
+                .unwrap(),
+        );
+        let mut limits = JsonLimits::default();
+        limits.max_bytes = 8_388_608;
+        limits.max_visits = self.visits;
+        let parsed = parse_json(raw, JsonMode::PublishedStrict, limits).unwrap();
+        self.visits = self
+            .visits
+            .checked_sub(parsed.visits().checked_mul(2).unwrap())
+            .unwrap();
+        // Serde owns the comparison value; its construction is separately
+        // prepaid above. The Foundation parse supplies strict-key admission.
+        let value = serde_json::from_slice(raw).unwrap();
+        self.check();
+        value
+    }
+
+    pub(super) fn write(&mut self, path: &Path, raw: &[u8]) {
+        self.pay(raw.len());
+        fs::write(path, raw).unwrap();
+        self.check();
+    }
+
+    pub(super) fn encoded(&mut self, value: &Value) -> Vec<u8> {
+        let cost = self.value_cost(value, 0);
+        self.pay(cost.checked_mul(2).unwrap());
+        serde_json::to_vec(value).unwrap()
+    }
+
+    pub(super) fn canonical(&mut self, value: &Value) -> Vec<u8> {
+        let cost = self.value_cost(value, 0);
+        self.pay(cost.checked_mul(4).unwrap());
+        canonical_json(value)
+    }
+
+    pub(super) fn hex(&mut self, raw: &[u8]) -> String {
+        self.pay(raw.len().checked_add(256).unwrap());
+        Digest256::of_bytes(raw).to_hex()
+    }
+
+    pub(super) fn text(&mut self, text: &str) -> Value {
+        self.pay(text.len().checked_mul(4).unwrap().checked_add(128).unwrap());
+        Value::from(text)
+    }
+}
+
+/// A complete expected derivative, constructed from the BEFORE input plus
+/// named input-supplied replacements before any corresponding file writes.
+/// Whole equality also rejects extra keys, removals and array reordering.
+pub(super) struct TextFixtureTransition(Value);
+
+pub(super) fn text_predecessor_matches(
+    binding: &Value,
+    declared: &Value,
+    ledger: &mut TextFixtureReference<'_>,
+) -> bool {
+    ledger.check();
+    ["record_ref", "record_sha256", "layer_id"]
+        .iter()
+        .all(|key| binding[*key].as_str().is_some() && binding[*key] == declared[*key])
+        && binding["layer_version"].as_u64().is_some_and(|v| v > 0)
+}
+
+pub(super) fn text_predecessor_record_matches(
+    binding: &Value,
+    record: &Value,
+    ledger: &mut TextFixtureReference<'_>,
+) -> bool {
+    ledger.check();
+    binding["layer_id"].as_str().is_some()
+        && binding["layer_id"] == record["layer_id"]
+        && binding["layer_version"].as_u64().is_some_and(|v| v > 0)
+        && binding["layer_version"] == record["layer_version"]
+}
+
+pub(super) fn text_configuration_matches(
+    binding: &Value,
+    reference: &str,
+    digest: &str,
+    ledger: &mut TextFixtureReference<'_>,
+) -> bool {
+    ledger.pay(reference.len().checked_add(digest.len()).unwrap());
+    binding["configuration_ref"].as_str() == Some(reference)
+        && binding["configuration_digest"].as_str() == Some(digest)
+}
+
+impl TextFixtureTransition {
+    pub(super) fn new(before: &Value, ledger: &mut TextFixtureReference<'_>) -> Self {
+        Self(ledger.copy(before))
+    }
+
+    pub(super) fn set(
+        &mut self,
+        pointer: &str,
+        input: &Value,
+        ledger: &mut TextFixtureReference<'_>,
+    ) {
+        ledger.pay(
+            pointer
+                .len()
+                .checked_mul(4)
+                .unwrap()
+                .checked_add(128)
+                .unwrap(),
+        );
+        let replacement = ledger.copy(input);
+        *self
+            .0
+            .pointer_mut(pointer)
+            .expect("declared existing fixture pointer") = replacement;
+    }
+
+    pub(super) fn remove(&mut self, key: &str, ledger: &mut TextFixtureReference<'_>) {
+        ledger.check();
+        assert!(self.0.as_object_mut().unwrap().remove(key).is_some());
+    }
+
+    pub(super) fn matches(&self, after: &Value, ledger: &mut TextFixtureReference<'_>) -> bool {
+        // Preflight both complete traversals before the equality walk.
+        let first = ledger.value_cost(&self.0, 0);
+        let second = ledger.value_cost(after, 0);
+        ledger.pay(first.checked_add(second).unwrap());
+        self.0 == *after
+    }
+}
+
+fn text_fixture_transition_controls(ledger: &mut TextFixtureReference<'_>) {
+    ledger.pay(8192);
+    let input = serde_json::json!({"binding":{"digest":"same"},"note":"same","rows":[1,2]});
+    let mut expected = TextFixtureTransition::new(&input, ledger);
+    expected.set("/binding/digest", &Value::from("new"), ledger);
+    let mut lawful = ledger.copy(&input);
+    lawful["binding"]["digest"] = Value::from("new");
+    assert!(expected.matches(&lawful, ledger));
+    assert_eq!(lawful["note"], "same");
+    let mut changed_note = ledger.copy(&lawful);
+    changed_note["note"] = Value::from("new");
+    assert!(!expected.matches(&changed_note, ledger));
+    let mut added = ledger.copy(&lawful);
+    added["extra"] = Value::Null;
+    assert!(!expected.matches(&added, ledger));
+    let mut removed = ledger.copy(&lawful);
+    removed.as_object_mut().unwrap().remove("note");
+    assert!(!expected.matches(&removed, ledger));
+    let mut reordered = ledger.copy(&lawful);
+    reordered["rows"].as_array_mut().unwrap().reverse();
+    assert!(!expected.matches(&reordered, ledger));
+    let mut idempotent = TextFixtureTransition::new(&lawful, ledger);
+    idempotent.set("/binding/digest", &Value::from("new"), ledger);
+    assert!(idempotent.matches(&lawful, ledger));
+    ledger.pay(4096);
+    let prior = serde_json::json!({"record_ref":"layers/first.json","record_sha256":"old","layer_id":"declared-layer","content_sha256":"content"});
+    let binding = serde_json::json!({"record_ref":"layers/first.json","record_sha256":"old","layer_id":"declared-layer","layer_version":1});
+    let record = serde_json::json!({"layer_id":"declared-layer","layer_version":1});
+    assert!(text_predecessor_matches(&binding, &prior, ledger));
+    assert!(text_predecessor_record_matches(&binding, &record, ledger));
+    for (key, value) in [
+        ("record_ref", Value::from("other.json")),
+        ("record_sha256", Value::from("wrong")),
+        ("layer_id", Value::from("other-layer")),
+        ("layer_version", Value::from(2)),
+    ] {
+        let mut wrong = ledger.copy(&binding);
+        wrong[key] = value;
+        assert!(
+            !(text_predecessor_matches(&wrong, &prior, ledger)
+                && text_predecessor_record_matches(&wrong, &record, ledger))
+        );
+    }
+    let responsibility =
+        serde_json::json!({"configuration_ref":"owner.json","configuration_digest":"old"});
+    assert!(text_configuration_matches(
+        &responsibility,
+        "owner.json",
+        "old",
+        ledger
+    ));
+    assert!(!text_configuration_matches(
+        &responsibility,
+        "other.json",
+        "old",
+        ledger
+    ));
+    assert!(!text_configuration_matches(
+        &responsibility,
+        "owner.json",
+        "wrong",
+        ledger
+    ));
+}
+
 const ALIGNMENT_NATIVE_OWNER_PATHS: &[&str] = &[
     "rust/crates/tos-command/src/source_text_alignment_entry.rs",
     "rust/crates/tos-command/src/source_text_identity.rs",
@@ -122,7 +425,12 @@ print(json.dumps({'public':str(case.public),'private':str(case.private),
     fixture
 }
 
-fn derived_fixture(root: &Path, kind: &str, seed: &NativeTextUnitSeed) -> NativePythonFixture {
+fn derived_fixture(
+    root: &Path,
+    kind: &str,
+    seed: &NativeTextUnitSeed,
+    ledger: &mut TextFixtureReference<'_>,
+) -> NativePythonFixture {
     let script = r#"
 import copy,json,os,sys,unicodedata
 from pathlib import Path
@@ -223,9 +531,49 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
     // The frozen proposal was captured beside a different private store. Build
     // a new synthetic request against the actual native predecessor, retaining
     // the captured edit/OCR material and its independently checked output hash.
-    let mut config: Value = serde_json::from_slice(&fs::read(&fixture.owner).unwrap()).unwrap();
-    let initial: Value =
-        serde_json::from_slice(&fs::read(&seed.initial_layer_owner).unwrap()).unwrap();
+    let raw = ledger.read(&fixture.owner);
+    let mut config = ledger.parse(&raw);
+    let initial_raw = ledger.read(&seed.initial_layer_owner);
+    let initial = ledger.parse(&initial_raw);
+    let mut expected = TextFixtureTransition::new(&config, ledger);
+    // Freeze every allowed replacement from declared predecessor inputs first.
+    for pointer in [
+        "/source_context_ref",
+        "/uid",
+        "/source_scope",
+        "/source_record_refs",
+        "/source_record_sha256",
+        "/manifest_sha256",
+        "/derivation_access/rights_record_refs/0",
+    ] {
+        expected.set(pointer, initial.pointer(pointer).unwrap(), ledger);
+    }
+    if kind == "record-ocr" {
+        let anchor = &seed.layer_record["source_binding"]["anchors"][0];
+        // Pay the independently constructed small input binding before json!.
+        let anchor_cost = ledger.value_cost(anchor, 0);
+        ledger.pay(
+            anchor_cost
+                .checked_mul(2)
+                .unwrap()
+                .checked_add(2048)
+                .unwrap(),
+        );
+        let binding = serde_json::json!({"anchor_id":anchor["anchor_id"], "record_ref":anchor["anchor_record_ref"], "record_sha256":anchor["anchor_record_sha256"]});
+        expected.set("/input/anchor", &binding, ledger);
+        expected.set("/source_access", &initial["source_access"], ledger);
+    } else {
+        let mut binding = ledger.copy(&seed.source_binding);
+        binding["source_record_refs"] = ledger.copy(&initial["source_record_refs"]);
+        expected.set("/input/binding", &binding, ledger);
+    }
+    // Existing mutation code remains independently checked against the complete
+    // before-input derivative above; no observed diff chooses permitted fields.
+    let copy_cost = ledger
+        .value_cost(&initial, 0)
+        .checked_add(ledger.value_cost(&seed.source_binding, 0))
+        .unwrap();
+    ledger.pay(copy_cost.checked_mul(2).unwrap().checked_add(4096).unwrap());
     for key in [
         "source_context_ref",
         "uid",
@@ -263,12 +611,14 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
     for reference in material_refs {
         let target = seed.private_root.join(&reference);
         assert!(!target.exists(), "derived synthetic input must be new");
-        let raw = fs::read(destination.join("private").join(&reference)).unwrap();
+        let raw = ledger.read(&destination.join("private").join(&reference));
         fs::create_dir_all(target.parent().unwrap()).unwrap();
-        fs::write(&target, raw).unwrap();
+        ledger.write(&target, &raw);
         fs::set_permissions(target, fs::Permissions::from_mode(0o600)).unwrap();
     }
-    fs::write(&fixture.owner, serde_json::to_vec(&config).unwrap()).unwrap();
+    assert!(expected.matches(&config, ledger));
+    let raw = ledger.encoded(&config);
+    ledger.write(&fixture.owner, &raw);
     fixture
 }
 
@@ -1008,6 +1358,7 @@ pub(super) fn native_text_unit_seed(
     root: &Path,
     deadline: Instant,
     cancelled: &AtomicBool,
+    ledger: &mut TextFixtureReference<'_>,
 ) -> NativeTextUnitSeed {
     let fixture_capture = text_fixture(root);
     let fixture = fixture_capture.packets.get("factory").unwrap();
@@ -1016,6 +1367,8 @@ pub(super) fn native_text_unit_seed(
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let source_ref = fixture["source_ref"].as_str().unwrap().to_owned();
+    let declared_owner_raw = ledger.read(&owner);
+    let declared_owner = ledger.parse(&declared_owner_raw);
     // The historical fixture predates private-delivery configuration. Select
     // the current maintained grammar as an authored input before capture.
     let private_read_schema = "ToS/contracts/native-private-text-read.schema.json";
@@ -1128,8 +1481,23 @@ pub(super) fn native_text_unit_seed(
         })
         .collect();
     assert_eq!(after, saved);
-    let layer_raw = fs::read(package.join("source-text-layer.v1.json")).unwrap();
-    let layer: Value = serde_json::from_slice(&layer_raw).unwrap();
+    let layer_raw = ledger.read(&package.join("source-text-layer.v1.json"));
+    let layer = ledger.parse(&layer_raw);
+    // This produced record becomes a new current construction input, not an
+    // independent oracle for its own producer. Bind it to pre-call declarations.
+    assert_eq!(layer["layer_id"], declared_owner["identities"]["layer_id"]);
+    assert_eq!(layer["layer_version"], 1);
+    assert_eq!(
+        layer["source_binding"]["anchors"][0]["anchor_id"],
+        declared_owner["identities"]["anchor_id"]
+    );
+    let anchor = &layer["source_binding"]["anchors"][0];
+    let anchor_raw = ledger.read(&private.join(anchor["anchor_record_ref"].as_str().unwrap()));
+    ledger.pay(anchor_raw.len());
+    assert_eq!(
+        Digest256::of_bytes(&anchor_raw).to_hex(),
+        anchor["anchor_record_sha256"].as_str().unwrap()
+    );
     let mut unit_config = fixture["unit_config"].clone();
     unit_config["schema_version"] = fixture["unit_layer_schema"].clone();
     unit_config["source_binding"] = serde_json::json!({
@@ -1244,7 +1612,15 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         .permissions(fs::Permissions::from_mode(0o700))
         .tempdir()
         .unwrap();
-    let seed = native_text_unit_seed(&repository, temporary.path(), deadline, &cancelled);
+    let mut reference = TextFixtureReference::new(deadline, &cancelled);
+    text_fixture_transition_controls(&mut reference);
+    let seed = native_text_unit_seed(
+        &repository,
+        temporary.path(),
+        deadline,
+        &cancelled,
+        &mut reference,
+    );
     private_read_lifecycle(&repository, temporary.path(), &seed, deadline, &cancelled);
     assert!(seed.fixture_capture.packets.contains_key("factory"));
     assert!(seed.initial_layer_owner.is_file());
@@ -1272,7 +1648,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
     let worker_image = &seed.worker_image;
     let package = &seed.initial_layer_package;
     let retained = seed.initial_layer_content.as_slice();
-    let derived_capture = derived_fixture(temporary.path(), "normalize", &seed);
+    let derived_capture = derived_fixture(temporary.path(), "normalize", &seed, &mut reference);
     let derived = derived_capture.packets.get("factory").unwrap();
     let derived_owner = PathBuf::from(derived["owner"].as_str().unwrap());
     let derived_ref = derived["source_ref"].as_str().unwrap();
@@ -1356,7 +1732,7 @@ fn native_text_layer_extracts_private_epub_and_cold_replays() {
         ("correct", "diplomatic_transcription"),
         ("record-ocr", "raw_ocr"),
     ] {
-        let details_capture = derived_fixture(temporary.path(), kind, &seed);
+        let details_capture = derived_fixture(temporary.path(), kind, &seed, &mut reference);
         let details = details_capture.packets.get("factory").unwrap();
         let owner_path = PathBuf::from(details["owner"].as_str().unwrap());
         let source_ref = details["source_ref"].as_str().unwrap();
