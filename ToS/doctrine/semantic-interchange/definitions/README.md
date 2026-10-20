@@ -1,11 +1,13 @@
 # Authored definition tree
 
-The manifest records the I/C-accepted local source selection as
-`posture: selected-authored` and cites
-[`2026-10-19-definition-topology-review.md`](../../../review-ledger/2026-10-19-definition-topology-review.md).
-The initial candidate passed independent topology acceptance (12/12) before this
-selection was authorized. That review is created by I/C; recording its locator
-is not a mechanical grant of semantic, rights, publication or runtime authority.
+The manifest records the current local source selection as
+`posture: selected-authored` and cites the
+[composite selection review](../../../review-ledger/2026-10-19-temporal-definition-selection-review.md).
+That note retains the original I/C review of 524 definitions unchanged and adds
+T1's scoped independent meaning review of ChronologyVersion and TemporalCrosswalk.
+The initial topology candidate passed independent acceptance (12/12); that
+historical result does not review the two later definitions. Recording a review
+locator is not a mechanical grant of rights, publication or runtime authority.
 
 `canonical/`, `shared/` and `manifest.json` are the selected authored definition
 inputs. The stable `../entity-types.v1.json` and `../relation-types.v1.json`
@@ -17,8 +19,10 @@ has the historical mixed-format root files and intentionally fails the new exact
 compatibility guard until I/C completes that paired integration. No main,
 release, production or corpus-runtime selection is implied by this local change.
 
-The manifest records all 160 entity types, 168 properties and 196 relations in
-original registry order. Its entries are also the complete migration mapping:
+The initial migration records 160 entity types, 168 properties and 196 relations
+in original registry order. The current selected manifest has 162 entity types,
+168 properties and 196 relations: the two reviewed temporal types follow the
+historical entries. The initial entries retain the complete migration mapping:
 `collection` and stable `id` identify the old array member; `path` identifies its
 selected home; `previous_paths` records subsequent home moves. Shared
 properties and schema/profile metadata are not copied into individual types.
