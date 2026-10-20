@@ -165,6 +165,14 @@ pub fn convert(
     if entries.len() > budget.max_members {
         return Err(TemporalError::ResourceExhausted("mapping member limit"));
     }
+    let mut coordinates = std::collections::BTreeSet::new();
+    for (coordinate, _) in entries {
+        if !coordinates.insert(coordinate.units()) {
+            return Err(TemporalError::MalformedRequest(
+                "duplicate crosswalk coordinate",
+            ));
+        }
+    }
     let v = field(p, "value");
     let key = if let Some(s) = v.as_str() {
         s.to_owned()

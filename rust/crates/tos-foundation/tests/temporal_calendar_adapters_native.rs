@@ -105,6 +105,60 @@ fn crosswalk_versions_are_immutable_and_labels_are_opaque() {
         r#"{"position":{"value":11,"trs_ref":"s-v1"},"target_trs":"t-v1","crosswalk_version":"map-v1","fixture_mapping":{"10":42}}"#,
     );
     assert_eq!(s(&r, "status"), Some("OutOfCoverage"));
+    // Direct JsonValue callers can supply duplicate keys even though the strict
+    // JSON parser refuses them. Check the whole mapping before selecting a row.
+    for (key, values) in [
+        (tos_foundation::JsonString::from_utf8("10"), [42, 43]),
+        (tos_foundation::JsonString::from_utf8("10"), [42, 42]),
+        (tos_foundation::JsonString::from_utf8("unused"), [42, 43]),
+        (tos_foundation::JsonString::from_utf16(&[0xd800]), [42, 43]),
+    ] {
+        let mut input = parse(
+            r#"{"position":{"value":10,"trs_ref":"s-v1"},"target_trs":"t-v1","crosswalk_version":"map-v1"}"#,
+        );
+        let JsonValue::Object(fields) = &mut input else {
+            unreachable!()
+        };
+        fields.push((
+            tos_foundation::JsonString::from_utf8("fixture_mapping"),
+            JsonValue::Object(vec![
+                (key.clone(), parse(&values[0].to_string())),
+                (key, parse(&values[1].to_string())),
+            ]),
+        ));
+        let context = parse("{}");
+        let before = (input.clone(), context.clone());
+        assert_eq!(
+            convert(&input, &context, TemporalBudget::default()),
+            Err(tos_foundation::temporal::TemporalError::MalformedRequest(
+                "duplicate crosswalk coordinate"
+            ))
+        );
+        assert_eq!(
+            convert(
+                &input,
+                &context,
+                TemporalBudget {
+                    max_members: 1,
+                    ..TemporalBudget::default()
+                }
+            ),
+            Err(tos_foundation::temporal::TemporalError::ResourceExhausted(
+                "mapping member limit"
+            ))
+        );
+        assert_eq!((&input, &context), (&before.0, &before.1));
+    }
+    let input = parse(
+        r#"{"position":{"value":10,"trs_ref":"s-v1"},"target_trs":"t-v1","crosswalk_version":"map-v1","fixture_mapping":{"10":42,"unused":43}}"#,
+    );
+    let context = parse("{}");
+    let before = (input.clone(), context.clone());
+    let result = convert(&input, &context, TemporalBudget::default()).unwrap();
+    assert_eq!(s(&result, "status"), Some("Unique"));
+    assert_eq!(f(f(&result, "position"), "value"), &parse("42"));
+    assert_eq!(f(&result, "preserved_input"), &input);
+    assert_eq!((&input, &context), (&before.0, &before.1));
 }
 fn zone(calendar: &str, offsets: &str, local: &str) -> String {
     format!(

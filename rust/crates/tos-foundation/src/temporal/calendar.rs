@@ -215,6 +215,11 @@ pub(super) fn derive(input: &JsonValue, context: &JsonValue) -> JsonValue {
     let Some(raw) = string(input, "expression") else {
         return reason("Unresolved", "MissingPosition");
     };
+    let input_trs = field(input, "trs_ref");
+    let context_trs = field(context, "trs_ref");
+    if !input_trs.is_null() && !context_trs.is_null() && input_trs != context_trs {
+        return reason("Unresolved", "ConflictingTRSDeclaration");
+    }
     let trs = field(context, "trs_ref");
     let trs = if trs.is_null() {
         field(input, "trs_ref")

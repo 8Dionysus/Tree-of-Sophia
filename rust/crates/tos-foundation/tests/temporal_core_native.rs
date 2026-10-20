@@ -116,6 +116,87 @@ fn explicit_primitives_keep_date_buckets_distinct_from_event_extents_and_unknown
     assert_eq!(s(f(&r, "value"), "start"), Some("2000-02-01"));
     assert_eq!(s(f(&r, "value"), "end_exclusive"), Some("2000-03-01"));
     assert_eq!(f(&r, "event_extent_inferred"), &JsonValue::Bool(false));
+    let rules = r#""temporal_systems":{"calendar-a":{"calendar_algorithm":"GregorianProleptic","year_numbering":"astronomical","rules_version":"a@1"},"calendar-b":{"calendar_algorithm":"GregorianProleptic","year_numbering":"astronomical","rules_version":"b@1"}}"#;
+    for (input_trs, context_trs, expected) in [
+        (r#""calendar-a""#, r#""calendar-b""#, None),
+        (r#""calendar-b""#, r#""calendar-a""#, None),
+        ("10", r#""calendar-a""#, None),
+        (r#""calendar-a""#, r#""calendar-a""#, Some("calendar-a")),
+        ("null", r#""calendar-a""#, Some("calendar-a")),
+        (r#""calendar-b""#, "null", Some("calendar-b")),
+    ] {
+        let input = parse(&format!(
+            r#"{{"expression":"2000-02","resolution":"month","trs_ref":{input_trs}}}"#
+        ));
+        let context = parse(&format!(r#"{{"trs_ref":{context_trs},{rules}}}"#));
+        let before = (input.clone(), context.clone());
+        let result = execute_temporal_operation(
+            "derive_extent",
+            &input,
+            &context,
+            TemporalBudget::default(),
+        )
+        .unwrap();
+        assert_eq!((&input, &context), (&before.0, &before.1));
+        if let Some(trs) = expected {
+            assert_eq!(s(&result, "status"), Some("Resolved"));
+            assert_eq!(s(f(&result, "value"), "trs_ref"), Some(trs));
+        } else {
+            assert_eq!(s(&result, "status"), Some("Unresolved"));
+            assert_eq!(s(&result, "reason"), Some("ConflictingTRSDeclaration"));
+            assert!(result.object_get("value").is_none());
+        }
+    }
+    // Missing (as well as explicit null) declarations keep the one-sided rules.
+    for (input, context) in [
+        (
+            r#"{"expression":"2000-02","resolution":"month"}"#.to_owned(),
+            format!(r#"{{"trs_ref":"calendar-a",{rules}}}"#),
+        ),
+        (
+            r#"{"expression":"2000-02","resolution":"month","trs_ref":"calendar-a"}"#.to_owned(),
+            format!(r#"{{{rules}}}"#),
+        ),
+    ] {
+        let input = parse(&input);
+        let context = parse(&context);
+        let before = (input.clone(), context.clone());
+        let result = execute_temporal_operation(
+            "derive_extent",
+            &input,
+            &context,
+            TemporalBudget::default(),
+        )
+        .unwrap();
+        assert_eq!(s(&result, "status"), Some("Resolved"));
+        assert_eq!(s(f(&result, "value"), "trs_ref"), Some("calendar-a"));
+        assert_eq!((&input, &context), (&before.0, &before.1));
+    }
+    for (input, context, reason) in [
+        (
+            r#"{"expression":"2000-02","resolution":"month","trs_ref":null}"#,
+            r#"{"trs_ref":null}"#,
+            "UnknownTRS",
+        ),
+        (
+            r#"{"trs_ref":"calendar-a"}"#,
+            r#"{"trs_ref":"calendar-b"}"#,
+            "MissingPosition",
+        ),
+    ] {
+        let input = parse(input);
+        let context = parse(context);
+        let before = (input.clone(), context.clone());
+        let result = execute_temporal_operation(
+            "derive_extent",
+            &input,
+            &context,
+            TemporalBudget::default(),
+        )
+        .unwrap();
+        assert_eq!(s(&result, "reason"), Some(reason));
+        assert_eq!((&input, &context), (&before.0, &before.1));
+    }
     let r = run(
         "relate_extents",
         r#"{"calendar":"GregorianProleptic","left":{"type":"Instant","trs_ref":"declared-clock@v3","zone":"UTC","local":"1945-04-02T06:00:00"},"right":{"type":"Instant","trs_ref":"declared-clock@v3","zone":"UTC","local":"1945-04-02T13:00:00"}}"#,
