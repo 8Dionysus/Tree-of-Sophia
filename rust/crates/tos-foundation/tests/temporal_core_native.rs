@@ -626,3 +626,186 @@ fn supplemental_claim_carrier_codec_preserves_source_and_refuses_unsupported_for
         }
     }
 }
+
+#[test]
+fn complete_transport_admission_precedes_dispatch_and_preserved_clones() {
+    let empty = parse("{}");
+    let large_value = JsonValue::String(tos_foundation::JsonString::from_utf8(&"x".repeat(128)));
+    let unused = |value| {
+        JsonValue::Object(vec![(
+            tos_foundation::JsonString::from_utf8("unused"),
+            value,
+        )])
+    };
+    let large_input = unused(large_value.clone());
+    let large_key = JsonValue::Object(vec![(
+        tos_foundation::JsonString::from_utf8(&"k".repeat(128)),
+        JsonValue::Null,
+    )]);
+    let large_number = unused(JsonValue::Number(tos_foundation::JsonNumber {
+        kind: tos_foundation::JsonNumberKind::Int,
+        lexeme: "9".repeat(128),
+    }));
+    let byte_limited = TemporalBudget {
+        max_expression_bytes: 64,
+        ..TemporalBudget::default()
+    };
+    for (op, input, context) in [
+        ("difference", large_input.clone(), empty.clone()),
+        ("convert", empty.clone(), large_input.clone()),
+        ("difference", large_key, empty.clone()),
+        ("difference", large_number, empty.clone()),
+        // Missing raw would be MalformedRequest if dispatch ran first.
+        ("capture_expression", large_input, empty.clone()),
+    ] {
+        let before = (input.clone(), context.clone());
+        assert!(matches!(
+            execute_temporal_operation(op, &input, &context, byte_limited),
+            Err(TemporalError::ResourceExhausted(_))
+        ));
+        assert_eq!((input, context), before);
+    }
+    let many = unused(JsonValue::Array(vec![JsonValue::Null; 64]));
+    assert!(matches!(
+        execute_temporal_operation(
+            "difference",
+            &many,
+            &empty,
+            TemporalBudget {
+                max_expression_bytes: 4096,
+                max_members: 16,
+                ..TemporalBudget::default()
+            }
+        ),
+        Err(TemporalError::ResourceExhausted(_))
+    ));
+    // Each root alone has only two nodes, but together they require four.
+    let two_nodes = parse(r#"{"x":[]}"#);
+    assert!(matches!(
+        execute_temporal_operation(
+            "not-an-operation",
+            &two_nodes,
+            &two_nodes,
+            TemporalBudget {
+                max_members: 3,
+                ..TemporalBudget::default()
+            }
+        ),
+        Err(TemporalError::ResourceExhausted(_))
+    ));
+    // Each compact root is nine bytes; their aggregate is eighteen.
+    let nine_bytes = parse(r#"{"x":"a"}"#);
+    assert!(matches!(
+        execute_temporal_operation(
+            "not-an-operation",
+            &nine_bytes,
+            &nine_bytes,
+            TemporalBudget {
+                max_expression_bytes: 17,
+                ..TemporalBudget::default()
+            }
+        ),
+        Err(TemporalError::ResourceExhausted(_))
+    ));
+    assert_eq!(
+        execute_temporal_operation(
+            "capture_expression",
+            &JsonValue::Null,
+            &empty,
+            TemporalBudget {
+                max_expression_bytes: 0,
+                max_members: 0,
+                max_pairings: 0,
+            }
+        ),
+        Err(TemporalError::MalformedRequest(
+            "input and context must be objects"
+        ))
+    );
+}
+
+#[test]
+fn complete_transport_uses_exact_preserved_byte_node_and_depth_boundaries() {
+    let empty = parse("{}");
+    // Independent compact spelling counts: BOTH roots include their braces.
+    // Pairing limits remain operation-owned; the unknown branch needs none.
+    for (input, bytes, members) in [
+        (empty.clone(), 4, 2),
+        (parse(r#"{"x":"\"\\\n😀"}"#), 20, 3),
+        (parse(r#"{"x":"\u0001"}"#), 16, 3),
+        (parse(r#"{"x":"😀"}"#), 14, 3),
+    ] {
+        let exact = TemporalBudget {
+            max_expression_bytes: bytes,
+            max_members: members,
+            max_pairings: 0,
+        };
+        let value = execute_temporal_operation("not-an-operation", &input, &empty, exact).unwrap();
+        assert_eq!(s(&value, "status"), Some("Unsupported"));
+        for below in [
+            TemporalBudget {
+                max_expression_bytes: bytes - 1,
+                ..exact
+            },
+            TemporalBudget {
+                max_members: members - 1,
+                ..exact
+            },
+        ] {
+            assert!(matches!(
+                execute_temporal_operation("not-an-operation", &input, &empty, below),
+                Err(TemporalError::ResourceExhausted(_))
+            ));
+        }
+    }
+    let nested = |arrays| {
+        let mut value = JsonValue::Null;
+        for _ in 0..arrays {
+            value = JsonValue::Array(vec![value]);
+        }
+        JsonValue::Object(vec![(
+            tos_foundation::JsonString::from_utf8("unused"),
+            value,
+        )])
+    };
+    // Object root is depth0; sixty-three arrays put the leaf at depth64.
+    let depth64 = nested(63);
+    assert!(
+        execute_temporal_operation(
+            "not-an-operation",
+            &depth64,
+            &empty,
+            TemporalBudget::default()
+        )
+        .is_ok()
+    );
+    let depth65 = nested(64);
+    assert!(matches!(
+        execute_temporal_operation(
+            "not-an-operation",
+            &depth65,
+            &empty,
+            TemporalBudget::default()
+        ),
+        Err(TemporalError::ResourceExhausted(_))
+    ));
+}
+
+#[test]
+fn complete_transport_keeps_native_opaque_integer_float_and_unicode_values() {
+    let input = parse(
+        r#"{"position":{"type":"OrdinalPosition","value":10,"trs_ref":"source-v1"},"target_trs":"target-v2","crosswalk_version":"rule@v1","fixture_mapping":{"10":42},"opaque":9007199254740993,"fraction":1.25,"signed_zero":-0,"float_spelling":1e+2,"text":"\ud800"}"#,
+    );
+    let context = parse(
+        r#"{"opaque":9007199254740993,"fraction":1.25,"signed_zero":-0,"float_spelling":1e+2,"text":"\ud800"}"#,
+    );
+    let budget = TemporalBudget::default();
+    let direct = calendar_adapters::convert(&input, &context, budget).unwrap();
+    let transported = execute_temporal_operation("convert", &input, &context, budget).unwrap();
+    assert_eq!(s(&transported, "status"), Some("Unique"));
+    for (key, value) in direct.as_object().unwrap() {
+        assert_eq!(transported.object_get(key.as_str().unwrap()), Some(value));
+    }
+    assert_eq!(f(&transported, "preserved_input"), &input);
+    assert_eq!(f(&transported, "preserved_context"), &context);
+}

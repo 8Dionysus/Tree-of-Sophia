@@ -438,8 +438,97 @@ pub(super) fn relation_json(r: RelationOutcome) -> JsonValue {
     }
 }
 
-/// Bounded transport adapter. It accepts operation/input/context only, never
-/// case IDs or expected answers. Unknown operations disclose lack of support.
+fn transport_limit() -> TemporalError {
+    TemporalError::ResourceExhausted("temporal input/context byte/member/depth limit")
+}
+
+/// Cheap borrowed lower bound before the preserved writer examines keys or
+/// number lexemes. Exact escaped bytes are admitted separately below.
+fn preflight_transport(
+    value: &JsonValue,
+    depth: usize,
+    members: &mut usize,
+    bytes: &mut usize,
+) -> Result<(), TemporalError> {
+    if depth > 64 {
+        return Err(transport_limit());
+    }
+    *members = members.checked_sub(1).ok_or_else(transport_limit)?;
+    let minimum = match value {
+        JsonValue::String(s) => s.units().len().checked_add(1).ok_or_else(transport_limit)?,
+        JsonValue::Number(n) => n.lexeme.len(),
+        _ => 1,
+    };
+    *bytes = bytes.checked_sub(minimum).ok_or_else(transport_limit)?;
+    match value {
+        JsonValue::Array(items) => {
+            if items.len() > *members {
+                return Err(transport_limit());
+            }
+            for item in items {
+                preflight_transport(item, depth + 1, members, bytes)?;
+            }
+        }
+        JsonValue::Object(entries) => {
+            if entries.len() > *members {
+                return Err(transport_limit());
+            }
+            for (key, item) in entries {
+                *bytes = bytes
+                    .checked_sub(key.units().len())
+                    .ok_or_else(transport_limit)?;
+                preflight_transport(item, depth + 1, members, bytes)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn admit_transport(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<(), TemporalError> {
+    let mut members = budget.max_members;
+    let mut lower_bytes = budget.max_expression_bytes;
+    preflight_transport(input, 0, &mut members, &mut lower_bytes)?;
+    preflight_transport(context, 0, &mut members, &mut lower_bytes)?;
+
+    // Same aggregate allowance for BOTH roots. Preserved emission retains the
+    // native numeric/Unicode domain, without imposing canonical/wire safety.
+    let mut bytes = budget.max_expression_bytes;
+    for value in [input, context] {
+        if bytes == 0 {
+            return Err(transport_limit());
+        }
+        let raw = crate::emit_value_preserved_json(
+            value,
+            crate::JsonLimits {
+                max_bytes: bytes,
+                max_depth: 64,
+                max_visits: budget.max_members,
+                max_integer_digits: budget.max_expression_bytes,
+            },
+        )
+        .map_err(|error| {
+            if error.code == crate::FoundationErrorCode::BudgetExceeded {
+                transport_limit()
+            } else {
+                TemporalError::MalformedRequest("invalid temporal input/context JSON")
+            }
+        })?;
+        bytes = bytes.checked_sub(raw.len()).ok_or_else(transport_limit)?;
+        // Drop the bounded temporary before admitting the next root.
+    }
+    Ok(())
+}
+
+/// Bounded transport adapter. The complete input plus context share the byte
+/// (compact preserved JSON) and Value-node allowances, with depth at most 64.
+/// This is input admission, not an output-size, retained-capacity or RSS cap.
+/// It accepts operation/input/context only, never case IDs or expected answers.
+/// Unknown operations disclose lack of support after the same admission.
 pub fn execute_temporal_operation(
     operation: &str,
     input: &JsonValue,
@@ -451,6 +540,7 @@ pub fn execute_temporal_operation(
             "input and context must be objects",
         ));
     }
+    admit_transport(input, context, budget)?;
     let mut result = match operation {
         "resolve_temporal_query_context" => {
             crate::query_context_wire::resolve_context_json(input, context, budget)?
