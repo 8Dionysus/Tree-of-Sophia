@@ -3519,6 +3519,299 @@ fn nav_edge(
     )
 }
 
+// This journal owns the ORIGINAL String buffers, never a reverse map or a
+// baseline mined from a reference output. Tree shape and keys do not change.
+struct HistoricalStringEntry {
+    ordinal: usize,
+    original: String,
+}
+struct HistoricalStringJournal {
+    entries: Vec<HistoricalStringEntry>,
+    ordinal: usize,
+    values: usize,
+    available: usize,
+}
+struct HistoricalStringRestore {
+    entries: std::vec::IntoIter<HistoricalStringEntry>,
+    pending: Option<HistoricalStringEntry>,
+    ordinal: usize,
+    values: usize,
+}
+// Logical live source holders, not unused scratch or a compiler-stack theorem.
+// Each recursive call retains its mutable value, state/limits/replacements
+// arguments, depth/ordinal arithmetic and one selected container iterator.
+// Iterator item/return and next-call argument overlaps are included separately.
+fn historical_walk_holders(frames: usize) -> NavResult<usize> {
+    use std::mem::size_of;
+    let frame = size_of::<&mut serde_json::Value>()
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(size_of::<&BTreeMap<String, String>>()))
+        .and_then(|n| n.checked_add(size_of::<&mut HistoricalStringJournal>()))
+        .and_then(|n| n.checked_add(size_of::<&mut HistoricalStringRestore>()))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<std::slice::IterMut<'_, serde_json::Value>>()
+                    .max(size_of::<serde_json::map::ValuesMut<'_>>()),
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<&mut serde_json::Value>>()))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<bool>()))
+        .and_then(|n| n.checked_add(size_of::<Option<&HistoricalStringEntry>>()))
+        .and_then(|n| n.checked_add(size_of::<&HistoricalStringEntry>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)?;
+    // One active leaf/growth helper: replacement lookup/borrow; clone and
+    // replace return; Entry/Option take/push/next overlaps; Vec reserve result;
+    // room-helper parameters, seven named growth scalars, reserve amount and
+    // canonical_state_room's three simultaneous usize arguments.
+    let leaf = size_of::<&mut String>()
+        .checked_add(size_of::<Option<&String>>())
+        .and_then(|n| n.checked_add(size_of::<&String>()))
+        .and_then(|n| n.checked_add(size_of::<String>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<HistoricalStringEntry>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<HistoricalStringEntry>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut HistoricalStringJournal>()))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<HistoricalStringEntry>>()))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(11)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<Result<(), std::collections::TryReserveError>>()))
+        .ok_or(ReferenceError::Budget)?;
+    frame
+        .checked_mul(frames)
+        .and_then(|n| n.checked_add(leaf))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn historical_journal_room(
+    journal: &mut HistoricalStringJournal,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use std::mem::size_of;
+    l.step(8)?; // BEFORE len/capacity/needed/growth/slot metadata operations
+    let len = journal.entries.len();
+    let capacity = journal.entries.capacity();
+    let needed = len.checked_add(1).ok_or(ReferenceError::Budget)?;
+    if needed > journal.values || capacity > journal.values {
+        return Err(ReferenceError::Budget);
+    }
+    if len == capacity {
+        let next = capacity
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?
+            .max(4)
+            .min(journal.values)
+            .max(needed);
+        let slots = next
+            .checked_mul(size_of::<HistoricalStringEntry>())
+            .ok_or(ReferenceError::Budget)?;
+        let old = capacity
+            .checked_mul(size_of::<HistoricalStringEntry>())
+            .ok_or(ReferenceError::Budget)?;
+        let moved = len
+            .checked_mul(size_of::<HistoricalStringEntry>())
+            .ok_or(ReferenceError::Budget)?;
+        canonical_state_room(old, slots, journal.available)?;
+        l.bytes(slots.checked_add(moved).ok_or(ReferenceError::Budget)?)?;
+        l.step(1)?;
+        journal
+            .entries
+            .try_reserve_exact(next.checked_sub(len).ok_or(ReferenceError::Budget)?)
+            .map_err(|_| ReferenceError::Budget)?;
+        if journal.entries.capacity() != next {
+            return Err(ReferenceError::Budget);
+        }
+    }
+    Ok(())
+}
+fn historical_rewrite_strings(
+    value: &mut serde_json::Value,
+    replacements: &BTreeMap<String, String>,
+    journal: &mut HistoricalStringJournal,
+    l: &mut ReferenceLimits<'_>,
+    depth: usize,
+) -> NavResult<()> {
+    use serde_json::Value;
+    l.step(1)?; // SAME original rewrite entry/depth order
+    if depth > 96 {
+        return Err(ReferenceError::Budget);
+    }
+    l.step(3)?; // ordinal read/checked advance/bound BEFORE mutation
+    let ordinal = journal.ordinal;
+    journal.ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
+    if journal.ordinal > journal.values {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    match value {
+        Value::String(s) => {
+            if let Some(new) = replacements.get(s) {
+                l.bytes(new.len())?; // SAME original replacement payload charge
+                historical_journal_room(journal, l)?; // BEFORE slot or String construction
+                l.step(3)?; // clone/replace/entry write BEFORE their operations
+                let replacement = new.clone();
+                let original = std::mem::replace(s, replacement);
+                journal
+                    .entries
+                    .push(HistoricalStringEntry { ordinal, original });
+            }
+        }
+        Value::Array(a) => {
+            for v in a {
+                historical_rewrite_strings(
+                    v,
+                    replacements,
+                    journal,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+            }
+        }
+        Value::Object(o) => {
+            for v in o.values_mut() {
+                historical_rewrite_strings(
+                    v,
+                    replacements,
+                    journal,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+            }
+        }
+        _ => (),
+    }
+    Ok(())
+}
+fn historical_restore_strings(
+    value: &mut serde_json::Value,
+    restore: &mut HistoricalStringRestore,
+    l: &mut ReferenceLimits<'_>,
+    depth: usize,
+) -> NavResult<()> {
+    use serde_json::Value;
+    l.step(1)?;
+    if depth > 96 {
+        return Err(ReferenceError::Budget);
+    }
+    l.step(4)?; // ordinal advance/bound/pending comparison BEFORE reads/writes
+    let ordinal = restore.ordinal;
+    restore.ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
+    if restore.ordinal > restore.values {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    let restore_here = if let Some(entry) = restore.pending.as_ref() {
+        if entry.ordinal < ordinal {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        entry.ordinal == ordinal
+    } else {
+        false
+    };
+    if restore_here {
+        let Value::String(s) = value else {
+            return Err(ReferenceError::InvalidBinding);
+        };
+        l.step(3)?; // take/move original back/next BEFORE metadata transitions
+        let entry = restore
+            .pending
+            .take()
+            .ok_or(ReferenceError::InvalidBinding)?;
+        *s = entry.original; // original buffer owner; drop replacement without credit
+        restore.pending = restore.entries.next();
+    }
+    match value {
+        Value::Array(a) => {
+            for v in a {
+                historical_restore_strings(
+                    v,
+                    restore,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+            }
+        }
+        Value::Object(o) => {
+            for v in o.values_mut() {
+                historical_restore_strings(
+                    v,
+                    restore,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+            }
+        }
+        _ => (),
+    }
+    Ok(())
+}
+// Same complete NoWire W/error preflight as the merge read guard. Successful
+// geometry belongs to this immutable input, not to any later rewritten root.
+fn historical_rewrite_plan(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<CanonicalPlan> {
+    use std::mem::size_of;
+    l.step(1)?;
+    l.bytes(
+        size_of::<CanonicalPlan>()
+            .checked_add(
+                size_of::<NavResult<CanonicalPlan>>()
+                    .checked_mul(2)
+                    .ok_or(ReferenceError::Budget)?,
+            )
+            .and_then(|n| n.checked_add(size_of::<PreflightPurpose>()))
+            .and_then(|n| n.checked_add(size_of::<&serde_json::Value>()))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    canonical_preflight_for::<NoWireCounts>(v, l, PreflightPurpose::MergeReadGuard)
+}
+fn historical_journal_payment(plan: &CanonicalPlan, l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+    use std::mem::size_of;
+    l.step(4)?;
+    l.bytes(
+        historical_walk_holders(
+            plan.max_frames
+                .checked_add(1)
+                .ok_or(ReferenceError::Budget)?,
+        )?
+        .checked_add(size_of::<HistoricalStringJournal>())
+        .and_then(|n| n.checked_add(size_of::<serde_json::Value>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<CanonicalPlan>()))
+        .and_then(|n| n.checked_add(size_of::<&CanonicalPlan>()))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>()))
+        .ok_or(ReferenceError::Budget)?,
+    )
+}
+fn historical_restore_payment(plan: &CanonicalPlan, l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+    use std::mem::size_of;
+    l.step(4)?;
+    l.bytes(
+        historical_walk_holders(
+            plan.max_frames
+                .checked_add(1)
+                .ok_or(ReferenceError::Budget)?,
+        )?
+        .checked_add(
+            size_of::<HistoricalStringRestore>()
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| n.checked_add(size_of::<HistoricalStringJournal>()))
+        .and_then(|n| n.checked_add(size_of::<std::vec::IntoIter<HistoricalStringEntry>>()))
+        .and_then(|n| n.checked_add(size_of::<Vec<HistoricalStringEntry>>()))
+        .and_then(|n| n.checked_add(size_of::<&CanonicalPlan>()))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>()))
+        .ok_or(ReferenceError::Budget)?,
+    )
+}
 fn nav_rewrite_strings(
     value: &mut serde_json::Value,
     replacements: &BTreeMap<String, String>,
@@ -3952,6 +4245,7 @@ fn navigation_variant_handoff_payment(l: &mut ReferenceLimits<'_>) -> NavResult<
     l.bytes(
         size_of::<DeclaredNavigationInputs<'_>>()
             .checked_mul(3) // caller -> diagnostic wrapper -> body move overlap
+            .and_then(|n| n.checked_add(size_of::<serde_json::Value>().checked_mul(3)?))
             .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(4)?))
             .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
             .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
@@ -4093,7 +4387,7 @@ fn variant_claim_binding(
     })
 }
 fn navigation_reference_variants(
-    historical: &serde_json::Value,
+    historical: serde_json::Value,
     original: &serde_json::Value,
     inputs: DeclaredNavigationInputs<'_>,
     l: &mut ReferenceLimits<'_>,
@@ -4119,7 +4413,7 @@ fn navigation_reference_variants(
     result
 }
 fn navigation_reference_variants_body(
-    historical: &serde_json::Value,
+    historical: serde_json::Value,
     original: &serde_json::Value,
     inputs: DeclaredNavigationInputs<'_>,
     l: &mut ReferenceLimits<'_>,
@@ -4617,8 +4911,20 @@ fn navigation_reference_variants_body(
     }
     l.work
         .diagnostic_stage("copy-rewrite-historical-navigation", 0);
-    let mut old = l.copy(historical)?;
-    nav_rewrite_strings(&mut old, &replacements, l, 0)?;
+    let historical_plan = historical_rewrite_plan(&historical, l)?;
+    historical_journal_payment(&historical_plan, l)?;
+    let mut old = historical;
+    let mut historical_journal = HistoricalStringJournal {
+        entries: Vec::new(),
+        ordinal: 0,
+        values: historical_plan.meta.values,
+        available: l.work.left,
+    };
+    historical_rewrite_strings(&mut old, &replacements, &mut historical_journal, l, 0)?;
+    l.step(1)?;
+    if historical_journal.ordinal != historical_plan.meta.values {
+        return Err(ReferenceError::InvalidBinding);
+    }
     l.work.diagnostic_stage("parse-final-variant-members", 0);
     let mut variant_inputs = DeclaredNavigationInputs::from_files(&files, input_registries, l)?;
     l.work.diagnostic_stage("build-second-navigation", 0);
@@ -4659,7 +4965,27 @@ fn navigation_reference_variants_body(
             "Independent source statement"
         );
     }
-    for old_row in nav_array(historical, "nodes")? {
+    // Restore actual original owners BEFORE the independent baseline copies.
+    // No reverse-map guess, reference-output baseline, or assertion substitution.
+    historical_restore_payment(&historical_plan, l)?;
+    l.step(3)?; // consume journal/construct iterator/pending BEFORE moves
+    let mut historical_restore = HistoricalStringRestore {
+        entries: historical_journal.entries.into_iter(),
+        pending: None,
+        ordinal: 0,
+        values: historical_plan.meta.values,
+    };
+    historical_restore.pending = historical_restore.entries.next();
+    historical_restore_strings(&mut old, &mut historical_restore, l, 0)?;
+    l.step(3)?;
+    if historical_restore.ordinal != historical_plan.meta.values
+        || historical_restore.pending.is_some()
+        || historical_restore.entries.len() != 0
+    {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    let historical = old;
+    for old_row in nav_array(&historical, "nodes")? {
         l.step(1)?;
         let mut renamed = l.copy(old_row)?;
         nav_rewrite_strings(&mut renamed, &replacements, l, 0)?;
