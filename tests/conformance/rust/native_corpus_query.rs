@@ -292,7 +292,7 @@ fn move_reference_value(
                             .checked_mul(std::mem::size_of::<Value>())
                             .ok_or(ReferenceError::Budget)?,
                     )?;
-                    l.bytes(std::mem::size_of::<ReferenceMoveFrame>())?;
+                    l.step(1)?; // ordinary frame write; storage/growth bytes remain separate
                     state.frames.push(ReferenceMoveFrame::Array {
                         output: Vec::with_capacity(values.len()),
                         remaining: values.into_iter(),
@@ -321,7 +321,7 @@ fn move_reference_value(
                     // Keep ALL first-key semantic errors before stack growth.
                     reference_stack_room(&mut state.frames, state.available, l)?;
                     l.bytes(reference_move_map_backing(values.len())?)?;
-                    l.bytes(std::mem::size_of::<ReferenceMoveFrame>())?;
+                    l.step(1)?; // ordinary frame write; storage/growth bytes remain separate
                     state.frames.push(ReferenceMoveFrame::Object {
                         output: serde_json::Map::with_capacity(values.len()),
                         remaining: values.into_iter(),
@@ -403,7 +403,7 @@ fn move_reference_value(
         }
         if state.next.is_none() {
             l.step(1)?; // take the finished frame; never clone its output
-            l.bytes(std::mem::size_of::<ReferenceMoveFrame>())?;
+            l.step(1)?; // ordinary frame write; storage/growth bytes remain separate
             state.depth -= 1;
             state.ready = Some(
                 match state.frames.pop().ok_or(ReferenceError::InvalidBinding)? {
@@ -1643,7 +1643,7 @@ fn reference_source_scan(
     };
     // The scan has ROOT and SCALAR frames too, not container-only frames.
     reference_stack_room(&mut state.frames, state.available, l)?;
-    l.bytes(size_of::<(&Source, usize)>())?;
+    l.step(1)?; // ordinary frame write; storage/growth bytes remain separate
     state.frames.push((root, 0));
     state.depth = 1;
     while state.depth != 0 {
@@ -1721,11 +1721,7 @@ fn reference_source_scan(
             }
             let next_cursor = cursor.checked_add(1).ok_or(ReferenceError::Budget)?;
             reference_stack_room(&mut state.frames, state.available, l)?;
-            l.bytes(
-                size_of::<(&Source, usize)>()
-                    .checked_mul(2)
-                    .ok_or(ReferenceError::Budget)?,
-            )?;
+            l.step(2)?; // parent update + child push, BEFORE both writes
             *state
                 .frames
                 .get_mut(state.depth - 1)
@@ -1733,7 +1729,7 @@ fn reference_source_scan(
             state.frames.push((child, 0));
             state.depth += 1;
         } else {
-            l.bytes(size_of::<(&Source, usize)>())?;
+            l.step(1)?; // ordinary frame write; storage/growth bytes remain separate
             state.depth -= 1;
             let _ = state.frames.pop().ok_or(ReferenceError::InvalidBinding)?;
         }
