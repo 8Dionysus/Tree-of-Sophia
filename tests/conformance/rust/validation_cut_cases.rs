@@ -30,6 +30,194 @@ const ENTITY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.
 const ITEM: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5";
 const INVENTORY_SCHEMA: &str = "ToS/contracts/source-resource-inventory.schema.json";
 
+// Ordinary fixture reference accounting: logical explicit payload/byte work,
+// separate from structural visits; not allocator capacity or process RSS.
+pub(super) struct FixtureReferenceBudget {
+    bytes: usize,
+    visits: usize,
+    pub(super) max_members: usize,
+    pub(super) max_member_bytes: usize,
+}
+impl FixtureReferenceBudget {
+    pub(super) fn new(max_members: usize, bytes: usize, max_member_bytes: usize) -> Self {
+        Self {
+            bytes,
+            visits: JsonLimits::default().max_visits,
+            max_members,
+            max_member_bytes,
+        }
+    }
+    pub(super) fn pay(&mut self, bytes: usize) -> Result<(), &'static str> {
+        self.bytes = self
+            .bytes
+            .checked_sub(bytes)
+            .ok_or("fixture reference bytes")?;
+        Ok(())
+    }
+    pub(super) fn step(&mut self) -> Result<(), &'static str> {
+        self.visits = self
+            .visits
+            .checked_sub(1)
+            .ok_or("fixture reference visits")?;
+        Ok(())
+    }
+}
+
+// Borrowed lexical check matches RelativePath's declared shape without its
+// owned String construction during the still-unpaid metadata preflight.
+fn fixture_relative_path(path: &str) -> bool {
+    !path.is_empty()
+        && !path.starts_with('/')
+        && !path.contains('\\')
+        && !path.chars().any(|ch| (ch as u32) < 32)
+        && !path
+            .split('/')
+            .any(|part| part.is_empty() || matches!(part, "." | ".." | ".git"))
+}
+
+// Explicit HistoricalExact grammar roles; never exempt an entire owner tree.
+fn historical_grammar_role(path: &str) -> bool {
+    if !fixture_relative_path(path) {
+        return false;
+    }
+    matches!(
+        path,
+        REGISTRY | "ToS/doctrine/semantic-interchange/relation-types.v1.json"
+    ) || path
+        .strip_prefix("ToS/contracts/")
+        .is_some_and(|name| !name.contains('/') && name.ends_with(".schema.json"))
+}
+
+// The authenticated old packet is a CONSTRUCTOR input, not a native answer.
+// Its existing witness commits UTF8 hex-string bytes, not decoded raw bytes.
+pub(super) fn historical_fixture_inputs(
+    source: &Value,
+    witness: &Value,
+    budget: &mut FixtureReferenceBudget,
+) -> Result<BTreeMap<String, Vec<u8>>, &'static str> {
+    let source = source.as_object().ok_or("fixture source map")?;
+    let rows = witness["files"].as_array().ok_or("fixture witness rows")?;
+    if source.len() > budget.max_members
+        || rows.len() != source.len()
+        || witness["entry_count"].as_u64() != Some(rows.len() as u64)
+    {
+        return Err("fixture witness membership");
+    }
+    let mut prepaid = 0usize;
+    for row in rows {
+        budget.step()?;
+        let path = row["path"].as_str().ok_or("fixture witness path")?;
+        if !fixture_relative_path(path) {
+            return Err("fixture relative path");
+        }
+        let hex = source
+            .get(path)
+            .and_then(Value::as_str)
+            .ok_or("fixture witness member")?;
+        if hex.len() % 2 != 0
+            || hex.len() / 2 > budget.max_member_bytes.min(2_097_152)
+            || row["hex_characters"].as_u64() != Some(hex.len() as u64)
+        {
+            return Err("fixture encoded length");
+        }
+        let cost = hex
+            .len()
+            .checked_mul(3)
+            .and_then(|n| n.checked_add((hex.len() / 2).checked_mul(2)?))
+            .and_then(|n| n.checked_add(path.len().checked_mul(4)?))
+            .and_then(|n| n.checked_add(1024))
+            .ok_or("fixture reference overflow")?;
+        prepaid = prepaid
+            .checked_add(cost)
+            .ok_or("fixture reference overflow")?;
+    }
+    // Prepay the entire index/output schedule BEFORE their construction.
+    budget.pay(prepaid)?;
+    let mut index = BTreeMap::new();
+    for row in rows {
+        budget.step()?;
+        let path = row["path"].as_str().ok_or("fixture witness path")?;
+        if index.insert(path, row).is_some() {
+            return Err("duplicate fixture witness");
+        }
+    }
+    for path in source.keys() {
+        budget.step()?;
+        if !index.contains_key(path.as_str()) {
+            return Err("fixture witness membership");
+        }
+    }
+    for (path, row) in &index {
+        budget.step()?;
+        let hex = source
+            .get(*path)
+            .and_then(Value::as_str)
+            .ok_or("fixture hex")?;
+        if row["hex_encoding_sha256"].as_str()
+            != Some(Digest256::of_bytes(hex.as_bytes()).to_hex().as_str())
+            || !hex.bytes().all(|b| b.is_ascii_hexdigit())
+        {
+            return Err("fixture hex commitment");
+        }
+    }
+    let mut output = BTreeMap::new();
+    for (path, hex) in source {
+        budget.step()?;
+        let hex = hex.as_str().ok_or("fixture hex")?;
+        let mut raw = Vec::with_capacity(hex.len() / 2);
+        for i in (0..hex.len()).step_by(2) {
+            raw.push(u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| "fixture hex")?);
+        }
+        output.insert(path.clone(), raw);
+    }
+    Ok(output)
+}
+
+fn fixture_reference_controls(budget: &mut FixtureReferenceBudget) {
+    // Tiny pure controls share this containing operation's remaining ledger.
+    budget.pay(16_384).unwrap();
+    let source = serde_json::json!({"ToS/example.json":"00"});
+    let row = serde_json::json!({"path":"ToS/example.json","hex_characters":2,
+        "hex_encoding_sha256":Digest256::of_bytes(b"00").to_hex()});
+    let witness = serde_json::json!({"entry_count":1,"files":[row.clone()]});
+    assert_eq!(
+        historical_fixture_inputs(&source, &witness, budget).unwrap()["ToS/example.json"],
+        [0]
+    );
+    let changed = serde_json::json!({"ToS/example.json":"01"});
+    assert!(historical_fixture_inputs(&changed, &witness, budget).is_err());
+    let missing = serde_json::json!({"entry_count":0,"files":[]});
+    assert!(historical_fixture_inputs(&source, &missing, budget).is_err());
+    let duplicate = serde_json::json!({"entry_count":2,"files":[row.clone(),row]});
+    let two = serde_json::json!({"ToS/example.json":"00","ToS/other.json":"00"});
+    assert!(historical_fixture_inputs(&two, &duplicate, budget).is_err());
+    for hex in ["0", "gg"] {
+        budget.step().unwrap();
+        let changed = serde_json::json!({"ToS/example.json":hex});
+        let mut self_bound = witness.clone();
+        self_bound["files"][0]["hex_characters"] = Value::from(hex.len() as u64);
+        self_bound["files"][0]["hex_encoding_sha256"] =
+            Value::String(Digest256::of_bytes(hex.as_bytes()).to_hex());
+        assert!(historical_fixture_inputs(&changed, &self_bound, budget).is_err());
+    }
+    for path in [
+        REGISTRY,
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/contracts/example.schema.json",
+    ] {
+        budget.step().unwrap();
+        assert!(historical_grammar_role(path));
+    }
+    for path in [
+        "ToS/contracts/nested/example.schema.json",
+        "ToS/contracts/readme.md",
+        "ToS/doctrine/semantic-interchange/other.json",
+    ] {
+        budget.step().unwrap();
+        assert!(!historical_grammar_role(path));
+    }
+}
+
 pub(super) fn repository() -> PathBuf {
     fixtures()
         .join("../../..")
@@ -863,12 +1051,21 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     // descriptive Expression lineage and exact older commitments survive.
     stage("compound-fixture-start");
     let compound_files = crate::frozen_legacy_python_oracle("compound-source-family");
+    let provenance = crate::frozen_legacy_python_oracle_provenance("compound-source-family");
+    let mut reference = FixtureReferenceBudget::new(2048, 32_000_000, 2_097_152);
+    fixture_reference_controls(&mut reference);
+    let compound_files = historical_fixture_inputs(
+        &compound_files,
+        &provenance["input_witness"]["python_fixture_source_map"],
+        &mut reference,
+    )
+    .unwrap();
     stage("compound-fixture-loaded");
     // The captured full output includes historical generated catalog
     // companions; only the source-store's authored carriers enter both cuts.
     // Retained control/transaction/archive and human-form bytes stay selected.
     let mut generated_catalog_files = Vec::new();
-    for (path, hex) in compound_files.as_object().unwrap() {
+    for (path, raw) in &compound_files {
         if !tos_source_store::is_authored_source_path_v1(path) {
             assert!(
                 path.starts_with("ToS/source-witnesses/catalog/")
@@ -878,22 +1075,12 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
             generated_catalog_files.push(path.as_str());
             continue;
         }
-        let hex = hex.as_str().unwrap();
-        assert_eq!(hex.len() % 2, 0);
-        let raw = (0..hex.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-            .collect::<Vec<_>>();
         if let Some(existing) = before.get(path) {
-            // Historical commands retain their own exact versioned grammar.
-            // Other overlapping source items must still be identical.
-            if !path.starts_with("ToS/contracts/")
-                && !path.starts_with("ToS/doctrine/semantic-interchange/")
-            {
-                assert_eq!(existing, &raw, "selected common source {path}");
+            if !historical_grammar_role(path) {
+                assert_eq!(existing, raw, "selected common source {path}");
             }
         }
-        before.insert(path.clone(), raw);
+        before.insert(path.clone(), raw.clone());
     }
     assert!(
         !generated_catalog_files.is_empty(),
@@ -1519,27 +1706,26 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
             relation.into(),
             fs::read(repository().join(relation)).unwrap(),
         );
-        for (path, hex) in packet["files"].as_object().unwrap() {
+        let provenance =
+            crate::frozen_legacy_python_oracle_provenance(&format!("object-link-{kind}"));
+        let mut reference = FixtureReferenceBudget::new(2048, 32_000_000, 2_097_152);
+        let historical = historical_fixture_inputs(
+            &packet["files"],
+            &provenance["input_witness"]["python_fixture_source_map"],
+            &mut reference,
+        )
+        .unwrap();
+        for (path, raw) in historical {
             assert!(
-                tos_source_store::is_authored_source_path_v1(path),
+                tos_source_store::is_authored_source_path_v1(&path),
                 "unexpected non-authored ObjectLink fixture member {path}"
             );
-            let hex = hex.as_str().unwrap();
-            assert_eq!(hex.len() % 2, 0);
-            let raw = (0..hex.len())
-                .step_by(2)
-                .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-                .collect::<Vec<_>>();
-            if let Some(existing) = files.get(path) {
-                // Historical commands retain their own exact versioned grammar.
-                // Other overlapping source items must still be identical.
-                if !path.starts_with("ToS/contracts/")
-                    && !path.starts_with("ToS/doctrine/semantic-interchange/")
-                {
+            if let Some(existing) = files.get(&path) {
+                if !historical_grammar_role(&path) {
                     assert_eq!(existing, &raw, "selected common source {path}");
                 }
             }
-            files.insert(path.clone(), raw);
+            files.insert(path, raw);
         }
         let temporary = tempfile::tempdir().unwrap();
         let root = temporary.path().join("store");
