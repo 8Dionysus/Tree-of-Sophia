@@ -1709,16 +1709,17 @@ fn nav_node(
         l,
     )
 }
-fn nav_merge(
-    rows: &mut BTreeMap<String, serde_json::Value>,
-    row: serde_json::Value,
+fn nav_merge<Row: std::borrow::Borrow<serde_json::Value>>(
+    rows: &mut BTreeMap<String, Row>,
+    row: Row,
     key: &str,
     output_bytes: &mut usize,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<()> {
     l.step(2)?;
-    let id = nav_str(&row, key)?;
-    let bound = l.value_bound(&row, 0)?;
+    let row_value: &serde_json::Value = row.borrow();
+    let id = nav_str(row_value, key)?;
+    let bound = l.value_bound(row_value, 0)?;
     if bound > l.max_row_bytes {
         return Err(ReferenceError::Budget);
     }
@@ -1730,9 +1731,10 @@ fn nav_merge(
     }
     if let Some(prior) = rows.get(id) {
         // A full comparison is structural work, not a free final-len check.
-        l.compare_work(prior, 0)?;
-        l.compare_work(&row, 0)?;
-        if prior != &row {
+        let prior_value: &serde_json::Value = prior.borrow();
+        l.compare_work(prior_value, 0)?;
+        l.compare_work(row_value, 0)?;
+        if prior_value != row_value {
             return Err(ReferenceError::Conflict);
         }
     } else {
@@ -2563,12 +2565,22 @@ fn navigation_reference_variants_body(
         return Err(ReferenceError::InvalidBinding);
     }
     let colliding = Value::Object(colliding_fields);
+    // The immutable complete baseline already has an owner in `original`,
+    // which outlives this local map. Store a borrow, not another deep clone.
+    // Prepay both Cow wrappers plus construction/move and reference holders;
+    // this never replaces nav_merge's full bound/comparison/insertion work.
+    l.bytes(
+        std::mem::size_of::<std::borrow::Cow<'_, Value>>()
+            .checked_mul(4)
+            .and_then(|n| n.checked_add(std::mem::size_of::<&Value>().checked_mul(4)?))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.step(2)?;
     let mut collision_rows = BTreeMap::new();
     let mut collision_bytes = 0usize;
-    let row_copy = l.copy(original_row)?;
     nav_merge(
         &mut collision_rows,
-        row_copy,
+        std::borrow::Cow::Borrowed(original_row),
         "node_id",
         &mut collision_bytes,
         l,
@@ -2576,7 +2588,7 @@ fn navigation_reference_variants_body(
     assert!(matches!(
         nav_merge(
             &mut collision_rows,
-            colliding,
+            std::borrow::Cow::Owned(colliding),
             "node_id",
             &mut collision_bytes,
             l
