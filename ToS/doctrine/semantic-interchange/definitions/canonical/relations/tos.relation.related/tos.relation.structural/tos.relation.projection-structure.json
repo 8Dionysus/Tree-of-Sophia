@@ -1,0 +1,52 @@
+{
+  "relation_type_id": "tos.relation.projection-structure",
+  "parent_relation_type_ids": [
+    "tos.relation.structural"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "contains projected workbench object",
+    "ru": "содержит объект рабочей проекции",
+    "en": "contains projected workbench object"
+  },
+  "inverse_labels": null,
+  "definition": "A derived atlas or workbench containment and preparation route supporting navigation.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/philosophy/graph-workbench/README.md",
+  "domain_type_ids": [
+    "tos.entity.philosophy-meta"
+  ],
+  "range_type_ids": [
+    "tos.entity.philosophy-meta"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "derived-projection",
+  "evidence_required": false,
+  "review_requirement": "none",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "contains_row",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "contains_view",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "has_prepared_dossier",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-canonization-authority-scope",
+  "field": "attributes.source_record.semantic_content.authority_scope",
+  "labels": {
+    "default": "Historical authority scope",
+    "ru": "Область исторического авторитета",
+    "en": "Historical authority scope"
+  },
+  "definition": "Whose authority and which field this historical canon concerns; no ToS admission, correctness or universal consensus is implied.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-canonization"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

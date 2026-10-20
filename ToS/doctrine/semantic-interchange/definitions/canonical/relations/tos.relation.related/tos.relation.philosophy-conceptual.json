@@ -1,0 +1,92 @@
+{
+  "relation_type_id": "tos.relation.philosophy-conceptual",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "philosophical conceptual relation",
+    "ru": "философская понятийная связь",
+    "en": "philosophical conceptual relation"
+  },
+  "inverse_labels": null,
+  "definition": "Stable interchange family for source-native conceptual predicates; predicate_id preserves the exact authored relation such as develops_concept or influences.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "direct",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "belongs_to_genre",
+      "scope": "edge",
+      "labels": {
+        "default": "belongs to genre",
+        "ru": "относится к жанру",
+        "en": "belongs to genre"
+      },
+      "definition": "Source-declared genre classification; neither identity nor authorship."
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "develops_concept",
+      "scope": "edge",
+      "labels": {
+        "default": "develops concept",
+        "ru": "развивает понятие",
+        "en": "develops concept"
+      },
+      "definition": "Source-declared development of the target concept; the source review posture remains authoritative."
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "influences",
+      "scope": "edge",
+      "labels": {
+        "default": "influences",
+        "ru": "влияет на",
+        "en": "influences"
+      },
+      "definition": "A directional influence claim, not equivalence, necessary causation, or an automatically transitive relation."
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "polemicizes_with",
+      "scope": "edge",
+      "labels": {
+        "default": "polemicizes with",
+        "ru": "полемизирует с",
+        "en": "polemicizes with"
+      },
+      "definition": "Source-declared polemical engagement; it neither establishes influence nor requires reciprocal engagement."
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "transforms_concept",
+      "scope": "edge",
+      "labels": {
+        "default": "transforms concept",
+        "ru": "преобразует понятие",
+        "en": "transforms concept"
+      },
+      "definition": "Source-declared conceptual transformation; the target is not thereby identical to the source."
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

@@ -1042,3 +1042,1218 @@ fn genuine_catalogue_temporal_source_profile_bytes_and_line_are_exact() {
                 == Some("document-catalogue-exact-source-binding-inconsistent"))
     );
 }
+
+/// P01-P03 share one selected-reader family, with fresh producer-owned fixture bytes.
+#[test]
+fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_precision() {
+    use serde_json::{Value, json};
+    use tos_compiler::knowledge_full_fixture::build_native_fixture_with_claim_source;
+    use tos_query::{execute_selected_claim_list, execute_selected_claim_projection};
+
+    let client_json_roundtrip = |node: &std::ffi::OsStr, raw: &[u8]| {
+        use std::io::Write;
+        assert!(raw.len() <= 1_000_000);
+        let mut child = std::process::Command::new(node)
+            .args(["-e", "process.stdout.write(JSON.stringify(JSON.parse(require('fs').readFileSync(0,'utf8'))))"])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        child.stdin.take().unwrap().write_all(raw).unwrap();
+        let result = child.wait_with_output().unwrap();
+        assert!(result.status.success());
+        assert!(result.stdout.len() <= 1_000_000);
+        result.stdout
+    };
+
+    fn rewrite(
+        value: &mut Value,
+        original: &Value,
+        replacement: &Value,
+        names: &[(String, String)],
+    ) {
+        if value == original {
+            *value = replacement.clone();
+            return;
+        }
+        match value {
+            Value::String(s) => {
+                for (old, new) in names {
+                    *s = s.replace(old, new);
+                }
+            }
+            Value::Array(a) => {
+                for v in a {
+                    rewrite(v, original, replacement, names);
+                }
+            }
+            Value::Object(o) => {
+                for v in o.values_mut() {
+                    rewrite(v, original, replacement, names);
+                }
+            }
+            _ => {}
+        }
+    }
+    // Explicit synthetic external records: neither Claim self nor subject/basis
+    // supplies the about/knower bindings. They assert no admitted owner identity.
+    fn reference(id: &str) -> Value {
+        json!({"id":id,"version":3,"digest":"1".repeat(64)})
+    }
+    fn coordinate(value: i64) -> Value {
+        json!({"type":"CoordinatePosition","resolution":"exact","value":value,
+            "trs":{"id":"fixture-axis","version":"rules-1"},"unit":"tick","origin":"O"})
+    }
+    fn basis() -> Value {
+        json!({"source":reference("fixture:external-evidence"),"source_locator":null,
+            "raw_evidence":"explicit synthetic supplemental assertion"})
+    }
+    fn temporal_filter(cutoff: i64) -> Value {
+        json!({"profile_ref":"tos_claim_coordinate_filter_v1",
+            "assertion_scope":"SupplementalCarrierOnly","assertion_selection":"ExactlyOnePerPredicate",
+            "non_total":"RefusePage","roles":[{"role":"AttributedKnowledge",
+                "about_ref":reference("fixture:external-about"),"knower_ref":reference("fixture:external-knower"),
+                "operator":"LessOrEqual","cutoff":coordinate(cutoff),"basis":basis()}],
+            "world_valid_time":null})
+    }
+    fn temporal_packet(value: i64) -> Value {
+        let mut roles = Vec::new();
+        for role in [
+            "AttributedKnowledge",
+            "SourcePublication",
+            "SystemTransaction",
+        ] {
+            let mut assertion = json!({"profile_ref":"tos_role_coordinate_assertion_v1",
+                "about_ref":reference("fixture:external-about"),"position":coordinate(value)});
+            if role == "AttributedKnowledge" {
+                assertion["knower_ref"] = reference("fixture:external-knower");
+            }
+            roles.push(json!({"role":role,"assertion":assertion,"basis":basis()}));
+        }
+        roles.push(json!({"role":"ActualInterval","assertion":{
+            "profile_ref":"tos_world_coordinate_extent_v1","about_ref":reference("fixture:external-about"),
+            "extent":{"type":"Interval","beginning":{"position":coordinate(4),"inclusivity":"Inclusive"},
+                "end":{"position":coordinate(10),"inclusivity":"Exclusive"}}},"basis":basis()}));
+        json!({"schema_version":"tos_temporal_claim_carrier_v1","roles":roles})
+    }
+    let template: Value = serde_json::from_slice(include_bytes!(
+        "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+    ))
+    .unwrap();
+    let original_claim = &template["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|n| n["node_kind"] == "claim")
+        .unwrap()["properties"]["source_claim"];
+    let original_object = original_claim["object"].clone();
+    let old_id = original_claim["claim_id"].as_str().unwrap();
+    let old_digest = Digest256::of_bytes(&canonical(&parse(
+        &serde_json::to_vec(original_claim).unwrap(),
+    )))
+    .to_hex();
+    let literal = template["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|n| n["node_kind"] == "literal")
+        .unwrap();
+    let original_literal_id = literal["node_id"].as_str().unwrap();
+    for case in [
+        "conflicting-dates",
+        "unknown-calendar",
+        "year-only",
+        "unsupported-carrier",
+        "mixed-carrier",
+    ] {
+        let objects = match case {
+            "conflicting-dates" | "mixed-carrier" => {
+                let mut other = original_object.clone();
+                other["value"] = json!("1887-06-03");
+                other["source_wording"]["text"] = json!("03. 06.1887");
+                vec![original_object.clone(), other]
+            }
+            "unknown-calendar" => {
+                let mut source = original_object.clone();
+                source["calendar"] = Value::Null;
+                vec![source]
+            }
+            "year-only" => {
+                let mut source = original_object.clone();
+                source["value"] = json!("1886");
+                source["source_wording"]["text"] = json!("1886");
+                vec![source]
+            }
+            _ => vec![original_object.clone()],
+        };
+        let mut source = template.clone();
+        for collection in ["nodes", "edges", "claim_traces"] {
+            source[collection] = json!([]);
+        }
+        // Shared source identity/evidence carriers stay unchanged. Only test Claim/literal rows vary.
+        for n in template["nodes"].as_array().unwrap() {
+            if n["node_kind"] != "claim" && n["node_kind"] != "literal" {
+                source["nodes"].as_array_mut().unwrap().push(n.clone());
+            }
+        }
+        for (index, source_object) in objects.iter().enumerate() {
+            let new_id = format!("tos.claim.synthetic.projection-{case}-{index}");
+            let mut record = original_claim.clone();
+            record["claim_id"] = json!(new_id);
+            record["object"] = source_object.clone();
+            if case == "conflicting-dates" {
+                // Exact native evidence is retained; the opt-in client transport
+                // must refuse to expose this integer as a JavaScript Number.
+                record["qualifiers"]["client_boundary_evidence"] =
+                    json!({"exact_large":9007199254740993u64,"raw_decimal":"-0.00000000000000001"});
+            }
+            match case {
+                "conflicting-dates" | "mixed-carrier" => {
+                    record["qualifiers"]["temporal_claim_carrier"] =
+                        if case == "mixed-carrier" && index == 1 {
+                            Value::Null
+                        } else {
+                            temporal_packet(if index == 0 { 4 } else { 12 })
+                        };
+                }
+                "unknown-calendar" => record["qualifiers"]["temporal_claim_carrier"] = Value::Null,
+                "unsupported-carrier" => {
+                    record["qualifiers"]["temporal_claim_carrier"] =
+                        json!({"schema_version":"unsupported_fixture_version","roles":[]})
+                }
+                _ => {}
+            }
+            let digest =
+                Digest256::of_bytes(&canonical(&parse(&serde_json::to_vec(&record).unwrap())))
+                    .to_hex();
+            let raw_digest = Digest256::of_bytes(&canonical(&parse(
+                &serde_json::to_vec(source_object).unwrap(),
+            )))
+            .to_hex();
+            let literal_id = format!(
+                "literal:sha256:{}",
+                Digest256::of_bytes(&canonical(&parse(
+                    &serde_json::to_vec(&json!({"claim_ref":new_id,"value":source_object}))
+                        .unwrap()
+                )))
+                .to_hex()
+            );
+            let old_raw = Digest256::of_bytes(&canonical(&parse(
+                &serde_json::to_vec(&original_object).unwrap(),
+            )))
+            .to_hex();
+            let names = vec![
+                (original_literal_id.to_owned(), literal_id),
+                (old_id.to_owned(), new_id),
+                (old_digest.clone(), digest),
+                (old_raw, raw_digest),
+            ];
+            for collection in ["nodes", "edges", "claim_traces"] {
+                for row in template[collection].as_array().unwrap() {
+                    if collection == "nodes"
+                        && row["node_kind"] != "claim"
+                        && row["node_kind"] != "literal"
+                    {
+                        continue;
+                    }
+                    let mut row = row.clone();
+                    rewrite(&mut row, &original_object, source_object, &names);
+                    if collection == "nodes" && row["node_kind"] == "claim" {
+                        row["properties"]["source_claim"] = record.clone();
+                        row["properties"]["qualifiers"] = record["qualifiers"].clone();
+                        row["properties"]
+                            .as_object_mut()
+                            .unwrap()
+                            .remove("human_forms");
+                        row["properties"]
+                            .as_object_mut()
+                            .unwrap()
+                            .remove("human_forms_source_ref");
+                    }
+                    if collection == "claim_traces" {
+                        row["qualifiers"] = record["qualifiers"].clone();
+                    }
+                    source[collection].as_array_mut().unwrap().push(row);
+                }
+            }
+        }
+        let source_raw = serde_json::to_vec(&source).unwrap();
+        let fixture = build_native_fixture_with_claim_source(&source_raw);
+        let model_digest = || {
+            assert!(std::fs::metadata(&fixture.path).unwrap().len() <= 64 * 1024 * 1024);
+            Digest256::of_bytes(&std::fs::read(&fixture.path).unwrap())
+        };
+        let model_before = model_digest();
+        let graph = parse(&fixture.graph_input_bytes);
+        let claims: Vec<_> = get(&graph, "nodes")
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|n| get(n, "kind_id").as_str() == Some("claim"))
+            .collect();
+        assert_eq!(claims.len(), objects.len());
+        let members = JsonValue::Array(
+            claims
+                .iter()
+                .map(|n| {
+                    object(vec![
+                        ("node_id", get(n, "id").clone()),
+                        ("content_revision", get(n, "content_revision").clone()),
+                    ])
+                })
+                .collect(),
+        );
+        let revision = get(&graph, "source_revision").clone();
+        let cold = fixture.open().unwrap();
+        let bound =
+            bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+        let mut model = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
+        let mut previous = None;
+        for calendar in ["gregorian", "julian"] {
+            let request = object(vec![
+                ("schema_version", text("tos_claim_projection_request_v1")),
+                ("source_revision", revision.clone()),
+                ("members", members.clone()),
+                (
+                    "display_perspective",
+                    object(vec![
+                        ("mode", text("SourcePreserving")),
+                        (
+                            "profile_ref",
+                            object(vec![
+                                ("id", text("tos.display.synthetic.projection")),
+                                ("version", parse(b"1")),
+                                ("digest", text(&format!("sha256:{}", "a".repeat(64)))),
+                            ]),
+                        ),
+                        ("requested_calendar", text(calendar)),
+                        ("requested_language", text("en")),
+                    ]),
+                ),
+            ]);
+            let authority = || {
+                Authority::new(
+                    &bound,
+                    "tos.knowledge.temporal.project_claims",
+                    "read_only_public_knowledge_claim_projection_v1",
+                )
+            };
+            let mut packet = execute_selected_claim_projection(
+                &mut model,
+                &bound,
+                &mut authority(),
+                &request,
+                read_budget(),
+            )
+            .unwrap();
+            packet.recheck().unwrap();
+            let result = parse(&packet);
+            assert_eq!(get(&result, "source_revision"), &revision);
+            assert_eq!(
+                get(&result, "projection_scope").as_str(),
+                Some("exact-selected-model-members")
+            );
+            assert_eq!(
+                get(&result, "profile_binding").as_str(),
+                Some("caller-declared-display-request")
+            );
+            let rows = get(&result, "rows").as_array().unwrap();
+            assert_eq!(rows.len(), claims.len());
+            let returned_objects = rows
+                .iter()
+                .map(|row| {
+                    canonical(get(
+                        get(
+                            get(get(get(row, "operand"), "claim"), "attributes"),
+                            "source_claim",
+                        ),
+                        "object",
+                    ))
+                })
+                .collect::<std::collections::BTreeSet<_>>();
+            let expected_objects = objects
+                .iter()
+                .map(|v| canonical(&parse(&serde_json::to_vec(v).unwrap())))
+                .collect::<std::collections::BTreeSet<_>>();
+            assert_eq!(
+                returned_objects, expected_objects,
+                "every contradictory source dating must survive separately"
+            );
+            for (row, claim) in rows.iter().zip(&claims) {
+                assert_eq!(get(get(row, "operand"), "claim"), *claim);
+                assert_eq!(get(row, "derived_coordinate"), &JsonValue::Null);
+                assert_eq!(
+                    get(row, "derived_coordinate_status").as_str(),
+                    Some("Unresolved")
+                );
+                let returned = get(
+                    get(get(get(row, "operand"), "claim"), "attributes"),
+                    "source_claim",
+                );
+                assert_eq!(
+                    get(returned, "subject_ref"),
+                    &parse(&serde_json::to_vec(&original_claim["subject_ref"]).unwrap())
+                );
+                let source_object = get(returned, "object");
+                let expected = objects
+                    .iter()
+                    .find(|v| parse(&serde_json::to_vec(v).unwrap()) == *source_object)
+                    .unwrap();
+                assert_eq!(
+                    source_object,
+                    &parse(&serde_json::to_vec(expected).unwrap())
+                );
+                if case == "unknown-calendar" {
+                    assert_eq!(get(source_object, "calendar"), &JsonValue::Null);
+                }
+                if case == "year-only" {
+                    assert_eq!(get(source_object, "value").as_str(), Some("1886"));
+                }
+            }
+            if let Some(before) = previous.replace(get(&result, "rows").clone()) {
+                assert_eq!(
+                    before,
+                    *get(&result, "rows"),
+                    "display calendars cannot alter source rows"
+                );
+            }
+            let mut stale = request.clone();
+            let mut wrong_members = members.clone();
+            let JsonValue::Array(ref mut a) = wrong_members else {
+                unreachable!()
+            };
+            set(&mut a[0], "content_revision", text(&"0".repeat(64)));
+            set(&mut stale, "members", wrong_members);
+            assert!(matches!(
+                execute_selected_claim_projection(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &stale,
+                    read_budget()
+                ),
+                Err(SearchV2Error {
+                    code: SearchV2ErrorCode::StaleSelection,
+                    ..
+                })
+            ));
+            let mut stale_cut = request.clone();
+            set(&mut stale_cut, "source_revision", text(&"0".repeat(64)));
+            let mut bad_mode = request.clone();
+            let mut display = get(&request, "display_perspective").clone();
+            set(&mut display, "mode", text("Convert"));
+            set(&mut bad_mode, "display_perspective", display);
+            let mut float_version = request.clone();
+            let mut display = get(&request, "display_perspective").clone();
+            let mut profile = get(&display, "profile_ref").clone();
+            set(&mut profile, "version", parse(b"1.0"));
+            set(&mut display, "profile_ref", profile);
+            set(&mut float_version, "display_perspective", display);
+            for (bad, code) in [
+                (stale_cut, SearchV2ErrorCode::StaleSelection),
+                (bad_mode, SearchV2ErrorCode::InvalidRequest),
+                (float_version, SearchV2ErrorCode::InvalidRequest),
+            ] {
+                match execute_selected_claim_projection(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &bad,
+                    read_budget(),
+                ) {
+                    Err(reason) => assert_eq!(reason.code, code),
+                    Ok(_) => panic!("invalid projection boundary accepted"),
+                }
+            }
+            let mut tiny = read_budget();
+            tiny.max_payload_bytes = 8;
+            assert!(matches!(
+                execute_selected_claim_projection(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &request,
+                    tiny
+                ),
+                Err(SearchV2Error {
+                    code: SearchV2ErrorCode::BudgetExceeded,
+                    ..
+                })
+            ));
+            let mut denied = authority();
+            denied.withdrawn = true;
+            assert!(matches!(
+                execute_selected_claim_projection(
+                    &mut model,
+                    &bound,
+                    &mut denied,
+                    &request,
+                    read_budget()
+                ),
+                Err(SearchV2Error {
+                    code: SearchV2ErrorCode::StalePolicy,
+                    ..
+                })
+            ));
+            let mut wrong_scope = Authority::new(
+                &bound,
+                tos_query::TEMPORAL_OPERATION,
+                tos_query::TEMPORAL_INTENDED_USE,
+            );
+            assert!(
+                execute_selected_claim_projection(
+                    &mut model,
+                    &bound,
+                    &mut wrong_scope,
+                    &request,
+                    read_budget()
+                )
+                .is_err()
+            );
+        }
+        // The list provider discovers the same real source Claims without caller members.
+        let authority = || {
+            Authority::new(
+                &bound,
+                "tos.knowledge.temporal.list_claims",
+                "read_only_public_knowledge_claim_list_v1",
+            )
+        };
+        let source_claim = get(get(claims[0], "attributes"), "source_claim");
+        let mut filters = vec![object(vec![])];
+        for key in [
+            "subject_ref",
+            "predicate",
+            "claim_type",
+            "assertion_layer",
+            "visibility",
+        ] {
+            filters.push(object(vec![(key, get(source_claim, key).clone())]));
+        }
+        filters.push(object(vec![(
+            "subject_ref",
+            text("tos.event.synthetic.outside-selected-subject"),
+        )]));
+        let mut continuation = None;
+        let mut saw_empty_progress = false;
+        for filter in filters {
+            let expected = claims
+                .iter()
+                .filter(|claim| {
+                    let source = get(get(claim, "attributes"), "source_claim");
+                    filter
+                        .as_object()
+                        .unwrap()
+                        .iter()
+                        .all(|(key, value)| get(source, key.as_str().unwrap()) == value)
+                })
+                .map(|claim| get(claim, "id").as_str().unwrap().to_owned())
+                .collect::<std::collections::BTreeSet<_>>();
+            for scan in [1, 64] {
+                let mut request = object(vec![
+                    ("schema_version", text("tos_claim_list_request_v1")),
+                    ("source_revision", revision.clone()),
+                    ("filter", filter.clone()),
+                    ("page_size", parse(b"1")),
+                    ("scan_limit", parse(scan.to_string().as_bytes())),
+                    ("after", JsonValue::Null),
+                ]);
+                let mut found = std::collections::BTreeSet::new();
+                let mut ended = false;
+                for _ in 0..=get(&graph, "nodes").as_array().unwrap().len() {
+                    let mut packet = execute_selected_claim_list(
+                        &mut model,
+                        &bound,
+                        &mut authority(),
+                        &request,
+                        read_budget(),
+                    )
+                    .unwrap();
+                    packet.recheck().unwrap();
+                    let page = parse(&packet);
+                    assert_eq!(get(&page, "source_revision"), &revision);
+                    assert_eq!(
+                        get(&page, "selected_model_receipt_id").as_str(),
+                        Some(bound.owner_receipt_id())
+                    );
+                    assert_eq!(
+                        get(&page, "cursor_scope").as_str(),
+                        Some("untrusted-suffix-position")
+                    );
+                    assert_eq!(
+                        get(&page, "binds_persisted_chronology"),
+                        &JsonValue::Bool(false)
+                    );
+                    let rows = get(&page, "rows").as_array().unwrap();
+                    assert!(rows.len() <= 1);
+                    assert!(get(&page, "examined_candidates").as_u64().unwrap() <= scan);
+                    for row in rows {
+                        let id = get(row, "node_id").as_str().unwrap();
+                        assert!(
+                            found.insert(id.to_owned()),
+                            "paging repeated an examined Claim"
+                        );
+                        let original = claims
+                            .iter()
+                            .find(|claim| get(claim, "id").as_str() == Some(id))
+                            .unwrap();
+                        assert_eq!(get(row, "carrier"), *original);
+                        let source = get(get(original, "attributes"), "source_claim");
+                        let reference = get(row, "claim_ref");
+                        assert_eq!(get(reference, "id"), get(source, "claim_id"));
+                        assert_eq!(get(reference, "version"), get(source, "claim_version"));
+                        assert_eq!(
+                            get(reference, "digest").as_str().unwrap(),
+                            format!(
+                                "sha256:{}",
+                                Digest256::of_bytes(&canonical(source)).to_hex()
+                            )
+                        );
+                    }
+                    let next = get(&page, "next").clone();
+                    if next.is_null() {
+                        assert_eq!(get(&page, "exhausted"), &JsonValue::Bool(true));
+                        ended = true;
+                        break;
+                    }
+                    assert_eq!(get(&page, "exhausted"), &JsonValue::Bool(false));
+                    if rows.is_empty() {
+                        saw_empty_progress = true;
+                    }
+                    assert_ne!(
+                        get(&request, "after"),
+                        &next,
+                        "keyset must advance on nonmatches too"
+                    );
+                    set(&mut request, "after", next);
+                    if continuation.is_none() {
+                        continuation = Some(request.clone());
+                    }
+                }
+                assert!(ended, "bounded suffix traversal did not terminate");
+                assert_eq!(
+                    found, expected,
+                    "last examined cursor must not skip prefetched Claims"
+                );
+            }
+        }
+        // Opt-in supplemental coordinate filtering uses the same actual keyset,
+        // source authentication and disclosure lease, with page-atomic refusal.
+        let mut temporal_page = |filter: Value, after: JsonValue, page_size: u64| {
+            let request = object(vec![
+                ("schema_version", text("tos_claim_list_request_v1")),
+                ("source_revision", revision.clone()),
+                ("filter", parse(&serde_json::to_vec(&filter).unwrap())),
+                ("page_size", parse(page_size.to_string().as_bytes())),
+                ("scan_limit", parse(b"64")),
+                ("after", after),
+            ]);
+            execute_selected_claim_list(
+                &mut model,
+                &bound,
+                &mut authority(),
+                &request,
+                read_budget(),
+            )
+            .and_then(|mut packet| {
+                packet.recheck()?;
+                Ok(parse(&packet))
+            })
+        };
+        let selected =
+            temporal_page(json!({"temporal":temporal_filter(8)}), JsonValue::Null, 64).unwrap();
+        if case == "conflicting-dates" {
+            let rows = get(&selected, "rows").as_array().unwrap();
+            assert_eq!(rows.len(), 1);
+            let proof = get(&rows[0], "temporal_filter_result");
+            assert_eq!(get(proof, "outcome").as_str(), Some("Match"));
+            assert_eq!(
+                get(proof, "source_revision").as_str().unwrap(),
+                format!("sha256:{}", revision.as_str().unwrap())
+            );
+            assert_eq!(
+                get(get(proof, "claim_ref"), "id"),
+                get(get(&rows[0], "claim_ref"), "id")
+            );
+            assert_eq!(
+                get(get(proof, "claim_ref"), "digest").as_str().unwrap(),
+                get(get(&rows[0], "claim_ref"), "digest")
+                    .as_str()
+                    .unwrap()
+                    .strip_prefix("sha256:")
+                    .unwrap()
+            );
+            assert_eq!(
+                get(get(get(&rows[0], "carrier"), "attributes"), "source_claim")
+                    .object_get("qualifiers")
+                    .unwrap()
+                    .object_get("temporal_claim_carrier")
+                    .unwrap()
+                    .object_get("roles")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()[0]
+                    .object_get("assertion")
+                    .unwrap()
+                    .object_get("position")
+                    .unwrap()
+                    .object_get("value")
+                    .unwrap()
+                    .as_u64(),
+                Some(4)
+            );
+            let empty =
+                temporal_page(json!({"temporal":temporal_filter(0)}), JsonValue::Null, 64).unwrap();
+            assert!(get(&empty, "rows").as_array().unwrap().is_empty());
+            assert_eq!(get(&empty, "exhausted"), &JsonValue::Bool(true));
+            let all = json!({"temporal":temporal_filter(100)});
+            let first = temporal_page(all.clone(), JsonValue::Null, 1).unwrap();
+            let cursor = get(&first, "next").clone();
+            assert!(!cursor.is_null());
+            let second = temporal_page(all, cursor.clone(), 1).unwrap();
+            assert_eq!(get(&second, "rows").as_array().unwrap().len(), 1);
+            assert_ne!(get(&first, "rows"), get(&second, "rows"));
+            assert_eq!(
+                temporal_page(json!({"temporal":temporal_filter(99)}), cursor, 1)
+                    .err()
+                    .unwrap()
+                    .code,
+                SearchV2ErrorCode::InvalidRequest
+            );
+            for role in ["SourcePublication", "SystemTransaction"] {
+                let mut f = temporal_filter(8);
+                f["roles"][0]["role"] = json!(role);
+                f["roles"][0].as_object_mut().unwrap().remove("knower_ref");
+                let page = temporal_page(json!({"temporal":f}), JsonValue::Null, 64).unwrap();
+                assert_eq!(get(&page, "rows").as_array().unwrap().len(), 1);
+            }
+            for (at, expected) in [(7, 2), (10, 0)] {
+                let mut f = temporal_filter(8);
+                f["roles"] = json!([]);
+                f["world_valid_time"] = json!({"profile_ref":"tos_world_coordinate_at_filter_v1",
+                    "about_ref":reference("fixture:external-about"),"at":coordinate(at),"basis":basis()});
+                let page = temporal_page(json!({"temporal":f}), JsonValue::Null, 64).unwrap();
+                assert_eq!(get(&page, "rows").as_array().unwrap().len(), expected);
+            }
+            for boundary in ["knower", "about-self", "axis", "refusal-dominates-false"] {
+                let mut f = temporal_filter(0);
+                match boundary {
+                    "knower" => f["roles"][0]["knower_ref"] = reference("fixture:other-knower"),
+                    "about-self" => {
+                        let source = get(get(claims[0], "attributes"), "source_claim");
+                        f["roles"][0]["about_ref"] = json!({"id":get(source,"claim_id").as_str().unwrap(),
+                            "version":get(source,"claim_version").as_u64().unwrap(),
+                            "digest":Digest256::of_bytes(&canonical(source)).to_hex()});
+                    }
+                    "axis" => f["roles"][0]["cutoff"]["origin"] = json!("other-origin"),
+                    _ => {
+                        let mut missing = f["roles"][0].clone();
+                        missing["role"] = json!("SourcePublication");
+                        missing.as_object_mut().unwrap().remove("knower_ref");
+                        missing["about_ref"] = reference("fixture:other-about");
+                        f["roles"].as_array_mut().unwrap().push(missing);
+                    }
+                }
+                let page = temporal_page(json!({"temporal":f}), JsonValue::Null, 64).unwrap();
+                assert_eq!(get(&page, "outcome").as_str(), Some("NonTotalRefusal"));
+                for absent in ["rows", "next", "exhausted"] {
+                    assert!(page.object_get(absent).is_none());
+                }
+            }
+        } else {
+            assert_eq!(
+                get(&selected, "schema_version").as_str(),
+                Some("tos_claim_list_non_total_refusal_v1")
+            );
+            assert_eq!(get(&selected, "outcome").as_str(), Some("NonTotalRefusal"));
+            for absent in ["rows", "next", "exhausted"] {
+                assert!(selected.object_get(absent).is_none());
+            }
+            let refusal = get(&selected, "refusal");
+            assert_eq!(get(refusal, "outcome").as_str(), Some("Refused"));
+            if case == "unsupported-carrier" {
+                assert_eq!(get(refusal, "domain").as_str(), Some("Unsupported"));
+            }
+            if case == "unknown-calendar" || case == "mixed-carrier" {
+                assert_eq!(
+                    get(refusal, "schema_version").as_str(),
+                    Some("tos_claim_coordinate_source_refusal_v1")
+                );
+                assert_eq!(get(refusal, "source_temporal_packet"), &JsonValue::Null);
+            }
+        }
+        // Invalid whole queries cannot become an empty success behind metadata.
+        for invalid in ["vacuous", "float-cutoff"] {
+            let mut f = temporal_filter(8);
+            if invalid == "vacuous" {
+                f["roles"] = json!([]);
+            } else {
+                f["roles"][0]["cutoff"]["value"] = json!(1.0);
+            }
+            assert_eq!(
+                temporal_page(
+                    json!({"subject_ref":"tos.event.no-match","temporal":f}),
+                    JsonValue::Null,
+                    64
+                )
+                .err()
+                .unwrap()
+                .code,
+                SearchV2ErrorCode::InvalidRequest
+            );
+        }
+        if case == "conflicting-dates" {
+            let request = object(vec![
+                ("schema_version", text("tos_claim_list_request_v1")),
+                ("source_revision", revision.clone()),
+                (
+                    "filter",
+                    parse(&serde_json::to_vec(&json!({"temporal":temporal_filter(100)})).unwrap()),
+                ),
+                ("page_size", parse(b"1")),
+                ("scan_limit", parse(b"64")),
+                ("after", JsonValue::Null),
+            ]);
+            let mut one_row = read_budget();
+            one_row.max_matches = 1;
+            let page = execute_selected_claim_list(
+                &mut model,
+                &bound,
+                &mut authority(),
+                &request,
+                one_row,
+            )
+            .unwrap();
+            assert_eq!(get(&parse(&page), "rows").as_array().unwrap().len(), 1);
+            let mut logical_limited = request.clone();
+            set(&mut logical_limited, "scan_limit", parse(b"2000"));
+            let mut one_comparison = read_budget();
+            one_comparison.json.max_visits = 2048;
+            one_comparison.max_rows = 4000;
+            assert!(matches!(
+                execute_selected_claim_list(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &logical_limited,
+                    one_comparison
+                ),
+                Err(SearchV2Error {
+                    code: SearchV2ErrorCode::BudgetExceeded,
+                    ..
+                })
+            ));
+        }
+        assert!(
+            saw_empty_progress,
+            "non-Claim/nonmatch gaps must remain resumable"
+        );
+        let continued = continuation.unwrap();
+        let mut changed_index = continued.clone();
+        let mut cursor = get(&continued, "after").clone();
+        set(&mut cursor, "index_sha256", text(&"0".repeat(64)));
+        set(&mut changed_index, "after", cursor);
+        let mut changed_filter = continued.clone();
+        set(
+            &mut changed_filter,
+            "filter",
+            object(vec![("subject_ref", text("tos.event.other-filter"))]),
+        );
+        let mut unknown_field = continued.clone();
+        set(
+            &mut unknown_field,
+            "filter",
+            object(vec![("members", JsonValue::Array(vec![]))]),
+        );
+        let mut bad_count = continued.clone();
+        set(&mut bad_count, "scan_limit", parse(b"1.0"));
+        for (bad, code) in [
+            (changed_index, SearchV2ErrorCode::StaleSelection),
+            (changed_filter, SearchV2ErrorCode::InvalidRequest),
+            (unknown_field, SearchV2ErrorCode::InvalidRequest),
+            (bad_count, SearchV2ErrorCode::InvalidRequest),
+        ] {
+            match execute_selected_claim_list(
+                &mut model,
+                &bound,
+                &mut authority(),
+                &bad,
+                read_budget(),
+            ) {
+                Err(reason) => assert_eq!(reason.code, code),
+                Ok(_) => panic!("invalid list boundary accepted"),
+            }
+        }
+        for key in [
+            "frozen_chronology",
+            "attributed_knowledge",
+            "world_valid_time",
+            "system_as_of",
+            "source_publication_as_of",
+        ] {
+            let mut unsupported = continued.clone();
+            set(
+                &mut unsupported,
+                "filter",
+                object(vec![(key, JsonValue::Null)]),
+            );
+            assert!(matches!(
+                execute_selected_claim_list(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &unsupported,
+                    read_budget()
+                ),
+                Err(SearchV2Error {
+                    code: SearchV2ErrorCode::UnsupportedModel,
+                    ..
+                })
+            ));
+        }
+        let mut changed_policy = authority();
+        changed_policy.policy.policy_epoch = "synthetic-new-current-policy".into();
+        changed_policy.scope.policy_epoch = changed_policy.policy.policy_epoch.clone();
+        assert!(matches!(
+            execute_selected_claim_list(
+                &mut model,
+                &bound,
+                &mut changed_policy,
+                &continued,
+                read_budget()
+            ),
+            Err(SearchV2Error {
+                code: SearchV2ErrorCode::StalePolicy,
+                ..
+            })
+        ));
+        let mut denied = authority();
+        denied.withdrawn = true;
+        assert!(matches!(
+            execute_selected_claim_list(&mut model, &bound, &mut denied, &continued, read_budget()),
+            Err(SearchV2Error {
+                code: SearchV2ErrorCode::StalePolicy,
+                ..
+            })
+        ));
+        let mut wrong_operation = Authority::new(
+            &bound,
+            tos_query::TEMPORAL_OPERATION,
+            tos_query::TEMPORAL_INTENDED_USE,
+        );
+        assert!(
+            execute_selected_claim_list(
+                &mut model,
+                &bound,
+                &mut wrong_operation,
+                &continued,
+                read_budget()
+            )
+            .is_err()
+        );
+        let mut tiny = read_budget();
+        tiny.max_rows = 1;
+        assert!(matches!(
+            execute_selected_claim_list(&mut model, &bound, &mut authority(), &continued, tiny),
+            Err(SearchV2Error {
+                code: SearchV2ErrorCode::BudgetExceeded,
+                ..
+            })
+        ));
+        if case == "conflicting-dates" {
+            use tos_query::execute_selected_claim_integer_wire;
+            let outer = |payload: JsonValue| {
+                object(vec![
+                    ("schema_version", text("tos_exact_integer_wire_v1")),
+                    ("integer_encoding", text("SafeJsonNumberV1")),
+                    ("operation", text("tos.knowledge.temporal.list_claims")),
+                    ("payload", payload),
+                ])
+            };
+            let mut first = continued.clone();
+            set(&mut first, "after", JsonValue::Null);
+            let wide_source_request = outer(first.clone());
+            let mut packet = execute_selected_claim_integer_wire(
+                &mut model,
+                &bound,
+                &mut authority(),
+                &wide_source_request,
+                read_budget(),
+            )
+            .unwrap();
+            packet.recheck().unwrap();
+            let refused = parse(&packet);
+            assert_eq!(get(&refused, "outcome").as_str(), Some("Unsupported"));
+            assert_eq!(
+                get(&refused, "representation").as_str(),
+                Some("OpaqueRawJson")
+            );
+            for absent in ["payload", "next", "cursor"] {
+                assert!(refused.object_get(absent).is_none());
+            }
+            let raw = get(&refused, "raw_json").as_str().unwrap();
+            assert!(raw.contains("9007199254740993"));
+            assert_eq!(
+                get(&refused, "emitted_json_sha256").as_str(),
+                Some(Digest256::of_bytes(raw.as_bytes()).to_prefixed().as_str())
+            );
+            // A safe empty page still crosses the actual selected provider.
+            set(
+                &mut first,
+                "filter",
+                object(vec![("subject_ref", text("tos.event.no-match"))]),
+            );
+            let safe_request = outer(first);
+            let mut safe = execute_selected_claim_integer_wire(
+                &mut model,
+                &bound,
+                &mut authority(),
+                &safe_request,
+                read_budget(),
+            )
+            .unwrap();
+            safe.recheck().unwrap();
+            let safe_value = parse(&safe);
+            assert_eq!(get(&safe_value, "outcome").as_str(), Some("Encoded"));
+            assert!(
+                get(get(&safe_value, "payload"), "rows")
+                    .as_array()
+                    .unwrap()
+                    .is_empty()
+            );
+            // The native cursor cannot silently enter the opt-in profile.
+            assert_eq!(
+                execute_selected_claim_integer_wire(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &outer(continued.clone()),
+                    read_budget(),
+                )
+                .err()
+                .unwrap()
+                .code,
+                SearchV2ErrorCode::InvalidRequest
+            );
+            let mut withdrawn = authority();
+            withdrawn.withdrawn = true;
+            assert_eq!(
+                execute_selected_claim_integer_wire(
+                    &mut model,
+                    &bound,
+                    &mut withdrawn,
+                    &wide_source_request,
+                    read_budget(),
+                )
+                .err()
+                .unwrap()
+                .code,
+                SearchV2ErrorCode::StalePolicy
+            );
+            // The new wire workspace is bounded even when a rejection reads
+            // no Claim rows; the native decoded transfer counter alone cannot
+            // account for its retained raw_json/tree/emission temporaries.
+            for request in [&wide_source_request, &safe_request] {
+                let mut tiny_wire = read_budget();
+                tiny_wire.max_decoded_bytes = 1;
+                assert_eq!(
+                    execute_selected_claim_integer_wire(
+                        &mut model,
+                        &bound,
+                        &mut authority(),
+                        request,
+                        tiny_wire,
+                    )
+                    .err()
+                    .unwrap()
+                    .code,
+                    SearchV2ErrorCode::BudgetExceeded
+                );
+            }
+            if let Some(node) = std::env::var_os("TOS_INTEGER_WIRE_NODE") {
+                let js = |bytes: &[u8]| client_json_roundtrip(&node, bytes);
+                let outer_roundtrip = parse(&js(&packet));
+                assert_eq!(get(&outer_roundtrip, "raw_json"), get(&refused, "raw_json"));
+                assert_eq!(
+                    get(&outer_roundtrip, "emitted_json_sha256"),
+                    get(&refused, "emitted_json_sha256")
+                );
+                let repeated_request = parse(&js(&canonical(&safe_request)));
+                let repeated = execute_selected_claim_integer_wire(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &repeated_request,
+                    read_budget(),
+                )
+                .unwrap();
+                assert_eq!(canonical(&parse(&js(&repeated))), canonical(&safe_value));
+            }
+        }
+        if case == "mixed-carrier" {
+            if let Some(node) = std::env::var_os("TOS_INTEGER_WIRE_NODE") {
+                use tos_query::execute_selected_claim_integer_wire;
+                // Both source Claims contain only Safe numeric leaves. The
+                // temporal carrier is opaque here: this is metadata pagination.
+                let native_request = object(vec![
+                    ("schema_version", text("tos_claim_list_request_v1")),
+                    ("source_revision", revision.clone()),
+                    ("filter", object(vec![])),
+                    ("page_size", parse(b"64")),
+                    ("scan_limit", parse(b"64")),
+                    ("after", JsonValue::Null),
+                ]);
+                let mut native = execute_selected_claim_list(
+                    &mut model,
+                    &bound,
+                    &mut authority(),
+                    &native_request,
+                    read_budget(),
+                )
+                .unwrap();
+                native.recheck().unwrap();
+                let native_value = parse(&native);
+                let expected = get(&native_value, "rows").as_array().unwrap();
+                assert_eq!(expected.len(), 2);
+                assert_eq!(get(&native_value, "exhausted"), &JsonValue::Bool(true));
+                let mut payload = native_request.clone();
+                set(&mut payload, "page_size", parse(b"1"));
+                let mut found = Vec::new();
+                let mut consumed_cursor = false;
+                let mut ended = false;
+                for _ in 0..=get(&graph, "nodes").as_array().unwrap().len() {
+                    let request = object(vec![
+                        ("schema_version", text("tos_exact_integer_wire_v1")),
+                        ("integer_encoding", text("SafeJsonNumberV1")),
+                        ("operation", text("tos.knowledge.temporal.list_claims")),
+                        ("payload", payload.clone()),
+                    ]);
+                    let client_request = parse(&client_json_roundtrip(&node, &canonical(&request)));
+                    assert_eq!(canonical(&client_request), canonical(&request));
+                    if !get(&payload, "after").is_null() {
+                        consumed_cursor = true;
+                        let mut withdrawn = authority();
+                        withdrawn.withdrawn = true;
+                        assert_eq!(
+                            execute_selected_claim_integer_wire(
+                                &mut model,
+                                &bound,
+                                &mut withdrawn,
+                                &client_request,
+                                read_budget(),
+                            )
+                            .err()
+                            .unwrap()
+                            .code,
+                            SearchV2ErrorCode::StalePolicy
+                        );
+                    }
+                    let mut packet = execute_selected_claim_integer_wire(
+                        &mut model,
+                        &bound,
+                        &mut authority(),
+                        &client_request,
+                        read_budget(),
+                    )
+                    .unwrap();
+                    packet.recheck().unwrap();
+                    let page = parse(&client_json_roundtrip(&node, &packet));
+                    assert_eq!(canonical(&page), canonical(&parse(&packet)));
+                    assert_eq!(get(&page, "outcome").as_str(), Some("Encoded"));
+                    assert_eq!(
+                        get(&page, "representation").as_str(),
+                        Some("StructuredJson")
+                    );
+                    let value = get(&page, "payload");
+                    assert_eq!(get(value, "source_revision"), &revision);
+                    let rows = get(value, "rows").as_array().unwrap();
+                    assert!(rows.len() <= 1);
+                    if found.is_empty() {
+                        assert_eq!(rows.len(), 1);
+                    }
+                    for row in rows {
+                        let index = found.len();
+                        assert!(index < expected.len());
+                        // The transport preserves native source order and all
+                        // exact source refs; it cannot skip/repeat a Claim.
+                        assert_eq!(canonical(row), canonical(&expected[index]));
+                        assert!(!found.contains(&get(row, "node_id").clone()));
+                        found.push(get(row, "node_id").clone());
+                        let source = get(get(get(row, "carrier"), "attributes"), "source_claim");
+                        let reference = get(row, "claim_ref");
+                        assert_eq!(get(reference, "id"), get(source, "claim_id"));
+                        assert_eq!(get(reference, "version"), get(source, "claim_version"));
+                        assert_eq!(
+                            get(reference, "digest").as_str().unwrap(),
+                            format!(
+                                "sha256:{}",
+                                Digest256::of_bytes(&canonical(source)).to_hex()
+                            )
+                        );
+                    }
+                    let next = get(value, "next").clone();
+                    if next.is_null() {
+                        assert_eq!(get(value, "exhausted"), &JsonValue::Bool(true));
+                        ended = true;
+                        break;
+                    }
+                    assert_eq!(get(value, "exhausted"), &JsonValue::Bool(false));
+                    assert_eq!(
+                        get(&next, "schema_version").as_str(),
+                        Some("tos_integer_wire_cursor_v1")
+                    );
+                    assert_eq!(
+                        get(&next, "integer_encoding").as_str(),
+                        Some("SafeJsonNumberV1")
+                    );
+                    assert_eq!(
+                        get(&next, "operation").as_str(),
+                        Some("tos.knowledge.temporal.list_claims")
+                    );
+                    assert_eq!(
+                        get(get(&next, "native_cursor"), "source_revision"),
+                        &revision
+                    );
+                    // Use the ACTUAL returned cursor after client JSON, then
+                    // reject a profile mutation before a valid continuation.
+                    let mut bad_cursor = next.clone();
+                    set(
+                        &mut bad_cursor,
+                        "integer_encoding",
+                        text("CanonicalDecimalStringV1"),
+                    );
+                    let mut bad = request.clone();
+                    let mut bad_payload = payload.clone();
+                    set(&mut bad_payload, "after", bad_cursor);
+                    set(&mut bad, "payload", bad_payload);
+                    assert_eq!(
+                        execute_selected_claim_integer_wire(
+                            &mut model,
+                            &bound,
+                            &mut authority(),
+                            &bad,
+                            read_budget(),
+                        )
+                        .err()
+                        .unwrap()
+                        .code,
+                        SearchV2ErrorCode::InvalidRequest
+                    );
+                    assert_ne!(get(&payload, "after"), &next);
+                    set(&mut payload, "after", next);
+                }
+                assert!(ended && consumed_cursor);
+                assert_eq!(found.len(), expected.len());
+                eprintln!(
+                    "Safe integer wire nonempty Node pagination: exact Claims={}, returned cursor consumed",
+                    found.len()
+                );
+            }
+        }
+        assert_eq!(
+            model_digest(),
+            model_before,
+            "selected read must preserve physical model bytes"
+        );
+    }
+}

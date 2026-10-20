@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.provenance-event",
+  "parent_type_ids": [
+    "tos.entity.evidence-object"
+  ],
+  "abstract": false,
+  "object_role": "activity",
+  "labels": {
+    "default": "Provenance event",
+    "ru": "Событие происхождения",
+    "en": "Provenance event"
+  },
+  "definition": "A versioned activity recording how a source or claim representation was produced.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/provenance-event.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "provenance-event"
+    }
+  ],
+  "supersedes_type_id": null
+}

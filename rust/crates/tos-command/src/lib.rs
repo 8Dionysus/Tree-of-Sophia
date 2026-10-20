@@ -67,8 +67,21 @@ pub mod source_navigation_query;
 mod source_navigation_record_input;
 pub mod source_projection_cli;
 pub mod source_search_projection;
+pub mod temporal_chronology;
+pub mod temporal_chronology_list;
+pub mod temporal_chronology_projection;
+pub mod temporal_claim_intent;
+pub mod temporal_claim_relation_binding;
+pub mod temporal_range_projection;
+mod temporal_research_crosswalk;
 pub(crate) use durable_adapter::durable_private_packages;
 pub use durable_adapter::source_cohort;
+#[cfg(feature = "conformance-owner-local-source-resolver")]
+pub use temporal_research_crosswalk::{
+    C01ResearchBindingForConformance, C01ResearchFinalReadForConformance,
+    C01ResearchSessionForConformance, C01VisitDiagnosticForConformance,
+    C01VisitFaultForConformance, with_research_crosswalk_for_conformance,
+};
 mod source_cohort_private_alignment;
 mod source_cohort_private_text;
 pub(crate) use durable_adapter::source_cohort::revision::PgRecordRevisionIdentity;

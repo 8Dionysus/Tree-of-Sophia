@@ -13,6 +13,9 @@ mod logical_ref;
 pub mod native_software_roles;
 mod path;
 mod python_value;
+pub mod query_context;
+pub mod query_context_wire;
+pub mod temporal;
 mod unicode;
 pub use unicode::predicates16 as unicode_predicates16;
 

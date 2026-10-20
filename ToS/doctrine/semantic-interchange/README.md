@@ -2,10 +2,30 @@
 
 This directory owns the stable machine vocabulary used when ToS material is
 composed into read-only knowledge lenses. The registry connects source-owned meanings across readers through stable
-types, relations and explicit mappings. Entity registry 39 and relation
-registry 45 state their definitions through each subject’s properties, purpose
+types, relations and explicit mappings. Entity registry 40 and relation
+registry 46 state their definitions through each subject’s properties, purpose
 and relations. Source-specific uncertainty and substantive negation remain
 part of the authored meaning.
+
+## Definition source and assembly
+
+[`definitions/manifest.json`](definitions/manifest.json) selects the authored
+navigation tree. Each stable entity, property and relation has one home under
+`definitions/canonical/`; shared registry fields live once under
+`definitions/shared/`. Semantic parents remain separate from navigation parents.
+The flat `entity-types.v1.json` and `relation-types.v1.json` paths are generated
+compatibility carriers used by existing compiler/query consumers, not additional
+editable definition sources.
+
+Edit the canonical home and applicable shared fields, assemble a fresh pair with
+`tos-definition-tree assemble definitions NEW_DIRECTORY`, then replace both
+compatibility files in one source revision. Run
+`tos-definition-tree check-compatibility definitions .` from this directory;
+CI checks the same exact pair. `check-migration definitions` verifies the initial
+lossless parsed baseline separately from future reviewed semantic evolution.
+Original baseline bytes and migration/home rationale remain in
+[`definitions/README.md`](definitions/README.md). The local selection review is
+[`2026-10-19-definition-topology-review.md`](../../review-ledger/2026-10-19-definition-topology-review.md).
 
 ## Source validation profiles
 
@@ -63,8 +83,8 @@ treated as empty input. Native kinds and predicates remain exact, with
 unmapped values retaining the registries' explicit fallback IDs rather than
 receiving a name-derived classification.
 
-The entity and relation registries continue to own type and relation
-definitions. Queryable properties come from the selected entity registry's
+The selected canonical definition tree owns type and relation
+definitions; its assembled entity and relation registries expose them to readers. Queryable properties come from the selected entity registry's
 `property_definitions`, including applicability, inheritance, value type and
 operators; this descriptor does not copy them. A zero-distance carrier group
 requires an exact declared entity ID under its selected grammar. A `same-as`

@@ -1,0 +1,206 @@
+{
+  "kind": "AdditiveN3Requirements",
+  "original60_unchanged": true,
+  "required_evidence": "Actual before/after state, revisions/digests and pinned re-query; booleans alone insufficient.",
+  "cases": [
+    {
+      "id": "N3-D01",
+      "input_semantics": "difference: начало=4, конец=10; одна явно объявленная числовая ось X, единица seconds, начало O, версия правил1; elapsed duration",
+      "expected_semantics": "Значение6 seconds на этой оси; исходные позиции и версии не меняются",
+      "status": "RuntimeVerified",
+      "binding_dependency": null,
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework",
+      "operation": "difference",
+      "input": {
+        "beginning": {
+          "type": "CoordinatePosition",
+          "value": 4,
+          "axis": {
+            "trs": {
+              "id": "X",
+              "version": "rules1"
+            },
+            "unit": "seconds",
+            "origin": "O"
+          }
+        },
+        "end": {
+          "type": "CoordinatePosition",
+          "value": 10,
+          "axis": {
+            "trs": {
+              "id": "X",
+              "version": "rules1"
+            },
+            "unit": "seconds",
+            "origin": "O"
+          }
+        },
+        "duration_kind": "Elapsed"
+      },
+      "context": {},
+      "expected_fields": {
+        "status": "Resolved",
+        "duration": {
+          "kind": "Elapsed",
+          "magnitude": "6",
+          "unit": "seconds",
+          "timescale_ref": {
+            "id": "X",
+            "version": "rules1"
+          }
+        }
+      },
+      "independent_predicates": [
+        "preserved_input equals exact request input",
+        "nonresolved response contains no invented duration"
+      ],
+      "evidence": "External native-run-7/n3-difference-actual.json",
+      "source_commit": "e05d2b4ae33dde582f3b325c051bc19d6ddf7518"
+    },
+    {
+      "id": "N3-D02",
+      "input_semantics": "difference: значения4 и10 в X/Y без crosswalk",
+      "expected_semantics": "Incomparable/NoCrosswalk согласно принятому envelope; числовая6 не возвращается как измеренная длительность",
+      "status": "RuntimeVerified",
+      "binding_dependency": null,
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework",
+      "operation": "difference",
+      "input": {
+        "beginning": {
+          "type": "CoordinatePosition",
+          "value": 4,
+          "axis": {
+            "trs": {
+              "id": "X",
+              "version": "rules1"
+            },
+            "unit": "seconds",
+            "origin": "O"
+          }
+        },
+        "end": {
+          "type": "CoordinatePosition",
+          "value": 10,
+          "axis": {
+            "trs": {
+              "id": "Y",
+              "version": "rules1"
+            },
+            "unit": "seconds",
+            "origin": "O"
+          }
+        },
+        "duration_kind": "Elapsed"
+      },
+      "context": {},
+      "expected_fields": {
+        "status": "Incomparable",
+        "reason": "NoCrosswalk"
+      },
+      "independent_predicates": [
+        "preserved_input equals exact request input",
+        "nonresolved response contains no invented duration"
+      ],
+      "evidence": "External native-run-7/n3-difference-actual.json",
+      "source_commit": "e05d2b4ae33dde582f3b325c051bc19d6ddf7518"
+    },
+    {
+      "id": "N3-D03",
+      "input_semantics": "difference: даты месячной/годовой гранулярности, требование elapsed seconds, нет часовой шкалы/правил",
+      "expected_semantics": "Не придумывать секунды или полночь; явный insufficient-context результат с сохранённым входом",
+      "status": "RuntimeVerified",
+      "binding_dependency": null,
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework",
+      "operation": "difference",
+      "input": {
+        "beginning": {
+          "type": "CalendarPosition",
+          "lexical": "1344",
+          "resolution": "year",
+          "trs_ref": {
+            "id": "calendar-X",
+            "version": "rules1"
+          }
+        },
+        "end": {
+          "type": "CalendarPosition",
+          "lexical": "1345-02",
+          "resolution": "month",
+          "trs_ref": {
+            "id": "calendar-X",
+            "version": "rules1"
+          }
+        },
+        "duration_kind": "Elapsed"
+      },
+      "context": {},
+      "expected_fields": {
+        "status": "Unresolved",
+        "reason": "ElapsedScaleRequired"
+      },
+      "independent_predicates": [
+        "preserved_input equals exact request input",
+        "nonresolved response contains no invented duration"
+      ],
+      "evidence": "External native-run-7/n3-difference-actual.json",
+      "source_commit": "e05d2b4ae33dde582f3b325c051bc19d6ddf7518"
+    },
+    {
+      "id": "N3-P01",
+      "input_semantics": "project_claims: две противоречащие датировки одного события, закреплённые revisions; явно выбранная display perspective",
+      "expected_semantics": "Обе датировки и provenance доступны; display не создаёт третью «истинную» дату и не пишет новую claim revision",
+      "status": "PreparedNotExecuted",
+      "binding_dependency": "I/C existing Claim/view owner mapping",
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework"
+    },
+    {
+      "id": "N3-P02",
+      "input_semantics": "project_claims: неизвестный календарь; основной UI Gregorian",
+      "expected_semantics": "Не присваивать Gregorian исходнику; показать исходную датировку/неопределённость, отсутствие сравнимой координаты явно",
+      "status": "PreparedNotExecuted",
+      "binding_dependency": "I/C existing Claim/view owner mapping",
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework"
+    },
+    {
+      "id": "N3-P03",
+      "input_semantics": "project_claims: источник датирован только годом, два разных display profiles",
+      "expected_semantics": "Ни один профиль не добавляет точный месяц/день/UTC; old claims/raw digests неизменны",
+      "status": "PreparedNotExecuted",
+      "binding_dependency": "I/C existing Claim/view owner mapping",
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework"
+    },
+    {
+      "id": "N3-C01",
+      "input_semantics": "add_crosswalk_version: существующее отображение X→Y v1 с областью[0,10], новая v2 с иным подтверждённым правилом/областью",
+      "expected_semantics": "Создана новая версия с provenance; явный запросv1 воспроизводит прежний результат; pinned chronology не становитсяv2 молча",
+      "status": "PreparedNotExecuted",
+      "binding_dependency": "I/C crosswalk version/provenance owner mapping",
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework"
+    },
+    {
+      "id": "N3-C02",
+      "input_semantics": "convert черезv1 вне[0,10] при наличииv2 с более широкой областью",
+      "expected_semantics": "OutOfCoverage дляv1; наличиеv2 не разрешает скрытое переключение",
+      "status": "PreparedNotExecuted",
+      "binding_dependency": "I/C crosswalk version/provenance owner mapping",
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework"
+    },
+    {
+      "id": "N3-S01",
+      "input_semantics": "mark_claim_disputed: существующая claim revision c@r1 и новое assessment с основанием",
+      "expected_semantics": "Исходное свидетельство сохранено; новая оценка не означает false/withdrawn без отдельного утверждения; прежний snapshot читается",
+      "status": "PreparedNotExecuted",
+      "binding_dependency": "I/C existing Claim/view owner mapping",
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework"
+    },
+    {
+      "id": "N3-S02",
+      "input_semantics": "superseded: c@r1 заменено c@r2 в текущем выборе",
+      "expected_semantics": "Связь замены, причина и revisions доступны; c@r1 не уничтожена, ссылка и frozen query воспроизводимы при нынешних правах",
+      "status": "PreparedNotExecuted",
+      "binding_dependency": "I/C existing Claim/view owner mapping",
+      "retained_test": "Pending accepted operation interface; parameterized cases, no new framework"
+    }
+  ]
+}

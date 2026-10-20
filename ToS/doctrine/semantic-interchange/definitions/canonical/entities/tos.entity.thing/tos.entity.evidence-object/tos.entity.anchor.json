@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.anchor",
+  "parent_type_ids": [
+    "tos.entity.evidence-object"
+  ],
+  "abstract": false,
+  "object_role": "evidence",
+  "labels": {
+    "default": "Anchor",
+    "ru": "Якорь",
+    "en": "Anchor"
+  },
+  "definition": "A source selector bound to an exact version of a representation; its offsets resolve within that version.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "anchor"
+    }
+  ],
+  "supersedes_type_id": null
+}

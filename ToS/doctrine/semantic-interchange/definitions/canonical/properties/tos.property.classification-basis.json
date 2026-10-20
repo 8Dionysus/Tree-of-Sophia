@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.classification-basis",
+  "field": "attributes.value.classification_basis",
+  "labels": {
+    "default": "Classification basis",
+    "ru": "Основание классификации",
+    "en": "Classification basis"
+  },
+  "definition": "The source-declared criteria or grounds for this classification, not an accepted proof.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.classification-value"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

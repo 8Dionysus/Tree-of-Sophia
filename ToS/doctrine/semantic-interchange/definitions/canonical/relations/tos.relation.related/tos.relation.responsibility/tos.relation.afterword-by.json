@@ -1,0 +1,51 @@
+{
+  "relation_type_id": "tos.relation.afterword-by",
+  "parent_relation_type_ids": [
+    "tos.relation.responsibility"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "afterword by",
+    "ru": "послесловие написано",
+    "en": "afterword by"
+  },
+  "inverse_labels": {
+    "default": "afterword author of",
+    "ru": "автор послесловия",
+    "en": "afterword author of"
+  },
+  "definition": "Relates an intellectual object to the Agent responsible for an afterword.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "domain_type_ids": [
+    "tos.entity.intellectual-object"
+  ],
+  "range_type_ids": [
+    "tos.entity.agent"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_predicate_id": "afterword_by",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "afterword_by",
+      "scope": "claim-predicate"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

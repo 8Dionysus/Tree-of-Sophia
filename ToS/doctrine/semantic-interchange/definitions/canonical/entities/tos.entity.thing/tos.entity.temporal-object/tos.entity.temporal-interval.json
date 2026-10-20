@@ -1,0 +1,18 @@
+{
+  "type_id": "tos.entity.temporal-interval",
+  "parent_type_ids": [
+    "tos.entity.temporal-object"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Temporal interval",
+    "ru": "Временной интервал",
+    "en": "Temporal interval"
+  },
+  "definition": "A normalized start/end temporal value with separate boundary precision and meaning.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/first-publication-chronology.schema.json",
+  "source_mappings": [],
+  "supersedes_type_id": null
+}

@@ -19,3 +19,19 @@ Legacy `public-source-forms apply` receipts are embedded in a whole form-set his
 `unicode_simple_casefold_scalar16_v1` is a separate scalar-only primitive for consumers whose contract uses Unicode default simple folding (CaseFolding C + S). It never expands a scalar and preserves non-scalars unchanged, so callers handling retained WTF-16 units can keep those units opaque. The generated C + F table plus the pinned simple-fold supplements are checked together by the same owner generator; this primitive does not change the Python full-casefold profile.
 
 The target `wasm32-unknown-unknown` builds the same core rules. Optional `wasm` exports a small parity probe; Worker and browser I/O stay in their respective adapters. Independent vectors are owned by `tests/conformance/rust/`.
+
+
+`query_context` resolves knowledge selection against an explicitly supplied source
+snapshot. `SystemState::Current` uses that snapshot's concrete cutoff, never the
+host clock. A `ChronologyVersion` retains exact claim revisions and exact evidence
+and selection policies; omitted selectors inherit its selection, while explicit
+selectors must match. `Some(None)` explicitly requests no attributed/publication
+selector and differs from omission. Snapshot identity, revision fence, system,
+attributed knowledge and publication mismatches are reported exhaustively in
+that order. World-valid and display filters do not change frozen membership.
+This is a pure selection contract: the existing access wrapper still enforces
+permissions, and the authoritative writer owns persistence and history. Cutoffs
+retain source-defined JSON and an optional exact TRS reference; this module
+performs exact equality, not calendar ordering or timestamp parsing.
+
+The temporal adapters preserve source expressions and require explicit axes, rules and policies. `difference` subtracts exact integer coordinates with checked widened arithmetic. Independent finite alternatives use an explicit declaration and a bounded Cartesian comparison; correlated or unknown dependencies retain their input and refuse unsupported joint semantics. `crosswalk_records` verifies exact supplied bytes, digests, revisions and coverage. Preparing a crosswalk candidate returns `persisted: false`; the authoritative `add_crosswalk_version` writer remains unbound. Selected Claim projection and current disclosure enforcement belong to `tos-query`, outside these pure values.

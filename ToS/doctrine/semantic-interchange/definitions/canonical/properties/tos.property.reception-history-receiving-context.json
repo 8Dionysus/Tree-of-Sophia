@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.reception-history-receiving-context",
+  "field": "attributes.source_record.semantic_content.receiving_context",
+  "labels": {
+    "default": "Receiving context",
+    "ru": "Контекст восприятия",
+    "en": "Receiving context"
+  },
+  "definition": "The particular people, community, practices and limits for which this historical account is made; not universal recognition or absence.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.reception-history"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

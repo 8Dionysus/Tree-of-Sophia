@@ -1,0 +1,45 @@
+{
+  "kind": "IndependentOracleAuditOnly",
+  "proper_interval_pair_cases": 225,
+  "Allen_relations_covered": [
+    "after",
+    "before",
+    "contains",
+    "during",
+    "equals",
+    "finishedBy",
+    "finishes",
+    "meets",
+    "metBy",
+    "overlappedBy",
+    "overlaps",
+    "startedBy",
+    "starts"
+  ],
+  "network_fixture_checks": [
+    {
+      "id": "network_inconsistent",
+      "has_witness": false,
+      "independent_witness": null
+    },
+    {
+      "id": "network_consistent_witness",
+      "has_witness": true,
+      "independent_witness": {
+        "A": [
+          0,
+          1
+        ],
+        "B": [
+          2,
+          3
+        ],
+        "C": [
+          4,
+          5
+        ]
+      }
+    }
+  ],
+  "implementation_runtime_tests_executed": 0
+}

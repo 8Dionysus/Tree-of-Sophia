@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-relation-basis",
+  "field": "attributes.source_claim.qualifiers.relation_basis",
+  "labels": {
+    "default": "Declared relationship basis",
+    "ru": "Основание связи",
+    "en": "Declared relationship basis"
+  },
+  "definition": "The source-declared grounds for this particular relationship, not an assessed proof.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.occurrence-account",
+  "field": "attributes.source_record.semantic_content.occurrence_account",
+  "labels": {
+    "default": "Occurrence account",
+    "ru": "Описание употребления",
+    "en": "Occurrence account"
+  },
+  "definition": "The described use at an exact bound source unit, including its uncertainty; not its lexical grouping or an accepted meaning.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.occurrence"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

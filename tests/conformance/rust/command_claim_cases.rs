@@ -108,7 +108,7 @@ fn apply_changes(files: &mut BTreeMap<String, Vec<u8>>, prepared: &PreparedComma
         }
     }
 }
-fn claim_fixture() -> (BTreeMap<String, Vec<u8>>, Value, Value, String) {
+pub(super) fn claim_fixture() -> (BTreeMap<String, Vec<u8>>, Value, Value, String) {
     let repository = super::validation_cut_cases::repository();
     let packet =
         repository.join("rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1");
@@ -571,6 +571,199 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         .unwrap();
     let (mut files, mut claim, mut revision_owner, source_path) = claim_fixture();
     claim["claim_version"] = Value::from(1);
+
+    // R ab89a0145 / source contract ee06b7a6: caller prepayment is cumulative,
+    // separate from owner/worker quotas; no refund when a pure plan is dropped.
+    use std::cell::Cell;
+    use tos_command::temporal_claim_intent::{ClaimIntentPrepareBudget, plan_claim_intent};
+    use tos_foundation::temporal::{TemporalBudget, claim_carrier::decode_claim_carrier};
+    let natural_parent = Cell::new((33_554_432usize, 1_000_000usize));
+    let natural_debit = |bytes: usize, visits: usize| {
+        let (left_bytes, left_visits) = natural_parent.get();
+        natural_parent.set((
+            left_bytes.checked_sub(bytes).unwrap(),
+            left_visits.checked_sub(visits).unwrap(),
+        ));
+    };
+    natural_debit(8_388_608, 65_536);
+    let natural_retained = Cell::new((8_388_608usize, 65_536usize));
+    let natural_raw_admit = |bytes: usize| {
+        let (left, visits) = natural_retained.get();
+        natural_retained.set((left.checked_sub(bytes).unwrap(), visits));
+    };
+    let natural_admit = |raw_bytes: usize, copies: usize| {
+        assert!(raw_bytes <= 16_384 && copies > 0);
+        let (bytes, visits) = natural_retained.get();
+        let charge = raw_bytes
+            .checked_mul(128)
+            .unwrap()
+            .checked_add(4096)
+            .unwrap()
+            .checked_mul(copies)
+            .unwrap();
+        natural_retained.set((
+            bytes.checked_sub(charge).unwrap(),
+            visits
+                .checked_sub(512usize.checked_mul(copies).unwrap())
+                .unwrap(),
+        ));
+    };
+    // Known finite JSON construction: price 256 bytes per value/container
+    // slot plus 16x UTF-8 text/output, rather than treating raw Vec copies as
+    // new parser trees. The 8 MiB retained child is still never replenished.
+    let natural_preallocate = |raw_bound: usize, values: usize, copies: usize| {
+        assert!(raw_bound <= 16_384 && values <= 512 && copies > 0);
+        let charge = raw_bound
+            .checked_mul(16)
+            .unwrap()
+            .checked_add(values.checked_mul(256).unwrap())
+            .unwrap()
+            .checked_add(4096)
+            .unwrap()
+            .checked_mul(copies)
+            .unwrap();
+        let (left, visits) = natural_retained.get();
+        natural_retained.set((
+            left.checked_sub(charge).unwrap(),
+            visits
+                .checked_sub(values.checked_mul(copies).unwrap())
+                .unwrap(),
+        ));
+    };
+    let natural_shape = |root: &Value, cap: usize| {
+        let mut stack = [None; 512]; // borrowed, fixed stack; no traversal Vec
+        stack[0] = Some(root);
+        let mut pending = 1;
+        let mut visited = 0usize;
+        while pending != 0 {
+            pending -= 1;
+            let value = stack[pending].take().unwrap();
+            visited = visited.checked_add(1).unwrap();
+            assert!(visited <= cap && cap <= 512);
+            match value {
+                Value::Object(rows) => {
+                    for child in rows.values() {
+                        assert!(pending < stack.len());
+                        stack[pending] = Some(child);
+                        pending += 1;
+                    }
+                }
+                Value::Array(rows) => {
+                    for child in rows {
+                        assert!(pending < stack.len());
+                        stack[pending] = Some(child);
+                        pending += 1;
+                    }
+                }
+                _ => {}
+            }
+        }
+        visited
+    };
+    let natural_limits = JsonLimits {
+        max_bytes: 16_384,
+        max_depth: 64,
+        max_visits: 512,
+        max_integer_digits: 39,
+    };
+    let natural_parse = |raw: &[u8]| {
+        natural_admit(raw.len(), 1);
+        parse_json(raw, JsonMode::PublishedStrict, natural_limits)
+            .unwrap()
+            .into_root()
+    };
+    // Borrow immutable oracle bytes; parse only the four expected-free excerpts.
+    let natural_oracle =
+        include_bytes!("../foundation-wave-v1/oracles/temporal-acceptance-vectors.json");
+    assert_eq!(natural_oracle.len(), 170_774);
+    assert_eq!(
+        Digest256::of_bytes(natural_oracle).to_hex(),
+        "fda08fd958914a3605afab12e7b78012a3f5534ecfdffe2ab31cb2cb3a26eecd"
+    );
+    let natural_intent_literals = [
+        r#"{"context":{},"input":{"absolute_mapping":null,"relation":"after","source_ref":"source-1","subject_a":"event-A","subject_b":"reign-R"},"operation":"record_explicit_relation","schema_version":"tos_temporal_claim_intent_v1","source_profile":"ToS-Temporal-Core-Contract-v1"}"#,
+        r#"{"context":{},"input":{"claim_ref":"state-A","revision":"r1","validity_assertion":{"observed_through":"2026-10-19","trs_ref":"TRS:GregorianProleptic:fixture-v1","type":"RightCensored","valid_from":"2020-01-01"}},"operation":"append_claim_revision","schema_version":"tos_temporal_claim_intent_v1","source_profile":"ToS-Temporal-Core-Contract-v1"}"#,
+        r#"{"context":{},"input":{"claim_ref":"recurrence-A","recurrence_pattern":{"calendar":"GregorianProleptic","exceptions":[],"frequency":"monthly","rule":"first day of local month","zone":"UTC"},"revision":"r1"},"operation":"append_claim_revision","schema_version":"tos_temporal_claim_intent_v1","source_profile":"ToS-Temporal-Core-Contract-v1"}"#,
+        r#"{"context":{},"input":{"claim_ref":"event-1500","event_time":{"position":"1500","trs_ref":"TRS:GregorianProleptic:fixture-v1"},"historical_author_knowledge":{"type":"Unknown"},"revision":"r1","source_publication_time":{"position":"1800","trs_ref":"TRS:GregorianProleptic:fixture-v1"},"system_ingest_time":"2026-01-01T00:00:00Z"},"operation":"append_claim_revision","schema_version":"tos_temporal_claim_intent_v1","source_profile":"ToS-Temporal-Core-Contract-v1"}"#,
+    ];
+    let natural_intents = natural_intent_literals.map(|raw| {
+        let parsed = natural_parse(raw.as_bytes());
+        natural_admit(raw.len(), 2); // serde view and independent native equality view
+        let value: Value = serde_json::from_slice(raw.as_bytes()).unwrap();
+        assert_eq!(parsed, source_value(&value));
+        value
+    });
+    let natural_seed_literals = [
+        (
+            "ToS/source-witnesses/history/command-temporal-intent-fixture/historical-event.json",
+            r#"{"external_identifiers":[],"identity_status":"provisional","notes":"Fixture identity only; no original-world identity, chronology or source truth is admitted.","preferred_label":"Synthetic event-A referent for original temporal component storage","record_id":"tos.historical-event.temporal-intent-event-a","record_type":"historical-event","record_version":1,"same_as_posture":"no_equivalence_claim","schema_version":"tos_historical_record_v1","source_refs":["tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json"],"visibility":"public_metadata_only"}
+"#,
+            "4e03b7c85e174b9029a11c1a695edc7686aa11c7f945618d430d34170a7af356",
+            "a2089a02562299405a6533f1a4aba7174494a9154d04ac96e007107488209ac0",
+        ),
+        (
+            "ToS/source-witnesses/history/command-temporal-intent-fixture/historical-state.json",
+            r#"{"external_identifiers":[],"identity_status":"provisional","notes":"Fixture identity only; no named historical reign, extent or date is asserted.","preferred_label":"Synthetic reign-R referent for original temporal component storage","record_id":"tos.historical-state.temporal-intent-reign-r","record_type":"historical-state","record_version":1,"same_as_posture":"no_equivalence_claim","schema_version":"tos_historical_record_v1","source_refs":["tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json"],"visibility":"public_metadata_only"}
+"#,
+            "8bb6f8449fd33babeeedd83485ab247be5427c0d39be294dfd00c0858347972b",
+            "f8940d58a0e373d56d55e7698908a14d8821bbb6d214b1c47374c0b8183d590f",
+        ),
+        (
+            "ToS/source-witnesses/history/command-temporal-intent-fixture/historical-process.json",
+            r#"{"extensions":{"binding_supplements":{"censor_resolution":"day","censor_trs":{"id":"TRS:GregorianProleptic","version":"fixture-v1"},"recurrence_profile_ref":"fixture:opaque-pattern-v1","relative_asserted_by":null,"source_status":"SourceSuppliedUnverified"},"declarations":{"event_time":"{\"position\":\"1500\",\"trs_ref\":\"TRS:GregorianProleptic:fixture-v1\"}","historical_author_knowledge":"{\"type\":\"Unknown\"}","recurrence_preserve":"{\"calendar\":\"GregorianProleptic\",\"exceptions\":[],\"frequency\":\"monthly\",\"rule\":\"first day of local month\",\"zone\":\"UTC\"}","relative_constraint":"{\"absolute_mapping\":null,\"relation\":\"after\",\"source_ref\":\"source-1\",\"subject_a\":\"event-A\",\"subject_b\":\"reign-R\"}","right_censored_validity":"{\"claim_ref\":\"state-A\",\"revision\":\"r1\",\"validity_assertion\":{\"observed_through\":\"2026-10-19\",\"trs_ref\":\"TRS:GregorianProleptic:fixture-v1\",\"type\":\"RightCensored\",\"valid_from\":\"2020-01-01\"}}","source_publication_time":"{\"position\":\"1800\",\"trs_ref\":\"TRS:GregorianProleptic:fixture-v1\"}","system_ingest_time":"\"2026-01-01T00:00:00Z\""}},"external_identifiers":[],"identity_status":"provisional","notes":"New fixture source assertions copied from the original oracle inputs; not external historical evidence or verified observation.","preferred_label":"Synthetic source-1 declaration process for original temporal component storage","record_id":"tos.historical-process.temporal-intent-source-1","record_type":"historical-process","record_version":1,"same_as_posture":"no_equivalence_claim","schema_version":"tos_historical_record_v1","source_refs":["tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json"],"visibility":"public_metadata_only"}
+"#,
+            "9c80579380f97281bc976f6f0f5dcc0578c4bfea591e021f27b1391aed130a98",
+            "ec492f3c90e8e00765db634a96db65efc38d7561da39d2aa575b4e1c46f760ab",
+        ),
+    ];
+    let mut natural_seed_refs = Vec::with_capacity(3);
+    let mut natural_source = Value::Null;
+    let mut natural_seed_bytes = 0usize;
+    for (index, (path, raw, raw_sha, canonical_sha)) in natural_seed_literals.iter().enumerate() {
+        assert!(raw.len() <= 2048);
+        let parsed = natural_parse(raw.as_bytes());
+        natural_admit(raw.len(), 2); // native ref/serde view, canonical and stored raw
+        let value: Value = serde_json::from_slice(raw.as_bytes()).unwrap();
+        assert_eq!(Digest256::of_bytes(raw.as_bytes()).to_hex(), *raw_sha);
+        let mut canonical = canonical_bytes_v1(
+            &parsed,
+            CanonicalProfile::SourceCommandInputV1,
+            natural_limits,
+        )
+        .unwrap();
+        assert_eq!(Digest256::of_bytes(&canonical).to_hex(), *canonical_sha);
+        canonical.push(b'\n');
+        assert_eq!(canonical, raw.as_bytes());
+        let actual_ref = metadata_subject(&parsed).unwrap();
+        let mut codec_ref: Value = serde_json::from_slice(&source_bytes(&actual_ref)).unwrap();
+        assert_eq!(codec_ref["id"], value["record_id"]);
+        assert_eq!(codec_ref["version"], value["record_version"]);
+        assert_eq!(codec_ref["digest"], format!("sha256:{canonical_sha}"));
+        codec_ref["digest"] = Value::String(
+            codec_ref["digest"]
+                .as_str()
+                .unwrap()
+                .strip_prefix("sha256:")
+                .unwrap()
+                .to_owned(),
+        );
+        natural_seed_refs.push(codec_ref);
+        if index == 2 {
+            natural_source = value;
+        }
+        natural_seed_bytes = natural_seed_bytes.checked_add(canonical.len()).unwrap();
+        assert!(files.insert((*path).into(), canonical).is_none());
+    }
+    assert_eq!(natural_seed_bytes, 2897);
+    // All subsequent file/context clones include these exact paid source facts.
+    natural_raw_admit(
+        natural_seed_bytes
+            .checked_mul(16)
+            .unwrap()
+            .checked_add(4096)
+            .unwrap(),
+    );
+
     let mut software_names = CLAIM_GROUNDING_RULE_INPUTS
         .iter()
         .chain(CLAIM_REVISION_RULE_INPUTS)
@@ -902,13 +1095,268 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         "{} [retained correction; no assessment]",
         claim["qualifiers"]["statement"].as_str().unwrap()
     );
+    // Author the four exact components against the actual physical v1. This
+    // is one native test composition, not four generic template commits.
+    for (path, raw, _, _) in &natural_seed_literals {
+        let physical = isolated.path().join(path);
+        assert_eq!(fs::metadata(&physical).unwrap().len(), raw.len() as u64);
+        natural_raw_admit(raw.len().checked_mul(2).unwrap().checked_add(4096).unwrap());
+        assert_eq!(fs::read(&physical).unwrap(), raw.as_bytes());
+        assert_eq!(current_files[*path], raw.as_bytes());
+    }
+    let natural_v1_path = isolated.path().join(&source_path);
+    assert!(fs::metadata(&natural_v1_path).unwrap().len() <= 16_384);
+    natural_raw_admit(
+        usize::try_from(fs::metadata(&natural_v1_path).unwrap().len())
+            .unwrap()
+            .checked_mul(2)
+            .unwrap()
+            .checked_add(4096)
+            .unwrap(),
+    ); // read Vec before allocation
+    let natural_v1_raw = fs::read(&natural_v1_path).unwrap();
+    let natural_target = natural_parse(&natural_v1_raw);
+    natural_admit(natural_v1_raw.len(), 2);
+    let natural_v1: Value = serde_json::from_slice(&natural_v1_raw).unwrap();
+    assert_eq!(natural_v1, claim);
+    let natural_target_ref = metadata_subject(&natural_target).unwrap();
+    let natural_target_ref: Value =
+        serde_json::from_slice(&source_bytes(&natural_target_ref)).unwrap();
+    assert_eq!(natural_target_ref, result["receipt"]["claims"][0]);
+    // Supplement values come from actual selected source metadata, not receipts.
+    let declarations = &natural_source["extensions"]["declarations"];
+    let supplements = &natural_source["extensions"]["binding_supplements"];
+    for (key, value) in [
+        ("relative_constraint", &natural_intents[0]["input"]),
+        ("right_censored_validity", &natural_intents[1]["input"]),
+        (
+            "recurrence_preserve",
+            &natural_intents[2]["input"]["recurrence_pattern"],
+        ),
+        ("event_time", &natural_intents[3]["input"]["event_time"]),
+        (
+            "source_publication_time",
+            &natural_intents[3]["input"]["source_publication_time"],
+        ),
+        (
+            "system_ingest_time",
+            &natural_intents[3]["input"]["system_ingest_time"],
+        ),
+        (
+            "historical_author_knowledge",
+            &natural_intents[3]["input"]["historical_author_knowledge"],
+        ),
+    ] {
+        natural_raw_admit(
+            declarations[key]
+                .as_str()
+                .unwrap()
+                .len()
+                .checked_mul(128)
+                .unwrap()
+                .checked_add(4096)
+                .unwrap(),
+        );
+        assert_eq!(
+            declarations[key].as_str().unwrap().as_bytes(),
+            source_bytes(&source_value(value))
+        );
+    }
+    natural_preallocate(4096, 128, 2); // disjoint components + full packet
+    let natural_basis = |key: &str| {
+        serde_json::json!({
+            "source":natural_seed_refs[2], "source_locator":format!("/extensions/declarations/{key}"),
+            "raw_evidence":declarations[key]
+        })
+    };
+    let natural_trs = &supplements["censor_trs"];
+    let natural_censor = &natural_intents[1]["input"]["validity_assertion"];
+    let natural_packet = serde_json::json!({
+        "schema_version":"tos_temporal_claim_carrier_v1",
+        "relative_relations":[{"subject_a":natural_seed_refs[0]["id"],"subject_b":natural_seed_refs[1]["id"],
+            "relation":natural_intents[0]["input"]["relation"],"source":natural_seed_refs[2],
+            "asserted_by":supplements["relative_asserted_by"],"wording_ref":natural_seed_refs[2],
+            "epistemic_status":supplements["source_status"]}],
+        "validity":{"type":"RightCensored",
+            "beginning":{"type":"CalendarPosition","lexical":natural_censor["valid_from"],
+                "resolution":supplements["censor_resolution"],"trs":natural_trs},
+            "observed_through":{"type":"CalendarPosition","lexical":natural_censor["observed_through"],
+                "resolution":supplements["censor_resolution"],"trs":natural_trs},
+            "cutoff_basis":natural_basis("right_censored_validity")},
+        "recurrence":{"profile_ref":supplements["recurrence_profile_ref"],
+            "pattern":natural_intents[2]["input"]["recurrence_pattern"],"basis":natural_basis("recurrence_preserve")},
+        "roles":[
+            {"role":"WorldOccurrence","assertion":natural_intents[3]["input"]["event_time"],"basis":natural_basis("event_time")},
+            {"role":"SourcePublication","assertion":natural_intents[3]["input"]["source_publication_time"],"basis":natural_basis("source_publication_time")},
+            {"role":"SystemTransaction","assertion":natural_intents[3]["input"]["system_ingest_time"],"basis":natural_basis("system_ingest_time")},
+            {"role":"AttributedKnowledge","assertion":natural_intents[3]["input"]["historical_author_knowledge"],"basis":natural_basis("historical_author_knowledge")}
+        ]
+    });
+    natural_shape(&natural_packet, 128);
+    assert_eq!(source_bytes(&source_value(&natural_packet)).len(), 3485);
+    assert!(
+        revision_owner["allowed_form_ids"][0]
+            .as_str()
+            .unwrap()
+            .len()
+            <= 128
+    );
+    let natural_codec = TemporalBudget::default();
+    let natural_config_sha = Digest256::of_bytes(&source_bytes(&source_value(&revision_owner)));
+    // R655ad4c1 confirms a source/ELF reconstruction, not runtime telemetry:
+    // roles changes from 2 to 3 MiB; the other children decrease, total stays
+    // exactly 8 MiB. No unused child credit is refunded to this same parent.
+    assert_eq!(std::mem::size_of::<JsonValue>(), 48);
+    assert_eq!(
+        std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>(),
+        96
+    );
+    let natural_plan_shares = [1_572_864usize, 1_835_008, 1_835_008, 3_145_728];
+    assert_eq!(
+        natural_plan_shares
+            .iter()
+            .try_fold(0usize, |sum, share| sum.checked_add(*share))
+            .unwrap(),
+        8_388_608
+    );
+    for (index, component, alias) in [
+        (0, "relative_relations", "explicit-relative-storage-target"),
+        (1, "validity", "state-A"),
+        (2, "recurrence", "recurrence-A"),
+        (3, "roles", "event-1500"),
+    ] {
+        natural_debit(natural_plan_shares[index], 131_072); // whole share before any call
+        natural_preallocate(4096, 128, 2); // binding plus serialization view
+        let mut payload = serde_json::json!({"schema_version":"tos_temporal_claim_carrier_v1"});
+        payload[component] = natural_packet[component].clone();
+        let identities = if index == 0 {
+            serde_json::json!({"event-A":natural_seed_refs[0]["id"],"reign-R":natural_seed_refs[1]["id"]})
+        } else {
+            serde_json::json!({})
+        };
+        let sources = if index == 0 {
+            serde_json::json!({"source-1":natural_seed_refs[2]})
+        } else {
+            serde_json::json!({})
+        };
+        let trs = if index == 1 {
+            serde_json::json!({"TRS:GregorianProleptic:fixture-v1":natural_trs})
+        } else {
+            serde_json::json!({})
+        };
+        let binding = serde_json::json!({"schema_version":"tos_temporal_claim_intent_binding_v1",
+            "target":{"alias":alias,"revision_alias":"r1","next_revision_alias":null,
+                "source":natural_target_ref,"source_path":source_path,"source_revision":current.0.to_prefixed(),
+                "configuration_digest":natural_config_sha.to_prefixed()},
+            "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
+            "authored_reason":"Explicit synthetic source-component storage; not historical verification.",
+            "mapping_profile":"fixture:explicit-original-component-storage-v1",
+            "payload":payload,"identities":identities,"sources":sources,"trs":trs});
+        natural_shape(&binding, 128);
+        let binding_raw = source_bytes(&source_value(&binding));
+        assert!(binding_raw.len() <= 4096);
+        let binding_value = natural_parse(&binding_raw);
+        let intent_value = natural_parse(natural_intent_literals[index].as_bytes());
+        let plan = plan_claim_intent(
+            &intent_value,
+            &binding_value,
+            &natural_target,
+            natural_codec,
+            ClaimIntentPrepareBudget {
+                max_extra_owned_bytes: natural_plan_shares[index],
+                max_extra_json_visits: 131_072,
+                max_preview_bytes: 16_384,
+                max_output_bytes: 16_384,
+            },
+        )
+        .unwrap();
+        assert!(!plan.owner_checked());
+        assert_eq!(plan.basis_status(), "SourceSuppliedUnverified");
+        assert_eq!(binding["payload"][component], natural_packet[component]);
+        drop(plan);
+    }
+    assert_eq!(natural_parent.get(), (16_777_216, 410_176));
+    // Retained full-source/context overlap is admitted before existing clones;
+    // it does not replenish the four spent pure-plan children.
+    let natural_context_bytes = current_files
+        .values()
+        .chain(
+            files
+                .iter()
+                .filter(|(name, _)| !name.starts_with("ToS/"))
+                .map(|(_, raw)| raw),
+        )
+        .try_fold(0usize, |sum, raw| sum.checked_add(raw.len()))
+        .unwrap();
+    natural_debit(
+        natural_context_bytes
+            .checked_mul(2)
+            .unwrap()
+            .checked_add(65_536)
+            .unwrap(),
+        4096,
+    );
+    natural_preallocate(2048, 128, 2); // exact original reason and retained view
+    natural_preallocate(8192, 256, 2); // native patch and codec view BEFORE construction
+    let natural_reason = serde_json::to_string(&serde_json::json!({
+        "authored_reason":"Retained source-copy correction in an isolated Claim corpus; no assessment.",
+        "preserved_intents":natural_intents})).unwrap();
+    assert!(natural_reason.chars().count() <= 4096);
     let correction = serde_json::json!({
         "schema_version":"tos_local_source_command_v1",
         "operation":"prepare-revise",
-        "fields":{"qualifiers":{"statement":revised_wording}},
+        "fields":{"qualifiers":{"statement":revised_wording,"temporal_claim_carrier":natural_packet}},
         "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
-        "reason":"Retained source-copy correction in an isolated Claim corpus; no assessment."
+        "reason":natural_reason
     });
+    assert_eq!(
+        correction["fields"]["qualifiers"]
+            .as_object()
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(correction["fields"].as_object().unwrap().len(), 1);
+    natural_shape(&correction, 256);
+    let natural_patch_raw = source_bytes(&source_value(&correction));
+    assert!(natural_patch_raw.len() <= 8192);
+    // Separate parser reservation; the old codec-view reservation stays intact.
+    // The authored request is already in the native canonical wire domain.
+    // No budget is refunded when this temporary expected DOM is dropped.
+    let (natural_retained_bytes, natural_retained_visits) = natural_retained.get();
+    natural_retained.set((
+        natural_retained_bytes.checked_sub(105_496).unwrap(),
+        natural_retained_visits.checked_sub(512).unwrap(),
+    ));
+    let natural_expected_document = tos_foundation::parse_json_with_state_budget(
+        &natural_patch_raw,
+        JsonMode::PublishedStrict,
+        natural_limits,
+        105_496,
+    )
+    .unwrap();
+    let natural_expected_qualifiers = natural_expected_document
+        .root()
+        .object_get("fields")
+        .unwrap()
+        .object_get("qualifiers")
+        .unwrap();
+    let natural_expected_typed = decode_claim_carrier(natural_expected_qualifiers, natural_codec)
+        .unwrap()
+        .unwrap();
+    drop(natural_expected_document);
+    assert_eq!(natural_expected_typed.roles().unwrap().len(), 4);
+    assert_eq!(
+        natural_expected_typed.relative_relations().unwrap().len(),
+        1
+    );
+    assert!(
+        natural_expected_typed.validity().is_some()
+            && natural_expected_typed.recurrence().is_some()
+    );
+    eprintln!(
+        "natural original components: pure_plans=4 static_records=3 static_bytes=2897 constructors=9 owner_entries=10 chain=3; source-only binding, no admission"
+    );
     let revision_filesystem = CreationFilesystem::select_isolated(
         &isolated,
         &revision_owner_path,
@@ -967,6 +1415,10 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     revision_request["expected_revision"] = prepared["revision"].clone();
     revision_request["expected_dependencies"] = prepared["expected_dependencies"].clone();
     revision_request["expected_inputs"] = prepared["source_bindings"].clone();
+    natural_preallocate(16_384, 256, 1); // exact request/digest and retained response
+    natural_shape(&revision_request, 256);
+    let natural_request_digest =
+        Digest256::of_bytes(&source_bytes(&source_value(&revision_request)));
     revision_context.request_raw = serde_json::to_vec(&revision_request).unwrap();
     let mut revision_budget = ExecutorBudget::laboratory();
     revision_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
@@ -1038,6 +1490,60 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         }
         corrected_files.insert(format!("{creation_home}/{name}"), raw);
     }
+    // Read back actual v2, not the original creation replay response.
+    let natural_current_raw = &corrected_files[&source_path];
+    assert!(natural_current_raw.len() <= 8192);
+    let natural_current = natural_parse(natural_current_raw);
+    natural_admit(natural_current_raw.len(), 1); // serde view; reuse native tree for actual ref
+    natural_raw_admit(
+        natural_current_raw
+            .len()
+            .checked_mul(4)
+            .unwrap()
+            .checked_add(4096)
+            .unwrap(),
+    );
+    let natural_current_value: Value = serde_json::from_slice(natural_current_raw).unwrap();
+    assert_eq!(natural_current_value["claim_version"], 2);
+    assert_eq!(
+        natural_current_value["qualifiers"]["statement"],
+        revised_wording
+    );
+    assert_eq!(
+        natural_current_value["qualifiers"]["temporal_claim_carrier"],
+        natural_packet
+    );
+    assert_eq!(
+        natural_current_value["qualifiers"]
+            .as_object()
+            .unwrap()
+            .len(),
+        claim["qualifiers"].as_object().unwrap().len() + 1
+    );
+    for (key, value) in claim["qualifiers"].as_object().unwrap() {
+        if key != "statement" {
+            assert_eq!(&natural_current_value["qualifiers"][key], value);
+        }
+    }
+    let current_qualifiers = natural_current.object_get("qualifiers").unwrap();
+    assert_eq!(
+        decode_claim_carrier(current_qualifiers, natural_codec)
+            .unwrap()
+            .unwrap(),
+        natural_expected_typed
+    );
+    assert_eq!(
+        serde_json::from_slice::<Value>(&source_bytes(
+            &metadata_subject(&natural_current).unwrap()
+        ))
+        .unwrap(),
+        correction["result"]["receipt"]["source"]
+    );
+    assert_eq!(
+        correction["result"]["receipt"]["request_digest"],
+        natural_request_digest.to_prefixed()
+    );
+    assert_eq!(correction["result"]["receipt"]["reason"], natural_reason);
     let form: Value =
         serde_json::from_slice(&corrected_files[&format!("{creation_home}/{form_name}")]).unwrap();
     assert_eq!(form["forms"][0]["role"], "statement");
@@ -1070,6 +1576,10 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
             .chain([format!(".{form_name}.writer.lock")])
             .collect::<std::collections::BTreeSet<_>>()
     );
+    for (name, original_raw) in &original_creation_files {
+        let blob = manifest["files"][name]["blob"].as_str().unwrap();
+        assert_eq!(fs::read(archive_dir.join(blob)).unwrap(), *original_raw);
+    }
     let lock_name = format!(".{form_name}.writer.lock");
     let lock_blob = manifest["files"][lock_name.as_str()]["blob"]
         .as_str()
@@ -2265,224 +2775,1932 @@ fn native_claim_cli_creates_revises_and_cold_replays_original_bytes() {
     };
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use tos_command::source_creation_store::IsolatedCreationRoot;
+    use tos_foundation::query_context::{
+        ContextResolution, Cutoff, MismatchDimension, QueryContext, SourceSnapshot,
+        SourceSnapshotRef, SystemState, create_chronology_version, resolve_query_context,
+    };
+    use tos_foundation::temporal::{
+        CarrierAuthority, CarrierValidity, LegacyObjectAssessment, Relation, TemporalBudget,
+        TemporalRole, decode_claim_carrier, encode_claim_carrier,
+    };
+    use tos_foundation::{ExactRecordRef, RecordVersion, StableId};
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
-    let cancellation = AtomicBool::new(false);
-    let deadline = Instant::now() + Duration::from_secs(240);
-    let (mut files, mut claim, mut revision_owner, source_path) = claim_fixture();
-    claim["claim_version"] = Value::from(1);
-    let mut software_names = CLAIM_GROUNDING_RULE_INPUTS
-        .iter()
-        .chain(CLAIM_REVISION_RULE_INPUTS)
-        .copied()
-        .filter(|name| !name.starts_with("ToS/"))
-        .collect::<Vec<_>>();
-    software_names.extend([
-        "rust/crates/tos-command/src/source_claims.rs",
-        "rust/crates/tos-command/src/source_serialization.rs",
-    ]);
-    software_names.sort_unstable();
-    software_names.dedup();
-    for name in software_names {
-        files.insert(name.into(), fs::read(repository.join(name)).unwrap());
-    }
-    // Cheap physical input bounds precede capture/corpus/publication writes.
-    let fixture_bytes = files
-        .values()
-        .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
-        .unwrap();
-    assert!(fixture_bytes <= 33_554_432 && files.len() <= 2048);
-    let native = PathBuf::from(
-        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
-            .expect("OPS must select the protected native Claim image"),
-    );
-    assert!(native.is_absolute());
-    let worker_image = super::validation_cut_cases::selected_worker_path();
-    let native_bytes = fs::metadata(&native).unwrap().len();
-    let worker_bytes = fs::metadata(&worker_image).unwrap().len();
-    let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
-        .unwrap()
-        .len();
-    assert!(
-        native_bytes <= 536_870_912 && consumer_bytes <= 536_870_912 && worker_bytes <= 536_870_912
-    );
-    assert!(Instant::now() < deadline);
-    eprintln!(
-        "Claim CLI F_fixture={} E_native={} C_consumer={} W_worker={} processes=7 workers<=10",
-        fixture_bytes, native_bytes, consumer_bytes, worker_bytes
-    );
-    let (_capture, software, components) =
-        super::command_record_cases::captured_components(&files, deadline, &cancellation);
-    let temporary = tempfile::tempdir().unwrap();
-    let authored = files
-        .iter()
-        .filter(|(name, _)| name.starts_with("ToS/"))
-        .map(|(name, raw)| (name.clone(), raw.clone()))
-        .collect::<BTreeMap<_, _>>();
-    let store = temporary.path().join("selected-store");
-    let base = super::validation_cut_cases::write_cut_store(&authored, &store);
-    let cut = open_cut(&store, base, deadline, &cancellation);
-    drop(cut);
-    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
-    for (name, raw) in &files {
-        let target = isolated.path().join(name);
-        fs::create_dir_all(target.parent().unwrap()).unwrap();
-        fs::write(&target, raw).unwrap();
-        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
-    }
-    fs::create_dir_all(
-        isolated
-            .path()
-            .join(&source_path)
-            .parent()
-            .unwrap()
-            .parent()
-            .unwrap(),
-    )
-    .unwrap();
-    let uid = fs::metadata(isolated.path()).unwrap().uid();
-    let configuration = serde_json::json!({
-        "schema_version":"tos_local_claim_create_owner_v1", "uid":uid,
-        "principal_id":claim["maker"]["agent_ref"], "maker_type":claim["maker"]["maker_type"],
-        "source_root":isolated.path(), "source_path":source_path,
-        "authority_ref":"synthetic-test-only:claim-creation-not-assessment",
-        "expires_at":"2099-01-01T00:00:00Z", "provenance_event_id":claim["provenance_event_ref"],
-        "allowed_operations":["claims.create"], "allowed_claim_ids":[claim["claim_id"]],
-        "allowed_subject_refs":[claim["subject_ref"]], "allowed_object_refs":[claim["object"]],
-        "allowed_predicates":[claim["predicate"]], "allowed_evidence_refs":claim["evidence_refs"]
-    });
-    let config_raw = source_bytes(&source_value(&configuration));
-    let owner = isolated.path().join("owner.json");
-    fs::write(&owner, &config_raw).unwrap();
-    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    for date_variant in [false, true] {
+        let cancellation = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(240);
+        let (mut files, mut claim, mut revision_owner, mut source_path) = claim_fixture();
+        claim["claim_version"] = Value::from(1);
+        let date_object = |year: &str| {
+            serde_json::json!({"kind":"date-assertion","role":"historical-time",
+        "value":year,"calendar":"proleptic-gregorian","year_numbering":"astronomical","certainty":"exact",
+        "source_wording":{"language":"en","text":year}})
+        };
+        if date_variant {
+            source_path =
+                "ToS/source-witnesses/relations/synthetic-date-history/source-claims.jsonl".into();
+            let subject = "tos.historical-event.synthetic.date-history";
+            let evidence = claim["evidence_refs"].clone();
+            let maker = claim["maker"].clone();
+            claim = serde_json::json!({"schema_version":"tos_source_temporal_claim_v1",
+            "claim_id":"tos.claim.synthetic.date-history","claim_type":"relation","claim_version":1,
+            "assertion_layer":"scholarly_report","subject_ref":subject,"predicate":"historical_dating",
+            "object":date_object("1945"),"evidence_refs":evidence,"maker":maker,
+            "provenance_event_ref":"tos.event.source-creation.synthetic-date-history",
+            "epistemic_status":"reported","review_status":"unreviewed","visibility":"public_metadata_only",
+            "qualifiers":{"statement":"Explicit synthetic historical dating scenario; preserve the exact predecessor when corrected.",
+                "statement_language":"en","statement_script":"Latn"}});
+            let event = serde_json::json!({"schema_version":"tos_historical_record_v1","record_type":"historical-event",
+            "record_id":subject,"record_version":1,"preferred_label":"Synthetic date history scenario",
+            "identity_status":"provisional","source_refs":evidence,"external_identifiers":[],
+            "same_as_posture":"no_equivalence_claim","visibility":"public_metadata_only"});
+            files.insert(
+                "ToS/source-witnesses/history/synthetic-date-history/historical-event.json".into(),
+                source_bytes(&source_value(&event)),
+            );
+            revision_owner["schema_version"] =
+                serde_json::json!("tos_local_claim_revision_owner_v2");
+            revision_owner["source_path"] = serde_json::json!(source_path);
+            revision_owner["claim_id"] = claim["claim_id"].clone();
+            revision_owner["allowed_fields"] = serde_json::json!(["object"]);
+            revision_owner["allowed_object_values"] =
+                serde_json::json!([date_object("1945"), date_object("1946")]);
+            revision_owner["allowed_object_refs"] = serde_json::json!([]);
+            // This ID is a fixture request/grant, not an already-created form.
+            revision_owner["allowed_form_ids"] =
+                serde_json::json!(["tos.form.synthetic-date-history.statement"]);
+            revision_owner["allowed_form_field_ids"] = serde_json::json!(["claim.statement"]);
+        }
 
-    let invocation_path = temporary.path().join("native-claim-invocation.json");
-    let mut invocation = serde_json::json!({
-        "schema_version":"tos_local_native_claim_invocation_v1", "owner_config":owner,
-        "native_executable":native, "native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
-        "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
-        "software_capture":_capture.capture,"software_restored_root":_capture.restored,
-        "software_selection":{"source_git_commit":_capture.selection.source_git_commit,
-            "source_git_tree":_capture.selection.source_git_tree,
-            "capture_manifest_sha256":_capture.selection.capture_manifest_sha256.to_prefixed()},
-        "software_components":components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
-        "schema_worker":{"absolute_path":worker_image,"sha256":alignment_image_digest(&worker_image).to_prefixed()},
-        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
-            "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
-            "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
-    });
-    let write_invocation = |value: &Value| {
-        fs::write(&invocation_path, serde_json::to_vec(value).unwrap()).unwrap();
-        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
-    };
-    write_invocation(&invocation);
-    let preview_request = serde_json::json!({"schema_version":"tos_local_source_command_v1",
-        "operation":"prepare-create","claims":[claim.clone()]});
-    let preview = alignment_native_cli(
-        &repository,
-        &owner,
-        &invocation_path,
-        &preview_request,
-        deadline,
-    );
-    assert_eq!(preview["grants_admission"], false);
-    let prepared = &preview["result"];
-    let mut request = preview_request;
-    request["operation"] = serde_json::json!("claims.create");
-    request["command_id"] = serde_json::json!("synthetic:whole-native-claim-cli");
-    request["expected_configuration"] = prepared["owner_configuration"].clone();
-    request["expected_revision"] = Value::Null;
-    request["expected_dependencies"] = prepared["expected_dependencies"].clone();
-    request["expected_inputs"] = prepared["source_bindings"].clone();
-    let created = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
-    assert_eq!(created["result"]["replayed"], false);
-    assert_eq!(created["result"]["receipt"]["grants_admission"], false);
-    let home = Path::new(&source_path).parent().unwrap();
-    let original_files = fs::read_dir(isolated.path().join(home))
-        .unwrap()
-        .map(|entry| {
-            let entry = entry.unwrap();
-            (
-                entry.file_name().into_string().unwrap(),
-                fs::read(entry.path()).unwrap(),
-            )
-        })
-        .collect::<BTreeMap<_, _>>();
-    assert_eq!(original_files.len(), 5);
-    let mut current_files = authored_text_files(isolated.path());
-    current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
-    let current = successor(&current_files, &store, base);
-    invocation["source_revision"] = serde_json::json!(current.0.to_prefixed());
-    write_invocation(&invocation);
-    let cold = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
-    assert_eq!(cold["result"]["replayed"], true);
-    for (name, raw) in &original_files {
-        assert_eq!(
-            &fs::read(isolated.path().join(home).join(name)).unwrap(),
-            raw
+        let raw_lexical = "synthetic raw evidence: 0.100000000000000005 / -0 / λ";
+        let opaque_sibling = serde_json::json!({"future":null,"large_integer":9007199254740993u64,
+        "raw_decimal":raw_lexical,"scope":"synthetic fixture assertion; not source authority"});
+        if !date_variant {
+            // Explicit NEW precursor content, authored before v1 exists. The empty
+            // recognized collection admits the carrier without inventing a relation.
+            claim["qualifiers"]["statement"] = serde_json::json!(format!(
+                "{} [synthetic preservation seed; no assessment]",
+                claim["qualifiers"]["statement"].as_str().unwrap()
+            ));
+            claim["qualifiers"]["carrier_fixture_sibling"] = opaque_sibling.clone();
+            claim["qualifiers"]["temporal_claim_carrier"] = serde_json::json!({
+                "schema_version":"tos_temporal_claim_carrier_v1",
+                "relative_relations":[],"future_packet":opaque_sibling});
+        }
+
+        let mut software_names = CLAIM_GROUNDING_RULE_INPUTS
+            .iter()
+            .chain(CLAIM_REVISION_RULE_INPUTS)
+            .copied()
+            .filter(|name| !name.starts_with("ToS/"))
+            .collect::<Vec<_>>();
+        software_names.extend([
+            "rust/crates/tos-command/src/source_claims.rs",
+            "rust/crates/tos-command/src/source_serialization.rs",
+        ]);
+        software_names.sort_unstable();
+        software_names.dedup();
+        for name in software_names {
+            files.insert(name.into(), fs::read(repository.join(name)).unwrap());
+        }
+        // Cheap physical input bounds precede capture/corpus/publication writes.
+        let fixture_bytes = files
+            .values()
+            .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
+            .unwrap();
+        assert!(fixture_bytes <= 33_554_432 && files.len() <= 2048);
+        let native = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
+                .expect("OPS must select the protected native Claim image"),
         );
-    }
-    revision_owner["uid"] = serde_json::json!(uid);
-    revision_owner["source_root"] = serde_json::json!(isolated.path());
-    let revision_path = isolated.path().join("revision-owner.json");
-    fs::write(&revision_path, source_bytes(&source_value(&revision_owner))).unwrap();
-    fs::set_permissions(&revision_path, fs::Permissions::from_mode(0o600)).unwrap();
-    invocation["owner_config"] = serde_json::json!(revision_path);
-    write_invocation(&invocation);
-    let correction = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-revise",
-        "fields":{"qualifiers":{"statement":format!("{} [native CLI retained correction; no assessment]", claim["qualifiers"]["statement"].as_str().unwrap())}},
+        assert!(native.is_absolute());
+        let worker_image = super::validation_cut_cases::selected_worker_path();
+        let native_bytes = fs::metadata(&native).unwrap().len();
+        let worker_bytes = fs::metadata(&worker_image).unwrap().len();
+        let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
+            .unwrap()
+            .len();
+        assert!(
+            native_bytes <= 536_870_912
+                && consumer_bytes <= 536_870_912
+                && worker_bytes <= 536_870_912
+        );
+        assert!(Instant::now() < deadline);
+        eprintln!(
+            "Claim CLI date_variant={} F_fixture={} E_native={} C_consumer={} W_worker={} processes<={} workers<={}",
+            date_variant,
+            fixture_bytes,
+            native_bytes,
+            consumer_bytes,
+            worker_bytes,
+            if date_variant { 9 } else { 12 },
+            if date_variant { 12 } else { 20 }
+        );
+        let (_capture, software, components) =
+            super::command_record_cases::captured_components(&files, deadline, &cancellation);
+        let temporary = tempfile::tempdir().unwrap();
+        let authored = files
+            .iter()
+            .filter(|(name, _)| name.starts_with("ToS/"))
+            .map(|(name, raw)| (name.clone(), raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let store = temporary.path().join("selected-store");
+        let base = super::validation_cut_cases::write_cut_store(&authored, &store);
+        let cut = open_cut(&store, base, deadline, &cancellation);
+        drop(cut);
+        let isolated =
+            IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
+        for (name, raw) in &files {
+            let target = isolated.path().join(name);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(&target, raw).unwrap();
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+        }
+        fs::create_dir_all(
+            isolated
+                .path()
+                .join(&source_path)
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap(),
+        )
+        .unwrap();
+        let uid = fs::metadata(isolated.path()).unwrap().uid();
+        let mut configuration = serde_json::json!({
+            "schema_version":"tos_local_claim_create_owner_v1", "uid":uid,
+            "principal_id":claim["maker"]["agent_ref"], "maker_type":claim["maker"]["maker_type"],
+            "source_root":isolated.path(), "source_path":source_path,
+            "authority_ref":"synthetic-test-only:claim-creation-not-assessment",
+            "expires_at":"2099-01-01T00:00:00Z", "provenance_event_id":claim["provenance_event_ref"],
+            "allowed_operations":["claims.create"], "allowed_claim_ids":[claim["claim_id"]],
+            "allowed_subject_refs":[claim["subject_ref"]], "allowed_object_refs":[claim["object"]],
+            "allowed_predicates":[claim["predicate"]], "allowed_evidence_refs":claim["evidence_refs"]
+        });
+        if date_variant {
+            configuration["schema_version"] = serde_json::json!("tos_local_claim_create_owner_v2");
+            configuration["allowed_object_refs"] = serde_json::json!([]);
+            configuration["allowed_object_values"] = serde_json::json!([date_object("1945")]);
+        }
+        let config_raw = source_bytes(&source_value(&configuration));
+        let owner = isolated.path().join("owner.json");
+        fs::write(&owner, &config_raw).unwrap();
+        fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+
+        let invocation_path = temporary.path().join("native-claim-invocation.json");
+        let mut invocation = serde_json::json!({
+            "schema_version":"tos_local_native_claim_invocation_v1", "owner_config":owner,
+            "native_executable":native, "native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
+            "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
+            "software_capture":_capture.capture,"software_restored_root":_capture.restored,
+            "software_selection":{"source_git_commit":_capture.selection.source_git_commit,
+                "source_git_tree":_capture.selection.source_git_tree,
+                "capture_manifest_sha256":_capture.selection.capture_manifest_sha256.to_prefixed()},
+            "software_components":components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
+            "schema_worker":{"absolute_path":worker_image,"sha256":alignment_image_digest(&worker_image).to_prefixed()},
+            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+                "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
+                "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
+        });
+        let write_invocation = |value: &Value| {
+            fs::write(&invocation_path, serde_json::to_vec(value).unwrap()).unwrap();
+            fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+        };
+        write_invocation(&invocation);
+        let preview_request = serde_json::json!({"schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-create","claims":[claim.clone()]});
+        let preview = alignment_native_cli(
+            &repository,
+            &owner,
+            &invocation_path,
+            &preview_request,
+            deadline,
+        );
+        assert_eq!(preview["grants_admission"], false);
+        let prepared = &preview["result"];
+        let mut request = preview_request;
+        request["operation"] = serde_json::json!("claims.create");
+        request["command_id"] = serde_json::json!("synthetic:whole-native-claim-cli");
+        request["expected_configuration"] = prepared["owner_configuration"].clone();
+        request["expected_revision"] = Value::Null;
+        request["expected_dependencies"] = prepared["expected_dependencies"].clone();
+        request["expected_inputs"] = prepared["source_bindings"].clone();
+        let created =
+            alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+        assert_eq!(created["result"]["replayed"], false);
+        assert_eq!(created["result"]["receipt"]["grants_admission"], false);
+        let home = Path::new(&source_path).parent().unwrap();
+        let original_files = fs::read_dir(isolated.path().join(home))
+            .unwrap()
+            .map(|entry| {
+                let entry = entry.unwrap();
+                (
+                    entry.file_name().into_string().unwrap(),
+                    fs::read(entry.path()).unwrap(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(original_files.len(), 5);
+        if date_variant {
+            // Public initial creation owns exactly the stream, request,
+            // environment, provenance and receipt; forms first materialize
+            // through the existing explicitly granted revision selector.
+            assert!(
+                original_files
+                    .keys()
+                    .all(|name| !name.ends_with(".human-forms.json"))
+            );
+            let receipt: Value =
+                serde_json::from_slice(&original_files["source-create-receipt.json"]).unwrap();
+            assert_eq!(receipt, created["result"]["receipt"]);
+            let refs = receipt["files"].as_object().unwrap();
+            assert_eq!(refs.len(), 4); // receipt cannot include its own digest
+            for (name, binding) in refs {
+                let raw = &original_files[name];
+                assert_eq!(binding["sha256"], Digest256::of_bytes(raw).to_prefixed());
+                assert_eq!(binding["bytes"].as_u64(), Some(raw.len() as u64));
+            }
+        }
+
+        let mut current_files = authored_text_files(isolated.path());
+        current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+        let current = successor(&current_files, &store, base);
+        invocation["source_revision"] = serde_json::json!(current.0.to_prefixed());
+        write_invocation(&invocation);
+        let cold = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+        assert_eq!(cold["result"]["replayed"], true);
+        for (name, raw) in &original_files {
+            assert_eq!(
+                &fs::read(isolated.path().join(home).join(name)).unwrap(),
+                raw
+            );
+        }
+        // Freeze actual published v1 metadata and its real post-creation source cut
+        // before publishing v2. No historical Claim/ref is invented by this probe.
+        let v1_raw = original_files["source-claims.jsonl"].clone();
+        let v1_record: Value = serde_json::from_slice(&v1_raw).unwrap();
+        let v1_owner_ref = created["result"]["receipt"]["claims"][0].clone();
+        assert_eq!(source_ref(&v1_record), v1_owner_ref);
+        let exact_ref = |reference: &Value| ExactRecordRef {
+            id: StableId::parse(reference["id"].as_str().unwrap()).unwrap(),
+            version: RecordVersion::new(reference["version"].as_u64().unwrap()).unwrap(),
+            digest: Digest256::from_prefixed(reference["digest"].as_str().unwrap()).unwrap(),
+        };
+        let snapshot = SourceSnapshot {
+            reference: SourceSnapshotRef {
+                id: StableId::parse(&format!(
+                    "fixture:claim-cut:{}",
+                    v1_owner_ref["id"].as_str().unwrap()
+                ))
+                .unwrap(),
+                revision: current,
+            },
+            current_cutoff: Cutoff {
+                value: source_value(&created["result"]["receipt"]["recorded_at"]),
+                trs: None,
+            },
+        };
+        // Explicit detached fixture descriptors bind real member/cut metadata. They
+        // are not persisted chronology records or admitted source policy objects.
+        let fixture_policy = source_ref(&serde_json::json!({
+            "schema_version":"fixture_detached_chronology_policy_v1",
+            "record_id":"fixture:claim-chronology-policy", "record_version":1,
+            "scope":"Synthetic immutable selection demonstration; no admission",
+            "member":v1_owner_ref, "source_revision":current.0.to_prefixed()
+        }));
+        let fixture_chronology = source_ref(&serde_json::json!({
+            "schema_version":"fixture_detached_chronology_v1",
+            "record_id":"fixture:claim-chronology", "record_version":1,
+            "member":v1_owner_ref, "source_revision":current.0.to_prefixed(),
+            "policy":fixture_policy
+        }));
+        let current_context = QueryContext {
+            system_state: Some(SystemState::Current),
+            ..QueryContext::default()
+        };
+        let frozen = create_chronology_version(
+            exact_ref(&fixture_chronology),
+            &snapshot,
+            &current_context,
+            exact_ref(&fixture_policy),
+            exact_ref(&fixture_policy),
+            vec![exact_ref(&v1_owner_ref)],
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(frozen.selection.source_snapshot.revision, current);
+        assert_eq!(
+            frozen.member_claim_revisions,
+            vec![exact_ref(&v1_owner_ref)]
+        );
+
+        // Supplemental assertions use real previous refs/bytes/receipts; their
+        // temporal scenario is explicitly synthetic and never replaces the object.
+        let codec_budget = TemporalBudget::default();
+        let codec_reference = |reference: &Value| {
+            serde_json::json!({
+                "id":reference["id"],"version":reference["version"],
+                "digest":Digest256::from_prefixed(reference["digest"].as_str().unwrap()).unwrap().to_hex()
+            })
+        };
+        let actual_basis = |reference: &Value, raw: &[u8], receipt: &Value, cut: SourceRevision| {
+            let fragment = std::str::from_utf8(raw)
+                .unwrap()
+                .chars()
+                .take(128)
+                .collect::<String>();
+            serde_json::json!({"source":codec_reference(reference),
+            "source_locator":format!("{}:line1;unicode-range=0..{}", source_path, fragment.chars().count()),
+            "raw_evidence":{"actual_source_fragment":fragment,
+                "actual_stream_sha256":Digest256::of_bytes(raw).to_prefixed(),
+                "actual_receipt_command":receipt["command_id"],"actual_source_cut":cut.0.to_prefixed(),
+                "synthetic_assertion_raw":raw_lexical},"future_basis":null})
+        };
+        let unknown_packet = serde_json::json!({"schema_version":"tos_temporal_claim_carrier_v1",
+        "validity":{"type":"Unknown","basis":actual_basis(&v1_owner_ref,&v1_raw,&created["result"]["receipt"],current)},
+        "future_packet":opaque_sibling});
+        let unknown = decode_claim_carrier(
+            &source_value(&serde_json::json!({
+        "temporal_claim_carrier":unknown_packet})),
+            codec_budget,
+        )
+        .unwrap()
+        .unwrap();
+        let encoded = encode_claim_carrier(
+            &source_value(&v1_record["qualifiers"]),
+            &unknown,
+            codec_budget,
+        )
+        .unwrap();
+        let mut corrected_qualifiers: Value =
+            serde_json::from_slice(&source_bytes(&encoded)).unwrap();
+        corrected_qualifiers["statement"] = serde_json::json!(format!(
+            "{} [native CLI retained correction; no assessment]",
+            claim["qualifiers"]["statement"].as_str().unwrap()
+        ));
+        corrected_qualifiers["carrier_fixture_sibling"] = opaque_sibling.clone();
+        // The owner publishes SourceCommandInputV1 canonical JSON. Object
+        // member order is not a cross-publication carrier equality contract.
+        let corrected_unknown =
+            decode_claim_carrier(&source_value(&corrected_qualifiers), codec_budget)
+                .unwrap()
+                .unwrap();
+        assert_eq!(
+            source_bytes(corrected_unknown.original_packet()),
+            source_bytes(unknown.original_packet())
+        );
+        assert!(matches!(
+            corrected_unknown.validity(),
+            Some(CarrierValidity::Unknown { .. })
+        ));
+        revision_owner["uid"] = serde_json::json!(uid);
+        revision_owner["source_root"] = serde_json::json!(isolated.path());
+        let revision_path = isolated.path().join("revision-owner.json");
+        fs::write(&revision_path, source_bytes(&source_value(&revision_owner))).unwrap();
+        fs::set_permissions(&revision_path, fs::Permissions::from_mode(0o600)).unwrap();
+        invocation["owner_config"] = serde_json::json!(revision_path);
+        write_invocation(&invocation);
+        let unknown_commit = if !date_variant {
+            // Generic bridge PREPARE/TEMPLATE only: real published v1 custody,
+            // explicit synthetic alias; no new CLI call, revision or publication.
+            use std::io::Read;
+            use tos_command::source_creation_store::CreationFilesystem;
+            use tos_command::temporal_claim_intent::{
+                ClaimIntentError, ClaimIntentPrepareBudget, plan_claim_intent,
+                prepare_claim_intent_from_captures,
+            };
+            use tos_foundation::emit_value_preserved_json;
+            use tos_validation::executor::ExactWorkerIdentity;
+            use tos_validation::source_cut::{
+                CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+            };
+            let mut oracle_raw = Vec::new();
+            fs::File::open(repository.join(
+                "tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json",
+            ))
+            .unwrap()
+            .take(262_145)
+            .read_to_end(&mut oracle_raw)
+            .unwrap();
+            assert!(oracle_raw.len() <= 262_144);
+            assert_eq!(
+                Digest256::of_bytes(&oracle_raw).to_hex(),
+                "fda08fd958914a3605afab12e7b78012a3f5534ecfdffe2ab31cb2cb3a26eecd"
+            );
+            let oracle: Value = serde_json::from_slice(&oracle_raw).unwrap();
+            let vector = |id: &str| {
+                oracle["vectors"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|v| v["id"].as_str() == Some(id))
+                    .unwrap()
+            };
+            let intent_for = |id: &str| {
+                let row = vector(id);
+                serde_json::json!({"schema_version":"tos_temporal_claim_intent_v1",
+                    "operation":row["operation"],"source_profile":row["source_profile"],
+                    "input":row["input"],"context":row["context"]})
+            };
+            let intent = intent_for("recurrence_preserve");
+            let basis = actual_basis(
+                &v1_owner_ref,
+                &v1_raw,
+                &created["result"]["receipt"],
+                current,
+            );
+            // Strict new basis has exactly these three fields. The helper's
+            // optional future_basis is neither evidence nor a verification flag.
+            let basis = serde_json::json!({"source":basis["source"],
+                "source_locator":basis["source_locator"],"raw_evidence":basis["raw_evidence"]});
+            let configuration_raw = fs::read(&revision_path).unwrap();
+            let configuration_sha =
+                Digest256::of_bytes(&source_bytes(&source_value(&revision_owner)));
+            let bindings = serde_json::json!({"schema_version":"tos_temporal_claim_intent_binding_v1",
+                "target":{"alias":"recurrence-A","revision_alias":"r1","next_revision_alias":null,
+                    "source":v1_owner_ref,"source_path":source_path,
+                    "source_revision":current.0.to_prefixed(),"configuration_digest":configuration_sha.to_prefixed()},
+                "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
+                "authored_reason":"Explicit synthetic generic prepare/template only; never publish.",
+                "mapping_profile":"fixture:opaque-recurrence-preservation-v1",
+                "payload":{"schema_version":"tos_temporal_claim_carrier_v1",
+                    "recurrence":{"profile_ref":"fixture:opaque-pattern-v1",
+                        "pattern":intent["input"]["recurrence_pattern"],"basis":basis}},
+                "identities":{},"sources":{},"trs":{}});
+            let budget = ClaimIntentPrepareBudget {
+                max_extra_owned_bytes: 134_217_728,
+                max_extra_json_visits: 1_000_000,
+                max_preview_bytes: 4_194_304,
+                max_output_bytes: 1_048_576,
+            };
+            let target = source_value(&v1_record);
+            let intent_value = source_value(&intent);
+            let binding_value = source_value(&bindings);
+            let plan =
+                plan_claim_intent(&intent_value, &binding_value, &target, codec_budget, budget)
+                    .unwrap();
+            assert!(!plan.owner_checked());
+            assert_eq!(plan.basis_status(), "SourceSuppliedUnverified");
+            // Pure negative rows do not call the owner or spawn another worker.
+            let mut mismatched = bindings.clone();
+            mismatched["payload"]["recurrence"]["pattern"]["rule"] =
+                serde_json::json!("different rule");
+            assert!(matches!(
+                plan_claim_intent(
+                    &intent_value,
+                    &source_value(&mismatched),
+                    &target,
+                    codec_budget,
+                    budget
+                ),
+                Err(ClaimIntentError::Mismatch(_))
+            ));
+            let unknown_source = intent_for("unknown_validity_end");
+            let unknown_intent = source_value(&unknown_source);
+            let mut unknown_binding = bindings.clone();
+            unknown_binding["target"]["alias"] = serde_json::json!("state-B");
+            unknown_binding["authored_reason"] = serde_json::json!(
+                "Explicit NEW synthetic Unknown-END preservation through the existing owner; no calendar, validity reconciliation or admission."
+            );
+            unknown_binding["mapping_profile"] =
+                serde_json::json!("fixture:explicit-unknown-end-owner-commit-v1");
+            unknown_binding["payload"] = serde_json::json!({"schema_version":"tos_temporal_claim_carrier_v1",
+                "validity":{"type":"Interval","beginning":{"type":"CalendarPosition",
+                    "lexical":unknown_source["input"]["validity_assertion"]["valid_from"],
+                    "resolution":"Unknown","trs":null},"end":{"type":"Unknown"},
+                    "basis":bindings["payload"]["recurrence"]["basis"]}});
+            let mut wrong_lexical = unknown_binding.clone();
+            wrong_lexical["payload"]["validity"]["beginning"]["lexical"] =
+                serde_json::json!("2020-01-02");
+            assert!(matches!(
+                plan_claim_intent(
+                    &unknown_intent,
+                    &source_value(&wrong_lexical),
+                    &target,
+                    codec_budget,
+                    budget
+                ),
+                Err(ClaimIntentError::Mismatch(_))
+            ));
+            let mut missing_basis = unknown_binding.clone();
+            missing_basis["payload"]["validity"]
+                .as_object_mut()
+                .unwrap()
+                .remove("basis");
+            assert!(matches!(
+                plan_claim_intent(
+                    &unknown_intent,
+                    &source_value(&missing_basis),
+                    &target,
+                    codec_budget,
+                    budget
+                ),
+                Err(ClaimIntentError::NeedsBinding("basis"))
+            ));
+            let mut unsupported_end = unknown_source.clone();
+            unsupported_end["input"]["validity_assertion"]["valid_to"]["type"] =
+                serde_json::json!("Unbounded");
+            assert!(matches!(
+                plan_claim_intent(
+                    &source_value(&unsupported_end),
+                    &source_value(&unknown_binding),
+                    &target,
+                    codec_budget,
+                    budget
+                ),
+                Err(ClaimIntentError::UnsupportedSemanticMapping(_))
+            ));
+            // Admission only: zero-owned does NOT exercise parser exhaustion.
+            assert!(matches!(
+                plan_claim_intent(
+                    &intent_value,
+                    &binding_value,
+                    &target,
+                    codec_budget,
+                    ClaimIntentPrepareBudget {
+                        max_extra_owned_bytes: 0,
+                        ..budget
+                    }
+                ),
+                Err(ClaimIntentError::Resource)
+            ));
+            let original_cut = open_cut(&store, base, deadline, &cancellation);
+            let current_cut = open_cut(&store, current, deadline, &cancellation);
+            assert_eq!(current_cut.current().revision(), current);
+            let filesystem = CreationFilesystem::select_isolated(
+                &isolated,
+                &revision_path,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            let sentinel = source_bytes(&source_value(&serde_json::json!({
+                "schema_version":"tos_local_source_command_v1","operation":"describe"})));
+            // Explicit physical config/raw packet, real UID and actual observed
+            // receipt timestamp; no helper's synthetic clock/config serialization.
+            let selected_inputs = || {
+                current_files
+                    .iter()
+                    .chain(files.iter().filter(|(name, _)| !name.starts_with("ToS/")))
+            };
+            let preclone_bytes = selected_inputs()
+                .try_fold(0usize, |n, (_, raw)| n.checked_add(raw.len()))
+                .unwrap();
+            assert!(preclone_bytes <= 33_554_432 && selected_inputs().count() <= 2048);
+            let mut direct_context = tos_command::source_command::CommandContext {
+                base_revision: current,
+                configuration_raw: configuration_raw.clone(),
+                request_raw: sentinel.clone(),
+                recorded_at: created["result"]["receipt"]["recorded_at"]
+                    .as_str()
+                    .unwrap()
+                    .into(),
+                effective_uid: u64::from(uid),
+                files: current_files
+                    .iter()
+                    .chain(files.iter().filter(|(name, _)| !name.starts_with("ToS/")))
+                    .map(|(name, raw)| tos_command::source_command::SourceFile {
+                        path: tos_foundation::RelativePath::parse(name).unwrap(),
+                        raw: raw.clone(),
+                    })
+                    .collect(),
+            };
+            let context_bytes = direct_context
+                .files
+                .iter()
+                .try_fold(0usize, |n, f| n.checked_add(f.raw.len()))
+                .unwrap();
+            assert!(context_bytes <= 33_554_432 && direct_context.files.len() <= 2048);
+            let control_path = isolated
+                .path()
+                .join("ToS/source-witnesses/.metadata-publication.json");
+            let read_control = || match fs::File::open(&control_path) {
+                Ok(file) => {
+                    let mut raw = Vec::new();
+                    file.take(8193).read_to_end(&mut raw).unwrap();
+                    assert!(raw.len() <= 8192);
+                    Some(raw)
+                }
+                Err(e) => {
+                    assert_eq!(e.kind(), std::io::ErrorKind::NotFound);
+                    None
+                }
+            };
+            let control_before = read_control();
+            let mut worker_budget = ExecutorBudget::laboratory();
+            worker_budget.execution_wall = deadline
+                .saturating_duration_since(Instant::now())
+                .min(worker_budget.execution_wall);
+            assert!(!worker_budget.execution_wall.is_zero());
+            let mut direct_worker = CutWorkerSchemaExecutor::from_cut(
+                &current_cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                ExactWorkerIdentity {
+                    absolute_path: worker_image.clone(),
+                    sha256: Digest256::from_prefixed(
+                        invocation["schema_worker"]["sha256"].as_str().unwrap(),
+                    )
+                    .unwrap(),
+                },
+                worker_budget,
+                CutWorkerLimits {
+                    max_receipts: 128,
+                    max_receipt_bytes: 262_144,
+                },
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            let mut generic = prepare_claim_intent_from_captures(
+                &filesystem,
+                &mut direct_context,
+                &original_cut,
+                &current_cut,
+                &software,
+                &components,
+                &mut direct_worker,
+                plan,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            assert_eq!(direct_context.request_raw, sentinel);
+            assert_eq!(direct_context.configuration_raw, configuration_raw);
+            assert!(generic.owner_checked());
+            assert_eq!(generic.basis_status(), "SourceSuppliedUnverified");
+            let prepared_packet = generic.prepared_packet().unwrap();
+            let prepared_packet: Value =
+                serde_json::from_slice(&source_bytes(&prepared_packet)).unwrap();
+            assert_eq!(prepared_packet["status"], "PreparedNotCommitted");
+            assert_eq!(
+                prepared_packet["schema_version"],
+                "tos_temporal_claim_intent_prepared_v1"
+            );
+            assert_eq!(prepared_packet["owner_checked"], true);
+            assert_eq!(prepared_packet["basis_status"], "SourceSuppliedUnverified");
+            assert_eq!(
+                prepared_packet["profile_status"],
+                "SourceSuppliedAttributionOnly"
+            );
+            assert_eq!(prepared_packet["grants_admission"], false);
+            // 257 is over the actual native256-character limit. Never execute
+            // either template: all subsequent native CLI calls remain original.
+            assert!(matches!(
+                generic.commit_request_template(&"x".repeat(257)),
+                Err(ClaimIntentError::Mismatch(_))
+            ));
+            let template = generic
+                .commit_request_template("synthetic:generic-recurrence-template-only")
+                .unwrap();
+            let template: Value = serde_json::from_slice(&source_bytes(&template)).unwrap();
+            assert_eq!(
+                template["schema_version"],
+                "tos_temporal_claim_intent_commit_template_v1"
+            );
+            assert_eq!(template["status"], "CommitTemplateNotCommitted");
+            for key in [
+                "owner_checked",
+                "basis_status",
+                "profile_status",
+                "grants_admission",
+            ] {
+                assert_eq!(template[key], prepared_packet[key]);
+            }
+            let request = &template["request"];
+            assert_eq!(request["schema_version"], "tos_local_source_command_v1");
+            assert_eq!(request["operation"], "claim.revise");
+            assert!(request["command_id"].as_str().unwrap().chars().count() <= 256);
+            for (dst, src) in [
+                ("expected_configuration", "owner_configuration"),
+                ("expected_source", "source"),
+                ("expected_revision", "revision"),
+                ("expected_dependencies", "expected_dependencies"),
+                ("expected_inputs", "source_bindings"),
+            ] {
+                assert_eq!(
+                    source_bytes(&source_value(&request[dst])),
+                    source_bytes(&source_value(&prepared_packet["owner_preview"][src]))
+                );
+            }
+            assert_eq!(
+                source_bytes(&source_value(&request["expected_source"])),
+                source_bytes(&source_value(&v1_owner_ref))
+            );
+            assert_eq!(
+                request["fields"]["qualifiers"]["temporal_claim_carrier"]["recurrence"]["pattern"],
+                intent["input"]["recurrence_pattern"]
+            );
+            assert_eq!(
+                request["fields"]["qualifiers"].as_object().unwrap().len(),
+                1
+            );
+            assert!(request["fields"]["qualifiers"].get("statement").is_none());
+            assert!(
+                request["fields"]["qualifiers"]
+                    .get("carrier_fixture_sibling")
+                    .is_none()
+            );
+            for key in ["relative_relations", "future_packet"] {
+                assert_eq!(
+                    request["fields"]["qualifiers"]["temporal_claim_carrier"][key],
+                    v1_record["qualifiers"]["temporal_claim_carrier"][key]
+                );
+            }
+            assert_eq!(request["forms"], bindings["forms"]);
+            let reason = request["reason"].as_str().unwrap();
+            assert!(reason.chars().count() <= 4096);
+            let reason: Value = serde_json::from_str(reason).unwrap();
+            assert_eq!(reason["preserved_intent"], intent);
+            let preserved =
+                emit_value_preserved_json(&intent_value, JsonLimits::default()).unwrap();
+            assert_eq!(
+                template["intent_preserved_text_sha256"],
+                Digest256::of_bytes(&preserved).to_prefixed()
+            );
+            assert_eq!(
+                template["intent_canonical_sha256"],
+                Digest256::of_bytes(&source_bytes(&intent_value)).to_prefixed()
+            );
+            assert_eq!(
+                template["emitted_owner_request_sha256"],
+                Digest256::of_bytes(&source_bytes(&source_value(request))).to_prefixed()
+            );
+            assert_eq!(
+                template["configuration_raw_sha256"],
+                Digest256::of_bytes(&configuration_raw).to_prefixed()
+            );
+            assert_eq!(
+                template["configuration_canonical_sha256"],
+                configuration_sha.to_prefixed()
+            );
+            direct_worker.finish(deadline, &cancellation).unwrap();
+            assert_eq!(read_control(), control_before);
+            for (name, raw) in &original_files {
+                assert_eq!(
+                    &fs::read(isolated.path().join(home).join(name)).unwrap(),
+                    raw
+                );
+            }
+            let mut unchanged = authored_text_files(isolated.path());
+            unchanged.remove("ToS/source-witnesses/.historical-create.writer.lock");
+            assert_eq!(unchanged, current_files);
+            assert_eq!(direct_context.request_raw, sentinel);
+            drop(template);
+            drop(prepared_packet);
+            drop(generic);
+            drop(direct_worker);
+            drop(direct_context);
+            drop(filesystem);
+            drop(current_cut);
+            drop(original_cut);
+            // Construct the existing pure Unknown-END plan only after the
+            // recurrence owner/context lifetime ends, then consume it below.
+            let unknown_plan = plan_claim_intent(
+                &unknown_intent,
+                &source_value(&unknown_binding),
+                &target,
+                codec_budget,
+                budget,
+            )
+            .unwrap();
+            assert!(!unknown_plan.owner_checked());
+            assert_eq!(unknown_plan.basis_status(), "SourceSuppliedUnverified");
+            Some((unknown_plan, unknown_source, unknown_binding))
+        } else {
+            None
+        };
+        let (owner_preview, revision, history_template) = if date_variant {
+            // Consume the generic history TEMPLATE through the SAME native
+            // writer below. Explicit synthetic object supplement, not inferred
+            // Gregorian/year numbering/wording for the original year string.
+            use std::io::Read;
+            use tos_command::source_creation_store::CreationFilesystem;
+            use tos_command::temporal_claim_intent::{
+                ClaimIntentPrepareBudget, plan_claim_intent, prepare_claim_intent_from_captures,
+            };
+            use tos_foundation::emit_value_preserved_json;
+            use tos_validation::executor::ExactWorkerIdentity;
+            use tos_validation::source_cut::{
+                CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+            };
+            let mut oracle_raw = Vec::new();
+            fs::File::open(repository.join(
+                "tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json",
+            ))
+            .unwrap()
+            .take(262_145)
+            .read_to_end(&mut oracle_raw)
+            .unwrap();
+            assert!(oracle_raw.len() <= 262_144);
+            assert_eq!(
+                Digest256::of_bytes(&oracle_raw).to_hex(),
+                "fda08fd958914a3605afab12e7b78012a3f5534ecfdffe2ab31cb2cb3a26eecd"
+            );
+            let oracle: Value = serde_json::from_slice(&oracle_raw).unwrap();
+            let original = oracle["vectors"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|v| v["id"] == "history_revision")
+                .unwrap();
+            let intent = serde_json::json!({"schema_version":"tos_temporal_claim_intent_v1",
+                "operation":original["operation"],"source_profile":original["source_profile"],
+                "input":original["input"],"context":original["context"]});
+            // This alias table is fixture evidence, not a mapper resolver or
+            // persisted chronology. r1 points to the actual retained v1 packet.
+            assert_eq!(
+                intent["input"]["prior_chronology_members"],
+                serde_json::json!(["event-A@r1"])
+            );
+            assert_eq!(
+                frozen.member_claim_revisions,
+                vec![exact_ref(&v1_owner_ref)]
+            );
+            assert_eq!(frozen.selection.source_snapshot.revision, current);
+            let configuration_raw = fs::read(&revision_path).unwrap();
+            let configuration_sha =
+                Digest256::of_bytes(&source_bytes(&source_value(&revision_owner)));
+            let bindings = serde_json::json!({"schema_version":"tos_temporal_claim_intent_binding_v1",
+                "target":{"alias":"event-A","revision_alias":"r1","next_revision_alias":"r2",
+                    "source":v1_owner_ref,"source_path":source_path,"source_revision":current.0.to_prefixed(),
+                    "configuration_digest":configuration_sha.to_prefixed()},
+                "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
+                "authored_reason":"Explicit synthetic history alias and complete existing fixture Gregorian object supplement; no persisted chronology or historical-source admission.",
+                "mapping_profile":"fixture:explicit-historical-date-object-supplement-v1",
+                "payload":date_object("1946"),"identities":{},"sources":{},"trs":{}});
+            let budget = ClaimIntentPrepareBudget {
+                max_extra_owned_bytes: 134_217_728,
+                max_extra_json_visits: 1_000_000,
+                max_preview_bytes: 4_194_304,
+                max_output_bytes: 1_048_576,
+            };
+            let intent_value = source_value(&intent);
+            let plan = plan_claim_intent(
+                &intent_value,
+                &source_value(&bindings),
+                &source_value(&v1_record),
+                codec_budget,
+                budget,
+            )
+            .unwrap();
+            assert!(!plan.owner_checked());
+            assert_eq!(plan.basis_status(), "SourceSuppliedUnverified");
+            let original_cut = open_cut(&store, base, deadline, &cancellation);
+            let current_cut = open_cut(&store, current, deadline, &cancellation);
+            let filesystem = CreationFilesystem::select_isolated(
+                &isolated,
+                &revision_path,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            let sentinel = source_bytes(&source_value(&serde_json::json!({
+                "schema_version":"tos_local_source_command_v1","operation":"describe"})));
+            let selected_inputs = || {
+                current_files
+                    .iter()
+                    .chain(files.iter().filter(|(name, _)| !name.starts_with("ToS/")))
+            };
+            assert!(selected_inputs().count() <= 2048);
+            assert!(
+                selected_inputs()
+                    .try_fold(0usize, |n, (_, raw)| n.checked_add(raw.len()))
+                    .unwrap()
+                    <= 33_554_432
+            );
+            let mut direct_context = tos_command::source_command::CommandContext {
+                base_revision: current,
+                configuration_raw: configuration_raw.clone(),
+                request_raw: sentinel.clone(),
+                recorded_at: created["result"]["receipt"]["recorded_at"]
+                    .as_str()
+                    .unwrap()
+                    .into(),
+                effective_uid: u64::from(uid),
+                files: selected_inputs()
+                    .map(|(name, raw)| tos_command::source_command::SourceFile {
+                        path: tos_foundation::RelativePath::parse(name).unwrap(),
+                        raw: raw.clone(),
+                    })
+                    .collect(),
+            };
+            let control_path = isolated
+                .path()
+                .join("ToS/source-witnesses/.metadata-publication.json");
+            let read_control = || match fs::File::open(&control_path) {
+                Ok(file) => {
+                    let mut raw = Vec::new();
+                    file.take(8193).read_to_end(&mut raw).unwrap();
+                    assert!(raw.len() <= 8192);
+                    Some(raw)
+                }
+                Err(e) => {
+                    assert_eq!(e.kind(), std::io::ErrorKind::NotFound);
+                    None
+                }
+            };
+            let control_before = read_control();
+            let mut worker_budget = ExecutorBudget::laboratory();
+            worker_budget.execution_wall = deadline
+                .saturating_duration_since(Instant::now())
+                .min(worker_budget.execution_wall);
+            assert!(!worker_budget.execution_wall.is_zero());
+            let mut direct_worker = CutWorkerSchemaExecutor::from_cut(
+                &current_cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                ExactWorkerIdentity {
+                    absolute_path: worker_image.clone(),
+                    sha256: Digest256::from_prefixed(
+                        invocation["schema_worker"]["sha256"].as_str().unwrap(),
+                    )
+                    .unwrap(),
+                },
+                worker_budget,
+                CutWorkerLimits {
+                    max_receipts: 128,
+                    max_receipt_bytes: 262_144,
+                },
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            let mut generic = prepare_claim_intent_from_captures(
+                &filesystem,
+                &mut direct_context,
+                &original_cut,
+                &current_cut,
+                &software,
+                &components,
+                &mut direct_worker,
+                plan,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            assert_eq!(direct_context.request_raw, sentinel);
+            assert_eq!(direct_context.configuration_raw, configuration_raw);
+            assert!(generic.owner_checked());
+            let packet = generic.prepared_packet().unwrap();
+            let packet: Value = serde_json::from_slice(&source_bytes(&packet)).unwrap();
+            assert_eq!(
+                packet["schema_version"],
+                "tos_temporal_claim_intent_prepared_v1"
+            );
+            assert_eq!(packet["status"], "PreparedNotCommitted");
+            let template = generic
+                .commit_request_template("synthetic:whole-native-claim-cli-revision")
+                .unwrap();
+            let template: Value = serde_json::from_slice(&source_bytes(&template)).unwrap();
+            assert_eq!(
+                template["schema_version"],
+                "tos_temporal_claim_intent_commit_template_v1"
+            );
+            assert_eq!(template["status"], "CommitTemplateNotCommitted");
+            for envelope in [&packet, &template] {
+                assert_eq!(envelope["owner_checked"], true);
+                assert_eq!(envelope["basis_status"], "SourceSuppliedUnverified");
+                assert_eq!(envelope["profile_status"], "SourceSuppliedAttributionOnly");
+                assert_eq!(envelope["grants_admission"], false);
+            }
+            let request = &template["request"];
+            assert_eq!(request["operation"], "claim.revise");
+            assert_eq!(
+                request["fields"],
+                serde_json::json!({"object":date_object("1946")})
+            );
+            assert_eq!(request["forms"], bindings["forms"]);
+            for (dst, src) in [
+                ("expected_configuration", "owner_configuration"),
+                ("expected_source", "source"),
+                ("expected_revision", "revision"),
+                ("expected_dependencies", "expected_dependencies"),
+                ("expected_inputs", "source_bindings"),
+            ] {
+                assert_eq!(
+                    source_bytes(&source_value(&request[dst])),
+                    source_bytes(&source_value(&packet["owner_preview"][src]))
+                );
+            }
+            assert_eq!(
+                source_bytes(&source_value(&request["expected_source"])),
+                source_bytes(&source_value(&v1_owner_ref))
+            );
+            let reason = request["reason"].as_str().unwrap();
+            assert!(reason.chars().count() <= 4096);
+            let reason: Value = serde_json::from_str(reason).unwrap();
+            assert_eq!(reason["preserved_intent"], intent);
+            assert_eq!(
+                template["intent_preserved_text_sha256"],
+                Digest256::of_bytes(
+                    &emit_value_preserved_json(&intent_value, JsonLimits::default()).unwrap()
+                )
+                .to_prefixed()
+            );
+            assert_eq!(
+                template["intent_canonical_sha256"],
+                Digest256::of_bytes(&source_bytes(&intent_value)).to_prefixed()
+            );
+            assert_eq!(
+                template["emitted_owner_request_sha256"],
+                Digest256::of_bytes(&source_bytes(&source_value(request))).to_prefixed()
+            );
+            assert_eq!(
+                template["configuration_raw_sha256"],
+                Digest256::of_bytes(&configuration_raw).to_prefixed()
+            );
+            assert_eq!(
+                template["configuration_canonical_sha256"],
+                configuration_sha.to_prefixed()
+            );
+            direct_worker.finish(deadline, &cancellation).unwrap();
+            assert_eq!(read_control(), control_before);
+            for (name, raw) in &original_files {
+                assert_eq!(
+                    &fs::read(isolated.path().join(home).join(name)).unwrap(),
+                    raw
+                );
+            }
+            let mut unchanged = authored_text_files(isolated.path());
+            unchanged.remove("ToS/source-witnesses/.historical-create.writer.lock");
+            assert_eq!(unchanged, current_files);
+            // Honest normalized owner_preview, NOT a fabricated native result
+            // envelope. Consume exact template.request, without field rewrites.
+            (
+                packet["owner_preview"].clone(),
+                request.clone(),
+                Some(template),
+            )
+        } else {
+            // ONE generic Unknown-END prepare replaces the former native prepare.
+            // The existing commit/replay below consumes the exact template request.
+            use std::io::Read;
+            use tos_command::source_creation_store::CreationFilesystem;
+            use tos_command::temporal_claim_intent::prepare_claim_intent_from_captures;
+            use tos_foundation::emit_value_preserved_json;
+            use tos_validation::executor::ExactWorkerIdentity;
+            use tos_validation::source_cut::{
+                CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
+            };
+            let (plan, intent, bindings) = unknown_commit.unwrap();
+            let intent_value = source_value(&intent);
+            let configuration_raw = fs::read(&revision_path).unwrap();
+            let configuration_sha =
+                Digest256::of_bytes(&source_bytes(&source_value(&revision_owner)));
+            let original_cut = open_cut(&store, base, deadline, &cancellation);
+            let current_cut = open_cut(&store, current, deadline, &cancellation);
+            let filesystem = CreationFilesystem::select_isolated(
+                &isolated,
+                &revision_path,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            let sentinel = source_bytes(&source_value(&serde_json::json!({
+                "schema_version":"tos_local_source_command_v1","operation":"describe"})));
+            let selected_inputs = || {
+                current_files
+                    .iter()
+                    .chain(files.iter().filter(|(name, _)| !name.starts_with("ToS/")))
+            };
+            assert!(selected_inputs().count() <= 2048);
+            assert!(
+                selected_inputs()
+                    .try_fold(0usize, |n, (_, raw)| n.checked_add(raw.len()))
+                    .unwrap()
+                    <= 33_554_432
+            );
+            let mut direct_context = tos_command::source_command::CommandContext {
+                base_revision: current,
+                configuration_raw: configuration_raw.clone(),
+                request_raw: sentinel.clone(),
+                recorded_at: created["result"]["receipt"]["recorded_at"]
+                    .as_str()
+                    .unwrap()
+                    .into(),
+                effective_uid: u64::from(uid),
+                files: selected_inputs()
+                    .map(|(name, raw)| tos_command::source_command::SourceFile {
+                        path: tos_foundation::RelativePath::parse(name).unwrap(),
+                        raw: raw.clone(),
+                    })
+                    .collect(),
+            };
+            assert!(
+                direct_context.files.len() <= 2048
+                    && direct_context
+                        .files
+                        .iter()
+                        .try_fold(0usize, |n, f| n.checked_add(f.raw.len()))
+                        .unwrap()
+                        <= 33_554_432
+            );
+            let control_path = isolated
+                .path()
+                .join("ToS/source-witnesses/.metadata-publication.json");
+            let read_control = || match fs::File::open(&control_path) {
+                Ok(file) => {
+                    let mut raw = Vec::new();
+                    file.take(8193).read_to_end(&mut raw).unwrap();
+                    assert!(raw.len() <= 8192);
+                    Some(raw)
+                }
+                Err(e) => {
+                    assert_eq!(e.kind(), std::io::ErrorKind::NotFound);
+                    None
+                }
+            };
+            let control_before = read_control();
+            let mut worker_budget = ExecutorBudget::laboratory();
+            worker_budget.execution_wall = deadline
+                .saturating_duration_since(Instant::now())
+                .min(worker_budget.execution_wall);
+            assert!(!worker_budget.execution_wall.is_zero());
+            let mut direct_worker = CutWorkerSchemaExecutor::from_cut(
+                &current_cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                ExactWorkerIdentity {
+                    absolute_path: worker_image.clone(),
+                    sha256: Digest256::from_prefixed(
+                        invocation["schema_worker"]["sha256"].as_str().unwrap(),
+                    )
+                    .unwrap(),
+                },
+                worker_budget,
+                CutWorkerLimits {
+                    max_receipts: 128,
+                    max_receipt_bytes: 262_144,
+                },
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            let mut generic = prepare_claim_intent_from_captures(
+                &filesystem,
+                &mut direct_context,
+                &original_cut,
+                &current_cut,
+                &software,
+                &components,
+                &mut direct_worker,
+                plan,
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+            assert_eq!(direct_context.request_raw, sentinel);
+            assert_eq!(direct_context.configuration_raw, configuration_raw);
+            assert!(generic.owner_checked());
+            let packet = generic.prepared_packet().unwrap();
+            let packet: Value = serde_json::from_slice(&source_bytes(&packet)).unwrap();
+            assert_eq!(
+                packet["schema_version"],
+                "tos_temporal_claim_intent_prepared_v1"
+            );
+            assert_eq!(packet["status"], "PreparedNotCommitted");
+            let template = generic
+                .commit_request_template("synthetic:whole-native-claim-cli-revision")
+                .unwrap();
+            let template: Value = serde_json::from_slice(&source_bytes(&template)).unwrap();
+            assert_eq!(
+                template["schema_version"],
+                "tos_temporal_claim_intent_commit_template_v1"
+            );
+            assert_eq!(template["status"], "CommitTemplateNotCommitted");
+            for envelope in [&packet, &template] {
+                assert_eq!(envelope["owner_checked"], true);
+                assert_eq!(envelope["basis_status"], "SourceSuppliedUnverified");
+                assert_eq!(envelope["profile_status"], "SourceSuppliedAttributionOnly");
+                assert_eq!(envelope["grants_admission"], false);
+            }
+            let request = &template["request"];
+            assert_eq!(request["operation"], "claim.revise");
+            assert_eq!(request["fields"].as_object().unwrap().len(), 1);
+            assert!(request["fields"].get("qualifiers").is_some());
+            // The owner merges this one-key qualifier PATCH into the record.
+            // Only the full carrier appears here; sibling/statement stay in v1.
+            assert!(v1_raw.len() <= 16_384);
+            let mut expected_carrier = v1_record["qualifiers"]["temporal_claim_carrier"].clone();
+            expected_carrier["validity"] = bindings["payload"]["validity"].clone();
+            assert_eq!(
+                request["fields"]["qualifiers"].as_object().unwrap().len(),
+                1
+            );
+            assert_eq!(
+                request["fields"]["qualifiers"]["temporal_claim_carrier"],
+                expected_carrier
+            );
+            assert!(request["fields"]["qualifiers"].get("statement").is_none());
+            assert!(
+                request["fields"]["qualifiers"]
+                    .get("carrier_fixture_sibling")
+                    .is_none()
+            );
+            assert_eq!(request["forms"], bindings["forms"]);
+            for (dst, src) in [
+                ("expected_configuration", "owner_configuration"),
+                ("expected_source", "source"),
+                ("expected_revision", "revision"),
+                ("expected_dependencies", "expected_dependencies"),
+                ("expected_inputs", "source_bindings"),
+            ] {
+                assert_eq!(
+                    source_bytes(&source_value(&request[dst])),
+                    source_bytes(&source_value(&packet["owner_preview"][src]))
+                );
+            }
+            assert_eq!(
+                source_bytes(&source_value(&request["expected_source"])),
+                source_bytes(&source_value(&v1_owner_ref))
+            );
+            let reason = request["reason"].as_str().unwrap();
+            assert!(reason.chars().count() <= 4096);
+            let reason: Value = serde_json::from_str(reason).unwrap();
+            assert_eq!(reason["preserved_intent"], intent);
+            assert_eq!(
+                template["intent_preserved_text_sha256"],
+                Digest256::of_bytes(
+                    &emit_value_preserved_json(&intent_value, JsonLimits::default()).unwrap()
+                )
+                .to_prefixed()
+            );
+            assert_eq!(
+                template["intent_canonical_sha256"],
+                Digest256::of_bytes(&source_bytes(&intent_value)).to_prefixed()
+            );
+            assert_eq!(
+                template["emitted_owner_request_sha256"],
+                Digest256::of_bytes(&source_bytes(&source_value(request))).to_prefixed()
+            );
+            assert_eq!(
+                template["configuration_raw_sha256"],
+                Digest256::of_bytes(&configuration_raw).to_prefixed()
+            );
+            assert_eq!(
+                template["configuration_canonical_sha256"],
+                configuration_sha.to_prefixed()
+            );
+            direct_worker.finish(deadline, &cancellation).unwrap();
+            drop(generic);
+            drop(direct_worker);
+            assert_eq!(read_control(), control_before);
+            for (name, raw) in &original_files {
+                assert_eq!(
+                    &fs::read(isolated.path().join(home).join(name)).unwrap(),
+                    raw
+                );
+            }
+            let mut unchanged = authored_text_files(isolated.path());
+            unchanged.remove("ToS/source-witnesses/.historical-create.writer.lock");
+            assert_eq!(unchanged, current_files);
+            assert_eq!(direct_context.request_raw, sentinel);
+            drop(direct_context);
+            // Honest normalized owner_preview, NOT a fabricated native result
+            // envelope. Consume exact template.request, without field rewrites.
+            (
+                packet["owner_preview"].clone(),
+                request.clone(),
+                Some(template),
+            )
+        };
+        let revised = alignment_native_cli(
+            &repository,
+            &revision_path,
+            &invocation_path,
+            &revision,
+            deadline,
+        );
+        assert_eq!(revised["result"]["replayed"], false);
+        assert_eq!(revised["result"]["source"]["version"], 2);
+        assert_eq!(revised["result"]["receipt"]["grants_admission"], false);
+        if let Some(template) = &history_template {
+            let receipt = &revised["result"]["receipt"];
+            assert_eq!(
+                receipt["request_digest"],
+                template["emitted_owner_request_sha256"]
+            );
+            assert_eq!(
+                source_bytes(&source_value(&receipt["request"])),
+                source_bytes(&source_value(&revision))
+            );
+            assert_eq!(receipt["reason"], revision["reason"]);
+            assert_eq!(
+                source_bytes(&source_value(&receipt["previous_source"])),
+                source_bytes(&source_value(&v1_owner_ref))
+            );
+            // Explicit symbolic aliases bind actual returned refs, not invented
+            // records; the original chronology token remains a pure fixture.
+            if date_variant {
+                let aliases = serde_json::json!({"event-A@r1":v1_owner_ref,"event-A@r2":revised["result"]["source"]});
+                assert_eq!(
+                    exact_ref(&aliases["event-A@r1"]),
+                    frozen.member_claim_revisions[0]
+                );
+                assert_eq!(aliases["event-A@r2"]["id"], aliases["event-A@r1"]["id"]);
+                assert_eq!(aliases["event-A@r1"]["version"], 1);
+                assert_eq!(aliases["event-A@r2"]["version"], 2);
+            } else {
+                // The original Unknown-END input has only state-B/r1, no r2 alias.
+                let aliases = serde_json::json!({"state-B@r1":v1_owner_ref});
+                assert_eq!(
+                    exact_ref(&aliases["state-B@r1"]),
+                    frozen.member_claim_revisions[0]
+                );
+                assert_eq!(aliases["state-B@r1"]["version"], 1);
+                assert_eq!(
+                    revised["result"]["source"]["id"],
+                    aliases["state-B@r1"]["id"]
+                );
+                assert_eq!(revised["result"]["source"]["version"], 2);
+            }
+        }
+        let mut successor_files = authored_text_files(isolated.path());
+        successor_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+        let revised_cut = successor(&successor_files, &store, current);
+        invocation["source_revision"] = serde_json::json!(revised_cut.0.to_prefixed());
+        write_invocation(&invocation);
+        let retry = alignment_native_cli(
+            &repository,
+            &revision_path,
+            &invocation_path,
+            &revision,
+            deadline,
+        );
+        assert_eq!(retry["result"]["replayed"], true);
+        assert_eq!(retry["result"]["receipt"], revised["result"]["receipt"]);
+        // Actual cold public owner reads against the newly written v2 cut, then
+        // independently inspect the exact v1 member frozen before the real revision.
+        let describe = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"describe"});
+        let described = alignment_native_cli(
+            &repository,
+            &revision_path,
+            &invocation_path,
+            &describe,
+            deadline,
+        );
+        let v2_raw = fs::read(isolated.path().join(&source_path)).unwrap();
+        let v2_record: Value = serde_json::from_slice(&v2_raw).unwrap();
+        assert_eq!(v2_record["claim_id"], v1_record["claim_id"]);
+        assert_eq!(v2_record["claim_version"], 2);
+        if date_variant {
+            assert_eq!(v1_record["object"], date_object("1945"));
+            assert_eq!(v2_record["object"], date_object("1946"));
+            // Locate the actual published set by its schema/subject, then bind
+            // its selected form to the actual revision receipt. No filename
+            // convention supplies the identity or pretends initial creation.
+            let published_sets = fs::read_dir(isolated.path().join(home))
+                .unwrap()
+                .filter_map(|entry| {
+                    let entry = entry.unwrap();
+                    if !entry.file_type().unwrap().is_file() {
+                        return None;
+                    }
+                    let raw = fs::read(entry.path()).unwrap();
+                    let set: Value = serde_json::from_slice(&raw).ok()?;
+                    (set["schema_version"] == "tos_human_form_set_v1").then_some(set)
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(published_sets.len(), 1);
+            let set = &published_sets[0];
+            assert_eq!(set["subject"], source_ref(&v2_record));
+            assert!(set["prior_forms"].as_array().unwrap().is_empty());
+            let forms = set["forms"].as_array().unwrap();
+            assert_eq!(forms.len(), 1);
+            let form = &forms[0];
+            assert_eq!(form["subject"], source_ref(&v2_record));
+            assert_eq!(form["role"], "statement");
+            assert_eq!(form["form_id"], revision_owner["allowed_form_ids"][0]);
+            assert_eq!(form["form_version"], 1);
+            let receipt_forms = revised["result"]["receipt"]["forms"].as_array().unwrap();
+            assert_eq!(receipt_forms.len(), 1);
+            assert_eq!(
+                receipt_forms[0],
+                serde_json::json!({"id":form["form_id"],
+                "version":form["form_version"],"digest":Digest256::of_bytes(&source_bytes(&source_value(form))).to_prefixed()})
+            );
+            assert_eq!(
+                owner_preview["prepared_forms"],
+                revised["result"]["receipt"]["forms"]
+            );
+            let views = described["result"]["materializations"].as_array().unwrap();
+            assert_eq!(views.len(), 1);
+            assert_eq!(views[0]["state"], "ready");
+
+            assert_eq!(v2_record["qualifiers"], v1_record["qualifiers"]);
+            for (key, value) in v1_record.as_object().unwrap() {
+                if key != "object" && key != "claim_version" {
+                    assert_eq!(&v2_record[key], value);
+                }
+            }
+        } else {
+            assert_eq!(
+                v2_record["qualifiers"]["statement"],
+                v1_record["qualifiers"]["statement"]
+            );
+        }
+        assert_eq!(described["result"]["source"], revised["result"]["source"]);
+        assert_eq!(described["result"]["source"], source_ref(&v2_record));
+        assert_ne!(Digest256::of_bytes(&v2_raw), Digest256::of_bytes(&v1_raw));
+        assert_eq!(described["grants_admission"], false);
+        let stored_interval = if date_variant {
+            assert!(
+                decode_claim_carrier(&source_value(&v2_record["qualifiers"]), codec_budget)
+                    .unwrap()
+                    .is_none()
+            );
+            None
+        } else {
+            let stored_unknown =
+                decode_claim_carrier(&source_value(&v2_record["qualifiers"]), codec_budget)
+                    .unwrap()
+                    .unwrap();
+            let expected = decode_claim_carrier(
+                &source_value(&revision["fields"]["qualifiers"]),
+                codec_budget,
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(
+                source_bytes(stored_unknown.original_packet()),
+                source_bytes(expected.original_packet())
+            );
+            assert_eq!(
+                stored_unknown.authority(),
+                CarrierAuthority::SupplementalSourceAssertions
+            );
+            assert_eq!(
+                stored_unknown.legacy_object_assessment(),
+                LegacyObjectAssessment::NotExamined
+            );
+            let Some(CarrierValidity::Interval {
+                beginning,
+                end,
+                basis,
+            }) = stored_unknown.validity()
+            else {
+                panic!(
+                    "actual v2 must retain the explicit beginning and Unknown end, not wholeUnknown or RightCensored"
+                )
+            };
+            let tos_foundation::temporal::Position::Calendar {
+                lexical,
+                resolution,
+                trs,
+                era,
+            } = beginning
+            else {
+                panic!("original lexical beginning must stay a CalendarPosition")
+            };
+            assert_eq!(lexical, "2020-01-01");
+            assert_eq!(resolution, &tos_foundation::temporal::Resolution::Unknown);
+            assert!(trs.is_none() && era.is_none());
+            assert!(matches!(end, tos_foundation::temporal::Boundary::Unknown));
+            assert!(
+                stored_unknown
+                    .relative_relations()
+                    .is_some_and(|rows| rows.is_empty())
+            );
+            assert!(stored_unknown.roles().is_none() && stored_unknown.recurrence().is_none());
+            assert_eq!(basis.source, exact_ref(&v1_owner_ref));
+            assert_eq!(
+                basis
+                    .raw_evidence
+                    .object_get("actual_stream_sha256")
+                    .unwrap()
+                    .as_str(),
+                Some(Digest256::of_bytes(&v1_raw).to_prefixed().as_str())
+            );
+            assert_eq!(
+                basis
+                    .raw_evidence
+                    .object_get("actual_source_cut")
+                    .unwrap()
+                    .as_str(),
+                Some(current.0.to_prefixed().as_str())
+            );
+            assert_eq!(
+                basis
+                    .raw_evidence
+                    .object_get("actual_receipt_command")
+                    .unwrap()
+                    .as_str(),
+                created["result"]["receipt"]["command_id"].as_str()
+            );
+            assert_eq!(
+                basis
+                    .raw_evidence
+                    .object_get("synthetic_assertion_raw")
+                    .unwrap()
+                    .as_str(),
+                Some(raw_lexical)
+            );
+            assert_eq!(
+                v2_record["qualifiers"]["temporal_claim_carrier"]["future_packet"]["large_integer"]
+                    .as_u64(),
+                Some(9007199254740993)
+            );
+            assert!(
+                v2_record["qualifiers"]["temporal_claim_carrier"]["future_packet"]["future"]
+                    .is_null()
+            );
+            assert_eq!(
+                v2_record["qualifiers"]["temporal_claim_carrier"]["future_packet"]["raw_decimal"],
+                raw_lexical
+            );
+            assert_eq!(v2_record["object"], v1_record["object"]);
+            assert_eq!(
+                v2_record["qualifiers"]["carrier_fixture_sibling"],
+                opaque_sibling
+            );
+            assert_eq!(
+                v2_record["qualifiers"]["statement"],
+                v1_record["qualifiers"]["statement"]
+            );
+            for (key, value) in v1_record["qualifiers"].as_object().unwrap() {
+                if key != "temporal_claim_carrier" {
+                    assert_eq!(&v2_record["qualifiers"][key], value);
+                }
+            }
+            for (key, value) in v1_record["qualifiers"]["temporal_claim_carrier"]
+                .as_object()
+                .unwrap()
+            {
+                assert_eq!(
+                    &v2_record["qualifiers"]["temporal_claim_carrier"][key],
+                    value
+                );
+            }
+
+            Some(stored_unknown)
+        };
+        let frozen_member = &frozen.member_claim_revisions[0];
+        let frozen_owner_ref = serde_json::json!({
+            "id":frozen_member.id.as_str(), "version":frozen_member.version.get(),
+            "digest":frozen_member.digest.to_prefixed()
+        });
+        assert_eq!(frozen_owner_ref, v1_owner_ref);
+        let inspect = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"inspect-version","source":frozen_owner_ref});
+        let inspected = alignment_native_cli(
+            &repository,
+            &revision_path,
+            &invocation_path,
+            &inspect,
+            deadline,
+        );
+        assert_eq!(inspected["result"]["record"], v1_record);
+        assert_eq!(inspected["result"]["inspected_source"], v1_owner_ref);
+        assert_eq!(inspected["result"]["source"], described["result"]["source"]);
+        assert_eq!(inspected["grants_admission"], false);
+        let raw_binding = &inspected["result"]["files"]["source-claims.jsonl"];
+        let archive_path = raw_binding["archive_path"].as_str().unwrap();
+        assert!(archive_path.starts_with(
+            &format!("{}/", revised["result"]["receipt"]["archive_path"].as_str().unwrap())
+        ));
+        let archived_raw = fs::read(isolated.path().join(archive_path)).unwrap();
+        assert_eq!(archived_raw, v1_raw);
+        assert_eq!(
+            raw_binding["sha256"],
+            Digest256::of_bytes(&archived_raw).to_prefixed()
+        );
+        assert_eq!(raw_binding["bytes"], serde_json::json!(archived_raw.len()));
+        assert_eq!(
+            fs::read(isolated.path().join(&source_path)).unwrap(),
+            v2_raw
+        );
+
+        let ContextResolution::Resolved(still_frozen) =
+            resolve_query_context(&snapshot, &QueryContext::default(), Some(&frozen)).unwrap()
+        else {
+            panic!("the original selected cut must retain its frozen v1 reading")
+        };
+        assert_eq!(still_frozen.selection, frozen.selection);
+        assert_eq!(
+            still_frozen.chronology_version,
+            Some(frozen.reference.clone())
+        );
+        assert_eq!(
+            frozen.member_claim_revisions[0],
+            exact_ref(&inspected["result"]["inspected_source"])
+        );
+        let revised_snapshot = SourceSnapshot {
+            reference: SourceSnapshotRef {
+                id: snapshot.reference.id.clone(),
+                revision: revised_cut,
+            },
+            current_cutoff: Cutoff {
+                value: source_value(&revised["result"]["receipt"]["recorded_at"]),
+                trs: None,
+            },
+        };
+        assert_eq!(
+            resolve_query_context(&revised_snapshot, &QueryContext::default(), Some(&frozen))
+                .unwrap(),
+            ContextResolution::ContextMismatch(vec![MismatchDimension::SourceRevisionFence])
+        );
+        let ContextResolution::Resolved(new_current) =
+            resolve_query_context(&revised_snapshot, &current_context, None).unwrap()
+        else {
+            panic!("explicit Current must resolve solely against the supplied actual v2 cut")
+        };
+        assert_eq!(new_current.selection.source_snapshot.revision, revised_cut);
+
+        // Fresh process creation replay still reconstructs v1 after the real v2
+        // publication, using its retained predecessor archive and original cut.
+        invocation["owner_config"] = serde_json::json!(owner);
+        write_invocation(&invocation);
+        let old = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+        assert_eq!(old["result"]["replayed"], true);
+        assert_eq!(old["result"]["receipt"], created["result"]["receipt"]);
+        if !date_variant {
+            // A single extra successor fits the unchanged base->v1->v2->v3 cap of four.
+            let v2_owner_ref = revised["result"]["source"].clone();
+            let basis_v2 = actual_basis(
+                &v2_owner_ref,
+                &v2_raw,
+                &revised["result"]["receipt"],
+                revised_cut,
+            );
+            let roles = [
+                "WorldOccurrence",
+                "ActualInterval",
+                "Beginning",
+                "End",
+                "SourceCreation",
+                "SourcePublication",
+                "AttributedKnowledge",
+                "SystemTransaction",
+            ]
+            .iter()
+            .map(|role| {
+                let mut assertion =
+                    serde_json::json!({"synthetic":true,"tag":role,"raw":raw_lexical});
+                if *role == "SystemTransaction" {
+                    assertion["actual_owner_recorded_at"] =
+                        revised["result"]["receipt"]["recorded_at"].clone();
+                }
+                serde_json::json!({"role":role,"assertion":assertion,"basis":basis_v2})
+            })
+            .collect::<Vec<_>>();
+            let censored_packet = serde_json::json!({"schema_version":"tos_temporal_claim_carrier_v1",
+        "relative_relations":[{"subject_a":created["result"]["receipt"]["command_id"],
+            "subject_b":revised["result"]["receipt"]["command_id"],"relation":"before",
+            "source":codec_reference(&v2_owner_ref),"epistemic_status":"explicit-synthetic-source-assertion",
+            "asserted_by":revision_owner["principal_id"],"wording_ref":null,"future_relation":null}],
+        "validity":{"type":"RightCensored","beginning":null,
+            "observed_through":{"type":"CoordinatePosition","value":v2_owner_ref["version"],
+                "unit":"fixture-owner-revision","origin":v2_owner_ref["id"],
+                "trs":{"id":"fixture:explicit-owner-revision-order","version":"fixture-v1"}},
+            "cutoff_basis":basis_v2,"future_validity":null},
+        "roles":roles,
+        "recurrence":{"profile_ref":"fixture:opaque-pattern-v1",
+            "pattern":{"raw":"R/../explicit synthetic recurrence; never expanded",
+                "raw_decimal":raw_lexical,"future":null},"basis":basis_v2},
+        "future_packet":opaque_sibling});
+            let combined = decode_claim_carrier(
+                &source_value(&serde_json::json!({
+        "temporal_claim_carrier":censored_packet})),
+                codec_budget,
+            )
+            .unwrap()
+            .unwrap();
+            let encoded = encode_claim_carrier(
+                &source_value(&v2_record["qualifiers"]),
+                &combined,
+                codec_budget,
+            )
+            .unwrap();
+            let encoded: Value = serde_json::from_slice(&source_bytes(&encoded)).unwrap();
+            invocation["owner_config"] = serde_json::json!(revision_path);
+            write_invocation(&invocation);
+            let carrier_prepare = serde_json::json!({"schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-revise","fields":{"qualifiers":{"temporal_claim_carrier":encoded["temporal_claim_carrier"]}},
         "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
-        "reason":"Actual native CLI correction in an isolated Claim corpus; no assessment."});
-    let prepared = alignment_native_cli(
-        &repository,
-        &revision_path,
-        &invocation_path,
-        &correction,
-        deadline,
-    );
-    let mut revision = correction;
-    revision["operation"] = serde_json::json!("claim.revise");
-    revision["command_id"] = serde_json::json!("synthetic:whole-native-claim-cli-revision");
-    for (field, result_field) in [
-        ("expected_configuration", "owner_configuration"),
-        ("expected_source", "source"),
-        ("expected_revision", "revision"),
-        ("expected_dependencies", "expected_dependencies"),
-        ("expected_inputs", "source_bindings"),
-    ] {
-        revision[field] = prepared["result"][result_field].clone();
+        "reason":"Persist explicit synthetic supplemental temporal assertions using real preceding Claim evidence; legacy object unchanged."});
+            let preview = alignment_native_cli(
+                &repository,
+                &revision_path,
+                &invocation_path,
+                &carrier_prepare,
+                deadline,
+            );
+            let mut carrier_request = carrier_prepare;
+            carrier_request["operation"] = serde_json::json!("claim.revise");
+            carrier_request["command_id"] =
+                serde_json::json!("synthetic:whole-native-claim-carrier-v3");
+            for (field, result_field) in [
+                ("expected_configuration", "owner_configuration"),
+                ("expected_source", "source"),
+                ("expected_revision", "revision"),
+                ("expected_dependencies", "expected_dependencies"),
+                ("expected_inputs", "source_bindings"),
+            ] {
+                carrier_request[field] = preview["result"][result_field].clone();
+            }
+            let written = alignment_native_cli(
+                &repository,
+                &revision_path,
+                &invocation_path,
+                &carrier_request,
+                deadline,
+            );
+            assert_eq!(written["result"]["replayed"], false);
+            assert_eq!(written["result"]["source"]["version"], 3);
+            assert_eq!(
+                written["result"]["receipt"]["previous_source"],
+                v2_owner_ref
+            );
+            assert_eq!(written["result"]["receipt"]["grants_admission"], false);
+            let v3_raw = fs::read(isolated.path().join(&source_path)).unwrap();
+            let v3_record: Value = serde_json::from_slice(&v3_raw).unwrap();
+            assert_eq!(source_ref(&v3_record), written["result"]["source"]);
+            let stored_combined =
+                decode_claim_carrier(&source_value(&v3_record["qualifiers"]), codec_budget)
+                    .unwrap()
+                    .unwrap();
+            assert_eq!(
+                source_bytes(stored_combined.original_packet()),
+                source_bytes(combined.original_packet())
+            );
+            assert_eq!(
+                source_bytes(stored_combined.original_packet()),
+                source_bytes(&source_value(&censored_packet))
+            );
+            assert_eq!(
+                stored_combined.authority(),
+                CarrierAuthority::SupplementalSourceAssertions
+            );
+            assert_eq!(
+                stored_combined.legacy_object_assessment(),
+                LegacyObjectAssessment::NotExamined
+            );
+            let Some(CarrierValidity::RightCensored {
+                beginning,
+                observed_through,
+                cutoff_basis,
+            }) = stored_combined.validity()
+            else {
+                panic!(
+                    "actual v3 bytes must retain explicit RightCensored, not Unknown or unbounded"
+                )
+            };
+            assert!(beginning.is_none());
+            assert_eq!(cutoff_basis.source, exact_ref(&v2_owner_ref));
+            assert!(matches!(
+                observed_through,
+                tos_foundation::temporal::Position::Coordinate { value: 2, .. }
+            ));
+            let relative = &stored_combined.relative_relations().unwrap()[0];
+            assert_eq!(relative.source, exact_ref(&v2_owner_ref));
+            assert_eq!(relative.relation, Relation::Before);
+            assert_eq!(
+                relative.subject_a.as_str(),
+                created["result"]["receipt"]["command_id"].as_str().unwrap()
+            );
+            assert_eq!(
+                relative.subject_b.as_str(),
+                revised["result"]["receipt"]["command_id"].as_str().unwrap()
+            );
+            assert_eq!(
+                stored_combined
+                    .roles()
+                    .unwrap()
+                    .iter()
+                    .map(|role| role.role)
+                    .collect::<Vec<_>>(),
+                vec![
+                    TemporalRole::WorldOccurrence,
+                    TemporalRole::ActualInterval,
+                    TemporalRole::Beginning,
+                    TemporalRole::End,
+                    TemporalRole::SourceCreation,
+                    TemporalRole::SourcePublication,
+                    TemporalRole::AttributedKnowledge,
+                    TemporalRole::SystemTransaction
+                ]
+            );
+            assert_eq!(
+                source_bytes(&stored_combined.recurrence().unwrap().pattern),
+                source_bytes(&source_value(&censored_packet["recurrence"]["pattern"]))
+            );
+            assert!(censored_packet["recurrence"].get("occurrences").is_none());
+            assert_eq!(
+                v3_record["qualifiers"]["carrier_fixture_sibling"],
+                opaque_sibling
+            );
+            assert_eq!(
+                v3_record["qualifiers"]["temporal_claim_carrier"]["future_packet"]["large_integer"]
+                    .as_u64(),
+                Some(9007199254740993)
+            );
+            assert!(
+                v3_record["qualifiers"]["temporal_claim_carrier"]["future_packet"]["future"]
+                    .is_null()
+            );
+            assert_eq!(
+                v3_record["qualifiers"]["temporal_claim_carrier"]["future_packet"]["raw_decimal"],
+                raw_lexical
+            );
+            for (key, value) in v2_record["qualifiers"].as_object().unwrap() {
+                if key != "temporal_claim_carrier" {
+                    assert_eq!(&v3_record["qualifiers"][key], value);
+                }
+            }
+            for key in [
+                "claim_id",
+                "object",
+                "subject_ref",
+                "predicate",
+                "evidence_refs",
+                "epistemic_status",
+                "review_status",
+            ] {
+                assert_eq!(v3_record[key], v2_record[key]);
+            }
+            // Published canonical bytes and retained raw evidence strings have distinct checks.
+            assert_eq!(
+                v3_raw,
+                [source_bytes(&source_value(&v3_record)), b"\n".to_vec()].concat()
+            );
+            assert_ne!(Digest256::of_bytes(&v3_raw), Digest256::of_bytes(&v2_raw));
+            let mut carrier_files = authored_text_files(isolated.path());
+            carrier_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+            let carrier_cut = successor(&carrier_files, &store, revised_cut);
+            invocation["source_revision"] = serde_json::json!(carrier_cut.0.to_prefixed());
+            write_invocation(&invocation);
+            let current_carrier = alignment_native_cli(
+                &repository,
+                &revision_path,
+                &invocation_path,
+                &describe,
+                deadline,
+            );
+            assert_eq!(current_carrier["result"]["source"], source_ref(&v3_record));
+            let previous = alignment_native_cli(
+                &repository,
+                &revision_path,
+                &invocation_path,
+                &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"inspect-version","source":v2_owner_ref}),
+                deadline,
+            );
+            assert_eq!(previous["result"]["record"], v2_record);
+            assert_eq!(previous["result"]["inspected_source"], v2_owner_ref);
+            assert_eq!(previous["result"]["source"], source_ref(&v3_record));
+            assert_eq!(previous["grants_admission"], false);
+            let prior = decode_claim_carrier(
+                &source_value(&previous["result"]["record"]["qualifiers"]),
+                codec_budget,
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(
+                source_bytes(prior.original_packet()),
+                source_bytes(stored_interval.as_ref().unwrap().original_packet())
+            );
+            let Some(CarrierValidity::Interval {
+                beginning,
+                end,
+                basis,
+            }) = prior.validity()
+            else {
+                panic!("cold archived v2 must retain the full Interval")
+            };
+            let tos_foundation::temporal::Position::Calendar {
+                lexical,
+                resolution,
+                trs,
+                era,
+            } = beginning
+            else {
+                panic!("cold archived beginning must retain the original lexical CalendarPosition")
+            };
+            assert_eq!(lexical, "2020-01-01");
+            assert_eq!(resolution, &tos_foundation::temporal::Resolution::Unknown);
+            assert!(trs.is_none() && era.is_none());
+            assert!(matches!(end, tos_foundation::temporal::Boundary::Unknown));
+            assert_eq!(basis.source, exact_ref(&v1_owner_ref));
+            let binding = &previous["result"]["files"]["source-claims.jsonl"];
+            let previous_raw = fs::read(
+                isolated
+                    .path()
+                    .join(binding["archive_path"].as_str().unwrap()),
+            )
+            .unwrap();
+            assert_eq!(previous_raw, v2_raw);
+            assert_eq!(binding["bytes"].as_u64(), Some(previous_raw.len() as u64));
+            assert_eq!(
+                binding["sha256"],
+                Digest256::of_bytes(&previous_raw).to_prefixed()
+            );
+            assert_eq!(
+                fs::read(isolated.path().join(archive_path)).unwrap(),
+                v1_raw
+            );
+            assert_eq!(
+                fs::read(isolated.path().join(&source_path)).unwrap(),
+                v3_raw
+            );
+            assert!(Instant::now() < deadline);
+        }
+        drop(software);
     }
-    let revised = alignment_native_cli(
-        &repository,
-        &revision_path,
-        &invocation_path,
-        &revision,
-        deadline,
-    );
-    assert_eq!(revised["result"]["replayed"], false);
-    assert_eq!(revised["result"]["source"]["version"], 2);
-    assert_eq!(revised["result"]["receipt"]["grants_admission"], false);
-    let mut successor_files = authored_text_files(isolated.path());
-    successor_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
-    let revised_cut = successor(&successor_files, &store, current);
-    invocation["source_revision"] = serde_json::json!(revised_cut.0.to_prefixed());
-    write_invocation(&invocation);
-    let retry = alignment_native_cli(
-        &repository,
-        &revision_path,
-        &invocation_path,
-        &revision,
-        deadline,
-    );
-    assert_eq!(retry["result"]["replayed"], true);
-    assert_eq!(retry["result"]["receipt"], revised["result"]["receipt"]);
-    // Fresh process creation replay still reconstructs v1 after the real v2
-    // publication, using its retained predecessor archive and original cut.
-    invocation["owner_config"] = serde_json::json!(owner);
-    write_invocation(&invocation);
-    let old = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
-    assert_eq!(old["result"]["replayed"], true);
-    assert_eq!(old["result"]["receipt"], created["result"]["receipt"]);
-    drop(software);
 }

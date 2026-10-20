@@ -2229,6 +2229,10 @@ mod command_form_cases;
 #[path = "command_record_cases.rs"]
 mod command_record_cases;
 
+// Reuse the existing revocable Access TEST owner at the actual selected cut.
+#[path = "../../support/selected_metadata_authority.rs"]
+mod selected_metadata_authority;
+
 #[path = "command_claim_cases.rs"]
 mod command_claim_cases;
 

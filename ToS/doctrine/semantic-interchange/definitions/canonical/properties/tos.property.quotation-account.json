@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.quotation-account",
+  "field": "attributes.source_record.semantic_content.quotation_account",
+  "labels": {
+    "default": "Quotation passage account",
+    "ru": "Описание цитирующего места",
+    "en": "Quotation passage account"
+  },
+  "definition": "The particular quoted passage and attribution limits, not a general reference to a work.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.quotation-passage"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "type_id": "tos.entity.repository-object",
+  "parent_type_ids": [
+    "tos.entity.thing"
+  ],
+  "abstract": true,
+  "object_role": "projection",
+  "labels": {
+    "default": "Repository projection object",
+    "ru": "Объект проекции репозитория",
+    "en": "Repository projection object"
+  },
+  "definition": "A representation of repository topology or resources, linked to the files that describe domain subjects.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/derived-exports/AGENTS.md",
+  "source_mappings": [],
+  "supersedes_type_id": null
+}

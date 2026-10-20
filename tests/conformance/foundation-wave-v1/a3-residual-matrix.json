@@ -1,0 +1,52 @@
+{
+  "kind": "A3CoverageResidual",
+  "source": "temporal-core-research.md section A3",
+  "source_sha256": "b1aa6073c14b3ac97b65f8a4cd116acff1c1958e68d11385aac74e7144461ff5",
+  "full_temporal_v1_accepted": false,
+  "rows": [
+    {
+      "operation": "difference",
+      "requirement": "A3 table",
+      "expected": "Comparable boundaries produce explicitly typed elapsed/calendar duration, or unsupported/ambiguous; no implicit mixed interval.",
+      "retained_test": "Pending accepted T1 difference interface and N3-D01\u201303 exact criteria",
+      "evidence": "Original60 has no individual vector; latest executed core does not dispatch this operation.",
+      "status": "pending_operation_owner_binding",
+      "scope": "Acceptance gap; absence of an individual vector is not proof of absent owner implementation."
+    },
+    {
+      "operation": "project_claims",
+      "requirement": "A3 table and perspective invariant14",
+      "expected": "View values retain provenance and disclose loss/warnings; source Claim is unchanged.",
+      "retained_test": "N3-P01/P02/P03 pending owner Claim projection interface",
+      "evidence": "No individual original60 project_claims vector; project_to_postgres_range is a different operation.",
+      "status": "pending_operation_owner_binding",
+      "scope": "Acceptance gap; absence of an individual vector is not proof of absent owner implementation."
+    },
+    {
+      "operation": "add_crosswalk_version",
+      "requirement": "A3 mutation paragraph",
+      "expected": "Append a provenance/version record; prior crosswalk version and source bytes remain readable.",
+      "retained_test": "Pending owner persistence contract; convert tests cover evaluating an explicit immutable mapping only",
+      "evidence": "No individual original60 vector; conversion result is not a durable crosswalk append receipt.",
+      "status": "pending_operation_owner_binding",
+      "scope": "Acceptance gap; absence of an individual vector is not proof of absent owner implementation."
+    },
+    {
+      "operation": "mark_claim_disputed/superseded",
+      "requirement": "A3 mutation paragraph",
+      "expected": "Versioned provenance change preserving exact previous Claim revision and current authorization.",
+      "retained_test": "Existing source_claims history owner tests are bounded supporting evidence; fresh operation-specific state test pending",
+      "evidence": "Existing Claim revision/status routes must be mapped before adding a second owner; flags alone insufficient.",
+      "status": "pending_operation_owner_binding",
+      "scope": "Acceptance gap; absence of an individual vector is not proof of absent owner implementation."
+    },
+    {
+      "operation": "expand_recurrence",
+      "requirement": "A3 explicitly post-v1",
+      "expected": "Future bounded expansion with explicit profile/window; no implementation requested now.",
+      "retained_test": "Original60 recurrence_bounded_expansion retained unchanged and classified PostV1",
+      "evidence": "Outside this implementation wave; Unsupported is a negative result, not expansion support.",
+      "status": "post_v1"
+    }
+  ]
+}

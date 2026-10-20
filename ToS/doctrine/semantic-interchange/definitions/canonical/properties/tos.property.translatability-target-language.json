@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.translatability-target-language",
+  "field": "attributes.value.target_language",
+  "labels": {
+    "default": "Target language of translatability",
+    "ru": "Целевой язык оценки переводимости",
+    "en": "Target language of translatability"
+  },
+  "definition": "The proposed rendering language, not permission or proof that a particular translation exists.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-translatability"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

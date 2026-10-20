@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.annotation-review",
+  "parent_type_ids": [
+    "tos.entity.review"
+  ],
+  "abstract": false,
+  "object_role": "evidence",
+  "labels": {
+    "default": "Annotation review",
+    "ru": "Проверка разметки",
+    "en": "Annotation review"
+  },
+  "definition": "A source-owned review event with explicit scope over claims or segmentations and a recorded assessment basis.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "annotation-review"
+    }
+  ],
+  "supersedes_type_id": null
+}

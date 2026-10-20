@@ -256,6 +256,14 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Check canonical definition topology and generated registry pair
+        env:
+          CARGO_HOME: ${{ runner.temp }}/software-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          cargo run --locked --no-default-features -p tos-ops-mechanics-plan --bin tos-definition-tree -- check-compatibility ToS/doctrine/semantic-interchange/definitions ToS/doctrine/semantic-interchange
+
       - name: Validate software contracts and build browser assets
         run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase checks'
 

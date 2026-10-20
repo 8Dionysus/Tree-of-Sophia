@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.record-version",
+  "parent_type_ids": [
+    "tos.entity.evidence-object"
+  ],
+  "abstract": false,
+  "object_role": "projection",
+  "labels": {
+    "default": "Exact record version",
+    "ru": "Точная версия записи",
+    "en": "Exact record version"
+  },
+  "definition": "An addressable view of an exact source record ID, version and canonical digest. Resolution reports availability and access status explicitly; current use follows the applicable admission.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/record-version-view.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "record-version"
+    }
+  ],
+  "supersedes_type_id": null
+}

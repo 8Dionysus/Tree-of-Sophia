@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.text-layer",
+  "parent_type_ids": [
+    "tos.entity.evidence-object"
+  ],
+  "abstract": false,
+  "object_role": "evidence",
+  "labels": {
+    "default": "Text layer",
+    "ru": "Текстовый слой",
+    "en": "Text layer"
+  },
+  "definition": "An exact text representation bound to its source and version.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "text-layer"
+    }
+  ],
+  "supersedes_type_id": null
+}

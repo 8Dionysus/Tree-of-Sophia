@@ -1,0 +1,49 @@
+{
+  "type_id": "tos.entity.sign",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Sign",
+    "ru": "Знак",
+    "en": "Sign"
+  },
+  "definition": "An authored identity issued for an exact concrete candidate through competent source-visible promotion. Its immutable issuance basis records that historical act; current use follows the applicable admission. Descriptions and HumanForms retain the basis and its limits.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "sign"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "sign"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "creation_gate": "sign-promotion-v1",
+    "record_type": "sign",
+    "id_prefix": "tos.sign.",
+    "source_basename": "sign.json",
+    "catalog_filename": "signs.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_sign_description_record_v1",
+        "schema_ref": "ToS/contracts/sign-description-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

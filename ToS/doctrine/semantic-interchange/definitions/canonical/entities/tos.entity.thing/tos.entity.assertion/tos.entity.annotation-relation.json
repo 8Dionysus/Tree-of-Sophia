@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.annotation-relation",
+  "parent_type_ids": [
+    "tos.entity.assertion"
+  ],
+  "abstract": false,
+  "object_role": "assertion",
+  "labels": {
+    "default": "Asserted relation",
+    "ru": "Заявленное отношение",
+    "en": "Asserted relation"
+  },
+  "definition": "An addressable source relation assertion linked to its exact supporting claim.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "annotation-relation"
+    }
+  ],
+  "supersedes_type_id": null
+}

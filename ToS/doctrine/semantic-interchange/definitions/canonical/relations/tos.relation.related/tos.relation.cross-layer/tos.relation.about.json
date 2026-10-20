@@ -1,0 +1,40 @@
+{
+  "relation_type_id": "tos.relation.about",
+  "parent_relation_type_ids": [
+    "tos.relation.cross-layer"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "about",
+    "ru": "о",
+    "en": "about"
+  },
+  "inverse_labels": {
+    "default": "is subject of",
+    "ru": "является предметом",
+    "en": "is subject of"
+  },
+  "definition": "A source-owned topical relation with explicit grounds for connecting its subjects.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [],
+  "supersedes_relation_type_id": null
+}

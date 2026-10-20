@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.file",
+  "parent_type_ids": [
+    "tos.entity.identity"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "File",
+    "ru": "Файл",
+    "en": "File"
+  },
+  "definition": "One immutable byte sequence addressed by its declared digest.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "file"
+    }
+  ],
+  "supersedes_type_id": null
+}

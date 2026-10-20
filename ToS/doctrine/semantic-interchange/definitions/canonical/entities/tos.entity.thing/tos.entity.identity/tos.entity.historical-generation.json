@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.historical-generation",
+  "parent_type_ids": [
+    "tos.entity.identity"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Historical generation",
+    "ru": "Историческое поколение",
+    "en": "Historical generation"
+  },
+  "definition": "A source-described cohort identified by a declared relation of age, historical experience or generational self-understanding.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "historical-generation"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "historical-generation"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "historical-generation",
+    "id_prefix": "tos.historical-generation.",
+    "source_basename": "historical-generation.json",
+    "catalog_filename": "historical-generations.jsonl",
+    "graph_layer": "historical",
+    "schemas": [
+      {
+        "schema_version": "tos_historical_context_record_v1",
+        "schema_ref": "ToS/contracts/historical-context-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

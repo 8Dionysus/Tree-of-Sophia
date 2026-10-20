@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.thought-method",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Method of thought",
+    "ru": "Метод мышления",
+    "en": "Method of thought"
+  },
+  "definition": "A source-described way of conducting inquiry with explicit applicability conditions.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "thought-method"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "thought-method"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "record_type": "thought-method",
+    "id_prefix": "tos.thought-method.",
+    "source_basename": "thought-method.json",
+    "catalog_filename": "thought-methods.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_thought_practice_record_v1",
+        "schema_ref": "ToS/contracts/thought-practice-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

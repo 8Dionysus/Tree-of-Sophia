@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.biographical-phase-phase-boundary-basis",
+  "field": "attributes.source_record.semantic_content.phase_boundary_basis",
+  "labels": {
+    "default": "Phase boundary basis",
+    "ru": "Основание границ фазы",
+    "en": "Phase boundary basis"
+  },
+  "definition": "Why this research distinguishes the phase; dating and the subject's identity remain separate Claims.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.biographical-phase"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

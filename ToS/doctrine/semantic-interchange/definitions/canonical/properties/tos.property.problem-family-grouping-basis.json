@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.problem-family-grouping-basis",
+  "field": "attributes.source_record.semantic_content.grouping_basis",
+  "labels": {
+    "default": "Problem grouping criterion",
+    "ru": "Основание семейства проблем",
+    "en": "Problem grouping criterion"
+  },
+  "definition": "What makes the grouped difficulties belong together while preserving their differences; membership is not inferred from spelling.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.problem-family"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

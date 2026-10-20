@@ -1,0 +1,46 @@
+{
+  "type_id": "tos.entity.chronology-version",
+  "parent_type_ids": [
+    "tos.entity.identity"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "ChronologyVersion",
+    "ru": "Версия хронологии",
+    "en": "ChronologyVersion"
+  },
+  "definition": "A versioned source-owned frozen knowledge selection with an explicit source cut, concrete selectors, exact Claim revisions and source policy definitions. Persistence proves selected bytes, not historical truth, completeness beyond its declared selection, canon or current access.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/chronology-version-record.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "chronology-version"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "chronology-version"
+    }
+  ],
+  "supersedes_type_id": null,
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "chronology-version",
+    "id_prefix": "tos.chronology-version.",
+    "source_basename": "chronology-version.json",
+    "catalog_filename": "chronology-versions.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_chronology_version_record_v1",
+        "schema_ref": "ToS/contracts/chronology-version-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json"
+        ]
+      }
+    ]
+  }
+}

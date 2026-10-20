@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.script-script-account",
+  "field": "attributes.source_record.semantic_content.script_account",
+  "labels": {
+    "default": "Writing-system account",
+    "ru": "Описание письменности",
+    "en": "Writing-system account"
+  },
+  "definition": "A source-grounded description of a writing system or explicitly scoped writing tradition, not a spoken language.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.script"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

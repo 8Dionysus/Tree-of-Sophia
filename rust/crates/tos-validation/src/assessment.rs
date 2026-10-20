@@ -168,7 +168,452 @@ pub struct AssessmentMechanicsReport {
     work_used: usize,
     input_bytes_used: usize,
 }
+
+/// Static refusal from the C01 private-report retained-state certificate.
+/// This is not an assessment, source-access decision, or allocator/RSS meter.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum AssessmentRetainedFootprintRefusal {
+    UnsupportedShape,
+    Overflow,
+    OwnedLimit,
+    VisitLimit,
+    Workspace,
+}
+
+enum C01ReportFrame<'a> {
+    Node {
+        value: &'a Value,
+        depth: usize,
+    },
+    Array {
+        iter: std::slice::Iter<'a, Value>,
+        depth: usize,
+    },
+    Object {
+        iter: serde_json::map::Iter<'a>,
+        depth: usize,
+    },
+}
+
+#[derive(Clone, Copy)]
+enum C01ReportAction {
+    Pop,
+    Replace,
+    Push,
+}
+
+// Persistent traversal/action state only. External activation and expression
+// values are separately admitted below; unused in-header bytes cannot pay them.
+struct C01ReportHeader<'report, 'visit> {
+    visit: &'visit mut dyn FnMut(usize) -> bool,
+    max_owned: usize,
+    total: usize,
+    field: usize,
+    top: usize,
+    index: usize,
+    depth: usize,
+    length: usize,
+    amount: usize,
+    buckets: usize,
+    bucket_upper: usize,
+    node: Option<&'report Value>,
+    pair: Option<(&'report String, &'report Value)>,
+    action: C01ReportAction,
+}
+
+struct C01ReportWorkspace<'report, 'visit> {
+    frames: [Option<C01ReportFrame<'report>>; 9],
+    replacement: Option<C01ReportFrame<'report>>,
+    header: C01ReportHeader<'report, 'visit>,
+}
+
+type C01FootprintResult<T> = std::result::Result<T, AssessmentRetainedFootprintRefusal>;
+
+impl C01ReportHeader<'_, '_> {
+    fn step(&mut self, units: usize) -> C01FootprintResult<()> {
+        if !(self.visit)(units) {
+            return Err(AssessmentRetainedFootprintRefusal::VisitLimit);
+        }
+        Ok(())
+    }
+
+    fn add(&mut self, bytes: usize) -> C01FootprintResult<()> {
+        self.step(1)?;
+        self.amount = bytes;
+        self.total = self
+            .total
+            .checked_add(self.amount)
+            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+        self.step(1)?;
+        if self.total > self.max_owned {
+            return Err(AssessmentRetainedFootprintRefusal::OwnedLimit);
+        }
+        Ok(())
+    }
+
+    fn value_slots(&mut self, capacity: usize) -> C01FootprintResult<()> {
+        self.step(1)?;
+        self.amount = capacity
+            .checked_mul(std::mem::size_of::<Value>())
+            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+        self.add(self.amount)
+    }
+
+    fn object_slots(&mut self, entries: usize) -> C01FootprintResult<()> {
+        // ONLY this private report's fresh parse/json!/serialization/clone
+        // constructors qualify. M includes initial hints and clone-source
+        // ceilings; none of those constructors clears/reserves an older map.
+        // This is not a capacity certificate for arbitrary external Values.
+        self.step(1)?;
+        if entries == 0 {
+            return Ok(());
+        }
+        self.step(1)?;
+        self.buckets = entries
+            .checked_mul(2)
+            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+        self.step(1)?;
+        self.buckets = self
+            .buckets
+            .max(4)
+            .checked_next_power_of_two()
+            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+        self.step(1)?;
+        self.amount = self
+            .buckets
+            .checked_mul(self.bucket_upper)
+            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+        self.add(self.amount)?;
+        self.step(1)?;
+        self.amount = self
+            .buckets
+            .checked_mul(8)
+            .and_then(|n| n.checked_add(15))
+            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+        self.step(1)?;
+        self.amount &= !15;
+        self.add(self.amount)?;
+        self.add(self.buckets)?;
+        self.add(16)
+    }
+}
+
+impl C01ReportWorkspace<'_, '_> {
+    fn walk(&mut self) -> C01FootprintResult<()> {
+        loop {
+            self.header.step(1)?;
+            if self.header.top == 0 {
+                return Ok(());
+            }
+            self.header.step(1)?;
+            self.header.index = self
+                .header
+                .top
+                .checked_sub(1)
+                .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+            self.header.step(1)?;
+            match self.frames[self.header.index]
+                .as_mut()
+                .ok_or(AssessmentRetainedFootprintRefusal::UnsupportedShape)?
+            {
+                C01ReportFrame::Node { value, depth } => {
+                    self.header.step(1)?; // Value, before its tag or children
+                    self.header.depth = *depth;
+                    self.header.action = C01ReportAction::Pop;
+                    match *value {
+                        Value::Null | Value::Bool(_) => {}
+                        Value::String(text) => {
+                            self.header.step(1)?;
+                            self.header.add(text.capacity())?;
+                        }
+                        Value::Number(number) => {
+                            self.header.step(1)?;
+                            self.header.length = number.as_str().len();
+                            self.header.step(1)?;
+                            if self.header.length != 1 {
+                                return Err(AssessmentRetainedFootprintRefusal::UnsupportedShape);
+                            }
+                            self.header.step(1)?;
+                            self.header.amount = self
+                                .header
+                                .length
+                                .checked_mul(3)
+                                .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+                            self.header.step(self.header.amount)?;
+                            if !matches!(number.as_str(), "1" | "2" | "3") {
+                                return Err(AssessmentRetainedFootprintRefusal::UnsupportedShape);
+                            }
+                            // Pinned canonical U64/itoa + fresh clone/serialize
+                            // ref versions. NOT arbitrary Number::as_str capacity.
+                            self.header.add(16)?;
+                        }
+                        Value::Array(values) => {
+                            self.header.step(1)?;
+                            self.header.value_slots(values.capacity())?;
+                            self.replacement = Some(C01ReportFrame::Array {
+                                iter: values.iter(),
+                                depth: *depth,
+                            });
+                            self.header.action = C01ReportAction::Replace;
+                        }
+                        Value::Object(values) => {
+                            self.header.step(1)?;
+                            self.header.length = values.len();
+                            self.header.object_slots(self.header.length)?;
+                            self.replacement = Some(C01ReportFrame::Object {
+                                iter: values.iter(),
+                                depth: *depth,
+                            });
+                            self.header.action = C01ReportAction::Replace;
+                        }
+                    }
+                }
+                C01ReportFrame::Array { iter, depth } => {
+                    self.header.step(1)?; // includes next(None)
+                    self.header.node = iter.next();
+                    self.header.step(1)?;
+                    self.header.action = if self.header.node.is_some() {
+                        self.header.step(1)?;
+                        self.header.depth = depth
+                            .checked_add(1)
+                            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+                        C01ReportAction::Push
+                    } else {
+                        C01ReportAction::Pop
+                    };
+                }
+                C01ReportFrame::Object { iter, depth } => {
+                    self.header.step(1)?; // includes next(None)
+                    self.header.pair = iter.next();
+                    self.header.step(1)?;
+                    if let Some((key, value)) = self.header.pair {
+                        self.header.step(1)?; // key backing, no key lookup/clone
+                        self.header.add(key.capacity())?;
+                        self.header.node = Some(value);
+                        self.header.step(1)?;
+                        self.header.depth = depth
+                            .checked_add(1)
+                            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+                        self.header.action = C01ReportAction::Push;
+                    } else {
+                        self.header.action = C01ReportAction::Pop;
+                    }
+                }
+            }
+            self.header.step(1)?;
+            match self.header.action {
+                C01ReportAction::Pop => {
+                    self.replacement = self.frames[self.header.index].take();
+                    self.replacement = None;
+                    self.header.top = self.header.index;
+                }
+                C01ReportAction::Replace => {
+                    self.frames[self.header.index] = self.replacement.take();
+                }
+                C01ReportAction::Push => {
+                    self.header.step(1)?;
+                    if self.header.depth > 8 || self.header.top >= self.frames.len() {
+                        return Err(AssessmentRetainedFootprintRefusal::UnsupportedShape);
+                    }
+                    self.header.step(1)?;
+                    self.replacement = Some(C01ReportFrame::Node {
+                        value: self
+                            .header
+                            .node
+                            .take()
+                            .ok_or(AssessmentRetainedFootprintRefusal::UnsupportedShape)?,
+                        depth: self.header.depth,
+                    });
+                    self.frames[self.header.top] = self.replacement.take();
+                    self.header.step(1)?;
+                    self.header.top = self
+                        .header
+                        .top
+                        .checked_add(1)
+                        .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+                }
+            }
+        }
+    }
+}
+
 impl AssessmentMechanicsReport {
+    /// Conservative retained capacity of this privately constructed mechanics
+    /// report for the pinned C01 command graph. This neither authenticates the
+    /// report nor changes current admission. Unsupported layouts/shapes refuse.
+    ///
+    /// BEFORE calling, the command owner must reserve 2816 logical workspace
+    /// bytes and a visit subaccount from its SAME adapter payer. The callback
+    /// consumes that subaccount (false is immediately VisitLimit); it must keep
+    /// its own first error. No workspace/result/visit credit is refunded here.
+    /// This counts Self once; an enclosing result subtracts that inline Self
+    /// size before adding the report's backing. No allocator/RSS claim is made.
+    pub fn c01_retained_footprint_with_visit(
+        &self,
+        max_owned: usize,
+        visit: &mut dyn FnMut(usize) -> bool,
+    ) -> std::result::Result<usize, AssessmentRetainedFootprintRefusal> {
+        if !visit(1) {
+            // report root
+            return Err(AssessmentRetainedFootprintRefusal::VisitLimit);
+        }
+        if !visit(32) {
+            // paid prefix/layout/representation/refusal guards
+            return Err(AssessmentRetainedFootprintRefusal::VisitLimit);
+        }
+        if max_owned == 0 {
+            return Err(AssessmentRetainedFootprintRefusal::OwnedLimit);
+        }
+        // Pinned serde_json1.0.151 preserve_order: Map wraps IndexMap (72
+        // bytes), unlike the BTree representation. Cargo.lock and the selected
+        // command feature graph are part of this certificate, not a new flag.
+        if !cfg!(all(
+            target_os = "linux",
+            target_arch = "x86_64",
+            target_pointer_width = "64"
+        )) || std::mem::size_of::<usize>() != 8
+            || std::mem::size_of::<String>() != 24
+            || std::mem::size_of::<Vec<Value>>() != 24
+            || std::mem::size_of::<serde_json::Map<String, Value>>() != 72
+            || std::mem::size_of::<serde_json::Number>() != 24
+            || std::mem::size_of::<Value>() > 128
+            || std::mem::size_of::<Self>() > 1024
+            || std::mem::align_of::<String>() > 8
+            || std::mem::align_of::<Value>() > 8
+            || std::mem::align_of::<Self>() > 8
+        {
+            return Err(AssessmentRetainedFootprintRefusal::UnsupportedShape);
+        }
+        // Pay the additional outside-workspace inventory/layout/arithmetic
+        // guards BEFORE computing it or constructing any traversal state.
+        if !visit(64) {
+            return Err(AssessmentRetainedFootprintRefusal::VisitLimit);
+        }
+        // Conservative simultaneous SOURCE-value inventory (not machine stack):
+        // four Option<Frame> construction/take/replacement/move temporaries;
+        // one complete Header initializer; eight usize slots for outer inputs
+        // and return; sixteen for ALL nonrecursive helper activation arguments;
+        // sixteen for ALL pattern borrows (including pair/key/value); thirty-two
+        // Option<usize> arithmetic temporaries (27 checked expressions total);
+        // eight Result<usize, E> slots for nested call/?/residual values (maximum
+        // six active method levels); four fat str borrows; thirty-two remaining
+        // scalar/closure/guard/iterator-result slots. These SUM all alternatives
+        // in each category rather than assuming optimizer reuse. Iterators are
+        // bounded by the four whole-frame slots. Header fields, the nine frame
+        // array and replacement already belong to Workspace; moving their owned
+        // state creates no second logical owned array. No compiler-stack/RSS or
+        // callee callback implementation workspace is certified here.
+        let outside_upper = std::mem::size_of::<Option<C01ReportFrame<'_>>>()
+            .checked_mul(4)
+            .and_then(|n| n.checked_add(std::mem::size_of::<C01ReportHeader<'_, '_>>()))
+            .and_then(|n| n.checked_add(8 * std::mem::size_of::<usize>()))
+            .and_then(|n| n.checked_add(16 * std::mem::size_of::<usize>()))
+            .and_then(|n| n.checked_add(16 * std::mem::size_of::<usize>()))
+            .and_then(|n| n.checked_add(32 * std::mem::size_of::<Option<usize>>()))
+            .and_then(|n| n.checked_add(8 * std::mem::size_of::<C01FootprintResult<usize>>()))
+            .and_then(|n| n.checked_add(4 * std::mem::size_of::<&str>()))
+            .and_then(|n| n.checked_add(32 * std::mem::size_of::<usize>()))
+            .ok_or(AssessmentRetainedFootprintRefusal::Workspace)?;
+        // Hard guards precede BOTH frames and complete header construction.
+        if std::mem::size_of::<Option<C01ReportFrame<'_>>>() > 256
+            || std::mem::align_of::<Option<C01ReportFrame<'_>>>() > 16
+            || std::mem::size_of::<C01ReportHeader<'_, '_>>() > 256
+            || std::mem::align_of::<C01ReportHeader<'_, '_>>() > 16
+            || std::mem::size_of::<C01ReportWorkspace<'_, '_>>()
+                .checked_add(outside_upper)
+                .ok_or(AssessmentRetainedFootprintRefusal::Workspace)?
+                > 2816
+        {
+            return Err(AssessmentRetainedFootprintRefusal::Workspace);
+        }
+        let mut counter = C01ReportWorkspace {
+            frames: std::array::from_fn(|_| None),
+            replacement: None,
+            header: C01ReportHeader {
+                visit,
+                max_owned,
+                total: 0,
+                field: 0,
+                top: 0,
+                index: 0,
+                depth: 0,
+                length: 0,
+                amount: 0,
+                buckets: 0,
+                bucket_upper: 0,
+                node: None,
+                pair: None,
+                action: C01ReportAction::Pop,
+            },
+        };
+        counter.header.step(1)?;
+        counter.header.bucket_upper = 8usize
+            .checked_add(24)
+            .and_then(|n| n.checked_add(std::mem::size_of::<Value>()))
+            .and_then(|n| n.checked_add(32))
+            .and_then(|n| n.checked_add(7))
+            .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?
+            & !7;
+        counter.header.add(std::mem::size_of::<Self>())?;
+        loop {
+            counter.header.step(1)?;
+            if counter.header.field == 13 {
+                return Ok(counter.header.total);
+            }
+            counter.header.step(1)?; // each private field before examination
+            match counter.header.field {
+                0 => {
+                    counter.replacement = Some(C01ReportFrame::Node {
+                        value: &self.admission,
+                        depth: 0,
+                    });
+                }
+                1 => {
+                    counter.replacement = Some(C01ReportFrame::Node {
+                        value: &self.scope,
+                        depth: 0,
+                    });
+                }
+                2 => {
+                    counter
+                        .header
+                        .value_slots(self.required_sources.capacity())?;
+                    counter.replacement = Some(C01ReportFrame::Array {
+                        iter: self.required_sources.iter(),
+                        depth: 0,
+                    });
+                }
+                3 => {
+                    counter
+                        .header
+                        .value_slots(self.required_admissions.capacity())?;
+                    counter.replacement = Some(C01ReportFrame::Array {
+                        iter: self.required_admissions.iter(),
+                        depth: 0,
+                    });
+                }
+                // bools, digests, Option<SourceRevision>, Copy schema-binding,
+                // and both usize counters are fully inline in Self.
+                4..=9 | 11..=12 => {}
+                10 => counter.header.add(self.observed_now.capacity())?,
+                _ => return Err(AssessmentRetainedFootprintRefusal::UnsupportedShape),
+            }
+            counter.header.step(1)?;
+            if counter.replacement.is_some() {
+                counter.frames[0] = counter.replacement.take();
+                counter.header.top = 1;
+                counter.walk()?;
+            }
+            counter.header.step(1)?;
+            counter.header.field = counter
+                .header
+                .field
+                .checked_add(1)
+                .ok_or(AssessmentRetainedFootprintRefusal::Overflow)?;
+        }
+    }
+
     pub fn current_admission(&self) -> &Value {
         &self.admission
     }
