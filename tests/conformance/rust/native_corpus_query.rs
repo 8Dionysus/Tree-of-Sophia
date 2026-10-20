@@ -585,6 +585,61 @@ impl ReferenceLimits<'_> {
         Ok(doc.into_root())
     }
     fn canonical_value(&mut self, v: &serde_json::Value) -> NavResult<Vec<u8>> {
+        use tos_foundation::{CanonicalProfile, FoundationError, FoundationErrorCode as Code};
+        // Caller-owned plan/root and return/move holders coexist with either
+        // private workspace; pay them BEFORE constructing the first plan.
+        self.bytes(
+            std::mem::size_of::<CanonicalMeta>()
+                .checked_add(std::mem::size_of::<NavResult<CanonicalMeta>>())
+                .and_then(|n| n.checked_add(std::mem::size_of::<tos_foundation::JsonValue>()))
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<NavResult<tos_foundation::JsonValue>>())
+                })
+                .and_then(|n| n.checked_add(std::mem::size_of::<&serde_json::Value>()))
+                .and_then(|n| n.checked_add(std::mem::size_of::<&mut ReferenceLimits<'_>>()))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let plan = canonical_preflight(v, self)?;
+        let root = canonical_construct(v, self)?;
+        // Same complete retained walk/debit; construction is not a free tree.
+        self.step(plan.values)?;
+        self.bytes(
+            root.retained_storage_bytes()
+                .map_err(|_| ReferenceError::Budget)?,
+        )?;
+        let json = self.json_limits(self.max_output_bytes)?;
+        let available = self.work.left;
+        let deadline = self.work.deadline;
+        let cancelled = self.cancelled;
+        let (bytes, _) =
+            tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+                &root,
+                CanonicalProfile::SourceRecordDigestV1,
+                json,
+                available,
+                &mut || {
+                    if Instant::now() < deadline && !cancelled.load(Ordering::Relaxed) {
+                        Ok(())
+                    } else {
+                        Err(FoundationError::new(
+                            Code::BudgetExceeded,
+                            "reference cutoff",
+                        ))
+                    }
+                },
+                &mut |bytes, visits| {
+                    self.work
+                        .charge(bytes)
+                        .and_then(|_| self.work.visit(visits))
+                        .map_err(|_| {
+                            FoundationError::new(Code::BudgetExceeded, "reference canonical work")
+                        })
+                },
+            )
+            .map_err(|_| ReferenceError::Budget)?;
+        Ok(bytes)
+    }
+    fn canonical_value_legacy(&mut self, v: &serde_json::Value) -> NavResult<Vec<u8>> {
         use tos_foundation::{
             CanonicalProfile, FoundationError, FoundationErrorCode as Code, JsonMode,
         };
@@ -675,6 +730,695 @@ impl ReferenceLimits<'_> {
         self.bytes(fields.checked_mul(192).ok_or(ReferenceError::Budget)?)
     }
 }
+// This is a different CONSTRUCTION, not a cheaper coefficient for value_bound.
+// The old conservative subtree guards and the maintained final writer remain.
+#[derive(Clone, Copy)]
+struct CanonicalMeta {
+    wire: usize,
+    raw: usize,
+    values: usize,
+}
+#[derive(Clone, Copy)]
+struct CanonicalKey {
+    wire: usize,
+    raw: usize,
+}
+struct CanonicalText {
+    raw: usize,
+    units: usize,
+}
+fn canonical_text(text: &str, l: &mut ReferenceLimits<'_>) -> NavResult<CanonicalText> {
+    let mut raw = 2usize;
+    let mut units = 0usize;
+    let mut at = 0usize;
+    while at < text.len() {
+        l.step(1)?;
+        let mut end = at
+            .checked_add(4096)
+            .ok_or(ReferenceError::Budget)?
+            .min(text.len());
+        l.bytes(4)?; // at most one UTF8 scalar's boundary probes BEFORE reads
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        l.bytes(end - at)?; // BEFORE the complete bounded UTF8 metrics read
+        for ch in text[at..end].chars() {
+            units = units
+                .checked_add(ch.len_utf16())
+                .ok_or(ReferenceError::Budget)?;
+            let n = match ch {
+                '"' | '\\' | '\u{8}' | '\t' | '\n' | '\u{c}' | '\r' => 2,
+                '\u{0}'..='\u{1f}' => 6,
+                _ => ch.len_utf8(),
+            };
+            raw = raw.checked_add(n).ok_or(ReferenceError::Budget)?;
+        }
+        at = end;
+    }
+    Ok(CanonicalText { raw, units })
+}
+enum CanonicalPlanFrame<'a> {
+    Array {
+        remaining: std::slice::Iter<'a, serde_json::Value>,
+        meta: CanonicalMeta,
+        members: usize,
+    },
+    Object {
+        remaining: serde_json::map::Iter<'a>,
+        meta: CanonicalMeta,
+        members: usize,
+        pending: Option<CanonicalKey>,
+    },
+}
+struct CanonicalPlanState<'a> {
+    frames: [Option<CanonicalPlanFrame<'a>>; 97],
+    next: Option<&'a serde_json::Value>,
+    ready: Option<CanonicalMeta>,
+    depth: usize,
+}
+fn canonical_plan_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    size_of::<CanonicalPlanState<'_>>()
+        .checked_add(size_of::<[Option<CanonicalPlanFrame<'_>>; 97]>())
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<CanonicalPlanFrame<'_>>()
+                    .max(size_of::<Option<CanonicalPlanFrame<'_>>>())
+                    .max(size_of::<NavResult<CanonicalPlanFrame<'_>>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<CanonicalMeta>()
+                    .max(size_of::<Option<CanonicalMeta>>())
+                    .max(size_of::<NavResult<CanonicalMeta>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<CanonicalText>()
+                    .max(size_of::<Option<CanonicalText>>())
+                    .max(size_of::<NavResult<CanonicalText>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<CanonicalKey>>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(size_of::<Option<(&String, &serde_json::Value)>>().checked_mul(2)?)
+        })
+        .and_then(|n| n.checked_add(size_of::<std::str::Chars<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<char>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<f64>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Number>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn canonical_preflight(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<CanonicalMeta> {
+    use serde_json::Value;
+    l.step(1)?;
+    reference_move_layout()?;
+    l.bytes(canonical_plan_workspace()?)?; // BEFORE either fixed array/state
+    let mut state = CanonicalPlanState {
+        frames: [const { None }; 97],
+        next: Some(v),
+        ready: None,
+        depth: 0,
+    };
+    loop {
+        l.step(1)?;
+        if let Some(value) = state.next.take() {
+            if state.depth > 96 {
+                return Err(ReferenceError::Budget);
+            }
+            let meta = match value {
+                Value::Null => Some(CanonicalMeta {
+                    wire: 4,
+                    raw: 4,
+                    values: 1,
+                }),
+                Value::Bool(b) => Some(CanonicalMeta {
+                    wire: 5,
+                    raw: if *b { 4 } else { 5 },
+                    values: 1,
+                }),
+                Value::Number(n) => {
+                    let raw = n.as_str(); // pinned arbitrary_precision serialization spelling
+                    l.bytes(raw.len().checked_mul(3).ok_or(ReferenceError::Budget)?)?;
+                    l.step(3)?;
+                    let wire = if n.is_i64() || n.is_u64() {
+                        20
+                    } else if n.as_f64().is_some_and(f64::is_finite) {
+                        64
+                    } else {
+                        return Err(ReferenceError::UnsupportedSourceProfile);
+                    };
+                    Some(CanonicalMeta {
+                        wire,
+                        raw: raw.len(),
+                        values: 1,
+                    })
+                }
+                Value::String(text) => {
+                    let wire = text
+                        .len()
+                        .checked_mul(6)
+                        .and_then(|n| n.checked_add(2))
+                        .ok_or(ReferenceError::Budget)?;
+                    let metrics = canonical_text(text, l)?;
+                    Some(CanonicalMeta {
+                        wire,
+                        raw: metrics.raw,
+                        values: 1,
+                    })
+                }
+                Value::Array(values) => {
+                    state.frames[state.depth] = Some(CanonicalPlanFrame::Array {
+                        remaining: values.iter(),
+                        meta: CanonicalMeta {
+                            wire: 2,
+                            raw: 2,
+                            values: 1,
+                        },
+                        members: 0,
+                    });
+                    state.depth += 1;
+                    None
+                }
+                Value::Object(values) => {
+                    state.frames[state.depth] = Some(CanonicalPlanFrame::Object {
+                        remaining: values.iter(),
+                        meta: CanonicalMeta {
+                            wire: 2,
+                            raw: 2,
+                            values: 1,
+                        },
+                        members: 0,
+                        pending: None,
+                    });
+                    state.depth += 1;
+                    None
+                }
+            };
+            if let Some(meta) = meta {
+                if meta.wire > l.max_output_bytes {
+                    return Err(ReferenceError::Budget);
+                }
+                state.ready = Some(meta);
+            }
+            continue;
+        }
+        if let Some(child) = state.ready.take() {
+            if state.depth == 0 {
+                // Exactly the old ACTUAL whole-wire limit, AFTER all old-order W guards.
+                if child.raw > l.max_output_bytes {
+                    return Err(ReferenceError::Budget);
+                }
+                return Ok(child);
+            }
+            let (meta, members, key) = match state.frames[state.depth - 1]
+                .as_mut()
+                .ok_or(ReferenceError::InvalidBinding)?
+            {
+                CanonicalPlanFrame::Array { meta, members, .. } => (meta, members, None),
+                CanonicalPlanFrame::Object {
+                    meta,
+                    members,
+                    pending,
+                    ..
+                } => (
+                    meta,
+                    members,
+                    Some(pending.take().ok_or(ReferenceError::InvalidBinding)?),
+                ),
+            };
+            let (wire_extra, raw_extra) = if let Some(key) = key {
+                (
+                    key.wire,
+                    key.raw.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )
+            } else {
+                (1, 0)
+            };
+            meta.wire = if key.is_some() {
+                meta.wire
+                    .checked_add(wire_extra)
+                    .and_then(|n| n.checked_add(child.wire))
+            } else {
+                meta.wire
+                    .checked_add(child.wire)
+                    .and_then(|n| n.checked_add(1))
+            }
+            .ok_or(ReferenceError::Budget)?;
+            meta.raw = meta
+                .raw
+                .checked_add(raw_extra)
+                .and_then(|n| n.checked_add(child.raw))
+                .and_then(|n| n.checked_add(usize::from(*members != 0)))
+                .ok_or(ReferenceError::Budget)?;
+            meta.values = meta
+                .values
+                .checked_add(child.values)
+                .ok_or(ReferenceError::Budget)?;
+            *members = members.checked_add(1).ok_or(ReferenceError::Budget)?;
+            continue;
+        }
+        if state.depth == 0 {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        let frame = state.frames[state.depth - 1]
+            .as_mut()
+            .ok_or(ReferenceError::InvalidBinding)?;
+        state.next = match frame {
+            CanonicalPlanFrame::Array { remaining, .. } => remaining.next(),
+            CanonicalPlanFrame::Object {
+                remaining, pending, ..
+            } => {
+                if pending.is_some() {
+                    return Err(ReferenceError::InvalidBinding);
+                }
+                if let Some((key, value)) = remaining.next() {
+                    l.step(1)?;
+                    let wire = key
+                        .len()
+                        .checked_mul(6)
+                        .and_then(|n| n.checked_add(4))
+                        .ok_or(ReferenceError::Budget)?;
+                    // Preserve old key+header checked arithmetic BEFORE child;
+                    // its old clone admission is replaced by actual constructor work.
+                    wire.checked_add(96).ok_or(ReferenceError::Budget)?;
+                    let metrics = canonical_text(key, l)?;
+                    // Key is NOT a serde Value: no new independent key W guard.
+                    *pending = Some(CanonicalKey {
+                        wire,
+                        raw: metrics.raw,
+                    });
+                    Some(value)
+                } else {
+                    None
+                }
+            }
+        };
+        if state.next.is_none() {
+            state.depth -= 1;
+            let meta = match state.frames[state.depth]
+                .take()
+                .ok_or(ReferenceError::InvalidBinding)?
+            {
+                CanonicalPlanFrame::Array { meta, .. } => meta,
+                CanonicalPlanFrame::Object {
+                    meta,
+                    pending: None,
+                    ..
+                } => meta,
+                _ => return Err(ReferenceError::InvalidBinding),
+            };
+            // Same POSTORDER guard, before any next sibling/ancestor completion.
+            if meta.wire > l.max_output_bytes {
+                return Err(ReferenceError::Budget);
+            }
+            state.ready = Some(meta);
+        }
+    }
+}
+
+enum CanonicalBuildFrame<'a> {
+    Array {
+        remaining: std::slice::Iter<'a, serde_json::Value>,
+        output: Vec<tos_foundation::JsonValue>,
+    },
+    Object {
+        remaining: serde_json::map::Iter<'a>,
+        output: Vec<(tos_foundation::JsonString, tos_foundation::JsonValue)>,
+        pending: Option<tos_foundation::JsonString>,
+    },
+}
+struct CanonicalBuildState<'a> {
+    frames: [Option<CanonicalBuildFrame<'a>>; 97],
+    next: Option<&'a serde_json::Value>,
+    ready: Option<tos_foundation::JsonValue>,
+    depth: usize,
+    held: usize,
+    available: usize,
+}
+fn canonical_build_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    use tos_foundation::{JsonDocument, JsonString, JsonValue as Source};
+    size_of::<CanonicalBuildState<'_>>()
+        .checked_add(size_of::<[Option<CanonicalBuildFrame<'_>>; 97]>())
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<CanonicalBuildFrame<'_>>()
+                    .max(size_of::<Option<CanonicalBuildFrame<'_>>>())
+                    .max(size_of::<NavResult<CanonicalBuildFrame<'_>>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Source>()
+                    .max(size_of::<Option<Source>>())
+                    .max(size_of::<NavResult<Source>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<JsonString>()
+                    .max(size_of::<Option<JsonString>>())
+                    .max(size_of::<NavResult<JsonString>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<JsonDocument>()
+                    .max(size_of::<
+                        Result<JsonDocument, tos_foundation::FoundationError>,
+                    >())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<CanonicalText>()
+                    .max(size_of::<Option<CanonicalText>>())
+                    .max(size_of::<NavResult<CanonicalText>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(size_of::<Option<(&String, &serde_json::Value)>>().checked_mul(2)?)
+        })
+        .and_then(|n| n.checked_add(size_of::<std::str::EncodeUtf16<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<std::str::Chars<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<[u16; 2]>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<tos_foundation::Result<usize>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<tos_foundation::JsonMode>().checked_mul(2)?))
+        // Scalar parser limits/result, captured cutoff variables/closures and
+        // their trait-object argument holders coexist with the build state.
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<tos_foundation::JsonLimits>()
+                    .max(size_of::<NavResult<tos_foundation::JsonLimits>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Instant>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&AtomicBool>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut dyn FnMut() -> tos_foundation::Result<()>>().checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut dyn FnMut(usize, usize) -> tos_foundation::Result<()>>()
+                    .checked_mul(2)?,
+            )
+        })
+        .ok_or(ReferenceError::Budget)
+}
+fn canonical_state_room(held: usize, peak: usize, available: usize) -> NavResult<()> {
+    if held.checked_add(peak).ok_or(ReferenceError::Budget)? > available {
+        return Err(ReferenceError::Budget);
+    }
+    Ok(())
+}
+fn canonical_string(
+    text: &str,
+    held: &mut usize,
+    available: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<tos_foundation::JsonString> {
+    let metrics = canonical_text(text, l)?;
+    let c = if metrics.units == 0 {
+        0
+    } else {
+        metrics
+            .units
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?
+            .max(4)
+    };
+    let retained = c
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(text.len()))
+        .ok_or(ReferenceError::Budget)?;
+    let peak = c
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(text.len()))
+        .ok_or(ReferenceError::Budget)?;
+    canonical_state_room(*held, peak, available)?;
+    // Pinned collect/doubling law: allocated UTF16 sum<4C; moved bytes<2C;
+    // UTF8 allocation L and encoding/copy reads 2L. No generic allocator claim.
+    l.bytes(
+        c.checked_mul(6)
+            .and_then(|n| text.len().checked_mul(3).and_then(|x| n.checked_add(x)))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.step(3)?;
+    let value = tos_foundation::JsonString::from_utf8(text);
+    l.step(1)?; // fresh cutoff after the bounded maintained constructor
+    if value
+        .retained_storage_bytes()
+        .map_err(|_| ReferenceError::Budget)?
+        > retained
+    {
+        return Err(ReferenceError::Budget);
+    }
+    *held = held.checked_add(retained).ok_or(ReferenceError::Budget)?;
+    Ok(value)
+}
+fn canonical_number(
+    number: &serde_json::Number,
+    held: &mut usize,
+    available: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<tos_foundation::JsonValue> {
+    use tos_foundation::{
+        FoundationError, FoundationErrorCode as Code, JsonMode, JsonValue as Source,
+    };
+    let raw = number.as_str().as_bytes();
+    let capacity = if raw.is_empty() {
+        0
+    } else {
+        raw.len()
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?
+            .max(8)
+    };
+    canonical_state_room(
+        *held,
+        capacity.checked_mul(3).ok_or(ReferenceError::Budget)?,
+        available,
+    )?;
+    // Additional prospective numeric String growth allowance, not a raw copy.
+    // The maintained parser still charges its COMPLETE own scalar route below.
+    l.bytes(capacity)?;
+    l.step(1)?;
+    let mut json = l.json_limits(l.max_output_bytes)?;
+    json.max_depth = 1; // typed numeric COMPONENT; whole tree still checks depth96
+    json.max_visits = 1; // every callback remains on SAME aggregate CurrentReference
+    let state_available = available
+        .checked_sub(*held)
+        .and_then(|n| n.checked_sub(capacity.checked_mul(3)?))
+        .ok_or(ReferenceError::Budget)?
+        .min(l.work.left);
+    let deadline = l.work.deadline;
+    let cancelled = l.cancelled;
+    let doc = tos_foundation::parse_json_with_state_budget_and_admission(
+        raw,
+        JsonMode::PublishedStrict,
+        json,
+        state_available,
+        &mut || {
+            if Instant::now() < deadline && !cancelled.load(Ordering::Relaxed) {
+                Ok(())
+            } else {
+                Err(FoundationError::new(
+                    Code::BudgetExceeded,
+                    "reference numeric cutoff",
+                ))
+            }
+        },
+        &mut |bytes, visits| {
+            l.work
+                .charge(bytes)
+                .and_then(|_| l.work.visit(visits))
+                .map_err(|_| FoundationError::new(Code::BudgetExceeded, "reference numeric work"))
+        },
+    )
+    .map_err(|e| {
+        if e.code == Code::BudgetExceeded {
+            ReferenceError::Budget
+        } else {
+            ReferenceError::InvalidBinding
+        }
+    })?;
+    let root = doc.into_root();
+    match root {
+        Source::Number(number) => {
+            if number.lexeme.capacity() > capacity {
+                return Err(ReferenceError::Budget);
+            }
+            *held = held.checked_add(capacity).ok_or(ReferenceError::Budget)?;
+            Ok(Source::Number(number))
+        }
+        _ => Err(ReferenceError::InvalidBinding),
+    }
+}
+fn canonical_construct(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<tos_foundation::JsonValue> {
+    use serde_json::Value;
+    use std::mem::size_of;
+    use tos_foundation::JsonValue as Source;
+    l.step(1)?;
+    l.bytes(canonical_build_workspace()?)?; // BEFORE frame array/initializers
+    let mut state = CanonicalBuildState {
+        frames: [const { None }; 97],
+        next: Some(v),
+        ready: None,
+        depth: 0,
+        held: 0,
+        available: l.work.left,
+    };
+    loop {
+        l.step(1)?;
+        if let Some(value) = state.next.take() {
+            if state.depth > 96 {
+                return Err(ReferenceError::Budget);
+            }
+            let ready = match value {
+                Value::Null => Some(Source::Null),
+                Value::Bool(v) => Some(Source::Bool(*v)),
+                Value::Number(v) => Some(canonical_number(v, &mut state.held, state.available, l)?),
+                Value::String(v) => Some(Source::String(canonical_string(
+                    v,
+                    &mut state.held,
+                    state.available,
+                    l,
+                )?)),
+                Value::Array(values) => {
+                    let bytes = values
+                        .len()
+                        .checked_mul(size_of::<Source>())
+                        .ok_or(ReferenceError::Budget)?;
+                    canonical_state_room(state.held, bytes, state.available)?;
+                    l.bytes(bytes)?;
+                    l.step(1)?;
+                    state.held = state
+                        .held
+                        .checked_add(bytes)
+                        .ok_or(ReferenceError::Budget)?;
+                    state.frames[state.depth] = Some(CanonicalBuildFrame::Array {
+                        remaining: values.iter(),
+                        output: Vec::with_capacity(values.len()),
+                    });
+                    state.depth += 1;
+                    None
+                }
+                Value::Object(values) => {
+                    let bytes = values
+                        .len()
+                        .checked_mul(size_of::<(tos_foundation::JsonString, Source)>())
+                        .ok_or(ReferenceError::Budget)?;
+                    canonical_state_room(state.held, bytes, state.available)?;
+                    l.bytes(bytes)?;
+                    l.step(1)?;
+                    state.held = state
+                        .held
+                        .checked_add(bytes)
+                        .ok_or(ReferenceError::Budget)?;
+                    state.frames[state.depth] = Some(CanonicalBuildFrame::Object {
+                        remaining: values.iter(),
+                        output: Vec::with_capacity(values.len()),
+                        pending: None,
+                    });
+                    state.depth += 1;
+                    None
+                }
+            };
+            state.ready = ready;
+            continue;
+        }
+        if let Some(value) = state.ready.take() {
+            if state.depth == 0 {
+                return Ok(value);
+            }
+            match state.frames[state.depth - 1]
+                .as_mut()
+                .ok_or(ReferenceError::InvalidBinding)?
+            {
+                CanonicalBuildFrame::Array { output, .. } => {
+                    l.bytes(size_of::<Source>())?;
+                    output.push(value);
+                }
+                CanonicalBuildFrame::Object {
+                    output, pending, ..
+                } => {
+                    l.bytes(size_of::<(tos_foundation::JsonString, Source)>())?;
+                    output.push((pending.take().ok_or(ReferenceError::InvalidBinding)?, value));
+                }
+            }
+            continue;
+        }
+        if state.depth == 0 {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        state.next = match state.frames[state.depth - 1]
+            .as_mut()
+            .ok_or(ReferenceError::InvalidBinding)?
+        {
+            CanonicalBuildFrame::Array { remaining, .. } => remaining.next(),
+            CanonicalBuildFrame::Object {
+                remaining, pending, ..
+            } => {
+                if pending.is_some() {
+                    return Err(ReferenceError::InvalidBinding);
+                }
+                if let Some((key, child)) = remaining.next() {
+                    *pending = Some(canonical_string(key, &mut state.held, state.available, l)?);
+                    Some(child)
+                } else {
+                    None
+                }
+            }
+        };
+        if state.next.is_none() {
+            state.depth -= 1;
+            state.ready = Some(
+                match state.frames[state.depth]
+                    .take()
+                    .ok_or(ReferenceError::InvalidBinding)?
+                {
+                    CanonicalBuildFrame::Array { output, .. } => Source::Array(output),
+                    CanonicalBuildFrame::Object {
+                        output,
+                        pending: None,
+                        ..
+                    } => Source::Object(output),
+                    _ => return Err(ReferenceError::InvalidBinding),
+                },
+            );
+        }
+    }
+}
+
 // A bounded borrowed scan, not a second owned DOM. Every retained root is
 // PublishedStrict plus this complete compatibility walk BEFORE any selection.
 // It deliberately does not apply canonical-value's finite-number/W checks to
@@ -943,7 +1687,7 @@ impl NavigationRegistryView {
         profile.matches(l)?;
         l.step(3)?; // cell lookup and successful initialization/read boundary
         if self.sha.get().is_none() {
-            // Old digest route owns its wire/strict DOM/canonical bytes/string.
+            // First digest uses the complete paid current canonical route.
             // These additional extents cover cell construction/move holders.
             l.bytes(
                 std::mem::size_of::<String>()
@@ -2434,12 +3178,124 @@ fn nav_variant_raw(v: &serde_json::Value, l: &mut ReferenceLimits<'_>) -> NavRes
     l.bytes(bound)?;
     serde_json::to_vec(v).map_err(|_| ReferenceError::InvalidBinding)
 }
+fn canonical_depth_input(
+    depth: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    use serde_json::Value;
+    use std::mem::size_of;
+    l.bytes(
+        depth
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(3))
+            .and_then(|n| n.checked_mul(size_of::<Value>()))
+            .and_then(|n| n.checked_add(size_of::<Vec<Value>>().checked_mul(2)?))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.step(
+        depth
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(1))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let mut value = Value::Null;
+    for _ in 0..depth {
+        let mut parent = Vec::with_capacity(1);
+        parent.push(value);
+        value = Value::Array(parent);
+    }
+    Ok(value)
+}
 fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
     // Borrowed authored literals, not SUT output or a second source oracle. The
     // tiny old-serde comparison is ONLY pinned representation compatibility.
     // All controls use the containing case's SAME remainder and cancellation.
     l.step(1)?;
     reference_move_layout()?; // the comparison reservation uses the SAME pinned layout
+    // Authored typed inputs for canonical CONSTRUCTION compatibility, not SUT
+    // outputs or new semantic goldens. Every allocation/old+new route is paid.
+    use serde_json::{Value as CanonicalValue, json as canonical_json};
+    let text = "quote\" slash\\ line\n\0 é😀";
+    // Five literal cases: 18 Values + 7 keys. Numeric literal formatting uses
+    // the existing bounded scalar envelope; case-array/move headers distinct.
+    l.fixed(25)?;
+    l.bytes(
+        text.len()
+            .checked_add(3 + 4 + 28 + 4 + 1 + 6 + 30 + 28 + 7 + 7 + 7)
+            .and_then(|n| n.checked_add(3 * 64))
+            .and_then(|n| n.checked_add(std::mem::size_of::<CanonicalValue>().checked_mul(12)?))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let depth96 = canonical_depth_input(96, l)?;
+    let depth97 = canonical_depth_input(97, l)?;
+    let canonical_cases = [
+        CanonicalValue::String(text.to_owned()),
+        canonical_json!({"$serde_json::private::Number":"123","tail":[true,null]}),
+        canonical_json!({"a":0,"$serde_json::private::Number":"literal","nested":{"é😀\0":"control","$serde_json::private::RawValue":"null"}}),
+        canonical_json!([{}, [], -0.0, 0.001]),
+        CanonicalValue::Number(reference_number_from_lexeme("1e100", l)?),
+        depth96,
+    ];
+    for value in &canonical_cases {
+        let fresh = l.canonical_value(value)?;
+        let legacy = l.canonical_value_legacy(value)?;
+        l.bytes(
+            fresh
+                .len()
+                .checked_add(legacy.len())
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        l.step(1)?;
+        assert_eq!(
+            fresh, legacy,
+            "complete canonical constructor compatibility"
+        );
+    }
+    // Prepare all negative inputs BEFORE any expected Budget below. No case
+    // uses a new work pool, and no diagnostic candidate is cleared here.
+    l.fixed(11)?; // ten Values plus one key; depth97 was paid independently
+    l.bytes(6 + 8)?; // three "aa" payloads and the exact "long-key" bytes
+    let short = CanonicalValue::String("aa".to_owned());
+    // Positive EXACT conservative-W boundary precedes all expected failures.
+    let saved_ceiling = l.max_output_bytes;
+    l.max_output_bytes = saved_ceiling.min(14);
+    let at_boundary = l.canonical_value(&short)?;
+    let old_boundary = l.canonical_value_legacy(&short)?;
+    l.bytes(
+        at_boundary
+            .len()
+            .checked_add(old_boundary.len())
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.step(1)?;
+    assert_eq!(at_boundary, old_boundary);
+    l.max_output_bytes = saved_ceiling;
+    let early_w = CanonicalValue::Array(vec![
+        CanonicalValue::String("aa".to_owned()),
+        CanonicalValue::Number(reference_number_from_lexeme("1e9999", l)?),
+    ]);
+    let early_number = CanonicalValue::Array(vec![
+        CanonicalValue::Number(reference_number_from_lexeme("1e9999", l)?),
+        CanonicalValue::String("aa".to_owned()),
+    ]);
+    let mut key_map = serde_json::Map::new();
+    key_map.insert(
+        "long-key".to_owned(),
+        CanonicalValue::Number(reference_number_from_lexeme("1e9999", l)?),
+    );
+    let key_before_number = CanonicalValue::Object(key_map);
+    // W(number)=64, but exact serialized token is100 bytes; the two guards
+    // must remain separate. Old comparison wire capacity/work is prepaid too.
+    let numeric_wire = CanonicalValue::Number(reference_number_from_lexeme(
+        "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        l,
+    )?);
+    l.bytes(200)?;
+    l.bytes(
+        std::mem::size_of::<[(&CanonicalValue, usize, ReferenceError); 5]>()
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
     l.bytes(
         std::mem::size_of::<[&[u8]; 16]>()
             .checked_add(std::mem::size_of::<[&[u8]; 6]>())
@@ -2574,6 +3430,36 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
     l.step(1)?;
     assert_eq!(
         l.parse(too_deep, l.max_record_bytes),
+        Err(ReferenceError::Budget)
+    );
+    let original_ceiling = l.max_output_bytes;
+    for (value, ceiling, error) in [
+        (&short, original_ceiling.min(13), ReferenceError::Budget),
+        (&early_w, original_ceiling.min(13), ReferenceError::Budget),
+        (
+            &early_number,
+            original_ceiling.min(8),
+            ReferenceError::UnsupportedSourceProfile,
+        ),
+        (
+            &key_before_number,
+            original_ceiling.min(8),
+            ReferenceError::UnsupportedSourceProfile,
+        ),
+        (
+            &numeric_wire,
+            original_ceiling.min(80),
+            ReferenceError::Budget,
+        ),
+    ] {
+        l.max_output_bytes = ceiling; // narrower POLICY fixture, not a counter reset
+        assert_eq!(l.canonical_value(value), Err(error));
+        assert_eq!(l.canonical_value_legacy(value), Err(error));
+    }
+    l.max_output_bytes = original_ceiling;
+    assert_eq!(l.canonical_value(&depth97), Err(ReferenceError::Budget));
+    assert_eq!(
+        l.canonical_value_legacy(&depth97),
         Err(ReferenceError::Budget)
     );
     Ok(())
