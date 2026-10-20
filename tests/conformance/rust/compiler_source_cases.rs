@@ -396,13 +396,9 @@ fn reference_insert(
     files.insert(path.to_owned(), raw);
     Ok(())
 }
-fn sources(
-    deadline: Instant,
-) -> (
-    BTreeMap<String, Vec<u8>>,
-    BTreeMap<String, Vec<u8>>,
-    CurrentReference,
-) {
+// Common authored inputs only. Composition does not need the repository-plan
+// capture extras; do not construct/debit a capture map that its caller discards.
+fn source_inputs(deadline: Instant) -> (BTreeMap<String, Vec<u8>>, CurrentReference) {
     let repository = super::validation_cut_cases::repository();
     let mut reference = CurrentReference {
         commit: String::new(),
@@ -447,7 +443,20 @@ fn sources(
         let raw = reference.pinned_blob(&repository, surface).unwrap();
         reference_insert(&mut authored, surface, raw).unwrap();
     }
-    // This is the existing capture copy; reference rows borrow these raw maps.
+    (authored, reference)
+}
+
+fn sources(
+    deadline: Instant,
+) -> (
+    BTreeMap<String, Vec<u8>>,
+    BTreeMap<String, Vec<u8>>,
+    CurrentReference,
+) {
+    let (authored, mut reference) = source_inputs(deadline);
+    let repository = super::validation_cut_cases::repository();
+    // Repository-plan still constructs and prepays its complete capture input.
+    // Composition uses source_inputs instead; no drop/refund/reset credit.
     reference
         .charge(authored.iter().map(|(p, v)| p.len() + v.len() + 256).sum())
         .unwrap();
@@ -2593,7 +2602,7 @@ fn native_corpus_composition_case(installed: bool) {
         );
         phase(started, deadline, "preflight-passed");
     }
-    let (mut files, _, mut reference) = sources(deadline);
+    let (mut files, mut reference) = source_inputs(deadline);
     let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
     files.insert(
         vocabulary_path.into(),
@@ -2678,8 +2687,8 @@ fn native_corpus_composition_case(installed: bool) {
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);
-    // This larger caller copy is distinct from sources()'s discarded capture.
-    // Charge the same counter again; no credit/refund for that earlier copy.
+    // This actual augmented capture copy remains charged to the same counter.
+    // source_inputs constructed no discarded capture and granted no drop credit.
     let capture_copy = files
         .iter()
         .try_fold(0usize, |sum, (path, raw)| {
