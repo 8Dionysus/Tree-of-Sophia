@@ -3090,7 +3090,7 @@ fn expected_source_navigation(
                 return Err(ReferenceError::InvalidBinding);
             }
             prior_id = Some(id);
-            let row = l.copy(row)?;
+            let row = navigation_copy(row, 0, l)?;
             if rows.contains_key(nav_str(&row, key)?) {
                 return Err(ReferenceError::DuplicateIdentity);
             }
@@ -3145,16 +3145,19 @@ fn expected_source_navigation(
             )?;
             let rid = nav_str(&source.value, "record_id")?;
             l.bytes(rid.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?;
-            let mut props = l.copy(&source.value)?;
+            let mut props = navigation_copy(&source.value, 6, l)?;
             let map = props
                 .as_object_mut()
                 .ok_or(ReferenceError::InvalidBinding)?;
             map.insert("identity_ref".into(), json!(rid));
             map.insert(
                 "identity_kind".into(),
-                l.copy(&source.value["record_type"])?,
+                navigation_copy(&source.value["record_type"], 0, l)?,
             );
-            map.insert("source_record".into(), l.copy(&source.value)?);
+            map.insert(
+                "source_record".into(),
+                navigation_copy(&source.value, 0, l)?,
+            );
             map.insert(
                 "bibliographic_carrier".into(),
                 json!({"source_sha256":source.sha}),
@@ -3196,14 +3199,17 @@ fn expected_source_navigation(
         )?;
         let event_id = format!("provenance_event:{event_source_id}");
         l.fixed(10)?;
-        let mut props = l.copy(&event.value)?;
+        let mut props = navigation_copy(&event.value, 8, l)?;
         let map = props
             .as_object_mut()
             .ok_or(ReferenceError::InvalidBinding)?;
         map.remove("inputs");
         map.remove("outputs");
-        map.insert("event_ref".into(), l.copy(&event.value["event_id"])?);
-        map.insert("source_event".into(), l.copy(&event.value)?);
+        map.insert(
+            "event_ref".into(),
+            navigation_copy(&event.value["event_id"], 0, l)?,
+        );
+        map.insert("source_event".into(), navigation_copy(&event.value, 0, l)?);
         let mut agents = Vec::new();
         if event.value["schema_version"] == "tos_provenance_event_v2" {
             for responsibility in nav_array(&event.value, "responsibility")? {
@@ -3217,10 +3223,13 @@ fn expected_source_navigation(
             }
             for key in ["event_type", "started_at", "ended_at", "status"] {
                 l.step(1)?;
-                map.insert(key.into(), l.copy(&event.value["activity"][key])?);
+                map.insert(
+                    key.into(),
+                    navigation_copy(&event.value["activity"][key], 0, l)?,
+                );
             }
         } else if event.value["schema_version"] == "tos_provenance_event_v1" {
-            agents = match l.copy(&event.value["agent_refs"])? {
+            agents = match navigation_copy(&event.value["agent_refs"], 0, l)? {
                 Value::Array(values) => values,
                 _ => return Err(ReferenceError::InvalidBinding),
             };
@@ -3264,7 +3273,7 @@ fn expected_source_navigation(
                 .and_then(|n| n.checked_add(nav_str(maker, "maker_type").ok()?.len()))
                 .ok_or(ReferenceError::Budget)?,
         )?;
-        let maker_source = l.copy(maker)?;
+        let maker_source = navigation_copy(maker, 0, l)?;
         let props = nav_object(
             [
                 ("agent_ref", json!(maker_ref)),
@@ -3298,7 +3307,7 @@ fn expected_source_navigation(
                 inputs,
                 l,
             )?;
-            evidence_ids.push(l.copy(&row["node_id"])?);
+            evidence_ids.push(navigation_copy(&row["node_id"], 0, l)?);
             nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
         }
         nav_no_reserved(
@@ -3315,13 +3324,16 @@ fn expected_source_navigation(
         )?;
         let descriptor = nav_descriptor(claim, subject, object, inputs, l)?;
         l.fixed(15)?;
-        let mut props = l.copy(c)?;
+        let mut props = navigation_copy(c, 7, l)?;
         let map = props
             .as_object_mut()
             .ok_or(ReferenceError::InvalidBinding)?;
         map.insert("claim_ref".into(), json!(id));
-        map.insert("confidence".into(), l.copy(&c["confidence"])?);
-        map.insert("source_claim".into(), l.copy(c)?);
+        map.insert(
+            "confidence".into(),
+            navigation_copy(&c["confidence"], 0, l)?,
+        );
+        map.insert("source_claim".into(), navigation_copy(c, 0, l)?);
         map.insert("navigation_descriptor".into(), descriptor);
         if let Some((path, forms)) = nav_forms(claim, inputs, l)? {
             map.insert("human_forms".into(), forms);
@@ -3443,9 +3455,9 @@ fn expected_source_navigation(
             .and_then(|n| n.checked_mul(128))
             .ok_or(ReferenceError::Budget)?,
     )?;
-    let schema = l.copy(&historical["schema_version"])?;
-    let authority = l.copy(&historical["authority_boundary"])?;
-    let rights = l.copy(&historical["rights"])?;
+    let schema = navigation_copy(&historical["schema_version"], 0, l)?;
+    let authority = navigation_copy(&historical["authority_boundary"], 0, l)?;
+    let rights = navigation_copy(&historical["rights"], 0, l)?;
     nav_object(
         [
             ("schema_version", schema),
@@ -3519,73 +3531,423 @@ fn nav_edge(
     )
 }
 
-// This journal owns the ORIGINAL String buffers, never a reverse map or a
-// baseline mined from a reference output. Tree shape and keys do not change.
+// Historical/navigation-only READ geometry. No canonical planner, raw/wire
+// metrics, pending/ready states or frame Vec are constructed by this guard.
+#[derive(Clone, Copy)]
+struct NavigationGeometry {
+    wire: usize,
+    values: usize,
+    max_frames: usize,
+}
+fn navigation_w_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    // 97 valid recursive frames, and the depth97 rejecting entry's arguments.
+    let frame = size_of::<&serde_json::Value>()
+        .checked_add(
+            size_of::<&mut ReferenceLimits<'_>>()
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<NavigationGeometry>>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<std::slice::Iter<'_, serde_json::Value>>()
+                    .max(size_of::<serde_json::map::Iter<'_>>()),
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Option<&serde_json::Value>>()
+                    .max(size_of::<Option<(&String, &serde_json::Value)>>()),
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut std::slice::Iter<'_, serde_json::Value>>()
+                    .max(size_of::<&mut serde_json::map::Iter<'_>>()),
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&Vec<serde_json::Value>>()
+                    .max(size_of::<&serde_json::Map<String, serde_json::Value>>()),
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<&String>()))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Number>()))
+        .and_then(|n| n.checked_add(size_of::<&str>()))
+        .and_then(|n| n.checked_add(size_of::<Option<f64>>()))
+        .and_then(|n| n.checked_add(size_of::<bool>()))
+        .ok_or(ReferenceError::Budget)?;
+    frame
+        .checked_mul(97)
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<NavigationGeometry>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn navigation_w_node(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+    depth: usize,
+) -> NavResult<NavigationGeometry> {
+    use serde_json::Value;
+    l.step(1)?;
+    if depth > 96 {
+        return Err(ReferenceError::Budget);
+    }
+    let mut values = 1usize;
+    let mut max_frames = 0usize;
+    let wire = match v {
+        Value::Null => 4,
+        Value::Bool(_) => 5,
+        Value::Number(n) => {
+            l.bytes(
+                n.as_str()
+                    .len()
+                    .checked_mul(3)
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            l.step(3)?; // real pinned numeric lexical classification work
+            if n.is_i64() || n.is_u64() {
+                20
+            } else if n.as_f64().is_some_and(f64::is_finite) {
+                64
+            } else {
+                return Err(ReferenceError::UnsupportedSourceProfile);
+            }
+        }
+        Value::String(text) => text
+            .len()
+            .checked_mul(6)
+            .and_then(|n| n.checked_add(2))
+            .ok_or(ReferenceError::Budget)?,
+        Value::Array(a) => {
+            max_frames = 1;
+            let mut wire = 2usize;
+            for child in a {
+                let child = navigation_w_node(
+                    child,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+                wire = wire
+                    .checked_add(child.wire)
+                    .and_then(|n| n.checked_add(1))
+                    .ok_or(ReferenceError::Budget)?;
+                values = values
+                    .checked_add(child.values)
+                    .ok_or(ReferenceError::Budget)?;
+                max_frames = max_frames.max(
+                    child
+                        .max_frames
+                        .checked_add(1)
+                        .ok_or(ReferenceError::Budget)?,
+                );
+            }
+            wire
+        }
+        Value::Object(o) => {
+            max_frames = 1;
+            let mut wire = 2usize;
+            for (key, child) in o {
+                l.step(1)?;
+                let key = key
+                    .len()
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(4))
+                    .ok_or(ReferenceError::Budget)?;
+                key.checked_add(96).ok_or(ReferenceError::Budget)?; // SAME pre-child overflow
+                let child = navigation_w_node(
+                    child,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+                wire = wire
+                    .checked_add(key)
+                    .and_then(|n| n.checked_add(child.wire))
+                    .ok_or(ReferenceError::Budget)?;
+                values = values
+                    .checked_add(child.values)
+                    .ok_or(ReferenceError::Budget)?;
+                max_frames = max_frames.max(
+                    child
+                        .max_frames
+                        .checked_add(1)
+                        .ok_or(ReferenceError::Budget)?,
+                );
+            }
+            wire
+        }
+    };
+    if wire > l.max_output_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    Ok(NavigationGeometry {
+        wire,
+        values,
+        max_frames,
+    })
+}
+fn navigation_w_guard(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<NavigationGeometry> {
+    l.step(1)?;
+    reference_move_layout()?;
+    l.bytes(navigation_w_workspace()?)?; // BEFORE recursion or result construction
+    navigation_w_node(v, l, 0)
+}
+struct NavigationCopyState {
+    held: usize,
+    available: usize,
+}
+fn navigation_copy_workspace(frames: usize) -> NavResult<usize> {
+    use std::mem::size_of;
+    let frame = size_of::<&serde_json::Value>()
+        .checked_add(size_of::<&mut NavigationCopyState>())
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?)) // depth, spare, M/C, slot/length
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<std::slice::Iter<'_, serde_json::Value>>()
+                    .max(size_of::<serde_json::map::Iter<'_>>()),
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<(&String, &serde_json::Value)>>()))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut std::slice::Iter<'_, serde_json::Value>>()
+                    .max(size_of::<&mut serde_json::map::Iter<'_>>()),
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&Vec<serde_json::Value>>()
+                    .max(size_of::<&serde_json::Map<String, serde_json::Value>>()),
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut Vec<serde_json::Value>>()
+                    .max(size_of::<&mut serde_json::Map<String, serde_json::Value>>()),
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<serde_json::Value>>()))
+        .and_then(|n| n.checked_add(size_of::<&String>()))
+        .and_then(|n| n.checked_add(size_of::<String>().checked_mul(2)?)) // pending/copied key
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<serde_json::Map<String, serde_json::Value>>()
+                    .max(size_of::<Vec<serde_json::Value>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<serde_json::Value>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<serde_json::Value>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<bool>()))
+        .ok_or(ReferenceError::Budget)?;
+    frame
+        .checked_mul(frames)
+        .and_then(|n| n.checked_add(size_of::<NavigationCopyState>()))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<NavigationGeometry>>()))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Number>()))
+        .and_then(|n| n.checked_add(size_of::<serde_json::Number>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut NavigationCopyState>()))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn navigation_copy_room(
+    state: &mut NavigationCopyState,
+    bytes: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(1)?;
+    let held = state
+        .held
+        .checked_add(bytes)
+        .ok_or(ReferenceError::Budget)?;
+    canonical_state_room(state.held, bytes, state.available)?;
+    l.bytes(bytes)?; // allocation BEFORE construction; held never refunded
+    state.held = held;
+    Ok(())
+}
+fn navigation_copy_node(
+    v: &serde_json::Value,
+    root_spare: usize,
+    state: &mut NavigationCopyState,
+    l: &mut ReferenceLimits<'_>,
+    depth: usize,
+) -> NavResult<serde_json::Value> {
+    use serde_json::Value;
+    l.step(1)?;
+    if depth > 96 {
+        return Err(ReferenceError::Budget);
+    }
+    Ok(match v {
+        Value::Null => Value::Null,
+        Value::Bool(b) => Value::Bool(*b),
+        Value::String(text) => {
+            navigation_copy_room(state, text.len(), l)?;
+            l.bytes(text.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?;
+            Value::String(text.to_owned()) // allocation + read + write paid
+        }
+        Value::Number(number) => {
+            navigation_copy_room(state, number.as_str().len(), l)?;
+            l.bytes(
+                number
+                    .as_str()
+                    .len()
+                    .checked_mul(2)
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            Value::Number(number.clone()) // pinned owned String lexeme, no normalization
+        }
+        Value::Array(a) => {
+            navigation_copy_room(
+                state,
+                a.len()
+                    .checked_mul(std::mem::size_of::<Value>())
+                    .ok_or(ReferenceError::Budget)?,
+                l,
+            )?;
+            let mut output = Vec::with_capacity(a.len());
+            for child in a {
+                l.step(1)?;
+                let child = navigation_copy_node(
+                    child,
+                    root_spare,
+                    state,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+                l.step(1)?;
+                output.push(child);
+            }
+            Value::Array(output)
+        }
+        Value::Object(o) => {
+            let capacity = if depth == 0 {
+                o.len()
+                    .checked_add(root_spare)
+                    .ok_or(ReferenceError::Budget)?
+            } else {
+                o.len()
+            };
+            navigation_copy_room(state, reference_move_map_backing(capacity)?, l)?;
+            let mut output = serde_json::Map::with_capacity(capacity);
+            for (key, child) in o {
+                l.step(2)?; // source key/child read and key construction
+                navigation_copy_room(state, key.len(), l)?;
+                l.bytes(key.len().checked_mul(3).ok_or(ReferenceError::Budget)?)?; // read/write + later hash
+                let key = key.to_owned();
+                let child = navigation_copy_node(
+                    child,
+                    root_spare,
+                    state,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+                l.step(1)?; // actual insertion, including reserved-FIRST literal keys
+                output.insert(key, child);
+            }
+            Value::Object(output)
+        }
+    })
+}
+// ONLY the closed 17 builder sites + one late copy select this constructor.
+// Root spare6/8/7 is used solely at mutable Identity/Event/Claim props; all
+// other sites use0. No spare is allocated in descendants, no generic clone.
+fn navigation_copy(
+    v: &serde_json::Value,
+    root_spare: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    let geometry = navigation_w_guard(v, l)?; // full semantic guard BEFORE destination allocation
+    l.step(1)?;
+    l.bytes(navigation_copy_workspace(
+        geometry
+            .max_frames
+            .checked_add(1)
+            .ok_or(ReferenceError::Budget)?,
+    )?)?;
+    let mut state = NavigationCopyState {
+        held: 0,
+        available: l.work.left,
+    };
+    navigation_copy_node(v, root_spare, &mut state, l, 0)
+}
+// Journal holds actual original String owners and OWNED paths. Reusable DFS
+// stack storage is distinct and never serves as a borrowed saved location.
 struct HistoricalStringEntry {
-    ordinal: usize,
+    path: Vec<usize>,
     original: String,
 }
 struct HistoricalStringJournal {
     entries: Vec<HistoricalStringEntry>,
-    ordinal: usize,
+    path: Vec<usize>,
     values: usize,
+    max_path: usize,
+    paths_held: usize,
     available: usize,
 }
-struct HistoricalStringRestore {
-    entries: std::vec::IntoIter<HistoricalStringEntry>,
-    pending: Option<HistoricalStringEntry>,
-    ordinal: usize,
-    values: usize,
-}
-// Logical live source holders, not unused scratch or a compiler-stack theorem.
-// Each recursive call retains its mutable value, state/limits/replacements
-// arguments, depth/ordinal arithmetic and one selected container iterator.
-// Iterator item/return and next-call argument overlaps are included separately.
 fn historical_walk_holders(frames: usize) -> NavResult<usize> {
     use std::mem::size_of;
     let frame = size_of::<&mut serde_json::Value>()
         .checked_mul(3)
         .and_then(|n| n.checked_add(size_of::<&BTreeMap<String, String>>()))
         .and_then(|n| n.checked_add(size_of::<&mut HistoricalStringJournal>()))
-        .and_then(|n| n.checked_add(size_of::<&mut HistoricalStringRestore>()))
         .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
         .and_then(|n| {
             n.checked_add(
-                size_of::<std::slice::IterMut<'_, serde_json::Value>>()
-                    .max(size_of::<serde_json::map::ValuesMut<'_>>()),
+                size_of::<std::iter::Enumerate<std::slice::IterMut<'_, serde_json::Value>>>().max(
+                    size_of::<std::iter::Enumerate<serde_json::map::ValuesMut<'_>>>(),
+                ),
             )
         })
-        .and_then(|n| n.checked_add(size_of::<Option<&mut serde_json::Value>>()))
+        .and_then(|n| n.checked_add(size_of::<Option<(usize, &mut serde_json::Value)>>()))
         .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
         .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(2)?))
-        .and_then(|n| n.checked_add(size_of::<bool>()))
-        .and_then(|n| n.checked_add(size_of::<Option<&HistoricalStringEntry>>()))
-        .and_then(|n| n.checked_add(size_of::<&HistoricalStringEntry>()))
         .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(2)?))
-        .ok_or(ReferenceError::Budget)?;
-    // One active leaf/growth helper: replacement lookup/borrow; clone and
-    // replace return; Entry/Option take/push/next overlaps; Vec reserve result;
-    // room-helper parameters, seven named growth scalars, reserve amount and
-    // canonical_state_room's three simultaneous usize arguments.
-    let leaf = size_of::<&mut String>()
-        .checked_add(size_of::<Option<&String>>())
-        .and_then(|n| n.checked_add(size_of::<&String>()))
-        .and_then(|n| n.checked_add(size_of::<String>().checked_mul(2)?))
-        .and_then(|n| n.checked_add(size_of::<HistoricalStringEntry>().checked_mul(2)?))
-        .and_then(|n| n.checked_add(size_of::<Option<HistoricalStringEntry>>().checked_mul(2)?))
-        .and_then(|n| n.checked_add(size_of::<&mut HistoricalStringJournal>()))
-        .and_then(|n| n.checked_add(size_of::<&mut Vec<HistoricalStringEntry>>()))
-        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
-        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(11)?))
-        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
-        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(3)?))
-        .and_then(|n| n.checked_add(size_of::<Result<(), std::collections::TryReserveError>>()))
         .ok_or(ReferenceError::Budget)?;
     frame
         .checked_mul(frames)
-        .and_then(|n| n.checked_add(leaf))
-        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(3)?))
-        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<Vec<usize>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&[usize]>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<usize>>()))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut std::iter::Enumerate<std::slice::IterMut<'_, serde_json::Value>>>()
+                    .max(size_of::<
+                        &mut std::iter::Enumerate<serde_json::map::ValuesMut<'_>>,
+                    >()),
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<String>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<HistoricalStringEntry>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<&String>>()))
+        .and_then(|n| n.checked_add(size_of::<&String>()))
+        .and_then(|n| n.checked_add(size_of::<&mut String>()))
+        .and_then(|n| n.checked_add(size_of::<&mut HistoricalStringJournal>()))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<HistoricalStringEntry>>()))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(12)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(12)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<Result<(), std::collections::TryReserveError>>()))
         .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
         .ok_or(ReferenceError::Budget)
 }
@@ -3594,7 +3956,7 @@ fn historical_journal_room(
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<()> {
     use std::mem::size_of;
-    l.step(8)?; // BEFORE len/capacity/needed/growth/slot metadata operations
+    l.step(8)?;
     let len = journal.entries.len();
     let capacity = journal.entries.capacity();
     let needed = len.checked_add(1).ok_or(ReferenceError::Budget)?;
@@ -3613,6 +3975,7 @@ fn historical_journal_room(
             .ok_or(ReferenceError::Budget)?;
         let old = capacity
             .checked_mul(size_of::<HistoricalStringEntry>())
+            .and_then(|n| n.checked_add(journal.paths_held))
             .ok_or(ReferenceError::Budget)?;
         let moved = len
             .checked_mul(size_of::<HistoricalStringEntry>())
@@ -3638,140 +4001,138 @@ fn historical_rewrite_strings(
     depth: usize,
 ) -> NavResult<()> {
     use serde_json::Value;
-    l.step(1)?; // SAME original rewrite entry/depth order
+    l.step(1)?; // SAME old rewrite entry/depth/lookup order
     if depth > 96 {
         return Err(ReferenceError::Budget);
-    }
-    l.step(3)?; // ordinal read/checked advance/bound BEFORE mutation
-    let ordinal = journal.ordinal;
-    journal.ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
-    if journal.ordinal > journal.values {
-        return Err(ReferenceError::InvalidBinding);
     }
     match value {
         Value::String(s) => {
             if let Some(new) = replacements.get(s) {
-                l.bytes(new.len())?; // SAME original replacement payload charge
-                historical_journal_room(journal, l)?; // BEFORE slot or String construction
-                l.step(3)?; // clone/replace/entry write BEFORE their operations
+                l.bytes(new.len())?; // SAME replacement payload admission
+                historical_journal_room(journal, l)?;
+                let slots = journal
+                    .path
+                    .len()
+                    .checked_mul(std::mem::size_of::<usize>())
+                    .ok_or(ReferenceError::Budget)?;
+                let held = journal
+                    .entries
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<HistoricalStringEntry>())
+                    .and_then(|n| n.checked_add(journal.paths_held))
+                    .ok_or(ReferenceError::Budget)?;
+                canonical_state_room(held, slots, journal.available)?;
+                l.step(
+                    journal
+                        .path
+                        .len()
+                        .checked_add(4)
+                        .ok_or(ReferenceError::Budget)?,
+                )?;
+                l.bytes(slots.checked_mul(3).ok_or(ReferenceError::Budget)?)?; // OWNED slots + read + copy
+                journal.paths_held = journal
+                    .paths_held
+                    .checked_add(slots)
+                    .ok_or(ReferenceError::Budget)?;
+                let mut path = Vec::with_capacity(journal.path.len());
+                path.extend_from_slice(&journal.path);
                 let replacement = new.clone();
                 let original = std::mem::replace(s, replacement);
                 journal
                     .entries
-                    .push(HistoricalStringEntry { ordinal, original });
+                    .push(HistoricalStringEntry { path, original });
             }
         }
         Value::Array(a) => {
-            for v in a {
+            for (index, child) in a.iter_mut().enumerate() {
+                l.step(2)?; // child/index read + reusable path push BEFORE writes
+                if journal.path.len() >= journal.max_path {
+                    return Err(ReferenceError::Budget);
+                }
+                journal.path.push(index);
                 historical_rewrite_strings(
-                    v,
+                    child,
                     replacements,
                     journal,
                     l,
                     depth.checked_add(1).ok_or(ReferenceError::Budget)?,
                 )?;
+                l.step(1)?;
+                if journal.path.pop() != Some(index) {
+                    return Err(ReferenceError::InvalidBinding);
+                }
             }
         }
         Value::Object(o) => {
-            for v in o.values_mut() {
+            for (index, child) in o.values_mut().enumerate() {
+                l.step(2)?;
+                if journal.path.len() >= journal.max_path {
+                    return Err(ReferenceError::Budget);
+                }
+                journal.path.push(index);
                 historical_rewrite_strings(
-                    v,
+                    child,
                     replacements,
                     journal,
                     l,
                     depth.checked_add(1).ok_or(ReferenceError::Budget)?,
                 )?;
+                l.step(1)?;
+                if journal.path.pop() != Some(index) {
+                    return Err(ReferenceError::InvalidBinding);
+                }
             }
         }
         _ => (),
     }
     Ok(())
+}
+fn historical_string_at<'a>(
+    root: &'a mut serde_json::Value,
+    path: &[usize],
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<&'a mut String> {
+    use serde_json::Value;
+    let mut cursor = root;
+    for &index in path {
+        l.step(1)?;
+        l.bytes(std::mem::size_of::<usize>())?; // real path integer reread
+        cursor = match cursor {
+            Value::Array(a) => a.get_mut(index).ok_or(ReferenceError::InvalidBinding)?,
+            Value::Object(o) => {
+                l.step(index.checked_add(1).ok_or(ReferenceError::Budget)?)?;
+                o.values_mut()
+                    .nth(index)
+                    .ok_or(ReferenceError::InvalidBinding)?
+            }
+            _ => return Err(ReferenceError::InvalidBinding),
+        };
+    }
+    l.step(1)?; // also handles EMPTY path: root itself must be String
+    match cursor {
+        Value::String(s) => Ok(s),
+        _ => Err(ReferenceError::InvalidBinding),
+    }
 }
 fn historical_restore_strings(
     value: &mut serde_json::Value,
-    restore: &mut HistoricalStringRestore,
+    journal: HistoricalStringJournal,
     l: &mut ReferenceLimits<'_>,
-    depth: usize,
 ) -> NavResult<()> {
-    use serde_json::Value;
+    drop(journal.path); // no refund; saved paths own their independent buffers
+    for entry in journal.entries {
+        l.step(1)?;
+        let target = historical_string_at(value, &entry.path, l)?;
+        l.step(1)?;
+        *target = entry.original; // locator return borrows ONLY root, not path
+    }
     l.step(1)?;
-    if depth > 96 {
-        return Err(ReferenceError::Budget);
-    }
-    l.step(4)?; // ordinal advance/bound/pending comparison BEFORE reads/writes
-    let ordinal = restore.ordinal;
-    restore.ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
-    if restore.ordinal > restore.values {
-        return Err(ReferenceError::InvalidBinding);
-    }
-    let restore_here = if let Some(entry) = restore.pending.as_ref() {
-        if entry.ordinal < ordinal {
-            return Err(ReferenceError::InvalidBinding);
-        }
-        entry.ordinal == ordinal
-    } else {
-        false
-    };
-    if restore_here {
-        let Value::String(s) = value else {
-            return Err(ReferenceError::InvalidBinding);
-        };
-        l.step(3)?; // take/move original back/next BEFORE metadata transitions
-        let entry = restore
-            .pending
-            .take()
-            .ok_or(ReferenceError::InvalidBinding)?;
-        *s = entry.original; // original buffer owner; drop replacement without credit
-        restore.pending = restore.entries.next();
-    }
-    match value {
-        Value::Array(a) => {
-            for v in a {
-                historical_restore_strings(
-                    v,
-                    restore,
-                    l,
-                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
-                )?;
-            }
-        }
-        Value::Object(o) => {
-            for v in o.values_mut() {
-                historical_restore_strings(
-                    v,
-                    restore,
-                    l,
-                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
-                )?;
-            }
-        }
-        _ => (),
-    }
     Ok(())
 }
-// Same complete NoWire W/error preflight as the merge read guard. Successful
-// geometry belongs to this immutable input, not to any later rewritten root.
-fn historical_rewrite_plan(
-    v: &serde_json::Value,
+fn historical_journal_payment(
+    plan: &NavigationGeometry,
     l: &mut ReferenceLimits<'_>,
-) -> NavResult<CanonicalPlan> {
-    use std::mem::size_of;
-    l.step(1)?;
-    l.bytes(
-        size_of::<CanonicalPlan>()
-            .checked_add(
-                size_of::<NavResult<CanonicalPlan>>()
-                    .checked_mul(2)
-                    .ok_or(ReferenceError::Budget)?,
-            )
-            .and_then(|n| n.checked_add(size_of::<PreflightPurpose>()))
-            .and_then(|n| n.checked_add(size_of::<&serde_json::Value>()))
-            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
-            .ok_or(ReferenceError::Budget)?,
-    )?;
-    canonical_preflight_for::<NoWireCounts>(v, l, PreflightPurpose::MergeReadGuard)
-}
-fn historical_journal_payment(plan: &CanonicalPlan, l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+) -> NavResult<()> {
     use std::mem::size_of;
     l.step(4)?;
     l.bytes(
@@ -3782,34 +4143,48 @@ fn historical_journal_payment(plan: &CanonicalPlan, l: &mut ReferenceLimits<'_>)
         )?
         .checked_add(size_of::<HistoricalStringJournal>())
         .and_then(|n| n.checked_add(size_of::<serde_json::Value>().checked_mul(2)?))
-        .and_then(|n| n.checked_add(size_of::<CanonicalPlan>()))
-        .and_then(|n| n.checked_add(size_of::<&CanonicalPlan>()))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>()))
+        .and_then(|n| n.checked_add(size_of::<&NavigationGeometry>()))
         .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
         .and_then(|n| n.checked_add(size_of::<NavResult<()>>()))
+        .and_then(|n| n.checked_add(plan.max_frames.checked_mul(size_of::<usize>())?)) // reusable path backing BEFORE Vec
         .ok_or(ReferenceError::Budget)?,
     )
 }
-fn historical_restore_payment(plan: &CanonicalPlan, l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+fn historical_restore_payment(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
     use std::mem::size_of;
-    l.step(4)?;
+    l.step(1)?;
     l.bytes(
-        historical_walk_holders(
-            plan.max_frames
-                .checked_add(1)
-                .ok_or(ReferenceError::Budget)?,
-        )?
-        .checked_add(
-            size_of::<HistoricalStringRestore>()
-                .checked_mul(2)
-                .ok_or(ReferenceError::Budget)?,
-        )
-        .and_then(|n| n.checked_add(size_of::<HistoricalStringJournal>()))
-        .and_then(|n| n.checked_add(size_of::<std::vec::IntoIter<HistoricalStringEntry>>()))
-        .and_then(|n| n.checked_add(size_of::<Vec<HistoricalStringEntry>>()))
-        .and_then(|n| n.checked_add(size_of::<&CanonicalPlan>()))
-        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
-        .and_then(|n| n.checked_add(size_of::<NavResult<()>>()))
-        .ok_or(ReferenceError::Budget)?,
+        size_of::<HistoricalStringJournal>()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(size_of::<std::vec::IntoIter<HistoricalStringEntry>>()))
+            .and_then(|n| n.checked_add(size_of::<Option<HistoricalStringEntry>>()))
+            .and_then(|n| n.checked_add(size_of::<HistoricalStringEntry>()))
+            .and_then(|n| n.checked_add(size_of::<Vec<HistoricalStringEntry>>()))
+            .and_then(|n| {
+                n.checked_add(size_of::<&mut std::vec::IntoIter<HistoricalStringEntry>>())
+            })
+            .and_then(|n| n.checked_add(size_of::<&mut std::slice::Iter<'_, usize>>()))
+            .and_then(|n| n.checked_add(size_of::<&mut serde_json::map::ValuesMut<'_>>()))
+            .and_then(|n| n.checked_add(size_of::<&usize>()))
+            .and_then(|n| {
+                n.checked_add(
+                    size_of::<&mut Vec<serde_json::Value>>()
+                        .max(size_of::<&mut serde_json::Map<String, serde_json::Value>>()),
+                )
+            })
+            .and_then(|n| n.checked_add(size_of::<std::slice::Iter<'_, usize>>()))
+            .and_then(|n| n.checked_add(size_of::<serde_json::map::ValuesMut<'_>>()))
+            .and_then(|n| n.checked_add(size_of::<&mut serde_json::Value>().checked_mul(3)?))
+            .and_then(|n| n.checked_add(size_of::<Option<&mut serde_json::Value>>()))
+            .and_then(|n| n.checked_add(size_of::<&[usize]>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut String>()))
+            .and_then(|n| n.checked_add(size_of::<NavResult<&mut String>>()))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(3)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>()))
+            .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(3)?))
+            .ok_or(ReferenceError::Budget)?,
     )
 }
 fn nav_rewrite_strings(
@@ -4911,18 +5286,20 @@ fn navigation_reference_variants_body(
     }
     l.work
         .diagnostic_stage("copy-rewrite-historical-navigation", 0);
-    let historical_plan = historical_rewrite_plan(&historical, l)?;
+    let historical_plan = navigation_w_guard(&historical, l)?;
     historical_journal_payment(&historical_plan, l)?;
     let mut old = historical;
     let mut historical_journal = HistoricalStringJournal {
         entries: Vec::new(),
-        ordinal: 0,
-        values: historical_plan.meta.values,
+        path: Vec::with_capacity(historical_plan.max_frames),
+        values: historical_plan.values,
+        max_path: historical_plan.max_frames,
+        paths_held: 0,
         available: l.work.left,
     };
     historical_rewrite_strings(&mut old, &replacements, &mut historical_journal, l, 0)?;
     l.step(1)?;
-    if historical_journal.ordinal != historical_plan.meta.values {
+    if !historical_journal.path.is_empty() {
         return Err(ReferenceError::InvalidBinding);
     }
     l.work.diagnostic_stage("parse-final-variant-members", 0);
@@ -4967,29 +5344,14 @@ fn navigation_reference_variants_body(
     }
     // Restore actual original owners BEFORE the independent baseline copies.
     // No reverse-map guess, reference-output baseline, or assertion substitution.
-    historical_restore_payment(&historical_plan, l)?;
-    l.step(3)?; // consume journal/construct iterator/pending BEFORE moves
-    let mut historical_restore = HistoricalStringRestore {
-        entries: historical_journal.entries.into_iter(),
-        pending: None,
-        ordinal: 0,
-        values: historical_plan.meta.values,
-    };
-    historical_restore.pending = historical_restore.entries.next();
-    historical_restore_strings(&mut old, &mut historical_restore, l, 0)?;
-    l.step(3)?;
-    if historical_restore.ordinal != historical_plan.meta.values
-        || historical_restore.pending.is_some()
-        || historical_restore.entries.len() != 0
-    {
-        return Err(ReferenceError::InvalidBinding);
-    }
+    historical_restore_payment(l)?;
+    historical_restore_strings(&mut old, historical_journal, l)?;
     let historical = old;
     for old_row in nav_array(&historical, "nodes")? {
         l.step(1)?;
-        let mut renamed = l.copy(old_row)?;
+        let mut renamed = navigation_copy(old_row, 0, l)?;
         nav_rewrite_strings(&mut renamed, &replacements, l, 0)?;
-        l.value_bound(&renamed, 0)?;
+        navigation_w_guard(&renamed, l)?;
         assert!(
             nav_array(&variant, "nodes")?
                 .iter()
