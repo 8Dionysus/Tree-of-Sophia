@@ -200,9 +200,20 @@ impl CurrentReference {
         args: &[&str],
         limit: usize,
     ) -> Result<Vec<u8>, &'static str> {
-        use std::io::Read;
+        use std::io::{Read, Seek, SeekFrom};
         use std::process::Stdio;
+        // Same logical output allowance plus explicit spool/read/poll holders.
+        // A pipe read/wait could otherwise outlive the case's cutoff check.
         self.charge(limit.checked_add(1).ok_or("reference read overflow")?)?;
+        self.charge(
+            limit
+                .checked_add(4096 + 512)
+                .ok_or("reference spool overflow")?,
+        )?;
+        let mut spool = tempfile::tempfile().map_err(|_| "reference Git spool")?;
+        let stdout = spool
+            .try_clone()
+            .map_err(|_| "reference Git spool handle")?;
         let mut command = Command::new("git");
         command
             .arg("--literal-pathspecs")
@@ -214,44 +225,77 @@ impl CurrentReference {
                 command.env_remove(key);
             }
         }
+        self.charge(0)?;
         let mut child = command
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_NO_REPLACE_OBJECTS", "1")
-            .stdout(Stdio::piped())
+            .stdout(Stdio::from(stdout))
             .stderr(Stdio::null())
             .spawn()
             .map_err(|_| "reference Git spawn")?;
-        let mut pipe = child.stdout.take().ok_or("reference Git pipe")?;
-        let mut output = Vec::with_capacity(limit + 1);
-        let mut buffer = [0u8; 4096];
-        loop {
-            if Instant::now() >= self.deadline {
+        let status = loop {
+            // Poll the actual child and its actual output, not an external stat
+            // of an unrelated pathname. Never block on a live stdout pipe.
+            let refusal = if self.visit(1).is_err() {
+                Some("reference cutoff/work limit")
+            } else if Instant::now() >= self.deadline {
+                Some("reference deadline")
+            } else {
+                match spool.metadata() {
+                    Ok(meta) if meta.len() <= limit as u64 => None,
+                    Ok(_) => Some("reference Git byte limit"),
+                    Err(_) => Some("reference Git spool metadata"),
+                }
+            };
+            if let Some(reason) = refusal {
                 let _ = child.kill();
-                let _ = child.wait();
-                return Err("reference deadline");
+                let _ = child.wait(); // reap only after terminating the child
+                return Err(reason);
             }
-            let room = (limit + 1 - output.len()).min(buffer.len());
-            let count = match pipe.read(&mut buffer[..room]) {
-                Ok(count) => count,
+            match child.try_wait() {
+                Ok(Some(status)) => break status,
+                Ok(None) => {
+                    let left = self.deadline.saturating_duration_since(Instant::now());
+                    std::thread::sleep(left.min(Duration::from_millis(5)));
+                }
                 Err(_) => {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return Err("reference Git read");
+                    return Err("reference Git wait");
                 }
-            };
+            }
+        };
+        self.charge(0)?;
+        if !status.success() {
+            return Err("reference Git status");
+        }
+        if spool
+            .metadata()
+            .map_err(|_| "reference Git spool metadata")?
+            .len()
+            > limit as u64
+        {
+            return Err("reference Git byte limit");
+        }
+        spool
+            .seek(SeekFrom::Start(0))
+            .map_err(|_| "reference Git spool seek")?;
+        let mut output = Vec::with_capacity(limit + 1);
+        let mut buffer = [0u8; 4096];
+        loop {
+            self.charge(0)?;
+            let room = (limit + 1 - output.len()).min(buffer.len());
+            let count = spool
+                .read(&mut buffer[..room])
+                .map_err(|_| "reference Git read")?;
             if count == 0 {
                 break;
             }
             output.extend_from_slice(&buffer[..count]);
             if output.len() > limit {
-                let _ = child.kill();
-                let _ = child.wait();
                 return Err("reference Git byte limit");
             }
-        }
-        if !child.wait().map_err(|_| "reference Git wait")?.success() {
-            return Err("reference Git status");
         }
         self.charge(0)?;
         Ok(output)
