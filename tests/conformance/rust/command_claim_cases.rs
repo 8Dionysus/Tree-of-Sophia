@@ -50,6 +50,890 @@ fn checked_command(
     run_claim_command_from_captures(ctx, cut, software, components, worker, deadline, cancel)
 }
 
+// Private, input-only reference for the three simple Claim comparisons below.
+// This prices logical test construction and cooperative work, not allocator/RSS
+// or delegated native owner work. The richer identity/order readers stay separate.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ClaimReferenceError {
+    Limit,
+    Deadline,
+    Cancelled,
+    InvalidInput,
+    UnsupportedProfile,
+    MissingSource,
+    AmbiguousIdentity,
+    WitnessMismatch,
+}
+type ClaimReferenceResult<T> = Result<T, ClaimReferenceError>;
+struct ClaimReferenceBudget<'a> {
+    state: usize,
+    visits: usize,
+    byte_work: usize,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl<'a> ClaimReferenceBudget<'a> {
+    fn new(deadline: Instant, cancelled: &'a AtomicBool) -> Self {
+        Self {
+            state: 8_388_608, // existing selected-member ceiling; never replenished
+            visits: JsonLimits::default().max_visits,
+            byte_work: 33_554_432, // existing complete Claim source ceiling
+            deadline,
+            cancelled,
+        }
+    }
+    fn active(&self) -> ClaimReferenceResult<()> {
+        if self.cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(ClaimReferenceError::Cancelled);
+        }
+        if Instant::now() >= self.deadline {
+            return Err(ClaimReferenceError::Deadline);
+        }
+        Ok(())
+    }
+    fn work(&mut self, bytes: usize, visits: usize) -> ClaimReferenceResult<()> {
+        self.active()?;
+        self.visits = self
+            .visits
+            .checked_sub(visits)
+            .ok_or(ClaimReferenceError::Limit)?;
+        self.byte_work = self
+            .byte_work
+            .checked_sub(bytes)
+            .ok_or(ClaimReferenceError::Limit)?;
+        Ok(())
+    }
+    fn own(&mut self, bytes: usize) -> ClaimReferenceResult<()> {
+        self.work(0, 8)?;
+        self.state = self
+            .state
+            .checked_sub(bytes)
+            .ok_or(ClaimReferenceError::Limit)?;
+        Ok(())
+    }
+    fn same_bytes(&mut self, left: &[u8], right: &[u8]) -> ClaimReferenceResult<bool> {
+        self.work(
+            left.len()
+                .checked_add(right.len())
+                .ok_or(ClaimReferenceError::Limit)?,
+            8,
+        )?;
+        if left.len() != right.len() {
+            return Ok(false);
+        }
+        for (a, b) in left.chunks(4096).zip(right.chunks(4096)) {
+            self.work(0, 1)?;
+            if a != b {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+    fn codec_state(&mut self, bytes: usize) -> ClaimReferenceResult<usize> {
+        let reserve = bytes
+            .checked_mul(128)
+            .and_then(|n| n.checked_add(16_384))
+            .ok_or(ClaimReferenceError::Limit)?;
+        self.own(reserve)?; // includes bridge/error workspace before codec entry
+        Ok(reserve)
+    }
+    fn parse(&mut self, raw: &[u8]) -> ClaimReferenceResult<JsonValue> {
+        self.parse_reserved(raw, 128)
+    }
+    fn parse_reserved(&mut self, raw: &[u8], scale: usize) -> ClaimReferenceResult<JsonValue> {
+        use std::cell::Cell;
+        use tos_foundation::{FoundationError, FoundationErrorCode};
+        self.work(raw.len(), 16)?;
+        if raw.len() > JsonLimits::default().max_bytes {
+            return Err(ClaimReferenceError::Limit);
+        }
+        self.work(0, 16)?;
+        if scale != 16 && scale != 128 {
+            return Err(ClaimReferenceError::UnsupportedProfile);
+        }
+        let state = raw
+            .len()
+            .checked_mul(scale)
+            .and_then(|n| n.checked_add(16_384))
+            .ok_or(ClaimReferenceError::Limit)?;
+        self.own(state)?;
+        let limits = JsonLimits {
+            max_visits: self.visits,
+            ..JsonLimits::default()
+        };
+        let first = Cell::new(None);
+        let deadline = self.deadline;
+        let cancelled = self.cancelled;
+        let mut check = || {
+            let error = if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                Some(ClaimReferenceError::Cancelled)
+            } else if Instant::now() >= deadline {
+                Some(ClaimReferenceError::Deadline)
+            } else {
+                None
+            };
+            if let Some(error) = error {
+                if first.get().is_none() {
+                    first.set(Some(error));
+                }
+                Err(FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None,
+                    detail: String::new(),
+                })
+            } else {
+                Ok(())
+            }
+        };
+        let mut admit = |bytes, visits| {
+            self.work(bytes, visits).map_err(|e| {
+                if first.get().is_none() {
+                    first.set(Some(e));
+                }
+                FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None,
+                    detail: String::new(),
+                }
+            })
+        };
+        let parsed = tos_foundation::parse_json_with_state_budget_and_admission(
+            raw,
+            JsonMode::PublishedStrict,
+            limits,
+            state,
+            &mut check,
+            &mut admit,
+        );
+        if let Some(error) = first.get() {
+            return Err(error);
+        }
+        parsed.map(|d| d.into_root()).map_err(|e| {
+            if e.code == FoundationErrorCode::BudgetExceeded {
+                ClaimReferenceError::Limit
+            } else {
+                ClaimReferenceError::InvalidInput
+            }
+        })
+    }
+    fn canonical(&mut self, value: &JsonValue, raw_bound: usize) -> ClaimReferenceResult<Vec<u8>> {
+        use std::cell::Cell;
+        use tos_foundation::{FoundationError, FoundationErrorCode};
+        let state = self.codec_state(raw_bound)?;
+        let limits = JsonLimits {
+            max_visits: self.visits,
+            ..JsonLimits::default()
+        };
+        let first = Cell::new(None);
+        let deadline = self.deadline;
+        let cancelled = self.cancelled;
+        let mut check = || {
+            let error = if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                Some(ClaimReferenceError::Cancelled)
+            } else if Instant::now() >= deadline {
+                Some(ClaimReferenceError::Deadline)
+            } else {
+                None
+            };
+            if let Some(error) = error {
+                if first.get().is_none() {
+                    first.set(Some(error));
+                }
+                Err(FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None,
+                    detail: String::new(),
+                })
+            } else {
+                Ok(())
+            }
+        };
+        let mut admit = |bytes, visits| {
+            self.work(bytes, visits).map_err(|e| {
+                if first.get().is_none() {
+                    first.set(Some(e));
+                }
+                FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None,
+                    detail: String::new(),
+                }
+            })
+        };
+        let encoded = tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+            value,
+            CanonicalProfile::SourceCommandInputV1,
+            limits,
+            state,
+            &mut check,
+            &mut admit,
+        );
+        if let Some(error) = first.get() {
+            return Err(error);
+        }
+        encoded.map(|v| v.0).map_err(|e| {
+            if e.code == FoundationErrorCode::BudgetExceeded {
+                ClaimReferenceError::Limit
+            } else {
+                ClaimReferenceError::InvalidInput
+            }
+        })
+    }
+}
+#[derive(Clone, Copy)]
+struct DeclaredClaimObject<'a> {
+    id: &'a str,
+    path: &'a str,
+    raw: &'a [u8],
+    identity_field: &'a str,
+}
+struct DeclaredRepoEvidence<'a> {
+    reference: &'a str,
+    path: &'a str,
+    raw: &'a [u8],
+}
+struct DeclaredSimpleClaimInputs<'a> {
+    objects: &'a [DeclaredClaimObject<'a>],
+    evidence: &'a [DeclaredRepoEvidence<'a>],
+    claims: &'a [&'a Value],
+}
+fn claim_reference_field<'a>(
+    value: &'a JsonValue,
+    key: &str,
+    b: &mut ClaimReferenceBudget<'_>,
+) -> ClaimReferenceResult<Option<&'a JsonValue>> {
+    let fields = value.as_object().ok_or(ClaimReferenceError::InvalidInput)?;
+    for (name, child) in fields {
+        b.work(
+            name.units()
+                .len()
+                .checked_mul(2)
+                .ok_or(ClaimReferenceError::Limit)?,
+            4,
+        )?;
+        if name.as_str() == Some(key) {
+            return Ok(Some(child));
+        }
+    }
+    Ok(None)
+}
+fn claim_reference_path(path: &str, b: &mut ClaimReferenceBudget<'_>) -> ClaimReferenceResult<()> {
+    b.work(path.len(), 8)?;
+    if !path.starts_with("ToS/")
+        || path.contains('\\')
+        || path.contains('\0')
+        || path
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
+    {
+        return Err(ClaimReferenceError::InvalidInput);
+    }
+    Ok(())
+}
+fn claim_reference_same(
+    value: &JsonValue,
+    declared: &Value,
+    b: &mut ClaimReferenceBudget<'_>,
+    depth: usize,
+) -> ClaimReferenceResult<bool> {
+    b.work(0, 8)?;
+    if depth > JsonLimits::default().max_depth {
+        return Err(ClaimReferenceError::Limit);
+    }
+    Ok(match (value, declared) {
+        (JsonValue::Null, Value::Null) => true,
+        (JsonValue::Bool(a), Value::Bool(c)) => a == c,
+        (JsonValue::String(a), Value::String(c)) => {
+            b.work(
+                a.units()
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(c.len()))
+                    .ok_or(ClaimReferenceError::Limit)?,
+                4,
+            )?;
+            a.as_str() == Some(c.as_str())
+        }
+        (JsonValue::Number(a), Value::Number(c)) => {
+            b.work(a.lexeme.len(), 4)?;
+            if let Some(c) = c.as_u64() {
+                a.lexeme.parse::<u64>().ok() == Some(c)
+            } else if let Some(c) = c.as_i64() {
+                a.lexeme.parse::<i64>().ok() == Some(c)
+            } else {
+                return Err(ClaimReferenceError::UnsupportedProfile);
+            }
+        }
+        (JsonValue::Array(a), Value::Array(c)) => {
+            if a.len() != c.len() {
+                false
+            } else {
+                let mut equal = true;
+                for (a, c) in a.iter().zip(c) {
+                    equal &= claim_reference_same(a, c, b, depth + 1)?;
+                }
+                equal
+            }
+        }
+        (JsonValue::Object(a), Value::Object(c)) => {
+            if a.len() != c.len() {
+                false
+            } else {
+                let mut equal = true;
+                for (key, child) in c {
+                    b.work(key.len(), 4)?;
+                    if let Some(a) = claim_reference_field(value, key, b)? {
+                        equal &= claim_reference_same(a, child, b, depth + 1)?;
+                    } else {
+                        equal = false;
+                    }
+                }
+                equal
+            }
+        }
+        _ => false,
+    })
+}
+fn check_simple_claim_selected_inputs(
+    inputs: &DeclaredSimpleClaimInputs<'_>,
+    selected: &BTreeMap<String, Vec<u8>>,
+    b: &mut ClaimReferenceBudget<'_>,
+) -> ClaimReferenceResult<()> {
+    for (path, raw) in inputs
+        .objects
+        .iter()
+        .map(|v| (v.path, v.raw))
+        .chain(inputs.evidence.iter().map(|v| (v.path, v.raw)))
+    {
+        claim_reference_path(path, b)?;
+        b.work(
+            raw.len(),
+            selected
+                .len()
+                .checked_add(8)
+                .ok_or(ClaimReferenceError::Limit)?,
+        )?;
+        let actual = selected
+            .get(path)
+            .ok_or(ClaimReferenceError::MissingSource)?;
+        if !b.same_bytes(actual, raw)? {
+            return Err(ClaimReferenceError::WitnessMismatch);
+        }
+    }
+    Ok(())
+}
+fn expected_simple_claim_bindings(
+    inputs: &DeclaredSimpleClaimInputs<'_>,
+    b: &mut ClaimReferenceBudget<'_>,
+) -> ClaimReferenceResult<Value> {
+    b.work(0, 128)?;
+    // The selected simple profile has two independently declared endpoints and
+    // one repository evidence. No profile fallback or actual-result membership.
+    if inputs.objects.len() != 2 || inputs.evidence.len() != 1 || inputs.claims.len() != 1 {
+        return Err(ClaimReferenceError::UnsupportedProfile);
+    }
+    let claim = inputs.claims[0];
+    b.work(0, 32)?;
+    let subject = claim
+        .get("subject_ref")
+        .and_then(Value::as_str)
+        .ok_or(ClaimReferenceError::InvalidInput)?;
+    let object = claim
+        .get("object")
+        .and_then(Value::as_str)
+        .ok_or(ClaimReferenceError::UnsupportedProfile)?;
+    let evidence = claim
+        .get("evidence_refs")
+        .and_then(Value::as_array)
+        .ok_or(ClaimReferenceError::InvalidInput)?;
+    if subject == object
+        || evidence.len() != 1
+        || claim
+            .get("counterevidence_refs")
+            .is_some_and(|v| v.as_array().is_none_or(|v| !v.is_empty()))
+    {
+        return Err(ClaimReferenceError::UnsupportedProfile);
+    }
+    for (i, row) in inputs.objects.iter().enumerate() {
+        claim_reference_path(row.path, b)?;
+        b.work(
+            row.id
+                .len()
+                .checked_add(row.identity_field.len())
+                .ok_or(ClaimReferenceError::Limit)?,
+            24,
+        )?;
+        if row.identity_field != "record_id" || (row.id != subject && row.id != object) {
+            return Err(ClaimReferenceError::InvalidInput);
+        }
+        for other in &inputs.objects[..i] {
+            b.work(
+                other
+                    .id
+                    .len()
+                    .checked_add(other.path.len())
+                    .ok_or(ClaimReferenceError::Limit)?,
+                8,
+            )?;
+            if row.id == other.id || row.path == other.path {
+                return Err(ClaimReferenceError::AmbiguousIdentity);
+            }
+        }
+    }
+    let repo = &inputs.evidence[0];
+    claim_reference_path(repo.path, b)?;
+    b.work(repo.reference.len(), 16)?;
+    if repo.reference != repo.path || evidence[0].as_str() != Some(repo.reference) {
+        return Err(ClaimReferenceError::InvalidInput);
+    }
+    // Fresh closed construction: 2 root keys, 2 ID keys, 10 object fields,
+    // 1 evidence key, 4 evidence fields. Pay all slots, text/escaping and
+    // temporary scalar/digest copies BEFORE any expected Map/String exists.
+    let text = inputs.objects.iter().try_fold(
+        repo.path
+            .len()
+            .checked_mul(2)
+            .ok_or(ClaimReferenceError::Limit)?,
+        |n, v| {
+            n.checked_add(v.id.len())
+                .and_then(|n| n.checked_add(v.path.len()))
+                .and_then(|n| n.checked_add(v.raw.len()))
+                .ok_or(ClaimReferenceError::Limit)
+        },
+    )?;
+    let output_bound = text
+        .checked_mul(6)
+        .and_then(|n| n.checked_add(4096))
+        .ok_or(ClaimReferenceError::Limit)?;
+    if output_bound > JsonLimits::default().max_bytes {
+        return Err(ClaimReferenceError::Limit);
+    }
+    b.own(
+        output_bound
+            .checked_mul(8)
+            .and_then(|n| n.checked_add(32 * 256))
+            .ok_or(ClaimReferenceError::Limit)?,
+    )?;
+    let mut objects = serde_json::Map::new();
+    for row in inputs.objects {
+        let record = b.parse(row.raw)?;
+        if claim_reference_field(&record, row.identity_field, b)?.and_then(JsonValue::as_str)
+            != Some(row.id)
+        {
+            return Err(ClaimReferenceError::WitnessMismatch);
+        }
+        let scalar =
+            |name: &str, b: &mut ClaimReferenceBudget<'_>| -> ClaimReferenceResult<Value> {
+                Ok(match claim_reference_field(&record, name, b)? {
+                    None | Some(JsonValue::Null) => Value::Null,
+                    Some(JsonValue::String(v)) if name == "schema_version" => Value::String(
+                        v.as_str()
+                            .ok_or(ClaimReferenceError::InvalidInput)?
+                            .to_owned(),
+                    ),
+                    Some(JsonValue::Number(v)) if name == "record_version" => {
+                        b.work(v.lexeme.len(), 8)?;
+                        Value::from(
+                            v.lexeme
+                                .parse::<u64>()
+                                .map_err(|_| ClaimReferenceError::UnsupportedProfile)?,
+                        )
+                    }
+                    _ => return Err(ClaimReferenceError::UnsupportedProfile),
+                })
+            };
+        let schema = scalar("schema_version", b)?;
+        let version = scalar("record_version", b)?;
+        let canonical = b.canonical(&record, row.raw.len())?;
+        b.work(
+            row.raw
+                .len()
+                .checked_add(canonical.len())
+                .ok_or(ClaimReferenceError::Limit)?,
+            32,
+        )?;
+        objects.insert(
+            row.id.to_owned(),
+            serde_json::json!({
+                "source_ref":row.path,
+                "source_sha256":Digest256::of_bytes(row.raw).to_prefixed(),
+                "canonical_record_sha256":Digest256::of_bytes(&canonical).to_prefixed(),
+                "schema_version":schema,"record_version":version
+            }),
+        );
+    }
+    b.work(repo.raw.len(), 32)?;
+    let mut bound_evidence = serde_json::Map::new();
+    bound_evidence.insert(
+        repo.reference.to_owned(),
+        serde_json::json!({
+            "source_ref":repo.path,"source_sha256":Digest256::of_bytes(repo.raw).to_prefixed(),
+            "source_line":null,"evidence_kind":"repo_path"
+        }),
+    );
+    Ok(serde_json::json!({"objects":objects,"evidence":bound_evidence}))
+}
+fn check_declared_claim_context(
+    ctx: &tos_command::source_command::CommandContext,
+    files: &BTreeMap<String, Vec<u8>>,
+    software: &BTreeMap<String, Vec<u8>>,
+    config: &Value,
+    request: &Value,
+    base: SourceRevision,
+    b: &mut ClaimReferenceBudget<'_>,
+) -> ClaimReferenceResult<(Digest256, Digest256)> {
+    b.work(0, 64)?;
+    if ctx.files.len() > 4096 {
+        return Err(ClaimReferenceError::Limit);
+    }
+    if ctx.base_revision != base
+        || config.get("uid").and_then(Value::as_u64) != Some(ctx.effective_uid)
+        || ctx.files.len()
+            != files
+                .len()
+                .checked_add(software.len())
+                .ok_or(ClaimReferenceError::Limit)?
+    {
+        return Err(ClaimReferenceError::WitnessMismatch);
+    }
+    let mut previous = None;
+    for member in &ctx.files {
+        let path = member.path.as_str();
+        b.work(
+            path.len(),
+            files
+                .len()
+                .checked_add(software.len())
+                .and_then(|n| n.checked_add(8))
+                .ok_or(ClaimReferenceError::Limit)?,
+        )?;
+        if previous.is_some_and(|old| old >= path)
+            || (files.contains_key(path) && software.contains_key(path))
+        {
+            return Err(ClaimReferenceError::AmbiguousIdentity);
+        }
+        previous = Some(path);
+        let raw = files
+            .get(path)
+            .or_else(|| software.get(path))
+            .ok_or(ClaimReferenceError::MissingSource)?;
+        if raw.len() > 8_388_608 || member.raw.len() > 8_388_608 {
+            return Err(ClaimReferenceError::Limit);
+        }
+        if !b.same_bytes(raw, &member.raw)? {
+            return Err(ClaimReferenceError::WitnessMismatch);
+        }
+    }
+    let config_value = b.parse(&ctx.configuration_raw)?;
+    let request_value = b.parse(&ctx.request_raw)?;
+    if !claim_reference_same(&config_value, config, b, 0)?
+        || !claim_reference_same(&request_value, request, b, 0)?
+    {
+        return Err(ClaimReferenceError::WitnessMismatch);
+    }
+    let config_bytes = b.canonical(&config_value, ctx.configuration_raw.len())?;
+    let request_bytes = b.canonical(&request_value, ctx.request_raw.len())?;
+    b.work(
+        config_bytes
+            .len()
+            .checked_add(request_bytes.len())
+            .ok_or(ClaimReferenceError::Limit)?,
+        8,
+    )?;
+    Ok((
+        Digest256::of_bytes(&config_bytes),
+        Digest256::of_bytes(&request_bytes),
+    ))
+}
+
+fn claim_reference_equal(
+    a: &Value,
+    c: &Value,
+    b: &mut ClaimReferenceBudget<'_>,
+    depth: usize,
+) -> ClaimReferenceResult<()> {
+    b.work(0, 8)?;
+    if depth > 64 {
+        return Err(ClaimReferenceError::Limit);
+    }
+    let equal = match (a, c) {
+        (Value::String(a), Value::String(c)) => {
+            b.work(
+                a.len()
+                    .checked_add(c.len())
+                    .ok_or(ClaimReferenceError::Limit)?,
+                4,
+            )?;
+            a == c
+        }
+        (Value::Array(a), Value::Array(c)) if a.len() == c.len() => {
+            for (a, c) in a.iter().zip(c) {
+                claim_reference_equal(a, c, b, depth + 1)?;
+            }
+            true
+        }
+        (Value::Object(a), Value::Object(c)) if a.len() == c.len() => {
+            for key in c.keys() {
+                b.work(key.len(), 4)?;
+            }
+            for (key, value) in a {
+                b.work(
+                    key.len()
+                        .checked_mul(c.len().checked_add(1).ok_or(ClaimReferenceError::Limit)?)
+                        .ok_or(ClaimReferenceError::Limit)?,
+                    8,
+                )?;
+                claim_reference_equal(
+                    value,
+                    c.get(key).ok_or(ClaimReferenceError::WitnessMismatch)?,
+                    b,
+                    depth + 1,
+                )?;
+            }
+            true
+        }
+        (Value::Null, Value::Null) => true,
+        (Value::Bool(a), Value::Bool(c)) => a == c,
+        (Value::Number(a), Value::Number(c)) => a.as_u64().is_some() && a.as_u64() == c.as_u64(),
+        _ => false,
+    };
+    if equal {
+        Ok(())
+    } else {
+        Err(ClaimReferenceError::WitnessMismatch)
+    }
+}
+fn claim_reference_controls(
+    inputs: &DeclaredSimpleClaimInputs<'_>,
+    selected: &BTreeMap<String, Vec<u8>>,
+    expected: &Value,
+    b: &mut ClaimReferenceBudget<'_>,
+) -> ClaimReferenceResult<()> {
+    b.work(0, 64)?;
+    let original = &inputs.objects[0];
+    let capacity = original
+        .raw
+        .len()
+        .checked_add(2)
+        .ok_or(ClaimReferenceError::Limit)?;
+    b.own(capacity.checked_mul(2).ok_or(ClaimReferenceError::Limit)?)?;
+    let mut spaced = Vec::new();
+    spaced
+        .try_reserve_exact(capacity)
+        .map_err(|_| ClaimReferenceError::Limit)?;
+    if spaced.capacity() > capacity.checked_mul(2).ok_or(ClaimReferenceError::Limit)? {
+        return Err(ClaimReferenceError::Limit);
+    }
+    b.work(original.raw.len(), 8)?;
+    spaced.push(b' ');
+    spaced.extend_from_slice(original.raw);
+    spaced.push(b'\n');
+    let changed = [
+        DeclaredClaimObject {
+            raw: &spaced,
+            ..*original
+        },
+        DeclaredClaimObject {
+            ..inputs.objects[1]
+        },
+    ];
+    let variant = DeclaredSimpleClaimInputs {
+        objects: &changed,
+        evidence: inputs.evidence,
+        claims: inputs.claims,
+    };
+    let changed_expected = expected_simple_claim_bindings(&variant, b)?;
+    // Whitespace changes raw fixity, never the full canonical record digest.
+    let id = original.id;
+    b.work(id.len(), 32)?;
+    claim_reference_equal(
+        &expected["objects"][id]["canonical_record_sha256"],
+        &changed_expected["objects"][id]["canonical_record_sha256"],
+        b,
+        0,
+    )?;
+    assert_eq!(
+        claim_reference_equal(expected, &changed_expected, b, 0),
+        Err(ClaimReferenceError::WitnessMismatch)
+    );
+    assert_eq!(
+        check_simple_claim_selected_inputs(&variant, selected, b),
+        Err(ClaimReferenceError::WitnessMismatch)
+    );
+    let duplicate = [
+        DeclaredClaimObject { ..*original },
+        DeclaredClaimObject {
+            id: original.id,
+            ..inputs.objects[1]
+        },
+    ];
+    let invalid = DeclaredSimpleClaimInputs {
+        objects: &duplicate,
+        evidence: inputs.evidence,
+        claims: inputs.claims,
+    };
+    assert!(matches!(
+        expected_simple_claim_bindings(&invalid, b),
+        Err(ClaimReferenceError::AmbiguousIdentity)
+    ));
+    let absent = DeclaredSimpleClaimInputs {
+        objects: inputs.objects,
+        evidence: &[],
+        claims: inputs.claims,
+    };
+    assert!(matches!(
+        expected_simple_claim_bindings(&absent, b),
+        Err(ClaimReferenceError::UnsupportedProfile)
+    ));
+    Ok(())
+}
+
+fn check_historical_simple_inputs(
+    inputs: &DeclaredSimpleClaimInputs<'_>,
+    provenance_raw: &[u8],
+    oracle_id: &str,
+    config: &Value,
+    request: &Value,
+    historical_request: bool,
+    root: &Path,
+    b: &mut ClaimReferenceBudget<'_>,
+) -> ClaimReferenceResult<()> {
+    b.work(provenance_raw.len(), 64)?;
+    if inputs.objects.len() != 2 || inputs.evidence.len() != 1 || inputs.claims.len() != 1 {
+        return Err(ClaimReferenceError::UnsupportedProfile);
+    }
+    // Static checked provenance has wide metadata objects, not dense arbitrary
+    // arrays. Lower this ONE parser state child; its actual state guard still
+    // refuses, and all callbacks share the original case work. No validation
+    // or visit pass is removed and no reservation is refunded.
+    let witness = b.parse_reserved(provenance_raw, 16)?;
+    if claim_reference_field(&witness, "schema_version", b)?.and_then(JsonValue::as_str)
+        != Some("tos_legacy_python_oracle_capture_v1")
+        || claim_reference_field(&witness, "oracle_id", b)?.and_then(JsonValue::as_str)
+            != Some(oracle_id)
+    {
+        return Err(ClaimReferenceError::WitnessMismatch);
+    }
+    let input = claim_reference_field(&witness, "input_witness", b)?
+        .ok_or(ClaimReferenceError::MissingSource)?;
+    let inventory = claim_reference_field(input, "selected_source_inputs", b)?
+        .ok_or(ClaimReferenceError::MissingSource)?;
+    let number = |v: &JsonValue| -> ClaimReferenceResult<usize> {
+        match v {
+            JsonValue::Number(v) => v
+                .lexeme
+                .parse::<usize>()
+                .map_err(|_| ClaimReferenceError::InvalidInput),
+            _ => Err(ClaimReferenceError::InvalidInput),
+        }
+    };
+    let rows = claim_reference_field(inventory, "files", b)?
+        .and_then(JsonValue::as_array)
+        .ok_or(ClaimReferenceError::InvalidInput)?;
+    let count = number(
+        claim_reference_field(inventory, "entry_count", b)?
+            .ok_or(ClaimReferenceError::InvalidInput)?,
+    )?;
+    let total = number(
+        claim_reference_field(inventory, "total_bytes", b)?
+            .ok_or(ClaimReferenceError::InvalidInput)?,
+    )?;
+    if count != rows.len() || count > 4096 || total > 33_554_432 {
+        return Err(ClaimReferenceError::Limit);
+    }
+    let mut previous = None;
+    let mut sum = 0usize;
+    let mut found = [false; 3];
+    for row in rows {
+        b.work(0, 64)?;
+        let path = claim_reference_field(row, "path", b)?
+            .and_then(JsonValue::as_str)
+            .ok_or(ClaimReferenceError::InvalidInput)?;
+        let bytes = number(
+            claim_reference_field(row, "bytes", b)?.ok_or(ClaimReferenceError::InvalidInput)?,
+        )?;
+        let sha = claim_reference_field(row, "sha256", b)?
+            .and_then(JsonValue::as_str)
+            .ok_or(ClaimReferenceError::InvalidInput)?;
+        b.work(
+            path.len()
+                .checked_add(sha.len())
+                .ok_or(ClaimReferenceError::Limit)?,
+            16,
+        )?;
+        if previous.is_some_and(|old| old >= path)
+            || bytes > 8_388_608
+            || sha.len() != 64
+            || !sha
+                .bytes()
+                .all(|v| v.is_ascii_hexdigit() && !v.is_ascii_uppercase())
+        {
+            return Err(ClaimReferenceError::InvalidInput);
+        }
+        previous = Some(path);
+        sum = sum.checked_add(bytes).ok_or(ClaimReferenceError::Limit)?;
+        for (index, (declared, raw)) in inputs
+            .objects
+            .iter()
+            .map(|v| (v.path, v.raw))
+            .chain(inputs.evidence.iter().map(|v| (v.path, v.raw)))
+            .enumerate()
+        {
+            b.work(declared.len(), 8)?;
+            if declared == path {
+                b.work(raw.len(), 16)?;
+                b.own(64)?; // fixed fresh hex digest, before its String construction
+                if found[index] || raw.len() != bytes || Digest256::of_bytes(raw).to_hex() != sha {
+                    return Err(ClaimReferenceError::WitnessMismatch);
+                }
+                found[index] = true;
+            }
+        }
+    }
+    if sum != total || found.iter().any(|v| !v) {
+        return Err(ClaimReferenceError::WitnessMismatch);
+    }
+    let old = claim_reference_field(input, "configuration", b)?
+        .ok_or(ClaimReferenceError::MissingSource)?;
+    let current = config
+        .as_object()
+        .ok_or(ClaimReferenceError::InvalidInput)?;
+    b.work(0, 32)?;
+    if old
+        .as_object()
+        .ok_or(ClaimReferenceError::InvalidInput)?
+        .len()
+        != current.len()
+        || config.get("source_root").and_then(Value::as_str) != root.to_str()
+        || !root.is_absolute()
+    {
+        return Err(ClaimReferenceError::WitnessMismatch);
+    }
+    for (key, value) in current {
+        b.work(key.len(), 16)?;
+        let original =
+            claim_reference_field(old, key, b)?.ok_or(ClaimReferenceError::MissingSource)?;
+        let same = match key.as_str() {
+            "source_root" => original.as_str() == Some("<isolated-source-root>"),
+            "uid" => number(original)? == 1000 && value.as_u64().is_some(),
+            _ => claim_reference_same(original, value, b, 0)?,
+        };
+        if !same {
+            return Err(ClaimReferenceError::WitnessMismatch);
+        }
+    }
+    if historical_request {
+        let old = claim_reference_field(input, "request", b)?
+            .ok_or(ClaimReferenceError::MissingSource)?;
+        if !claim_reference_same(old, request, b, 0)? {
+            return Err(ClaimReferenceError::WitnessMismatch);
+        }
+    }
+    // A current temporal correction is separately checked against its complete
+    // authored request by check_declared_claim_context, never relabelled H.
+    Ok(())
+}
+
 // Exact output of the historical Claim oracle, captured with its selected
 // fixture bytes and source hashes in the adjacent provenance record.
 fn maintained_oracle(oracle_id: &str) -> Value {
@@ -286,7 +1170,66 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
         initial["qualifiers"]["statement"].as_str().unwrap()
     );
     let proposal = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-revise","fields":{"qualifiers":{"statement":wording}},"forms":selections,"reason":"Synthetic source-copy Claim successor conformance; no assessment."});
+    let mut claim_reference_budget = ClaimReferenceBudget::new(deadline, &cancel);
+    claim_reference_budget.own(32_768).unwrap(); // fixed borrowed-input/control workspace before arrays
+    let simple_objects = [
+        DeclaredClaimObject {
+            id: initial["subject_ref"].as_str().unwrap(),
+            path: "ToS/source-witnesses/letters/command-claim-fixture/letter.json",
+            raw: &files["ToS/source-witnesses/letters/command-claim-fixture/letter.json"],
+            identity_field: "record_id",
+        },
+        DeclaredClaimObject {
+            id: initial["object"].as_str().unwrap(),
+            path: "ToS/source-witnesses/agents/command-claim-fixture/agent.json",
+            raw: &files["ToS/source-witnesses/agents/command-claim-fixture/agent.json"],
+            identity_field: "record_id",
+        },
+    ];
+    let simple_evidence = [DeclaredRepoEvidence {
+        reference: initial["evidence_refs"][0].as_str().unwrap(),
+        path: initial["evidence_refs"][0].as_str().unwrap(),
+        raw: &files[initial["evidence_refs"][0].as_str().unwrap()],
+    }];
+    let simple_claims = [&initial];
+    let simple_inputs = DeclaredSimpleClaimInputs {
+        objects: &simple_objects,
+        evidence: &simple_evidence,
+        claims: &simple_claims,
+    };
+    check_simple_claim_selected_inputs(&simple_inputs, &files, &mut claim_reference_budget)
+        .unwrap();
+    let simple_reference =
+        expected_simple_claim_bindings(&simple_inputs, &mut claim_reference_budget).unwrap();
+    claim_reference_controls(
+        &simple_inputs,
+        &files,
+        &simple_reference,
+        &mut claim_reference_budget,
+    )
+    .unwrap();
+    check_historical_simple_inputs(
+        &simple_inputs,
+        include_bytes!("legacy-python-oracles-v1/claim-revision-initial.provenance.json"),
+        "claim-revision-initial",
+        &configuration,
+        &proposal,
+        true,
+        &root,
+        &mut claim_reference_budget,
+    )
+    .unwrap();
     let preview_ctx = selected_context(&files, &software_files, &configuration, &proposal, base);
+    let simple_context_digests = check_declared_claim_context(
+        &preview_ctx,
+        &files,
+        &software_files,
+        &configuration,
+        &proposal,
+        base,
+        &mut claim_reference_budget,
+    )
+    .unwrap();
     assert!(
         matches!(
             run_claim_command(&preview_ctx, &mut worker, deadline, &cancel),
@@ -325,6 +1268,29 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     .unwrap();
     let preview_response = response(&preview);
     let oracle = maintained_oracle("claim-revision-initial");
+    claim_reference_equal(
+        &simple_reference,
+        &oracle["source_bindings"],
+        &mut claim_reference_budget,
+        0,
+    )
+    .unwrap();
+    assert_eq!(
+        preview.configuration_canonical_sha256,
+        simple_context_digests.0
+    );
+    assert_eq!(preview.request_canonical_sha256, simple_context_digests.1);
+    assert_eq!(
+        preview.configuration_raw_sha256,
+        Digest256::of_bytes(&preview_ctx.configuration_raw)
+    );
+    claim_reference_equal(
+        &preview_response["source_bindings"],
+        &simple_reference,
+        &mut claim_reference_budget,
+        0,
+    )
+    .unwrap();
     // The frozen Python dependency fingerprint is history; a current command
     // must use the native capture prepared from this authenticated source cut.
     assert_eq!(
@@ -862,6 +1828,59 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     );
     context.effective_uid = u64::from(uid);
     context.configuration_raw = config_raw.clone();
+    let mut claim_reference_budget = ClaimReferenceBudget::new(deadline, &cancellation);
+    claim_reference_budget.own(32_768).unwrap(); // SAME case account also covers retained-history reference
+    let simple_objects = [
+        DeclaredClaimObject {
+            id: claim["subject_ref"].as_str().unwrap(),
+            path: "ToS/source-witnesses/letters/command-claim-fixture/letter.json",
+            raw: &files["ToS/source-witnesses/letters/command-claim-fixture/letter.json"],
+            identity_field: "record_id",
+        },
+        DeclaredClaimObject {
+            id: claim["object"].as_str().unwrap(),
+            path: "ToS/source-witnesses/agents/command-claim-fixture/agent.json",
+            raw: &files["ToS/source-witnesses/agents/command-claim-fixture/agent.json"],
+            identity_field: "record_id",
+        },
+    ];
+    let simple_evidence = [DeclaredRepoEvidence {
+        reference: claim["evidence_refs"][0].as_str().unwrap(),
+        path: claim["evidence_refs"][0].as_str().unwrap(),
+        raw: &files[claim["evidence_refs"][0].as_str().unwrap()],
+    }];
+    let simple_claims = [&claim];
+    let simple_inputs = DeclaredSimpleClaimInputs {
+        objects: &simple_objects,
+        evidence: &simple_evidence,
+        claims: &simple_claims,
+    };
+    check_simple_claim_selected_inputs(&simple_inputs, &authored, &mut claim_reference_budget)
+        .unwrap();
+    let simple_reference =
+        expected_simple_claim_bindings(&simple_inputs, &mut claim_reference_budget).unwrap();
+    check_historical_simple_inputs(
+        &simple_inputs,
+        include_bytes!("legacy-python-oracles-v1/claim-creation.provenance.json"),
+        "claim-creation",
+        &configuration,
+        &preview_request,
+        true,
+        isolated.path(),
+        &mut claim_reference_budget,
+    )
+    .unwrap();
+    let reference_no_software = BTreeMap::new();
+    let simple_context_digests = check_declared_claim_context(
+        &context,
+        &files,
+        &reference_no_software,
+        &configuration,
+        &preview_request,
+        base,
+        &mut claim_reference_budget,
+    )
+    .unwrap();
     let mut worker = claim_worker();
     let preview = checked_command(
         &context,
@@ -882,6 +1901,29 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         )
     );
     let oracle = crate::frozen_legacy_python_oracle("claim-creation");
+    claim_reference_equal(
+        &simple_reference,
+        &oracle["bindings"],
+        &mut claim_reference_budget,
+        0,
+    )
+    .unwrap();
+    claim_reference_equal(
+        &expected["source_bindings"],
+        &simple_reference,
+        &mut claim_reference_budget,
+        0,
+    )
+    .unwrap();
+    assert_eq!(
+        preview.configuration_canonical_sha256,
+        simple_context_digests.0
+    );
+    assert_eq!(preview.request_canonical_sha256, simple_context_digests.1);
+    assert_eq!(
+        preview.configuration_raw_sha256,
+        Digest256::of_bytes(&context.configuration_raw)
+    );
     // The live request binds to the native preview; the captured Python
     // dependency fingerprint remains historical packet data.
     assert_eq!(expected["source_bindings"], oracle["bindings"]);
@@ -1388,6 +2430,38 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         deadline,
         &cancellation,
     );
+    check_simple_claim_selected_inputs(&simple_inputs, &current_files, &mut claim_reference_budget)
+        .unwrap();
+    let retained_simple_reference =
+        expected_simple_claim_bindings(&simple_inputs, &mut claim_reference_budget).unwrap();
+    claim_reference_equal(
+        &retained_simple_reference,
+        &simple_reference,
+        &mut claim_reference_budget,
+        0,
+    )
+    .unwrap();
+    check_historical_simple_inputs(
+        &simple_inputs,
+        include_bytes!("legacy-python-oracles-v1/claim-revision-selected-history.provenance.json"),
+        "claim-revision-selected-history",
+        &revision_owner,
+        &correction,
+        false,
+        isolated.path(),
+        &mut claim_reference_budget,
+    )
+    .unwrap();
+    let retained_context_digests = check_declared_claim_context(
+        &revision_context,
+        &current_files,
+        &revision_software,
+        &revision_owner,
+        &correction,
+        current,
+        &mut claim_reference_budget,
+    )
+    .unwrap();
     let prepared_correction = prepare_isolated_claim_revision_from_captures(
         &revision_filesystem,
         &revision_context,
@@ -1403,6 +2477,32 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     drop(revision_preview_worker);
     let prepared = response(&prepared_correction);
     let independent = maintained_oracle("claim-revision-selected-history");
+    claim_reference_equal(
+        &retained_simple_reference,
+        &independent["source_bindings"],
+        &mut claim_reference_budget,
+        0,
+    )
+    .unwrap();
+    claim_reference_equal(
+        &prepared["source_bindings"],
+        &retained_simple_reference,
+        &mut claim_reference_budget,
+        0,
+    )
+    .unwrap();
+    assert_eq!(
+        prepared_correction.configuration_canonical_sha256,
+        retained_context_digests.0
+    );
+    assert_eq!(
+        prepared_correction.request_canonical_sha256,
+        retained_context_digests.1
+    );
+    assert_eq!(
+        prepared_correction.configuration_raw_sha256,
+        Digest256::of_bytes(&revision_context.configuration_raw)
+    );
     // Current expected dependencies come from the native owner/source cut;
     // `independent` retains the frozen historical Python packet.
     assert_eq!(prepared["source_bindings"], independent["source_bindings"]);
