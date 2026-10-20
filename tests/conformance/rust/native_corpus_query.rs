@@ -3539,9 +3539,14 @@ struct NavigationGeometry {
     values: usize,
     max_frames: usize,
 }
-fn navigation_w_workspace() -> NavResult<usize> {
+struct NavigationWAdmission {
+    frame_bytes: usize,
+    admitted_frames: usize,
+}
+fn navigation_w_frame_bytes() -> NavResult<usize> {
     use std::mem::size_of;
-    // 97 valid recursive frames, and the depth97 rejecting entry's arguments.
+    // Keep the old complete frame envelope F; add the State parameter and
+    // forwarded reborrow at EVERY active level, including rejecting depth97.
     let frame = size_of::<&serde_json::Value>()
         .checked_add(
             size_of::<&mut ReferenceLimits<'_>>()
@@ -3583,19 +3588,62 @@ fn navigation_w_workspace() -> NavResult<usize> {
         .and_then(|n| n.checked_add(size_of::<bool>()))
         .ok_or(ReferenceError::Budget)?;
     frame
-        .checked_mul(97)
-        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(3)?))
+        .checked_add(
+            size_of::<&mut NavigationWAdmission>()
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .ok_or(ReferenceError::Budget)
+}
+fn navigation_w_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    // Unchanged outside envelope O, separately from per-level F + 2B.
+    let outside = size_of::<&serde_json::Value>()
+        .checked_mul(3)
         .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(3)?))
         .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
         .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(3)?))
         .and_then(|n| n.checked_add(size_of::<NavResult<NavigationGeometry>>().checked_mul(2)?))
         .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
-        .ok_or(ReferenceError::Budget)
+        .ok_or(ReferenceError::Budget)?;
+    // Fixed E: State owner; helper/forwarding borrows; depth/wanted/old/delta/
+    // amount/frame-unit operands; checked Options and propagated Results.
+    let admission = std::mem::size_of::<NavigationWAdmission>()
+        .checked_add(
+            size_of::<&mut NavigationWAdmission>()
+                .checked_mul(2)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)?;
+    outside.checked_add(admission).ok_or(ReferenceError::Budget)
+}
+fn navigation_w_admit(
+    depth: usize,
+    admission: &mut NavigationWAdmission,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(2)?; // BEFORE State lookup/check and possible ordinary metadata write
+    let wanted = depth.checked_add(1).ok_or(ReferenceError::Budget)?;
+    let delta = wanted.saturating_sub(admission.admitted_frames);
+    if delta != 0 {
+        let amount = delta
+            .checked_mul(admission.frame_bytes)
+            .ok_or(ReferenceError::Budget)?;
+        l.bytes(amount)?; // incoming frame + both State borrows BEFORE its call
+        admission.admitted_frames = wanted;
+    }
+    Ok(())
 }
 fn navigation_w_node(
     v: &serde_json::Value,
     l: &mut ReferenceLimits<'_>,
     depth: usize,
+    admission: &mut NavigationWAdmission,
 ) -> NavResult<NavigationGeometry> {
     use serde_json::Value;
     l.step(1)?;
@@ -3632,11 +3680,9 @@ fn navigation_w_node(
             max_frames = 1;
             let mut wire = 2usize;
             for child in a {
-                let child = navigation_w_node(
-                    child,
-                    l,
-                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
-                )?;
+                let next_depth = depth.checked_add(1).ok_or(ReferenceError::Budget)?;
+                navigation_w_admit(next_depth, admission, l)?;
+                let child = navigation_w_node(child, l, next_depth, admission)?;
                 wire = wire
                     .checked_add(child.wire)
                     .and_then(|n| n.checked_add(1))
@@ -3664,11 +3710,9 @@ fn navigation_w_node(
                     .and_then(|n| n.checked_add(4))
                     .ok_or(ReferenceError::Budget)?;
                 key.checked_add(96).ok_or(ReferenceError::Budget)?; // SAME pre-child overflow
-                let child = navigation_w_node(
-                    child,
-                    l,
-                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
-                )?;
+                let next_depth = depth.checked_add(1).ok_or(ReferenceError::Budget)?;
+                navigation_w_admit(next_depth, admission, l)?;
+                let child = navigation_w_node(child, l, next_depth, admission)?;
                 wire = wire
                     .checked_add(key)
                     .and_then(|n| n.checked_add(child.wire))
@@ -3701,8 +3745,13 @@ fn navigation_w_guard(
 ) -> NavResult<NavigationGeometry> {
     l.step(1)?;
     reference_move_layout()?;
-    l.bytes(navigation_w_workspace()?)?; // BEFORE recursion or result construction
-    navigation_w_node(v, l, 0)
+    l.bytes(navigation_w_workspace()?)?; // O + E BEFORE State/root construction
+    let mut admission = NavigationWAdmission {
+        frame_bytes: navigation_w_frame_bytes()?,
+        admitted_frames: 0,
+    };
+    navigation_w_admit(0, &mut admission, l)?;
+    navigation_w_node(v, l, 0, &mut admission)
 }
 struct NavigationCopyState {
     held: usize,
