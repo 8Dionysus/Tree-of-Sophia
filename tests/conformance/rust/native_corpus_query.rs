@@ -801,6 +801,11 @@ impl ReferenceLimits<'_> {
 }
 // This is a different CONSTRUCTION, not a cheaper coefficient for value_bound.
 // The old conservative subtree guards and the maintained final writer remain.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PreflightPurpose {
+    CanonicalConstruction,
+    MergeReadGuard,
+}
 #[derive(Clone, Copy)]
 struct CanonicalMeta {
     wire: usize,
@@ -875,10 +880,15 @@ fn canonical_plan_workspace() -> NavResult<usize> {
     use std::mem::size_of;
     size_of::<CanonicalPlanState<'_>>()
         .checked_add(
-            size_of::<Vec<CanonicalPlanFrame<'_>>>()
+            size_of::<PreflightPurpose>()
                 .checked_mul(2)
                 .ok_or(ReferenceError::Budget)?,
         )
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(2)?))
+        // Purpose wrapper/inner argument borrows coexist; no input clone.
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Vec<CanonicalPlanFrame<'_>>>().checked_mul(2)?))
         .and_then(|n| {
             n.checked_add(
                 size_of::<Result<(), std::collections::TryReserveError>>().checked_mul(2)?,
@@ -978,6 +988,35 @@ fn canonical_preflight(
     v: &serde_json::Value,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<CanonicalPlan> {
+    l.step(1)?;
+    l.bytes(std::mem::size_of::<PreflightPurpose>())?; // BEFORE purpose argument
+    canonical_preflight_for(v, l, PreflightPurpose::CanonicalConstruction)
+}
+// READ guard has no cloned row or serialized wire. Its caller already owns
+// the paid complete value (or a live immutable borrow), never a SUT row.
+fn merge_read_bound(v: &serde_json::Value, l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    use std::mem::size_of;
+    l.step(1)?;
+    l.bytes(
+        size_of::<CanonicalPlan>()
+            .checked_add(size_of::<PreflightPurpose>())
+            .and_then(|n| n.checked_add(size_of::<NavResult<CanonicalPlan>>()))
+            .and_then(|n| n.checked_add(size_of::<&serde_json::Value>()))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+            .and_then(|n| n.checked_add(size_of::<NavResult<usize>>()))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    Ok(
+        canonical_preflight_for(v, l, PreflightPurpose::MergeReadGuard)?
+            .meta
+            .wire,
+    )
+}
+fn canonical_preflight_for(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+    purpose: PreflightPurpose,
+) -> NavResult<CanonicalPlan> {
     use serde_json::Value;
     l.step(1)?;
     reference_move_layout()?;
@@ -1030,7 +1069,12 @@ fn canonical_preflight(
                         .checked_mul(6)
                         .and_then(|n| n.checked_add(2))
                         .ok_or(ReferenceError::Budget)?;
-                    let metrics = canonical_text(text, l)?;
+                    l.step(1)?; // purpose/length metadata, not a fictitious copy
+                    let metrics = if purpose == PreflightPurpose::CanonicalConstruction {
+                        canonical_text(text, l)?
+                    } else {
+                        CanonicalText { raw: 0, units: 0 }
+                    };
                     Some(CanonicalMeta {
                         wire,
                         raw: metrics.raw,
@@ -1082,7 +1126,10 @@ fn canonical_preflight(
         if let Some(child) = state.ready.take() {
             if state.depth == 0 {
                 // Exactly the old ACTUAL whole-wire limit, AFTER all old-order W guards.
-                if child.raw > l.max_output_bytes {
+                l.step(1)?;
+                if purpose == PreflightPurpose::CanonicalConstruction
+                    && child.raw > l.max_output_bytes
+                {
                     return Err(ReferenceError::Budget);
                 }
                 return Ok(CanonicalPlan {
@@ -1125,12 +1172,15 @@ fn canonical_preflight(
                     .and_then(|n| n.checked_add(1))
             }
             .ok_or(ReferenceError::Budget)?;
-            meta.raw = meta
-                .raw
-                .checked_add(raw_extra)
-                .and_then(|n| n.checked_add(child.raw))
-                .and_then(|n| n.checked_add(usize::from(*members != 0)))
-                .ok_or(ReferenceError::Budget)?;
+            l.step(1)?;
+            if purpose == PreflightPurpose::CanonicalConstruction {
+                meta.raw = meta
+                    .raw
+                    .checked_add(raw_extra)
+                    .and_then(|n| n.checked_add(child.raw))
+                    .and_then(|n| n.checked_add(usize::from(*members != 0)))
+                    .ok_or(ReferenceError::Budget)?;
+            }
             meta.values = meta
                 .values
                 .checked_add(child.values)
@@ -1163,7 +1213,12 @@ fn canonical_preflight(
                     // Preserve old key+header checked arithmetic BEFORE child;
                     // its old clone admission is replaced by actual constructor work.
                     wire.checked_add(96).ok_or(ReferenceError::Budget)?;
-                    let metrics = canonical_text(key, l)?;
+                    l.step(1)?; // purpose/length metadata, BEFORE child
+                    let metrics = if purpose == PreflightPurpose::CanonicalConstruction {
+                        canonical_text(key, l)?
+                    } else {
+                        CanonicalText { raw: 0, units: 0 }
+                    };
                     // Key is NOT a serde Value: no new independent key W guard.
                     *pending = Some(CanonicalKey {
                         wire,
@@ -2841,7 +2896,7 @@ fn nav_merge<Row: std::borrow::Borrow<serde_json::Value>>(
     l.step(2)?;
     let row_value: &serde_json::Value = row.borrow();
     let id = nav_str(row_value, key)?;
-    let bound = l.value_bound(row_value, 0)?;
+    let bound = merge_read_bound(row_value, l)?;
     if bound > l.max_row_bytes {
         return Err(ReferenceError::Budget);
     }
@@ -2973,6 +3028,16 @@ fn expected_source_navigation(
     let mut claims_seen = std::collections::BTreeSet::new();
     for claim in &inputs.claims {
         l.fixed(24)?;
+        // Added source-length-admission locals: event source borrow plus one
+        // target borrow, checked length sums/results and admission arguments.
+        l.bytes(
+            std::mem::size_of::<&str>()
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(std::mem::size_of::<Option<usize>>().checked_mul(4)?))
+                .and_then(|n| n.checked_add(std::mem::size_of::<usize>().checked_mul(4)?))
+                .and_then(|n| n.checked_add(std::mem::size_of::<NavResult<()>>().checked_mul(2)?))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
         let c = &claim.value;
         let id = nav_str(c, "claim_id")?;
         if !claims_seen.insert(id) {
@@ -3050,7 +3115,14 @@ fn expected_source_navigation(
             ],
             l,
         )?;
-        let event_id = format!("provenance_event:{}", nav_str(&event.value, "event_id")?);
+        let event_source_id = nav_str(&event.value, "event_id")?;
+        l.bytes(
+            "provenance_event:"
+                .len()
+                .checked_add(event_source_id.len())
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let event_id = format!("provenance_event:{event_source_id}");
         l.fixed(10)?;
         let mut props = l.copy(&event.value)?;
         let map = props
@@ -3085,6 +3157,7 @@ fn expected_source_navigation(
         }
         map.insert("agent_refs".into(), Value::Array(agents));
         map.insert("bibliographic_carrier".into(),json!({"source_line":event.line.ok_or(ReferenceError::InvalidBinding)?,"source_sha256":event.sha}));
+        l.bytes(event_id.len())?; // argument clone occurs BEFORE callee admission
         let row = nav_node(
             event_id.clone(),
             "provenance_event",
@@ -3133,6 +3206,7 @@ fn expected_source_navigation(
             ],
             l,
         )?;
+        l.bytes(maker_id.len())?;
         let row = nav_node(
             maker_id.clone(),
             "maker",
@@ -3182,6 +3256,7 @@ fn expected_source_navigation(
             map.insert("human_forms_source_ref".into(), json!(path));
         }
         map.insert("bibliographic_carrier".into(),json!({"source_line":claim.line.ok_or(ReferenceError::InvalidBinding)?,"source_sha256":claim.sha}));
+        l.bytes(claim_id.len())?;
         let row = nav_node(
             claim_id.clone(),
             "claim",
@@ -3199,19 +3274,34 @@ fn expected_source_navigation(
                 .ok_or(ReferenceError::Budget)?,
         )?;
         let mut targets = vec![
-            (
-                "has_subject",
-                format!("identity:{}", nav_str(c, "subject_ref")?),
-            ),
-            (
-                "has_object",
-                format!(
-                    "identity:{}",
-                    c["object"].as_str().ok_or(ReferenceError::InvalidBinding)?
-                ),
-            ),
-            ("made_by", maker_id.clone()),
-            ("generated_by", event_id.clone()),
+            ("has_subject", {
+                let subject = nav_str(c, "subject_ref")?;
+                l.bytes(
+                    "identity:"
+                        .len()
+                        .checked_add(subject.len())
+                        .ok_or(ReferenceError::Budget)?,
+                )?;
+                format!("identity:{subject}")
+            }),
+            ("has_object", {
+                let object = c["object"].as_str().ok_or(ReferenceError::InvalidBinding)?;
+                l.bytes(
+                    "identity:"
+                        .len()
+                        .checked_add(object.len())
+                        .ok_or(ReferenceError::Budget)?,
+                )?;
+                format!("identity:{object}")
+            }),
+            ("made_by", {
+                l.bytes(maker_id.len())?;
+                maker_id.clone()
+            }),
+            ("generated_by", {
+                l.bytes(event_id.len())?;
+                event_id.clone()
+            }),
         ];
         for id in &evidence_ids {
             l.step(1)?;
@@ -3223,6 +3313,13 @@ fn expected_source_navigation(
             ));
         }
         for (ordinal, (predicate, target)) in targets.into_iter().enumerate() {
+            l.bytes(
+                id.len()
+                    .checked_add(predicate.len())
+                    .and_then(|n| n.checked_add("edge:::".len()))
+                    .and_then(|n| n.checked_add(20))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
             let row = nav_edge(
                 claim,
                 &claim_id,
@@ -3237,6 +3334,12 @@ fn expected_source_navigation(
             )?;
             nav_merge(&mut edges, row, "edge_id", &mut output_bytes, l)?;
         }
+        l.bytes(
+            "source-navigation:claim-subject:"
+                .len()
+                .checked_add(id.len())
+                .ok_or(ReferenceError::Budget)?,
+        )?;
         let inverse = nav_edge(
             claim,
             nav_str(c, "subject_ref")?,
@@ -3312,6 +3415,11 @@ fn nav_edge(
             .checked_add(from.len())
             .and_then(|n| n.checked_add(to.len()))
             .and_then(|n| n.checked_add(claim.path.len().checked_mul(3)?))
+            .and_then(|n| n.checked_add(kind.len()))
+            .and_then(|n| n.checked_add(predicate.len()))
+            .and_then(|n| n.checked_add(claim.sha.len()))
+            .and_then(|n| n.checked_add(maker.len()))
+            .and_then(|n| n.checked_add(event.len()))
             .ok_or(ReferenceError::Budget)?,
     )?;
     nav_object(
