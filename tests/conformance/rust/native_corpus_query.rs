@@ -29,10 +29,11 @@ enum ReferenceMoveFrame {
     },
 }
 struct ReferenceMoveState {
-    frames: [Option<ReferenceMoveFrame>; 97],
+    frames: Vec<ReferenceMoveFrame>,
     depth: usize,
     next: Option<tos_foundation::JsonValue>,
     ready: Option<serde_json::Value>,
+    available: usize,
 }
 
 // These are requested logical construction bounds for the pinned preserve_order
@@ -64,12 +65,14 @@ fn reference_move_workspace() -> NavResult<usize> {
     // Use each holder's largest actual Option/Result/moved spelling rather than
     // assuming an unverified enum niche/layout identity for those transitions.
     size_of::<ReferenceMoveState>()
-        .checked_add(
-            size_of::<tos_foundation::JsonDocument>()
-                .max(size_of::<Option<tos_foundation::JsonValue>>())
-                .checked_mul(2)
-                .ok_or(ReferenceError::Budget)?,
-        )
+        .checked_add(reference_stack_workspace::<ReferenceMoveFrame>()?)
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<tos_foundation::JsonDocument>()
+                    .max(size_of::<Option<tos_foundation::JsonValue>>())
+                    .checked_mul(2)?,
+            )
+        })
         .and_then(|n| {
             n.checked_add(
                 size_of::<ReferenceMoveFrame>()
@@ -110,6 +113,66 @@ fn reference_move_workspace() -> NavResult<usize> {
         .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(8)?))
         .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
         .ok_or(ReferenceError::Budget)
+}
+// Explicit actual holders for the two concrete move/scan stack types below.
+// This is not a generic public-value or allocator/RSS certificate.
+fn reference_stack_workspace<T>() -> NavResult<usize> {
+    use std::mem::size_of;
+    size_of::<Vec<T>>()
+        .checked_mul(2)
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Result<(), std::collections::TryReserveError>>().checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<T>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn reference_stack_room<T>(
+    frames: &mut Vec<T>,
+    available: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use std::mem::size_of;
+    l.step(1)?;
+    let len = frames.len();
+    let capacity = frames.capacity();
+    let needed = len.checked_add(1).ok_or(ReferenceError::Budget)?;
+    if needed > 97 || capacity > 97 {
+        return Err(ReferenceError::Budget);
+    }
+    if len == capacity {
+        let next = capacity
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?
+            .max(4)
+            .min(97)
+            .max(needed);
+        let slots = next
+            .checked_mul(size_of::<T>())
+            .ok_or(ReferenceError::Budget)?;
+        let old = capacity
+            .checked_mul(size_of::<T>())
+            .ok_or(ReferenceError::Budget)?;
+        let moved = len
+            .checked_mul(size_of::<T>())
+            .ok_or(ReferenceError::Budget)?;
+        canonical_state_room(old, slots, available)?;
+        l.bytes(slots.checked_add(moved).ok_or(ReferenceError::Budget)?)?;
+        l.step(1)?;
+        frames
+            .try_reserve_exact(next.checked_sub(len).ok_or(ReferenceError::Budget)?)
+            .map_err(|_| ReferenceError::Budget)?;
+        // The pinned requested-capacity law supplies admission BEFORE reserve.
+        if frames.capacity() != next {
+            return Err(ReferenceError::Budget);
+        }
+    }
+    Ok(())
 }
 fn reference_move_map_backing(m: usize) -> NavResult<usize> {
     use std::mem::{align_of, size_of};
@@ -197,12 +260,13 @@ fn move_reference_value(
     use serde_json::Value;
     use tos_foundation::JsonValue as Source;
     reference_move_layout()?;
-    l.bytes(reference_move_workspace()?)?; // BEFORE constructing the 97-slot state
+    l.bytes(reference_move_workspace()?)?; // BEFORE Vec/state/growth holders
     let mut state = ReferenceMoveState {
-        frames: [const { None }; 97],
+        frames: Vec::new(),
         depth: 0,
         next: Some(root),
         ready: None,
+        available: l.work.left,
     };
     loop {
         l.step(1)?; // transition, including terminal/error transitions
@@ -218,23 +282,25 @@ fn move_reference_value(
                 }
                 Source::Number(value) => state.ready = Some(reference_move_number(value, l)?),
                 Source::Array(values) => {
-                    if state.depth == state.frames.len() {
+                    if state.depth == 97 {
                         return Err(ReferenceError::Budget);
                     }
+                    reference_stack_room(&mut state.frames, state.available, l)?;
                     l.bytes(
                         values
                             .len()
                             .checked_mul(std::mem::size_of::<Value>())
                             .ok_or(ReferenceError::Budget)?,
                     )?;
-                    state.frames[state.depth] = Some(ReferenceMoveFrame::Array {
+                    l.bytes(std::mem::size_of::<ReferenceMoveFrame>())?;
+                    state.frames.push(ReferenceMoveFrame::Array {
                         output: Vec::with_capacity(values.len()),
                         remaining: values.into_iter(),
                     });
                     state.depth += 1;
                 }
                 Source::Object(values) => {
-                    if state.depth == state.frames.len() {
+                    if state.depth == 97 {
                         return Err(ReferenceError::Budget);
                     }
                     if let Some((key, _)) = values.first() {
@@ -252,8 +318,11 @@ fn move_reference_value(
                             return Err(ReferenceError::UnsupportedSourceProfile);
                         }
                     }
+                    // Keep ALL first-key semantic errors before stack growth.
+                    reference_stack_room(&mut state.frames, state.available, l)?;
                     l.bytes(reference_move_map_backing(values.len())?)?;
-                    state.frames[state.depth] = Some(ReferenceMoveFrame::Object {
+                    l.bytes(std::mem::size_of::<ReferenceMoveFrame>())?;
+                    state.frames.push(ReferenceMoveFrame::Object {
                         output: serde_json::Map::with_capacity(values.len()),
                         remaining: values.into_iter(),
                         pending_key: None,
@@ -268,8 +337,9 @@ fn move_reference_value(
                 return state.ready.take().ok_or(ReferenceError::InvalidBinding);
             }
             l.step(1)?; // parent insertion, before key hashing / child move
-            match state.frames[state.depth - 1]
-                .as_mut()
+            match state
+                .frames
+                .get_mut(state.depth - 1)
                 .ok_or(ReferenceError::InvalidBinding)?
             {
                 ReferenceMoveFrame::Array { output, .. } => {
@@ -308,8 +378,9 @@ fn move_reference_value(
             return Err(ReferenceError::InvalidBinding);
         }
         l.step(1)?; // next child/key or completed frame, before iterator access
-        match state.frames[state.depth - 1]
-            .as_mut()
+        match state
+            .frames
+            .get_mut(state.depth - 1)
             .ok_or(ReferenceError::InvalidBinding)?
         {
             ReferenceMoveFrame::Array { remaining, .. } => {
@@ -332,12 +403,10 @@ fn move_reference_value(
         }
         if state.next.is_none() {
             l.step(1)?; // take the finished frame; never clone its output
+            l.bytes(std::mem::size_of::<ReferenceMoveFrame>())?;
             state.depth -= 1;
             state.ready = Some(
-                match state.frames[state.depth]
-                    .take()
-                    .ok_or(ReferenceError::InvalidBinding)?
-                {
+                match state.frames.pop().ok_or(ReferenceError::InvalidBinding)? {
                     ReferenceMoveFrame::Array { output, .. } => Value::Array(output),
                     ReferenceMoveFrame::Object {
                         output,
@@ -1542,8 +1611,9 @@ fn canonical_construct(
 // It deliberately does not apply canonical-value's finite-number/W checks to
 // unselected fields: the old parse facade did not apply those checks either.
 struct ReferenceSourceScan<'a> {
-    frames: [Option<(&'a tos_foundation::JsonValue, usize)>; 97],
+    frames: Vec<(&'a tos_foundation::JsonValue, usize)>,
     depth: usize,
+    available: usize,
 }
 fn reference_source_scan(
     root: &tos_foundation::JsonValue,
@@ -1562,20 +1632,27 @@ fn reference_source_scan(
         .ok_or(ReferenceError::Budget)?;
     l.bytes(
         size_of::<ReferenceSourceScan<'_>>()
-            // Array initializer/move holder is distinct from the live state.
-            .checked_add(size_of::<[Option<(&Source, usize)>; 97]>())
+            .checked_add(reference_stack_workspace::<(&Source, usize)>()?)
             .and_then(|n| n.checked_add(outside))
             .ok_or(ReferenceError::Budget)?,
     )?;
     let mut state = ReferenceSourceScan {
-        frames: [None; 97],
-        depth: 1,
+        frames: Vec::new(),
+        depth: 0,
+        available: l.work.left,
     };
-    state.frames[0] = Some((root, 0));
+    // The scan has ROOT and SCALAR frames too, not container-only frames.
+    reference_stack_room(&mut state.frames, state.available, l)?;
+    l.bytes(size_of::<(&Source, usize)>())?;
+    state.frames.push((root, 0));
+    state.depth = 1;
     while state.depth != 0 {
         l.step(1)?; // frame/terminal access, including refusal prefixes
-        let (value, cursor) =
-            state.frames[state.depth - 1].ok_or(ReferenceError::InvalidBinding)?;
+        let (value, cursor) = state
+            .frames
+            .get(state.depth - 1)
+            .copied()
+            .ok_or(ReferenceError::InvalidBinding)?;
         if cursor == 0 {
             l.step(if compatibility { 1 } else { 3 })?;
             // false: this scan + upcoming retained-storage walk + clone walk.
@@ -1639,16 +1716,26 @@ fn reference_source_scan(
             _ => None,
         };
         if let Some(child) = child {
-            if state.depth == state.frames.len() {
+            if state.depth == 97 {
                 return Err(ReferenceError::Budget);
             }
-            state.frames[state.depth - 1] =
-                Some((value, cursor.checked_add(1).ok_or(ReferenceError::Budget)?));
-            state.frames[state.depth] = Some((child, 0));
+            let next_cursor = cursor.checked_add(1).ok_or(ReferenceError::Budget)?;
+            reference_stack_room(&mut state.frames, state.available, l)?;
+            l.bytes(
+                size_of::<(&Source, usize)>()
+                    .checked_mul(2)
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            *state
+                .frames
+                .get_mut(state.depth - 1)
+                .ok_or(ReferenceError::InvalidBinding)? = (value, next_cursor);
+            state.frames.push((child, 0));
             state.depth += 1;
         } else {
+            l.bytes(size_of::<(&Source, usize)>())?;
             state.depth -= 1;
-            state.frames[state.depth] = None;
+            let _ = state.frames.pop().ok_or(ReferenceError::InvalidBinding)?;
         }
     }
     Ok(())
