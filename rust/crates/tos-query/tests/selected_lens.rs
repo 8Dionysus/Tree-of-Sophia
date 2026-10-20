@@ -1341,8 +1341,8 @@ fn verify_corpus_fixture_files(root: &Path) {
         }
     }
     let mut actual = BTreeSet::new();
-    collect(root, &root.join("monolithic"), &mut actual);
-    collect(root, &root.join("partitioned"), &mut actual);
+    collect(root, root, &mut actual);
+    assert!(actual.remove(Path::new("fixture-files.sha256")));
     assert_eq!(
         actual, seen,
         "no extra selected source file outside frozen manifest"
