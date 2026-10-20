@@ -2638,6 +2638,41 @@ fn native_corpus_composition_case(installed: bool) {
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
     let mut reference_rows = reference_repository_rows(&mut reference, &files).unwrap();
+    let limits = BibliographicLimits {
+        catalog: SourceCatalogLimits {
+            max_files: 512,
+            max_rows: 4096,
+            max_file_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_contract_bytes: 16 * 1024 * 1024,
+            max_output_row_bytes: 1024 * 1024,
+        },
+        max_claim_cohort_rows: 16,
+        max_claim_cohort_bytes: 16 * 1024 * 1024,
+        max_output_rows: 4096,
+        max_output_bytes: 16 * 1024 * 1024,
+        deadline,
+    };
+    // H packet is authenticated archival evidence; C navigation is built from
+    // independently declared raw inputs BEFORE capture/render, never actual.
+    let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
+    let mut expected = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        guard
+            .parse(&historical_raw, guard.max_output_bytes)
+            .unwrap()
+    };
+    let expected_navigation = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        let registries = NavigationRegistries::from_files(&files, &mut guard).unwrap();
+        let inputs = DeclaredNavigationInputs::from_files(&files, &registries, &mut guard).unwrap();
+        let nav =
+            expected_source_navigation(&expected["source_navigation"], &inputs, guard.reborrow())
+                .unwrap();
+        navigation_reference_variants(&expected["source_navigation"], &nav, &inputs, &mut guard)
+            .unwrap();
+        nav
+    };
     phase(started, deadline, "selected-inputs-ready");
     let fixture = tempfile::TempDir::new().unwrap();
     let git_root = fixture.path().join("selected-git");
@@ -2823,21 +2858,6 @@ fn native_corpus_composition_case(installed: bool) {
         reader_abi: "fixture-v1".into(),
         projection_root_sha256: Digest256::of_bytes(b"independent-native-corpus-plan").to_hex(),
         complete: true,
-    };
-    let limits = BibliographicLimits {
-        catalog: SourceCatalogLimits {
-            max_files: 512,
-            max_rows: 4096,
-            max_file_bytes: 2 * 1024 * 1024,
-            max_row_bytes: 1024 * 1024,
-            max_contract_bytes: 16 * 1024 * 1024,
-            max_output_row_bytes: 1024 * 1024,
-        },
-        max_claim_cohort_rows: 16,
-        max_claim_cohort_bytes: 16 * 1024 * 1024,
-        max_output_rows: 4096,
-        max_output_bytes: 16 * 1024 * 1024,
-        deadline,
     };
     let catalog_plan = plan_source_catalog_inputs(
         &cut,
@@ -3179,8 +3199,6 @@ fn native_corpus_composition_case(installed: bool) {
         fs::create_dir_all(to.parent().unwrap()).unwrap();
         fs::write(to, raw).unwrap();
     }
-    let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
-    let mut expected: Value = serde_json::from_slice(&historical_raw).unwrap();
     reconcile_source_home_inputs(&mut expected, &files);
     assert_eq!(
         expected["validation_refs"],
@@ -3200,33 +3218,25 @@ fn native_corpus_composition_case(installed: bool) {
     }
     expected["counts"]["resources"] =
         serde_json::json!(expected["resources"].as_array().unwrap().len());
-    assert_retained_corpus_navigation_extension(
-        &projection.value()["source_navigation"],
-        &expected["source_navigation"],
-        &files,
-    );
-    expected["source_navigation"] = projection.value()["source_navigation"].clone();
-    expected["counts"]["source_navigation_nodes"] = json!(12);
-    expected["counts"]["source_navigation_edges"] = json!(10);
-    let expected_limits = JsonLimits::new(16 * 1024 * 1024, 96, 1_000_000, 4096).unwrap();
-    let expected_document = parse_json(
-        &serde_json::to_vec(&expected).unwrap(),
-        JsonMode::PublishedStrict,
-        expected_limits,
-    )
-    .unwrap();
-    let mut expected_raw = canonical_bytes_v1(
-        expected_document.root(),
-        CanonicalProfile::SourceRecordDigestV1,
-        expected_limits,
-    )
-    .unwrap();
+    expected["source_navigation"] = expected_navigation;
+    expected["counts"]["source_navigation_nodes"] =
+        expected["source_navigation"]["counts"]["nodes"].clone();
+    expected["counts"]["source_navigation_edges"] =
+        expected["source_navigation"]["counts"]["edges"].clone();
+    let mut expected_raw = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        guard.canonical_value(&expected).unwrap()
+    };
+    reference.charge(1).unwrap();
+    assert!(expected_raw.len() < 16 * 1024 * 1024);
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     reconcile_source_home_inputs(&mut query_oracle, &files);
     // CurrentDeclared counts derive from the independently frozen input recipe;
     // the historical query packets retain their own 337-resource source scope.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
+    reference.visit(9 * 3).unwrap();
+    reference.charge(9 * 3 * 192).unwrap();
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
@@ -3242,15 +3252,15 @@ fn native_corpus_composition_case(installed: bool) {
         assert_eq!(*count, serde_json::json!(337));
         *count = expected["counts"]["resources"].clone();
         let parent = pointer.strip_suffix("/resources").unwrap();
-        for (field, old, new) in [
-            ("source_navigation_nodes", 6, 12),
-            ("source_navigation_edges", 4, 10),
+        for (field, old) in [
+            ("source_navigation_nodes", 6),
+            ("source_navigation_edges", 4),
         ] {
             let value = query_oracle
                 .pointer_mut(&format!("{parent}/{field}"))
                 .unwrap();
             assert_eq!(*value, json!(old));
-            *value = json!(new);
+            *value = expected["counts"][field].clone();
         }
     }
     for pointer in [
@@ -3273,6 +3283,19 @@ fn native_corpus_composition_case(installed: bool) {
             }
             _ => serde_json::json!("tos_corpus_mcp_packet_v2"),
         };
+    }
+    {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        guard.compare_work(&expected, 0).unwrap();
+        guard.compare_work(projection.value(), 0).unwrap();
+        guard
+            .bytes(
+                expected_raw
+                    .len()
+                    .checked_add(projection.output_bytes().len())
+                    .unwrap(),
+            )
+            .unwrap();
     }
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), expected_raw.as_slice());

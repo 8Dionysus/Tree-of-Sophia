@@ -1,133 +1,2239 @@
 // Private continuation of the existing native corpus producer case.
 // This is finite selected projection mechanics, not a production rights issuer.
 
-// The frozen Python corpus predates the shared reified-Claim navigation route.
-// Retain every historical row byte-for-byte, then check the exact authored
-// Claim and its finite six-node/six-edge addition before composing expectations.
-fn assert_retained_corpus_navigation_extension(
-    actual: &serde_json::Value,
-    historical: &serde_json::Value,
-    files: &std::collections::BTreeMap<String, Vec<u8>>,
-) {
-    use serde_json::{Value, json};
-    use std::collections::{BTreeMap, BTreeSet};
-    let path = "ToS/source-witnesses/relations/nietzsche-letter-705-addressee/source-claims.jsonl";
-    let raw = std::str::from_utf8(&files[path]).unwrap();
-    let lines = raw
-        .lines()
-        .filter(|s| !s.trim().is_empty())
-        .collect::<Vec<_>>();
-    assert_eq!(lines.len(), 1);
-    let claim: Value = serde_json::from_str(lines[0]).unwrap();
-    let claim_id = claim["claim_id"].as_str().unwrap();
-    let claim_node_id = format!("claim:{claim_id}");
-    let claim_sha =
-        tos_foundation::Digest256::of_bytes(&serde_json::to_vec(&claim).unwrap()).to_hex();
-    for key in ["schema_version", "authority_boundary", "rights"] {
-        assert_eq!(actual[key], historical[key], "unchanged navigation {key}");
+// Test-owned CurrentDeclared reference. Its inputs are authored files frozen
+// before capture/SUT, never a product row/descriptor/materialization. Unsupported
+// profiles refuse; a historical golden is not an excuse to copy actual output.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ReferenceError {
+    InvalidBinding,
+    UnsupportedSourceProfile,
+    DuplicateIdentity,
+    Conflict,
+    Budget,
+}
+type NavResult<T> = Result<T, ReferenceError>;
+
+struct ReferenceLimits<'a> {
+    work: &'a mut CurrentReference,
+    cancelled: &'a AtomicBool,
+    max_files: usize,
+    max_input_bytes: usize,
+    max_file_bytes: usize,
+    max_record_bytes: usize,
+    max_claim_rows: usize,
+    max_claim_bytes: usize,
+    max_rows: usize,
+    max_row_bytes: usize,
+    max_output_bytes: usize,
+}
+impl<'a> ReferenceLimits<'a> {
+    fn for_case(
+        work: &'a mut CurrentReference,
+        cancelled: &'a AtomicBool,
+        case: &tos_compiler::source_bibliographic::BibliographicLimits,
+    ) -> NavResult<Self> {
+        Ok(Self {
+            work,
+            cancelled,
+            max_files: usize::try_from(case.catalog.max_files)
+                .map_err(|_| ReferenceError::Budget)?,
+            max_input_bytes: case.catalog.max_contract_bytes,
+            max_file_bytes: case.catalog.max_file_bytes,
+            max_record_bytes: case.catalog.max_row_bytes,
+            max_claim_rows: case.max_claim_cohort_rows,
+            max_claim_bytes: case.max_claim_cohort_bytes,
+            max_rows: usize::try_from(case.max_output_rows.min(case.catalog.max_rows))
+                .map_err(|_| ReferenceError::Budget)?,
+            max_row_bytes: case.catalog.max_output_row_bytes,
+            max_output_bytes: usize::try_from(case.max_output_bytes)
+                .map_err(|_| ReferenceError::Budget)?,
+        })
     }
-    let mut additions = BTreeMap::new();
-    for (collection, id) in [("nodes", "node_id"), ("edges", "edge_id")] {
-        let rows = actual[collection].as_array().unwrap();
-        let old = historical[collection].as_array().unwrap();
-        let old_ids = old
-            .iter()
-            .map(|row| row[id].as_str().unwrap())
-            .collect::<BTreeSet<_>>();
-        for row in old {
-            assert_eq!(
-                rows.iter().find(|new| new[id] == row[id]),
-                Some(row),
-                "historical {collection} {}",
-                row[id]
-            );
+    fn reborrow(&mut self) -> ReferenceLimits<'_> {
+        ReferenceLimits {
+            work: &mut *self.work,
+            cancelled: self.cancelled,
+            max_files: self.max_files,
+            max_input_bytes: self.max_input_bytes,
+            max_file_bytes: self.max_file_bytes,
+            max_record_bytes: self.max_record_bytes,
+            max_claim_rows: self.max_claim_rows,
+            max_claim_bytes: self.max_claim_bytes,
+            max_rows: self.max_rows,
+            max_row_bytes: self.max_row_bytes,
+            max_output_bytes: self.max_output_bytes,
         }
-        let new = rows
-            .iter()
-            .filter(|row| !old_ids.contains(row[id].as_str().unwrap()))
-            .collect::<Vec<_>>();
-        assert_eq!(new.len(), 6, "complete reified addition in {collection}");
-        additions.insert(collection, new);
-        assert_eq!(actual["counts"][collection], rows.len());
     }
-    let nodes = &additions["nodes"];
-    let kinds = nodes
-        .iter()
-        .map(|n| n["node_kind"].as_str().unwrap())
-        .collect::<BTreeSet<_>>();
-    assert_eq!(
-        kinds,
-        BTreeSet::from([
-            "agent",
-            "claim",
-            "evidence",
-            "letter",
+}
+impl ReferenceLimits<'_> {
+    fn step(&mut self, n: usize) -> NavResult<()> {
+        if self.cancelled.load(Ordering::Relaxed) {
+            return Err(ReferenceError::Budget);
+        }
+        self.work.visit(n).map_err(|_| ReferenceError::Budget)
+    }
+    fn bytes(&mut self, n: usize) -> NavResult<()> {
+        self.step(0)?;
+        self.work.charge(n).map_err(|_| ReferenceError::Budget)
+    }
+    // Charge logical owned headers/text and structural visits BEFORE cloning,
+    // serde conversion or output. Not an allocator capacity/RSS certificate.
+    fn value_bound(&mut self, v: &serde_json::Value, depth: usize) -> NavResult<usize> {
+        use serde_json::Value;
+        self.step(1)?;
+        if depth > 96 {
+            return Err(ReferenceError::Budget);
+        }
+        self.bytes(128)?;
+        let wire = match v {
+            Value::Null => 4,
+            Value::Bool(_) => 5,
+            Value::Number(n) if n.is_i64() || n.is_u64() => 20,
+            Value::Number(n) if n.as_f64().is_some_and(f64::is_finite) => 64,
+            Value::Number(_) => return Err(ReferenceError::UnsupportedSourceProfile),
+            Value::String(s) => {
+                let n = s
+                    .len()
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(2))
+                    .ok_or(ReferenceError::Budget)?;
+                self.bytes(n)?;
+                n
+            }
+            Value::Array(a) => {
+                let mut n = 2usize;
+                for x in a {
+                    n = n
+                        .checked_add(self.value_bound(x, depth + 1)?)
+                        .and_then(|n| n.checked_add(1))
+                        .ok_or(ReferenceError::Budget)?;
+                }
+                n
+            }
+            Value::Object(o) => {
+                let mut n = 2usize;
+                for (k, x) in o {
+                    self.step(1)?;
+                    let key = k
+                        .len()
+                        .checked_mul(6)
+                        .and_then(|n| n.checked_add(4))
+                        .ok_or(ReferenceError::Budget)?;
+                    self.bytes(key.checked_add(96).ok_or(ReferenceError::Budget)?)?;
+                    let child = self.value_bound(x, depth + 1)?;
+                    n = n
+                        .checked_add(key)
+                        .and_then(|n| n.checked_add(child))
+                        .ok_or(ReferenceError::Budget)?;
+                }
+                n
+            }
+        };
+        if wire > self.max_output_bytes {
+            return Err(ReferenceError::Budget);
+        }
+        Ok(wire)
+    }
+    fn compare_work(&mut self, v: &serde_json::Value, depth: usize) -> NavResult<()> {
+        self.step(2)?; // this admission walk and the following whole comparison
+        if depth > 96 {
+            return Err(ReferenceError::Budget);
+        }
+        match v {
+            serde_json::Value::String(s) => {
+                self.bytes(s.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?
+            }
+            serde_json::Value::Array(a) => {
+                for child in a {
+                    self.compare_work(child, depth + 1)?;
+                }
+            }
+            serde_json::Value::Object(o) => {
+                for (key, child) in o {
+                    self.step(2)?;
+                    self.bytes(key.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?;
+                    self.compare_work(child, depth + 1)?;
+                }
+            }
+            _ => (),
+        }
+        Ok(())
+    }
+    fn copy(&mut self, v: &serde_json::Value) -> NavResult<serde_json::Value> {
+        self.value_bound(v, 0)?;
+        Ok(v.clone())
+    }
+    fn json_limits(&self, bytes: usize) -> NavResult<tos_foundation::JsonLimits> {
+        tos_foundation::JsonLimits::new(bytes, 96, self.work.visits_left, 4096)
+            .map_err(|_| ReferenceError::Budget)
+    }
+    fn parse(&mut self, raw: &[u8], ceiling: usize) -> NavResult<serde_json::Value> {
+        use tos_foundation::{FoundationError, FoundationErrorCode as Code, JsonMode};
+        self.step(1)?;
+        if raw.len() > ceiling {
+            return Err(ReferenceError::Budget);
+        }
+        let json = self.json_limits(ceiling)?;
+        let available = self.work.left;
+        let deadline = self.work.deadline;
+        let cancelled = self.cancelled;
+        let doc = tos_foundation::parse_json_with_state_budget_and_admission(
+            raw,
+            JsonMode::PublishedStrict,
+            json,
+            available,
+            &mut || {
+                if Instant::now() < deadline && !cancelled.load(Ordering::Relaxed) {
+                    Ok(())
+                } else {
+                    Err(FoundationError::new(
+                        Code::BudgetExceeded,
+                        "reference cutoff",
+                    ))
+                }
+            },
+            &mut |bytes, visits| {
+                self.work
+                    .charge(bytes)
+                    .and_then(|_| self.work.visit(visits))
+                    .map_err(|_| FoundationError::new(Code::BudgetExceeded, "reference parse work"))
+            },
+        )
+        .map_err(|e| {
+            if e.code == Code::BudgetExceeded {
+                ReferenceError::Budget
+            } else {
+                ReferenceError::InvalidBinding
+            }
+        })?;
+        self.step(doc.visits())?; // retained-state walk, distinct from parser visits
+        self.bytes(
+            doc.root()
+                .retained_storage_bytes()
+                .map_err(|_| ReferenceError::Budget)?,
+        )?;
+        // The strict admission tree bounds the separate ordinary serde conversion.
+        // Keys/text are bounded by raw bytes, values by the parser's actual count.
+        let conversion = doc
+            .visits()
+            .checked_mul(128)
+            .and_then(|n| raw.len().checked_mul(4).and_then(|b| n.checked_add(b)))
+            .ok_or(ReferenceError::Budget)?;
+        self.step(doc.visits())?;
+        self.bytes(conversion)?;
+        serde_json::from_slice(raw).map_err(|_| ReferenceError::InvalidBinding)
+    }
+    fn canonical_value(&mut self, v: &serde_json::Value) -> NavResult<Vec<u8>> {
+        use tos_foundation::{
+            CanonicalProfile, FoundationError, FoundationErrorCode as Code, JsonMode,
+        };
+        let bound = self.value_bound(v, 0)?;
+        self.bytes(bound)?;
+        let raw = serde_json::to_vec(v).map_err(|_| ReferenceError::InvalidBinding)?;
+        let json = self.json_limits(self.max_output_bytes)?;
+        let available = self.work.left;
+        let deadline = self.work.deadline;
+        let cancelled = self.cancelled;
+        let doc = tos_foundation::parse_json_with_state_budget_and_admission(
+            &raw,
+            JsonMode::PublishedStrict,
+            json,
+            available,
+            &mut || {
+                if Instant::now() < deadline && !cancelled.load(Ordering::Relaxed) {
+                    Ok(())
+                } else {
+                    Err(FoundationError::new(
+                        Code::BudgetExceeded,
+                        "reference cutoff",
+                    ))
+                }
+            },
+            &mut |bytes, visits| {
+                self.work
+                    .charge(bytes)
+                    .and_then(|_| self.work.visit(visits))
+                    .map_err(|_| {
+                        FoundationError::new(Code::BudgetExceeded, "reference digest parse work")
+                    })
+            },
+        )
+        .map_err(|e| {
+            if e.code == Code::BudgetExceeded {
+                ReferenceError::Budget
+            } else {
+                ReferenceError::InvalidBinding
+            }
+        })?;
+        // Retained-state walk and canonical passes share the ORIGINAL remainder.
+        self.step(doc.visits())?;
+        self.bytes(
+            doc.root()
+                .retained_storage_bytes()
+                .map_err(|_| ReferenceError::Budget)?,
+        )?;
+        let json = self.json_limits(self.max_output_bytes)?;
+        let available = self.work.left;
+        let deadline = self.work.deadline;
+        let cancelled = self.cancelled;
+        let (bytes, _) =
+            tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+                doc.root(),
+                CanonicalProfile::SourceRecordDigestV1,
+                json,
+                available,
+                &mut || {
+                    if Instant::now() < deadline && !cancelled.load(Ordering::Relaxed) {
+                        Ok(())
+                    } else {
+                        Err(FoundationError::new(
+                            Code::BudgetExceeded,
+                            "reference cutoff",
+                        ))
+                    }
+                },
+                &mut |bytes, visits| {
+                    self.work
+                        .charge(bytes)
+                        .and_then(|_| self.work.visit(visits))
+                        .map_err(|_| {
+                            FoundationError::new(Code::BudgetExceeded, "reference canonical work")
+                        })
+                },
+            )
+            .map_err(|_| ReferenceError::Budget)?;
+        Ok(bytes)
+    }
+    fn digest(&mut self, v: &serde_json::Value) -> NavResult<String> {
+        let bytes = self.canonical_value(v)?;
+        self.bytes(bytes.len().checked_add(64).ok_or(ReferenceError::Budget)?)?;
+        Ok(tos_foundation::Digest256::of_bytes(&bytes).to_hex())
+    }
+    fn fixed(&mut self, fields: usize) -> NavResult<()> {
+        self.step(fields)?;
+        self.bytes(fields.checked_mul(192).ok_or(ReferenceError::Budget)?)
+    }
+}
+fn nav_str<'a>(v: &'a serde_json::Value, key: &str) -> NavResult<&'a str> {
+    v.get(key)
+        .and_then(serde_json::Value::as_str)
+        .filter(|s| !s.is_empty())
+        .ok_or(ReferenceError::InvalidBinding)
+}
+fn nav_array<'a>(v: &'a serde_json::Value, key: &str) -> NavResult<&'a [serde_json::Value]> {
+    v.get(key)
+        .and_then(serde_json::Value::as_array)
+        .map(Vec::as_slice)
+        .ok_or(ReferenceError::InvalidBinding)
+}
+fn nav_label<'a>(display: Option<&'a str>, preferred: Option<&'a str>, id: &'a str) -> &'a str {
+    display
+        .or(preferred)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(id)
+}
+struct NavigationRegistries {
+    entities: serde_json::Value,
+    relations: serde_json::Value,
+    type_index: BTreeMap<String, usize>,
+    predicate_index: BTreeMap<String, (usize, usize)>,
+}
+struct NavigationSource {
+    path: String,
+    line: Option<usize>,
+    value: serde_json::Value,
+    sha: String,
+}
+struct DeclaredNavigationInputs<'a> {
+    files: &'a BTreeMap<String, Vec<u8>>,
+    registries: &'a NavigationRegistries,
+    identities: BTreeMap<String, NavigationSource>,
+    claims: Vec<NavigationSource>,
+    events: BTreeMap<String, NavigationSource>,
+    forms: BTreeMap<String, NavigationSource>,
+}
+impl NavigationRegistries {
+    fn from_files(
+        files: &BTreeMap<String, Vec<u8>>,
+        l: &mut ReferenceLimits<'_>,
+    ) -> NavResult<Self> {
+        l.fixed(2)?;
+        let entity = files
+            .get("ToS/doctrine/semantic-interchange/entity-types.v1.json")
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let relation = files
+            .get("ToS/doctrine/semantic-interchange/relation-types.v1.json")
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let entities = l.parse(entity, l.max_file_bytes)?;
+        let relations = l.parse(relation, l.max_file_bytes)?;
+        let mut type_index = BTreeMap::new();
+        let mut predicate_index = BTreeMap::new();
+        for (i, t) in nav_array(&entities, "types")?.iter().enumerate() {
+            l.step(2)?;
+            let id = nav_str(t, "type_id")?;
+            l.bytes(id.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+            if type_index.insert(id.to_owned(), i).is_some() {
+                return Err(ReferenceError::DuplicateIdentity);
+            }
+        }
+        let mut relation_ids = std::collections::BTreeSet::new();
+        for (i, relation) in nav_array(&relations, "relations")?.iter().enumerate() {
+            l.step(2)?;
+            l.bytes(128)?;
+            if !relation_ids.insert(nav_str(relation, "relation_type_id")?) {
+                return Err(ReferenceError::DuplicateIdentity);
+            }
+            for (j, mapping) in nav_array(relation, "source_mappings")?.iter().enumerate() {
+                l.step(3)?;
+                if mapping["source_graph"] == "source-claims"
+                    && mapping["scope"] == "claim-predicate"
+                {
+                    let predicate = nav_str(mapping, "source_predicate_id")?;
+                    l.bytes(
+                        predicate
+                            .len()
+                            .checked_add(128)
+                            .ok_or(ReferenceError::Budget)?,
+                    )?;
+                    if predicate_index
+                        .insert(predicate.to_owned(), (i, j))
+                        .is_some()
+                    {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                }
+            }
+        }
+        Ok(Self {
+            entities,
+            relations,
+            type_index,
+            predicate_index,
+        })
+    }
+}
+impl<'a> DeclaredNavigationInputs<'a> {
+    fn from_files(
+        files: &'a BTreeMap<String, Vec<u8>>,
+        registries: &'a NavigationRegistries,
+        l: &mut ReferenceLimits<'_>,
+    ) -> NavResult<Self> {
+        l.step(1)?;
+        if files.len() > l.max_files {
+            return Err(ReferenceError::Budget);
+        }
+        let mut total = 0usize;
+        for (path, raw) in files {
+            l.step(path.len().checked_add(1).ok_or(ReferenceError::Budget)?)?;
+            l.bytes(path.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+            tos_foundation::RelativePath::parse(path)
+                .map_err(|_| ReferenceError::InvalidBinding)?;
+            total = total.checked_add(raw.len()).ok_or(ReferenceError::Budget)?;
+            if raw.len() > l.max_file_bytes || total > l.max_input_bytes {
+                return Err(ReferenceError::Budget);
+            }
+        }
+        let mut claim_bytes = 0usize;
+        let mut out = Self {
+            files,
+            registries,
+            identities: BTreeMap::new(),
+            claims: Vec::new(),
+            events: BTreeMap::new(),
+            forms: BTreeMap::new(),
+        };
+        // Independent authored recipe, not discovery through a product catalogue.
+        // Archives/canon are H inputs, not active Claim/identity/form declarations.
+        for (path, raw) in files {
+            l.step(1)?;
+            if !path.starts_with("ToS/source-witnesses/") || path.contains("/.record-revisions/") {
+                continue;
+            }
+            let identity = path.ends_with("/agent.json") || path.ends_with("/letter.json");
+            let forms = path.ends_with(".human-forms.json");
+            let claims = path.ends_with("/source-claims.jsonl");
+            let events = path.ends_with("/source-create-provenance.jsonl");
+            if !(identity || forms || claims || events) {
+                continue;
+            }
+            let text = std::str::from_utf8(raw).map_err(|_| ReferenceError::InvalidBinding)?;
+            l.step(text.len())?;
+            let mut add = |line: Option<usize>, raw: &[u8]| -> NavResult<()> {
+                l.fixed(8)?;
+                if out.identities.len() + out.claims.len() + out.events.len() + out.forms.len()
+                    >= l.max_rows
+                {
+                    return Err(ReferenceError::Budget);
+                }
+                if claims {
+                    claim_bytes = claim_bytes
+                        .checked_add(raw.len())
+                        .ok_or(ReferenceError::Budget)?;
+                    if claim_bytes > l.max_claim_bytes || out.claims.len() >= l.max_claim_rows {
+                        return Err(ReferenceError::Budget);
+                    }
+                }
+                let value = l.parse(raw, l.max_record_bytes)?;
+                let sha = l.digest(&value)?;
+                l.bytes(path.len().checked_add(256).ok_or(ReferenceError::Budget)?)?;
+                let source = NavigationSource {
+                    path: path.clone(),
+                    line,
+                    value,
+                    sha,
+                };
+                if identity {
+                    let id = nav_str(&source.value, "record_id")?.to_owned();
+                    if !matches!(nav_str(&source.value, "record_type")?, "agent" | "letter")
+                        || !path
+                            .ends_with(&format!("/{}.json", nav_str(&source.value, "record_type")?))
+                    {
+                        return Err(ReferenceError::UnsupportedSourceProfile);
+                    }
+                    if out.identities.insert(id, source).is_some() {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                } else if claims {
+                    if source.value["schema_version"] != "tos_source_relation_claim_v1" {
+                        return Err(ReferenceError::UnsupportedSourceProfile);
+                    }
+                    out.claims.push(source);
+                } else if events {
+                    let id = nav_str(&source.value, "event_id")?.to_owned();
+                    if out.events.insert(id, source).is_some() {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                } else {
+                    let id = nav_str(&source.value["subject"], "id")?.to_owned();
+                    if out.forms.insert(id, source).is_some() {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                }
+                Ok(())
+            };
+            if claims || events {
+                for (index, line) in text.lines().enumerate() {
+                    if !line.trim().is_empty() {
+                        add(Some(index + 1), line.as_bytes())?;
+                    }
+                }
+            } else {
+                add(None, raw)?;
+            }
+        }
+        Ok(out)
+    }
+}
+fn nav_no_reserved(
+    value: &serde_json::Value,
+    keys: &[&str],
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    for key in keys {
+        l.step(1)?;
+        if value.get(*key).is_some() {
+            return Err(ReferenceError::Conflict);
+        }
+    }
+    Ok(())
+}
+fn nav_exact_ref(
+    source: &NavigationSource,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    l.fixed(3)?;
+    let (id, version) = if source.value.get("claim_id").is_some() {
+        ("claim_id", "claim_version")
+    } else {
+        ("record_id", "record_version")
+    };
+    let id = nav_str(&source.value, id)?;
+    let version = source
+        .value
+        .get(version)
+        .and_then(serde_json::Value::as_u64)
+        .filter(|v| *v > 0)
+        .ok_or(ReferenceError::InvalidBinding)?;
+    l.bytes(id.len().checked_add(64).ok_or(ReferenceError::Budget)?)?;
+    Ok(serde_json::json!({"id":id,"version":version,"digest":format!("sha256:{}",source.sha)}))
+}
+fn nav_pointer<'a>(
+    v: &'a serde_json::Value,
+    pointer: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<&'a serde_json::Value> {
+    l.step(1)?;
+    if !pointer.is_empty() {
+        if !pointer.starts_with('/') {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        for token in pointer[1..].split('/') {
+            l.step(1)?;
+            let mut chars = token.chars();
+            while let Some(c) = chars.next() {
+                l.step(1)?;
+                if c == '~' && !matches!(chars.next(), Some('0' | '1')) {
+                    return Err(ReferenceError::InvalidBinding);
+                }
+            }
+        }
+    }
+    v.pointer(pointer).ok_or(ReferenceError::InvalidBinding)
+}
+fn nav_forms(
+    source: &NavigationSource,
+    inputs: &DeclaredNavigationInputs<'_>,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<Option<(String, serde_json::Value)>> {
+    use serde_json::{Value, json};
+    l.step(1)?;
+    let subject = nav_exact_ref(source, l)?;
+    let Some(set) = inputs.forms.get(nav_str(&subject, "id")?) else {
+        return Ok(None);
+    };
+    l.fixed(5)?;
+    if set.value["schema_version"] != "tos_human_form_set_v1" || set.value["subject"] != subject {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    let forms = nav_array(&set.value, "forms")?;
+    if forms.len() > l.max_rows {
+        return Err(ReferenceError::Budget);
+    }
+    l.bytes(forms.len().checked_mul(128).ok_or(ReferenceError::Budget)?)?;
+    let mut output = Vec::with_capacity(forms.len());
+    let mut seen = std::collections::BTreeSet::new();
+    for form in forms {
+        l.fixed(25)?;
+        l.value_bound(form, 0)?;
+        let id = nav_str(form, "form_id")?;
+        if !seen.insert(id) {
+            return Err(ReferenceError::DuplicateIdentity);
+        }
+        if form["schema_version"] != "tos_human_form_v1"
+            || form["subject"] != subject
+            || form["content"]["kind"] != "source-copy"
+        {
+            return Err(ReferenceError::UnsupportedSourceProfile);
+        }
+        if let Some(revises) = form.get("revises").filter(|v| !v.is_null()) {
+            let mut found = false;
+            for prior in nav_array(&set.value, "prior_forms")? {
+                l.step(4)?;
+                if prior["form_id"] == revises["id"] && prior["form_version"] == revises["version"]
+                {
+                    if found || revises["digest"] != format!("sha256:{}", l.digest(prior)?) {
+                        return Err(ReferenceError::InvalidBinding);
+                    }
+                    found = true;
+                }
+            }
+            if !found {
+                return Err(ReferenceError::InvalidBinding);
+            }
+        }
+        let bindings = form["bindings"]
+            .as_object()
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let slot = nav_str(&form["content"], "slot")?;
+        let wording = bindings.get(slot).ok_or(ReferenceError::InvalidBinding)?;
+        if wording["record"] != subject {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        let pointer = wording["pointer"]
+            .as_str()
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let display = nav_pointer(&source.value, pointer, l)?
+            .as_str()
+            .filter(|s| !s.is_empty())
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let role = nav_str(form, "role")?;
+        // SourceCopy semantic binding profile is derived from SOURCE fields.
+        let mut contexts: Vec<String> = Vec::new();
+        let (language, script) = if source.value.get("claim_id").is_some() {
+            contexts.push(String::new());
+            if role == "statement" && pointer == "/qualifiers/statement" {
+                (
+                    &source.value["qualifiers"]["statement_language"],
+                    &source.value["qualifiers"]["statement_script"],
+                )
+            } else if matches!(role, "name" | "caption" | "hover")
+                && pointer == format!("/qualifiers/display_fields/{role}/text")
+            {
+                (
+                    &source.value["qualifiers"]["display_fields"][role]["language"],
+                    &source.value["qualifiers"]["display_fields"][role]["script"],
+                )
+            } else {
+                return Err(ReferenceError::UnsupportedSourceProfile);
+            }
+        } else {
+            for key in [
+                "identity_status",
+                "same_as_posture",
+                "semantic_scope",
+                "semantic_content",
+                "form_identity",
+                "native_text_binding",
+            ] {
+                l.step(1)?;
+                if source.value.get(key).is_some() {
+                    contexts.push(format!("/{key}"));
+                }
+            }
+            let field = match (role, pointer) {
+                ("name", "/preferred_label") => "preferred_label",
+                ("hover", "/notes") => "notes",
+                ("name", p) if p.starts_with("/variant_labels/") && p.ends_with("/value") => {
+                    "variant_labels"
+                }
+                _ => return Err(ReferenceError::UnsupportedSourceProfile),
+            };
+            if field == "variant_labels" {
+                let parent = pointer
+                    .strip_suffix("/value")
+                    .ok_or(ReferenceError::InvalidBinding)?;
+                let variant = nav_pointer(&source.value, parent, l)?
+                    .as_object()
+                    .ok_or(ReferenceError::InvalidBinding)?;
+                for key in variant.keys().filter(|k| k.as_str() != "value") {
+                    l.step(1)?;
+                    contexts.push(format!(
+                        "{parent}/{}",
+                        key.replace('~', "~0").replace('/', "~1")
+                    ));
+                }
+                (
+                    source
+                        .value
+                        .pointer(&format!("{parent}/language"))
+                        .unwrap_or(&Value::Null),
+                    source
+                        .value
+                        .pointer(&format!("{parent}/script"))
+                        .unwrap_or(&Value::Null),
+                )
+            } else {
+                if source.value["field_languages"].get(field).is_some() {
+                    contexts.push(format!("/field_languages/{field}"));
+                }
+                (
+                    &source.value["field_languages"][field]["language"],
+                    &source.value["field_languages"][field]["script"],
+                )
+            }
+        };
+        if form["language"] != *language
+            || form["script"] != *script
+            || bindings.len() != contexts.len() + 1
+        {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        let mut context = Vec::new();
+        for (i, pointer) in contexts.iter().enumerate() {
+            l.fixed(3)?;
+            let key = format!("context-{i}");
+            let binding = bindings.get(&key).ok_or(ReferenceError::InvalidBinding)?;
+            if binding["record"] != subject || binding["pointer"] != *pointer {
+                return Err(ReferenceError::InvalidBinding);
+            }
+            let selected = nav_pointer(&source.value, pointer, l)?;
+            let value = l.copy(selected)?;
+            let binding = l.copy(binding)?;
+            context.push(nav_object(
+                [
+                    ("slot", Value::String(key)),
+                    ("binding", binding),
+                    ("value", value),
+                ],
+                l,
+            )?);
+        }
+        let version = form["form_version"]
+            .as_u64()
+            .filter(|v| *v > 0)
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let digest = l.digest(form)?;
+        l.bytes(display.len())?;
+        let subject_value = l.copy(&subject)?;
+        let dependency = l.copy(&subject)?;
+        let language = l.copy(language)?;
+        let script = l.copy(script)?;
+        output.push(nav_object(
+            [
+                ("schema_version", json!("tos_human_form_materialization_v1")),
+                (
+                    "form",
+                    json!({"id":id,"version":version,"digest":format!("sha256:{digest}")}),
+                ),
+                ("subject", subject_value),
+                ("state", json!("ready")),
+                ("display_text", json!(display)),
+                ("context", Value::Array(context)),
+                ("issues", json!([])),
+                ("admission", Value::Null),
+                ("performs_semantic_assessment", json!(false)),
+                ("role", json!(role)),
+                ("language", language),
+                ("script", script),
+                ("derivation", json!("source-copy")),
+                ("dependencies", Value::Array(vec![dependency])),
+                ("standalone_reading", json!(false)),
+            ],
+            l,
+        )?);
+    }
+    l.bytes(set.path.len())?;
+    Ok(Some((set.path.clone(), Value::Array(output))))
+}
+
+fn nav_type_matches(
+    kind: &str,
+    domain: &[serde_json::Value],
+    reg: &NavigationRegistries,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<bool> {
+    let types = nav_array(&reg.entities, "types")?;
+    let mut start = None;
+    for (i, t) in types.iter().enumerate() {
+        l.step(1)?;
+        for mapping in nav_array(t, "source_mappings")? {
+            l.step(2)?;
+            if mapping["source_graph"] == "source-claims" && mapping["source_kind_id"] == kind {
+                if start.replace(i).is_some() {
+                    return Err(ReferenceError::DuplicateIdentity);
+                }
+            }
+        }
+    }
+    let start = start.ok_or(ReferenceError::UnsupportedSourceProfile)?;
+    if types[start]["abstract"] != false {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    let mut todo = Vec::new();
+    let mut active = std::collections::BTreeSet::new();
+    let mut done = std::collections::BTreeSet::new();
+    l.bytes(128)?;
+    todo.push((start, false));
+    let mut matches = false;
+    while let Some((i, exit)) = todo.pop() {
+        l.step(1)?;
+        if exit {
+            active.remove(&i);
+            done.insert(i);
+            continue;
+        }
+        if active.contains(&i) {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        if done.contains(&i) {
+            continue;
+        }
+        l.bytes(256)?;
+        active.insert(i);
+        todo.push((i, true));
+        for allowed in domain {
+            l.step(1)?;
+            if allowed.as_str().ok_or(ReferenceError::InvalidBinding)?
+                == nav_str(&types[i], "type_id")?
+            {
+                matches = true;
+            }
+        }
+        for parent in nav_array(&types[i], "parent_type_ids")? {
+            l.step(1)?;
+            let id = parent.as_str().ok_or(ReferenceError::InvalidBinding)?;
+            let index = *reg
+                .type_index
+                .get(id)
+                .ok_or(ReferenceError::InvalidBinding)?;
+            l.bytes(32)?;
+            todo.push((index, false));
+        }
+    }
+    Ok(matches)
+}
+fn nav_descriptor(
+    claim: &NavigationSource,
+    subject: &NavigationSource,
+    object: &NavigationSource,
+    inputs: &DeclaredNavigationInputs<'_>,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    use serde_json::{Value, json};
+    l.fixed(48)?;
+    let c = &claim.value;
+    if c["subject_ref"] != subject.value["record_id"] || c["object"] != object.value["record_id"] {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    let reg = inputs.registries;
+    let (ri, mi) = *reg
+        .predicate_index
+        .get(nav_str(c, "predicate")?)
+        .ok_or(ReferenceError::UnsupportedSourceProfile)?;
+    let relation = &reg.relations["relations"][ri];
+    let mapping = &relation["source_mappings"][mi];
+    let profile = &relation["source_claim_profile"];
+    if relation["abstract"] != false
+        || relation["assertion_mode"] != "reified-claim"
+        || profile["reader"] != "identity-relation-v1"
+        || profile["profile_version"] != 1
+    {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    let mut layer = false;
+    for declared in nav_array(profile, "assertion_layers")? {
+        l.step(1)?;
+        if declared == &c["assertion_layer"] {
+            layer = true;
+        }
+    }
+    let mut schema = false;
+    for declared in nav_array(profile, "schemas")? {
+        l.step(2)?;
+        if declared["schema_version"] == c["schema_version"] {
+            if schema {
+                return Err(ReferenceError::DuplicateIdentity);
+            }
+            schema = true;
+            for path in std::iter::once(&declared["schema_ref"])
+                .chain(nav_array(declared, "schema_dependencies")?.iter())
+            {
+                l.step(1)?;
+                let path = path.as_str().ok_or(ReferenceError::InvalidBinding)?;
+                if !inputs.files.contains_key(path) {
+                    return Err(ReferenceError::InvalidBinding);
+                }
+            }
+        }
+    }
+    if !schema
+        || !layer
+        || !nav_type_matches(
+            nav_str(&subject.value, "record_type")?,
+            nav_array(relation, "domain_type_ids")?,
+            reg,
+            l,
+        )?
+        || !nav_type_matches(
+            nav_str(&object.value, "record_type")?,
+            nav_array(relation, "range_type_ids")?,
+            reg,
+            l,
+        )?
+    {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    let template = &reg.relations["claim_navigation_template"];
+    if template["reader"] != "claim-navigation-v1" || template["purpose"] != "claim-navigation-only"
+    {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    let cap = template["max_output_bytes"]
+        .as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or(ReferenceError::InvalidBinding)?
+        .min(l.max_row_bytes);
+    let labels = if mapping.get("labels").is_some() {
+        &mapping["labels"]
+    } else {
+        let mut count = 0usize;
+        for m in nav_array(relation, "source_mappings")? {
+            l.step(2)?;
+            if m["source_graph"] == "source-claims" && m["scope"] == "claim-predicate" {
+                count += 1;
+            }
+        }
+        if count != 1 {
+            return Err(ReferenceError::UnsupportedSourceProfile);
+        }
+        &relation["labels"]
+    };
+    let renderings = template["renderings"]
+        .as_object()
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let mut title = serde_json::Map::new();
+    let mut aggregate = 0usize;
+    for (language, parts) in renderings {
+        l.step(1)?;
+        let mut text = String::new();
+        for part in parts.as_array().ok_or(ReferenceError::InvalidBinding)? {
+            l.step(3)?;
+            let part_map = part.as_object().ok_or(ReferenceError::InvalidBinding)?;
+            if part_map.len() != 1 {
+                return Err(ReferenceError::UnsupportedSourceProfile);
+            }
+            let chunk = if let Some(literal) = part.get("literal") {
+                literal.as_str().ok_or(ReferenceError::InvalidBinding)?
+            } else {
+                match nav_str(part, "slot")? {
+                    "claim-marker" => template["marker"][language].as_str(),
+                    "subject-label" => subject.value["preferred_label"].as_str(),
+                    "object-label" => object.value["preferred_label"].as_str(),
+                    "predicate-label" => labels[language]
+                        .as_str()
+                        .or_else(|| labels["default"].as_str()),
+                    "declared-epistemic-status" => template["status_labels"]["epistemic_status"]
+                        [nav_str(c, "epistemic_status")?][language]
+                        .as_str(),
+                    "declared-review-status" => template["status_labels"]["review_status"]
+                        [nav_str(c, "review_status")?][language]
+                        .as_str(),
+                    _ => return Err(ReferenceError::UnsupportedSourceProfile),
+                }
+                .filter(|s| !s.is_empty())
+                .ok_or(ReferenceError::UnsupportedSourceProfile)?
+            };
+            let len = text
+                .len()
+                .checked_add(chunk.len())
+                .ok_or(ReferenceError::Budget)?;
+            if len > cap {
+                return Err(ReferenceError::Budget);
+            }
+            l.bytes(chunk.len())?;
+            text.push_str(chunk);
+        }
+        aggregate = aggregate
+            .checked_add(text.len())
+            .ok_or(ReferenceError::Budget)?;
+        if aggregate > cap {
+            return Err(ReferenceError::Budget);
+        }
+        l.fixed(1)?;
+        title.insert(language.clone(), Value::String(text));
+    }
+    let default = nav_str(template, "default_language")?;
+    let default_value = l.copy(
+        title
+            .get(default)
+            .ok_or(ReferenceError::UnsupportedSourceProfile)?,
+    )?;
+    title.insert("default".into(), default_value);
+    let endpoint = |source: &NavigationSource, l: &mut ReferenceLimits<'_>| -> NavResult<Value> {
+        l.fixed(7)?;
+        let id = nav_str(&source.value, "record_id")?;
+        let label = nav_str(&source.value, "preferred_label")?;
+        if label.trim().is_empty() || label == id || label == source.path {
+            return Err(ReferenceError::UnsupportedSourceProfile);
+        }
+        l.bytes(
+            id.len()
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(label.len()))
+                .and_then(|n| n.checked_add(source.path.len()))
+                .and_then(|n| n.checked_add(128))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        Ok(
+            json!({"identity_ref":id,"node_id":format!("identity:{id}"),"source_ref":source.path,
+            "record_version":source.value["record_version"],"sha256":source.sha,"label_pointer":"/preferred_label","label":label}),
+        )
+    };
+    let sub = endpoint(subject, l)?;
+    let obj = endpoint(object, l)?;
+    let template_value = json!({"id":nav_str(template,"template_id")?,"version":template["template_version"],"sha256":l.digest(template)?});
+    let claim_value =
+        json!({"id":nav_str(c,"claim_id")?,"version":c["claim_version"],"sha256":claim.sha});
+    let predicate = json!({"id":nav_str(c,"predicate")?,"relation_type_id":nav_str(relation,"relation_type_id")?,"sha256":l.digest(relation)?,"mapping_sha256":l.digest(mapping)?});
+    let statuses = json!({"epistemic_status":{"present":true,"value":c["epistemic_status"]},"review_status":{"present":true,"value":c["review_status"]}});
+    nav_object(
+        [
+            (
+                "schema_version",
+                json!("tos_claim_navigation_descriptor_v1"),
+            ),
+            ("purpose", json!("claim-navigation-only")),
+            ("standalone", json!(false)),
+            ("state", json!("ready")),
+            ("reason", Value::Null),
+            ("template", template_value),
+            ("claim", claim_value),
+            ("predicate", predicate),
+            ("subject", sub),
+            ("object", obj),
+            ("statuses", statuses),
+            ("title", Value::Object(title)),
+        ],
+        l,
+    )
+}
+// Move owned children into the expected object. json! on an already-owned Value
+// would serialize/clone that child again, which is not this ownership law.
+fn nav_object<const N: usize>(
+    entries: [(&str, serde_json::Value); N],
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    l.fixed(N)?;
+    let mut map = serde_json::Map::new();
+    for (key, value) in entries {
+        l.bytes(key.len())?;
+        if map.insert(key.to_owned(), value).is_some() {
+            return Err(ReferenceError::Conflict);
+        }
+    }
+    Ok(serde_json::Value::Object(map))
+}
+fn nav_node(
+    id: String,
+    kind: &str,
+    source: &str,
+    status: &str,
+    properties: serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    let label = nav_label(
+        properties
+            .pointer("/bibliographic_carrier/display/title/default")
+            .and_then(serde_json::Value::as_str),
+        properties
+            .get("preferred_label")
+            .and_then(serde_json::Value::as_str),
+        &id,
+    );
+    l.bytes(
+        id.len()
+            .checked_add(label.len())
+            .and_then(|n| n.checked_add(source.len()))
+            .and_then(|n| n.checked_add(kind.len()))
+            .and_then(|n| n.checked_add(status.len()))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let label = serde_json::Value::String(label.to_owned());
+    nav_object(
+        [
+            ("node_id", serde_json::Value::String(id)),
+            ("node_kind", serde_json::json!(kind)),
+            ("label", label),
+            ("source_ref", serde_json::json!(source)),
+            ("identity_status", serde_json::json!(status)),
+            ("properties", properties),
+        ],
+        l,
+    )
+}
+fn nav_merge(
+    rows: &mut BTreeMap<String, serde_json::Value>,
+    row: serde_json::Value,
+    key: &str,
+    output_bytes: &mut usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(2)?;
+    let id = nav_str(&row, key)?;
+    let bound = l.value_bound(&row, 0)?;
+    if bound > l.max_row_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    *output_bytes = output_bytes
+        .checked_add(bound)
+        .ok_or(ReferenceError::Budget)?;
+    if *output_bytes > l.max_output_bytes || rows.len() >= l.max_rows {
+        return Err(ReferenceError::Budget);
+    }
+    if let Some(prior) = rows.get(id) {
+        // A full comparison is structural work, not a free final-len check.
+        l.compare_work(prior, 0)?;
+        l.compare_work(&row, 0)?;
+        if prior != &row {
+            return Err(ReferenceError::Conflict);
+        }
+    } else {
+        l.bytes(id.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+        rows.insert(id.to_owned(), row);
+    }
+    Ok(())
+}
+fn nav_evidence(
+    path: &str,
+    inputs: &DeclaredNavigationInputs<'_>,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    l.fixed(15)?;
+    l.step(path.len())?;
+    l.bytes(path.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+    tos_foundation::RelativePath::parse(path).map_err(|_| ReferenceError::InvalidBinding)?;
+    let provenance = if path.starts_with("ToS/research-packets/") {
+        "catalogued-research-lead-h1"
+    } else if path.starts_with("ToS/review-ledger/") {
+        "catalogued-review-note-h1"
+    } else {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    };
+    if !path.ends_with(".md") {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    let raw = inputs
+        .files
+        .get(path)
+        .ok_or(ReferenceError::InvalidBinding)?;
+    l.bytes(raw.len())?;
+    let text = std::str::from_utf8(raw).map_err(|_| ReferenceError::InvalidBinding)?;
+    let mut title = None;
+    for line in text.lines() {
+        l.step(1)?;
+        if let Some(h1) = line.strip_prefix("# ") {
+            title = Some(h1.trim());
+            break;
+        }
+    }
+    let title = title
+        .filter(|s| !s.is_empty())
+        .ok_or(ReferenceError::UnsupportedSourceProfile)?;
+    l.step(title.len())?;
+    if title.chars().count() > 240
+        || title.chars().any(|c| {
+            !tos_foundation::python_printable_unicode16_v1(c)
+                && !matches!(
+                    c,
+                    '\u{a0}' | '\u{1680}' | '\u{2000}'
+                        ..='\u{200a}'
+                            | '\u{2028}'
+                            | '\u{2029}'
+                            | '\u{202f}'
+                            | '\u{205f}'
+                            | '\u{3000}'
+                )
+        })
+    {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    l.bytes(
+        path.len()
+            .checked_mul(4)
+            .and_then(|n| n.checked_add(title.len()))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let id = format!(
+        "evidence:sha256:{}",
+        tos_foundation::Digest256::of_bytes(path.as_bytes()).to_hex()
+    );
+    let props = serde_json::json!({"evidence_ref":path,"evidence_kind":"repo_path","resolved":true,
+        "bibliographic_carrier":{"source_sha256":tos_foundation::Digest256::of_bytes(raw).to_hex(),"display":{
+            "title":{"default":title},"summary":{"default":format!("Repo path evidence reference: {path}. Return to {path}.")},
+            "summary_state":"metadata-synthesis","provenance":{"title":provenance,"summary":"evidence-reference-navigation",
+            "source_title_available":true,"source_summary_available":false,"human_form_authority":"none","source_ref":path}}}});
+    nav_node(id, "evidence", path, "not_applicable", props, l)
+}
+fn expected_source_navigation(
+    historical: &serde_json::Value,
+    inputs: &DeclaredNavigationInputs<'_>,
+    mut limits: ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    use serde_json::{Value, json};
+    let l = &mut limits;
+    l.fixed(8)?;
+    let mut nodes = BTreeMap::new();
+    let mut edges = BTreeMap::new();
+    let mut output_bytes = 0usize;
+    for (collection, key, rows) in [
+        ("nodes", "node_id", &mut nodes),
+        ("edges", "edge_id", &mut edges),
+    ] {
+        let old_rows = nav_array(historical, collection)?;
+        if historical["counts"][collection].as_u64() != u64::try_from(old_rows.len()).ok() {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        let mut prior_id: Option<&str> = None;
+        for row in old_rows {
+            l.step(1)?;
+            let id = nav_str(row, key)?;
+            if prior_id.is_some_and(|p| p >= id) {
+                return Err(ReferenceError::InvalidBinding);
+            }
+            prior_id = Some(id);
+            let row = l.copy(row)?;
+            if rows.contains_key(nav_str(&row, key)?) {
+                return Err(ReferenceError::DuplicateIdentity);
+            }
+            nav_merge(rows, row, key, &mut output_bytes, l)?;
+        }
+    }
+    let mut claims_seen = std::collections::BTreeSet::new();
+    for claim in &inputs.claims {
+        l.fixed(24)?;
+        let c = &claim.value;
+        let id = nav_str(c, "claim_id")?;
+        if !claims_seen.insert(id) {
+            return Err(ReferenceError::DuplicateIdentity);
+        }
+        l.bytes(id.len().checked_add(256).ok_or(ReferenceError::Budget)?)?;
+        let claim_id = format!("claim:{id}");
+        let subject = inputs
+            .identities
+            .get(nav_str(c, "subject_ref")?)
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let object = inputs
+            .identities
+            .get(
+                c["object"]
+                    .as_str()
+                    .ok_or(ReferenceError::UnsupportedSourceProfile)?,
+            )
+            .ok_or(ReferenceError::InvalidBinding)?;
+        for source in [subject, object] {
+            l.fixed(8)?;
+            nav_no_reserved(
+                &source.value,
+                &[
+                    "identity_ref",
+                    "identity_kind",
+                    "source_record",
+                    "human_forms",
+                    "human_forms_source_ref",
+                    "bibliographic_carrier",
+                ],
+                l,
+            )?;
+            let rid = nav_str(&source.value, "record_id")?;
+            l.bytes(rid.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?;
+            let mut props = l.copy(&source.value)?;
+            let map = props
+                .as_object_mut()
+                .ok_or(ReferenceError::InvalidBinding)?;
+            map.insert("identity_ref".into(), json!(rid));
+            map.insert(
+                "identity_kind".into(),
+                l.copy(&source.value["record_type"])?,
+            );
+            map.insert("source_record".into(), l.copy(&source.value)?);
+            map.insert(
+                "bibliographic_carrier".into(),
+                json!({"source_sha256":source.sha}),
+            );
+            if let Some((path, forms)) = nav_forms(source, inputs, l)? {
+                map.insert("human_forms".into(), forms);
+                map.insert("human_forms_source_ref".into(), json!(path));
+            }
+            let row = nav_node(
+                format!("identity:{rid}"),
+                nav_str(&source.value, "record_type")?,
+                &source.path,
+                nav_str(&source.value, "identity_status")?,
+                props,
+                l,
+            )?;
+            nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        }
+        let event = inputs
+            .events
+            .get(nav_str(c, "provenance_event_ref")?)
+            .ok_or(ReferenceError::InvalidBinding)?;
+        nav_no_reserved(
+            &event.value,
+            &[
+                "event_ref",
+                "source_event",
+                "human_forms",
+                "bibliographic_carrier",
+            ],
+            l,
+        )?;
+        let event_id = format!("provenance_event:{}", nav_str(&event.value, "event_id")?);
+        l.fixed(10)?;
+        let mut props = l.copy(&event.value)?;
+        let map = props
+            .as_object_mut()
+            .ok_or(ReferenceError::InvalidBinding)?;
+        map.remove("inputs");
+        map.remove("outputs");
+        map.insert("event_ref".into(), l.copy(&event.value["event_id"])?);
+        map.insert("source_event".into(), l.copy(&event.value)?);
+        let mut agents = Vec::new();
+        if event.value["schema_version"] == "tos_provenance_event_v2" {
+            for responsibility in nav_array(&event.value, "responsibility")? {
+                l.step(2)?;
+                let agent = nav_str(responsibility, "agent_ref")?;
+                l.step(agents.len())?;
+                if !agents.iter().any(|v: &Value| v.as_str() == Some(agent)) {
+                    l.bytes(agent.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+                    agents.push(json!(agent));
+                }
+            }
+            for key in ["event_type", "started_at", "ended_at", "status"] {
+                l.step(1)?;
+                map.insert(key.into(), l.copy(&event.value["activity"][key])?);
+            }
+        } else if event.value["schema_version"] == "tos_provenance_event_v1" {
+            agents = match l.copy(&event.value["agent_refs"])? {
+                Value::Array(values) => values,
+                _ => return Err(ReferenceError::InvalidBinding),
+            };
+        } else {
+            return Err(ReferenceError::UnsupportedSourceProfile);
+        }
+        map.insert("agent_refs".into(), Value::Array(agents));
+        map.insert("bibliographic_carrier".into(),json!({"source_line":event.line.ok_or(ReferenceError::InvalidBinding)?,"source_sha256":event.sha}));
+        let row = nav_node(
+            event_id.clone(),
+            "provenance_event",
+            &event.path,
+            "not_applicable",
+            props,
+            l,
+        )?;
+        nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        let maker = &c["maker"];
+        let maker_ref = nav_str(maker, "agent_ref")?;
+        l.fixed(2)?;
+        l.bytes(
+            id.len()
+                .checked_add(maker_ref.len())
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let maker_id = format!("maker:claim:sha256:{}", l.digest(&json!([id, maker_ref]))?);
+        let resolved_maker = inputs.identities.get(maker_ref);
+        let (maker_path, maker_sha) = resolved_maker
+            .map(|r| (r.path.as_str(), r.sha.as_str()))
+            .unwrap_or((&claim.path, &claim.sha));
+        l.fixed(8)?;
+        if resolved_maker.is_some() && !nodes.contains_key(&format!("identity:{maker_ref}")) {
+            return Err(ReferenceError::UnsupportedSourceProfile);
+        }
+        l.bytes(
+            maker_ref
+                .len()
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(maker_path.len()))
+                .and_then(|n| n.checked_add(nav_str(maker, "maker_type").ok()?.len()))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let maker_source = l.copy(maker)?;
+        let props = nav_object(
+            [
+                ("agent_ref", json!(maker_ref)),
+                ("maker_type", json!(nav_str(maker, "maker_type")?)),
+                ("source_maker", maker_source),
+                (
+                    "identity_node_id",
+                    json!(resolved_maker.map(|_| format!("identity:{maker_ref}"))),
+                ),
+                ("bibliographic_carrier", json!({"source_sha256":maker_sha})),
+            ],
+            l,
+        )?;
+        let row = nav_node(
+            maker_id.clone(),
             "maker",
-            "provenance_event"
-        ])
-    );
-    let root = nodes
-        .iter()
-        .find(|n| n["node_id"] == claim_node_id)
-        .unwrap();
-    assert_eq!(root["source_ref"], path);
-    assert_eq!(root["properties"]["source_claim"], claim);
-    assert_eq!(
-        root["properties"]["bibliographic_carrier"]["source_sha256"],
-        claim_sha
-    );
-    assert_eq!(
-        root["properties"]["bibliographic_carrier"]["source_line"],
-        1
-    );
-    let maker = nodes.iter().find(|n| n["node_kind"] == "maker").unwrap();
-    assert_eq!(maker["properties"]["source_maker"], claim["maker"]);
-    assert_eq!(maker["source_ref"], path);
-    let evidence = nodes.iter().find(|n| n["node_kind"] == "evidence").unwrap();
-    assert_eq!(
-        evidence["properties"]["evidence_ref"],
-        claim["evidence_refs"][0]
-    );
-    let edges = &additions["edges"];
-    assert_eq!(
-        edges
-            .iter()
-            .map(|e| e["predicate_id"].as_str().unwrap())
-            .collect::<BTreeSet<_>>(),
-        BTreeSet::from([
-            "has_subject",
-            "has_object",
-            "made_by",
-            "generated_by",
-            "supported_by",
-            "has_source_claim"
-        ])
-    );
-    let all_ids = actual["nodes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|n| n["node_id"].as_str().unwrap())
-        .collect::<BTreeSet<_>>();
-    for edge in edges {
-        assert_eq!(edge["claim_ref"], claim_id);
-        assert_eq!(edge["claim_sha256"], claim_sha);
-        assert_eq!(edge["source_claim_file_ref"], path);
-        assert_eq!(edge["source_ref"], path);
-        assert_eq!(edge["source_refs"], json!([path]));
-        assert_eq!(edge["source_claim_line"], 1);
-        assert_eq!(edge["review_status"], claim["review_status"]);
-        assert_eq!(edge["maker_node_id"], maker["node_id"]);
-        assert_eq!(edge["evidence_node_ids"], json!([evidence["node_id"]]));
-        assert!(all_ids.contains(edge["from_id"].as_str().unwrap()));
-        assert!(all_ids.contains(edge["to_id"].as_str().unwrap()));
+            maker_path,
+            "not_applicable",
+            props,
+            l,
+        )?;
+        nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        let mut evidence_ids = Vec::new();
+        for evidence in nav_array(c, "evidence_refs")? {
+            l.step(1)?;
+            let row = nav_evidence(
+                evidence
+                    .as_str()
+                    .ok_or(ReferenceError::UnsupportedSourceProfile)?,
+                inputs,
+                l,
+            )?;
+            evidence_ids.push(l.copy(&row["node_id"])?);
+            nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        }
+        nav_no_reserved(
+            c,
+            &[
+                "claim_ref",
+                "source_claim",
+                "navigation_descriptor",
+                "human_forms",
+                "human_forms_source_ref",
+                "bibliographic_carrier",
+            ],
+            l,
+        )?;
+        let descriptor = nav_descriptor(claim, subject, object, inputs, l)?;
+        l.fixed(15)?;
+        let mut props = l.copy(c)?;
+        let map = props
+            .as_object_mut()
+            .ok_or(ReferenceError::InvalidBinding)?;
+        map.insert("claim_ref".into(), json!(id));
+        map.insert("confidence".into(), l.copy(&c["confidence"])?);
+        map.insert("source_claim".into(), l.copy(c)?);
+        map.insert("navigation_descriptor".into(), descriptor);
+        if let Some((path, forms)) = nav_forms(claim, inputs, l)? {
+            map.insert("human_forms".into(), forms);
+            map.insert("human_forms_source_ref".into(), json!(path));
+        }
+        map.insert("bibliographic_carrier".into(),json!({"source_line":claim.line.ok_or(ReferenceError::InvalidBinding)?,"source_sha256":claim.sha}));
+        let row = nav_node(
+            claim_id.clone(),
+            "claim",
+            &claim.path,
+            "not_applicable",
+            props,
+            l,
+        )?;
+        nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        l.bytes(
+            evidence_ids
+                .len()
+                .checked_add(4)
+                .and_then(|n| n.checked_mul(192))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let mut targets = vec![
+            (
+                "has_subject",
+                format!("identity:{}", nav_str(c, "subject_ref")?),
+            ),
+            (
+                "has_object",
+                format!(
+                    "identity:{}",
+                    c["object"].as_str().ok_or(ReferenceError::InvalidBinding)?
+                ),
+            ),
+            ("made_by", maker_id.clone()),
+            ("generated_by", event_id.clone()),
+        ];
+        for id in &evidence_ids {
+            l.step(1)?;
+            targets.push((
+                "supported_by",
+                id.as_str()
+                    .ok_or(ReferenceError::InvalidBinding)?
+                    .to_owned(),
+            ));
+        }
+        for (ordinal, (predicate, target)) in targets.into_iter().enumerate() {
+            let row = nav_edge(
+                claim,
+                &claim_id,
+                &target,
+                predicate,
+                predicate,
+                &format!("edge:{id}:{predicate}:{:03}", ordinal + 1),
+                &evidence_ids,
+                &maker_id,
+                &event_id,
+                l,
+            )?;
+            nav_merge(&mut edges, row, "edge_id", &mut output_bytes, l)?;
+        }
+        let inverse = nav_edge(
+            claim,
+            nav_str(c, "subject_ref")?,
+            &claim_id,
+            "claim_subject_navigation",
+            "has_source_claim",
+            &format!("source-navigation:claim-subject:{id}"),
+            &evidence_ids,
+            &maker_id,
+            &event_id,
+            l,
+        )?;
+        nav_merge(&mut edges, inverse, "edge_id", &mut output_bytes, l)?;
     }
-    let subject = edges
-        .iter()
-        .find(|e| e["predicate_id"] == "has_source_claim")
-        .unwrap();
-    assert_eq!(subject["from_id"], claim["subject_ref"]);
-    assert_eq!(subject["to_id"], claim_node_id);
+    // Require every endpoint, including inverse RAW metadata subject, to exist.
+    for row in edges.values() {
+        l.step(3)?;
+        if !nodes.contains_key(nav_str(row, "from_id")?)
+            || !nodes.contains_key(nav_str(row, "to_id")?)
+        {
+            return Err(ReferenceError::InvalidBinding);
+        }
+    }
+    let counts = json!({"nodes":nodes.len(),"edges":edges.len()});
+    l.bytes(
+        nodes
+            .len()
+            .checked_add(edges.len())
+            .and_then(|n| n.checked_mul(128))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let schema = l.copy(&historical["schema_version"])?;
+    let authority = l.copy(&historical["authority_boundary"])?;
+    let rights = l.copy(&historical["rights"])?;
+    nav_object(
+        [
+            ("schema_version", schema),
+            ("authority_boundary", authority),
+            ("rights", rights),
+            ("nodes", Value::Array(nodes.into_values().collect())),
+            ("edges", Value::Array(edges.into_values().collect())),
+            ("counts", counts),
+        ],
+        l,
+    )
+}
+
+fn nav_edge(
+    claim: &NavigationSource,
+    from: &str,
+    to: &str,
+    kind: &str,
+    predicate: &str,
+    id: &str,
+    evidence: &[serde_json::Value],
+    maker: &str,
+    event: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    l.fixed(15)?;
+    l.bytes(
+        evidence
+            .len()
+            .checked_mul(128)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let mut refs = Vec::with_capacity(evidence.len());
+    for value in evidence {
+        refs.push(l.copy(value)?);
+    }
+    l.bytes(
+        id.len()
+            .checked_add(from.len())
+            .and_then(|n| n.checked_add(to.len()))
+            .and_then(|n| n.checked_add(claim.path.len().checked_mul(3)?))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    nav_object(
+        [
+            ("edge_id", serde_json::json!(id)),
+            ("edge_kind", serde_json::json!(kind)),
+            ("from_id", serde_json::json!(from)),
+            ("to_id", serde_json::json!(to)),
+            ("claim_ref", l.copy(&claim.value["claim_id"])?),
+            ("claim_sha256", serde_json::json!(claim.sha)),
+            ("evidence_node_ids", serde_json::Value::Array(refs)),
+            ("maker_node_id", serde_json::json!(maker)),
+            ("provenance_event_node_id", serde_json::json!(event)),
+            ("review_status", l.copy(&claim.value["review_status"])?),
+            ("source_claim_file_ref", serde_json::json!(claim.path)),
+            (
+                "source_claim_line",
+                serde_json::json!(claim.line.ok_or(ReferenceError::InvalidBinding)?),
+            ),
+            ("predicate_id", serde_json::json!(predicate)),
+            ("source_ref", serde_json::json!(claim.path)),
+            ("source_refs", serde_json::json!([claim.path])),
+        ],
+        l,
+    )
+}
+
+fn nav_rewrite_strings(
+    value: &mut serde_json::Value,
+    replacements: &BTreeMap<String, String>,
+    l: &mut ReferenceLimits<'_>,
+    depth: usize,
+) -> NavResult<()> {
+    use serde_json::Value;
+    l.step(1)?;
+    if depth > 96 {
+        return Err(ReferenceError::Budget);
+    }
+    match value {
+        Value::String(s) => {
+            if let Some(new) = replacements.get(s) {
+                l.bytes(new.len())?;
+                *s = new.clone();
+            }
+        }
+        Value::Array(a) => {
+            for v in a {
+                nav_rewrite_strings(v, replacements, l, depth + 1)?;
+            }
+        }
+        Value::Object(o) => {
+            for v in o.values_mut() {
+                nav_rewrite_strings(v, replacements, l, depth + 1)?;
+            }
+        }
+        _ => (),
+    }
+    Ok(())
+}
+fn nav_variant_raw(v: &serde_json::Value, l: &mut ReferenceLimits<'_>) -> NavResult<Vec<u8>> {
+    let bound = l.value_bound(v, 0)?;
+    if bound > l.max_record_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    l.bytes(bound)?;
+    serde_json::to_vec(v).map_err(|_| ReferenceError::InvalidBinding)
+}
+fn navigation_reference_variants(
+    historical: &serde_json::Value,
+    original: &serde_json::Value,
+    inputs: &DeclaredNavigationInputs<'_>,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use serde_json::{Value, json};
+    l.fixed(8)?;
+    assert_eq!(nav_label(Some(""), Some("preferred"), "node"), "node");
+    assert_eq!(nav_label(None, Some("preferred"), "node"), "preferred");
+    let sample = inputs
+        .identities
+        .values()
+        .next()
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let raw = inputs
+        .files
+        .get(&sample.path)
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let kind = nav_str(&sample.value, "record_type")?;
+    l.bytes(
+        raw.len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(512))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let duplicate = BTreeMap::from([
+        (
+            format!("ToS/source-witnesses/reference-duplicate/first/{kind}.json"),
+            raw.clone(),
+        ),
+        (
+            format!("ToS/source-witnesses/reference-duplicate/second/{kind}.json"),
+            raw.clone(),
+        ),
+    ]);
+    assert!(matches!(
+        DeclaredNavigationInputs::from_files(&duplicate, inputs.registries, l),
+        Err(ReferenceError::DuplicateIdentity)
+    ));
+    assert!(matches!(
+        nav_pointer(&sample.value, "/invalid~2escape", l),
+        Err(ReferenceError::InvalidBinding)
+    ));
+    assert!(matches!(
+        nav_evidence(
+            "ToS/research-packets/reference-input-variant/MISSING.md",
+            inputs,
+            l
+        ),
+        Err(ReferenceError::InvalidBinding)
+    ));
+    let source_claim = inputs
+        .claims
+        .first()
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let source_subject = inputs
+        .identities
+        .get(nav_str(&source_claim.value, "subject_ref")?)
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let source_object = inputs
+        .identities
+        .get(
+            source_claim.value["object"]
+                .as_str()
+                .ok_or(ReferenceError::InvalidBinding)?,
+        )
+        .ok_or(ReferenceError::InvalidBinding)?;
+    l.bytes(
+        source_claim
+            .path
+            .len()
+            .checked_add(64)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let mut unknown_claim = NavigationSource {
+        path: source_claim.path.clone(),
+        line: source_claim.line,
+        value: l.copy(&source_claim.value)?,
+        sha: source_claim.sha.clone(),
+    };
+    unknown_claim.value["predicate"] = json!("reference_unsupported_predicate");
+    unknown_claim.sha = l.digest(&unknown_claim.value)?;
+    assert!(matches!(
+        nav_descriptor(&unknown_claim, source_subject, source_object, inputs, l),
+        Err(ReferenceError::UnsupportedSourceProfile)
+    ));
+    unknown_claim.value["predicate"] = l.copy(&source_claim.value["predicate"])?;
+    unknown_claim.value["object"] = l.copy(&source_claim.value["subject_ref"])?;
+    unknown_claim.sha = l.digest(&unknown_claim.value)?;
+    assert!(matches!(
+        nav_descriptor(&unknown_claim, source_subject, source_subject, inputs, l),
+        Err(ReferenceError::UnsupportedSourceProfile)
+    ));
+    let original_row = nav_array(original, "nodes")?
+        .first()
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let mut colliding = l.copy(original_row)?;
+    colliding["properties"] = Value::Null;
+    let mut collision_rows = BTreeMap::new();
+    let mut collision_bytes = 0usize;
+    let row_copy = l.copy(original_row)?;
+    nav_merge(
+        &mut collision_rows,
+        row_copy,
+        "node_id",
+        &mut collision_bytes,
+        l,
+    )?;
+    assert!(matches!(
+        nav_merge(
+            &mut collision_rows,
+            colliding,
+            "node_id",
+            &mut collision_bytes,
+            l
+        ),
+        Err(ReferenceError::Conflict)
+    ));
+    // This is a second authored INPUT, not a second expected packet derived
+    // from SUT. Reuse immutable registry roots and the SAME work remainder.
+    let mut replacements = BTreeMap::new();
+    let mut sources = Vec::new();
+    for source in inputs
+        .identities
+        .values()
+        .chain(inputs.claims.iter())
+        .chain(inputs.events.values())
+        .chain(inputs.forms.values())
+    {
+        l.step(1)?;
+        l.bytes(
+            source
+                .path
+                .len()
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(256))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        replacements.insert(
+            source.path.clone(),
+            source.path.replacen(
+                "ToS/source-witnesses/",
+                "ToS/source-witnesses/reference-variant/",
+                1,
+            ),
+        );
+        let mut value = l.copy(&source.value)?;
+        for key in ["record_id", "claim_id", "event_id"] {
+            l.step(1)?;
+            if let Some(id) = value.get(key).and_then(Value::as_str) {
+                l.bytes(
+                    id.len()
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(128))
+                        .ok_or(ReferenceError::Budget)?,
+                )?;
+                replacements.insert(id.to_owned(), format!("{id}.reference-variant"));
+            }
+        }
+        if let Some(maker) = value.pointer("/maker/agent_ref").and_then(Value::as_str) {
+            l.bytes(
+                maker
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(128))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            replacements.insert(maker.to_owned(), format!("{maker}.reference-variant"));
+        }
+        if value.get("forms").is_some() {
+            for collection in ["forms", "prior_forms"] {
+                for form in nav_array(&value, collection)? {
+                    l.step(1)?;
+                    let id = nav_str(form, "form_id")?;
+                    l.bytes(
+                        id.len()
+                            .checked_mul(2)
+                            .and_then(|n| n.checked_add(128))
+                            .ok_or(ReferenceError::Budget)?,
+                    )?;
+                    replacements.insert(id.to_owned(), format!("{id}.reference-variant"));
+                }
+            }
+        }
+        if value.get("record_id").is_some() {
+            value["preferred_label"] = json!(format!(
+                "Independent {} label",
+                nav_str(&value, "record_type")?
+            ));
+        }
+        if value.get("claim_id").is_some() {
+            l.fixed(2)?;
+            value["qualifiers"]["statement"] = json!("Independent source statement");
+            value["qualifiers"]["reference_input_extra"] = json!({"retained":"independent"});
+            for role in ["name", "caption", "hover"] {
+                l.fixed(2)?;
+                value["qualifiers"]["display_fields"][role]["text"] =
+                    json!(format!("Independent {role} wording"));
+            }
+        }
+        sources.push((source.path.as_str(), source.line, value));
+    }
+    for (_, _, value) in &mut sources {
+        nav_rewrite_strings(value, &replacements, l, 0)?;
+    }
+    // Exact new subject references derive from the NEW source records, not from
+    // an old digest with a renamed label. Raw file hashes remain a separate domain.
+    let mut refs = BTreeMap::new();
+    for (_, _, v) in &sources {
+        l.step(1)?;
+        let (id, version) = if v.get("record_id").is_some() {
+            ("record_id", "record_version")
+        } else if v.get("claim_id").is_some() {
+            ("claim_id", "claim_version")
+        } else {
+            continue;
+        };
+        let rid = nav_str(v, id)?;
+        l.fixed(3)?;
+        refs.insert(
+            rid.to_owned(),
+            json!({"id":rid,"version":v[version],"digest":format!("sha256:{}",l.digest(v)?)}),
+        );
+    }
+    for (_, _, v) in &mut sources {
+        l.step(1)?;
+        if v.get("forms").is_none() {
+            continue;
+        }
+        let id = nav_str(&v["subject"], "id")?;
+        let subject = refs.get(id).ok_or(ReferenceError::InvalidBinding)?;
+        v["subject"] = l.copy(subject)?;
+        // Prior forms remain explicit prior source assertions. Recompute their
+        // canonical exact refs after the synthetic ID rename; do not claim a
+        // second schema execution or historical owner mutation.
+        let mut prior_refs = BTreeMap::new();
+        for prior in nav_array(v, "prior_forms")? {
+            l.step(1)?;
+            let key = (
+                nav_str(prior, "form_id")?.to_owned(),
+                prior["form_version"]
+                    .as_u64()
+                    .ok_or(ReferenceError::InvalidBinding)?,
+            );
+            prior_refs.insert(key,json!({"id":prior["form_id"],"version":prior["form_version"],"digest":format!("sha256:{}",l.digest(prior)?)}));
+        }
+        for form in v["forms"]
+            .as_array_mut()
+            .ok_or(ReferenceError::InvalidBinding)?
+        {
+            l.step(1)?;
+            form["subject"] = l.copy(subject)?;
+            for binding in form["bindings"]
+                .as_object_mut()
+                .ok_or(ReferenceError::InvalidBinding)?
+                .values_mut()
+            {
+                l.step(1)?;
+                binding["record"] = l.copy(subject)?;
+            }
+            if !form["revises"].is_null() {
+                let key = (
+                    nav_str(&form["revises"], "id")?.to_owned(),
+                    form["revises"]["version"]
+                        .as_u64()
+                        .ok_or(ReferenceError::InvalidBinding)?,
+                );
+                form["revises"] =
+                    l.copy(prior_refs.get(&key).ok_or(ReferenceError::InvalidBinding)?)?;
+            }
+        }
+    }
+    let mut files = BTreeMap::new();
+    for (path, line, v) in &sources {
+        let name = replacements
+            .get(*path)
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let mut raw = nav_variant_raw(v, l)?;
+        if line.is_some() {
+            l.bytes(1)?;
+            raw.push(b'\n');
+        }
+        // The containing positive recipe has one nonempty source row per JSONL
+        // member. Refuse broader synthetic recipes rather than lose row order.
+        if files.insert(name.clone(), raw).is_some() {
+            return Err(ReferenceError::UnsupportedSourceProfile);
+        }
+    }
+    let second = "ToS/research-packets/reference-input-variant/SECOND.md";
+    l.bytes(second.len() + 256 + 35)?;
+    files.insert(
+        second.to_owned(),
+        b"# Independent second evidence\n".to_vec(),
+    );
+    // Append evidence before recomputing Claim subject/form refs. The variant
+    // records are rebuilt once below so all dependent exact refs remain honest.
+    let mut added_evidence = false;
+    for source in &inputs.claims {
+        for evidence in nav_array(&source.value, "evidence_refs")? {
+            l.step(1)?;
+            let path = evidence.as_str().ok_or(ReferenceError::InvalidBinding)?;
+            let raw = inputs
+                .files
+                .get(path)
+                .ok_or(ReferenceError::InvalidBinding)?;
+            l.bytes(
+                path.len()
+                    .checked_add(raw.len())
+                    .and_then(|n| n.checked_add(256))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            files.insert(path.to_owned(), raw.clone());
+        }
+        let path = &replacements[&source.path];
+        let raw = files.get(path).ok_or(ReferenceError::InvalidBinding)?;
+        let mut claim = l.parse(raw, l.max_record_bytes)?;
+        l.fixed(1)?;
+        claim["evidence_refs"]
+            .as_array_mut()
+            .ok_or(ReferenceError::InvalidBinding)?
+            .push(json!(second));
+        let sha = l.digest(&claim)?;
+        let new_ref = json!({"id":claim["claim_id"],"version":claim["claim_version"],"digest":format!("sha256:{sha}")});
+        files.insert(path.clone(), nav_variant_raw(&claim, l)?);
+        for form_source in inputs.forms.values() {
+            if form_source.value["subject"]["id"] != source.value["claim_id"] {
+                continue;
+            }
+            l.step(1)?;
+            let form_path = &replacements[&form_source.path];
+            let mut forms = l.parse(
+                files.get(form_path).ok_or(ReferenceError::InvalidBinding)?,
+                l.max_record_bytes,
+            )?;
+            forms["subject"] = l.copy(&new_ref)?;
+            for form in forms["forms"]
+                .as_array_mut()
+                .ok_or(ReferenceError::InvalidBinding)?
+            {
+                l.step(1)?;
+                form["subject"] = l.copy(&new_ref)?;
+                for binding in form["bindings"]
+                    .as_object_mut()
+                    .ok_or(ReferenceError::InvalidBinding)?
+                    .values_mut()
+                {
+                    l.step(1)?;
+                    binding["record"] = l.copy(&new_ref)?;
+                }
+            }
+            files.insert(form_path.clone(), nav_variant_raw(&forms, l)?);
+        }
+        added_evidence = true;
+    }
+    if !added_evidence {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
+    // Schema dependencies are declared RAW inputs, not inferred from a product
+    // schema list. Borrowing registry roots does not remove their input fixity.
+    for claim in &inputs.claims {
+        l.step(1)?;
+        let (index, _) = inputs
+            .registries
+            .predicate_index
+            .get(nav_str(&claim.value, "predicate")?)
+            .ok_or(ReferenceError::UnsupportedSourceProfile)?;
+        let relation = &inputs.registries.relations["relations"][*index];
+        for schema in nav_array(&relation["source_claim_profile"], "schemas")? {
+            l.step(1)?;
+            if schema["schema_version"] != claim.value["schema_version"] {
+                continue;
+            }
+            for p in std::iter::once(&schema["schema_ref"])
+                .chain(nav_array(schema, "schema_dependencies")?.iter())
+            {
+                l.step(1)?;
+                let path = p.as_str().ok_or(ReferenceError::InvalidBinding)?;
+                if files.contains_key(path) {
+                    continue;
+                }
+                let raw = inputs
+                    .files
+                    .get(path)
+                    .ok_or(ReferenceError::InvalidBinding)?;
+                l.bytes(
+                    path.len()
+                        .checked_add(raw.len())
+                        .and_then(|n| n.checked_add(256))
+                        .ok_or(ReferenceError::Budget)?,
+                )?;
+                files.insert(path.to_owned(), raw.clone());
+            }
+        }
+    }
+    let mut old = l.copy(historical)?;
+    nav_rewrite_strings(&mut old, &replacements, l, 0)?;
+    let mut variant_inputs = DeclaredNavigationInputs::from_files(&files, inputs.registries, l)?;
+    let variant = expected_source_navigation(&old, &variant_inputs, l.reborrow())?;
+    assert_eq!(
+        variant["counts"]["nodes"].as_u64(),
+        original["counts"]["nodes"].as_u64().map(|n| n + 1)
+    );
+    assert_eq!(
+        variant["counts"]["edges"].as_u64(),
+        original["counts"]["edges"].as_u64().map(|n| n + 1)
+    );
+    for claim in &variant_inputs.claims {
+        let id = format!("claim:{}", nav_str(&claim.value, "claim_id")?);
+        let rows = nav_array(&variant, "nodes")?;
+        l.step(rows.len())?;
+        let row = rows
+            .iter()
+            .find(|row| row["node_id"] == id)
+            .ok_or(ReferenceError::InvalidBinding)?;
+        assert_eq!(row["source_ref"], claim.path);
+        assert_eq!(row["properties"]["source_claim"], claim.value);
+        assert_eq!(
+            row["properties"]["qualifiers"]["reference_input_extra"],
+            json!({"retained":"independent"})
+        );
+        assert_eq!(
+            row["properties"]["navigation_descriptor"]["subject"]["label"],
+            "Independent letter label"
+        );
+        assert_eq!(
+            row["properties"]["navigation_descriptor"]["object"]["label"],
+            "Independent agent label"
+        );
+        assert_eq!(
+            row["properties"]["human_forms"][0]["display_text"],
+            "Independent source statement"
+        );
+    }
+    for old_row in nav_array(historical, "nodes")? {
+        l.step(1)?;
+        let mut renamed = l.copy(old_row)?;
+        nav_rewrite_strings(&mut renamed, &replacements, l, 0)?;
+        l.value_bound(&renamed, 0)?;
+        assert!(
+            nav_array(&variant, "nodes")?
+                .iter()
+                .any(|row| row == &renamed)
+        );
+    }
+    // Negative source bindings: a valid pointer to the wrong source component
+    // and an unsupported derivation MUST refuse, not copy actual materialization.
+    let claim = variant_inputs
+        .claims
+        .first()
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let id = nav_str(&claim.value, "claim_id")?.to_owned();
+    let set = variant_inputs
+        .forms
+        .get_mut(&id)
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let pointer = l.copy(&set.value["forms"][0]["bindings"]["wording"]["pointer"])?;
+    set.value["forms"][0]["bindings"]["wording"]["pointer"] = json!("/claim_id");
+    assert!(matches!(
+        nav_forms(claim, &variant_inputs, l),
+        Err(ReferenceError::UnsupportedSourceProfile)
+    ));
+    variant_inputs
+        .forms
+        .get_mut(&id)
+        .ok_or(ReferenceError::InvalidBinding)?
+        .value["forms"][0]["bindings"]["wording"]["pointer"] = pointer;
+    variant_inputs
+        .forms
+        .get_mut(&id)
+        .ok_or(ReferenceError::InvalidBinding)?
+        .value["forms"][0]["content"]["kind"] = json!("unsupported-reference-profile");
+    assert!(matches!(
+        nav_forms(claim, &variant_inputs, l),
+        Err(ReferenceError::UnsupportedSourceProfile)
+    ));
+    // Whole field removal plus nested semantic mutations. A single owned row
+    // is reused by MOVE/restore, not six clones of its complete properties.
+    let mut descriptor_controls = 0usize;
+    let mut form_controls = 0usize;
+    for collection in ["nodes", "edges"] {
+        for row in nav_array(original, collection)? {
+            let fields = row.as_object().ok_or(ReferenceError::InvalidBinding)?;
+            let mut changed = l.copy(row)?;
+            for key in fields.keys() {
+                l.step(1)?;
+                let saved = changed
+                    .as_object_mut()
+                    .ok_or(ReferenceError::InvalidBinding)?
+                    .remove(key)
+                    .ok_or(ReferenceError::InvalidBinding)?;
+                l.compare_work(row, 0)?;
+                l.compare_work(&changed, 0)?;
+                assert_ne!(&changed, row, "complete {collection} field {key}");
+                l.fixed(1)?;
+                l.bytes(key.len())?;
+                changed
+                    .as_object_mut()
+                    .ok_or(ReferenceError::InvalidBinding)?
+                    .insert(key.clone(), saved);
+            }
+            for pointer in [
+                "/properties/navigation_descriptor/title/default",
+                "/properties/navigation_descriptor/statuses/review_status/value",
+                "/properties/human_forms/0/context/0/value",
+                "/properties/human_forms/0/form/digest",
+                "/properties/source_claim/qualifiers/attribution",
+                "/properties/bibliographic_carrier/source_sha256",
+                "/properties/bibliographic_carrier/source_line",
+            ] {
+                l.step(1)?;
+                if changed.pointer(pointer).is_none() {
+                    continue;
+                }
+                let _ = nav_pointer(&changed, pointer, l)?;
+                let saved = std::mem::replace(
+                    changed
+                        .pointer_mut(pointer)
+                        .ok_or(ReferenceError::InvalidBinding)?,
+                    Value::Null,
+                );
+                if saved.is_null() {
+                    return Err(ReferenceError::InvalidBinding);
+                }
+                l.compare_work(row, 0)?;
+                l.compare_work(&changed, 0)?;
+                assert_ne!(&changed, row, "complete nested field {pointer}");
+                *changed
+                    .pointer_mut(pointer)
+                    .ok_or(ReferenceError::InvalidBinding)? = saved;
+                descriptor_controls += usize::from(pointer.contains("navigation_descriptor"));
+                form_controls += usize::from(pointer.contains("human_forms"));
+            }
+            if collection == "edges" && row["from_id"] != row["to_id"] {
+                let from = l.copy(&row["from_id"])?;
+                changed["from_id"] = l.copy(&row["to_id"])?;
+                changed["to_id"] = from;
+                l.compare_work(row, 0)?;
+                l.compare_work(&changed, 0)?;
+                assert_ne!(&changed, row, "existing endpoints swapped");
+            }
+        }
+    }
+    assert!(descriptor_controls >= 2 && form_controls >= 2);
+    let mut changed = l.copy(original)?;
+    for collection in ["nodes", "edges"] {
+        l.step(1)?;
+        let rows = changed[collection]
+            .as_array_mut()
+            .ok_or(ReferenceError::InvalidBinding)?;
+        let saved = rows.pop().ok_or(ReferenceError::InvalidBinding)?;
+        l.compare_work(original, 0)?;
+        l.compare_work(&changed, 0)?;
+        assert_ne!(&changed, original, "removed {collection} row");
+        changed[collection]
+            .as_array_mut()
+            .ok_or(ReferenceError::InvalidBinding)?
+            .push(saved);
+        changed[collection]
+            .as_array_mut()
+            .ok_or(ReferenceError::InvalidBinding)?
+            .swap(0, 1);
+        l.compare_work(original, 0)?;
+        l.compare_work(&changed, 0)?;
+        assert_ne!(&changed, original, "ordered {collection}");
+        changed[collection]
+            .as_array_mut()
+            .ok_or(ReferenceError::InvalidBinding)?
+            .swap(0, 1);
+    }
+    let saved = std::mem::replace(&mut changed["counts"]["nodes"], json!(0));
+    l.compare_work(original, 0)?;
+    l.compare_work(&changed, 0)?;
+    assert_ne!(&changed, original, "independent count");
+    changed["counts"]["nodes"] = saved;
+    Ok(())
 }
 
 fn assert_native_corpus_query_packets(
