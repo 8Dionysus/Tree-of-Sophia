@@ -318,13 +318,19 @@ fn claim_reference_field<'a>(
     Ok(None)
 }
 fn claim_reference_path(path: &str, b: &mut ClaimReferenceBudget<'_>) -> ClaimReferenceResult<()> {
-    b.work(path.len(), 8)?;
+    // Same lexical exclusions as RelativePath::parse, plus this profile's
+    // ToS/ prefix. Borrowed scans only: no RelativePath/String allocation.
+    b.work(
+        path.len()
+            .checked_mul(4)
+            .ok_or(ClaimReferenceError::Limit)?,
+        16,
+    )?;
     if !path.starts_with("ToS/")
-        || path.contains('\\')
-        || path.contains('\0')
+        || path.bytes().any(|byte| byte < 32 || byte == b'\\')
         || path
             .split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..")
+            .any(|part| part.is_empty() || matches!(part, "." | ".." | ".git"))
     {
         return Err(ClaimReferenceError::InvalidInput);
     }
@@ -712,6 +718,28 @@ fn claim_reference_controls(
     b: &mut ClaimReferenceBudget<'_>,
 ) -> ClaimReferenceResult<()> {
     b.work(0, 64)?;
+    for path in [
+        "ToS/.git/x",
+        "ToS/a/.git",
+        "ToS/a\0b",
+        "ToS/a\u{1f}b",
+        "ToS/a\nb",
+        "ToS/./x",
+        "ToS/../x",
+        "ToS//x",
+        "ToS/a\\b",
+        "/ToS/x",
+        "ToS/",
+    ] {
+        b.work(0, 8)?;
+        assert_eq!(
+            claim_reference_path(path, b),
+            Err(ClaimReferenceError::InvalidInput)
+        );
+    }
+    // .git is a component exclusion, not a prefix ban on ordinary filenames.
+    claim_reference_path("ToS/a.json", b)?;
+    claim_reference_path("ToS/.gitignore", b)?;
     let original = &inputs.objects[0];
     let capacity = original
         .raw
