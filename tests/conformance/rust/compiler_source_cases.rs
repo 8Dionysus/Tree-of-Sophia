@@ -2909,7 +2909,8 @@ fn native_corpus_composition_case(installed: bool) {
         let inputs = DeclaredNavigationInputs::from_files(&files, &registries, &mut guard).unwrap();
         let nav =
             expected_source_navigation(&historical_navigation, &inputs, guard.reborrow()).unwrap();
-        navigation_reference_variants(&historical_navigation, &nav, &inputs, &mut guard).unwrap();
+        navigation_variant_handoff_payment(&mut guard).unwrap();
+        navigation_reference_variants(&historical_navigation, &nav, inputs, &mut guard).unwrap();
         nav
     };
     phase(started, deadline, "selected-inputs-ready");

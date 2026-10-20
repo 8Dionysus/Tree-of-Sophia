@@ -3944,10 +3944,158 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
     );
     Ok(())
 }
+// Prospective payment BEFORE the caller passes the parsed owner by value.
+// Outer raw files/registries have independent immutable owners and are borrowed.
+fn navigation_variant_handoff_payment(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+    use std::mem::size_of;
+    l.step(1)?;
+    l.bytes(
+        size_of::<DeclaredNavigationInputs<'_>>()
+            .checked_mul(3) // caller -> diagnostic wrapper -> body move overlap
+            .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+            .ok_or(ReferenceError::Budget)?,
+    )
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum VariantSourceRole {
+    Identity,
+    Claim,
+    Event,
+    Form,
+}
+type OwnedVariantSource = (VariantSourceRole, NavigationSource);
+type VariantMapIntoValues = std::collections::btree_map::IntoValues<String, NavigationSource>;
+type VariantClaimIntoIter = std::vec::IntoIter<NavigationSource>;
+type VariantMapAdapter =
+    std::iter::Map<VariantMapIntoValues, fn(NavigationSource) -> OwnedVariantSource>;
+type VariantClaimAdapter =
+    std::iter::Map<VariantClaimIntoIter, fn(NavigationSource) -> OwnedVariantSource>;
+type VariantFirstChain = std::iter::Chain<VariantMapAdapter, VariantClaimAdapter>;
+type VariantSecondChain = std::iter::Chain<VariantFirstChain, VariantMapAdapter>;
+type VariantOwnedChain = std::iter::Chain<VariantSecondChain, VariantMapAdapter>;
+type VariantAuthoredSource = (String, Option<usize>, serde_json::Value);
+struct VariantClaimBinding {
+    path: String,
+    line: Option<usize>,
+    value: serde_json::Value,
+}
+fn variant_identity_source(source: NavigationSource) -> OwnedVariantSource {
+    (VariantSourceRole::Identity, source)
+}
+fn variant_claim_source(source: NavigationSource) -> OwnedVariantSource {
+    (VariantSourceRole::Claim, source)
+}
+fn variant_event_source(source: NavigationSource) -> OwnedVariantSource {
+    (VariantSourceRole::Event, source)
+}
+fn variant_form_source(source: NavigationSource) -> OwnedVariantSource {
+    (VariantSourceRole::Form, source)
+}
+fn variant_source_move_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    size_of::<VariantOwnedChain>()
+        .checked_mul(2) // completed chain plus for/IntoIterator move header
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<VariantFirstChain>()
+                    .max(size_of::<VariantSecondChain>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<VariantMapAdapter>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<VariantClaimAdapter>()))
+        .and_then(|n| n.checked_add(size_of::<VariantMapIntoValues>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<VariantClaimIntoIter>()))
+        .and_then(|n| {
+            n.checked_add(size_of::<fn(NavigationSource) -> OwnedVariantSource>().checked_mul(2)?)
+        })
+        .and_then(|n| n.checked_add(size_of::<&NavigationSource>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<VariantClaimBinding>>()))
+        .and_then(|n| n.checked_add(size_of::<VariantClaimBinding>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<OwnedVariantSource>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<OwnedVariantSource>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavigationSource>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<VariantAuthoredSource>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<VariantSourceRole>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&BTreeMap<String, Vec<u8>>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&NavigationRegistries>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+// This is ONLY original-input selection metadata. Preserve absent versus null;
+// do not validate types early or use the already-mutated source to fill it.
+fn variant_claim_binding(
+    source: &NavigationSource,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<VariantClaimBinding> {
+    use std::mem::size_of;
+    l.fixed(4)?; // one small object and at most three map entries
+    l.bytes(
+        source
+            .path
+            .len()
+            .checked_add(
+                size_of::<VariantClaimBinding>()
+                    .checked_mul(2)
+                    .ok_or(ReferenceError::Budget)?,
+            )
+            .and_then(|n| n.checked_add(size_of::<NavResult<VariantClaimBinding>>()))
+            .and_then(|n| {
+                n.checked_add(
+                    size_of::<serde_json::Map<String, serde_json::Value>>().checked_mul(2)?,
+                )
+            })
+            .and_then(|n| {
+                n.checked_add(
+                    size_of::<serde_json::Value>()
+                        .max(size_of::<Option<serde_json::Value>>())
+                        .max(size_of::<NavResult<serde_json::Value>>())
+                        .checked_mul(2)?,
+                )
+            })
+            .and_then(|n| n.checked_add(size_of::<String>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<Option<&serde_json::Value>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&NavigationSource>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<[&str; 3]>()))
+            .and_then(|n| n.checked_add(size_of::<std::array::IntoIter<&str, 3>>()))
+            .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let mut fields = serde_json::Map::with_capacity(3);
+    for key in ["evidence_refs", "predicate", "schema_version"] {
+        l.step(1)?;
+        if let Some(value) = source.value.get(key) {
+            l.bytes(
+                key.len()
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(4 + 96))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            let value = l.copy(value)?;
+            fields.insert(key.to_owned(), value);
+        }
+    }
+    Ok(VariantClaimBinding {
+        path: source.path.clone(),
+        line: source.line,
+        value: serde_json::Value::Object(fields),
+    })
+}
 fn navigation_reference_variants(
     historical: &serde_json::Value,
     original: &serde_json::Value,
-    inputs: &DeclaredNavigationInputs<'_>,
+    inputs: DeclaredNavigationInputs<'_>,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<()> {
     l.work
@@ -3973,7 +4121,7 @@ fn navigation_reference_variants(
 fn navigation_reference_variants_body(
     historical: &serde_json::Value,
     original: &serde_json::Value,
-    inputs: &DeclaredNavigationInputs<'_>,
+    inputs: DeclaredNavigationInputs<'_>,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<()> {
     use serde_json::{Value, json};
@@ -4021,7 +4169,7 @@ fn navigation_reference_variants_body(
     assert!(matches!(
         nav_evidence(
             "ToS/research-packets/reference-input-variant/MISSING.md",
-            inputs,
+            &inputs,
             l
         ),
         Err(ReferenceError::InvalidBinding)
@@ -4060,14 +4208,14 @@ fn navigation_reference_variants_body(
     unknown_claim.value["predicate"] = json!("reference_unsupported_predicate");
     unknown_claim.sha = l.digest(&unknown_claim.value)?;
     assert!(matches!(
-        nav_descriptor(&unknown_claim, source_subject, source_object, inputs, l),
+        nav_descriptor(&unknown_claim, source_subject, source_object, &inputs, l),
         Err(ReferenceError::UnsupportedSourceProfile)
     ));
     unknown_claim.value["predicate"] = l.copy(&source_claim.value["predicate"])?;
     unknown_claim.value["object"] = l.copy(&source_claim.value["subject_ref"])?;
     unknown_claim.sha = l.digest(&unknown_claim.value)?;
     assert!(matches!(
-        nav_descriptor(&unknown_claim, source_subject, source_subject, inputs, l),
+        nav_descriptor(&unknown_claim, source_subject, source_subject, &inputs, l),
         Err(ReferenceError::UnsupportedSourceProfile)
     ));
     l.work.diagnostic_stage("collision-control", 0);
@@ -4141,14 +4289,60 @@ fn navigation_reference_variants_body(
     // This is a second authored INPUT, not a second expected packet derived
     // from SUT. Reuse immutable registry roots and the SAME work remainder.
     l.work.diagnostic_stage("copy-authored-variant-sources", 0);
-    let mut replacements = BTreeMap::new();
-    let mut sources = Vec::new();
-    for source in inputs
+    l.bytes(variant_source_move_workspace()?)?; // BEFORE owning iterators/count holders
+    l.step(8)?; // four collection lengths, checked sums and Claim capacity read
+    let source_count = inputs
         .identities
-        .values()
-        .chain(inputs.claims.iter())
-        .chain(inputs.events.values())
-        .chain(inputs.forms.values())
+        .len()
+        .checked_add(inputs.claims.len())
+        .and_then(|n| n.checked_add(inputs.events.len()))
+        .and_then(|n| n.checked_add(inputs.forms.len()))
+        .ok_or(ReferenceError::Budget)?;
+    let claim_count = inputs.claims.len();
+    // Counts come from the already-admitted private collections. Exact initial
+    // capacities avoid any new sources/shadow Vec growth during the move loop.
+    l.bytes(
+        source_count
+            .checked_mul(std::mem::size_of::<VariantAuthoredSource>())
+            .and_then(|n| {
+                n.checked_add(claim_count.checked_mul(std::mem::size_of::<VariantClaimBinding>())?)
+            })
+            .and_then(|n| {
+                n.checked_add(std::mem::size_of::<Vec<VariantAuthoredSource>>().checked_mul(2)?)
+            })
+            .and_then(|n| {
+                n.checked_add(std::mem::size_of::<Vec<VariantClaimBinding>>().checked_mul(2)?)
+            })
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.step(source_count.checked_mul(4).ok_or(ReferenceError::Budget)?)?;
+    let input_files = inputs.files;
+    let input_registries = inputs.registries;
+    let mut replacements = BTreeMap::new();
+    let mut sources = Vec::with_capacity(source_count);
+    let mut original_claims = Vec::with_capacity(claim_count);
+    for (role, source) in inputs
+        .identities
+        .into_values()
+        .map(variant_identity_source as fn(NavigationSource) -> OwnedVariantSource)
+        .chain(
+            inputs
+                .claims
+                .into_iter()
+                .map(variant_claim_source as fn(NavigationSource) -> OwnedVariantSource),
+        )
+        .chain(
+            inputs
+                .events
+                .into_values()
+                .map(variant_event_source as fn(NavigationSource) -> OwnedVariantSource),
+        )
+        .chain(
+            inputs
+                .forms
+                .into_values()
+                .map(variant_form_source as fn(NavigationSource) -> OwnedVariantSource),
+        )
     {
         l.step(1)?;
         l.bytes(
@@ -4167,7 +4361,13 @@ fn navigation_reference_variants_body(
                 1,
             ),
         );
-        let mut value = l.copy(&source.value)?;
+        // SAME complete old W/error admission at the former clone position.
+        // The parsed owner is no longer needed after these original controls.
+        merge_read_bound(&source.value, l)?;
+        if role == VariantSourceRole::Claim {
+            original_claims.push(variant_claim_binding(&source, l)?);
+        }
+        let mut value = source.value; // whole immutable input -> authored variant owner
         for key in ["record_id", "claim_id", "event_id"] {
             l.step(1)?;
             if let Some(id) = value.get(key).and_then(Value::as_str) {
@@ -4221,7 +4421,7 @@ fn navigation_reference_variants_body(
                     json!(format!("Independent {role} wording"));
             }
         }
-        sources.push((source.path.as_str(), source.line, value));
+        sources.push((source.path, source.line, value));
     }
     l.work
         .diagnostic_stage("rewrite-authored-variant-sources", 0);
@@ -4236,14 +4436,14 @@ fn navigation_reference_variants_body(
     let mut added_evidence = false;
     for (path, line, value) in &mut sources {
         let mut is_claim = false;
-        for declared in &inputs.claims {
+        for declared in &original_claims {
             l.step(1)?;
             l.bytes(
                 path.len()
                     .checked_add(declared.path.len())
                     .ok_or(ReferenceError::Budget)?,
             )?;
-            if *path == declared.path.as_str() && *line == declared.line {
+            if path.as_str() == declared.path.as_str() && *line == declared.line {
                 is_claim = true;
             }
         }
@@ -4342,7 +4542,7 @@ fn navigation_reference_variants_body(
     let mut files = BTreeMap::new();
     for (path, line, v) in &sources {
         let name = replacements
-            .get(*path)
+            .get(path.as_str())
             .ok_or(ReferenceError::InvalidBinding)?;
         let mut raw = nav_variant_raw(v, l)?;
         if line.is_some() {
@@ -4364,12 +4564,11 @@ fn navigation_reference_variants_body(
         .diagnostic_stage("variant-evidence-and-schema-inputs", 0);
     // Original evidence remains a separately bound raw input. Subject/form refs
     // above already refer to the final mutated Claim, not an intermediate wire.
-    for source in &inputs.claims {
+    for source in &original_claims {
         for evidence in nav_array(&source.value, "evidence_refs")? {
             l.step(1)?;
             let path = evidence.as_str().ok_or(ReferenceError::InvalidBinding)?;
-            let raw = inputs
-                .files
+            let raw = input_files
                 .get(path)
                 .ok_or(ReferenceError::InvalidBinding)?;
             l.bytes(
@@ -4383,14 +4582,13 @@ fn navigation_reference_variants_body(
     }
     // Schema dependencies are declared RAW inputs, not inferred from a product
     // schema list. Borrowing registry roots does not remove their input fixity.
-    for claim in &inputs.claims {
+    for claim in &original_claims {
         l.step(1)?;
-        let (index, _) = inputs
-            .registries
+        let (index, _) = input_registries
             .predicate_index
             .get(nav_str(&claim.value, "predicate")?)
             .ok_or(ReferenceError::UnsupportedSourceProfile)?;
-        let relation = inputs.registries.relation(*index, l)?;
+        let relation = input_registries.relation(*index, l)?;
         for schema in nav_array(&relation["source_claim_profile"], "schemas")? {
             l.step(1)?;
             if schema["schema_version"] != claim.value["schema_version"] {
@@ -4404,8 +4602,7 @@ fn navigation_reference_variants_body(
                 if files.contains_key(path) {
                     continue;
                 }
-                let raw = inputs
-                    .files
+                let raw = input_files
                     .get(path)
                     .ok_or(ReferenceError::InvalidBinding)?;
                 l.bytes(
@@ -4423,7 +4620,7 @@ fn navigation_reference_variants_body(
     let mut old = l.copy(historical)?;
     nav_rewrite_strings(&mut old, &replacements, l, 0)?;
     l.work.diagnostic_stage("parse-final-variant-members", 0);
-    let mut variant_inputs = DeclaredNavigationInputs::from_files(&files, inputs.registries, l)?;
+    let mut variant_inputs = DeclaredNavigationInputs::from_files(&files, input_registries, l)?;
     l.work.diagnostic_stage("build-second-navigation", 0);
     let variant = expected_source_navigation(&old, &variant_inputs, l.reborrow())?;
     assert_eq!(
