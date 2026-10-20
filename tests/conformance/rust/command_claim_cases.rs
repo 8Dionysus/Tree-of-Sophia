@@ -820,12 +820,14 @@ fn check_historical_simple_inputs(
         .ok_or(ClaimReferenceError::MissingSource)?;
     let inventory = claim_reference_field(input, "selected_source_inputs", b)?
         .ok_or(ClaimReferenceError::MissingSource)?;
-    let number = |v: &JsonValue| -> ClaimReferenceResult<usize> {
+    let number = |v: &JsonValue, b: &mut ClaimReferenceBudget<'_>| -> ClaimReferenceResult<usize> {
         match v {
-            JsonValue::Number(v) => v
-                .lexeme
-                .parse::<usize>()
-                .map_err(|_| ClaimReferenceError::InvalidInput),
+            JsonValue::Number(v) => {
+                b.work(v.lexeme.len(), 8)?;
+                v.lexeme
+                    .parse::<usize>()
+                    .map_err(|_| ClaimReferenceError::InvalidInput)
+            }
             _ => Err(ClaimReferenceError::InvalidInput),
         }
     };
@@ -835,10 +837,12 @@ fn check_historical_simple_inputs(
     let count = number(
         claim_reference_field(inventory, "entry_count", b)?
             .ok_or(ClaimReferenceError::InvalidInput)?,
+        b,
     )?;
     let total = number(
         claim_reference_field(inventory, "total_bytes", b)?
             .ok_or(ClaimReferenceError::InvalidInput)?,
+        b,
     )?;
     if count != rows.len() || count > 4096 || total > 33_554_432 {
         return Err(ClaimReferenceError::Limit);
@@ -853,6 +857,7 @@ fn check_historical_simple_inputs(
             .ok_or(ClaimReferenceError::InvalidInput)?;
         let bytes = number(
             claim_reference_field(row, "bytes", b)?.ok_or(ClaimReferenceError::InvalidInput)?,
+            b,
         )?;
         let sha = claim_reference_field(row, "sha256", b)?
             .and_then(JsonValue::as_str)
@@ -917,7 +922,7 @@ fn check_historical_simple_inputs(
             claim_reference_field(old, key, b)?.ok_or(ClaimReferenceError::MissingSource)?;
         let same = match key.as_str() {
             "source_root" => original.as_str() == Some("<isolated-source-root>"),
-            "uid" => number(original)? == 1000 && value.as_u64().is_some(),
+            "uid" => number(original, b)? == 1000 && value.as_u64().is_some(),
             _ => claim_reference_same(original, value, b, 0)?,
         };
         if !same {
