@@ -1150,7 +1150,7 @@ fn canonical_preflight_for<C: CanonicalWireCounts>(
                 }
                 Value::Array(values) => {
                     canonical_plan_room(&mut state.frames, state.available, l)?;
-                    l.bytes(std::mem::size_of::<CanonicalPlanFrame<'_, C>>())?;
+                    l.step(1)?; // ordinary frame write; storage/growth bytes remain separately paid
                     state.frames.push(CanonicalPlanFrame::Array {
                         remaining: values.iter(),
                         meta: CanonicalMeta::<C> {
@@ -1167,7 +1167,7 @@ fn canonical_preflight_for<C: CanonicalWireCounts>(
                 }
                 Value::Object(values) => {
                     canonical_plan_room(&mut state.frames, state.available, l)?;
-                    l.bytes(std::mem::size_of::<CanonicalPlanFrame<'_, C>>())?;
+                    l.step(1)?; // ordinary frame write; storage/growth bytes remain separately paid
                     state.frames.push(CanonicalPlanFrame::Object {
                         remaining: values.iter(),
                         meta: CanonicalMeta::<C> {
@@ -1303,7 +1303,7 @@ fn canonical_preflight_for<C: CanonicalWireCounts>(
             }
         };
         if state.next.is_none() {
-            l.bytes(std::mem::size_of::<CanonicalPlanFrame<'_, C>>())?;
+            l.step(1)?; // ordinary frame write; storage/growth bytes remain separately paid
             state.depth -= 1;
             let meta = match state.frames.pop().ok_or(ReferenceError::InvalidBinding)? {
                 CanonicalPlanFrame::Array { meta, .. } => meta,
