@@ -323,8 +323,9 @@ fn replace_exact_string(value: &mut JsonValue, historical: &str, native: &str) {
 }
 
 fn adapt_historical_corpus_search_packet_schemas(oracle: &mut JsonValue) {
-    // The transport contract now names the v2 projection search and packet
-    // schemas. Preserve every other field in each frozen Python response.
+    // Explicit version derivative, not a live query-operations schema lookup:
+    // exactly these four named v1 tags become the declared v2 tags. Preserve
+    // every other field in each frozen Python response.
     let cases = field_mut(oracle, "cases");
     let mut adapted = 0;
     for (case, historical, native) in [
@@ -540,14 +541,14 @@ const ORACLE_INPUT_LAWS: &[OracleInputLaw] = &[
         name: "lenses",
         mode: OracleMode::HistoricalWithDeclaredDerivative,
         semantic_input: "exact Claim seed + query vocabulary",
-        scaffold: "current registries/publication",
+        scaffold: "checked historical registry semantics/current publication",
         derivative: "17-field publication;18 typed cursor fields",
     },
     OracleInputLaw {
         name: "legacy-search",
         mode: OracleMode::HistoricalExact,
         semantic_input: "exact Claim seed + query vocabulary",
-        scaffold: "current registries",
+        scaffold: "current registries with checked historical semantic projection",
         derivative: "none; whole semantic packet",
     },
     OracleInputLaw {
@@ -561,21 +562,21 @@ const ORACLE_INPUT_LAWS: &[OracleInputLaw] = &[
         name: "dossiers",
         mode: OracleMode::HistoricalExact,
         semantic_input: "packet header/nodes/edges/rights raw",
-        scaffold: "current registry validation",
+        scaffold: "current admission; successful semantics use root-checked original payloads",
         derivative: "none",
     },
     OracleInputLaw {
         name: "shared-file-rights",
         mode: OracleMode::HistoricalExact,
         semantic_input: "packet groups raw header/nodes/edges/rights",
-        scaffold: "current registry validation",
+        scaffold: "current admission; successful semantics use root-checked original payloads",
         derivative: "none",
     },
     OracleInputLaw {
         name: "remaining-navigation",
         mode: OracleMode::HistoricalExact,
         semantic_input: "packet groups raw header/nodes/edges/rights",
-        scaffold: "current registry validation",
+        scaffold: "current admission; successful semantics use root-checked original payloads",
         derivative: "none",
     },
     OracleInputLaw {
@@ -675,6 +676,367 @@ fn verify_historical_semantic_seed() {
             sha,
             "historical semantic input changed; update mode/input proof, not expected output"
         );
+    }
+}
+
+// Original AUTHORED registry INPUT commitments, not semantic answers mined
+// from the archived contract response. Source Git object is capture_source_commit.
+// raw SHA names the pretty input file; tree SHA names its compact sorted JSON
+// (SourceRecordDigestV1 for these integer-only/BMP-key source documents).
+const HISTORICAL_REGISTRY_INPUTS: [(&str, &str, &str, &str); 2] = [
+    (
+        "entity_type_registry",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+        "815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942",
+    ),
+    (
+        "relation_type_registry",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "462d75fe3a22567e88c6c0f14b40fae5a83db244333c66acd406e9dca9c5ab4c",
+        "0670c8aca65a713f277f50ceaf782da65f06fa88c614320b9d2d2e4ba5ca138a",
+    ),
+];
+fn reference_unit(work: &mut usize) {
+    *work = work
+        .checked_sub(1)
+        .expect("semantic registry reference work");
+}
+// Object key order is not semantic; array order, missing keys, labels, parents,
+// profile data and EVERY nested field remain exact. No response-normalization
+// helper or normalized product row participates in this comparison.
+fn reference_equal(a: &JsonValue, b: &JsonValue, work: &mut usize, depth: usize) -> bool {
+    reference_unit(work);
+    assert!(depth <= 96);
+    match (a, b) {
+        (JsonValue::Object(a), JsonValue::Object(b)) => {
+            if a.len() != b.len() {
+                return false;
+            }
+            a.iter().all(|(key, v)| {
+                let other = b.iter().find(|(k, _)| {
+                    reference_unit(work);
+                    k == key
+                });
+                other.is_some_and(|(_, other)| reference_equal(v, other, work, depth + 1))
+            })
+        }
+        (JsonValue::Array(a), JsonValue::Array(b)) => {
+            a.len() == b.len()
+                && a.iter()
+                    .zip(b)
+                    .all(|(a, b)| reference_equal(a, b, work, depth + 1))
+        }
+        _ => a == b,
+    }
+}
+fn reference_fields_equal(a: &JsonValue, b: &JsonValue, skip: &[&str], work: &mut usize) -> bool {
+    let a = a.as_object().unwrap();
+    let b = b.as_object().unwrap();
+    fn retained(key: &tos_foundation::JsonString, skip: &[&str], work: &mut usize) -> bool {
+        reference_unit(work);
+        !skip.iter().any(|s| key.as_str() == Some(*s))
+    }
+    let mut na = 0usize;
+    let mut nb = 0usize;
+    for (k, _) in a {
+        if retained(k, skip, work) {
+            na += 1;
+        }
+    }
+    for (k, _) in b {
+        if retained(k, skip, work) {
+            nb += 1;
+        }
+    }
+    if na != nb {
+        return false;
+    }
+    for (key, v) in a {
+        if !retained(key, skip, work) {
+            continue;
+        }
+        let other = b.iter().find(|(k, _)| {
+            reference_unit(work);
+            k == key
+        });
+        if !other.is_some_and(|(_, b)| reference_equal(v, b, work, 0)) {
+            return false;
+        }
+    }
+    true
+}
+fn added_mapping_is_unrelated(
+    source: &str,
+    native: &str,
+    used: &BTreeSet<&str>,
+    work: &mut usize,
+) -> bool {
+    reference_unit(work);
+    !matches!(source, "source-claims" | "source-navigation") || !used.contains(native)
+}
+
+fn verify_historical_registry_semantics() {
+    let historical = historical_oracle("contracts", OracleMode::CurrentDeclared);
+    let mut work = JsonLimits::default().max_visits;
+    let seed = parse_json(
+        include_bytes!(
+            "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+        ),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let mut used = BTreeSet::<&str>::new();
+    fn source_strings<'a>(
+        v: &'a JsonValue,
+        out: &mut BTreeSet<&'a str>,
+        work: &mut usize,
+        depth: usize,
+    ) {
+        reference_unit(work);
+        assert!(depth <= 96);
+        match v {
+            JsonValue::String(s) => {
+                if let Some(s) = s.as_str() {
+                    out.insert(s);
+                }
+            }
+            JsonValue::Array(a) => {
+                for v in a {
+                    source_strings(v, out, work, depth + 1);
+                }
+            }
+            JsonValue::Object(o) => {
+                for (_, v) in o {
+                    source_strings(v, out, work, depth + 1);
+                }
+            }
+            _ => {}
+        }
+    }
+    // Conservative supersets of held raw kinds/predicates: all literal source
+    // strings, plus the finite generated navigation/literal kind vocabulary.
+    // This avoids copying Claim classification/normalization as a test oracle.
+    source_strings(&seed, &mut used, &mut work, 0);
+    used.extend([
+        "identity",
+        "declared-claim-navigation",
+        "has_claim",
+        "temporal-assertion",
+        "provision-activity",
+        "literal",
+    ]);
+    for row in field(
+        field(field(&historical, "contracts"), "relation_type_registry"),
+        "relations",
+    )
+    .as_array()
+    .unwrap()
+    {
+        reference_unit(&mut work);
+        if let Some(kind) = row
+            .object_get("source_claim_profile")
+            .and_then(|p| p.object_get("value_kind"))
+            .and_then(JsonValue::as_str)
+        {
+            used.insert(kind);
+        }
+    }
+    for (i, (id, path, raw_sha, tree_sha)) in HISTORICAL_REGISTRY_INPUTS.iter().enumerate() {
+        assert_eq!(*path, DECLARED_REGISTRIES[i].1);
+        assert_eq!(raw_sha.len(), 64); // raw INPUT identity remains a distinct domain.
+        let original = field(field(&historical, "contracts"), id);
+        assert_eq!(
+            tos_foundation::Digest256::of_bytes(&canonical(original)).to_hex(),
+            *tree_sha,
+            "transported historical registry must match original authored input commitment"
+        );
+        let current = parse_json(
+            DECLARED_REGISTRIES[i].2,
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_visits: work,
+                ..JsonLimits::default()
+            },
+        )
+        .unwrap();
+        work = work.checked_sub(current.visits()).unwrap();
+        let current = current.into_root();
+        let (rows, key) = if i == 0 {
+            ("types", "type_id")
+        } else {
+            ("relations", "relation_type_id")
+        };
+        // Preserve root fallback/id/schema and ALL property definitions. Only
+        // publication version/source refs and row membership may differ here.
+        assert!(
+            reference_fields_equal(
+                original,
+                &current,
+                &["registry_version", "source_refs", rows],
+                &mut work
+            ),
+            "historical semantic registry root changed"
+        );
+        let before = field(original, rows).as_array().unwrap();
+        let after = field(&current, rows).as_array().unwrap();
+        assert!(before.len() <= 4096 && after.len() <= 4096);
+        fn index<'a>(
+            rows: &'a [JsonValue],
+            entity: bool,
+            key: &str,
+            work: &mut usize,
+        ) -> (
+            BTreeMap<&'a str, &'a JsonValue>,
+            BTreeMap<(&'a str, &'a str, &'a str), (&'a str, &'a JsonValue)>,
+        ) {
+            let mut types = BTreeMap::new();
+            let mut mappings = BTreeMap::new();
+            for row in rows {
+                reference_unit(work);
+                let id = field(row, key).as_str().unwrap();
+                assert!(types.insert(id, row).is_none(), "duplicate registry type");
+                for mapping in row
+                    .object_get("source_mappings")
+                    .and_then(JsonValue::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    reference_unit(work);
+                    assert!(mappings.len() < 16_384, "existing registry mapping ceiling");
+                    let source = field(mapping, "source_graph").as_str().unwrap();
+                    let native = field(
+                        mapping,
+                        if entity {
+                            "source_kind_id"
+                        } else {
+                            "source_predicate_id"
+                        },
+                    )
+                    .as_str()
+                    .unwrap();
+                    let scope = if entity {
+                        ""
+                    } else {
+                        field(mapping, "scope").as_str().unwrap()
+                    };
+                    assert!(
+                        mappings
+                            .insert((source, native, scope), (id, mapping))
+                            .is_none(),
+                        "new conflicting source mapping"
+                    );
+                }
+            }
+            (types, mappings)
+        }
+        let (old_types, old_maps) = index(before, i == 0, key, &mut work);
+        let (new_types, new_maps) = index(after, i == 0, key, &mut work);
+        let fallback = field(
+            original,
+            if i == 0 {
+                "fallback_type_id"
+            } else {
+                "fallback_relation_type_id"
+            },
+        )
+        .as_str()
+        .unwrap();
+        let mut relevant = BTreeSet::new();
+        relevant.insert(fallback);
+        // Resolve the held INPUT kind/predicate superset independently. BOTH
+        // selected source graphs and every normalizer lookup scope are closed
+        // here; new fallback-to-mapped and conflicting mappings cannot pass.
+        for source in ["source-claims", "source-navigation"] {
+            for native in &used {
+                for scope in if i == 0 {
+                    &[""][..]
+                } else {
+                    &["edge", "claim-predicate"][..]
+                } {
+                    reference_unit(&mut work);
+                    let old = old_maps.get(&(source, *native, *scope));
+                    let new = new_maps.get(&(source, *native, *scope));
+                    match (old, new) {
+                        (None, None) => {}
+                        (Some((old_id, a)), Some((new_id, b))) => {
+                            assert_eq!(old_id, new_id, "historical source mapping changed");
+                            assert!(
+                                reference_equal(a, b, &mut work, 0),
+                                "historical mapping labels/profile changed"
+                            );
+                            relevant.insert(*old_id);
+                        }
+                        _ => panic!(
+                            "held source mapping/fallback changed: {source}/{native}/{scope}"
+                        ),
+                    }
+                }
+            }
+        }
+        // The index borrows the complete source documents. Only resolved type
+        // entries and their ancestor closure are compared, so unrelated new or
+        // edited types need no latest-count/whole-registry golden migration.
+        let parents = if i == 0 {
+            "parent_type_ids"
+        } else {
+            "parent_relation_type_ids"
+        };
+        assert!(relevant.len() <= 4096, "existing relevant type ceiling");
+        let mut pending = relevant.iter().copied().collect::<Vec<_>>();
+        let mut queued = relevant.clone();
+        let mut seen = BTreeSet::new();
+        while let Some(id) = pending.pop() {
+            reference_unit(&mut work);
+            if !seen.insert(id) {
+                continue;
+            }
+            assert!(seen.len() <= 4096);
+            let row = old_types.get(id).expect("historical ancestor absent");
+            let now = new_types.get(id).expect("current relevant type absent");
+            // owner_ref is provenance metadata, not consumed by these pinned
+            // row normalizers. Selected mapping records were compared ABOVE;
+            // all other type fields (labels,role,profile,definition,parents) stay
+            // exact while unrelated mappings on the same type remain legal.
+            assert!(
+                reference_fields_equal(row, now, &["owner_ref", "source_mappings"], &mut work),
+                "historical relevant type changed: {id}"
+            );
+            for parent in field(row, parents).as_array().unwrap() {
+                reference_unit(&mut work);
+                assert!(
+                    pending.len() < 16_384,
+                    "bounded reference ancestor frontier"
+                );
+                pending.push(parent.as_str().unwrap());
+            }
+        }
+        if i == 0 {
+            let id = *relevant.iter().next().unwrap();
+            let row = *old_types.get(id).unwrap();
+            let mut changed = row.clone();
+            *field_mut(&mut changed, "labels") = reference_text("different source labels");
+            assert!(!reference_fields_equal(
+                row,
+                &changed,
+                &["owner_ref", "source_mappings"],
+                &mut work
+            ));
+            assert!(!added_mapping_is_unrelated(
+                "source-claims",
+                "identity",
+                &used,
+                &mut work
+            ));
+            assert!(added_mapping_is_unrelated(
+                "source-claims",
+                "unused-reference-only-kind",
+                &used,
+                &mut work
+            ));
+        }
     }
 }
 
@@ -1497,6 +1859,7 @@ fn check_cursor_reference_input_variant(publication: &JsonValue, remaining: &mut
 #[test]
 fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_disclosure() {
     verify_historical_semantic_seed();
+    verify_historical_registry_semantics();
     let fixture = build_native_fixture();
     let cold = fixture.open().unwrap();
     let bound =
@@ -1762,6 +2125,7 @@ fn normalized_selected_legacy_search_matches_frozen_packets_and_exact_counts() {
         execute_selected_legacy_search, execute_selected_search_capabilities,
     };
     verify_historical_semantic_seed();
+    verify_historical_registry_semantics();
     let fixture = build_native_fixture();
     let cold = fixture.open().unwrap();
     let bound =
