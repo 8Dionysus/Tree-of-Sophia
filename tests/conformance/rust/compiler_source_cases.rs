@@ -160,100 +160,531 @@ fn schema_sources(repository: &Path) -> BTreeMap<String, Vec<u8>> {
     }
     authored
 }
-fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
+// CurrentDeclared is test-owned source evidence, never a production plan/output.
+// One logical construction counter is shared by intake, rows and pure variants.
+struct CurrentReference {
+    commit: String,
+    left: usize,
+    visits_left: usize,
+    deadline: Instant,
+}
+impl CurrentReference {
+    fn visit(&mut self, count: usize) -> Result<(), &'static str> {
+        self.visits_left = self
+            .visits_left
+            .checked_sub(count)
+            .ok_or("reference visit limit")?;
+        self.charge(0)
+    }
+    fn charge(&mut self, bytes: usize) -> Result<(), &'static str> {
+        if Instant::now() >= self.deadline {
+            return Err("reference deadline");
+        }
+        self.left = self.left.checked_sub(bytes).ok_or("reference work limit")?;
+        Ok(())
+    }
+    fn parsed(&mut self, raw: &[u8]) -> Result<Value, &'static str> {
+        self.visit(raw.len())?;
+        // Logical source-value/header/temporary allowance, not allocator/RSS.
+        self.charge(
+            raw.len()
+                .checked_mul(128)
+                .and_then(|n| n.checked_add(4096))
+                .ok_or("reference parse overflow")?,
+        )?;
+        serde_json::from_slice(raw).map_err(|_| "reference JSON")
+    }
+    fn git_read(
+        &mut self,
+        repository: &Path,
+        args: &[&str],
+        limit: usize,
+    ) -> Result<Vec<u8>, &'static str> {
+        use std::io::Read;
+        use std::process::Stdio;
+        self.charge(limit.checked_add(1).ok_or("reference read overflow")?)?;
+        let mut command = Command::new("git");
+        command
+            .arg("--literal-pathspecs")
+            .arg("-C")
+            .arg(repository)
+            .args(args);
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(key);
+            }
+        }
+        let mut child = command
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|_| "reference Git spawn")?;
+        let mut pipe = child.stdout.take().ok_or("reference Git pipe")?;
+        let mut output = Vec::with_capacity(limit + 1);
+        let mut buffer = [0u8; 4096];
+        loop {
+            if Instant::now() >= self.deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("reference deadline");
+            }
+            let room = (limit + 1 - output.len()).min(buffer.len());
+            let count = match pipe.read(&mut buffer[..room]) {
+                Ok(count) => count,
+                Err(_) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err("reference Git read");
+                }
+            };
+            if count == 0 {
+                break;
+            }
+            output.extend_from_slice(&buffer[..count]);
+            if output.len() > limit {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("reference Git byte limit");
+            }
+        }
+        if !child.wait().map_err(|_| "reference Git wait")?.success() {
+            return Err("reference Git status");
+        }
+        self.charge(0)?;
+        Ok(output)
+    }
+    fn pinned_blob(&mut self, repository: &Path, path: &str) -> Result<Vec<u8>, &'static str> {
+        RelativePath::parse(path).map_err(|_| "reference path")?;
+        let pin = self.commit.clone();
+        let entry = self.git_read(
+            repository,
+            &["ls-tree", "-z", "--full-tree", &pin, "--", path],
+            path.len().checked_add(128).ok_or("reference path bytes")?,
+        )?;
+        let text = std::str::from_utf8(&entry).map_err(|_| "reference file metadata UTF8")?;
+        let expected_suffix = format!("\t{path}\0");
+        if !text.starts_with("100644 blob ")
+            || !text.ends_with(&expected_suffix)
+            || text.bytes().filter(|b| *b == 0).count() != 1
+        {
+            return Err("reference regular pinned file");
+        }
+        let spec = format!("{}:{path}", self.commit);
+        let size = self.git_read(repository, &["cat-file", "-s", &spec], 64)?;
+        let size: usize = std::str::from_utf8(&size)
+            .map_err(|_| "reference size UTF8")?
+            .trim()
+            .parse()
+            .map_err(|_| "reference size")?;
+        if size > 2 * 1024 * 1024 {
+            return Err("reference member limit");
+        }
+        let raw = self.git_read(repository, &["cat-file", "blob", &spec], size)?;
+        if raw.len() != size {
+            return Err("reference blob size");
+        }
+        Ok(raw)
+    }
+}
+fn reference_direct_schemas(metadata: &[u8]) -> Result<Vec<&str>, &'static str> {
+    if !metadata.ends_with(&[0]) {
+        return Err("reference tree EOF");
+    }
+    let text = std::str::from_utf8(metadata).map_err(|_| "reference tree UTF8")?;
+    let mut selected = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+    for (index, entry) in text.split_terminator('\0').enumerate() {
+        if index >= 512 {
+            return Err("reference tree count");
+        }
+        let (fields, path) = entry.split_once('\t').ok_or("reference tree row")?;
+        let fields = fields.split_whitespace().collect::<Vec<_>>();
+        if fields.len() != 3 {
+            return Err("reference tree fields");
+        }
+        RelativePath::parse(path).map_err(|_| "reference tree path")?;
+        let Some(name) = path.strip_prefix("ToS/contracts/") else {
+            return Err("reference tree root");
+        };
+        if name.contains('/') || !name.ends_with(".schema.json") {
+            continue;
+        }
+        if fields[0] != "100644"
+            || fields[1] != "blob"
+            || fields[2].len() != 40
+            || !fields[2].bytes().all(|c| c.is_ascii_hexdigit())
+        {
+            return Err("reference schema blob");
+        }
+        if !seen.insert(path) {
+            return Err("reference duplicate schema");
+        }
+        selected.push(path);
+    }
+    if selected.is_empty() {
+        return Err("reference empty schemas");
+    }
+    selected.sort_unstable();
+    Ok(selected)
+}
+fn reference_insert(
+    files: &mut BTreeMap<String, Vec<u8>>,
+    path: &str,
+    raw: Vec<u8>,
+) -> Result<(), &'static str> {
+    RelativePath::parse(path).map_err(|_| "reference input path")?;
+    if files.contains_key(path) {
+        return Err("reference duplicate input");
+    }
+    if files.len() >= 512 || raw.len() > 2 * 1024 * 1024 {
+        return Err("reference input count/member");
+    }
+    let total = files
+        .values()
+        .try_fold(raw.len(), |n, v| n.checked_add(v.len()))
+        .ok_or("reference input overflow")?;
+    if total > 16 * 1024 * 1024 {
+        return Err("reference input bytes");
+    }
+    files.insert(path.to_owned(), raw);
+    Ok(())
+}
+fn sources(
+    deadline: Instant,
+) -> (
+    BTreeMap<String, Vec<u8>>,
+    BTreeMap<String, Vec<u8>>,
+    CurrentReference,
+) {
     let repository = super::validation_cut_cases::repository();
-    let mut authored = schema_sources(&repository);
-    let home = fs::read(repository.join("ToS/source_home.manifest.json")).unwrap();
-    let home_value: Value = serde_json::from_slice(&home).unwrap();
-    authored.insert("ToS/source_home.manifest.json".into(), home);
+    let mut reference = CurrentReference {
+        commit: String::new(),
+        left: 32 * 1024 * 1024,
+        visits_left: 1_000_000,
+        deadline,
+    };
+    reference.charge(16 * 1024).unwrap(); // one live Git/read/parse control workspace
+    let commit = reference
+        .git_read(&repository, &["rev-parse", "HEAD^{commit}"], 64)
+        .unwrap();
+    reference.commit = std::str::from_utf8(&commit).unwrap().trim().to_owned();
+    assert_eq!(reference.commit.len(), 40);
+    assert!(reference.commit.bytes().all(|c| c.is_ascii_hexdigit()));
+    let pin = reference.commit.clone();
+    let metadata = reference
+        .git_read(
+            &repository,
+            &["ls-tree", "-rz", "--full-tree", &pin, "--", "ToS/contracts"],
+            2 * 1024 * 1024,
+        )
+        .unwrap();
+    // Reserve bounded path/index state before parsing the tree metadata.
+    reference
+        .charge(metadata.len().checked_mul(4).unwrap() + 512 * 128)
+        .unwrap();
+    reference
+        .visit(metadata.len().checked_add(512 * 512).unwrap())
+        .unwrap();
+    let mut authored = BTreeMap::new();
+    for path in reference_direct_schemas(&metadata).unwrap() {
+        let raw = reference.pinned_blob(&repository, path).unwrap();
+        reference_insert(&mut authored, path, raw).unwrap();
+    }
+    let home = reference
+        .pinned_blob(&repository, "ToS/source_home.manifest.json")
+        .unwrap();
+    let home_value = reference.parsed(&home).unwrap();
+    reference_insert(&mut authored, "ToS/source_home.manifest.json", home).unwrap();
     for branch in home_value["branches"].as_array().unwrap() {
         let surface = branch["owner_surface"].as_str().unwrap();
-        authored.insert(surface.into(), fs::read(repository.join(surface)).unwrap());
+        let raw = reference.pinned_blob(&repository, surface).unwrap();
+        reference_insert(&mut authored, surface, raw).unwrap();
     }
+    // This is the existing capture copy; reference rows borrow these raw maps.
+    reference
+        .charge(authored.iter().map(|(p, v)| p.len() + v.len() + 256).sum())
+        .unwrap();
     let mut captured = authored.clone();
-    // Genuine maintained compatibility mirror remains weaker than canon.
-    // A separate original manifest also exercises the captured-component
-    // manifest read path; neither is a member of the declared source cut.
-    for companion in [
+    for path in [
         "ToS/public-compatibility/source_node.example.json",
         "ToS/philosophy/philosophy.manifest.json",
+        "rust/crates/tos-compiler/src/lib.rs",
     ] {
-        assert!(!authored.contains_key(companion));
-        captured.insert(
-            companion.into(),
-            fs::read(repository.join(companion)).unwrap(),
-        );
+        let raw = reference.pinned_blob(&repository, path).unwrap();
+        reference_insert(&mut captured, path, raw).unwrap();
     }
-    captured.insert(
-        "rust/crates/tos-compiler/src/lib.rs".into(),
-        fs::read(repository.join("rust/crates/tos-compiler/src/lib.rs")).unwrap(),
-    );
-    assert!(captured.len() <= 512);
-    assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
-    (authored, captured)
+    (authored, captured, reference)
 }
-// The frozen Python captures predate these authored contracts, while the current
-// source-home capture includes all tracked ToS paths outside explicit exclusions.
-fn append_current_contract_resources(
-    resources: &mut Vec<Value>,
-    selected: &BTreeMap<String, Vec<u8>>,
-) {
-    let contracts = [
-        (
-            "ToS/contracts/native-pg-private-text-read.schema.json",
-            None,
-        ),
-        ("ToS/contracts/retained-corpus-binding.schema.json", None),
-        (
-            "ToS/contracts/chronology-version-record.schema.json",
-            Some((
-                6384,
-                "4918c0775d3aca4ceb7c11dc974d1c448f7d2ae6dbb5e588642f6d8d4800b975",
-            )),
-        ),
-        (
-            "ToS/contracts/temporal-crosswalk-record.schema.json",
-            Some((
-                4976,
-                "1568c0346d12e9074a487283a6c2d5dffc3d06b8887bf62081877f21d7a0a5f5",
-            )),
-        ),
-    ];
-    for (index, (path, reviewed)) in contracts.iter().enumerate() {
-        let path = *path;
-        assert!(
-            contracts[..index].iter().all(|(prior, _)| *prior != path),
-            "current contract extension has no duplicate path"
-        );
-        let raw = selected
-            .get(path)
-            .unwrap_or_else(|| panic!("reviewed contract absent from selected input: {path}"));
-        if let Some((size, sha256)) = reviewed {
-            assert_eq!(raw.len(), *size, "reviewed contract size: {path}");
-            assert_eq!(
-                Digest256::of_bytes(raw).to_hex(),
-                *sha256,
-                "reviewed contract bytes: {path}"
-            );
+// These finite roles are a test contract, not calls to the production classifier.
+fn reference_resource_role(path: &str) -> Result<(&str, &str, &str), &'static str> {
+    let tail = path
+        .strip_prefix("ToS/")
+        .ok_or("reference non-ToS resource")?;
+    let directory = tail.split_once('/').map(|(v, _)| v);
+    let (owner, layer) = match directory {
+        None => ("ToS", "source_home"),
+        Some("candidate-intake") => ("ToS/candidate-intake", "candidate_intake"),
+        Some("canon") => ("ToS/canon", "canon"),
+        Some("contracts") => ("ToS/contracts", "contract"),
+        Some("doctrine") => ("ToS/doctrine", "doctrine"),
+        Some("derived-exports") => ("ToS/derived-exports", "derived_export"),
+        Some("philosophy") => ("ToS/philosophy", "domain_topology"),
+        Some("public-compatibility") => ("ToS/public-compatibility", "public_compatibility"),
+        Some("research-packets") => ("ToS/research-packets", "research_packet"),
+        Some("review-ledger") => ("ToS/review-ledger", "review_evidence"),
+        Some("source-witnesses") => ("ToS/source-witnesses", "source_witness"),
+        Some("zarathustra") => ("ToS/zarathustra", "golden_route_orientation"),
+        _ => return Err("reference undeclared resource role"),
+    };
+    let name = path.rsplit('/').next().unwrap();
+    let kind = match name {
+        "AGENTS.md" => "route_card",
+        "source_home.manifest.json" => "source_home_manifest",
+        "philosophy.manifest.json" => "philosophy_manifest",
+        "branch.manifest.json" => "branch_manifest",
+        "node.json" => "node_payload",
+        "edges.csv" => "relation_pack",
+        _ if directory == Some("source-witnesses") => "source_witness",
+        _ if directory == Some("research-packets") => "research_packet",
+        _ if directory == Some("review-ledger") => "review_note",
+        _ if directory == Some("derived-exports") => "derived_export",
+        _ if directory == Some("contracts") && name.ends_with(".schema.json") => "contract_schema",
+        _ if name.ends_with(".json") => "json",
+        _ if name.ends_with(".md") => "markdown",
+        _ if name.ends_with(".csv") => "tabular",
+        _ => return Err("reference unsupported resource kind"),
+    };
+    Ok((kind, owner, layer))
+}
+fn reference_metadata_matches(
+    files: &BTreeMap<&str, &[u8]>,
+    observed: &[(&str, usize, Digest256)],
+) -> bool {
+    files.len() == observed.len()
+        && observed.iter().enumerate().all(|(i, (p, n, h))| {
+            !observed[..i].iter().any(|(prior, _, _)| prior == p)
+                && files
+                    .get(*p)
+                    .is_some_and(|raw| raw.len() == *n && Digest256::of_bytes(raw) == *h)
+        })
+}
+fn reference_repository_rows(
+    reference: &mut CurrentReference,
+    files: &BTreeMap<String, Vec<u8>>,
+) -> Result<BTreeMap<&'static str, Vec<Value>>, &'static str> {
+    if files.len() > 512 {
+        return Err("reference row input count");
+    }
+    let total = files
+        .values()
+        .try_fold(0usize, |n, v| n.checked_add(v.len()))
+        .ok_or("reference row input overflow")?;
+    if total > 16 * 1024 * 1024 {
+        return Err("reference row input bytes");
+    }
+    reference.visit(
+        files
+            .keys()
+            .try_fold(
+                files.len().checked_mul(128).ok_or("reference row visits")?,
+                |n, p| n.checked_add(p.len()),
+            )
+            .ok_or("reference row visits")?,
+    )?;
+    let mut result = BTreeMap::from([
+        ("branches", Vec::new()),
+        ("manifests", Vec::new()),
+        ("resources", Vec::new()),
+        ("source_order", Vec::new()),
+    ]);
+    let home = reference.parsed(
+        files
+            .get("ToS/source_home.manifest.json")
+            .ok_or("reference home absent")?,
+    )?;
+    let mut ids = std::collections::BTreeSet::new();
+    for (ordinal, b) in home["branches"]
+        .as_array()
+        .ok_or("reference branches")?
+        .iter()
+        .enumerate()
+    {
+        let id = b["id"].as_str().ok_or("reference branch ID")?;
+        let path = b["path"].as_str().ok_or("reference branch path")?;
+        let surface = b["owner_surface"]
+            .as_str()
+            .ok_or("reference branch owner")?;
+        if !ids.insert(id) || !files.contains_key(surface) {
+            return Err("reference duplicate/missing branch");
         }
-        assert!(
-            !resources.iter().any(|row| row["path"] == path),
-            "historical Python oracle predates current contract {path}"
+        let text_bytes = [
+            id.len(),
+            path.len(),
+            surface.len(),
+            b["role"].as_str().ok_or("reference branch role")?.len(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)
+        .ok_or("reference branch bytes")?;
+        reference.charge(
+            text_bytes
+                .checked_mul(8)
+                .and_then(|n| n.checked_add(8192))
+                .ok_or("reference branch bytes")?,
+        )?;
+        let layer_path = format!("{}/AGENTS.md", path.trim_end_matches('/'));
+        let (_, _, layer) = reference_resource_role(&layer_path)?;
+        result.get_mut("branches").unwrap().push(json!({"id":id,"path":path,"owner_surface":surface,"authority_layer":layer,"role":b["role"]}));
+        result
+            .get_mut("source_order")
+            .unwrap()
+            .push(json!({"collection":"branches","id":id,"ordinal":ordinal}));
+    }
+    for (ordinal, (path, raw)) in files
+        .iter()
+        .filter(|(p, _)| p.starts_with("ToS/"))
+        .enumerate()
+    {
+        if raw.len() > 2 * 1024 * 1024 {
+            return Err("reference row member bytes");
+        }
+        reference.charge(
+            8192usize
+                .checked_add(path.len().checked_mul(8).ok_or("reference row overflow")?)
+                .ok_or("reference row overflow")?,
+        )?;
+        let (kind, owner, layer) = reference_resource_role(path)?;
+        result.get_mut("resources").unwrap().push(json!({"path":path,"resource_kind":kind,"owner_branch":owner,"authority_layer":layer,"sha256":Digest256::of_bytes(raw).to_hex(),"size_bytes":raw.len()}));
+        result
+            .get_mut("source_order")
+            .unwrap()
+            .push(json!({"collection":"resources","id":path,"ordinal":ordinal}));
+        if path.ends_with(".manifest.json") {
+            let value = reference.parsed(raw)?;
+            let version = match value.get("schema_version") {
+                None | Some(Value::Null) => "",
+                Some(Value::String(s)) => s,
+                _ => return Err("reference manifest version profile"),
+            };
+            let declared = if path == "ToS/source_home.manifest.json" {
+                value.get("home")
+            } else {
+                value.get("path")
+            }
+            .and_then(Value::as_str);
+            let n = result["manifests"].len();
+            result.get_mut("manifests").unwrap().push(json!({"path":path,"manifest_kind":kind,"owner_branch":owner,"authority_layer":layer,"schema_version":version,"branch_id":value.get("branch_id").and_then(Value::as_str),"declared_path":declared,"sha256":Digest256::of_bytes(raw).to_hex()}));
+            result
+                .get_mut("source_order")
+                .unwrap()
+                .push(json!({"collection":"manifests","id":path,"ordinal":n}));
+        }
+    }
+    // Explicit logical emission bound is prepaid in each row's allowance.
+    for rows in result.values() {
+        if serde_json::to_vec(rows)
+            .map_err(|_| "reference row JSON")?
+            .len()
+            > 16 * 1024 * 1024
+        {
+            return Err("reference row output bytes");
+        }
+    }
+    Ok(result)
+}
+fn reference_input_variants(reference: &mut CurrentReference) {
+    let h = "0000000000000000000000000000000000000000";
+    for (name, body) in [
+        (
+            "different-a.schema.json",
+            b"{\"type\":\"string\"}".as_slice(),
+        ),
+        (
+            "renamed-b.schema.json",
+            b"{\"type\":\"integer\"}".as_slice(),
+        ),
+    ] {
+        reference.charge(32 * 1024).unwrap();
+        reference.visit(4096).unwrap();
+        let path = format!("ToS/contracts/{name}");
+        let meta = format!("100644 blob {h}\t{path}\0");
+        assert_eq!(
+            reference_direct_schemas(meta.as_bytes()).unwrap(),
+            vec![path.as_str()]
         );
-        resources.push(json!({
-            "path": path,
-            "resource_kind": "contract_schema",
-            "owner_branch": "ToS/contracts",
-            "authority_layer": "contract",
-            "sha256": "",
-            "size_bytes": 0,
-        }));
+        let nested = format!("{meta}100644 blob {h}\tToS/contracts/nested/ignored.schema.json\0");
+        assert_eq!(
+            reference_direct_schemas(nested.as_bytes()).unwrap(),
+            vec![path.as_str()]
+        );
+        assert!(reference_direct_schemas(format!("{meta}{meta}").as_bytes()).is_err());
+        assert!(reference_direct_schemas(meta.replace("100644", "120000").as_bytes()).is_err());
+        let mut files = BTreeMap::new();
+        reference_insert(&mut files, &path, body.to_vec()).unwrap();
+        assert!(reference_insert(&mut files, &path, body.to_vec()).is_err());
+        let borrowed = files
+            .iter()
+            .map(|(p, raw)| (p.as_str(), raw.as_slice()))
+            .collect::<BTreeMap<_, _>>();
+        assert!(reference_metadata_matches(
+            &borrowed,
+            &[(&path, body.len(), Digest256::of_bytes(body))]
+        ));
+        assert!(!reference_metadata_matches(
+            &borrowed,
+            &[(&path, body.len() + 1, Digest256::of_bytes(body))]
+        ));
+        assert!(!reference_metadata_matches(
+            &borrowed,
+            &[(&path, body.len(), Digest256::of_bytes(b"changed"))]
+        ));
+        assert!(!reference_metadata_matches(&borrowed, &[]));
+        assert!(!reference_metadata_matches(
+            &borrowed,
+            &[(
+                "ToS/contracts/undeclared.schema.json",
+                body.len(),
+                Digest256::of_bytes(body)
+            )]
+        ));
+        assert_eq!(
+            reference_resource_role(&path).unwrap(),
+            ("contract_schema", "ToS/contracts", "contract")
+        );
+        assert!(reference_resource_role("ToS/undeclared/x.json").is_err());
+        assert!(reference_direct_schemas(meta.trim_end_matches('\0').as_bytes()).is_err());
+        drop(borrowed);
+        reference_insert(&mut files, "ToS/source_home.manifest.json",
+            br#"{"home":"ToS/","branches":[{"id":"contracts","path":"ToS/contracts","owner_surface":"ToS/contracts/AGENTS.md","role":"Different declared input"}]}"#.to_vec()).unwrap();
+        reference_insert(
+            &mut files,
+            "ToS/contracts/AGENTS.md",
+            b"Independent owner surface".to_vec(),
+        )
+        .unwrap();
+        let rows = reference_repository_rows(reference, &files).unwrap();
+        let row = rows["resources"]
+            .iter()
+            .find(|row| row["path"] == path)
+            .unwrap();
+        assert_eq!(
+            row,
+            &json!({"path":path,"resource_kind":"contract_schema","owner_branch":"ToS/contracts","authority_layer":"contract","sha256":Digest256::of_bytes(body).to_hex(),"size_bytes":body.len()})
+        );
+        assert_eq!(rows["branches"][0]["role"], "Different declared input");
+        assert_eq!(rows["resources"].len(), files.len());
     }
 }
 
 #[test]
 fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
-    let (authored, captured) = sources();
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let (authored, captured, mut reference) = sources(deadline);
+    reference_input_variants(&mut reference);
+    let mut reference_rows = reference_repository_rows(&mut reference, &captured).unwrap();
     let fixture = tempfile::tempdir().unwrap();
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
@@ -287,7 +718,6 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         .to_owned();
     let capture = super::source_cut_cases::captured_software_fixture(&git_root, &commit, &["ToS"]);
     let cancelled = AtomicBool::new(false);
-    let deadline = Instant::now() + Duration::from_secs(60);
     let read_limits = ReadLimits {
         max_manifest_bytes: 2 * 1024 * 1024,
         max_manifest_entries: 512,
@@ -303,6 +733,28 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         &cancelled,
     )
     .unwrap();
+    reference.charge(512 * 256).unwrap();
+    reference
+        .visit(captured.len().checked_mul(captured.len()).unwrap())
+        .unwrap();
+    let declared = captured
+        .iter()
+        .filter(|(p, _)| p.starts_with("ToS/"))
+        .map(|(p, raw)| (p.as_str(), raw.as_slice()))
+        .collect::<BTreeMap<_, _>>();
+    let observed = inventory
+        .members()
+        .map(|m| {
+            (
+                m.path.as_str(),
+                usize::try_from(m.size_bytes).unwrap(),
+                m.sha256,
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(reference_metadata_matches(&declared, &observed));
+    drop(declared);
+    drop(observed);
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
     let reader = CorpusReader::open_existing(&store, read_limits).unwrap();
@@ -446,15 +898,18 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     )
     .unwrap();
     render_repository_source_plan(&mut stage, &plan, &vocabulary, deadline, &cancelled).unwrap();
-    let mut expected = crate::frozen_legacy_python_oracle("repository-topology");
-    reconcile_source_home_inputs(&mut expected, &captured);
+    // HistoricalExact evidence retains its original input scope; CurrentDeclared
+    // rows were independently frozen before capture/planning, not patched from it.
+    let mut historical = crate::frozen_legacy_python_oracle("repository-topology");
+    assert_eq!(historical["resources"].as_array().unwrap().len(), 202);
+    reconcile_source_home_inputs(&mut historical, &captured);
     let source = &vocabulary
         .sources
         .iter()
         .find(|source| source.adapter_profile == "repository-topology-v1")
         .unwrap()
         .source_graph_id;
-    let mut orders = Vec::new();
+    let mut orders = reference_rows.remove("source_order").unwrap();
     for collection in ["branches", "manifests", "resources"] {
         let mut actual = Vec::new();
         let mut after = None;
@@ -470,24 +925,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
                 break;
             }
         }
-        let mut wanted = expected[collection].as_array().unwrap().clone();
-        if collection == "resources" {
-            append_current_contract_resources(&mut wanted, &captured);
-            for row in &mut wanted {
-                let path = required(row, "path");
-                let raw = captured.get(path).expect("selected topology resource");
-                row["sha256"] = json!(Digest256::of_bytes(raw).to_hex());
-                row["size_bytes"] = json!(raw.len());
-            }
-            // The source-home capture assigns resource ordinals in selected
-            // inventory path order. The historical oracle is already sorted;
-            // restore that order after the closed 202 + 4 contract extension.
-            wanted.sort_by_key(|v| v["path"].as_str().unwrap().to_owned());
-        }
-        for (ordinal, row) in wanted.iter().enumerate() {
-            let id = row.get("id").or_else(|| row.get("path")).unwrap();
-            orders.push(json!({"collection":collection,"id":id,"ordinal":ordinal}));
-        }
+        let mut wanted = reference_rows.remove(collection).unwrap();
         // Raw roots sort by identity, independently from owner array ordinal.
         wanted.sort_by_key(|v| {
             v.get("id")
@@ -2111,7 +2549,7 @@ fn native_corpus_composition_case(installed: bool) {
         );
         phase(started, deadline, "preflight-passed");
     }
-    let (mut files, _) = sources();
+    let (mut files, _, mut reference) = sources(deadline);
     let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
     files.insert(
         vocabulary_path.into(),
@@ -2155,6 +2593,7 @@ fn native_corpus_composition_case(installed: bool) {
     }
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    let mut reference_rows = reference_repository_rows(&mut reference, &files).unwrap();
     phase(started, deadline, "selected-inputs-ready");
     let fixture = tempfile::TempDir::new().unwrap();
     let git_root = fixture.path().join("selected-git");
@@ -2259,6 +2698,27 @@ fn native_corpus_composition_case(installed: bool) {
         &cancelled,
     )
     .unwrap();
+    reference.charge(512 * 256).unwrap();
+    reference
+        .visit(captured.len().checked_mul(captured.len()).unwrap())
+        .unwrap();
+    let declared = captured
+        .iter()
+        .map(|(p, raw)| (p.as_str(), raw.as_slice()))
+        .collect::<BTreeMap<_, _>>();
+    let observed = software
+        .members()
+        .map(|m| {
+            (
+                m.path.as_str(),
+                usize::try_from(m.size_bytes).unwrap(),
+                m.sha256,
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(reference_metadata_matches(&declared, &observed));
+    drop(declared);
+    drop(observed);
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&files, &store);
     // The retained consumer recipe stays small and keeps its historical
@@ -2679,28 +3139,12 @@ fn native_corpus_composition_case(installed: bool) {
         "rust/crates/tos-compiler/src/source_corpus.rs",
         "tests/conformance/rust/compiler_source_cases.rs",
     ]);
-    let resource_rows = expected["resources"].as_array_mut().unwrap();
-    let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
-    assert!(
-        !resource_rows
-            .iter()
-            .any(|row| row["path"] == vocabulary_path)
-    );
-    resource_rows.push(serde_json::json!({
-        "path":vocabulary_path, "resource_kind":"json", "owner_branch":"ToS/doctrine",
-        "authority_layer":"doctrine", "sha256":"", "size_bytes":0,
-    }));
-    append_current_contract_resources(resource_rows, &files);
-    for row in resource_rows.iter_mut() {
-        let path = row["path"].as_str().unwrap();
-        let raw = files
-            .get(path)
-            .unwrap_or_else(|| panic!("selected resource absent: {path}"));
-        row["sha256"] = serde_json::json!(Digest256::of_bytes(raw).to_hex());
-        row["size_bytes"] = serde_json::json!(raw.len());
+    assert_eq!(expected["resources"].as_array().unwrap().len(), 337);
+    for collection in ["branches", "manifests", "resources"] {
+        expected[collection] = serde_json::json!(reference_rows.remove(collection).unwrap());
     }
-    resource_rows.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
-    expected["counts"]["resources"] = serde_json::json!(resource_rows.len());
+    expected["counts"]["resources"] =
+        serde_json::json!(expected["resources"].as_array().unwrap().len());
     assert_retained_corpus_navigation_extension(
         &projection.value()["source_navigation"],
         &expected["source_navigation"],
@@ -2725,10 +3169,9 @@ fn native_corpus_composition_case(installed: bool) {
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     reconcile_source_home_inputs(&mut query_oracle, &files);
-    // The selected native cut adds the vocabulary and four declared contracts:
-    // 337 historical resources + 1 vocabulary + 4 contracts = 342.
+    // CurrentDeclared counts derive from the independently frozen input recipe;
+    // the historical query packets retain their own 337-resource source scope.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(342));
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
