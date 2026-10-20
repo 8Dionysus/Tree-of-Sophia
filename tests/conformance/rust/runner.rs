@@ -109,9 +109,13 @@ fn fixtures() -> PathBuf {
 // authored and retained source bytes keep their captured account identities.
 #[derive(Clone, Debug)]
 pub(crate) struct CapturedFixtureFile {
+    // Expected bytes after the declared path/UID derivatives, not observed fixity.
+    // Original captured bytes remain bound by the immutable manifest/archive.
     pub bytes: u64,
     pub mode: u32,
     pub sha256: String,
+    // Original pre-capture source identity; it can differ from captured raw.
+    // Neither runtime UID nor path relocation changes these fields.
     pub source_bytes: u64,
     pub source_sha256: String,
 }
@@ -158,6 +162,359 @@ pub(crate) struct NativePythonFixture {
     pub capture_identity: NativeFixtureCaptureIdentity,
     pub software_identity_migration: SoftwareIdentityMigration,
     _capture_temp: TempDir,
+}
+
+impl NativePythonFixture {
+    /// Borrow expected post-derivative inputs before caller overlays. This is
+    /// neither observed filesystem fixity nor a semantic/authority certificate.
+    pub(crate) fn expected_materialized_files(&self) -> &BTreeMap<String, CapturedFixtureFile> {
+        &self.files
+    }
+}
+
+struct CapturedRuntimeGrant {
+    file: &'static str,
+    schema: &'static str,
+    packet_pointer: Option<&'static str>,
+}
+
+// Positive input declarations for the 17 archived factories. Only these exact
+// runtime grant files may change UID; schemas/prefixes never select source files.
+// The existing public-text supplement has its own separate exact declaration.
+fn captured_runtime_grants(id: &str) -> &'static [CapturedRuntimeGrant] {
+    match id {
+        "legacy-claim" => &[
+            CapturedRuntimeGrant {
+                file: "fixture-root/claim-owner-0.json",
+                schema: "tos_local_historical_claim_revision_owner_v1",
+                packet_pointer: Some("/revision_config"),
+            },
+            CapturedRuntimeGrant {
+                file: "fixture-root/form-owner.json",
+                schema: "tos_local_historical_claim_form_owner_v1",
+                packet_pointer: Some("/form_config"),
+            },
+            CapturedRuntimeGrant {
+                file: "fixture-root/owner.json",
+                schema: "tos_local_historical_create_owner_v2",
+                packet_pointer: None,
+            },
+        ],
+        "private-claim" => &[CapturedRuntimeGrant {
+            file: "private-root/owner.json",
+            schema: "tos_local_owner_claim_command_v1",
+            packet_pointer: Some("/config"),
+        }],
+        "text-alignment" => &[CapturedRuntimeGrant {
+            file: "source-root/owner.json",
+            schema: "tos_local_native_alignment_owner_v1",
+            packet_pointer: Some("/config"),
+        }],
+        "text-initial-layer" => &[
+            CapturedRuntimeGrant {
+                file: "source-root/layer-owner.json",
+                schema: "tos_local_text_layer_create_owner_v1",
+                packet_pointer: Some("/config"),
+            },
+            CapturedRuntimeGrant {
+                file: "source-root/owner.json",
+                schema: "tos_local_text_unit_create_owner_v1",
+                packet_pointer: Some("/unit_config"),
+            },
+        ],
+        "text-derived-normalize" => &[
+            CapturedRuntimeGrant {
+                file: "private-root/derived-normalize-owner.json",
+                schema: "tos_local_text_layer_derive_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/layer-owner.json",
+                schema: "tos_local_text_layer_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/owner.json",
+                schema: "tos_local_text_unit_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/unit-layer-owner.json",
+                schema: "tos_local_text_unit_create_owner_v2",
+                packet_pointer: None,
+            },
+        ],
+        "text-derived-correct" => &[
+            CapturedRuntimeGrant {
+                file: "private-root/derived-correct-owner.json",
+                schema: "tos_local_text_layer_derive_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/derived-normalize-owner.json",
+                schema: "tos_local_text_layer_derive_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/layer-owner.json",
+                schema: "tos_local_text_layer_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/owner.json",
+                schema: "tos_local_text_unit_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/unit-layer-owner.json",
+                schema: "tos_local_text_unit_create_owner_v2",
+                packet_pointer: None,
+            },
+        ],
+        "text-derived-record-ocr" => &[
+            CapturedRuntimeGrant {
+                file: "private-root/derived-correct-owner.json",
+                schema: "tos_local_text_layer_derive_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/derived-normalize-owner.json",
+                schema: "tos_local_text_layer_derive_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/derived-record-ocr-owner.json",
+                schema: "tos_local_text_layer_derive_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/layer-owner.json",
+                schema: "tos_local_text_layer_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/owner.json",
+                schema: "tos_local_text_unit_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "private-root/unit-layer-owner.json",
+                schema: "tos_local_text_unit_create_owner_v2",
+                packet_pointer: None,
+            },
+        ],
+        "item-base" => &[
+            CapturedRuntimeGrant {
+                file: "source-root/compound-owner.json",
+                schema: "tos_local_work_expression_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "source-root/edition-owner.json",
+                schema: "tos_local_expression_edition_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "source-root/item-owner.json",
+                schema: "tos_local_item_adoption_owner_v1",
+                packet_pointer: Some("/config"),
+            },
+        ],
+        "item-opaque" => &[
+            CapturedRuntimeGrant {
+                file: "source-root/compound-owner.json",
+                schema: "tos_local_work_expression_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "source-root/edition-owner.json",
+                schema: "tos_local_expression_edition_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "source-root/item-owner.json",
+                schema: "tos_local_item_adoption_owner_v1",
+                packet_pointer: Some("/config"),
+            },
+        ],
+        "collection-base" => &[CapturedRuntimeGrant {
+            file: "source-root/membership-owner.json",
+            schema: "tos_local_collection_membership_owner_v1",
+            packet_pointer: Some("/config"),
+        }],
+        "edition-base" => &[
+            CapturedRuntimeGrant {
+                file: "source-root/compound-owner.json",
+                schema: "tos_local_work_expression_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "source-root/edition-owner.json",
+                schema: "tos_local_expression_edition_owner_v1",
+                packet_pointer: Some("/config"),
+            },
+        ],
+        "object-link-base" => &[CapturedRuntimeGrant {
+            file: "source-root/link-owner.json",
+            schema: "tos_local_object_link_create_owner_v1",
+            packet_pointer: Some("/config"),
+        }],
+        "owner-text-base" => &[
+            CapturedRuntimeGrant {
+                file: "source-root/layer-owner.json",
+                schema: "tos_local_text_layer_create_owner_v1",
+                packet_pointer: Some("/config"),
+            },
+            CapturedRuntimeGrant {
+                file: "source-root/owner.json",
+                schema: "tos_local_text_unit_create_owner_v1",
+                packet_pointer: Some("/unit_config"),
+            },
+        ],
+        "owner-text-journal" => &[
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-1/layer-owner.json",
+                schema: "tos_local_text_layer_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-1/owner.json",
+                schema: "tos_local_text_unit_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-1/quality-assessment-owner.json",
+                schema: "tos_local_assessment_owner_v5",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-2/owner.json",
+                schema: "tos_local_assessment_owner_v1",
+                packet_pointer: None,
+            },
+        ],
+        "owner-text-derived-journal" => &[
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-1/derived-owner.json",
+                schema: "tos_local_text_layer_derive_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-1/layer-owner.json",
+                schema: "tos_local_text_layer_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-1/owner.json",
+                schema: "tos_local_text_unit_create_owner_v1",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-1/quality-assessment-owner.json",
+                schema: "tos_local_assessment_owner_v5",
+                packet_pointer: None,
+            },
+            CapturedRuntimeGrant {
+                file: "journal-root/synthetic-layer-2/owner.json",
+                schema: "tos_local_assessment_owner_v1",
+                packet_pointer: None,
+            },
+        ],
+        "private-profile-base" => &[CapturedRuntimeGrant {
+            file: "source-root/owner.json",
+            schema: "tos_local_owner_profile_command_v1",
+            packet_pointer: Some("/config"),
+        }],
+        "responsibility-base" => &[CapturedRuntimeGrant {
+            file: "source-root/responsibility-owner.json",
+            schema: "tos_local_expression_responsibility_owner_v1",
+            packet_pointer: Some("/config"),
+        }],
+        "public-text-base" => &[CapturedRuntimeGrant {
+            file: "workspace/protected-public-grant.json",
+            schema: "tos_public_native_text_create_owner_v1",
+            packet_pointer: None,
+        }],
+        _ => panic!("fixture has no reviewed runtime grant declaration: {id}"),
+    }
+}
+
+// Byte length of serde_json's ordinary UTF-8 string token: quote/backslash
+// and the five short control escapes use two bytes; other C0 bytes use six.
+// Non-ASCII UTF-8 bytes remain literal. This bounded borrowed scan admits the
+// replacement token itself before allocating it, not just the full file Vec.
+fn captured_string_token_bytes(value: &str) -> usize {
+    value
+        .bytes()
+        .try_fold(2usize, |length, byte| {
+            let width = match byte {
+                b'"' | b'\\' | b'\x08' | b'\x0c' | b'\n' | b'\r' | b'\t' => 2,
+                0..=31 => 6,
+                _ => 1,
+            };
+            length.checked_add(width)
+        })
+        .expect("replacement JSON string token length overflow")
+}
+
+// Recompute from the existing expected slots, with exactly one prospective
+// replacement. No owned size ledger/witness is added and no setup budget is
+// invented. These are byte ceilings, not a total work/allocator/deadline proof.
+fn assert_captured_replacement_caps(
+    files: &BTreeMap<String, CapturedFixtureFile>,
+    key: &str,
+    replacement_bytes: usize,
+    caps: &Value,
+) {
+    assert!(
+        files.contains_key(key),
+        "replacement has a captured input slot"
+    );
+    let replacement_bytes = u64::try_from(replacement_bytes).expect("replacement length fits u64");
+    assert!(
+        replacement_bytes <= caps["max_file_bytes"].as_u64().unwrap(),
+        "expected materialization exceeds file cap"
+    );
+    let root = key.split_once('/').expect("captured root/file key").0;
+    let mut root_bytes = 0u64;
+    let mut total_bytes = 0u64;
+    for (candidate, file) in files {
+        let bytes = if candidate == key {
+            replacement_bytes
+        } else {
+            file.bytes
+        };
+        total_bytes = total_bytes
+            .checked_add(bytes)
+            .expect("materialized total overflow");
+        if candidate.split_once('/').expect("captured root/file key").0 == root {
+            root_bytes = root_bytes
+                .checked_add(bytes)
+                .expect("materialized root overflow");
+        }
+    }
+    assert!(
+        root_bytes <= caps["max_tree_bytes"].as_u64().unwrap(),
+        "expected materialization exceeds root cap"
+    );
+    assert!(
+        total_bytes <= caps["max_total_tree_bytes"].as_u64().unwrap(),
+        "expected materialization exceeds total cap"
+    );
+}
+
+fn record_expected_captured_bytes(
+    files: &mut BTreeMap<String, CapturedFixtureFile>,
+    key: &str,
+    expected: &[u8],
+) {
+    // to_hex temporarily owns 64 bytes while the old digest String is live.
+    // The persistent slot is reused; this does not claim free hash work or a
+    // monotonic setup payer (the current three-argument API provides neither).
+    let digest = Digest256::of_bytes(expected).to_hex();
+    let file = files.get_mut(key).expect("existing expected input slot");
+    file.bytes = u64::try_from(expected.len()).expect("expected bytes fit u64");
+    file.sha256 = digest;
 }
 
 #[derive(Clone)]
@@ -1105,7 +1462,7 @@ pub(crate) fn native_python_fixture(
             }
         }
         let old_token = serde_json::to_vec(&captured_value).unwrap();
-        let new_token = serde_json::to_vec(&edits[0].2).unwrap();
+        let new_token_bytes = captured_string_token_bytes(&edits[0].2);
         let old_count = source
             .windows(old_token.len())
             .filter(|window| *window == old_token.as_slice())
@@ -1117,7 +1474,23 @@ pub(crate) fn native_python_fixture(
         );
         // Apply the already-counted exact string token replacements without
         // reserializing the JSON object or changing its unrelated bytes.
-        let mut updated = Vec::with_capacity(source.len());
+        let removed = old_token
+            .len()
+            .checked_mul(edits.len())
+            .expect("relocation byte count overflow");
+        let added = new_token_bytes
+            .checked_mul(edits.len())
+            .expect("relocation byte count overflow");
+        let expected_len = source
+            .len()
+            .checked_sub(removed)
+            .and_then(|length| length.checked_add(added))
+            .expect("relocation length overflow");
+        let key = format!("{root_name}/{relative}");
+        assert_captured_replacement_caps(&files, &key, expected_len, caps);
+        let new_token = serde_json::to_vec(&edits[0].2).unwrap();
+        assert_eq!(new_token.len(), new_token_bytes);
+        let mut updated = Vec::with_capacity(expected_len);
         let mut cursor = 0usize;
         while cursor < source.len() {
             if source[cursor..].starts_with(&old_token) {
@@ -1128,19 +1501,6 @@ pub(crate) fn native_python_fixture(
                 cursor += 1;
             }
         }
-        let removed = old_token
-            .len()
-            .checked_mul(edits.len())
-            .expect("relocation byte count overflow");
-        let added = new_token
-            .len()
-            .checked_mul(edits.len())
-            .expect("relocation byte count overflow");
-        let expected_len = source
-            .len()
-            .checked_sub(removed)
-            .and_then(|length| length.checked_add(added))
-            .expect("relocation length overflow");
         assert_eq!(updated.len(), expected_len);
         let relocated: Value =
             serde_json::from_slice(&updated).expect("relocated JSON remains valid");
@@ -1158,8 +1518,9 @@ pub(crate) fn native_python_fixture(
                 );
             }
         }
+        record_expected_captured_bytes(&mut files, &key, &updated);
         fs::write(&target, updated).unwrap();
-        let mode = files[&format!("{root_name}/{relative}")].mode;
+        let mode = files[&key].mode;
         fs::set_permissions(&target, fs::Permissions::from_mode(mode)).unwrap();
     }
 
@@ -1175,37 +1536,69 @@ pub(crate) fn native_python_fixture(
             .values()
             .all(|root| fs::metadata(root).unwrap().uid() == uid)
     );
-    let rebase_grant = |value: &mut Value| {
-        let is_grant = value["schema_version"].as_str().is_some_and(|schema| {
-            schema.starts_with("tos_local_") || schema.starts_with("tos_public_")
-        });
-        if !is_grant || value.get("uid").is_none() {
-            return false;
+    let grants = captured_runtime_grants(id);
+    for (index, grant) in grants.iter().enumerate() {
+        assert!(
+            grants[..index]
+                .iter()
+                .all(|previous| previous.file != grant.file),
+            "runtime target declaration is unique"
+        );
+        if let Some(pointer) = grant.packet_pointer {
+            assert!(
+                grants[..index]
+                    .iter()
+                    .all(|previous| previous.packet_pointer != Some(pointer)),
+                "runtime packet alias is unique"
+            );
         }
-        let captured_uid = value["uid"].as_u64().expect("captured grant account");
-        if captured_uid == u64::from(uid) {
-            return false;
+        let file = files
+            .get(grant.file)
+            .expect("declared runtime grant is present");
+        assert_eq!(
+            file.mode, 0o600,
+            "runtime grant keeps its captured private mode"
+        );
+    }
+    // Only declared top-level runtime aliases participate. Do not traverse
+    // nested frozen expected packets or infer grants from schema prefixes.
+    for (name, value) in packet.as_object().unwrap() {
+        if value.is_object() && value.get("uid").is_some() {
+            assert!(
+                grants.iter().any(|grant| grant
+                    .packet_pointer
+                    .is_some_and(|pointer| { pointer.strip_prefix('/') == Some(name.as_str()) })),
+                "undeclared runtime packet UID alias"
+            );
         }
-        value["uid"] = Value::from(uid);
-        true
-    };
-    for (key, file) in &files {
+    }
+    for grant in grants {
+        let key = grant.file;
         let (root_name, relative) = key.split_once('/').unwrap();
-        if file.mode != 0o600
-            || !relative.ends_with(".json")
-            || relative.split('/').any(|component| component == "ToS")
-        {
-            continue;
-        }
+        assert!(!relative.split('/').any(|component| component == "ToS"));
+        let mode = files[key].mode;
         let target = root_paths[root_name].join(capture_relative_path(relative));
         let raw = fs::read(&target).unwrap();
-        let Ok(mut value) = serde_json::from_slice::<Value>(&raw) else {
-            continue;
-        };
-        if rebase_grant(&mut value) {
-            // Owner configuration identities bind the exact presentation.
-            // Replace only the unique numeric UID token, just as path rebasing
-            // above preserves every unrelated byte of the captured grant.
+        let mut value: Value = serde_json::from_slice(&raw).expect("declared runtime grant JSON");
+        assert_eq!(
+            value["schema_version"].as_str(),
+            Some(grant.schema),
+            "runtime grant has its exact reviewed schema"
+        );
+        let captured_uid = value["uid"]
+            .as_u64()
+            .expect("declared grant unsigned account");
+        if let Some(pointer) = grant.packet_pointer {
+            assert_eq!(
+                packet.pointer(pointer),
+                Some(&value),
+                "whole runtime alias matches its declared post-path input file"
+            );
+        }
+        if captured_uid != u64::from(uid) {
+            value["uid"] = Value::from(uid);
+            // Preserve the exact presentation: only the unique numeric UID
+            // token changes, never unrelated source bytes or configurations.
             let mut spans = Vec::new();
             for (offset, token) in raw.windows(5).enumerate() {
                 if token != b"\"uid\"" {
@@ -1234,19 +1627,41 @@ pub(crate) fn native_python_fixture(
             }
             assert_eq!(spans.len(), 1, "runtime grant has one exact UID token");
             let (start, end) = spans[0];
-            let mut updated = raw[..start].to_vec();
-            updated.extend_from_slice(uid.to_string().as_bytes());
+            let uid_token_bytes = if uid == 0 {
+                1
+            } else {
+                uid.ilog10() as usize + 1
+            };
+            let expected_len = raw
+                .len()
+                .checked_sub(end - start)
+                .and_then(|bytes| bytes.checked_add(uid_token_bytes))
+                .expect("UID replacement length overflow");
+            // Includes every earlier path/UID phase through the same slots.
+            assert_captured_replacement_caps(&files, key, expected_len, caps);
+            let uid_token = uid.to_string();
+            assert_eq!(uid_token.len(), uid_token_bytes);
+            let mut updated = Vec::with_capacity(expected_len);
+            updated.extend_from_slice(&raw[..start]);
+            updated.extend_from_slice(uid_token.as_bytes());
             updated.extend_from_slice(&raw[end..]);
+            assert_eq!(updated.len(), expected_len);
             assert_eq!(serde_json::from_slice::<Value>(&updated).unwrap(), value);
+            record_expected_captured_bytes(&mut files, key, &updated);
             fs::write(&target, updated).unwrap();
-            fs::set_permissions(&target, fs::Permissions::from_mode(file.mode)).unwrap();
+            fs::set_permissions(&target, fs::Permissions::from_mode(mode)).unwrap();
+            if let Some(pointer) = grant.packet_pointer {
+                packet
+                    .pointer_mut(pointer)
+                    .expect("declared alias remains present")["uid"] = Value::from(uid);
+            }
         }
-    }
-    // These are the factory's top-level runtime configuration packets, not
-    // its nested frozen expected results or captured source records.
-    for value in packet.as_object_mut().unwrap().values_mut() {
-        if value.is_object() {
-            rebase_grant(value);
+        if let Some(pointer) = grant.packet_pointer {
+            assert_eq!(
+                packet.pointer(pointer),
+                Some(&value),
+                "whole runtime alias matches its exact post-UID expected file"
+            );
         }
     }
 
@@ -1393,7 +1808,7 @@ pub(crate) fn assert_native_python_fixture(
     );
     assert!(fixture.packets.contains_key("factory"));
     assert!(!fixture.files.is_empty());
-    for file in fixture.files.values() {
+    for file in fixture.expected_materialized_files().values() {
         assert!(file.bytes <= 16 * 1024 * 1024);
         assert_eq!(file.sha256.len(), 64);
         assert!(file.source_bytes <= 16 * 1024 * 1024);
