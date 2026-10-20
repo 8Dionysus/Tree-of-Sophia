@@ -404,12 +404,15 @@ impl<'a> ReferenceLimits<'a> {
     }
 }
 impl ReferenceLimits<'_> {
+    #[track_caller]
     fn step(&mut self, n: usize) -> NavResult<()> {
         if self.cancelled.load(Ordering::Relaxed) {
+            self.work.note_refusal("cancelled", None, Some(n));
             return Err(ReferenceError::Budget);
         }
         self.work.visit(n).map_err(|_| ReferenceError::Budget)
     }
+    #[track_caller]
     fn bytes(&mut self, n: usize) -> NavResult<()> {
         self.step(0)?;
         self.work.charge(n).map_err(|_| ReferenceError::Budget)
@@ -2266,7 +2269,7 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
             .and_then(|n| n.checked_add(std::mem::size_of::<&str>().checked_mul(8)?))
             .ok_or(ReferenceError::Budget)?,
     )?; // BEFORE constructing borrowed literal arrays / comparison holders
-    for raw in [
+    for (index, raw) in [
         &b"null"[..],
         &b"true"[..],
         &b"false"[..],
@@ -2283,7 +2286,8 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
         &br#"{"ordinary":0,"$serde_json::private::RawValue":"[1]","last":true}"#[..],
         &br#"{"outer":{"ordinary":0,"$serde_json::private::Number":"123","$serde_json::private::RawValue":"null"}}"#[..],
         &br#"{"\uD834\uDD1E":"paired key","controls":"\b\f\r\t"}"#[..],
-    ] {
+    ].into_iter().enumerate() {
+        l.work.diagnostic_stage("compat-supported", index);
         l.step(1)?;
         // Each literal has <=32 values/keys. Cover the old scalar/control
         // decoder's tree/text plus whole comparison BEFORE either action.
@@ -2315,14 +2319,18 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
             }
         }
     }
-    for raw in [
+    for (index, raw) in [
         &br#"{"$serde_json::private::Number":"123"}"#[..],
         &br#"{"$serde_json::private::RawValue":"null"}"#[..],
         &br#"[{"$serde_json::private::Number":"123"}]"#[..],
         &br#"{"outer":{"$serde_json::private::RawValue":"null"}}"#[..],
         &br#"{"\u0024serde_json::private::Number":"123"}"#[..],
         &br#"{"\u0024serde_json::private::RawValue":"null"}"#[..],
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        l.work.diagnostic_stage("compat-reserved", index);
         l.step(1)?;
         assert_eq!(
             l.parse(raw, l.max_record_bytes),
@@ -2333,7 +2341,7 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
             Err(ReferenceError::UnsupportedSourceProfile)
         );
     }
-    for raw in [
+    for (index, raw) in [
         &br#"{"$serde_json::private::Number":"123","tail":]}"#[..],
         &br#"{"$serde_json::private::RawValue":"null","a":1,"\u0061":2}"#[..],
         &br#"{"a":1,"\u0061":2}"#[..],
@@ -2347,7 +2355,11 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
         // serde arbitrary_precision accepts this token, but PublishedStrict
         // rejects its nonfinite f64 interpretation BEFORE either bridge.
         &b"1e9999"[..],
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        l.work.diagnostic_stage("compat-invalid", index);
         l.step(1)?;
         assert_eq!(
             l.parse(raw, l.max_record_bytes),
@@ -2358,6 +2370,7 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
             Err(ReferenceError::InvalidBinding)
         );
     }
+    l.work.diagnostic_stage("compat-unselected", 0);
     // Even an UNSELECTED nested reserved-first object must refuse before a
     // caller can extract the innocuous requested sibling.
     assert_eq!(
@@ -2375,6 +2388,7 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
         ),
         Err(ReferenceError::InvalidBinding)
     );
+    l.work.diagnostic_stage("compat-depth", 0);
     // One borrowed over-depth literal, with no generated runtime input buffer.
     // The strict parser rejects it BEFORE the move workspace/profile is entered.
     let too_deep = b"[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
@@ -2391,11 +2405,39 @@ fn navigation_reference_variants(
     inputs: &DeclaredNavigationInputs<'_>,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<()> {
+    l.work
+        .begin_variant_diagnostic()
+        .map_err(|_| ReferenceError::Budget)?;
+    let result = navigation_reference_variants_body(historical, original, inputs, l);
+    if let Err(error) = result {
+        let name = match error {
+            ReferenceError::Budget => "Budget",
+            ReferenceError::InvalidBinding => "InvalidBinding",
+            ReferenceError::UnsupportedSourceProfile => "UnsupportedSourceProfile",
+            ReferenceError::DuplicateIdentity => "DuplicateIdentity",
+            ReferenceError::Conflict => "Conflict",
+        };
+        l.work.report_refusal(name);
+    } else {
+        // Observation is operation-local. Dropping its owner is not a refund;
+        // every diagnostic prepayment remains consumed on the same account.
+        l.work.diagnostic = None;
+    }
+    result
+}
+fn navigation_reference_variants_body(
+    historical: &serde_json::Value,
+    original: &serde_json::Value,
+    inputs: &DeclaredNavigationInputs<'_>,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
     use serde_json::{Value, json};
     l.fixed(8)?;
+    l.work.diagnostic_stage("compat-controls", 0);
     reference_move_controls(l)?;
     assert_eq!(nav_label(Some(""), Some("preferred"), "node"), "node");
     assert_eq!(nav_label(None, Some("preferred"), "node"), "preferred");
+    l.work.diagnostic_stage("duplicate-and-pointer-controls", 0);
     let sample = inputs
         .identities
         .values()
@@ -2438,6 +2480,8 @@ fn navigation_reference_variants(
         ),
         Err(ReferenceError::InvalidBinding)
     ));
+    l.work
+        .diagnostic_stage("unknown-claim-descriptor-controls", 0);
     let source_claim = inputs
         .claims
         .first()
@@ -2480,6 +2524,7 @@ fn navigation_reference_variants(
         nav_descriptor(&unknown_claim, source_subject, source_subject, inputs, l),
         Err(ReferenceError::UnsupportedSourceProfile)
     ));
+    l.work.diagnostic_stage("collision-control", 0);
     let original_row = nav_array(original, "nodes")?
         .first()
         .ok_or(ReferenceError::InvalidBinding)?;
@@ -2507,6 +2552,7 @@ fn navigation_reference_variants(
     ));
     // This is a second authored INPUT, not a second expected packet derived
     // from SUT. Reuse immutable registry roots and the SAME work remainder.
+    l.work.diagnostic_stage("copy-authored-variant-sources", 0);
     let mut replacements = BTreeMap::new();
     let mut sources = Vec::new();
     for source in inputs
@@ -2589,12 +2635,15 @@ fn navigation_reference_variants(
         }
         sources.push((source.path.as_str(), source.line, value));
     }
+    l.work
+        .diagnostic_stage("rewrite-authored-variant-sources", 0);
     for (_, _, value) in &mut sources {
         nav_rewrite_strings(value, &replacements, l, 0)?;
     }
     // Finish the owned authored mutation BEFORE its first wire/parse. This is
     // the same final source as the former serialize/parse/mutate/serialize path.
     // Final nine members still receive complete strict admission below.
+    l.work.diagnostic_stage("append-variant-evidence", 0);
     let second = "ToS/research-packets/reference-input-variant/SECOND.md";
     let mut added_evidence = false;
     for (path, line, value) in &mut sources {
@@ -2633,6 +2682,7 @@ fn navigation_reference_variants(
     }
     // Exact new subject references derive from the NEW source records, not from
     // an old digest with a renamed label. Raw file hashes remain a separate domain.
+    l.work.diagnostic_stage("variant-subject-digests", 0);
     let mut refs = BTreeMap::new();
     for (_, _, v) in &sources {
         l.step(1)?;
@@ -2650,6 +2700,7 @@ fn navigation_reference_variants(
             json!({"id":rid,"version":v[version],"digest":format!("sha256:{}",l.digest(v)?)}),
         );
     }
+    l.work.diagnostic_stage("variant-form-exact-refs", 0);
     for (_, _, v) in &mut sources {
         l.step(1)?;
         if v.get("forms").is_none() {
@@ -2698,6 +2749,8 @@ fn navigation_reference_variants(
             }
         }
     }
+    l.work
+        .diagnostic_stage("serialize-final-variant-members", 0);
     let mut files = BTreeMap::new();
     for (path, line, v) in &sources {
         let name = replacements
@@ -2719,6 +2772,8 @@ fn navigation_reference_variants(
         second.to_owned(),
         b"# Independent second evidence\n".to_vec(),
     );
+    l.work
+        .diagnostic_stage("variant-evidence-and-schema-inputs", 0);
     // Original evidence remains a separately bound raw input. Subject/form refs
     // above already refer to the final mutated Claim, not an intermediate wire.
     for source in &inputs.claims {
@@ -2776,9 +2831,13 @@ fn navigation_reference_variants(
             }
         }
     }
+    l.work
+        .diagnostic_stage("copy-rewrite-historical-navigation", 0);
     let mut old = l.copy(historical)?;
     nav_rewrite_strings(&mut old, &replacements, l, 0)?;
+    l.work.diagnostic_stage("parse-final-variant-members", 0);
     let mut variant_inputs = DeclaredNavigationInputs::from_files(&files, inputs.registries, l)?;
+    l.work.diagnostic_stage("build-second-navigation", 0);
     let variant = expected_source_navigation(&old, &variant_inputs, l.reborrow())?;
     assert_eq!(
         variant["counts"]["nodes"].as_u64(),
@@ -2788,6 +2847,7 @@ fn navigation_reference_variants(
         variant["counts"]["edges"].as_u64(),
         original["counts"]["edges"].as_u64().map(|n| n + 1)
     );
+    l.work.diagnostic_stage("second-input-full-assertions", 0);
     for claim in &variant_inputs.claims {
         let id = format!("claim:{}", nav_str(&claim.value, "claim_id")?);
         let rows = nav_array(&variant, "nodes")?;
@@ -2826,6 +2886,8 @@ fn navigation_reference_variants(
                 .any(|row| row == &renamed)
         );
     }
+    l.work
+        .diagnostic_stage("wrong-pointer-and-profile-controls", 0);
     // Negative source bindings: a valid pointer to the wrong source component
     // and an unsupported derivation MUST refuse, not copy actual materialization.
     let claim = variant_inputs
@@ -2857,6 +2919,8 @@ fn navigation_reference_variants(
         nav_forms(claim, &variant_inputs, l),
         Err(ReferenceError::UnsupportedSourceProfile)
     ));
+    l.work
+        .diagnostic_stage("full-field-nested-endpoint-controls", 0);
     // Whole field removal plus nested semantic mutations. A single owned row
     // is reused by MOVE/restore, not six clones of its complete properties.
     let mut descriptor_controls = 0usize;
@@ -2925,6 +2989,8 @@ fn navigation_reference_variants(
         }
     }
     assert!(descriptor_controls >= 2 && form_controls >= 2);
+    l.work
+        .diagnostic_stage("whole-navigation-order-count-controls", 0);
     let mut changed = l.copy(original)?;
     for collection in ["nodes", "edges"] {
         l.step(1)?;

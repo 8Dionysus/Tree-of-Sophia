@@ -162,25 +162,240 @@ fn schema_sources(repository: &Path) -> BTreeMap<String, Vec<u8>> {
 }
 // CurrentDeclared is test-owned source evidence, never a production plan/output.
 // One logical construction counter is shared by intake, rows and pure variants.
+// Fixed, opt-in reference diagnostics. No input values/paths or backtrace are
+// captured. Buffers, stderr handle and all report/control holders are prepaid
+// before the first variant computation. This is not a new resource allowance.
+#[derive(Clone, Copy)]
+struct ReferenceRefusal {
+    stage: &'static str,
+    item: usize,
+    kind: &'static str,
+    location: &'static std::panic::Location<'static>,
+    request_bytes: Option<usize>,
+    request_visits: Option<usize>,
+    stage_bytes: usize,
+    stage_visits: usize,
+    left: usize,
+    visits_left: usize,
+}
+struct ReferenceDiagnostic {
+    stage: &'static str,
+    item: usize,
+    stage_bytes: usize,
+    stage_visits: usize,
+    prepaid_bytes: usize,
+    prepaid_visits: usize,
+    first: Option<ReferenceRefusal>,
+    reported: bool,
+    buffer: [u8; 640],
+    digits: [u8; 20],
+    used: usize,
+    output: std::io::Stderr,
+}
+impl ReferenceDiagnostic {
+    fn push(&mut self, byte: u8) {
+        if let Some(slot) = self.buffer.get_mut(self.used) {
+            *slot = byte;
+            self.used += 1;
+        }
+    }
+    fn text(&mut self, text: &[u8]) {
+        for &byte in text {
+            self.push(byte);
+        }
+    }
+    fn number(&mut self, mut value: usize) {
+        let mut start = self.digits.len();
+        loop {
+            start -= 1;
+            self.digits[start] = b'0' + (value % 10) as u8;
+            value /= 10;
+            if value == 0 {
+                break;
+            }
+        }
+        for i in start..self.digits.len() {
+            self.push(self.digits[i]);
+        }
+    }
+    fn optional_number(&mut self, value: Option<usize>) {
+        if let Some(value) = value {
+            self.number(value);
+        } else {
+            self.text(b"unknown");
+        }
+    }
+    fn report(&mut self, error: &'static str, left: usize, visits_left: usize) {
+        use std::io::Write;
+        if self.reported {
+            return;
+        }
+        self.reported = true;
+        self.text(b"reference-first-refusal error=");
+        self.text(error.as_bytes());
+        if let Some(first) = self.first {
+            self.text(b" stage=");
+            self.text(first.stage.as_bytes());
+            self.text(b" item=");
+            self.number(first.item);
+            self.text(b" kind=");
+            self.text(first.kind.as_bytes());
+            self.text(b" source=");
+            // Source basename only, never host/runtime/input locators.
+            self.text(
+                first
+                    .location
+                    .file()
+                    .as_bytes()
+                    .rsplit(|b| *b == b'/')
+                    .next()
+                    .unwrap_or(b"unknown"),
+            );
+            self.push(b':');
+            self.number(first.location.line() as usize);
+            self.push(b':');
+            self.number(first.location.column() as usize);
+            self.text(b" request_bytes=");
+            self.optional_number(first.request_bytes);
+            self.text(b" request_visits=");
+            self.optional_number(first.request_visits);
+            self.text(b" stage_bytes=");
+            self.number(first.stage_bytes);
+            self.text(b" stage_visits=");
+            self.number(first.stage_visits);
+            self.text(b" pre_bytes=");
+            self.number(first.left);
+            self.text(b" pre_visits=");
+            self.number(first.visits_left);
+        } else {
+            // A local/state/depth guard can refuse without reaching the two
+            // counters. Do not invent a debit or a deeper source location.
+            self.text(b" kind=unlatched stage=");
+            self.text(self.stage.as_bytes());
+            self.text(b" item=");
+            self.number(self.item);
+            self.text(b" request_bytes=unknown request_visits=unknown");
+        }
+        self.text(b" final_bytes=");
+        self.number(left);
+        self.text(b" final_visits=");
+        self.number(visits_left);
+        self.text(b" diagnostic_bytes=");
+        self.number(self.prepaid_bytes);
+        self.text(b" diagnostic_visits=");
+        self.number(self.prepaid_visits);
+        self.push(b'\n');
+        // Exactly one best-effort write. No formatting/heap buffer/retry/flush;
+        // partial output or reporting failure NEVER changes the original Err.
+        let _ = self.output.write(&self.buffer[..self.used]);
+    }
+}
 struct CurrentReference {
     commit: String,
     left: usize,
     visits_left: usize,
     deadline: Instant,
+    diagnostic: Option<Box<ReferenceDiagnostic>>,
 }
 impl CurrentReference {
+    fn begin_variant_diagnostic(&mut self) -> Result<(), &'static str> {
+        use std::mem::size_of;
+        if self.diagnostic.is_some() {
+            return Err("reference diagnostic already active");
+        }
+        let holders = size_of::<ReferenceDiagnostic>()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(size_of::<[u8; 640]>()))
+            .and_then(|n| n.checked_add(size_of::<[u8; 20]>()))
+            // live Box pointee plus construction/move and array initializer
+            // temporaries; first-record
+            // copy/report transition and arithmetic/borrow/stdio control state.
+            .and_then(|n| n.checked_add(size_of::<ReferenceRefusal>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+            .and_then(|n| n.checked_add(size_of::<std::io::Stderr>()))
+            .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(6)?))
+            .and_then(|n| n.checked_add(size_of::<std::io::Result<usize>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<Result<(), &'static str>>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(640)) // distinct bounded report-byte work
+            .ok_or("reference diagnostic state overflow")?;
+        self.charge(holders)?;
+        // <=64 fixed stage stores, <=13 usize spellings*20 digits, <=640
+        // report byte stores and one write. No new algorithm traversal/counter.
+        let report_visits = 64 + 13 * 20 + 640 + 1;
+        self.visit(report_visits)?;
+        self.diagnostic = Some(Box::new(ReferenceDiagnostic {
+            stage: "variants-entry",
+            item: 0,
+            stage_bytes: self.left,
+            stage_visits: self.visits_left,
+            prepaid_bytes: holders,
+            prepaid_visits: report_visits,
+            first: None,
+            reported: false,
+            buffer: [0; 640],
+            digits: [0; 20],
+            used: 0,
+            output: std::io::stderr(),
+        }));
+        Ok(())
+    }
+    fn diagnostic_stage(&mut self, stage: &'static str, item: usize) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            diagnostic.stage = stage;
+            diagnostic.item = item;
+            diagnostic.stage_bytes = self.left;
+            diagnostic.stage_visits = self.visits_left;
+        }
+    }
+    #[track_caller]
+    fn note_refusal(&mut self, kind: &'static str, bytes: Option<usize>, visits: Option<usize>) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            if diagnostic.first.is_none() {
+                diagnostic.first = Some(ReferenceRefusal {
+                    stage: diagnostic.stage,
+                    item: diagnostic.item,
+                    kind,
+                    location: std::panic::Location::caller(),
+                    request_bytes: bytes,
+                    request_visits: visits,
+                    stage_bytes: diagnostic.stage_bytes,
+                    stage_visits: diagnostic.stage_visits,
+                    left: self.left,
+                    visits_left: self.visits_left,
+                });
+                // Emit at the first primitive refusal too, so an existing
+                // assertion catching Budget cannot conceal this observation.
+                // The outer Result boundary will not retry a short/failed write.
+                diagnostic.report("Budget", self.left, self.visits_left);
+            }
+        }
+    }
+    fn report_refusal(&mut self, error: &'static str) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            diagnostic.report(error, self.left, self.visits_left);
+        }
+    }
+    #[track_caller]
     fn visit(&mut self, count: usize) -> Result<(), &'static str> {
-        self.visits_left = self
-            .visits_left
-            .checked_sub(count)
-            .ok_or("reference visit limit")?;
+        let Some(next) = self.visits_left.checked_sub(count) else {
+            self.note_refusal("visit-limit", None, Some(count));
+            return Err("reference visit limit");
+        };
+        self.visits_left = next;
         self.charge(0)
     }
+    #[track_caller]
     fn charge(&mut self, bytes: usize) -> Result<(), &'static str> {
         if Instant::now() >= self.deadline {
+            self.note_refusal("deadline", Some(bytes), None);
             return Err("reference deadline");
         }
-        self.left = self.left.checked_sub(bytes).ok_or("reference work limit")?;
+        let Some(next) = self.left.checked_sub(bytes) else {
+            self.note_refusal("byte-limit", Some(bytes), None);
+            return Err("reference work limit");
+        };
+        self.left = next;
         Ok(())
     }
     fn parsed(&mut self, raw: &[u8]) -> Result<Value, &'static str> {
@@ -405,6 +620,7 @@ fn source_inputs(deadline: Instant) -> (BTreeMap<String, Vec<u8>>, CurrentRefere
         left: 32 * 1024 * 1024,
         visits_left: 1_000_000,
         deadline,
+        diagnostic: None,
     };
     reference.charge(16 * 1024).unwrap(); // one live Git/read/parse control workspace
     let commit = reference
