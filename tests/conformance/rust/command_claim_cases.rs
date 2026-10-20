@@ -2334,7 +2334,7 @@ fn rich_native_record(
     let d = rich_declared_record(inputs, rich_text(reference, "id", b)?, b)?;
     let record = rich_document(batch, d.path, b)?;
     if d.identity_field != "record_id"
-        || rich_text(record, "schema_version", b) != "tos_corpus_record_v1"
+        || rich_text(record, "schema_version", b)? != "tos_corpus_record_v1"
         || rich_text(record, "record_type", b)? != kind
         || !d.path.ends_with(match kind {
             "agent" => "/agent.json",
@@ -2628,8 +2628,8 @@ fn rich_package(
         .ok_or(ClaimReferenceError::InvalidInput)?
         .len()
         != 6
-        || rich_text(manifest, "schema_version", b) != "tos_source_package_archive_v2"
-        || rich_text(manifest, "publication_protocol", b) != "tos_selected_source_metadata_v1"
+        || rich_text(manifest, "schema_version", b)? != "tos_source_package_archive_v2"
+        || rich_text(manifest, "publication_protocol", b)? != "tos_selected_source_metadata_v1"
         || rich_text(manifest, "source_path", b)? != source_path
         || rich_text(manifest, "revision", b)? != revision
     {
@@ -2643,23 +2643,62 @@ fn rich_package(
         return Err(ClaimReferenceError::Limit);
     }
     b.base.work(0, 64)?;
-    if std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>()
-        .checked_mul(3)
-        .and_then(|n| n.checked_add(1536))
-        .is_none_or(|n| n > 2048)
-        || std::mem::size_of::<JsonValue>()
-            .checked_add(std::mem::size_of::<
-                Vec<(tos_foundation::JsonString, JsonValue)>,
-            >())
-            .is_none_or(|n| n > 1024)
+    if std::mem::size_of::<JsonValue>()
+        .checked_add(std::mem::size_of::<
+            Vec<(tos_foundation::JsonString, JsonValue)>,
+        >())
+        .is_none_or(|n| n > 1024)
     {
         return Err(ClaimReferenceError::Limit);
     }
-    let allocation = members
-        .len()
-        .checked_mul(2048)
-        .and_then(|v| v.checked_add(1024))
-        .ok_or(ClaimReferenceError::Limit)?;
+    // Preflight every copied member before allocating the fingerprint. Fresh
+    // UTF-16 growth plus its UTF-8 copy is bounded by 6*n+32; scalar Clone
+    // capacities are bounded by their retained source buffers. Headers and
+    // short fixed keys have a separate 256-byte per-member allowance.
+    let mut allocation = 1024usize;
+    for (name, binding) in members {
+        let name = name.as_str().ok_or(ClaimReferenceError::InvalidInput)?;
+        b.base.work(name.len(), 128)?;
+        if name.is_empty()
+            || name.len() > 256
+            || name.contains('/')
+            || name.contains('\\')
+            || name == "."
+            || name == ".."
+            || name == ".git"
+            || name.bytes().any(|v| v < 32)
+            || binding
+                .as_object()
+                .ok_or(ClaimReferenceError::InvalidInput)?
+                .len()
+                != 3
+        {
+            return Err(ClaimReferenceError::InvalidInput);
+        }
+        let sha = rich_field(binding, "sha256", b)?;
+        let digest = sha.as_str().ok_or(ClaimReferenceError::InvalidInput)?;
+        if digest.len() != 71 || !digest.starts_with("sha256:") {
+            return Err(ClaimReferenceError::InvalidInput);
+        }
+        let _ = rich_hex(digest, b)?;
+        let bytes = rich_field(binding, "bytes", b)?;
+        if rich_number(bytes, b)? > 2_097_152 {
+            return Err(ClaimReferenceError::Limit);
+        }
+        let sha_heap = rich_retained(sha, b, 0)?;
+        let bytes_heap = rich_retained(bytes, b, 0)?;
+        let member = std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>()
+            .checked_mul(3)
+            .and_then(|n| name.len().checked_mul(6).and_then(|v| n.checked_add(v)))
+            .and_then(|n| n.checked_add(32))
+            .and_then(|n| n.checked_add(sha_heap))
+            .and_then(|n| n.checked_add(bytes_heap))
+            .and_then(|n| n.checked_add(256))
+            .ok_or(ClaimReferenceError::Limit)?;
+        allocation = allocation
+            .checked_add(member)
+            .ok_or(ClaimReferenceError::Limit)?;
+    }
     b.own(RICH_RAW, allocation)?;
     let mut fingerprint = Vec::new();
     fingerprint
@@ -2719,7 +2758,7 @@ fn rich_package(
             )?;
         }
         // Closed primitive copies: two scalar bindings and short schema keys.
-        // The full per-member 2048 reservation precedes every Vec/string clone.
+        // The complete preflight reservation precedes every Vec/string clone.
         let sha = rich_field(binding, "sha256", b)?;
         let bytes = rich_field(binding, "bytes", b)?;
         if !matches!(sha, JsonValue::String(_)) || !matches!(bytes, JsonValue::Number(_)) {
@@ -2828,7 +2867,7 @@ fn check_collection_claim_inputs(
         .ok_or(ClaimReferenceError::UnsupportedProfile)?;
     let history_path = rich_string(&[home, "source-revision-history.json"], b)?;
     let history = rich_document(&batch, &history_path, b)?;
-    if rich_text(history, "schema_version", b) != "tos_source_revision_history_v2"
+    if rich_text(history, "schema_version", b)? != "tos_source_revision_history_v2"
         || rich_text(history, "record_id", b)? != subject
         || history
             .as_object()
@@ -2939,10 +2978,10 @@ fn check_collection_claim_inputs(
             }
         }
         let (piece, record) = found.ok_or(ClaimReferenceError::MissingSource)?;
-        if rich_text(record, "schema_version", b) != "tos_claim_packet_v1"
-            || rich_text(record, "claim_type", b) != "bibliographic"
+        if rich_text(record, "schema_version", b)? != "tos_claim_packet_v1"
+            || rich_text(record, "claim_type", b)? != "bibliographic"
             || rich_text(record, "subject_ref", b)? != subject
-            || rich_text(record, "predicate", b) != "contains_work"
+            || rich_text(record, "predicate", b)? != "contains_work"
             || !["bibliographic_assertion", "scholarly_report"].contains(&rich_text(
                 record,
                 "assertion_layer",
@@ -3014,7 +3053,7 @@ fn check_collection_claim_inputs(
             b,
         )?;
         if rich_text(work, "record_id", b)? != member
-            || rich_text(work, "record_type", b) != "work"
+            || rich_text(work, "record_type", b)? != "work"
             || rich_text(catalog, "source_record_ref", b)? != d.path
             || b.digest(work)? != rich_hex(rich_text(catalog, "record_sha256", b)?, b)?
         {
