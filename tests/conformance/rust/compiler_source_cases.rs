@@ -2665,21 +2665,25 @@ fn native_corpus_composition_case(installed: bool) {
     // H packet is authenticated archival evidence; C navigation is built from
     // independently declared raw inputs BEFORE capture/render, never actual.
     let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
-    let mut expected = {
+    let mut retained_expected = {
         let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
         guard
-            .parse(&historical_raw, guard.max_output_bytes)
+            .retained_root(&historical_raw, guard.max_output_bytes)
             .unwrap()
+    };
+    let historical_navigation = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        let requested =
+            reference_take_member(&mut retained_expected, "source_navigation", &mut guard).unwrap();
+        move_reference_value(requested, &mut guard).unwrap()
     };
     let expected_navigation = {
         let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
         let registries = NavigationRegistries::from_files(&files, &mut guard).unwrap();
         let inputs = DeclaredNavigationInputs::from_files(&files, &registries, &mut guard).unwrap();
         let nav =
-            expected_source_navigation(&expected["source_navigation"], &inputs, guard.reborrow())
-                .unwrap();
-        navigation_reference_variants(&expected["source_navigation"], &nav, &inputs, &mut guard)
-            .unwrap();
+            expected_source_navigation(&historical_navigation, &inputs, guard.reborrow()).unwrap();
+        navigation_reference_variants(&historical_navigation, &nav, &inputs, &mut guard).unwrap();
         nav
     };
     phase(started, deadline, "selected-inputs-ready");
@@ -2687,52 +2691,141 @@ fn native_corpus_composition_case(installed: bool) {
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);
-    // This actual augmented capture copy remains charged to the same counter.
-    // source_inputs constructed no discarded capture and granted no drop credit.
-    let capture_copy = files
-        .iter()
-        .try_fold(0usize, |sum, (path, raw)| {
-            sum.checked_add(path.len())?
-                .checked_add(raw.len())?
-                .checked_add(256)
-        })
-        .expect("reference caller capture copy overflow");
-    reference.charge(capture_copy).unwrap();
-    let mut captured = files.clone();
-    // The native capture binds one exact maintained compiler implementation
-    // beside the authored ToS cut; neither one becomes the other's authority.
+    // Prepay the same bounded metadata state BEFORE constructing the union.
+    // Raw input buffers stay in files; the four added buffers have local owners.
+    // Original insert/override order is preserved, including collisions.
+    reference.charge(512 * 256).unwrap();
+    let extras = [
+        "rust/crates/tos-compiler/src/lib.rs",
+        "rust/crates/tos-compiler/src/source_corpus.rs",
+        "rust/crates/tos-validation/src/bin/tos-schema-worker.rs",
+        "access/contracts/runtime-data.v1.json",
+    ];
+    assert!(
+        files
+            .len()
+            .checked_add(extras.iter().filter(|p| !files.contains_key(**p)).count())
+            .unwrap()
+            <= 512
+    );
+    let mut capture_total = files
+        .values()
+        .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+        .unwrap();
+    fn capture_extra(
+        repository: &Path,
+        path: &str,
+        reference: &mut CurrentReference,
+        replaced: usize,
+        total: &mut usize,
+    ) -> Vec<u8> {
+        use std::io::Read;
+        let mut file = fs::File::open(repository.join(path)).unwrap();
+        let size = usize::try_from(file.metadata().unwrap().len()).unwrap();
+        assert!(size <= 2 * 1024 * 1024);
+        let prospective = total
+            .checked_sub(replaced)
+            .and_then(|n| n.checked_add(size))
+            .unwrap();
+        assert!(prospective <= 16 * 1024 * 1024);
+        let limit = size.checked_add(1).unwrap();
+        reference
+            .charge(
+                limit
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(4096 + 256))
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut out = Vec::with_capacity(limit);
+        let mut buffer = [0u8; 4096];
+        while out.len() < limit {
+            reference.charge(0).unwrap();
+            reference.visit(1).unwrap();
+            let room = (limit - out.len()).min(buffer.len());
+            let count = file.read(&mut buffer[..room]).unwrap();
+            if count == 0 {
+                break;
+            }
+            out.extend_from_slice(&buffer[..count]);
+        }
+        reference.charge(0).unwrap();
+        assert_eq!(out.len(), size, "capture input changed during read");
+        *total = prospective;
+        out
+    }
     let compiler = "rust/crates/tos-compiler/src/lib.rs";
-    captured.insert(
-        compiler.into(),
-        fs::read(repository.join(compiler)).unwrap(),
+    let compiler_raw = capture_extra(
+        &repository,
+        compiler,
+        &mut reference,
+        files.get(compiler).map_or(0, Vec::len),
+        &mut capture_total,
     );
     let corpus_owner = "rust/crates/tos-compiler/src/source_corpus.rs";
-    captured.insert(
-        corpus_owner.into(),
-        fs::read(repository.join(corpus_owner)).unwrap(),
+    let corpus_raw = capture_extra(
+        &repository,
+        corpus_owner,
+        &mut reference,
+        files.get(corpus_owner).map_or(0, Vec::len),
+        &mut capture_total,
     );
     let worker_source = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
-    captured.insert(
-        worker_source.into(),
-        fs::read(repository.join(worker_source)).unwrap(),
+    let worker_raw = capture_extra(
+        &repository,
+        worker_source,
+        &mut reference,
+        files.get(worker_source).map_or(0, Vec::len),
+        &mut capture_total,
     );
-    let declaration_raw =
-        fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
-    let declaration: Value = serde_json::from_slice(&declaration_raw).unwrap();
-    let outputs = declaration["subjects"]
-        .as_array()
-        .unwrap()
+    let declaration_raw = capture_extra(
+        &repository,
+        "access/contracts/runtime-data.v1.json",
+        &mut reference,
+        files
+            .get("access/contracts/runtime-data.v1.json")
+            .map_or(0, Vec::len),
+        &mut capture_total,
+    );
+    // Keep the old complete declaration parse/domain and exact output selection.
+    let declaration: Value = reference.parsed(&declaration_raw).unwrap();
+    let subjects = declaration["subjects"].as_array().unwrap();
+    reference
+        .charge(
+            subjects
+                .len()
+                .checked_mul(3)
+                .map(|n| n.max(4))
+                .and_then(|n| n.checked_mul(std::mem::size_of::<&Value>()))
+                .unwrap(),
+        )
+        .unwrap();
+    reference
+        .visit(subjects.len().checked_add(1).unwrap())
+        .unwrap();
+    let outputs = subjects
         .iter()
         .filter(|subject| subject["subject_id"] == "tos-corpus-index")
         .collect::<Vec<_>>();
     assert_eq!(outputs.len(), 1);
-    let output_path = outputs[0]["source_path"].as_str().unwrap().to_owned();
+    let selected_path = outputs[0]["source_path"].as_str().unwrap();
+    reference
+        .charge(selected_path.len().checked_add(128).unwrap())
+        .unwrap();
+    let output_path = selected_path.to_owned();
+    let mut captured = files
+        .iter()
+        .map(|(path, raw)| (path.as_str(), raw.as_slice()))
+        .collect::<BTreeMap<_, _>>();
+    captured.insert(compiler, compiler_raw.as_slice());
+    captured.insert(corpus_owner, corpus_raw.as_slice());
+    captured.insert(worker_source, worker_raw.as_slice());
     captured.insert(
-        "access/contracts/runtime-data.v1.json".into(),
-        declaration_raw,
+        "access/contracts/runtime-data.v1.json",
+        declaration_raw.as_slice(),
     );
     assert!(captured.len() <= 512);
-    assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    assert!(captured.values().map(|raw| raw.len()).sum::<usize>() <= 16 * 1024 * 1024);
     phase(started, deadline, "capture-inputs-ready");
     for (path, raw) in &captured {
         let target = git_root.join(path);
@@ -2797,14 +2890,9 @@ fn native_corpus_composition_case(installed: bool) {
         &cancelled,
     )
     .unwrap();
-    reference.charge(512 * 256).unwrap();
     reference
         .visit(captured.len().checked_mul(captured.len()).unwrap())
         .unwrap();
-    let declared = captured
-        .iter()
-        .map(|(p, raw)| (p.as_str(), raw.as_slice()))
-        .collect::<BTreeMap<_, _>>();
     let observed = software
         .members()
         .map(|m| {
@@ -2815,8 +2903,18 @@ fn native_corpus_composition_case(installed: bool) {
             )
         })
         .collect::<Vec<_>>();
-    assert!(reference_metadata_matches(&declared, &observed));
-    drop(declared);
+    reference
+        .charge(
+            captured
+                .values()
+                .try_fold(0usize, |n, raw| {
+                    n.checked_add(raw.len()).and_then(|n| n.checked_add(64))
+                })
+                .unwrap(),
+        )
+        .unwrap();
+    assert!(reference_metadata_matches(&captured, &observed));
+    drop(captured); // no borrowed union outlives any extra owner
     drop(observed);
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&files, &store);
@@ -3208,6 +3306,10 @@ fn native_corpus_composition_case(installed: bool) {
         fs::create_dir_all(to.parent().unwrap()).unwrap();
         fs::write(to, raw).unwrap();
     }
+    let mut expected = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        move_reference_value(retained_expected, &mut guard).unwrap()
+    };
     reconcile_source_home_inputs(&mut expected, &files);
     assert_eq!(
         expected["validation_refs"],

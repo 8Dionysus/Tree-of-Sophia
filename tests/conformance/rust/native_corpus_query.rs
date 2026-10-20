@@ -153,7 +153,13 @@ fn reference_move_number(
     // is a COMPLETE number token validated by the preceding whole strict parse.
     // No f64 cast, unchecked constructor, normalization or arbitrary-string API.
     l.step(1)?;
-    let length = number.lexeme.len();
+    reference_number_from_lexeme(&number.lexeme, l).map(serde_json::Value::Number)
+}
+fn reference_number_from_lexeme(
+    lexeme: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Number> {
+    let length = lexeme.len();
     let capacity = length
         .max(16)
         .checked_next_power_of_two()
@@ -170,28 +176,32 @@ fn reference_move_number(
             .and_then(|n| n.checked_add(32))
             .ok_or(ReferenceError::Budget)?,
     )?;
-    number
-        .lexeme
+    lexeme
         .parse::<serde_json::Number>()
-        .map(serde_json::Value::Number)
         .map_err(|_| ReferenceError::InvalidBinding)
 }
 fn move_reference_document(
     doc: tos_foundation::JsonDocument,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<serde_json::Value> {
-    use serde_json::Value;
-    use tos_foundation::JsonValue as Source;
     l.step(1)?;
     if doc.mode() != tos_foundation::JsonMode::PublishedStrict {
         return Err(ReferenceError::InvalidBinding);
     }
+    move_reference_value(doc.into_root(), l)
+}
+fn move_reference_value(
+    root: tos_foundation::JsonValue,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    use serde_json::Value;
+    use tos_foundation::JsonValue as Source;
     reference_move_layout()?;
     l.bytes(reference_move_workspace()?)?; // BEFORE constructing the 97-slot state
     let mut state = ReferenceMoveState {
         frames: [const { None }; 97],
         depth: 0,
-        next: Some(doc.into_root()),
+        next: Some(root),
         ready: None,
     };
     loop {
@@ -496,6 +506,14 @@ impl ReferenceLimits<'_> {
             .map_err(|_| ReferenceError::Budget)
     }
     fn parse(&mut self, raw: &[u8], ceiling: usize) -> NavResult<serde_json::Value> {
+        let doc = self.strict_document(raw, ceiling)?;
+        move_reference_document(doc, self)
+    }
+    fn strict_document(
+        &mut self,
+        raw: &[u8],
+        ceiling: usize,
+    ) -> NavResult<tos_foundation::JsonDocument> {
         use tos_foundation::{FoundationError, FoundationErrorCode as Code, JsonMode};
         self.step(1)?;
         if raw.len() > ceiling {
@@ -540,7 +558,28 @@ impl ReferenceLimits<'_> {
                 .retained_storage_bytes()
                 .map_err(|_| ReferenceError::Budget)?,
         )?;
-        move_reference_document(doc, self)
+        Ok(doc)
+    }
+    fn retained_root(
+        &mut self,
+        raw: &[u8],
+        ceiling: usize,
+    ) -> NavResult<tos_foundation::JsonValue> {
+        self.bytes(
+            std::mem::size_of::<tos_foundation::JsonDocument>()
+                .checked_add(std::mem::size_of::<tos_foundation::JsonValue>())
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<NavResult<tos_foundation::JsonValue>>())
+                })
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let doc = self.strict_document(raw, ceiling)?;
+        self.step(1)?;
+        reference_move_layout()?; // same selected-layout refusal before scalar compatibility
+        // Compatibility is WHOLE-document and precedes any requested subtree.
+        // Unknown/unselected fields receive the same scalar/first-key checks.
+        reference_source_scan(doc.root(), self, true)?;
+        Ok(doc.into_root())
     }
     fn canonical_value(&mut self, v: &serde_json::Value) -> NavResult<Vec<u8>> {
         use tos_foundation::{
@@ -633,6 +672,212 @@ impl ReferenceLimits<'_> {
         self.bytes(fields.checked_mul(192).ok_or(ReferenceError::Budget)?)
     }
 }
+// A bounded borrowed scan, not a second owned DOM. Every retained root is
+// PublishedStrict plus this complete compatibility walk BEFORE any selection.
+// It deliberately does not apply canonical-value's finite-number/W checks to
+// unselected fields: the old parse facade did not apply those checks either.
+struct ReferenceSourceScan<'a> {
+    frames: [Option<(&'a tos_foundation::JsonValue, usize)>; 97],
+    depth: usize,
+}
+fn reference_source_scan(
+    root: &tos_foundation::JsonValue,
+    l: &mut ReferenceLimits<'_>,
+    compatibility: bool,
+) -> NavResult<()> {
+    use std::mem::size_of;
+    use tos_foundation::JsonValue as Source;
+    let outside = size_of::<Option<(&Source, usize)>>()
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Result<serde_json::Number, serde_json::Error>>()))
+        .ok_or(ReferenceError::Budget)?;
+    l.bytes(
+        size_of::<ReferenceSourceScan<'_>>()
+            // Array initializer/move holder is distinct from the live state.
+            .checked_add(size_of::<[Option<(&Source, usize)>; 97]>())
+            .and_then(|n| n.checked_add(outside))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    let mut state = ReferenceSourceScan {
+        frames: [None; 97],
+        depth: 1,
+    };
+    state.frames[0] = Some((root, 0));
+    while state.depth != 0 {
+        l.step(1)?; // frame/terminal access, including refusal prefixes
+        let (value, cursor) =
+            state.frames[state.depth - 1].ok_or(ReferenceError::InvalidBinding)?;
+        if cursor == 0 {
+            l.step(if compatibility { 1 } else { 3 })?;
+            // false: this scan + upcoming retained-storage walk + clone walk.
+            match value {
+                Source::String(v) => {
+                    let text = v.as_str().ok_or(ReferenceError::InvalidBinding)?;
+                    l.bytes(if compatibility {
+                        text.len()
+                    } else {
+                        v.units()
+                            .len()
+                            .checked_mul(2)
+                            .and_then(|n| n.checked_add(text.len()))
+                            .ok_or(ReferenceError::Budget)?
+                    })?;
+                }
+                Source::Number(v) if compatibility => {
+                    l.step(1)?;
+                    let _ = reference_number_from_lexeme(&v.lexeme, l)?;
+                }
+                Source::Number(v) => l.bytes(v.lexeme.len())?,
+                Source::Object(v) if compatibility => {
+                    if let Some((key, _)) = v.first() {
+                        let key = key.as_str().ok_or(ReferenceError::InvalidBinding)?;
+                        l.bytes(
+                            key.len()
+                                .min(29)
+                                .checked_mul(2)
+                                .ok_or(ReferenceError::Budget)?,
+                        )?;
+                        if key == "$serde_json::private::Number"
+                            || key == "$serde_json::private::RawValue"
+                        {
+                            return Err(ReferenceError::UnsupportedSourceProfile);
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
+        let child = match value {
+            Source::Array(v) => v.get(cursor),
+            Source::Object(v) => {
+                if let Some((key, child)) = v.get(cursor) {
+                    l.step(if compatibility { 1 } else { 3 })?;
+                    let text = key.as_str().ok_or(ReferenceError::InvalidBinding)?;
+                    l.bytes(if compatibility {
+                        text.len()
+                    } else {
+                        key.units()
+                            .len()
+                            .checked_mul(2)
+                            .and_then(|n| n.checked_add(text.len()))
+                            .ok_or(ReferenceError::Budget)?
+                    })?;
+                    Some(child)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+        if let Some(child) = child {
+            if state.depth == state.frames.len() {
+                return Err(ReferenceError::Budget);
+            }
+            state.frames[state.depth - 1] =
+                Some((value, cursor.checked_add(1).ok_or(ReferenceError::Budget)?));
+            state.frames[state.depth] = Some((child, 0));
+            state.depth += 1;
+        } else {
+            state.depth -= 1;
+            state.frames[state.depth] = None;
+        }
+    }
+    Ok(())
+}
+// No object_get's temporary UTF-16 allocation. Full bounded linear reads are
+// admitted, including absent/malformed-member prefixes, before comparison.
+fn reference_source_member<'a>(
+    value: &'a tos_foundation::JsonValue,
+    name: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<Option<&'a tos_foundation::JsonValue>> {
+    l.step(1)?;
+    if let Some(entries) = value.as_object() {
+        for (key, value) in entries {
+            l.step(1)?;
+            let key = key.as_str().ok_or(ReferenceError::InvalidBinding)?;
+            l.bytes(
+                key.len()
+                    .checked_add(name.len())
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            if key == name {
+                return Ok(Some(value));
+            }
+        }
+    }
+    Ok(None)
+}
+fn reference_source_array<'a>(
+    value: &'a tos_foundation::JsonValue,
+    name: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<&'a [tos_foundation::JsonValue]> {
+    reference_source_member(value, name, l)?
+        .and_then(tos_foundation::JsonValue::as_array)
+        .ok_or(ReferenceError::InvalidBinding)
+}
+fn reference_source_str<'a>(
+    value: &'a tos_foundation::JsonValue,
+    name: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<&'a str> {
+    reference_source_member(value, name, l)?
+        .and_then(tos_foundation::JsonValue::as_str)
+        .filter(|s| !s.is_empty())
+        .ok_or(ReferenceError::InvalidBinding)
+}
+fn reference_take_member(
+    root: &mut tos_foundation::JsonValue,
+    name: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<tos_foundation::JsonValue> {
+    l.step(1)?;
+    l.bytes(
+        std::mem::size_of::<tos_foundation::JsonValue>()
+            .checked_mul(2)
+            .and_then(|n| {
+                n.checked_add(std::mem::size_of::<NavResult<tos_foundation::JsonValue>>())
+            })
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    if let tos_foundation::JsonValue::Object(entries) = root {
+        for (key, value) in entries {
+            l.step(1)?;
+            let key = key.as_str().ok_or(ReferenceError::InvalidBinding)?;
+            l.bytes(
+                key.len()
+                    .checked_add(name.len())
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            if key == name {
+                return Ok(std::mem::replace(value, tos_foundation::JsonValue::Null));
+            }
+        }
+    }
+    Err(ReferenceError::InvalidBinding)
+}
+fn reference_requested_value(
+    value: &tos_foundation::JsonValue,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    // Only private callers below borrow fully admitted immutable roots. Clone
+    // creates exactly len slots/text, bounded by the already-owned capacities;
+    // pay its full retained bound, inline root and read walk BEFORE cloning.
+    reference_source_scan(value, l, false)?;
+    l.bytes(
+        value
+            .retained_storage_bytes()
+            .map_err(|_| ReferenceError::Budget)?
+            .checked_add(std::mem::size_of::<tos_foundation::JsonValue>())
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    move_reference_value(value.clone(), l)
+}
 fn nav_str<'a>(v: &'a serde_json::Value, key: &str) -> NavResult<&'a str> {
     v.get(key)
         .and_then(serde_json::Value::as_str)
@@ -652,8 +897,8 @@ fn nav_label<'a>(display: Option<&'a str>, preferred: Option<&'a str>, id: &'a s
         .unwrap_or(id)
 }
 struct NavigationRegistries {
-    entities: serde_json::Value,
-    relations: serde_json::Value,
+    entities: tos_foundation::JsonValue,
+    relations: tos_foundation::JsonValue,
     type_index: BTreeMap<String, usize>,
     predicate_index: BTreeMap<String, (usize, usize)>,
 }
@@ -683,31 +928,42 @@ impl NavigationRegistries {
         let relation = files
             .get("ToS/doctrine/semantic-interchange/relation-types.v1.json")
             .ok_or(ReferenceError::InvalidBinding)?;
-        let entities = l.parse(entity, l.max_file_bytes)?;
-        let relations = l.parse(relation, l.max_file_bytes)?;
+        let entities = l.retained_root(entity, l.max_file_bytes)?;
+        let relations = l.retained_root(relation, l.max_file_bytes)?;
         let mut type_index = BTreeMap::new();
         let mut predicate_index = BTreeMap::new();
-        for (i, t) in nav_array(&entities, "types")?.iter().enumerate() {
+        for (i, t) in reference_source_array(&entities, "types", l)?
+            .iter()
+            .enumerate()
+        {
             l.step(2)?;
-            let id = nav_str(t, "type_id")?;
+            let id = reference_source_str(t, "type_id", l)?;
             l.bytes(id.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
             if type_index.insert(id.to_owned(), i).is_some() {
                 return Err(ReferenceError::DuplicateIdentity);
             }
         }
         let mut relation_ids = std::collections::BTreeSet::new();
-        for (i, relation) in nav_array(&relations, "relations")?.iter().enumerate() {
+        for (i, relation) in reference_source_array(&relations, "relations", l)?
+            .iter()
+            .enumerate()
+        {
             l.step(2)?;
             l.bytes(128)?;
-            if !relation_ids.insert(nav_str(relation, "relation_type_id")?) {
+            if !relation_ids.insert(reference_source_str(relation, "relation_type_id", l)?) {
                 return Err(ReferenceError::DuplicateIdentity);
             }
-            for (j, mapping) in nav_array(relation, "source_mappings")?.iter().enumerate() {
+            for (j, mapping) in reference_source_array(relation, "source_mappings", l)?
+                .iter()
+                .enumerate()
+            {
                 l.step(3)?;
-                if mapping["source_graph"] == "source-claims"
-                    && mapping["scope"] == "claim-predicate"
-                {
-                    let predicate = nav_str(mapping, "source_predicate_id")?;
+                let graph = reference_source_member(mapping, "source_graph", l)?
+                    .and_then(tos_foundation::JsonValue::as_str);
+                let scope = reference_source_member(mapping, "scope", l)?
+                    .and_then(tos_foundation::JsonValue::as_str);
+                if graph == Some("source-claims") && scope == Some("claim-predicate") {
+                    let predicate = reference_source_str(mapping, "source_predicate_id", l)?;
                     l.bytes(
                         predicate
                             .len()
@@ -729,6 +985,17 @@ impl NavigationRegistries {
             type_index,
             predicate_index,
         })
+    }
+    fn relation(&self, index: usize, l: &mut ReferenceLimits<'_>) -> NavResult<serde_json::Value> {
+        let row = reference_source_array(&self.relations, "relations", l)?
+            .get(index)
+            .ok_or(ReferenceError::InvalidBinding)?;
+        reference_requested_value(row, l)
+    }
+    fn template(&self, l: &mut ReferenceLimits<'_>) -> NavResult<serde_json::Value> {
+        let row = reference_source_member(&self.relations, "claim_navigation_template", l)?
+            .ok_or(ReferenceError::InvalidBinding)?;
+        reference_requested_value(row, l)
     }
 }
 impl<'a> DeclaredNavigationInputs<'a> {
@@ -1111,13 +1378,17 @@ fn nav_type_matches(
     reg: &NavigationRegistries,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<bool> {
-    let types = nav_array(&reg.entities, "types")?;
+    let types = reference_source_array(&reg.entities, "types", l)?;
     let mut start = None;
     for (i, t) in types.iter().enumerate() {
         l.step(1)?;
-        for mapping in nav_array(t, "source_mappings")? {
+        for mapping in reference_source_array(t, "source_mappings", l)? {
             l.step(2)?;
-            if mapping["source_graph"] == "source-claims" && mapping["source_kind_id"] == kind {
+            let graph = reference_source_member(mapping, "source_graph", l)?
+                .and_then(tos_foundation::JsonValue::as_str);
+            let mapped_kind = reference_source_member(mapping, "source_kind_id", l)?
+                .and_then(tos_foundation::JsonValue::as_str);
+            if graph == Some("source-claims") && mapped_kind == Some(kind) {
                 if start.replace(i).is_some() {
                     return Err(ReferenceError::DuplicateIdentity);
                 }
@@ -1125,7 +1396,10 @@ fn nav_type_matches(
         }
     }
     let start = start.ok_or(ReferenceError::UnsupportedSourceProfile)?;
-    if types[start]["abstract"] != false {
+    if reference_source_member(&types[start], "abstract", l)?
+        .and_then(tos_foundation::JsonValue::as_bool)
+        != Some(false)
+    {
         return Err(ReferenceError::UnsupportedSourceProfile);
     }
     let mut todo = Vec::new();
@@ -1153,12 +1427,12 @@ fn nav_type_matches(
         for allowed in domain {
             l.step(1)?;
             if allowed.as_str().ok_or(ReferenceError::InvalidBinding)?
-                == nav_str(&types[i], "type_id")?
+                == reference_source_str(&types[i], "type_id", l)?
             {
                 matches = true;
             }
         }
-        for parent in nav_array(&types[i], "parent_type_ids")? {
+        for parent in reference_source_array(&types[i], "parent_type_ids", l)? {
             l.step(1)?;
             let id = parent.as_str().ok_or(ReferenceError::InvalidBinding)?;
             let index = *reg
@@ -1189,7 +1463,8 @@ fn nav_descriptor(
         .predicate_index
         .get(nav_str(c, "predicate")?)
         .ok_or(ReferenceError::UnsupportedSourceProfile)?;
-    let relation = &reg.relations["relations"][ri];
+    let requested_relation = reg.relation(ri, l)?;
+    let relation = &requested_relation;
     let mapping = &relation["source_mappings"][mi];
     let profile = &relation["source_claim_profile"];
     if relation["abstract"] != false
@@ -1242,7 +1517,8 @@ fn nav_descriptor(
     {
         return Err(ReferenceError::UnsupportedSourceProfile);
     }
-    let template = &reg.relations["claim_navigation_template"];
+    let requested_template = reg.template(l)?;
+    let template = &requested_template;
     if template["reader"] != "claim-navigation-v1" || template["purpose"] != "claim-navigation-only"
     {
         return Err(ReferenceError::UnsupportedSourceProfile);
@@ -2024,6 +2300,11 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
             serde_json::from_slice(raw).map_err(|_| ReferenceError::InvalidBinding)?;
         let actual = l.parse(raw, l.max_record_bytes)?;
         assert_eq!(actual, expected);
+        let retained = l.retained_root(raw, l.max_record_bytes)?;
+        let requested = reference_requested_value(&retained, l)?;
+        l.compare_work(&requested, 0)?;
+        l.compare_work(&expected, 0)?;
+        assert_eq!(requested, expected);
         // Value equality alone does not certify IndexMap insertion order. The
         // bounded root/child objects in these authored controls check it too.
         if let (Some(actual), Some(expected)) = (actual.as_object(), expected.as_object()) {
@@ -2048,6 +2329,10 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
             l.parse(raw, l.max_record_bytes),
             Err(ReferenceError::UnsupportedSourceProfile)
         );
+        assert_eq!(
+            l.retained_root(raw, l.max_record_bytes),
+            Err(ReferenceError::UnsupportedSourceProfile)
+        );
     }
     for raw in [
         &br#"{"$serde_json::private::Number":"123","tail":]}"#[..],
@@ -2066,7 +2351,28 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
             l.parse(raw, l.max_record_bytes),
             Err(ReferenceError::InvalidBinding)
         );
+        assert_eq!(
+            l.retained_root(raw, l.max_record_bytes),
+            Err(ReferenceError::InvalidBinding)
+        );
     }
+    // Even an UNSELECTED nested reserved-first object must refuse before a
+    // caller can extract the innocuous requested sibling.
+    assert_eq!(
+        l.retained_root(
+            br#"{"requested":1,"unused":{"$serde_json::private::Number":"1"}}"#,
+            l.max_record_bytes
+        ),
+        Err(ReferenceError::UnsupportedSourceProfile)
+    );
+    // A malformed tail still wins over the earlier reserved-key profile.
+    assert_eq!(
+        l.retained_root(
+            br#"{"requested":1,"unused":{"$serde_json::private::Number":"1"},"tail":]}"#,
+            l.max_record_bytes
+        ),
+        Err(ReferenceError::InvalidBinding)
+    );
     // One borrowed over-depth literal, with no generated runtime input buffer.
     // The strict parser rejects it BEFORE the move workspace/profile is entered.
     let too_deep = b"[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
@@ -2284,6 +2590,45 @@ fn navigation_reference_variants(
     for (_, _, value) in &mut sources {
         nav_rewrite_strings(value, &replacements, l, 0)?;
     }
+    // Finish the owned authored mutation BEFORE its first wire/parse. This is
+    // the same final source as the former serialize/parse/mutate/serialize path.
+    // Final nine members still receive complete strict admission below.
+    let second = "ToS/research-packets/reference-input-variant/SECOND.md";
+    let mut added_evidence = false;
+    for (path, line, value) in &mut sources {
+        let mut is_claim = false;
+        for declared in &inputs.claims {
+            l.step(1)?;
+            l.bytes(
+                path.len()
+                    .checked_add(declared.path.len())
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            if *path == declared.path.as_str() && *line == declared.line {
+                is_claim = true;
+            }
+        }
+        if is_claim {
+            l.fixed(1)?;
+            let evidence = value["evidence_refs"]
+                .as_array_mut()
+                .ok_or(ReferenceError::InvalidBinding)?;
+            l.bytes(
+                evidence
+                    .len()
+                    .checked_add(1)
+                    .and_then(|n| n.checked_mul(128))
+                    .and_then(|n| n.checked_add(second.len()))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            evidence.reserve_exact(1);
+            evidence.push(json!(second));
+            added_evidence = true;
+        }
+    }
+    if !added_evidence {
+        return Err(ReferenceError::UnsupportedSourceProfile);
+    }
     // Exact new subject references derive from the NEW source records, not from
     // an old digest with a renamed label. Raw file hashes remain a separate domain.
     let mut refs = BTreeMap::new();
@@ -2367,15 +2712,13 @@ fn navigation_reference_variants(
             return Err(ReferenceError::UnsupportedSourceProfile);
         }
     }
-    let second = "ToS/research-packets/reference-input-variant/SECOND.md";
     l.bytes(second.len() + 256 + 35)?;
     files.insert(
         second.to_owned(),
         b"# Independent second evidence\n".to_vec(),
     );
-    // Append evidence before recomputing Claim subject/form refs. The variant
-    // records are rebuilt once below so all dependent exact refs remain honest.
-    let mut added_evidence = false;
+    // Original evidence remains a separately bound raw input. Subject/form refs
+    // above already refer to the final mutated Claim, not an intermediate wire.
     for source in &inputs.claims {
         for evidence in nav_array(&source.value, "evidence_refs")? {
             l.step(1)?;
@@ -2392,49 +2735,6 @@ fn navigation_reference_variants(
             )?;
             files.insert(path.to_owned(), raw.clone());
         }
-        let path = &replacements[&source.path];
-        let raw = files.get(path).ok_or(ReferenceError::InvalidBinding)?;
-        let mut claim = l.parse(raw, l.max_record_bytes)?;
-        l.fixed(1)?;
-        claim["evidence_refs"]
-            .as_array_mut()
-            .ok_or(ReferenceError::InvalidBinding)?
-            .push(json!(second));
-        let sha = l.digest(&claim)?;
-        let new_ref = json!({"id":claim["claim_id"],"version":claim["claim_version"],"digest":format!("sha256:{sha}")});
-        files.insert(path.clone(), nav_variant_raw(&claim, l)?);
-        for form_source in inputs.forms.values() {
-            if form_source.value["subject"]["id"] != source.value["claim_id"] {
-                continue;
-            }
-            l.step(1)?;
-            let form_path = &replacements[&form_source.path];
-            let mut forms = l.parse(
-                files.get(form_path).ok_or(ReferenceError::InvalidBinding)?,
-                l.max_record_bytes,
-            )?;
-            forms["subject"] = l.copy(&new_ref)?;
-            for form in forms["forms"]
-                .as_array_mut()
-                .ok_or(ReferenceError::InvalidBinding)?
-            {
-                l.step(1)?;
-                form["subject"] = l.copy(&new_ref)?;
-                for binding in form["bindings"]
-                    .as_object_mut()
-                    .ok_or(ReferenceError::InvalidBinding)?
-                    .values_mut()
-                {
-                    l.step(1)?;
-                    binding["record"] = l.copy(&new_ref)?;
-                }
-            }
-            files.insert(form_path.clone(), nav_variant_raw(&forms, l)?);
-        }
-        added_evidence = true;
-    }
-    if !added_evidence {
-        return Err(ReferenceError::UnsupportedSourceProfile);
     }
     // Schema dependencies are declared RAW inputs, not inferred from a product
     // schema list. Borrowing registry roots does not remove their input fixity.
@@ -2445,7 +2745,8 @@ fn navigation_reference_variants(
             .predicate_index
             .get(nav_str(&claim.value, "predicate")?)
             .ok_or(ReferenceError::UnsupportedSourceProfile)?;
-        let relation = &inputs.registries.relations["relations"][*index];
+        let requested_relation = inputs.registries.relation(*index, l)?;
+        let relation = &requested_relation;
         for schema in nav_array(&relation["source_claim_profile"], "schemas")? {
             l.step(1)?;
             if schema["schema_version"] != claim.value["schema_version"] {
