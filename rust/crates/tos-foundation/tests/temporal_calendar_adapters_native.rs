@@ -1,5 +1,5 @@
-use tos_foundation::temporal::{calendar_adapters::*, TemporalBudget};
-use tos_foundation::{parse_json, JsonLimits, JsonMode, JsonValue};
+use tos_foundation::temporal::{TemporalBudget, calendar_adapters::*};
+use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 fn parse(s: &str) -> JsonValue {
     parse_json(
         s.as_bytes(),
@@ -399,7 +399,7 @@ fn stored_crosswalk_wrapper(id: &str, version: u64, prior: &JsonValue) -> JsonVa
 }
 
 fn stored_crosswalk_request(root: &JsonValue) -> JsonValue {
-    use tos_foundation::{canonical_bytes_v1, CanonicalProfile, Digest256};
+    use tos_foundation::{CanonicalProfile, Digest256, canonical_bytes_v1};
     let bytes = canonical_bytes_v1(
         root,
         CanonicalProfile::SourceRecordDigestV1,

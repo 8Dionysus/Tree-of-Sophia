@@ -1,7 +1,7 @@
 //! Independent test-only transport for R/T3; no expected answers cross this seam.
 use std::{env, fs};
-use tos_foundation::temporal::{execute_temporal_operation, TemporalBudget};
-use tos_foundation::{emit_value_preserved_json, parse_json, JsonLimits, JsonMode};
+use tos_foundation::temporal::{TemporalBudget, execute_temporal_operation};
+use tos_foundation::{JsonLimits, JsonMode, emit_value_preserved_json, parse_json};
 
 #[test]
 #[ignore = "requires an explicit R/T3 request/output and admitted resource slot"]

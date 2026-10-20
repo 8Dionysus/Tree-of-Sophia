@@ -1,5 +1,5 @@
-use tos_foundation::temporal::{codecs::capture_tei, TemporalBudget};
-use tos_foundation::{parse_json, JsonLimits, JsonMode, JsonValue};
+use tos_foundation::temporal::{TemporalBudget, codecs::capture_tei};
+use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 fn parse(s: &str) -> JsonValue {
     parse_json(
         s.as_bytes(),
@@ -123,7 +123,9 @@ fn interval_roles_and_inclusive_granularity_do_not_collapse() {
 #[test]
 fn precision_targets_are_local_and_ids_are_data() {
     for id in ["date001", "renamed-source-λ"] {
-        let xml=format!("<date xml:id='{id}' notBefore='0014' notAfter='0064'>text</date><precision target='#{id}' match='@notBefore' precision='high'/><precision target='#{id}' match='@notAfter' precision='low'/>");
+        let xml = format!(
+            "<date xml:id='{id}' notBefore='0014' notAfter='0064'>text</date><precision target='#{id}' match='@notBefore' precision='high'/><precision target='#{id}' match='@notAfter' precision='low'/>"
+        );
         let r = run(&xml);
         assert_eq!(s(&r, "status"), Some("Complete"));
         let v = f(&r, "value");
