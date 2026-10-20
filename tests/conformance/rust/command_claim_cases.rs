@@ -2761,9 +2761,23 @@ fn rich_package(
         // The complete preflight reservation precedes every Vec/string clone.
         let sha = rich_field(binding, "sha256", b)?;
         let bytes = rich_field(binding, "bytes", b)?;
-        if !matches!(sha, JsonValue::String(_)) || !matches!(bytes, JsonValue::Number(_)) {
+        let (JsonValue::String(sha_text), JsonValue::Number(byte_number)) = (sha, bytes) else {
             return Err(ClaimReferenceError::InvalidInput);
-        }
+        };
+        // Metadata/state admission is not copy work. Pay source-buffer read and
+        // destination writes before either scalar Clone or UTF-16 conversion.
+        b.base.work(0, 64)?;
+        let copy_work = sha_text
+            .units()
+            .len()
+            .checked_mul(2)
+            .and_then(|n| sha_text.as_str().and_then(|s| n.checked_add(s.len())))
+            .and_then(|n| n.checked_add(byte_number.lexeme.len()))
+            .and_then(|n| n.checked_mul(2))
+            .and_then(|n| name.len().checked_mul(6).and_then(|v| n.checked_add(v)))
+            .and_then(|n| n.checked_add(66)) // six units per byte of fixed keys
+            .ok_or(ClaimReferenceError::Limit)?;
+        b.base.work(copy_work, 16)?;
         fingerprint.push((
             tos_foundation::JsonString::from_utf8(name),
             JsonValue::Object(vec![
