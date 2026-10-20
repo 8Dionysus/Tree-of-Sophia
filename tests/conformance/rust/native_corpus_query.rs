@@ -2529,8 +2529,40 @@ fn navigation_reference_variants_body(
     let original_row = nav_array(original, "nodes")?
         .first()
         .ok_or(ReferenceError::InvalidBinding)?;
-    let mut colliding = l.copy(original_row)?;
-    colliding["properties"] = Value::Null;
+    // Construct the SAME collision row without cloning a properties subtree
+    // that is immediately discarded. Keep every other complete field. This
+    // changes ownership/construction only, not the Conflict input or assertion.
+    let original_fields = original_row
+        .as_object()
+        .ok_or(ReferenceError::InvalidBinding)?;
+    l.step(1)?;
+    l.bytes(128)?; // same logical object-header admission as copy/value_bound
+    let mut colliding_fields = serde_json::Map::new();
+    for (key, value) in original_fields {
+        l.step(3)?; // field traversal, replacement decision and map insertion
+        l.bytes(
+            key.len()
+                .checked_mul(6)
+                .and_then(|n| n.checked_add(4 + 96))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let value = if key == "properties" {
+            l.step(1)?;
+            l.bytes(128)?; // admit the constructed Null, not the discarded tree
+            Value::Null
+        } else {
+            l.copy(value)?
+        };
+        colliding_fields.insert(key.clone(), value);
+    }
+    // The independently constructed navigation node profile has this required
+    // field; do not silently broaden this constructor to other row profiles.
+    l.step(1)?;
+    l.bytes("properties".len())?;
+    if !colliding_fields.contains_key("properties") {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    let colliding = Value::Object(colliding_fields);
     let mut collision_rows = BTreeMap::new();
     let mut collision_bytes = 0usize;
     let row_copy = l.copy(original_row)?;
