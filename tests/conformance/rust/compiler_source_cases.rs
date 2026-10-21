@@ -290,6 +290,71 @@ impl ReferenceDiagnostic {
         let _ = self.output.write(&self.buffer[..self.used]);
     }
 }
+// Test-owned cumulative scenario work; not RAM, a product quota or a new clock.
+// The original source_inputs bootstrap remains 32 MiB / 1 M visits.
+const COMPOSITION_REFERENCE_SCENARIO_V2_BYTES: usize = 2_147_483_648;
+const COMPOSITION_REFERENCE_SCENARIO_V2_VISITS: usize = 67_108_864;
+struct CompositionPhase {
+    attempted: bool,
+}
+// Compile-time inventory: caller owner/initializer, helper arguments, checked
+// subtraction/move/return and cutoff holders. No runtime fee calculator.
+const COMPOSITION_PHASE_SETUP_BYTES: usize = 2 * std::mem::size_of::<CompositionPhase>()
+    + 2 * std::mem::size_of::<&mut CompositionPhase>()
+    + 4 * std::mem::size_of::<&mut CurrentReference>()
+    + 3 * std::mem::size_of::<&AtomicBool>()
+    + 24 * std::mem::size_of::<usize>()
+    + 4 * std::mem::size_of::<Option<usize>>()
+    + 12 * std::mem::size_of::<bool>()
+    + 8 * std::mem::size_of::<Result<(), &'static str>>()
+    + 8 * std::mem::size_of::<&'static str>()
+    + 4 * std::mem::size_of::<&usize>()
+    + 2 * std::mem::size_of::<Ordering>()
+    + 2 * std::mem::size_of::<Instant>()
+    + 2 * std::mem::size_of::<&Instant>();
+fn activate_composition_reference_scenario_v2(
+    work: &mut CurrentReference,
+    cancelled: &AtomicBool,
+    phase: &mut CompositionPhase,
+) -> Result<(), &'static str> {
+    work.visit(64)?; // BEFORE phase read and all fixed activation work
+    if phase.attempted {
+        return Err("composition reference phase already attempted");
+    }
+    phase.attempted = true; // no retry/new owner on any later error
+    if cancelled.load(Ordering::Relaxed) {
+        return Err("composition reference cancelled");
+    }
+    if COMPOSITION_REFERENCE_SCENARIO_V2_BYTES < 32 * 1024 * 1024
+        || COMPOSITION_REFERENCE_SCENARIO_V2_VISITS < 1_000_000
+    {
+        return Err("composition reference profile below bootstrap");
+    }
+    // Both snapshots include the setup AND activation admissions above.
+    let old_b = work.left;
+    let old_v = work.visits_left;
+    let Some(spent_b) = (32usize * 1024 * 1024).checked_sub(old_b) else {
+        return Err("composition reference bootstrap bytes");
+    };
+    let Some(spent_v) = 1_000_000usize.checked_sub(old_v) else {
+        return Err("composition reference bootstrap visits");
+    };
+    let Some(next_b) = COMPOSITION_REFERENCE_SCENARIO_V2_BYTES.checked_sub(spent_b) else {
+        return Err("composition reference scenario bytes");
+    };
+    let Some(next_v) = COMPOSITION_REFERENCE_SCENARIO_V2_VISITS.checked_sub(spent_v) else {
+        return Err("composition reference scenario visits");
+    };
+    if cancelled.load(Ordering::Relaxed) {
+        return Err("composition reference cancelled");
+    }
+    work.charge(0)?; // original absolute deadline, before the callback-free commit
+    // TOTAL - next == actual spent. No fallible operation between these stores.
+    work.left = next_b;
+    work.visits_left = next_v;
+    Ok(())
+}
+
 struct CurrentReference {
     commit: String,
     left: usize,
@@ -2949,6 +3014,16 @@ fn native_corpus_composition_case(installed: bool) {
         let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
         let registries = NavigationRegistries::from_files(&files, &mut guard).unwrap();
         let inputs = DeclaredNavigationInputs::from_files(&files, &registries, &mut guard).unwrap();
+        // OLD bootstrap pays BEFORE the phase owner and helper reborrows exist.
+        guard.work.visit(64).unwrap();
+        guard.work.charge(COMPOSITION_PHASE_SETUP_BYTES).unwrap();
+        let mut composition_phase = CompositionPhase { attempted: false };
+        activate_composition_reference_scenario_v2(
+            &mut *guard.work,
+            guard.cancelled,
+            &mut composition_phase,
+        )
+        .unwrap();
         historical_builder_handoff_payment(&mut guard).unwrap();
         let (nav, historical_navigation) =
             expected_source_navigation_owned(historical_navigation, &inputs, guard.reborrow())

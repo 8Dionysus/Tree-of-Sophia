@@ -261,12 +261,19 @@ fn move_reference_value(
     use tos_foundation::JsonValue as Source;
     reference_move_layout()?;
     l.bytes(reference_move_workspace()?)?; // BEFORE Vec/state/growth holders
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = ReferenceMoveState {
         frames: Vec::new(),
         depth: 0,
         next: Some(root),
         ready: None,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     loop {
         l.step(1)?; // transition, including terminal/error transitions
@@ -472,6 +479,17 @@ impl<'a> ReferenceLimits<'a> {
         }
     }
 }
+// Local operation ceilings remain separate from cumulative scenario work.
+const REFERENCE_JSON_OPERATION_VISITS: usize = 1_000_000;
+const REFERENCE_OPERATION_STATE_BYTES: usize = 32 * 1024 * 1024;
+// Lifetime parameters here name sizes only; no static borrow is constructed.
+const REFERENCE_POLICY_SNAPSHOT_BYTES: usize = 3 * std::mem::size_of::<usize>()
+    + std::mem::size_of::<bool>()
+    + std::mem::size_of::<&CurrentReference>()
+    + std::mem::size_of::<&mut ReferenceLimits<'static>>()
+    + std::mem::size_of::<&ReferenceLimits<'static>>()
+    + 2 * std::mem::size_of::<NavResult<()>>();
+
 impl ReferenceLimits<'_> {
     #[track_caller]
     fn step(&mut self, n: usize) -> NavResult<()> {
@@ -574,8 +592,19 @@ impl ReferenceLimits<'_> {
         Ok(v.clone())
     }
     fn json_limits(&self, bytes: usize) -> NavResult<tos_foundation::JsonLimits> {
-        tos_foundation::JsonLimits::new(bytes, 96, self.work.visits_left, 4096)
-            .map_err(|_| ReferenceError::Budget)
+        // Caller prepaid BEFORE this immutable receiver/argument evaluation.
+        // No admission here: paired visits/state snapshots are both post-fee.
+        tos_foundation::JsonLimits::new(
+            bytes,
+            96,
+            if self.work.visits_left > REFERENCE_JSON_OPERATION_VISITS {
+                REFERENCE_JSON_OPERATION_VISITS
+            } else {
+                self.work.visits_left
+            },
+            4096,
+        )
+        .map_err(|_| ReferenceError::Budget)
     }
     fn parse(&mut self, raw: &[u8], ceiling: usize) -> NavResult<serde_json::Value> {
         let doc = self.strict_document(raw, ceiling)?;
@@ -591,8 +620,17 @@ impl ReferenceLimits<'_> {
         if raw.len() > ceiling {
             return Err(ReferenceError::Budget);
         }
+        // BOTH units BEFORE factory receiver and either final snapshot.
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
         let json = self.json_limits(ceiling)?;
-        let available = self.work.left;
+        let available = if self.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            self.work.left
+        };
         let deadline = self.work.deadline;
         let cancelled = self.cancelled;
         let doc = tos_foundation::parse_json_with_state_budget_and_admission(
@@ -647,6 +685,11 @@ impl ReferenceLimits<'_> {
         // BEFORE depth selection/F arithmetic; json_limits must capture visits
         // after this additional work, never the earlier larger remainder.
         self.step(16)?;
+        // BOTH units BEFORE factory receiver and either final snapshot.
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
         let mut json = match self.json_limits(ceiling) {
             Ok(json) => json,
             Err(error) => {
@@ -663,7 +706,11 @@ impl ReferenceLimits<'_> {
                 + std::mem::size_of::<tos_foundation::JsonString>()
                 + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>()
                 + 2 * std::mem::size_of::<Vec<tos_foundation::JsonValue>>());
-        let available = self.work.left;
+        let available = if self.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            self.work.left
+        };
         let deadline = self.work.deadline;
         let cancelled = self.cancelled;
         let parsed = tos_foundation::parse_json_with_state_budget_and_admission(
@@ -771,8 +818,17 @@ impl ReferenceLimits<'_> {
             root.retained_storage_bytes()
                 .map_err(|_| ReferenceError::Budget)?,
         )?;
+        // BOTH units BEFORE factory receiver and either final snapshot.
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
         let json = self.json_limits(self.max_output_bytes)?;
-        let available = self.work.left;
+        let available = if self.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            self.work.left
+        };
         let deadline = self.work.deadline;
         let cancelled = self.cancelled;
         let (bytes, _) =
@@ -810,8 +866,17 @@ impl ReferenceLimits<'_> {
         let bound = self.value_bound(v, 0)?;
         self.bytes(bound)?;
         let raw = serde_json::to_vec(v).map_err(|_| ReferenceError::InvalidBinding)?;
+        // BOTH units BEFORE factory receiver and either final snapshot.
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
         let json = self.json_limits(self.max_output_bytes)?;
-        let available = self.work.left;
+        let available = if self.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            self.work.left
+        };
         let deadline = self.work.deadline;
         let cancelled = self.cancelled;
         let doc = tos_foundation::parse_json_with_state_budget_and_admission(
@@ -852,8 +917,17 @@ impl ReferenceLimits<'_> {
                 .retained_storage_bytes()
                 .map_err(|_| ReferenceError::Budget)?,
         )?;
+        // BOTH units BEFORE factory receiver and either final snapshot.
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
+        self.step(8)?;
+        self.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
         let json = self.json_limits(self.max_output_bytes)?;
-        let available = self.work.left;
+        let available = if self.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            self.work.left
+        };
         let deadline = self.work.deadline;
         let cancelled = self.cancelled;
         let (bytes, _) =
@@ -1177,13 +1251,20 @@ fn canonical_preflight_for<C: CanonicalWireCounts>(
     l.step(1)?;
     reference_move_layout()?;
     l.bytes(canonical_plan_workspace::<C>()?)?; // BEFORE Vec/header/transition state
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = CanonicalPlanState::<C> {
         frames: Vec::new(),
         next: Some(v),
         ready: None,
         depth: 0,
         max_frames: 0,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     loop {
         l.step(1)?;
@@ -1604,6 +1685,9 @@ fn canonical_number(
     // The maintained parser still charges its COMPLETE own scalar route below.
     l.bytes(capacity)?;
     l.step(1)?;
+    // Scalar component: one unit BEFORE the unchanged immutable factory.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut json = l.json_limits(l.max_output_bytes)?;
     json.max_depth = 1; // typed numeric COMPONENT; whole tree still checks depth96
     json.max_visits = 1; // every callback remains on SAME aggregate CurrentReference
@@ -1678,13 +1762,20 @@ fn canonical_construct(
     if frames.capacity() != max_frames {
         return Err(ReferenceError::Budget);
     }
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = CanonicalBuildState {
         frames,
         next: Some(v),
         ready: None,
         depth: 0,
         held: 0,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     loop {
         l.step(1)?;
@@ -1882,10 +1973,43 @@ fn reference_source_scan(
             .and_then(|n| n.checked_add(outside))
             .ok_or(ReferenceError::Budget)?,
     )?;
+    // Additive mode selection is paid in BOTH modes. The original checked
+    // workspace above admits the sequential calculator carriers before state.
+    l.step(3)?;
+    l.bytes(
+        size_of::<bool>()
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.step(2)?;
+    if compatibility {
+        // Same calculator envelope as the later-defined final-owner macro;
+        // inline here because macro_rules visibility is textual. No extra
+        // helper workspace is reserved on the false requested-value route.
+        l.step(32)?;
+        l.bytes(
+            size_of::<usize>()
+                .checked_mul(16)
+                .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(12)?))
+                .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(4)?))
+                .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(6)?))
+                .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let borrowed = final_pair_borrowed_workspace(l)?;
+        l.bytes(borrowed)?; // BEFORE state and every new Number helper argument
+    }
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = ReferenceSourceScan {
         frames: Vec::new(),
         depth: 0,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     // Inline, nonrecursive entry: every Value still receives the full old
     // semantic checks/fees. Scalars need no scheduling frame or room call.
@@ -1911,7 +2035,16 @@ fn reference_source_scan(
                 }
                 Source::Number(v) if compatibility => {
                     l.step(1)?;
-                    let _ = reference_number_from_lexeme(&v.lexeme, l)?;
+                    l.step(6)?; // BEFORE borrowed argument/result construction
+                    // retained_root completed WHOLE PublishedStrict validation.
+                    // Only the unused numeric temporary disappears; no source
+                    // lexeme is replaced and the whole scan still continues.
+                    match final_pair_borrowed_number(&v.lexeme, l)? {
+                        Some(_) => (),
+                        None => {
+                            let _ = reference_number_from_lexeme(&v.lexeme, l)?;
+                        }
+                    }
                 }
                 Source::Number(v) => l.bytes(v.lexeme.len())?,
                 Source::Array(_) => {
@@ -3520,11 +3653,18 @@ fn final_owner_pair(
 ) -> NavResult<bool> {
     use serde_json::Value;
     use tos_foundation::JsonValue as Source;
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = FinalVariantPairState {
         frames: Vec::new(),
         next: Some((root, Some(expected), 0)),
         agrees: true,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     loop {
         l.step(1)?;
@@ -5940,9 +6080,16 @@ fn navigation_copy(
             .checked_add(1)
             .ok_or(ReferenceError::Budget)?,
     )?)?;
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = NavigationCopyState {
         held: 0,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     navigation_copy_node(v, root_spare, &mut state, l, 0)
 }
@@ -6232,9 +6379,16 @@ fn late_rewrite_navigation_copy(
             .checked_add(1)
             .ok_or(ReferenceError::Budget)?,
     )?)?; // FULL numeric envelope BEFORE state/recursion
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = LateRewriteCopyState {
         held: 0,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
         replacements,
     };
     Ok(late_rewrite_copy_node(original, &mut state, l, 0)?.value)
@@ -6281,9 +6435,16 @@ fn navigation_seed_copy(
             .checked_add(1)
             .ok_or(ReferenceError::Budget)?,
     )?)?;
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut state = NavigationCopyState {
         held: 0,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     let value = navigation_copy_node(v, 0, &mut state, l, 0)?;
     Ok(NavigationSeedCopy {
@@ -8559,13 +8720,20 @@ fn navigation_reference_variants_body(
         proofs,
     } = historical;
     drop(proofs); // consumed BEFORE the first mutation; no restoration reuse
+    // Local state policy is prepaid BEFORE its branch and initializer.
+    l.step(8)?;
+    l.bytes(REFERENCE_POLICY_SNAPSHOT_BYTES)?;
     let mut historical_journal = HistoricalStringJournal {
         entries: Vec::new(),
         path: Vec::with_capacity(historical_plan.max_frames),
         values: historical_plan.values,
         max_path: historical_plan.max_frames,
         paths_held: 0,
-        available: l.work.left,
+        available: if l.work.left > REFERENCE_OPERATION_STATE_BYTES {
+            REFERENCE_OPERATION_STATE_BYTES
+        } else {
+            l.work.left
+        },
     };
     historical_rewrite_strings(&mut old, &replacements, &mut historical_journal, l, 0)?;
     l.step(1)?;
