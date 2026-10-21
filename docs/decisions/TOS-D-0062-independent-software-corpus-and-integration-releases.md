@@ -8,7 +8,15 @@
 - ToS layers: access, source witnesses, derived exports, local KAG provider
 - Tree classes: none
 - Guard families: source-first authority, artifact integrity, compatibility, scoped validation
-- Posture: accepted by explicit operator instruction
+- Posture: accepted; ToS-owned integration orchestration superseded by TOS-D-0072
+
+## Current integration boundary
+
+[TOS-D-0072](TOS-D-0072-repository-independent-execution-and-exports.md)
+supersedes the ToS-owned downstream integration orchestration described below.
+Consumers own their import, indexing and admission outside ToS. Independent
+software/corpus identities, exact-byte obligations and the release separation
+in this record remain in force; historical adapter work is not a ToS prerequisite.
 
 ## Context
 

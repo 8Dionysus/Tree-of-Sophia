@@ -11,6 +11,13 @@ fn push(out: &mut Vec<Issue>, location: &str, message: impl Into<String>) {
 pub fn source_export_issues(sources: &mut RouteSources, port: &Value) -> io::Result<Vec<Issue>> {
     let mut out = Vec::new();
     let family = &port["generated_family"];
+    if port["canonical_owner"] != "Tree-of-Sophia" {
+        push(
+            &mut out,
+            "kag_provider",
+            "ToS source export must remain owned by Tree-of-Sophia",
+        );
+    }
     if family["scope"] != "tos_source_export" {
         return Ok(vec![(
             "kag_provider".into(),

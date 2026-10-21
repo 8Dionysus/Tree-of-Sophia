@@ -47,7 +47,9 @@ This repository owns ToS-level truth about:
 The AoA constitution belongs to `Agents-of-Abyss`; ecosystem deployment belongs to
 `abyss-stack`; derived knowledge infrastructure belongs to `aoa-kag`; typed
 routing belongs to `aoa-sdk`. ToS supplies source-traceable knowledge to those
-systems through its declared handoffs.
+systems through its declared handoffs. These are independent consumers, not
+prerequisites for ToS operation, export, validation or release. ToS does not
+install or invoke their checkouts, skills, builders or validators.
 
 ## Core principles
 
