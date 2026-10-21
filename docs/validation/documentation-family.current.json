@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 2284,
     "human_scope": {
-      "bytes": 7401832,
+      "bytes": 7401883,
       "count": 1076,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -116,12 +116,12 @@
           "lines": 1256
         },
         "tos": {
-          "bytes": 5005854,
+          "bytes": 5005905,
           "count": 726,
-          "lines": 82560
+          "lines": 82558
         }
       },
-      "lines": 121943
+      "lines": 121941
     },
     "surface_kind_counts": {
       "executable": 77,
@@ -173,7 +173,7 @@
         "human": 726,
         "structured": 3702
       },
-      "tracked_surface_bytes": 97912327,
+      "tracked_surface_bytes": 97912277,
       "tracked_surface_count": 4473
     },
     {
@@ -235,7 +235,7 @@
         "human": 2,
         "structured": 2
       },
-      "tracked_surface_bytes": 13493,
+      "tracked_surface_bytes": 13447,
       "tracked_surface_count": 4
     },
     {
@@ -289,7 +289,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "88d7200eac08d4a595fed5a1e66023592f70826b2b41273fe026f77626ce8b18",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "2888ce664b916a2bd8a7144d3a1d81c70eebed4ced98d2a99e30afc343a7fce8",
+  "tracked_surface_digest": "a69e56f4449be550d88734242ae04f2542a525b35f5c627d91f1b1a5dedb8aaf",
   "tracked_surfaces": [
     {
       "bytes": 1647,
@@ -336,7 +336,7 @@
       "currentness": "tracked_source_snapshot",
       "family_id": "agents-other",
       "path": ".agents/agents-route.current.json",
-      "sha256": "672bf8446b85e5e3d4cc3510c686642e4b7751ee72d001b96b8a35e23a53f1e5",
+      "sha256": "fd73931a6a5b78410c7e8bbbeb62dd4213adfd74957bd92fcdc4c9aa7ab5e09c",
       "surface_kind": "structured"
     },
     {
@@ -14892,11 +14892,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 832,
+      "bytes": 731,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/public-compatibility/tos_tiny_entry_route.example.json",
-      "sha256": "eea62b3caf81ad1822de26461a269fbe19e38a9ed710a7e74374aec94ee23930",
+      "sha256": "aff8e58dca456b1f7e485f7e2278e8af3ed708c1177823bfedffa4a6e86cf812",
       "surface_kind": "structured"
     },
     {
@@ -36260,11 +36260,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 6785,
+      "bytes": 6836,
       "currentness": "tracked_source_snapshot",
       "family_id": "tos",
       "path": "ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md",
-      "sha256": "ad6f7ac2f82b3709fe01d6b0a63b037b5f2dc75dfdc6d5d45558229c3e5e4c65",
+      "sha256": "e33ef8a9a855f004b0251493248e7697114dfc784684d0f0d90c96f29fba4bb9",
       "surface_kind": "human"
     },
     {
@@ -41972,11 +41972,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 1508,
+      "bytes": 1462,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/tiny_entry_route.source.json",
-      "sha256": "4f2e386a909951b0016464f6807a524478ecbdf00f46a1799910d3b0dc6b3d13",
+      "sha256": "b4a1c40c75f31b6192e86b867a709cb227f62793a067d13f21706eb53bcf1fda",
       "surface_kind": "structured"
     },
     {
