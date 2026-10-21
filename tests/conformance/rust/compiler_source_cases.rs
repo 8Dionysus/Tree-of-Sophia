@@ -2907,8 +2907,10 @@ fn native_corpus_composition_case(installed: bool) {
         let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
         let registries = NavigationRegistries::from_files(&files, &mut guard).unwrap();
         let inputs = DeclaredNavigationInputs::from_files(&files, &registries, &mut guard).unwrap();
-        let nav =
-            expected_source_navigation(&historical_navigation, &inputs, guard.reborrow()).unwrap();
+        historical_builder_handoff_payment(&mut guard).unwrap();
+        let (nav, historical_navigation) =
+            expected_source_navigation_owned(historical_navigation, &inputs, guard.reborrow())
+                .unwrap();
         navigation_variant_handoff_payment(&mut guard).unwrap();
         navigation_reference_variants(historical_navigation, &nav, inputs, &mut guard).unwrap();
         nav

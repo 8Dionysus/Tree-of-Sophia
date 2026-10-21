@@ -1737,8 +1737,16 @@ fn canonical_construct(
 // PublishedStrict plus this complete compatibility walk BEFORE any selection.
 // It deliberately does not apply canonical-value's finite-number/W checks to
 // unselected fields: the old parse facade did not apply those checks either.
+// Only container continuations are stored. Logical depth is independent of
+// stack indexing: root1 corresponds to JSON value depth0, including scalars.
+#[derive(Clone, Copy)]
+struct ReferenceSourceScanFrame<'a> {
+    value: &'a tos_foundation::JsonValue,
+    cursor: usize,
+    logical_depth: usize,
+}
 struct ReferenceSourceScan<'a> {
-    frames: Vec<(&'a tos_foundation::JsonValue, usize)>,
+    frames: Vec<ReferenceSourceScanFrame<'a>>,
     depth: usize,
     available: usize,
 }
@@ -1749,6 +1757,7 @@ fn reference_source_scan(
 ) -> NavResult<()> {
     use std::mem::size_of;
     use tos_foundation::JsonValue as Source;
+    l.step(32)?; // NEW checked workspace/setup work BEFORE new holders
     let outside = size_of::<Option<(&Source, usize)>>()
         .checked_mul(2)
         .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(8)?))
@@ -1756,10 +1765,25 @@ fn reference_source_scan(
         .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
         .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
         .and_then(|n| n.checked_add(size_of::<Result<serde_json::Number, serde_json::Error>>()))
+        // ALL old outside classes stay paid; parent/inline-entry overlaps add.
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<ReferenceSourceScanFrame<'_>>()
+                    .max(size_of::<Option<ReferenceSourceScanFrame<'_>>>())
+                    .max(size_of::<NavResult<ReferenceSourceScanFrame<'_>>>())
+                    .checked_mul(3)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<(&Source, usize)>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<&Source>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&Source>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
         .ok_or(ReferenceError::Budget)?;
     l.bytes(
         size_of::<ReferenceSourceScan<'_>>()
-            .checked_add(reference_stack_workspace::<(&Source, usize)>()?)
+            .checked_add(reference_stack_workspace::<ReferenceSourceScanFrame<'_>>()?)
             .and_then(|n| n.checked_add(outside))
             .ok_or(ReferenceError::Budget)?,
     )?;
@@ -1768,22 +1792,16 @@ fn reference_source_scan(
         depth: 0,
         available: l.work.left,
     };
-    // The scan has ROOT and SCALAR frames too, not container-only frames.
-    reference_stack_room(&mut state.frames, state.available, l)?;
-    l.step(1)?; // ordinary frame write; storage/growth bytes remain separate
-    state.frames.push((root, 0));
-    state.depth = 1;
-    while state.depth != 0 {
-        l.step(1)?; // frame/terminal access, including refusal prefixes
-        let (value, cursor) = state
-            .frames
-            .get(state.depth - 1)
-            .copied()
-            .ok_or(ReferenceError::InvalidBinding)?;
-        if cursor == 0 {
+    // Inline, nonrecursive entry: every Value still receives the full old
+    // semantic checks/fees. Scalars need no scheduling frame or room call.
+    macro_rules! enter {
+        ($source:expr, $logical_depth:expr) => {{
+            l.step(1)?; // actual source-entry header/discriminant access
+            let entered = $source;
+            let entered_depth = $logical_depth;
             l.step(if compatibility { 1 } else { 3 })?;
             // false: this scan + upcoming retained-storage walk + clone walk.
-            match value {
+            match entered {
                 Source::String(v) => {
                     let text = v.as_str().ok_or(ReferenceError::InvalidBinding)?;
                     l.bytes(if compatibility {
@@ -1801,25 +1819,59 @@ fn reference_source_scan(
                     let _ = reference_number_from_lexeme(&v.lexeme, l)?;
                 }
                 Source::Number(v) => l.bytes(v.lexeme.len())?,
-                Source::Object(v) if compatibility => {
-                    if let Some((key, _)) = v.first() {
-                        let key = key.as_str().ok_or(ReferenceError::InvalidBinding)?;
-                        l.bytes(
-                            key.len()
-                                .min(29)
-                                .checked_mul(2)
-                                .ok_or(ReferenceError::Budget)?,
-                        )?;
-                        if key == "$serde_json::private::Number"
-                            || key == "$serde_json::private::RawValue"
-                        {
-                            return Err(ReferenceError::UnsupportedSourceProfile);
+                Source::Array(_) => {
+                    reference_stack_room(&mut state.frames, state.available, l)?;
+                    l.step(1)?; // actual container frame write, AFTER growth payment
+                    state.frames.push(ReferenceSourceScanFrame {
+                        value: entered,
+                        cursor: 0,
+                        logical_depth: entered_depth,
+                    });
+                    state.depth += 1;
+                }
+                Source::Object(v) => {
+                    reference_stack_room(&mut state.frames, state.available, l)?;
+                    l.step(1)?; // actual container frame write, AFTER growth payment
+                    state.frames.push(ReferenceSourceScanFrame {
+                        value: entered,
+                        cursor: 0,
+                        logical_depth: entered_depth,
+                    });
+                    state.depth += 1;
+                    // Exactly ONCE on entry, never on resumed cursor0.
+                    if compatibility {
+                        if let Some((key, _)) = v.first() {
+                            let key = key.as_str().ok_or(ReferenceError::InvalidBinding)?;
+                            l.bytes(
+                                key.len()
+                                    .min(29)
+                                    .checked_mul(2)
+                                    .ok_or(ReferenceError::Budget)?,
+                            )?;
+                            if key == "$serde_json::private::Number"
+                                || key == "$serde_json::private::RawValue"
+                            {
+                                return Err(ReferenceError::UnsupportedSourceProfile);
+                            }
                         }
                     }
                 }
                 _ => (),
             }
-        }
+        }};
+    }
+    enter!(root, 1usize);
+    while state.depth != 0 {
+        l.step(1)?; // container continuation access, including terminal access
+        let ReferenceSourceScanFrame {
+            value,
+            cursor,
+            logical_depth,
+        } = state
+            .frames
+            .get(state.depth - 1)
+            .copied()
+            .ok_or(ReferenceError::InvalidBinding)?;
         let child = match value {
             Source::Array(v) => v.get(cursor),
             Source::Object(v) => {
@@ -1840,23 +1892,26 @@ fn reference_source_scan(
                     None
                 }
             }
-            _ => None,
+            _ => return Err(ReferenceError::InvalidBinding), // private container-frame invariant
         };
         if let Some(child) = child {
-            if state.depth == 97 {
+            // SAME logical refusal AFTER Object-key processing and BEFORE ANY
+            // child tag/profile/semantic entry, including a SCALAR child.
+            if logical_depth == 97 {
                 return Err(ReferenceError::Budget);
             }
+            l.step(1)?; // NEW checked logical-level propagation
+            let child_logical_depth = logical_depth.checked_add(1).ok_or(ReferenceError::Budget)?;
             let next_cursor = cursor.checked_add(1).ok_or(ReferenceError::Budget)?;
-            reference_stack_room(&mut state.frames, state.available, l)?;
-            l.step(2)?; // parent update + child push, BEFORE both writes
-            *state
+            l.step(1)?; // actual parent cursor write; no scalar child-frame write
+            state
                 .frames
                 .get_mut(state.depth - 1)
-                .ok_or(ReferenceError::InvalidBinding)? = (value, next_cursor);
-            state.frames.push((child, 0));
-            state.depth += 1;
+                .ok_or(ReferenceError::InvalidBinding)?
+                .cursor = next_cursor;
+            enter!(child, child_logical_depth);
         } else {
-            l.step(1)?; // ordinary frame write; storage/growth bytes remain separate
+            l.step(1)?; // actual container pop; backing/capacity remains paid
             state.depth -= 1;
             let _ = state.frames.pop().ok_or(ReferenceError::InvalidBinding)?;
         }
@@ -2992,6 +3047,107 @@ fn nav_merge<Row: std::borrow::Borrow<serde_json::Value>>(
     }
     Ok(())
 }
+// Builder-only closed merge routes. Generic/collision/direct variant READ
+// guards keep the original nav_merge/merge_read_bound implementation.
+fn navigation_merge_workspace() -> NavResult<usize> {
+    use serde_json::Value;
+    use std::mem::size_of;
+    size_of::<Value>()
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(size_of::<&Value>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<&mut BTreeMap<String, Value>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&mut usize>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<NavigationGeometry>>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn navigation_seed_merge_workspace() -> NavResult<usize> {
+    navigation_merge_workspace()?
+        .checked_add(navigation_seed_copy_workspace()?)
+        .ok_or(ReferenceError::Budget)
+}
+fn nav_merge_navigation(
+    rows: &mut BTreeMap<String, serde_json::Value>,
+    row: serde_json::Value,
+    key: &str,
+    output_bytes: &mut usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(2)?;
+    let row_value: &serde_json::Value = &row;
+    let id = nav_str(row_value, key)?;
+    l.step(2)?; // new guard argument/Geometry-result forwarding, BEFORE reads
+    let bound = navigation_w_guard(row_value, l)?.wire;
+    if bound > l.max_row_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    *output_bytes = output_bytes
+        .checked_add(bound)
+        .ok_or(ReferenceError::Budget)?;
+    if *output_bytes > l.max_output_bytes || rows.len() >= l.max_rows {
+        return Err(ReferenceError::Budget);
+    }
+    if let Some(prior) = rows.get(id) {
+        // A full comparison is structural work, not a free final-len check.
+        let prior_value: &serde_json::Value = prior;
+        l.compare_work(prior_value, 0)?;
+        l.compare_work(row_value, 0)?;
+        if prior_value != row_value {
+            return Err(ReferenceError::Conflict);
+        }
+    } else {
+        l.bytes(id.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+        rows.insert(id.to_owned(), row);
+    }
+    Ok(())
+}
+fn nav_merge_navigation_seed(
+    rows: &mut BTreeMap<String, serde_json::Value>,
+    row: NavigationSeedCopy,
+    key: &str,
+    output_bytes: &mut usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(2)?;
+    let row_value: &serde_json::Value = &row.value;
+    let id = nav_str(row_value, key)?;
+    l.step(3)?; // current/stored policy + bound read, AFTER actual ID lookup
+    let bound = if row.max_output_bytes == l.max_output_bytes {
+        row.geometry.wire
+    } else {
+        navigation_w_guard(row_value, l)?.wire // no stale proof under changed policy
+    };
+    if bound > l.max_row_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    *output_bytes = output_bytes
+        .checked_add(bound)
+        .ok_or(ReferenceError::Budget)?;
+    if *output_bytes > l.max_output_bytes || rows.len() >= l.max_rows {
+        return Err(ReferenceError::Budget);
+    }
+    if let Some(prior) = rows.get(id) {
+        // A full comparison is structural work, not a free final-len check.
+        let prior_value: &serde_json::Value = prior;
+        l.compare_work(prior_value, 0)?;
+        l.compare_work(row_value, 0)?;
+        if prior_value != row_value {
+            return Err(ReferenceError::Conflict);
+        }
+    } else {
+        l.bytes(id.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+        l.step(2)?; // BEFORE extracting/moving the exact proved whole owner
+        rows.insert(id.to_owned(), row.value);
+    }
+    l.step(2)?; // helper result forwarding; no returned owner/proof escapes
+    Ok(())
+}
 fn nav_evidence(
     path: &str,
     inputs: &DeclaredNavigationInputs<'_>,
@@ -3063,24 +3219,137 @@ fn nav_evidence(
             "source_title_available":true,"source_summary_available":false,"human_form_authority":"none","source_ref":path}}}});
     nav_node(id, "evidence", path, "not_applicable", props, l)
 }
+// The owned first call alone collects successful source-row geometry. No
+// self-reference, ID cache, mutable accessor or certificate on the borrowed path.
+struct HistoricalWProofs {
+    rows: [Vec<NavigationGeometry>; 2],
+    max_output_bytes: usize,
+}
+struct OwnedHistoricalNavigation {
+    value: serde_json::Value,
+    proofs: HistoricalWProofs,
+}
+fn historical_builder_forward_workspace() -> NavResult<usize> {
+    use serde_json::Value;
+    use std::mem::size_of;
+    // Common call/inner forwarding headers only; no proof owner on None.
+    size_of::<&Value>()
+        .checked_mul(4)
+        .and_then(|n| n.checked_add(size_of::<&DeclaredNavigationInputs<'_>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<Option<&mut HistoricalWProofs>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&mut HistoricalWProofs>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<NavigationGeometry>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(size_of::<
+                std::iter::Enumerate<
+                    std::array::IntoIter<(&str, &str, &mut BTreeMap<String, Value>), 2>,
+                >,
+            >())
+        })
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn historical_builder_workspace() -> NavResult<usize> {
+    use serde_json::Value;
+    use std::mem::size_of;
+    // Separate owned caller/return overlap, BEFORE first-call arguments.
+    historical_builder_forward_workspace()?
+        .checked_add(
+            size_of::<OwnedHistoricalNavigation>()
+                .checked_mul(3)
+                .ok_or(ReferenceError::Budget)?,
+        )
+        .and_then(|n| n.checked_add(size_of::<HistoricalWProofs>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<NavResult<(Value, OwnedHistoricalNavigation)>>().checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(size_of::<(Value, OwnedHistoricalNavigation)>().checked_mul(2)?)
+        })
+        .and_then(|n| n.checked_add(size_of::<Value>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn historical_builder_handoff_payment(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+    // BEFORE the caller constructs owned arguments and tuple/Result receivers.
+    l.bytes(historical_builder_workspace()?)
+}
+fn expected_source_navigation_owned(
+    historical: serde_json::Value,
+    inputs: &DeclaredNavigationInputs<'_>,
+    mut limits: ReferenceLimits<'_>,
+) -> NavResult<(serde_json::Value, OwnedHistoricalNavigation)> {
+    limits.step(32)?; // wrapper/capture setup and bounded ownership controls
+    let mut proofs = HistoricalWProofs {
+        rows: [Vec::new(), Vec::new()],
+        max_output_bytes: limits.max_output_bytes,
+    };
+    let nav = expected_source_navigation_inner(
+        &historical,
+        inputs,
+        limits.reborrow(),
+        Some(&mut proofs),
+    )?;
+    limits.step(4)?; // BEFORE successful return-owner/tuple construction
+    Ok((
+        nav,
+        OwnedHistoricalNavigation {
+            value: historical,
+            proofs,
+        },
+    ))
+}
 fn expected_source_navigation(
     historical: &serde_json::Value,
     inputs: &DeclaredNavigationInputs<'_>,
     mut limits: ReferenceLimits<'_>,
 ) -> NavResult<serde_json::Value> {
+    // New forwarding headers are paid, but NO proof owner/vector is constructed.
+    limits.bytes(historical_builder_forward_workspace()?)?;
+    limits.step(32)?;
+    expected_source_navigation_inner(historical, inputs, limits, None)
+}
+fn expected_source_navigation_inner(
+    historical: &serde_json::Value,
+    inputs: &DeclaredNavigationInputs<'_>,
+    mut limits: ReferenceLimits<'_>,
+    mut collector: Option<&mut HistoricalWProofs>,
+) -> NavResult<serde_json::Value> {
     use serde_json::{Value, json};
     let l = &mut limits;
+    l.step(2)?; // BEFORE optional collector forwarding/entry metadata
     l.fixed(8)?;
     let mut nodes = BTreeMap::new();
     let mut edges = BTreeMap::new();
     let mut output_bytes = 0usize;
-    for (collection, key, rows) in [
+    for (collection_index, (collection, key, rows)) in [
         ("nodes", "node_id", &mut nodes),
         ("edges", "edge_id", &mut edges),
-    ] {
+    ]
+    .into_iter()
+    .enumerate()
+    {
         let old_rows = nav_array(historical, collection)?;
         if historical["counts"][collection].as_u64() != u64::try_from(old_rows.len()).ok() {
             return Err(ReferenceError::InvalidBinding);
+        }
+        l.step(2)?; // BEFORE collector option/collection access
+        if let Some(proofs) = collector.as_deref_mut() {
+            l.bytes(
+                old_rows
+                    .len()
+                    .checked_mul(std::mem::size_of::<NavigationGeometry>())
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            // Exact requested slots, after this collection's old count check.
+            proofs.rows[collection_index] = Vec::with_capacity(old_rows.len());
         }
         let mut prior_id: Option<&str> = None;
         for row in old_rows {
@@ -3090,11 +3359,24 @@ fn expected_source_navigation(
                 return Err(ReferenceError::InvalidBinding);
             }
             prior_id = Some(id);
-            let row = navigation_copy(row, 0, l)?;
-            if rows.contains_key(nav_str(&row, key)?) {
+            l.bytes(navigation_seed_copy_workspace()?)?; // BEFORE proof/COPY arguments
+            let row = navigation_seed_copy(row, l)?;
+            l.step(1)?; // BEFORE optional collector branch, on BOTH routes
+            if let Some(proofs) = collector.as_deref_mut() {
+                l.step(31)?; // capture envelope remainder, BEFORE record access/write
+                let records = &mut proofs.rows[collection_index];
+                if records.len() >= records.capacity() {
+                    return Err(ReferenceError::Budget); // never grow an unadmitted Vec
+                }
+                // Sequential fill is the actual source ordinal, not row identity.
+                records.push(row.geometry);
+            }
+            l.step(1)?; // BEFORE the immutable whole-owner accessor/forwarding
+            if rows.contains_key(nav_str(row.as_value(), key)?) {
                 return Err(ReferenceError::DuplicateIdentity);
             }
-            nav_merge(rows, row, key, &mut output_bytes, l)?;
+            l.bytes(navigation_seed_merge_workspace()?)?; // BEFORE consuming proof arguments
+            nav_merge_navigation_seed(rows, row, key, &mut output_bytes, l)?;
         }
     }
     let mut claims_seen = std::collections::BTreeSet::new();
@@ -3174,7 +3456,8 @@ fn expected_source_navigation(
                 props,
                 l,
             )?;
-            nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+            l.bytes(navigation_merge_workspace()?)?; // BEFORE owned merge arguments
+            nav_merge_navigation(&mut nodes, row, "node_id", &mut output_bytes, l)?;
         }
         let event = inputs
             .events
@@ -3247,7 +3530,8 @@ fn expected_source_navigation(
             props,
             l,
         )?;
-        nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        l.bytes(navigation_merge_workspace()?)?; // BEFORE owned merge arguments
+        nav_merge_navigation(&mut nodes, row, "node_id", &mut output_bytes, l)?;
         let maker = &c["maker"];
         let maker_ref = nav_str(maker, "agent_ref")?;
         l.fixed(2)?;
@@ -3296,7 +3580,8 @@ fn expected_source_navigation(
             props,
             l,
         )?;
-        nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        l.bytes(navigation_merge_workspace()?)?; // BEFORE owned merge arguments
+        nav_merge_navigation(&mut nodes, row, "node_id", &mut output_bytes, l)?;
         let mut evidence_ids = Vec::new();
         for evidence in nav_array(c, "evidence_refs")? {
             l.step(1)?;
@@ -3308,7 +3593,8 @@ fn expected_source_navigation(
                 l,
             )?;
             evidence_ids.push(navigation_copy(&row["node_id"], 0, l)?);
-            nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+            l.bytes(navigation_merge_workspace()?)?; // BEFORE owned merge arguments
+            nav_merge_navigation(&mut nodes, row, "node_id", &mut output_bytes, l)?;
         }
         nav_no_reserved(
             c,
@@ -3349,7 +3635,8 @@ fn expected_source_navigation(
             props,
             l,
         )?;
-        nav_merge(&mut nodes, row, "node_id", &mut output_bytes, l)?;
+        l.bytes(navigation_merge_workspace()?)?; // BEFORE owned merge arguments
+        nav_merge_navigation(&mut nodes, row, "node_id", &mut output_bytes, l)?;
         l.bytes(
             evidence_ids
                 .len()
@@ -3416,7 +3703,8 @@ fn expected_source_navigation(
                 &event_id,
                 l,
             )?;
-            nav_merge(&mut edges, row, "edge_id", &mut output_bytes, l)?;
+            l.bytes(navigation_merge_workspace()?)?; // BEFORE owned merge arguments
+            nav_merge_navigation(&mut edges, row, "edge_id", &mut output_bytes, l)?;
         }
         l.bytes(
             "source-navigation:claim-subject:"
@@ -3436,7 +3724,8 @@ fn expected_source_navigation(
             &event_id,
             l,
         )?;
-        nav_merge(&mut edges, inverse, "edge_id", &mut output_bytes, l)?;
+        l.bytes(navigation_merge_workspace()?)?; // BEFORE owned merge arguments
+        nav_merge_navigation(&mut edges, inverse, "edge_id", &mut output_bytes, l)?;
     }
     // Require every endpoint, including inverse RAW metadata subject, to exist.
     for row in edges.values() {
@@ -3753,6 +4042,173 @@ fn navigation_w_guard(
     navigation_w_admit(0, &mut admission, l)?;
     navigation_w_node(v, l, 0, &mut admission)
 }
+// Only the root and selected array shells carry certificate borrows. Uncovered
+// descendants use the original recursive guard with their ABSOLUTE depth.
+fn historical_proof_guard_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    // Root/array extra holders, simultaneously live with old paid F/O/E frames.
+    let shell = size_of::<&OwnedHistoricalNavigation>()
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(size_of::<&HistoricalWProofs>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&[serde_json::Value]>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&[NavigationGeometry]>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&Vec<NavigationGeometry>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut NavigationWAdmission>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<NavigationGeometry>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<Option<&NavigationGeometry>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<&Vec<NavigationGeometry>>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<NavigationGeometry>>().checked_mul(3)?))
+        .and_then(|n| {
+            n.checked_add(size_of::<
+                std::iter::Enumerate<std::slice::Iter<'_, serde_json::Value>>,
+            >())
+        })
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(12)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<&String>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)?;
+    // Root and array have extra specialized state/argument overlaps; no extra
+    // proof parameter is forwarded to ordinary recursive descendants.
+    shell.checked_mul(2).ok_or(ReferenceError::Budget)
+}
+fn historical_owned_w_guard(
+    historical: &OwnedHistoricalNavigation,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<NavigationGeometry> {
+    l.step(64)?; // bounded owner/shell/return/consume metadata, before reads
+    l.step(1)?; // SAME original guard wrapper
+    reference_move_layout()?;
+    l.bytes(navigation_w_workspace()?)?;
+    let mut admission = NavigationWAdmission {
+        frame_bytes: navigation_w_frame_bytes()?,
+        admitted_frames: 0,
+    };
+    navigation_w_admit(0, &mut admission, l)?;
+    let serde_json::Value::Object(o) = &historical.value else {
+        return navigation_w_node(&historical.value, l, 0, &mut admission);
+    };
+    l.step(1)?; // SAME root node, absolute depth 0 (cannot exceed 96)
+    let mut values = 1usize;
+    let mut max_frames = 1usize;
+    let mut wire = 2usize;
+    for (key, child) in o {
+        l.step(1)?;
+        let key_wire = key
+            .len()
+            .checked_mul(6)
+            .and_then(|n| n.checked_add(4))
+            .ok_or(ReferenceError::Budget)?;
+        key_wire.checked_add(96).ok_or(ReferenceError::Budget)?;
+        // AFTER both old key overflow checks, BEFORE either payload comparison.
+        let match_bytes = key
+            .len()
+            .min(5)
+            .checked_mul(4)
+            .ok_or(ReferenceError::Budget)?;
+        l.bytes(match_bytes)?;
+        l.step(2)?;
+        let collection = if key.as_bytes() == b"nodes" {
+            Some(0)
+        } else if key.as_bytes() == b"edges" {
+            Some(1)
+        } else {
+            None
+        };
+        navigation_w_admit(1, &mut admission, l)?;
+        let child = match (collection, child) {
+            (Some(collection), serde_json::Value::Array(a)) => {
+                historical_array_w_guard(a, &historical.proofs, collection, l, &mut admission)?
+            }
+            _ => navigation_w_node(child, l, 1, &mut admission)?,
+        };
+        wire = wire
+            .checked_add(key_wire)
+            .and_then(|n| n.checked_add(child.wire))
+            .ok_or(ReferenceError::Budget)?;
+        values = values
+            .checked_add(child.values)
+            .ok_or(ReferenceError::Budget)?;
+        max_frames = max_frames.max(
+            child
+                .max_frames
+                .checked_add(1)
+                .ok_or(ReferenceError::Budget)?,
+        );
+    }
+    if wire > l.max_output_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    Ok(NavigationGeometry {
+        wire,
+        values,
+        max_frames,
+    })
+}
+fn historical_array_w_guard(
+    a: &[serde_json::Value],
+    proofs: &HistoricalWProofs,
+    collection: usize,
+    l: &mut ReferenceLimits<'_>,
+    admission: &mut NavigationWAdmission,
+) -> NavResult<NavigationGeometry> {
+    l.step(1)?; // SAME array node at original absolute depth 1
+    let mut values = 1usize;
+    let mut max_frames = 1usize;
+    let mut wire = 2usize;
+    for (ordinal, row) in a.iter().enumerate() {
+        l.step(32)?; // BEFORE ordinal/record/policy/depth checks and geometry move
+        let known = match proofs.rows.get(collection) {
+            Some(rows) => rows.get(ordinal).copied(),
+            None => None,
+        };
+        let known = match known {
+            Some(geometry)
+                if proofs.max_output_bytes == l.max_output_bytes
+                    && 2usize
+                        .checked_add(geometry.max_frames)
+                        .is_some_and(|d| d <= 96) =>
+            {
+                Some(geometry)
+            }
+            _ => None,
+        };
+        let child = if let Some(geometry) = known {
+            geometry
+        } else {
+            // Missing/changed/uncertain proof uses the SAME absolute row depth 2.
+            navigation_w_admit(2, admission, l)?;
+            navigation_w_node(row, l, 2, admission)?
+        };
+        wire = wire
+            .checked_add(child.wire)
+            .and_then(|n| n.checked_add(1))
+            .ok_or(ReferenceError::Budget)?;
+        values = values
+            .checked_add(child.values)
+            .ok_or(ReferenceError::Budget)?;
+        max_frames = max_frames.max(
+            child
+                .max_frames
+                .checked_add(1)
+                .ok_or(ReferenceError::Budget)?,
+        );
+    }
+    if wire > l.max_output_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    Ok(NavigationGeometry {
+        wire,
+        values,
+        max_frames,
+    })
+}
 struct NavigationCopyState {
     held: usize,
     available: usize,
@@ -3938,6 +4394,352 @@ fn navigation_copy(
         available: l.work.left,
     };
     navigation_copy_node(v, root_spare, &mut state, l, 0)
+}
+// ONLY the six late baseline copies: complete independent renamed values.
+// Source historical owners/journal and every builder COPY stay unchanged.
+struct LateRewriteCopyState<'a> {
+    held: usize,
+    available: usize,
+    replacements: &'a BTreeMap<String, String>,
+}
+struct LateRewriteCopyResult {
+    value: serde_json::Value,
+    wire: usize,
+}
+fn late_rewrite_copy_handoff_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    size_of::<&serde_json::Value>()
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(size_of::<&BTreeMap<String, String>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<LateRewriteCopyResult>()
+                    .max(size_of::<NavResult<LateRewriteCopyResult>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<NavResult<serde_json::Value>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn late_rewrite_copy_workspace(frames: usize) -> NavResult<usize> {
+    use std::mem::size_of;
+    let frame = size_of::<&serde_json::Value>()
+        .checked_add(size_of::<&mut LateRewriteCopyState<'_>>())
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?)) // depth, spare, M/C, slot/length
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<std::slice::Iter<'_, serde_json::Value>>()
+                    .max(size_of::<serde_json::map::Iter<'_>>()),
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<(&String, &serde_json::Value)>>()))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut std::slice::Iter<'_, serde_json::Value>>()
+                    .max(size_of::<&mut serde_json::map::Iter<'_>>()),
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&Vec<serde_json::Value>>()
+                    .max(size_of::<&serde_json::Map<String, serde_json::Value>>()),
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&mut Vec<serde_json::Value>>()
+                    .max(size_of::<&mut serde_json::Map<String, serde_json::Value>>()),
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<Option<LateRewriteCopyResult>>()))
+        .and_then(|n| n.checked_add(size_of::<&String>()))
+        .and_then(|n| n.checked_add(size_of::<String>().checked_mul(2)?)) // pending/copied key
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<serde_json::Map<String, serde_json::Value>>()
+                    .max(size_of::<Vec<serde_json::Value>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<LateRewriteCopyResult>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<LateRewriteCopyResult>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<bool>()))
+        // Actual output-W / selected String carriers, at EVERY admitted level.
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<&String>().max(size_of::<&str>()).checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<&String>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&BTreeMap<String, String>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(2)?))
+        // ADDITIVE numeric envelope: never borrow Option<usize> slots or
+        // assume Option<f64> has the same layout. Full multiplier below.
+        .and_then(|n| n.checked_add(size_of::<Option<f64>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<f64>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Number>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)?;
+    frame
+        .checked_mul(frames)
+        .and_then(|n| n.checked_add(size_of::<LateRewriteCopyState<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>()))
+        .and_then(|n| n.checked_add(size_of::<NavResult<NavigationGeometry>>()))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Number>()))
+        .and_then(|n| n.checked_add(size_of::<serde_json::Number>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut LateRewriteCopyState<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(3)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&BTreeMap<String, String>>().checked_mul(3)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<LateRewriteCopyResult>()
+                    .max(size_of::<NavResult<LateRewriteCopyResult>>())
+                    .checked_mul(2)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<NavResult<usize>>()
+                    .max(size_of::<NavResult<()>>())
+                    .checked_mul(4)?,
+            )
+        })
+        .ok_or(ReferenceError::Budget)
+}
+fn late_rewrite_copy_room(
+    state: &mut LateRewriteCopyState<'_>,
+    bytes: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(1)?; // SAME allocation-room transition as existing COPY
+    let held = state
+        .held
+        .checked_add(bytes)
+        .ok_or(ReferenceError::Budget)?;
+    canonical_state_room(state.held, bytes, state.available)?;
+    l.bytes(bytes)?; // BEFORE allocation; held NEVER refunded
+    state.held = held;
+    Ok(())
+}
+fn late_rewrite_copy_node(
+    v: &serde_json::Value,
+    state: &mut LateRewriteCopyState<'_>,
+    l: &mut ReferenceLimits<'_>,
+    depth: usize,
+) -> NavResult<LateRewriteCopyResult> {
+    use serde_json::Value;
+    l.step(1)?; // SAME full COPY entry
+    if depth > 96 {
+        return Err(ReferenceError::Budget);
+    }
+    l.step(1)?; // actual additional OUTPUT-W fold, no separate geometry walk
+    let wire;
+    let value = match v {
+        Value::Null => {
+            wire = 4;
+            Value::Null
+        }
+        Value::Bool(value) => {
+            wire = 5;
+            Value::Bool(*value)
+        }
+        Value::String(text) => {
+            l.step(1)?; // SAME retained rewrite String lookup operation
+            l.bytes(text.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?;
+            // Copy the external immutable Map borrow out of state BEFORE a
+            // mutable room call; chosen never borrows the mutable state owner.
+            let replacements = state.replacements;
+            let replacement = replacements.get(text); // EXACTLY ONE original-String get
+            let chosen = replacement.unwrap_or(text);
+            late_rewrite_copy_room(state, chosen.len(), l)?;
+            if replacement.is_some() {
+                l.bytes(chosen.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?;
+            } // unmatched uses the retained source read/write fee above
+            let output = chosen.clone(); // complete owned String, no intermediate original clone
+            wire = output
+                .len()
+                .checked_mul(6)
+                .and_then(|n| n.checked_add(2))
+                .ok_or(ReferenceError::Budget)?;
+            Value::String(output)
+        }
+        Value::Number(number) => {
+            late_rewrite_copy_room(state, number.as_str().len(), l)?;
+            l.bytes(
+                number
+                    .as_str()
+                    .len()
+                    .checked_mul(2)
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            let output = number.clone(); // exact owned lexeme, NO normalization
+            // SAME separate OUTPUT guard's lexical read/classification fees.
+            l.bytes(
+                output
+                    .as_str()
+                    .len()
+                    .checked_mul(3)
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            l.step(3)?;
+            wire = if output.is_i64() || output.is_u64() {
+                20
+            } else if output.as_f64().is_some_and(f64::is_finite) {
+                64
+            } else {
+                return Err(ReferenceError::UnsupportedSourceProfile);
+            };
+            Value::Number(output)
+        }
+        Value::Array(a) => {
+            late_rewrite_copy_room(
+                state,
+                a.len()
+                    .checked_mul(std::mem::size_of::<Value>())
+                    .ok_or(ReferenceError::Budget)?,
+                l,
+            )?;
+            let mut output = Vec::with_capacity(a.len());
+            let mut output_wire = 2usize;
+            for child in a {
+                l.step(1)?; // SAME child read
+                let child = late_rewrite_copy_node(
+                    child,
+                    state,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+                l.step(1)?; // SAME actual push
+                output_wire = output_wire
+                    .checked_add(child.wire)
+                    .and_then(|n| n.checked_add(1))
+                    .ok_or(ReferenceError::Budget)?;
+                output.push(child.value);
+            }
+            wire = output_wire;
+            Value::Array(output)
+        }
+        Value::Object(o) => {
+            late_rewrite_copy_room(state, reference_move_map_backing(o.len())?, l)?;
+            let mut output = serde_json::Map::with_capacity(o.len()); // exact M, spare0
+            let mut output_wire = 2usize;
+            for (key, child) in o {
+                l.step(2)?; // SAME source key/child read and key construction
+                l.step(1)?; // additional OUTPUT-W key arithmetic BEFORE child
+                let key_wire = key
+                    .len()
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(4))
+                    .ok_or(ReferenceError::Budget)?;
+                key_wire.checked_add(96).ok_or(ReferenceError::Budget)?;
+                late_rewrite_copy_room(state, key.len(), l)?;
+                l.bytes(key.len().checked_mul(3).ok_or(ReferenceError::Budget)?)?;
+                let key = key.to_owned(); // KEYS NEVER rewritten
+                let child = late_rewrite_copy_node(
+                    child,
+                    state,
+                    l,
+                    depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                )?;
+                l.step(1)?; // SAME actual insertion, including reserved-FIRST keys
+                output_wire = output_wire
+                    .checked_add(key_wire)
+                    .and_then(|n| n.checked_add(child.wire))
+                    .ok_or(ReferenceError::Budget)?;
+                output.insert(key, child.value);
+            }
+            wire = output_wire;
+            Value::Object(output)
+        }
+    };
+    // EVERY output subtree, SAME conservative W ceiling and postorder fold.
+    if wire > l.max_output_bytes {
+        return Err(ReferenceError::Budget);
+    }
+    Ok(LateRewriteCopyResult { value, wire })
+}
+fn late_rewrite_navigation_copy(
+    original: &serde_json::Value,
+    replacements: &BTreeMap<String, String>,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    // SAME complete original W/Number/depth/key guard FIRST, before destination.
+    let geometry = navigation_w_guard(original, l)?;
+    l.step(1)?; // SAME original COPY wrapper transition
+    l.bytes(late_rewrite_copy_workspace(
+        geometry
+            .max_frames
+            .checked_add(1)
+            .ok_or(ReferenceError::Budget)?,
+    )?)?; // FULL numeric envelope BEFORE state/recursion
+    let mut state = LateRewriteCopyState {
+        held: 0,
+        available: l.work.left,
+        replacements,
+    };
+    Ok(late_rewrite_copy_node(original, &mut state, l, 0)?.value)
+}
+// ONLY the immediate historical seed COPY -> merge path can create/consume
+// this successful proof. No Clone or mutable accessor; no ID-keyed cache.
+struct NavigationSeedCopy {
+    value: serde_json::Value,
+    geometry: NavigationGeometry,
+    max_output_bytes: usize,
+}
+impl NavigationSeedCopy {
+    fn as_value(&self) -> &serde_json::Value {
+        &self.value
+    }
+}
+fn navigation_seed_copy_workspace() -> NavResult<usize> {
+    use std::mem::size_of;
+    size_of::<NavigationSeedCopy>()
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(size_of::<NavResult<NavigationSeedCopy>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&NavigationSeedCopy>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<&serde_json::Value>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavigationGeometry>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&mut Vec<NavigationGeometry>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<&mut HistoricalWProofs>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn navigation_seed_copy(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<NavigationSeedCopy> {
+    // Caller paid proof/return holders BEFORE these arguments. Full old W and
+    // complete COPY still execute; only successful whole output gets a proof.
+    l.step(2)?; // policy capture/proof construction and move
+    let geometry = navigation_w_guard(v, l)?;
+    let max_output_bytes = l.max_output_bytes;
+    l.step(1)?; // SAME old COPY wrapper
+    l.bytes(navigation_copy_workspace(
+        geometry
+            .max_frames
+            .checked_add(1)
+            .ok_or(ReferenceError::Budget)?,
+    )?)?;
+    let mut state = NavigationCopyState {
+        held: 0,
+        available: l.work.left,
+    };
+    let value = navigation_copy_node(v, 0, &mut state, l, 0)?;
+    Ok(NavigationSeedCopy {
+        value,
+        geometry,
+        max_output_bytes,
+    })
 }
 // Journal holds actual original String owners and OWNED paths. Reusable DFS
 // stack storage is distinct and never serves as a borrowed saved location.
@@ -4666,6 +5468,13 @@ fn reference_move_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
 fn navigation_variant_handoff_payment(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
     use std::mem::size_of;
     l.step(1)?;
+    // Existing Value headers below remain paid; only three extra proof headers
+    // accompany those same caller -> wrapper -> body owned argument moves.
+    l.bytes(
+        std::mem::size_of::<HistoricalWProofs>()
+            .checked_mul(3)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
     l.bytes(
         size_of::<DeclaredNavigationInputs<'_>>()
             .checked_mul(3) // caller -> diagnostic wrapper -> body move overlap
@@ -4810,8 +5619,808 @@ fn variant_claim_binding(
         value: serde_json::Value::Object(fields),
     })
 }
+// ONLY the full-row-copy -> remove ONE top-level field -> unchanged whole
+// assert_ne! control selects this private admission. No generic Eq certificate.
+fn nav_field_removal_compare_workspace() -> NavResult<usize> {
+    use serde_json::{Map, Value};
+    use std::mem::size_of;
+    size_of::<&Value>()
+        .checked_mul(6) // caller/callee and actual assertion receiver overlap
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<&Map<String, Value>>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(5)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn nav_field_removal_compare_work(
+    left: &serde_json::Value,
+    right: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    // Admission7 + actual pinned Value/Map/IndexMap Eq length-branch7 +
+    // bounded receiver/result/Boolean/assert transitions10, BEFORE reads.
+    l.step(24)?;
+    if let (serde_json::Value::Object(left), serde_json::Value::Object(right)) = (left, right) {
+        if left.len() != right.len() {
+            // Pinned IndexMap::eq returns false here without child/key reads.
+            // The caller still executes its original WHOLE assert_ne!.
+            return Ok(());
+        }
+    }
+    // Keep the old depth/read/error behavior for every unselected shape.
+    l.compare_work(left, 0)?;
+    l.compare_work(right, 0)
+}
+// ONLY the two whole-navigation remove-one-array-row admission pairs use
+// this prefix route. Original is the fresh six-key nav_object root; len alone
+// does not certify an arbitrary Map's capacity or lookup behavior. The sole
+// call also retains full l.copy admission and one pop; this is not an arbitrary
+// Value/depth certificate.
+fn nav_array_removal_compare_workspace() -> NavResult<usize> {
+    use serde_json::{Map, Value};
+    use std::mem::size_of;
+    type Pairs<'a> = std::iter::Zip<serde_json::map::Iter<'a>, serde_json::map::Iter<'a>>;
+    type Pair<'a> = ((&'a String, &'a Value), (&'a String, &'a Value));
+    let adapter = size_of::<&Value>()
+        .checked_mul(6)
+        .and_then(|n| n.checked_add(size_of::<&Map<String, Value>>().checked_mul(6)?))
+        .and_then(|n| n.checked_add(size_of::<&Vec<Value>>().checked_mul(4)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&[Value]>()
+                    .max(size_of::<&[&str]>())
+                    .max(size_of::<&[u8]>())
+                    .checked_mul(4)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<&String>().max(size_of::<&str>()).checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Pairs<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<&mut Pairs<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<Pair<'_>>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)?;
+    // Upcoming unchanged root Eq: pinned RandomState/DefaultHasher, one
+    // 16-control group and <=6 candidate keys from its fresh eight-bucket root.
+    // Logical source holders, not compiler-stack/register/RSS guarantees.
+    let lookup = size_of::<std::hash::DefaultHasher>()
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(size_of::<u64>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<u128>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<bool>()
+                    .max(size_of::<Option<usize>>())
+                    .checked_mul(8)?,
+            )
+        })
+        .ok_or(ReferenceError::Budget)?;
+    adapter.checked_add(lookup).ok_or(ReferenceError::Budget)
+}
+fn nav_array_removal_compare_work(
+    original: &serde_json::Value,
+    changed: &serde_json::Value,
+    collection: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use serde_json::Value;
+    // Paid BEFORE selection, its forwarding/return holders and both name reads.
+    l.step(64)?;
+    l.bytes(20)?;
+    let target = if collection.as_bytes() == b"nodes" {
+        Some(3usize)
+    } else if collection.as_bytes() == b"edges" {
+        Some(4usize)
+    } else {
+        None
+    };
+    let Some(target) = target else {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    };
+    let (Value::Object(original_fields), Value::Object(changed_fields)) = (original, changed)
+    else {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    };
+    if original_fields.len() != 6 || changed_fields.len() != 6 {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    }
+    const NAMES: &[&str; 6] = &[
+        "schema_version",
+        "authority_boundary",
+        "rights",
+        "nodes",
+        "edges",
+        "counts",
+    ];
+    // Complete selection FIRST. No child compare_work occurs in this scope.
+    // Iterators die here before the separately prepaid phase-two iterators.
+    let selected = 'selection: {
+        let mut pairs = changed_fields.iter().zip(original_fields.iter());
+        let mut ordinal = 0usize;
+        while ordinal <= target {
+            // 32 helper two-pass operations + 320 actual root Eq lookup work.
+            l.step(352)?; // BEFORE next/key/shape access, not after a refusal
+            let Some(((changed_key, changed_child), (original_key, original_child))) = pairs.next()
+            else {
+                break 'selection false;
+            };
+            let expected = NAMES[ordinal]; // target <=4 and this ordinal <=target
+            let k = expected.len();
+            l.bytes(
+                k.checked_mul(17)
+                    .and_then(|n| n.checked_add(32))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            if changed_key.len() != k
+                || original_key.len() != k
+                || changed_key.as_bytes() != expected.as_bytes()
+                || original_key.as_bytes() != expected.as_bytes()
+            {
+                break 'selection false;
+            }
+            if ordinal == target {
+                let (Value::Array(original_rows), Value::Array(changed_rows)) =
+                    (original_child, changed_child)
+                else {
+                    break 'selection false;
+                };
+                if original_rows.len().checked_sub(1) != Some(changed_rows.len()) {
+                    break 'selection false;
+                }
+            }
+            ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
+        }
+        true
+    };
+    if !selected {
+        // No prior child walk: both OLD fallbacks keep their OLD argument order.
+        // Selection costs stay consumed, including prepayments not later used.
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    }
+    // This upcoming Eq has changed LEFT. Earlier fields still compare in full;
+    // unequal selected-array lengths stop before elements or later fields.
+    // Phase-two iterator/next/argument operations were prepaid per selection key.
+    let mut pairs = changed_fields.iter().zip(original_fields.iter());
+    let mut ordinal = 0usize;
+    while ordinal < target {
+        let Some(((_, changed_child), (_, original_child))) = pairs.next() else {
+            // Immutable validated prefix makes this unreachable, but no waiver
+            // or new semantic refusal is substituted if the premise changes.
+            l.compare_work(original, 0)?;
+            return l.compare_work(changed, 0);
+        };
+        l.compare_work(original_child, 1)?; // SAME original absolute child depth
+        l.compare_work(changed_child, 1)?;
+        ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
+    }
+    // The caller IMMEDIATELY executes its unchanged WHOLE assert_ne!.
+    Ok(())
+}
+// Only the two lexical swap admissions below use this ID-FIRST prefix law.
+// Full root COPY and actual whole assertions remain independent and unchanged.
+fn nav_array_swap_compare_workspace() -> NavResult<usize> {
+    use serde_json::{Map, Value};
+    use std::mem::size_of;
+    type Pairs<'a> = std::iter::Zip<serde_json::map::Iter<'a>, serde_json::map::Iter<'a>>;
+    type Pair<'a> = ((&'a String, &'a Value), (&'a String, &'a Value));
+    let adapter = size_of::<&Value>()
+        .checked_mul(8)
+        .and_then(|n| n.checked_add(size_of::<&Map<String, Value>>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<&Vec<Value>>().checked_mul(4)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&[Value]>()
+                    .max(size_of::<&[&str]>())
+                    .max(size_of::<&[u8]>())
+                    .checked_mul(4)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<&String>()
+                    .max(size_of::<&str>())
+                    .checked_mul(12)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Pairs<'_>>()))
+        .and_then(|n| n.checked_add(size_of::<&mut Pairs<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<Pair<'_>>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<serde_json::map::Iter<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<Option<(&String, &Value)>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)?;
+    // Upcoming unchanged root/first-row Eq lookups occur serially. Pinned
+    // private constructor: root B8, selected rows B8/B32, <=15 candidates.
+    // This is not a capacity certificate derived from arbitrary Map.len().
+    // Logical source holders, not compiler-stack/register/RSS guarantees.
+    let lookup = size_of::<std::hash::DefaultHasher>()
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(size_of::<u64>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<u128>().checked_mul(2)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<bool>()
+                    .max(size_of::<Option<usize>>())
+                    .checked_mul(8)?,
+            )
+        })
+        .ok_or(ReferenceError::Budget)?;
+    adapter.checked_add(lookup).ok_or(ReferenceError::Budget)
+}
+fn nav_array_swap_compare_work(
+    original: &serde_json::Value,
+    changed: &serde_json::Value,
+    collection: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use serde_json::Value;
+    l.step(64)?;
+    l.bytes(20)?; // BEFORE bounded collection-name payload comparisons
+    let target = if collection.as_bytes() == b"nodes" {
+        Some(3usize)
+    } else if collection.as_bytes() == b"edges" {
+        Some(4usize)
+    } else {
+        None
+    };
+    let Some(target) = target else {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    };
+    let (Value::Object(original_fields), Value::Object(changed_fields)) = (original, changed)
+    else {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    };
+    if original_fields.len() != 6 || changed_fields.len() != 6 {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    }
+    const NAMES: &[&str; 6] = &[
+        "schema_version",
+        "authority_boundary",
+        "rights",
+        "nodes",
+        "edges",
+        "counts",
+    ];
+    let selected = 'selection: {
+        let mut pairs = changed_fields.iter().zip(original_fields.iter());
+        let mut ordinal = 0usize;
+        while ordinal <= target {
+            l.step(352)?; // two-pass root selection + actual RIGHT hash lookup
+            let Some(((changed_key, changed_child), (original_key, original_child))) = pairs.next()
+            else {
+                break 'selection false;
+            };
+            let expected = NAMES[ordinal];
+            let k = expected.len();
+            l.bytes(
+                k.checked_mul(17)
+                    .and_then(|n| n.checked_add(32))
+                    .ok_or(ReferenceError::Budget)?,
+            )?;
+            if changed_key.len() != k
+                || original_key.len() != k
+                || changed_key.as_bytes() != expected.as_bytes()
+                || original_key.as_bytes() != expected.as_bytes()
+            {
+                break 'selection false;
+            }
+            if ordinal == target {
+                let (Value::Array(original_rows), Value::Array(changed_rows)) =
+                    (original_child, changed_child)
+                else {
+                    break 'selection false;
+                };
+                l.step(32)?; // BEFORE row/header/length/ID selection operations
+                if original_rows.len() != changed_rows.len() || original_rows.len() < 2 {
+                    break 'selection false;
+                }
+                let (Value::Object(original_row), Value::Object(changed_row)) =
+                    (&original_rows[0], &changed_rows[0])
+                else {
+                    break 'selection false;
+                };
+                if original_row.len() != changed_row.len()
+                    || !matches!(original_row.len(), 6 | 15)
+                    || (target == 3 && original_row.len() != 6)
+                {
+                    // Actual historical edges have SEVEN keys: BOTH-old fallback.
+                    // Never infer an arbitrary right Map's capacity from its len.
+                    break 'selection false;
+                }
+                l.step(512)?; // BEFORE first-entry access and actual row hash lookup
+                let mut original_entries = original_row.iter();
+                let mut changed_entries = changed_row.iter();
+                let (Some((original_key, original_id)), Some((changed_key, changed_id))) =
+                    (original_entries.next(), changed_entries.next())
+                else {
+                    break 'selection false;
+                };
+                let expected_id = if target == 3 { "node_id" } else { "edge_id" };
+                let k = expected_id.len();
+                l.bytes(
+                    k.checked_mul(35)
+                        .and_then(|n| n.checked_add(64))
+                        .ok_or(ReferenceError::Budget)?,
+                )?;
+                if original_key.len() != k
+                    || changed_key.len() != k
+                    || original_key.as_bytes() != expected_id.as_bytes()
+                    || changed_key.as_bytes() != expected_id.as_bytes()
+                {
+                    break 'selection false;
+                }
+                let (Value::String(original_id), Value::String(changed_id)) =
+                    (original_id, changed_id)
+                else {
+                    break 'selection false;
+                };
+                // Selection AND the later actual whole Eq read these payloads.
+                l.bytes(
+                    original_id
+                        .len()
+                        .checked_add(changed_id.len())
+                        .and_then(|n| n.checked_mul(2))
+                        .ok_or(ReferenceError::Budget)?,
+                )?;
+                if original_id == changed_id {
+                    break 'selection false;
+                }
+            }
+            ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
+        }
+        true
+    };
+    if !selected {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    }
+    // Phase-one receivers are gone. Earlier root fields still compare FULLY.
+    let mut pairs = changed_fields.iter().zip(original_fields.iter());
+    let mut ordinal = 0usize;
+    while ordinal < target {
+        let Some(((_, changed_child), (_, original_child))) = pairs.next() else {
+            l.compare_work(original, 0)?;
+            return l.compare_work(changed, 0);
+        };
+        l.compare_work(original_child, 1)?;
+        l.compare_work(changed_child, 1)?;
+        ordinal = ordinal.checked_add(1).ok_or(ReferenceError::Budget)?;
+    }
+    // The unchanged WHOLE assert_ne immediately follows; no mutation intervenes.
+    Ok(())
+}
+// One private successful COPY receipt, consumed only at the count control.
+// These scalars describe paid operations; they are NEVER a new work allowance.
+struct CountComparisonPlan<'a> {
+    original: &'a serde_json::Value,
+    owner_steps: usize,
+    read_bytes: usize,
+}
+fn count_control_workspace() -> NavResult<usize> {
+    use serde_json::Value;
+    use std::mem::size_of;
+    size_of::<CountComparisonPlan<'_>>()
+        .checked_mul(3)
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Value>()
+                    .max(size_of::<NavResult<Value>>())
+                    .max(size_of::<(Value, CountComparisonPlan<'_>)>())
+                    .max(size_of::<NavResult<(Value, CountComparisonPlan<'_>)>>())
+                    .max(size_of::<Option<CountComparisonPlan<'_>>>())
+                    .checked_mul(4)?,
+            )
+        })
+        .and_then(|n| n.checked_add(size_of::<&Value>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<&CountComparisonPlan<'_>>().checked_mul(2)?))
+        .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(16)?))
+        .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(8)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<()>>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(size_of::<NavResult<usize>>().checked_mul(2)?))
+        .ok_or(ReferenceError::Budget)
+}
+fn count_control_copy<'a>(
+    original: &'a serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<(serde_json::Value, CountComparisonPlan<'a>)> {
+    l.step(64)?; // BEFORE snapshots, receipt arithmetic and return construction
+    // ONLY the unchanged successful old COPY is inside this observation window.
+    let visits_before = l.work.visits_left;
+    let bytes_before = l.work.left;
+    let changed = l.copy(original)?;
+    let visits_after = l.work.visits_left;
+    let bytes_after = l.work.left;
+    // copy/value_bound: C=V+K; D=128V+100K+6L+2S. No error is cached.
+    let c = visits_before
+        .checked_sub(visits_after)
+        .ok_or(ReferenceError::Budget)?;
+    let d = bytes_before
+        .checked_sub(bytes_after)
+        .ok_or(ReferenceError::Budget)?;
+    let r = d
+        .checked_sub(c.checked_mul(100).ok_or(ReferenceError::Budget)?)
+        .ok_or(ReferenceError::Budget)?;
+    // ceil(2R/3), without overflowing 2R. R=28V+6L+2S, so B>=4L.
+    let tail = (r % 3)
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(2))
+        .ok_or(ReferenceError::Budget)?
+        / 3;
+    let read_bytes = (r / 3)
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(tail))
+        .ok_or(ReferenceError::Budget)?;
+    Ok((
+        changed,
+        CountComparisonPlan {
+            original,
+            owner_steps: c,
+            read_bytes,
+        },
+    ))
+}
+fn count_control_compare_work(
+    plan: CountComparisonPlan<'_>,
+    original: &serde_json::Value,
+    changed: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(32)?; // BEFORE plan/identity/checked admission accesses
+    if !std::ptr::eq(plan.original, original) {
+        l.compare_work(original, 0)?;
+        return l.compare_work(changed, 0);
+    }
+    // Unique lexical custody: both pop/push and swap-back operations restored
+    // the clone; the existing numeric count replacement changes no tree shape
+    // or String/key payload. No arbitrary mutation or other input may use this.
+    // NEW charges for the actual whole Eq; old COPY debits stay spent.
+    l.step(
+        plan.owner_steps
+            .checked_mul(2)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.bytes(plan.read_bytes)?;
+    Ok(())
+}
+// ONLY the private independent-count mutant may reorder its LEFT root.
+// The original/SUT root and arrays are untouched; Map order alone is not Eq.
+struct CountFirstSelection<'a> {
+    original_counts: Option<&'a serde_json::Value>,
+}
+fn count_first_workspace() -> NavResult<usize> {
+    use serde_json::{Map, Number, Value};
+    use std::mem::{align_of, size_of};
+    type Pairs<'a> = std::iter::Zip<serde_json::map::Iter<'a>, serde_json::map::Iter<'a>>;
+    type Pair<'a> = ((&'a String, &'a Value), (&'a String, &'a Value));
+    // Sum ALL H0/Hs/Hp/Hl/Hm/Hr/He terms, with equal types aggregated.
+    // No phase reuse discount or unused instantiated scratch object.
+    macro_rules! add {
+        ($total:ident, $ty:ty, $count:expr) => {
+            $total = $total
+                .checked_add(
+                    size_of::<$ty>()
+                        .checked_mul($count)
+                        .ok_or(ReferenceError::Budget)?,
+                )
+                .ok_or(ReferenceError::Budget)?;
+        };
+    }
+    let a = align_of::<usize>()
+        .max(align_of::<String>())
+        .max(align_of::<Value>());
+    let q = size_of::<usize>()
+        .checked_add(size_of::<String>())
+        .and_then(|n| n.checked_add(size_of::<Value>()))
+        .and_then(|n| n.checked_add(a.checked_mul(4)?))
+        .and_then(|n| n.checked_add(a.checked_sub(1)?))
+        .map(|n| n / a * a)
+        .ok_or(ReferenceError::Budget)?;
+    let raw_iter = size_of::<usize>()
+        .checked_mul(5)
+        .and_then(|n| n.checked_add(align_of::<usize>().checked_mul(4)?))
+        .and_then(|n| n.checked_add(align_of::<usize>().checked_sub(1)?))
+        .map(|n| n / align_of::<usize>() * align_of::<usize>())
+        .ok_or(ReferenceError::Budget)?;
+    let rotation_scratch = size_of::<[usize; 32]>()
+        .checked_add(a.checked_sub(1).ok_or(ReferenceError::Budget)?)
+        .map(|n| n / a * a)
+        .ok_or(ReferenceError::Budget)?;
+    let mut total = 0usize;
+    add!(total, CountFirstSelection<'_>, 3);
+    add!(total, Option<&Value>, 4);
+    add!(total, &CountComparisonPlan<'_>, 4);
+    add!(total, &Value, 14);
+    add!(total, &mut Value, 10);
+    add!(total, &CountFirstSelection<'_>, 2);
+    add!(total, &mut ReferenceLimits<'_>, 4);
+    add!(total, bool, 38);
+    add!(total, NavResult<()>, 12);
+    add!(total, NavResult<CountFirstSelection<'_>>, 4);
+    add!(total, NavResult<usize>, 2);
+    add!(total, Pairs<'_>, 2);
+    add!(total, Option<Pair<'_>>, 4);
+    add!(total, &mut Pairs<'_>, 4);
+    add!(total, [&str; 6], 2);
+    add!(total, std::slice::Iter<'_, &str>, 2);
+    add!(total, &Map<String, Value>, 16);
+    add!(total, &Number, 12);
+    add!(total, Option<&Number>, 4);
+    add!(total, &str, 19);
+    add!(total, &String, 16);
+    add!(total, usize, 76);
+    add!(total, NavResult<bool>, 2);
+    add!(total, Option<u64>, 5);
+    add!(total, Result<u64, std::num::ParseIntError>, 2);
+    add!(total, u64, 22);
+    add!(total, u32, 4);
+    add!(total, Option<u32>, 2);
+    add!(total, char, 3);
+    add!(total, std::num::ParseIntError, 3);
+    add!(total, std::num::IntErrorKind, 3);
+    add!(total, &[u8], 16);
+    add!(total, &u8, 4);
+    add!(total, std::hash::DefaultHasher, 2);
+    add!(total, u128, 2);
+    add!(total, *mut (), 52);
+    add!(total, serde_json::map::Entry<'_>, 4);
+    add!(total, &mut Map<String, Value>, 8);
+    add!(total, Option<&mut Value>, 6);
+    add!(total, String, 4);
+    add!(total, &[Value], 8);
+    add!(total, &mut [Value], 8);
+    add!(total, Option<usize>, 4);
+    add!(total, [std::mem::MaybeUninit<u8>; 8], 4);
+    add!(total, Option<std::num::NonZeroUsize>, 4);
+    add!(total, serde_json::map::Iter<'_>, 3);
+    add!(total, Option<(&String, &Value)>, 4);
+    total = total
+        .checked_add(raw_iter.checked_mul(4).ok_or(ReferenceError::Budget)?)
+        .and_then(|n| n.checked_add(rotation_scratch))
+        .and_then(|n| n.checked_add(q.checked_mul(4)?))
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<bool>()
+                    .max(size_of::<Option<usize>>())
+                    .checked_mul(8)?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                size_of::<Value>()
+                    .max(size_of::<Option<Value>>())
+                    .max(size_of::<NavResult<Value>>())
+                    .checked_mul(4)?,
+            )
+        })
+        .ok_or(ReferenceError::Budget)?;
+    Ok(total)
+}
+fn count_first_select<'a>(
+    plan: &CountComparisonPlan<'a>,
+    original: &'a serde_json::Value,
+    changed: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<CountFirstSelection<'a>> {
+    use serde_json::Value;
+    macro_rules! fallback {
+        () => {
+            return Ok(CountFirstSelection {
+                original_counts: None,
+            })
+        };
+    }
+    l.step(128)?; // BEFORE identity/root/iterator holders and reads
+    if !std::ptr::eq(plan.original, original) {
+        fallback!();
+    }
+    let (Value::Object(original_fields), Value::Object(changed_fields)) = (original, changed)
+    else {
+        fallback!();
+    };
+    if original_fields.len() != 6 || changed_fields.len() != 6 {
+        fallback!();
+    }
+    l.bytes(216)?; // BOTH owners/literals, unequal key lengths short circuit
+    let expected = [
+        "schema_version",
+        "authority_boundary",
+        "rights",
+        "nodes",
+        "edges",
+        "counts",
+    ];
+    let mut ordinal = 0usize;
+    let mut original_counts = None;
+    let mut changed_counts = None;
+    for ((original_key, original_value), (changed_key, changed_value)) in
+        original_fields.iter().zip(changed_fields.iter())
+    {
+        if original_key.as_str() != expected[ordinal] || changed_key.as_str() != expected[ordinal] {
+            fallback!();
+        }
+        let kinds_match = match ordinal {
+            0 | 1 => matches!(
+                (original_value, changed_value),
+                (Value::String(_), Value::String(_))
+            ),
+            2..=4 => matches!(
+                (original_value, changed_value),
+                (Value::Array(_), Value::Array(_))
+            ),
+            5 => matches!(
+                (original_value, changed_value),
+                (Value::Object(_), Value::Object(_))
+            ),
+            _ => false,
+        };
+        if !kinds_match {
+            fallback!();
+        }
+        if ordinal == 5 {
+            original_counts = Some(original_value);
+            changed_counts = Some(changed_value);
+        }
+        ordinal += 1; // bounded by the two checked six-entry owners
+    }
+    l.step(128)?; // BEFORE complete count-header selection
+    let (Some(Value::Object(original_fields)), Some(Value::Object(changed_fields))) =
+        (original_counts, changed_counts)
+    else {
+        fallback!();
+    };
+    if original_fields.len() != 2 || changed_fields.len() != 2 {
+        fallback!();
+    }
+    l.bytes(40)?;
+    let mut ordinal = 0usize;
+    let mut original_nodes = None;
+    for ((original_key, original_value), (changed_key, changed_value)) in
+        original_fields.iter().zip(changed_fields.iter())
+    {
+        if original_key.as_str() != ["nodes", "edges"][ordinal]
+            || changed_key.as_str() != ["nodes", "edges"][ordinal]
+        {
+            fallback!();
+        }
+        let (Value::Number(original_number), Value::Number(changed_number)) =
+            (original_value, changed_value)
+        else {
+            fallback!();
+        };
+        // HEADER length checks BEFORE any numeric payload parse/read.
+        if original_number.as_str().len() > 20 || changed_number.as_str().len() > 20 {
+            fallback!();
+        }
+        if ordinal == 0 {
+            original_nodes = Some(original_number);
+        }
+        ordinal += 1;
+    }
+    let Some(original_nodes) = original_nodes else {
+        fallback!();
+    };
+    let length = original_nodes.as_str().len();
+    l.step(
+        length
+            .checked_mul(32)
+            .and_then(|n| n.checked_add(32))
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.bytes(length.checked_mul(2).ok_or(ReferenceError::Budget)?)?;
+    // Explicit Option<u64>/parse carriers were prepaid, not Option<usize>.
+    let positive = original_nodes.as_u64();
+    if !matches!(positive, Some(n) if n > 0) {
+        fallback!();
+    }
+    Ok(CountFirstSelection { original_counts })
+}
+fn count_first_move(
+    changed: &mut serde_json::Value,
+    to: usize,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use serde_json::Value;
+    use std::mem::{align_of, size_of};
+    l.step(32)?; // helper/checked-calculation work BEFORE its scalar holders
+    let a = align_of::<usize>()
+        .max(align_of::<String>())
+        .max(align_of::<Value>());
+    let q = size_of::<usize>()
+        .checked_add(size_of::<String>())
+        .and_then(|n| n.checked_add(size_of::<Value>()))
+        .and_then(|n| n.checked_add(a.checked_mul(4)?))
+        .and_then(|n| n.checked_add(a.checked_sub(1)?))
+        .map(|n| n / a * a)
+        .ok_or(ReferenceError::Budget)?;
+    // ALL pinned rotate branches, including runtime swap word/tail chunks.
+    let rotation = q
+        .checked_add(7)
+        .map(|n| n / 8)
+        .and_then(|n| n.checked_add(3))
+        .and_then(|n| n.checked_mul(16))
+        .and_then(|n| n.checked_add(64))
+        .and_then(|n| n.checked_mul(5))
+        .and_then(|n| n.checked_add(128))
+        .ok_or(ReferenceError::Budget)?;
+    let move_work = rotation
+        .checked_add(32 + (32 + 6 * 16) + 16)
+        .ok_or(ReferenceError::Budget)?;
+    l.step(
+        move_work
+            .checked_add(2 * 352)
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.bytes(2 * (17 * 6 + 32) + 18)?; // two queries + actual key allocation/read/write
+    let Value::Object(fields) = changed else {
+        return Err(ReferenceError::InvalidBinding);
+    };
+    if fields.len() != 6 || (to != 0 && to != 5) {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    // Existing counts entry stays present throughout, so shift_insert takes
+    // OccupiedEntry -> held bucket -> move_index_inner -> update_index.
+    let counts = std::mem::replace(
+        fields
+            .get_mut("counts")
+            .ok_or(ReferenceError::InvalidBinding)?,
+        Value::Null,
+    );
+    let key = "counts".to_owned();
+    if !matches!(fields.shift_insert(to, key, counts), Some(Value::Null)) {
+        // NEVER fall back after partial Null/permutation mutation.
+        return Err(ReferenceError::InvalidBinding);
+    }
+    Ok(())
+}
+fn count_first_compare(
+    selected: &CountFirstSelection<'_>,
+    changed: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    use serde_json::Value;
+    l.step(2 * 352 + 32)?; // actual root/count Eq lookups + iterator/helper
+    l.bytes(134 + 117 + 12 + 80)?; // hashes/key reads + bounded Number Eq payloads
+    let original_counts = selected
+        .original_counts
+        .ok_or(ReferenceError::InvalidBinding)?;
+    let Value::Object(fields) = changed else {
+        return Err(ReferenceError::InvalidBinding);
+    };
+    let Some((key, changed_counts)) = fields.iter().next() else {
+        return Err(ReferenceError::InvalidBinding);
+    };
+    if key.as_str() != "counts" {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    l.compare_work(original_counts, 1)?;
+    l.compare_work(changed_counts, 1)
+}
+
 fn navigation_reference_variants(
-    historical: serde_json::Value,
+    historical: OwnedHistoricalNavigation,
     original: &serde_json::Value,
     inputs: DeclaredNavigationInputs<'_>,
     l: &mut ReferenceLimits<'_>,
@@ -4837,7 +6446,7 @@ fn navigation_reference_variants(
     result
 }
 fn navigation_reference_variants_body(
-    historical: serde_json::Value,
+    historical: OwnedHistoricalNavigation,
     original: &serde_json::Value,
     inputs: DeclaredNavigationInputs<'_>,
     l: &mut ReferenceLimits<'_>,
@@ -5335,9 +6944,14 @@ fn navigation_reference_variants_body(
     }
     l.work
         .diagnostic_stage("copy-rewrite-historical-navigation", 0);
-    let historical_plan = navigation_w_guard(&historical, l)?;
+    l.bytes(historical_proof_guard_workspace()?)?; // BEFORE extra shell/proof arguments
+    let historical_plan = historical_owned_w_guard(&historical, l)?;
     historical_journal_payment(&historical_plan, l)?;
-    let mut old = historical;
+    let OwnedHistoricalNavigation {
+        value: mut old,
+        proofs,
+    } = historical;
+    drop(proofs); // consumed BEFORE the first mutation; no restoration reuse
     let mut historical_journal = HistoricalStringJournal {
         entries: Vec::new(),
         path: Vec::with_capacity(historical_plan.max_frames),
@@ -5398,9 +7012,9 @@ fn navigation_reference_variants_body(
     let historical = old;
     for old_row in nav_array(&historical, "nodes")? {
         l.step(1)?;
-        let mut renamed = navigation_copy(old_row, 0, l)?;
-        nav_rewrite_strings(&mut renamed, &replacements, l, 0)?;
-        navigation_w_guard(&renamed, l)?;
+        l.step(32)?; // BEFORE late-only enriched handoff/workspace construction
+        l.bytes(late_rewrite_copy_handoff_workspace()?)?;
+        let renamed = late_rewrite_navigation_copy(old_row, &replacements, l)?;
         assert!(
             nav_array(&variant, "nodes")?
                 .iter()
@@ -5457,8 +7071,8 @@ fn navigation_reference_variants_body(
                     .ok_or(ReferenceError::InvalidBinding)?
                     .remove(key)
                     .ok_or(ReferenceError::InvalidBinding)?;
-                l.compare_work(row, 0)?;
-                l.compare_work(&changed, 0)?;
+                l.bytes(nav_field_removal_compare_workspace()?)?; // BEFORE helper/argument holders
+                nav_field_removal_compare_work(row, &changed, l)?;
                 assert_ne!(&changed, row, "complete {collection} field {key}");
                 l.fixed(1)?;
                 l.bytes(key.len())?;
@@ -5512,15 +7126,16 @@ fn navigation_reference_variants_body(
     assert!(descriptor_controls >= 2 && form_controls >= 2);
     l.work
         .diagnostic_stage("whole-navigation-order-count-controls", 0);
-    let mut changed = l.copy(original)?;
+    l.bytes(count_control_workspace()?)?; // BEFORE COPY wrapper/plan holders
+    let (mut changed, count_plan) = count_control_copy(original, l)?;
     for collection in ["nodes", "edges"] {
         l.step(1)?;
         let rows = changed[collection]
             .as_array_mut()
             .ok_or(ReferenceError::InvalidBinding)?;
         let saved = rows.pop().ok_or(ReferenceError::InvalidBinding)?;
-        l.compare_work(original, 0)?;
-        l.compare_work(&changed, 0)?;
+        l.bytes(nav_array_removal_compare_workspace()?)?; // BEFORE helper/argument holders
+        nav_array_removal_compare_work(original, &changed, collection, l)?;
         assert_ne!(&changed, original, "removed {collection} row");
         changed[collection]
             .as_array_mut()
@@ -5530,19 +7145,49 @@ fn navigation_reference_variants_body(
             .as_array_mut()
             .ok_or(ReferenceError::InvalidBinding)?
             .swap(0, 1);
-        l.compare_work(original, 0)?;
-        l.compare_work(&changed, 0)?;
+        l.bytes(nav_array_swap_compare_workspace()?)?; // BEFORE swap-prefix holders
+        nav_array_swap_compare_work(original, &changed, collection, l)?;
         assert_ne!(&changed, original, "ordered {collection}");
         changed[collection]
             .as_array_mut()
             .ok_or(ReferenceError::InvalidBinding)?
             .swap(0, 1);
     }
+    // NEW calculator/workspace payment BEFORE helper/token/iterator construction.
+    // The old COPY receipt and all prior array work remain spent unchanged.
+    l.step(512)?;
+    l.bytes(
+        std::mem::size_of::<usize>()
+            .checked_mul(16)
+            .and_then(|n| {
+                n.checked_add(
+                    std::mem::size_of::<NavResult<usize>>()
+                        .max(std::mem::size_of::<Option<usize>>())
+                        .checked_mul(4)?,
+                )
+            })
+            .and_then(|n| {
+                n.checked_add(std::mem::size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?)
+            })
+            .ok_or(ReferenceError::Budget)?,
+    )?;
+    l.bytes(count_first_workspace()?)?;
+    let count_selection = count_first_select(&count_plan, original, &changed, l)?;
+    if count_selection.original_counts.is_some() {
+        count_first_move(&mut changed, 0, l)?;
+    }
     let saved = std::mem::replace(&mut changed["counts"]["nodes"], json!(0));
-    l.compare_work(original, 0)?;
-    l.compare_work(&changed, 0)?;
+    if count_selection.original_counts.is_some() {
+        count_first_compare(&count_selection, &changed, l)?;
+    } else {
+        // Selection/fallback was settled BEFORE any reorder or Number mutation.
+        count_control_compare_work(count_plan, original, &changed, l)?;
+    }
     assert_ne!(&changed, original, "independent count");
     changed["counts"]["nodes"] = saved;
+    if count_selection.original_counts.is_some() {
+        count_first_move(&mut changed, 5, l)?;
+    }
     Ok(())
 }
 
