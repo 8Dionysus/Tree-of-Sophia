@@ -304,7 +304,7 @@ impl CurrentReference {
             return Err("reference diagnostic already active");
         }
         // Checked additive terminal-context fee math is paid before evaluation.
-        self.visit(64)?;
+        self.visit(128)?;
         let holders = size_of::<ReferenceDiagnostic>()
             .checked_mul(2)
             .and_then(|n| n.checked_add(size_of::<[u8; 640]>()))
@@ -338,12 +338,24 @@ impl CurrentReference {
             .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
             .and_then(|n| n.checked_add(size_of::<Result<(), &'static str>>().checked_mul(2)?))
             .and_then(|n| n.checked_add(216)) // four complete 27+27 byte stage comparisons
+            // Final-only detail/offset classifier, additive to the old notes.
+            .and_then(|n| n.checked_add(size_of::<&String>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+            .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(6)?))
+            .and_then(|n| n.checked_add(size_of::<&'static str>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&usize>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(120)) // detail Eq66 + fifth stage Eq54
             .and_then(|n| n.checked_add(640)) // distinct bounded report-byte work
             .ok_or("reference diagnostic state overflow")?;
         self.charge(holders)?;
         // <=64 fixed stage stores, <=13 usize spellings*20 digits, <=640
         // report byte stores and one write. No new algorithm traversal/counter.
-        let report_visits = 64 + 13 * 20 + 640 + 1 + 48;
+        let report_visits = 64 + 13 * 20 + 640 + 1 + 48 + 12 + 24;
         self.visit(report_visits)?;
         self.diagnostic = Some(Box::new(ReferenceDiagnostic {
             stage: "variants-entry",
@@ -351,7 +363,7 @@ impl CurrentReference {
             stage_bytes: self.left,
             stage_visits: self.visits_left,
             prepaid_bytes: holders,
-            prepaid_visits: report_visits + 64,
+            prepaid_visits: report_visits + 128,
             first: None,
             reported: false,
             buffer: [0; 640],

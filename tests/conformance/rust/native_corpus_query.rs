@@ -632,6 +632,95 @@ impl ReferenceLimits<'_> {
         )?;
         Ok(doc)
     }
+    fn strict_final_document(
+        &mut self,
+        raw: &[u8],
+        ceiling: usize,
+    ) -> NavResult<tos_foundation::JsonDocument> {
+        use tos_foundation::{FoundationError, FoundationErrorCode as Code, JsonMode};
+        // Source-identical fixed depth-96 parser state threshold. This const
+        // creates no workspace; the maintained parser still charges its own F.
+        const FIXED_PARSER_STATE: usize = (96usize + 1)
+            * (std::mem::size_of::<tos_foundation::JsonValue>()
+                + std::mem::size_of::<tos_foundation::JsonString>()
+                + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>()
+                + 2 * std::mem::size_of::<Vec<tos_foundation::JsonValue>>());
+        self.step(1)?;
+        if raw.len() > ceiling {
+            self.work.note_unlatched_final_phase("fs.ceiling");
+            return Err(ReferenceError::Budget);
+        }
+        let json = match self.json_limits(ceiling) {
+            Ok(json) => json,
+            Err(error) => {
+                self.work.note_unlatched_final_phase("fs.limits");
+                return Err(error);
+            }
+        };
+        let available = self.work.left;
+        let deadline = self.work.deadline;
+        let cancelled = self.cancelled;
+        let parsed = tos_foundation::parse_json_with_state_budget_and_admission(
+            raw,
+            JsonMode::PublishedStrict,
+            json,
+            available,
+            &mut || {
+                if Instant::now() < deadline && !cancelled.load(Ordering::Relaxed) {
+                    Ok(())
+                } else {
+                    Err(FoundationError::new(
+                        Code::BudgetExceeded,
+                        "reference cutoff",
+                    ))
+                }
+            },
+            &mut |bytes, visits| {
+                self.work
+                    .charge(bytes)
+                    .and_then(|_| self.work.visit(visits))
+                    .map_err(|_| FoundationError::new(Code::BudgetExceeded, "reference parse work"))
+            },
+        );
+        // The parser Result is the same moved owner as the old temporary.
+        // Both callback borrows end before the Err-only diagnostic receiver.
+        let doc = match parsed {
+            Ok(doc) => doc,
+            Err(e) => {
+                if e.code == Code::BudgetExceeded {
+                    let phase = if e.detail.as_str() == "JSON parser state budget exceeded" {
+                        match e.byte_offset {
+                            None => {
+                                if available < FIXED_PARSER_STATE {
+                                    "fs.state-initial"
+                                } else {
+                                    "fs.state-charge"
+                                }
+                            }
+                            Some(offset) if offset > 0 => "fs.state-reserve",
+                            Some(_) => "fs.parser-other",
+                        }
+                    } else {
+                        "fs.parser-other"
+                    };
+                    self.work.note_unlatched_final_phase(phase);
+                    return Err(ReferenceError::Budget);
+                } else {
+                    return Err(ReferenceError::InvalidBinding);
+                }
+            }
+        };
+        self.step(doc.visits())?; // retained-state walk, distinct from parser visits
+        let retained = match doc.root().retained_storage_bytes() {
+            Ok(retained) => retained,
+            Err(_) => {
+                self.work.note_unlatched_final_phase("fs.retained");
+                return Err(ReferenceError::Budget);
+            }
+        };
+        self.bytes(retained)?;
+        Ok(doc)
+    }
     fn retained_root(
         &mut self,
         raw: &[u8],
@@ -3139,7 +3228,7 @@ fn final_owner_row(
     let doc = final_return_context!(
         l,
         "fv.strict-doc",
-        l.strict_document(row, l.max_record_bytes)
+        l.strict_final_document(row, l.max_record_bytes)
     );
     final_owner_calculator_payment!(l);
     let workspace = final_return_context!(l, "fv.select-admit", final_owner_select_workspace(l));
