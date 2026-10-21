@@ -364,6 +364,12 @@ pub fn resolve_position(
     if !reference(field(f, "fixture_id")) {
         return done(reason("Unresolved", "TransitionVersionRequired"));
     }
+    if let (Some(input_calendar), Some(fixture_calendar)) =
+        (string(input, "calendar"), string(f, "calendar"))
+        && input_calendar != fixture_calendar
+    {
+        return done(reason("Unresolved", "CalendarDeclarationConflict"));
+    }
     let algorithm = string(input, "calendar").or_else(|| string(f, "calendar"));
     if algorithm != Some("GregorianProleptic") {
         return done(reason("Unresolved", "ExplicitCalendarRulesRequired"));

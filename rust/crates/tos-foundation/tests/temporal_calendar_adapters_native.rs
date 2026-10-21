@@ -204,6 +204,76 @@ fn original_fold_missing_calendar_is_gap_and_clarified_fold_is_actual_computatio
     assert_eq!(s(&r, "status"), Some("OutOfCoverage"));
 }
 #[test]
+fn local_wall_calendar_declarations_must_agree_without_changing_single_source_rules() {
+    for (input_calendar, fixture_calendar, offsets, status, expected_reason) in [
+        (
+            Some("GregorianProleptic"),
+            Some("JulianProleptic"),
+            r#"["+02:00"]"#,
+            "Unresolved",
+            Some("CalendarDeclarationConflict"),
+        ),
+        (
+            Some("GregorianProleptic"),
+            Some("JulianProleptic"),
+            r#"["+02:00","+01:00"]"#,
+            "Unresolved",
+            Some("CalendarDeclarationConflict"),
+        ),
+        (
+            Some("GregorianProleptic"),
+            Some("GregorianProleptic"),
+            r#"["+02:00"]"#,
+            "Unique",
+            None,
+        ),
+        (
+            Some("GregorianProleptic"),
+            None,
+            r#"["+02:00"]"#,
+            "Unique",
+            None,
+        ),
+        (
+            None,
+            Some("GregorianProleptic"),
+            r#"["+02:00"]"#,
+            "Unique",
+            None,
+        ),
+        (
+            None,
+            None,
+            r#"["+02:00"]"#,
+            "Unresolved",
+            Some("ExplicitCalendarRulesRequired"),
+        ),
+    ] {
+        let calendar = input_calendar
+            .map(|c| format!("\"calendar\":\"{c}\", "))
+            .unwrap_or_default();
+        let raw = zone(&calendar, offsets, "2021-10-31T01:30:00");
+        let raw = if let Some(c) = fixture_calendar {
+            raw.replace(
+                "\"fixture_id\":",
+                &format!("\"calendar\":\"{c}\",\"fixture_id\":"),
+            )
+        } else {
+            raw
+        };
+        let input = parse(&raw);
+        let context = parse(r#"{"caller_note":"keep this context"}"#);
+        let before = (input.clone(), context.clone());
+        let result = resolve_position(&input, &context, TemporalBudget::default()).unwrap();
+        assert_eq!(s(&result, "status"), Some(status), "{raw}");
+        assert_eq!(s(&result, "reason"), expected_reason, "{raw}");
+        assert_eq!(f(&result, "preserved_input"), &input);
+        assert_eq!(f(&result, "preserved_context"), &context);
+        assert_eq!((&input, &context), (&before.0, &before.1));
+    }
+}
+
+#[test]
 fn named_seasons_need_versioned_applicability_not_a_generic_spring() {
     let i = r#"{"position":{"year":1344,"season_code":21,"trs_ref":"opaque-v9"}}"#;
     let r = run(derive_named_extent, i);
