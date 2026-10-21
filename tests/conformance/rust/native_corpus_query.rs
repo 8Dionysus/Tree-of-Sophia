@@ -2439,11 +2439,27 @@ struct FinalVariantPairState<'r, 'v> {
     agrees: bool,
     available: usize,
 }
+// Same Result payload/error moves as `?`; only the existing Err arm adds
+// prepaid, allocation-free terminal context. No successful-path logging.
+macro_rules! final_return_context {
+    ($l:expr, $phase:literal, $expression:expr) => {{
+        match $expression {
+            Ok(value) => value,
+            Err(error) => {
+                $l.work.note_unlatched_final_phase($phase);
+                return Err(error);
+            }
+        }
+    }};
+}
+
 // Inline initial calculator envelope BEFORE any new fee-helper arguments.
 macro_rules! final_owner_calculator_payment {
     ($l:expr) => {{
         $l.step(32)?;
-        $l.bytes(
+        let amount = final_return_context!(
+            $l,
+            "fv.calculator",
             std::mem::size_of::<usize>()
                 .checked_mul(16)
                 .and_then(|n| n.checked_add(std::mem::size_of::<Option<usize>>().checked_mul(12)?))
@@ -2454,8 +2470,9 @@ macro_rules! final_owner_calculator_payment {
                     n.checked_add(std::mem::size_of::<&mut ReferenceLimits<'_>>().checked_mul(6)?)
                 })
                 .and_then(|n| n.checked_add(std::mem::size_of::<NavResult<()>>().checked_mul(4)?))
-                .ok_or(ReferenceError::Budget)?,
-        )?;
+                .ok_or(ReferenceError::Budget)
+        );
+        $l.bytes(amount)?;
     }};
 }
 macro_rules! final_owner_add {
@@ -3119,12 +3136,20 @@ fn final_owner_row(
     pool: &mut FinalVariantOwnerPool<'_>,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<serde_json::Value> {
-    let doc = l.strict_document(row, l.max_record_bytes)?;
+    let doc = final_return_context!(
+        l,
+        "fv.strict-doc",
+        l.strict_document(row, l.max_record_bytes)
+    );
     final_owner_calculator_payment!(l);
-    let workspace = final_owner_select_workspace(l)?;
+    let workspace = final_return_context!(l, "fv.select-admit", final_owner_select_workspace(l));
     l.bytes(workspace)?;
     l.step(24)?;
-    let selected = final_owner_select(pool, path, line, row, member, l)?;
+    let selected = final_return_context!(
+        l,
+        "fv.selector",
+        final_owner_select(pool, path, line, row, member, l)
+    );
     let Some(index) = selected else {
         return move_reference_document(doc, l);
     };
@@ -3134,14 +3159,14 @@ fn final_owner_row(
     }
     reference_move_layout()?;
     final_owner_calculator_payment!(l);
-    let workspace = final_owner_pair_workspace(l)?;
+    let workspace = final_return_context!(l, "fv.pair-admit", final_owner_pair_workspace(l));
     l.bytes(workspace)?;
     l.step(2)?; // actual source-slot lookup/projection BEFORE pair arguments
     let agrees = {
         let Some(source) = pool.sources.get_mut(index) else {
             return Err(ReferenceError::InvalidBinding);
         };
-        final_owner_pair(doc.root(), &source.2, l)?
+        final_return_context!(l, "fv.pair", final_owner_pair(doc.root(), &source.2, l))
     };
     if !agrees {
         return move_reference_document(doc, l);
@@ -3170,16 +3195,36 @@ impl<'a> DeclaredNavigationInputs<'a> {
     ) -> NavResult<Self> {
         l.step(1)?;
         if files.len() > l.max_files {
+            l.work.note_unlatched_final_phase("fv.file-policy");
             return Err(ReferenceError::Budget);
         }
         let mut total = 0usize;
         for (path, raw) in files {
-            l.step(path.len().checked_add(1).ok_or(ReferenceError::Budget)?)?;
-            l.bytes(path.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+            {
+                let amount = final_return_context!(
+                    l,
+                    "fv.file-policy",
+                    path.len().checked_add(1).ok_or(ReferenceError::Budget)
+                );
+                l.step(amount)?;
+            }
+            {
+                let amount = final_return_context!(
+                    l,
+                    "fv.file-policy",
+                    path.len().checked_add(128).ok_or(ReferenceError::Budget)
+                );
+                l.bytes(amount)?;
+            }
             tos_foundation::RelativePath::parse(path)
                 .map_err(|_| ReferenceError::InvalidBinding)?;
-            total = total.checked_add(raw.len()).ok_or(ReferenceError::Budget)?;
+            total = final_return_context!(
+                l,
+                "fv.file-policy",
+                total.checked_add(raw.len()).ok_or(ReferenceError::Budget)
+            );
             if raw.len() > l.max_file_bytes || total > l.max_input_bytes {
+                l.work.note_unlatched_final_phase("fv.file-policy");
                 return Err(ReferenceError::Budget);
             }
         }
@@ -3215,22 +3260,40 @@ impl<'a> DeclaredNavigationInputs<'a> {
                 if out.identities.len() + out.claims.len() + out.events.len() + out.forms.len()
                     >= l.max_rows
                 {
+                    l.work.note_unlatched_final_phase("fv.row-policy");
                     return Err(ReferenceError::Budget);
                 }
                 if claims {
-                    claim_bytes = claim_bytes
-                        .checked_add(raw.len())
-                        .ok_or(ReferenceError::Budget)?;
+                    claim_bytes = final_return_context!(
+                        l,
+                        "fv.row-policy",
+                        claim_bytes
+                            .checked_add(raw.len())
+                            .ok_or(ReferenceError::Budget)
+                    );
                     if claim_bytes > l.max_claim_bytes || out.claims.len() >= l.max_claim_rows {
+                        l.work.note_unlatched_final_phase("fv.row-policy");
                         return Err(ReferenceError::Budget);
                     }
                 }
                 final_owner_calculator_payment!(l);
-                let workspace = final_owner_dispatch_workspace(l)?;
+                let workspace =
+                    final_return_context!(l, "fv.row-admit", final_owner_dispatch_workspace(l));
                 l.bytes(workspace)?;
-                let value = final_owner_row(raw, member_raw, path, line, pool, l)?;
-                let sha = l.digest(&value)?;
-                l.bytes(path.len().checked_add(256).ok_or(ReferenceError::Budget)?)?;
+                let value = final_return_context!(
+                    l,
+                    "fv.row-other",
+                    final_owner_row(raw, member_raw, path, line, pool, l)
+                );
+                let sha = final_return_context!(l, "fv.digest", l.digest(&value));
+                {
+                    let amount = final_return_context!(
+                        l,
+                        "fv.source-meta",
+                        path.len().checked_add(256).ok_or(ReferenceError::Budget)
+                    );
+                    l.bytes(amount)?;
+                }
                 let source = NavigationSource {
                     path: path.clone(),
                     line,
@@ -7300,6 +7363,7 @@ fn navigation_reference_variants(
         .map_err(|_| ReferenceError::Budget)?;
     let result = navigation_reference_variants_body(historical, original, inputs, l);
     if let Err(error) = result {
+        l.work.note_unlatched_final_phase("fv.span-other");
         let name = match error {
             ReferenceError::Budget => "Budget",
             ReferenceError::InvalidBinding => "InvalidBinding",
@@ -7837,18 +7901,26 @@ fn navigation_reference_variants_body(
     }
     l.work.diagnostic_stage("parse-final-variant-members", 0);
     final_owner_calculator_payment!(l);
-    let pool_workspace = final_owner_pool_workspace(l)?;
+    let pool_workspace = final_return_context!(l, "fv.pool-admit", final_owner_pool_workspace(l));
     l.bytes(pool_workspace)?;
     l.step(24)?;
-    let mut final_owners = FinalVariantOwnerPool::new(sources.as_mut_slice(), l)?;
+    let mut final_owners = final_return_context!(
+        l,
+        "fv.pool",
+        FinalVariantOwnerPool::new(sources.as_mut_slice(), l)
+    );
     // Additional Hdispatch BEFORE final intake forwarding/closure captures;
     // each row separately prepays its own Hdispatch, with no cross-row credit.
     final_owner_calculator_payment!(l);
-    let intake_workspace = final_owner_dispatch_workspace(l)?;
+    let intake_workspace =
+        final_return_context!(l, "fv.intake-admit", final_owner_dispatch_workspace(l));
     l.bytes(intake_workspace)?;
     l.step(2)?; // additional final-intake pool argument/forwarding
-    let mut variant_inputs =
-        DeclaredNavigationInputs::from_final_files(&files, input_registries, &mut final_owners, l)?;
+    let mut variant_inputs = final_return_context!(
+        l,
+        "fv.intake-other",
+        DeclaredNavigationInputs::from_final_files(&files, input_registries, &mut final_owners, l)
+    );
     l.work.diagnostic_stage("build-second-navigation", 0);
     let variant = expected_source_navigation(&old, &variant_inputs, l.reborrow())?;
     assert_eq!(

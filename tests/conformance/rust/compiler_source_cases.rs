@@ -303,6 +303,8 @@ impl CurrentReference {
         if self.diagnostic.is_some() {
             return Err("reference diagnostic already active");
         }
+        // Checked additive terminal-context fee math is paid before evaluation.
+        self.visit(64)?;
         let holders = size_of::<ReferenceDiagnostic>()
             .checked_mul(2)
             .and_then(|n| n.checked_add(size_of::<[u8; 640]>()))
@@ -317,12 +319,31 @@ impl CurrentReference {
             .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(6)?))
             .and_then(|n| n.checked_add(size_of::<std::io::Result<usize>>().checked_mul(2)?))
             .and_then(|n| n.checked_add(size_of::<Result<(), &'static str>>().checked_mul(4)?))
+            // Flat terminal-note receivers, forwarding, string/slice Eq and
+            // checked fee/control holders; no new persistent diagnostic state.
+            .and_then(|n| n.checked_add(size_of::<&mut CurrentReference>().checked_mul(2)?))
+            .and_then(|n| {
+                n.checked_add(size_of::<Option<&mut Box<ReferenceDiagnostic>>>().checked_mul(2)?)
+            })
+            .and_then(|n| n.checked_add(size_of::<&mut Box<ReferenceDiagnostic>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceDiagnostic>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&Option<ReferenceRefusal>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&'static str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&'static str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<Result<(), &'static str>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(216)) // four complete 27+27 byte stage comparisons
             .and_then(|n| n.checked_add(640)) // distinct bounded report-byte work
             .ok_or("reference diagnostic state overflow")?;
         self.charge(holders)?;
         // <=64 fixed stage stores, <=13 usize spellings*20 digits, <=640
         // report byte stores and one write. No new algorithm traversal/counter.
-        let report_visits = 64 + 13 * 20 + 640 + 1;
+        let report_visits = 64 + 13 * 20 + 640 + 1 + 48;
         self.visit(report_visits)?;
         self.diagnostic = Some(Box::new(ReferenceDiagnostic {
             stage: "variants-entry",
@@ -330,7 +351,7 @@ impl CurrentReference {
             stage_bytes: self.left,
             stage_visits: self.visits_left,
             prepaid_bytes: holders,
-            prepaid_visits: report_visits,
+            prepaid_visits: report_visits + 64,
             first: None,
             reported: false,
             buffer: [0; 640],
@@ -339,6 +360,15 @@ impl CurrentReference {
             output: std::io::stderr(),
         }));
         Ok(())
+    }
+    // Err-only return context. Primitive first records and old entry snapshots
+    // remain authoritative; deepest annotation wins without another report.
+    fn note_unlatched_final_phase(&mut self, phase: &'static str) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            if diagnostic.first.is_none() && diagnostic.stage == "parse-final-variant-members" {
+                diagnostic.stage = phase;
+            }
+        }
     }
     fn diagnostic_stage(&mut self, stage: &'static str, item: usize) {
         if let Some(diagnostic) = self.diagnostic.as_mut() {
