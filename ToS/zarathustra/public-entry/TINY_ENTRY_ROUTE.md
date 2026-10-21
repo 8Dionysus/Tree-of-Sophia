@@ -106,7 +106,7 @@ If a downstream consumer loses ToS boundary and needs to restore the current bou
 `CHARTER.md` remains the root authority note for ToS posture, but the worked route should re-enter through the source-owned tiny-entry example before any derived `kag_view` or adjunct.
 Readers and optional consumers can follow this re-entry hop directly. Re-entry
 passes through Tree-of-Sophia's authored authority before downstream derived
-surfaces; no SDK or routing service mediates the route.
+surfaces; no SDK or routing service is required to mediate the route.
 
 ## Entry contract
 
