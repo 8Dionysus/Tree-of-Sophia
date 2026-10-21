@@ -2409,6 +2409,876 @@ impl<'a> DeclaredNavigationInputs<'a> {
         Ok(out)
     }
 }
+
+// Final positive members ONLY: keep full raw strict parsing and validate the
+// whole converted representation before moving its exact serializer-input owner.
+struct FinalVariantOwnerPool<'a> {
+    sources: &'a mut [VariantAuthoredSource],
+    used: Vec<bool>,
+}
+type FinalVariantPairNext<'r, 'v> = (
+    &'r tos_foundation::JsonValue,
+    Option<&'v serde_json::Value>,
+    usize,
+);
+enum FinalVariantPairFrame<'r, 'v> {
+    Array {
+        remaining: std::slice::Iter<'r, tos_foundation::JsonValue>,
+        expected: Option<std::slice::Iter<'v, serde_json::Value>>,
+        depth: usize,
+    },
+    Object {
+        remaining: std::slice::Iter<'r, (tos_foundation::JsonString, tos_foundation::JsonValue)>,
+        expected: Option<serde_json::map::Iter<'v>>,
+        depth: usize,
+    },
+}
+struct FinalVariantPairState<'r, 'v> {
+    frames: Vec<FinalVariantPairFrame<'r, 'v>>,
+    next: Option<FinalVariantPairNext<'r, 'v>>,
+    agrees: bool,
+    available: usize,
+}
+// Inline initial calculator envelope BEFORE any new fee-helper arguments.
+macro_rules! final_owner_calculator_payment {
+    ($l:expr) => {{
+        $l.step(32)?;
+        $l.bytes(
+            std::mem::size_of::<usize>()
+                .checked_mul(16)
+                .and_then(|n| n.checked_add(std::mem::size_of::<Option<usize>>().checked_mul(12)?))
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<NavResult<usize>>().checked_mul(4)?)
+                })
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<&mut ReferenceLimits<'_>>().checked_mul(6)?)
+                })
+                .and_then(|n| n.checked_add(std::mem::size_of::<NavResult<()>>().checked_mul(4)?))
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+    }};
+}
+macro_rules! final_owner_add {
+    ($l:expr, $total:ident, $bound:expr, $count:expr) => {{
+        $l.step(3)?;
+        $total = $total
+            .checked_add(($bound).checked_mul($count).ok_or(ReferenceError::Budget)?)
+            .ok_or(ReferenceError::Budget)?;
+    }};
+}
+
+fn final_owner_pool_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    let mut total = 0usize;
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<FinalVariantOwnerPool<'_>>()
+            .max(std::mem::size_of::<NavResult<FinalVariantOwnerPool<'_>>>()),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<Vec<bool>>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut [VariantAuthoredSource]>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&mut Vec<bool>>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Result<(), std::collections::TryReserveError>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<usize>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<usize>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<()>>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut ReferenceLimits<'_>>(),
+        2usize
+    );
+    Ok(total)
+}
+
+fn final_owner_select_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    let mut total = 0usize;
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<std::iter::Enumerate<std::slice::Iter<'_, VariantAuthoredSource>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<(usize, &VariantAuthoredSource)>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<Option<usize>>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<usize>(), 8usize);
+    final_owner_add!(l, total, std::mem::size_of::<&str>(), 8usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<&str>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<usize>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<bool>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<&bool>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<&bool>>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&FinalVariantOwnerPool<'_>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<NavResult<Option<usize>>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&[u8]>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<&u8>>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<u8>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut ReferenceLimits<'_>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<*const u8>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&*const u8>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<usize>>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<()>>(), 2usize);
+    Ok(total)
+}
+
+fn final_owner_dispatch_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    let mut total = 0usize;
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<tos_foundation::JsonDocument>()
+            .max(std::mem::size_of::<NavResult<tos_foundation::JsonDocument>>()),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&tos_foundation::JsonDocument>(),
+        4usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&tos_foundation::JsonValue>(),
+        4usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&serde_json::Value>(), 4usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut FinalVariantOwnerPool<'_>>(),
+        4usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut ReferenceLimits<'_>>(),
+        4usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<usize>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<usize>>(), 6usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<serde_json::Value>()
+            .max(std::mem::size_of::<NavResult<serde_json::Value>>()),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<bool>>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut serde_json::Value>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<&mut serde_json::Value>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&mut bool>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<&mut bool>>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut VariantAuthoredSource>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<&mut VariantAuthoredSource>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<()>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&[u8]>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&str>(), 2usize);
+    Ok(total)
+}
+
+fn final_owner_pair_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    let mut total = 0usize;
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<FinalVariantPairState<'_, '_>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<FinalVariantPairFrame<'_, '_>>()
+            .max(std::mem::size_of::<Option<FinalVariantPairFrame<'_, '_>>>())
+            .max(std::mem::size_of::<NavResult<FinalVariantPairFrame<'_, '_>>>()),
+        3usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<FinalVariantPairNext<'_, '_>>()
+            .max(std::mem::size_of::<Option<FinalVariantPairNext<'_, '_>>>())
+            .max(std::mem::size_of::<NavResult<FinalVariantPairNext<'_, '_>>>()),
+        4usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut FinalVariantPairFrame<'_, '_>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<&mut FinalVariantPairFrame<'_, '_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&FinalVariantPairFrame<'_, '_>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<&FinalVariantPairFrame<'_, '_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<std::slice::Iter<'_, tos_foundation::JsonValue>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<std::slice::Iter<'_, tos_foundation::JsonValue>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<
+            std::slice::Iter<'_, (tos_foundation::JsonString, tos_foundation::JsonValue)>,
+        >(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<
+            Option<std::slice::Iter<'_, (tos_foundation::JsonString, tos_foundation::JsonValue)>>,
+        >(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<std::slice::Iter<'_, serde_json::Value>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<std::slice::Iter<'_, serde_json::Value>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<serde_json::map::Iter<'_>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<serde_json::map::Iter<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<&(tos_foundation::JsonString, tos_foundation::JsonValue)>>(),
+        4usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<(&String, &serde_json::Value)>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<(&String, &serde_json::Value)>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&tos_foundation::JsonString>(),
+        4usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&String>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&tos_foundation::JsonValue>(),
+        4usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&serde_json::Value>(), 4usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<&serde_json::Value>>(),
+        4usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&str>(), 8usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<&str>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&[u8]>(), 4usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<serde_json::Number>()
+            .max(std::mem::size_of::<NavResult<serde_json::Number>>())
+            .max(std::mem::size_of::<
+                Result<serde_json::Number, serde_json::Error>,
+            >()),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&serde_json::Number>(), 4usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&tos_foundation::JsonNumber>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<bool>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<&bool>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<usize>(), 12usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<usize>>(), 8usize);
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<usize>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<()>>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<bool>>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut ReferenceLimits<'_>>(),
+        4usize
+    );
+    l.step(32)?;
+    total = total
+        .checked_add(reference_stack_workspace::<FinalVariantPairFrame<'_, '_>>()?)
+        .ok_or(ReferenceError::Budget)?;
+    Ok(total)
+}
+
+impl<'a> FinalVariantOwnerPool<'a> {
+    // Caller has prepaid Hpool and fixed24 BEFORE these arguments/construction.
+    fn new(
+        sources: &'a mut [VariantAuthoredSource],
+        l: &mut ReferenceLimits<'_>,
+    ) -> NavResult<Self> {
+        let n = sources.len();
+        l.bytes(
+            n.checked_mul(std::mem::size_of::<bool>())
+                .ok_or(ReferenceError::Budget)?,
+        )?;
+        let mut used = Vec::new();
+        used.try_reserve_exact(n)
+            .map_err(|_| ReferenceError::Budget)?;
+        if used.capacity() != n {
+            return Err(ReferenceError::Budget);
+        }
+        loop {
+            l.step(4)?;
+            if used.len() == n {
+                break;
+            }
+            l.step(1)?;
+            used.push(false);
+        }
+        Ok(Self { sources, used })
+    }
+}
+// Caller has prepaid Hselect and prologue24 BEFORE these arguments/reads.
+fn final_owner_select(
+    pool: &FinalVariantOwnerPool<'_>,
+    path: &str,
+    line: Option<usize>,
+    row: &[u8],
+    member: &[u8],
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<Option<usize>> {
+    let eligible = match line {
+        Some(1) => {
+            l.bytes(1)?; // BEFORE last-byte access
+            row.as_ptr() == member.as_ptr()
+                && row.len().checked_add(1) == Some(member.len())
+                && member.last() == Some(&b'\n')
+        }
+        None => row.as_ptr() == member.as_ptr() && row.len() == member.len(),
+        Some(_) => false,
+    };
+    if !eligible {
+        l.step(12)?;
+        return Ok(None);
+    }
+    let mut iterator = pool.sources.iter().enumerate();
+    let mut found = None;
+    let mut ambiguous = false;
+    loop {
+        l.step(40)?; // BEFORE next, including terminal None
+        let Some((index, source)) = iterator.next() else {
+            break;
+        };
+        // 2*(old-prefix21 + new-prefix39) =120, in addition to both suffixes.
+        let reads = source
+            .0
+            .len()
+            .checked_add(path.len())
+            .and_then(|n| n.checked_add(120))
+            .ok_or(ReferenceError::Budget)?;
+        l.bytes(reads)?;
+        let old = source.0.strip_prefix("ToS/source-witnesses/");
+        let new = path.strip_prefix("ToS/source-witnesses/reference-variant/");
+        let path_matches = match (old, new) {
+            (Some(old), Some(new)) => old == new,
+            _ => false,
+        };
+        let line_matches = match source.1 {
+            None => line.is_none(),
+            Some(_) => line == Some(1),
+        };
+        if path_matches && line_matches {
+            if found.is_some() {
+                ambiguous = true;
+            }
+            found = Some(index);
+        }
+    }
+    l.step(12)?; // BEFORE every terminal candidate/used/bounds/result read
+    if ambiguous {
+        return Ok(None);
+    }
+    match found {
+        Some(index) => {
+            let Some(used) = pool.used.get(index) else {
+                return Err(ReferenceError::InvalidBinding);
+            };
+            if *used { Ok(None) } else { Ok(Some(index)) }
+        }
+        None => Ok(None),
+    }
+}
+// Both complete trees stay immutable. Mismatch NEVER stops raw semantics.
+fn final_owner_pair(
+    root: &tos_foundation::JsonValue,
+    expected: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<bool> {
+    use serde_json::Value;
+    use tos_foundation::JsonValue as Source;
+    let mut state = FinalVariantPairState {
+        frames: Vec::new(),
+        next: Some((root, Some(expected), 0)),
+        agrees: true,
+        available: l.work.left,
+    };
+    loop {
+        l.step(1)?;
+        if let Some((value, expected, depth)) = state.next.take() {
+            l.step(1)?;
+            match value {
+                Source::Null => {
+                    l.step(1)?;
+                    state.agrees &= matches!(expected, Some(Value::Null));
+                }
+                Source::Bool(value) => {
+                    l.step(1)?;
+                    state.agrees &= matches!(expected, Some(Value::Bool(other)) if value == other);
+                }
+                Source::String(value) => {
+                    let Some(text) = value.as_str() else {
+                        return Err(ReferenceError::InvalidBinding);
+                    };
+                    l.step(2)?;
+                    match expected {
+                        Some(Value::String(other)) => {
+                            l.bytes(
+                                text.len()
+                                    .checked_add(other.len())
+                                    .ok_or(ReferenceError::Budget)?,
+                            )?;
+                            state.agrees &= text == other.as_str();
+                        }
+                        _ => state.agrees = false,
+                    }
+                }
+                Source::Number(value) => {
+                    l.step(1)?; // SAME maintained scalar primitive as old owned bridge
+                    let parsed = reference_number_from_lexeme(&value.lexeme, l)?;
+                    l.step(2)?;
+                    match expected {
+                        Some(Value::Number(other)) => {
+                            l.bytes(
+                                parsed
+                                    .as_str()
+                                    .len()
+                                    .checked_add(other.as_str().len())
+                                    .ok_or(ReferenceError::Budget)?,
+                            )?;
+                            state.agrees &= parsed.as_str() == other.as_str();
+                        }
+                        _ => state.agrees = false,
+                    }
+                }
+                Source::Array(values) => {
+                    if depth == 97 {
+                        return Err(ReferenceError::Budget);
+                    }
+                    l.step(3)?;
+                    let expected = match expected {
+                        Some(Value::Array(other)) => {
+                            state.agrees &= values.len() == other.len();
+                            Some(other.iter())
+                        }
+                        _ => {
+                            state.agrees = false;
+                            None
+                        }
+                    };
+                    reference_stack_room(&mut state.frames, state.available, l)?;
+                    l.step(1)?;
+                    state.frames.push(FinalVariantPairFrame::Array {
+                        remaining: values.iter(),
+                        expected,
+                        depth,
+                    });
+                }
+                Source::Object(values) => {
+                    if depth == 97 {
+                        return Err(ReferenceError::Budget);
+                    }
+                    // SAME first-key semantics BEFORE expected matching/growth.
+                    if let Some((key, _)) = values.first() {
+                        l.step(1)?;
+                        let Some(key) = key.as_str() else {
+                            return Err(ReferenceError::InvalidBinding);
+                        };
+                        l.bytes(
+                            key.len()
+                                .min(29)
+                                .checked_mul(2)
+                                .ok_or(ReferenceError::Budget)?,
+                        )?;
+                        if key == "$serde_json::private::Number"
+                            || key == "$serde_json::private::RawValue"
+                        {
+                            return Err(ReferenceError::UnsupportedSourceProfile);
+                        }
+                    }
+                    l.step(3)?;
+                    let expected = match expected {
+                        Some(Value::Object(other)) => {
+                            state.agrees &= values.len() == other.len();
+                            Some(other.iter())
+                        }
+                        _ => {
+                            state.agrees = false;
+                            None
+                        }
+                    };
+                    reference_stack_room(&mut state.frames, state.available, l)?;
+                    l.step(1)?;
+                    state.frames.push(FinalVariantPairFrame::Object {
+                        remaining: values.iter(),
+                        expected,
+                        depth,
+                    });
+                }
+            }
+            continue;
+        }
+        if state.frames.is_empty() {
+            return Ok(state.agrees);
+        }
+        l.step(1)?;
+        let Some(frame) = state.frames.last_mut() else {
+            return Err(ReferenceError::InvalidBinding);
+        };
+        match frame {
+            FinalVariantPairFrame::Array {
+                remaining,
+                expected,
+                depth,
+            } => {
+                l.step(2)?;
+                let child = remaining.next();
+                let expected_child = match expected {
+                    Some(iter) => iter.next(),
+                    None => None,
+                };
+                if let Some(child) = child {
+                    l.step(2)?;
+                    state.next = Some((
+                        child,
+                        expected_child,
+                        depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                    ));
+                } else {
+                    l.step(2)?;
+                    let _ = state.frames.pop().ok_or(ReferenceError::InvalidBinding)?;
+                }
+            }
+            FinalVariantPairFrame::Object {
+                remaining,
+                expected,
+                depth,
+            } => {
+                if let Some((key, child)) = remaining.next() {
+                    l.step(1)?;
+                    let Some(key) = key.as_str() else {
+                        return Err(ReferenceError::InvalidBinding);
+                    };
+                    l.step(2)?;
+                    let expected_child = match expected {
+                        Some(iter) => match iter.next() {
+                            Some((other_key, child)) => {
+                                l.bytes(
+                                    key.len()
+                                        .checked_add(other_key.len())
+                                        .ok_or(ReferenceError::Budget)?,
+                                )?;
+                                state.agrees &= key == other_key.as_str();
+                                Some(child)
+                            }
+                            None => {
+                                state.agrees = false;
+                                None
+                            }
+                        },
+                        None => {
+                            state.agrees = false;
+                            None
+                        }
+                    };
+                    l.step(2)?;
+                    state.next = Some((
+                        child,
+                        expected_child,
+                        depth.checked_add(1).ok_or(ReferenceError::Budget)?,
+                    ));
+                } else {
+                    l.step(2)?;
+                    let _ = state.frames.pop().ok_or(ReferenceError::InvalidBinding)?;
+                }
+            }
+        }
+    }
+}
+// Hdispatch is prepaid BEFORE invocation; current final row always fully parsed.
+fn final_owner_row(
+    row: &[u8],
+    member: &[u8],
+    path: &str,
+    line: Option<usize>,
+    pool: &mut FinalVariantOwnerPool<'_>,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<serde_json::Value> {
+    let doc = l.strict_document(row, l.max_record_bytes)?;
+    final_owner_calculator_payment!(l);
+    let workspace = final_owner_select_workspace(l)?;
+    l.bytes(workspace)?;
+    l.step(24)?;
+    let selected = final_owner_select(pool, path, line, row, member, l)?;
+    let Some(index) = selected else {
+        return move_reference_document(doc, l);
+    };
+    l.step(1)?;
+    if doc.mode() != tos_foundation::JsonMode::PublishedStrict {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    reference_move_layout()?;
+    final_owner_calculator_payment!(l);
+    let workspace = final_owner_pair_workspace(l)?;
+    l.bytes(workspace)?;
+    l.step(2)?; // actual source-slot lookup/projection BEFORE pair arguments
+    let agrees = {
+        let Some(source) = pool.sources.get_mut(index) else {
+            return Err(ReferenceError::InvalidBinding);
+        };
+        final_owner_pair(doc.root(), &source.2, l)?
+    };
+    if !agrees {
+        return move_reference_document(doc, l);
+    }
+    l.step(16)?; // ALL fallible checks/admission BEFORE either mutation
+    let Some(used) = pool.used.get_mut(index) else {
+        return Err(ReferenceError::InvalidBinding);
+    };
+    if *used {
+        return Err(ReferenceError::InvalidBinding);
+    }
+    let Some(source) = pool.sources.get_mut(index) else {
+        return Err(ReferenceError::InvalidBinding);
+    };
+    let value = std::mem::replace(&mut source.2, serde_json::Value::Null);
+    *used = true;
+    Ok(value)
+}
+
+impl<'a> DeclaredNavigationInputs<'a> {
+    fn from_final_files(
+        files: &'a BTreeMap<String, Vec<u8>>,
+        registries: &'a NavigationRegistries,
+        pool: &mut FinalVariantOwnerPool<'_>,
+        l: &mut ReferenceLimits<'_>,
+    ) -> NavResult<Self> {
+        l.step(1)?;
+        if files.len() > l.max_files {
+            return Err(ReferenceError::Budget);
+        }
+        let mut total = 0usize;
+        for (path, raw) in files {
+            l.step(path.len().checked_add(1).ok_or(ReferenceError::Budget)?)?;
+            l.bytes(path.len().checked_add(128).ok_or(ReferenceError::Budget)?)?;
+            tos_foundation::RelativePath::parse(path)
+                .map_err(|_| ReferenceError::InvalidBinding)?;
+            total = total.checked_add(raw.len()).ok_or(ReferenceError::Budget)?;
+            if raw.len() > l.max_file_bytes || total > l.max_input_bytes {
+                return Err(ReferenceError::Budget);
+            }
+        }
+        let mut claim_bytes = 0usize;
+        let mut out = Self {
+            files,
+            registries,
+            identities: BTreeMap::new(),
+            claims: Vec::new(),
+            events: BTreeMap::new(),
+            forms: BTreeMap::new(),
+        };
+        // Independent authored recipe, not discovery through a product catalogue.
+        // Archives/canon are H inputs, not active Claim/identity/form declarations.
+        for (path, raw) in files {
+            l.step(1)?;
+            if !path.starts_with("ToS/source-witnesses/") || path.contains("/.record-revisions/") {
+                continue;
+            }
+            let identity = path.ends_with("/agent.json") || path.ends_with("/letter.json");
+            let forms = path.ends_with(".human-forms.json");
+            let claims = path.ends_with("/source-claims.jsonl");
+            let events = path.ends_with("/source-create-provenance.jsonl");
+            if !(identity || forms || claims || events) {
+                continue;
+            }
+            let text = std::str::from_utf8(raw).map_err(|_| ReferenceError::InvalidBinding)?;
+            l.step(text.len())?;
+            l.step(2)?; // new member-slice/closure forwarding headers
+            let member_raw = raw.as_slice();
+            let mut add = |line: Option<usize>, raw: &[u8]| -> NavResult<()> {
+                l.fixed(8)?;
+                if out.identities.len() + out.claims.len() + out.events.len() + out.forms.len()
+                    >= l.max_rows
+                {
+                    return Err(ReferenceError::Budget);
+                }
+                if claims {
+                    claim_bytes = claim_bytes
+                        .checked_add(raw.len())
+                        .ok_or(ReferenceError::Budget)?;
+                    if claim_bytes > l.max_claim_bytes || out.claims.len() >= l.max_claim_rows {
+                        return Err(ReferenceError::Budget);
+                    }
+                }
+                final_owner_calculator_payment!(l);
+                let workspace = final_owner_dispatch_workspace(l)?;
+                l.bytes(workspace)?;
+                let value = final_owner_row(raw, member_raw, path, line, pool, l)?;
+                let sha = l.digest(&value)?;
+                l.bytes(path.len().checked_add(256).ok_or(ReferenceError::Budget)?)?;
+                let source = NavigationSource {
+                    path: path.clone(),
+                    line,
+                    value,
+                    sha,
+                };
+                if identity {
+                    let id = nav_str(&source.value, "record_id")?.to_owned();
+                    if !matches!(nav_str(&source.value, "record_type")?, "agent" | "letter")
+                        || !path
+                            .ends_with(&format!("/{}.json", nav_str(&source.value, "record_type")?))
+                    {
+                        return Err(ReferenceError::UnsupportedSourceProfile);
+                    }
+                    if out.identities.insert(id, source).is_some() {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                } else if claims {
+                    if source.value["schema_version"] != "tos_source_relation_claim_v1" {
+                        return Err(ReferenceError::UnsupportedSourceProfile);
+                    }
+                    out.claims.push(source);
+                } else if events {
+                    let id = nav_str(&source.value, "event_id")?.to_owned();
+                    if out.events.insert(id, source).is_some() {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                } else {
+                    let id = nav_str(&source.value["subject"], "id")?.to_owned();
+                    if out.forms.insert(id, source).is_some() {
+                        return Err(ReferenceError::DuplicateIdentity);
+                    }
+                }
+                Ok(())
+            };
+            if claims || events {
+                for (index, line) in text.lines().enumerate() {
+                    if !line.trim().is_empty() {
+                        add(Some(index + 1), line.as_bytes())?;
+                    }
+                }
+            } else {
+                add(None, raw)?;
+            }
+        }
+        Ok(out)
+    }
+}
 fn nav_no_reserved(
     value: &serde_json::Value,
     keys: &[&str],
@@ -6966,7 +7836,19 @@ fn navigation_reference_variants_body(
         return Err(ReferenceError::InvalidBinding);
     }
     l.work.diagnostic_stage("parse-final-variant-members", 0);
-    let mut variant_inputs = DeclaredNavigationInputs::from_files(&files, input_registries, l)?;
+    final_owner_calculator_payment!(l);
+    let pool_workspace = final_owner_pool_workspace(l)?;
+    l.bytes(pool_workspace)?;
+    l.step(24)?;
+    let mut final_owners = FinalVariantOwnerPool::new(sources.as_mut_slice(), l)?;
+    // Additional Hdispatch BEFORE final intake forwarding/closure captures;
+    // each row separately prepays its own Hdispatch, with no cross-row credit.
+    final_owner_calculator_payment!(l);
+    let intake_workspace = final_owner_dispatch_workspace(l)?;
+    l.bytes(intake_workspace)?;
+    l.step(2)?; // additional final-intake pool argument/forwarding
+    let mut variant_inputs =
+        DeclaredNavigationInputs::from_final_files(&files, input_registries, &mut final_owners, l)?;
     l.work.diagnostic_stage("build-second-navigation", 0);
     let variant = expected_source_navigation(&old, &variant_inputs, l.reborrow())?;
     assert_eq!(
