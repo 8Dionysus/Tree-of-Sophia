@@ -1177,6 +1177,18 @@ pub struct SpawnFailureEvidence {
     pub errno: Option<i32>,
 }
 
+/// Fixed scalar evidence from a terminal generic request-send failure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RequestSendFailure {
+    pub send_return: isize,
+    /// Captured from the same negative send; zero returns never sample errno.
+    pub send_errno: Option<i32>,
+    pub written_before_failed_send: usize,
+    pub full_frame_len: usize,
+    pub input_poll_revents: i16,
+    pub output_poll_revents: i16,
+}
+
 /// Context for the actual failed exchange guard; no acceptance is carried.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExchangeFailureContext {
@@ -1184,6 +1196,8 @@ pub struct ExchangeFailureContext {
     pub failure: ExecutorFailure,
     /// Present only for a captured pre-exchange worker spawn failure.
     pub spawn_failure: Option<SpawnFailureEvidence>,
+    /// Present only for a captured terminal generic request-send failure.
+    pub request_send: Option<RequestSendFailure>,
     pub natural_termination: Option<ChildTermination>,
     /// Actual wait4 CPU for a naturally reaped child; never elapsed-wall inference.
     pub child_cpu_micros: Option<u64>,
@@ -1563,6 +1577,7 @@ impl SharedSchemaWorkerQuota {
                 boundary,
                 failure: reason,
                 spawn_failure: None,
+                request_send: None,
                 natural_termination: None,
                 child_cpu_micros: None,
                 child_pid: 0,
@@ -2932,6 +2947,7 @@ mod native {
             boundary: "schema-worker-spawn",
             failure: ExecutorFailure::Spawn,
             spawn_failure: Some(evidence),
+            request_send: None,
             natural_termination: None,
             child_cpu_micros: None,
             child_pid: 0,
@@ -3370,6 +3386,7 @@ mod native {
                     boundary,
                     failure: reason,
                     spawn_failure: None,
+                    request_send: None,
                     natural_termination: None,
                     child_cpu_micros: self
                         .session
@@ -6787,6 +6804,7 @@ mod native {
                     boundary,
                     failure: reason,
                     spawn_failure: None,
+                    request_send: None,
                     natural_termination,
                     child_cpu_micros: child.natural_cpu_micros.or(cost.worker_cpu_micros),
                     child_pid: child.pid,
@@ -7402,6 +7420,7 @@ mod native {
         let mut status = child.status;
         let mut failure = None;
         let mut terminal = false;
+        let mut request_send = None;
         let expected_bytes = BATCH_ACK_BYTES
             + prepared.units.len() * BATCH_UNIT_BYTES
             + if retained { OPERATION_END_BYTES } else { 0 };
@@ -7475,11 +7494,31 @@ mod native {
                 };
                 if count > 0 {
                     written += count as usize;
-                } else if count == 0
-                    || (count < 0 && io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock)
-                {
+                } else if count == 0 {
+                    request_send = Some(RequestSendFailure {
+                        send_return: count,
+                        send_errno: None,
+                        written_before_failed_send: written,
+                        full_frame_len: prepared.frame.len(),
+                        input_poll_revents: fds[0].revents,
+                        output_poll_revents: fds[1].revents,
+                    });
                     failure = Some((ExecutorFailure::Protocol, "request-send"));
                     break;
+                } else {
+                    let error = io::Error::last_os_error();
+                    if error.kind() != io::ErrorKind::WouldBlock {
+                        request_send = Some(RequestSendFailure {
+                            send_return: count,
+                            send_errno: error.raw_os_error(),
+                            written_before_failed_send: written,
+                            full_frame_len: prepared.frame.len(),
+                            input_poll_revents: fds[0].revents,
+                            output_poll_revents: fds[1].revents,
+                        });
+                        failure = Some((ExecutorFailure::Protocol, "request-send"));
+                        break;
+                    }
                 }
             }
             if fds[1].revents & (libc::POLLIN | libc::POLLHUP) != 0 {
@@ -7685,6 +7724,7 @@ mod native {
                     boundary,
                     failure: reason,
                     spawn_failure: None,
+                    request_send,
                     natural_termination,
                     child_cpu_micros: child.natural_cpu_micros,
                     child_pid: child.pid,
