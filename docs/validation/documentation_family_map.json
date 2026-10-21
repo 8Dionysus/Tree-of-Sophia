@@ -593,9 +593,7 @@
         "prefix": "kag/"
       },
       "consumer": [
-        "aoa-kag registry",
-        "abyss-stack federation mirror",
-        "aoa-kag-mcp resource"
+        "independent source-return artifact consumers"
       ],
       "load_moment": "when a source-linked KAG/MCP projection is requested",
       "owner": "kag/AGENTS.md and native ToS export contract",
@@ -616,9 +614,8 @@
         "ToS/derived-exports/"
       ],
       "next_organ": [
-        "ToS/derived-exports/",
-        "aoa-kag registry/composition",
-        "MCP consumer"
+        "verified ToS source-return artifact",
+        "optional consumer-owned import outside ToS"
       ],
       "context": {
         "posture": "tool_on_demand",
@@ -637,7 +634,7 @@
           "runtime graph internals",
           "provider credentials"
         ],
-        "boundary": "local provider is not runtime graph authority"
+        "boundary": "ToS export verification does not require or accept a consumer index/runtime"
       },
       "validation_lane": "local_kag_provider",
       "authority_keys": [
@@ -1274,9 +1271,9 @@
     {
       "id": "aoa-kag",
       "owner": "aoa-kag",
-      "handle": "kag/README.md",
+      "handle": "external:aoa-kag",
       "role": "consumer-owned registry, indexing and MCP integration",
-      "authority": "stronger external owner"
+      "authority": "consumer-owned integration only; not a ToS export or validation prerequisite"
     },
     {
       "id": "aoa-memo",

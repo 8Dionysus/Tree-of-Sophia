@@ -60,7 +60,8 @@ decision route.
 | mechanics package or part | nearest `mechanics/` card and package validator; scripts only carry repeatable operation law |
 | decision rationale or indexes | `docs/decisions/`; generate and validate indexes after the authored record is reviewed |
 | agent route cards and disclosure | `DESIGN.AGENTS.md`, `docs/validation/agents_route_inventory.json`, and the route currentness/harness scripts |
-| eval, stats, KAG, or memo port | local `evals/`, `stats/`, `kag/`, or `memo/` card, then the named sibling owner; central acceptance follows the named sibling owner's review |
+| KAG source export | local `kag/` card and native ToS export verifier; consumer indexing and admission stay outside ToS |
+| eval, stats, or memo port | local `evals/`, `stats/`, or `memo/` card, then the named sibling owner; central acceptance follows the named sibling owner's review |
 
 ## Editing posture
 

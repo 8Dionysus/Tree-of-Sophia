@@ -8,7 +8,18 @@
 - ToS layers: derived-export, generated carrier, docs/route-law, owner-handoff
 - Tree classes: provider edge, bounded generated family, rollback carrier
 - Guard families: exact identity, source currentness, bounded reads, fail-closed rollback
-- Posture: accepted
+- Posture: superseded by TOS-D-0072
+
+## Current status: superseded KAG integration
+
+The KAG provider/action pin, external checkout, builder, validator and CI-fetch
+prescriptions below are historical and superseded by
+[TOS-D-0072](TOS-D-0072-repository-independent-execution-and-exports.md).
+ToS builds and verifies its own source-return export without `aoa-kag`.
+Consumer indexing, provider configuration and admission run on the consumer's
+side; they are not ToS commands, completion criteria or release gates.
+Historical identities and evidence below remain unchanged; paths to retired
+provider files describe that historical state, not files to recreate.
 
 ## Pre-landing identity correction
 
