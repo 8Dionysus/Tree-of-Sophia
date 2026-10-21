@@ -85,18 +85,17 @@ If both fields are present during transition, they should point to the same in-r
 
 ## Downstream boundary
 
-`aoa-kag` and the `aoa-sdk` routing control plane now consume this tiny-entry
-seam as downstream orientation or derived knowledge input.
+ToS remains standalone: this route, its validation and its source-return
+surfaces require no external SDK, service or consumer checkout.
 
-That current downstream use stays bounded:
+Optional consumers may use this seam for downstream orientation or derived
+knowledge input. For example, `aoa-kag` may derive an entry and `aoa-sdk` may
+route a reader from `tos-root` to the source-owned tiny-entry surface. A
+consumer may retain its own compatibility namespace, such as `aoa-routing`.
+Those integrations belong to the consumer and are not ToS prerequisites.
 
-- `aoa-kag` derives a federation-readiness spine entry from the public tiny-entry seam
-- the `aoa-sdk` routing control plane hands `tos-root` into the source-owned
-  tiny-entry route and the ToS-specific derived `kag_view`, while preserving
-  `aoa-routing` only as the stable compatibility namespace
-
-ToS retains authored node law and its public root; these consumers preserve
-the source-return route.
+ToS retains authored node law and its public root. Every consumer preserves
+the source-return route and gains no ToS authority through this handoff.
 
 ## Source-first re-entry
 
@@ -105,10 +104,9 @@ If a downstream consumer loses ToS boundary and needs to restore the current bou
 `README.md -> ToS/public-compatibility/tos_tiny_entry_route.example.json -> ToS/public-compatibility/source_node.example.json`
 
 `CHARTER.md` remains the root authority note for ToS posture, but the worked route should re-enter through the source-owned tiny-entry example before any derived `kag_view` or adjunct.
-The `aoa-sdk` routing control plane may restore this re-entry hop as bounded
-navigation under the stable `aoa-routing` compatibility namespace. Re-entry
+Readers and optional consumers can follow this re-entry hop directly. Re-entry
 passes through Tree-of-Sophia's authored authority before downstream derived
-surfaces.
+surfaces; no SDK or routing service is required to mediate the route.
 
 ## Entry contract
 
