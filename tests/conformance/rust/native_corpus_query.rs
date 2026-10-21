@@ -636,27 +636,33 @@ impl ReferenceLimits<'_> {
         &mut self,
         raw: &[u8],
         ceiling: usize,
+        depth: Option<usize>,
     ) -> NavResult<tos_foundation::JsonDocument> {
         use tos_foundation::{FoundationError, FoundationErrorCode as Code, JsonMode};
-        // Source-identical fixed depth-96 parser state threshold. This const
-        // creates no workspace; the maintained parser still charges its own F.
-        const FIXED_PARSER_STATE: usize = (96usize + 1)
-            * (std::mem::size_of::<tos_foundation::JsonValue>()
-                + std::mem::size_of::<tos_foundation::JsonString>()
-                + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>()
-                + 2 * std::mem::size_of::<Vec<tos_foundation::JsonValue>>());
         self.step(1)?;
         if raw.len() > ceiling {
             self.work.note_unlatched_final_phase("fs.ceiling");
             return Err(ReferenceError::Budget);
         }
-        let json = match self.json_limits(ceiling) {
+        // BEFORE depth selection/F arithmetic; json_limits must capture visits
+        // after this additional work, never the earlier larger remainder.
+        self.step(16)?;
+        let mut json = match self.json_limits(ceiling) {
             Ok(json) => json,
             Err(error) => {
                 self.work.note_unlatched_final_phase("fs.limits");
                 return Err(error);
             }
         };
+        json.max_depth = match depth {
+            Some(d) if d >= 1 && d <= 96 => d,
+            _ => 96,
+        };
+        let fixed_parser_state = (json.max_depth + 1)
+            * (std::mem::size_of::<tos_foundation::JsonValue>()
+                + std::mem::size_of::<tos_foundation::JsonString>()
+                + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>()
+                + 2 * std::mem::size_of::<Vec<tos_foundation::JsonValue>>());
         let available = self.work.left;
         let deadline = self.work.deadline;
         let cancelled = self.cancelled;
@@ -691,7 +697,7 @@ impl ReferenceLimits<'_> {
                     let phase = if e.detail.as_str() == "JSON parser state budget exceeded" {
                         match e.byte_offset {
                             None => {
-                                if available < FIXED_PARSER_STATE {
+                                if available < fixed_parser_state {
                                     "fs.state-initial"
                                 } else {
                                     "fs.state-charge"
@@ -2573,6 +2579,258 @@ macro_rules! final_owner_add {
     }};
 }
 
+// Private final-wire depth custody. Only the complete emitter and the closed
+// all-write-invalidated, immutable intake interval can grant these receipts.
+struct VariantWireEmission {
+    raw: Vec<u8>,
+    max_frames: usize,
+}
+struct FinalWireDepthReceipt<'p> {
+    path: &'p str,
+    member: *const u8,
+    member_len: usize,
+    content_len: usize,
+    depth: usize,
+    jsonl: bool,
+    valid: bool,
+}
+struct FinalWireDepthView<'f, 'p, 'r> {
+    files: &'f BTreeMap<String, Vec<u8>>,
+    receipts: &'r [FinalWireDepthReceipt<'p>],
+}
+// One fixed maximum-live header envelope for this dominated, sequential private
+// pipeline. Receipt backing and every repeated transition/read are separate.
+fn final_wire_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    use std::mem::size_of;
+    let mut total = 0usize;
+    final_owner_add!(
+        l,
+        total,
+        size_of::<Vec<FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(l, total, size_of::<FinalWireDepthReceipt<'_>>(), 2usize);
+    final_owner_add!(l, total, size_of::<VariantWireEmission>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        size_of::<NavResult<VariantWireEmission>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<FinalWireDepthView<'_, '_, '_>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&FinalWireDepthView<'_, '_, '_>>(),
+        6usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&&FinalWireDepthView<'_, '_, '_>>(),
+        4usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&mut Vec<FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&Vec<FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&mut [FinalWireDepthReceipt<'_>]>(),
+        4usize
+    );
+    final_owner_add!(l, total, size_of::<&[FinalWireDepthReceipt<'_>]>(), 4usize);
+    final_owner_add!(l, total, size_of::<&&[FinalWireDepthReceipt<'_>]>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        size_of::<std::slice::IterMut<'_, FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<std::slice::Iter<'_, FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&mut std::slice::IterMut<'_, FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&mut std::slice::Iter<'_, FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<Option<&mut FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<Option<&FinalWireDepthReceipt<'_>>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&mut FinalWireDepthReceipt<'_>>(),
+        4usize
+    );
+    final_owner_add!(l, total, size_of::<&FinalWireDepthReceipt<'_>>(), 4usize);
+    final_owner_add!(l, total, size_of::<&BTreeMap<String, Vec<u8>>>(), 4usize);
+    final_owner_add!(l, total, size_of::<&&BTreeMap<String, Vec<u8>>>(), 4usize);
+    final_owner_add!(
+        l,
+        total,
+        size_of::<*const BTreeMap<String, Vec<u8>>>(),
+        4usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        size_of::<&*const BTreeMap<String, Vec<u8>>>(),
+        4usize
+    );
+    final_owner_add!(l, total, size_of::<&str>(), 8usize);
+    final_owner_add!(l, total, size_of::<&&str>(), 4usize);
+    final_owner_add!(l, total, size_of::<&[u8]>(), 8usize);
+    final_owner_add!(l, total, size_of::<&&[u8]>(), 4usize);
+    final_owner_add!(l, total, size_of::<*const u8>(), 6usize);
+    final_owner_add!(l, total, size_of::<&*const u8>(), 4usize);
+    final_owner_add!(l, total, size_of::<Option<&u8>>(), 2usize);
+    final_owner_add!(l, total, size_of::<&u8>(), 2usize);
+    final_owner_add!(l, total, size_of::<u8>(), 4usize);
+    final_owner_add!(l, total, size_of::<usize>(), 20usize);
+    final_owner_add!(l, total, size_of::<&usize>(), 8usize);
+    final_owner_add!(l, total, size_of::<Option<usize>>(), 12usize);
+    final_owner_add!(l, total, size_of::<&Option<usize>>(), 4usize);
+    final_owner_add!(l, total, size_of::<bool>(), 12usize);
+    final_owner_add!(l, total, size_of::<&bool>(), 4usize);
+    final_owner_add!(l, total, size_of::<&mut ReferenceLimits<'_>>(), 8usize);
+    final_owner_add!(l, total, size_of::<NavResult<usize>>(), 4usize);
+    final_owner_add!(l, total, size_of::<NavResult<()>>(), 4usize);
+    final_owner_add!(l, total, size_of::<NavResult<Option<usize>>>(), 4usize);
+    final_owner_add!(
+        l,
+        total,
+        size_of::<Result<(), std::collections::TryReserveError>>(),
+        2usize
+    );
+    final_owner_add!(l, total, size_of::<&Vec<u8>>(), 2usize);
+    final_owner_add!(l, total, size_of::<&String>(), 2usize);
+    Ok(total)
+}
+// Caller pays8 BEFORE arguments; the header envelope predates all receipts.
+fn final_wire_invalidate(
+    receipts: &mut [FinalWireDepthReceipt<'_>],
+    path: &str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<()> {
+    l.step(4)?;
+    let mut iterator = receipts.iter_mut();
+    loop {
+        l.step(12)?; // BEFORE next, including terminal None and length reads
+        let Some(receipt) = iterator.next() else {
+            break;
+        };
+        if !receipt.valid || receipt.path.len() != path.len() {
+            continue;
+        }
+        l.step(8)?;
+        l.bytes(path.len().checked_mul(2).ok_or(ReferenceError::Budget)?)?;
+        if receipt.path == path {
+            receipt.valid = false;
+        }
+    }
+    l.step(4)?;
+    Ok(())
+}
+// No semantic Value/profile reads: unknown or mismatched custody falls back96.
+// Caller pays12 BEFORE arguments. The immutable view seals files AND receipts.
+fn final_wire_depth(
+    view: &FinalWireDepthView<'_, '_, '_>,
+    files: &BTreeMap<String, Vec<u8>>,
+    path: &str,
+    line: Option<usize>,
+    row: &[u8],
+    member: &[u8],
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<Option<usize>> {
+    l.step(8)?;
+    if !std::ptr::eq(files, view.files) {
+        return Ok(None);
+    }
+    let mut iterator = view.receipts.iter();
+    let mut found = None;
+    let mut matched = false;
+    let mut ambiguous = false;
+    loop {
+        l.step(20)?; // BEFORE next, including terminal None and metadata reads
+        let Some(receipt) = iterator.next() else {
+            break;
+        };
+        if !receipt.valid || receipt.path.len() != path.len() {
+            continue;
+        }
+        l.step(8)?;
+        let Some(reads) = path.len().checked_mul(2) else {
+            return Ok(None);
+        };
+        l.bytes(reads)?;
+        if receipt.path != path {
+            continue;
+        }
+        l.step(24)?;
+        if matched {
+            ambiguous = true;
+        }
+        matched = true;
+        if receipt.depth < 1
+            || receipt.depth > 96
+            || receipt.member != member.as_ptr()
+            || receipt.member_len != member.len()
+            || row.as_ptr() != member.as_ptr()
+            || row.len() != receipt.content_len
+        {
+            continue;
+        }
+        let eligible = if receipt.jsonl {
+            l.bytes(1)?; // BEFORE terminal byte read, even on a refused layout
+            line == Some(1)
+                && row.len().checked_add(1) == Some(member.len())
+                && member.last() == Some(&b'\n')
+        } else {
+            line.is_none() && row.len() == member.len()
+        };
+        if eligible {
+            found = Some(receipt.depth);
+        }
+    }
+    l.step(8)?;
+    Ok(if ambiguous { None } else { found })
+}
+
 fn final_owner_pool_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
     let mut total = 0usize;
     final_owner_add!(
@@ -3223,12 +3481,13 @@ fn final_owner_row(
     path: &str,
     line: Option<usize>,
     pool: &mut FinalVariantOwnerPool<'_>,
+    depth: Option<usize>,
     l: &mut ReferenceLimits<'_>,
 ) -> NavResult<serde_json::Value> {
     let doc = final_return_context!(
         l,
         "fv.strict-doc",
-        l.strict_final_document(row, l.max_record_bytes)
+        l.strict_final_document(row, l.max_record_bytes, depth)
     );
     final_owner_calculator_payment!(l);
     let workspace = final_return_context!(l, "fv.select-admit", final_owner_select_workspace(l));
@@ -3280,6 +3539,7 @@ impl<'a> DeclaredNavigationInputs<'a> {
         files: &'a BTreeMap<String, Vec<u8>>,
         registries: &'a NavigationRegistries,
         pool: &mut FinalVariantOwnerPool<'_>,
+        depths: &FinalWireDepthView<'_, '_, '_>,
         l: &mut ReferenceLimits<'_>,
     ) -> NavResult<Self> {
         l.step(1)?;
@@ -3369,10 +3629,13 @@ impl<'a> DeclaredNavigationInputs<'a> {
                 let workspace =
                     final_return_context!(l, "fv.row-admit", final_owner_dispatch_workspace(l));
                 l.bytes(workspace)?;
+                l.step(12)?; // BEFORE depth lookup arguments/captures
+                let depth = final_wire_depth(depths, files, path, line, raw, member_raw, l)?;
+                l.step(8)?; // BEFORE added row/depth forwarding argument
                 let value = final_return_context!(
                     l,
                     "fv.row-other",
-                    final_owner_row(raw, member_raw, path, line, pool, l)
+                    final_owner_row(raw, member_raw, path, line, pool, depth, l)
                 );
                 let sha = final_return_context!(l, "fv.digest", l.digest(&value));
                 {
@@ -6152,7 +6415,10 @@ fn variant_wire_holders(depth: usize) -> NavResult<usize> {
         .and_then(|n| n.checked_add(leaf))
         .ok_or(ReferenceError::Budget)
 }
-fn nav_variant_raw(v: &serde_json::Value, l: &mut ReferenceLimits<'_>) -> NavResult<Vec<u8>> {
+fn nav_variant_raw(
+    v: &serde_json::Value,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<VariantWireEmission> {
     use std::mem::size_of;
     l.step(1)?;
     // BEFORE purpose/Plan/result and checked payment/holder-calculation locals.
@@ -6197,7 +6463,10 @@ fn nav_variant_raw(v: &serde_json::Value, l: &mut ReferenceLimits<'_>) -> NavRes
     if output.len() != plan.meta.raw {
         return Err(ReferenceError::InvalidBinding);
     }
-    Ok(output)
+    Ok(VariantWireEmission {
+        raw: output,
+        max_frames: plan.max_frames,
+    })
 }
 fn canonical_depth_input(
     depth: usize,
@@ -7889,23 +8158,63 @@ fn navigation_reference_variants_body(
     }
     l.work
         .diagnostic_stage("serialize-final-variant-members", 0);
+    final_owner_calculator_payment!(l);
+    let wire_workspace = final_wire_workspace(l)?;
+    l.bytes(wire_workspace)?;
+    l.step(16)?;
+    let receipt_count = sources.len();
+    let receipt_slots = receipt_count
+        .checked_mul(std::mem::size_of::<FinalWireDepthReceipt<'_>>())
+        .ok_or(ReferenceError::Budget)?;
+    l.bytes(receipt_slots)?;
+    let mut wire_receipts: Vec<FinalWireDepthReceipt<'_>> = Vec::new();
+    wire_receipts
+        .try_reserve_exact(receipt_count)
+        .map_err(|_| ReferenceError::Budget)?;
+    if wire_receipts.capacity() != receipt_count {
+        return Err(ReferenceError::Budget);
+    }
     let mut files = BTreeMap::new();
     for (path, line, v) in &sources {
         let name = replacements
             .get(path.as_str())
             .ok_or(ReferenceError::InvalidBinding)?;
-        let mut raw = nav_variant_raw(v, l)?;
+        l.step(32)?; // BEFORE emission/return/destructure metadata construction
+        let VariantWireEmission {
+            raw: mut raw,
+            max_frames,
+        } = nav_variant_raw(v, l)?;
+        l.step(24)?; // BEFORE content length and whole-member seal receivers
+        let content_len = raw.len();
         if line.is_some() {
             l.bytes(1)?;
             raw.push(b'\n');
         }
         // The containing positive recipe has one nonempty source row per JSONL
         // member. Refuse broader synthetic recipes rather than lose row order.
+        let receipt = FinalWireDepthReceipt {
+            path: name.as_str(),
+            member: raw.as_ptr(),
+            member_len: raw.len(),
+            content_len,
+            depth: max_frames.min(96).max(1),
+            jsonl: line.is_some(),
+            valid: true,
+        };
+        l.step(8)?;
+        final_wire_invalidate(wire_receipts.as_mut_slice(), name, l)?;
         if files.insert(name.clone(), raw).is_some() {
             return Err(ReferenceError::UnsupportedSourceProfile);
         }
+        l.step(8)?;
+        if wire_receipts.len() >= receipt_count || wire_receipts.capacity() != receipt_count {
+            return Err(ReferenceError::Budget);
+        }
+        wire_receipts.push(receipt);
     }
     l.bytes(second.len() + 256 + 35)?;
+    l.step(8)?;
+    final_wire_invalidate(wire_receipts.as_mut_slice(), second, l)?;
     files.insert(
         second.to_owned(),
         b"# Independent second evidence\n".to_vec(),
@@ -7927,6 +8236,8 @@ fn navigation_reference_variants_body(
                     .and_then(|n| n.checked_add(256))
                     .ok_or(ReferenceError::Budget)?,
             )?;
+            l.step(8)?;
+            final_wire_invalidate(wire_receipts.as_mut_slice(), path, l)?;
             files.insert(path.to_owned(), raw.clone());
         }
     }
@@ -7961,10 +8272,17 @@ fn navigation_reference_variants_body(
                         .and_then(|n| n.checked_add(256))
                         .ok_or(ReferenceError::Budget)?,
                 )?;
+                l.step(8)?;
+                final_wire_invalidate(wire_receipts.as_mut_slice(), path, l)?;
                 files.insert(path.to_owned(), raw.clone());
             }
         }
     }
+    l.step(12)?;
+    let depth_view = FinalWireDepthView {
+        files: &files,
+        receipts: &wire_receipts,
+    };
     l.work
         .diagnostic_stage("copy-rewrite-historical-navigation", 0);
     l.bytes(historical_proof_guard_workspace()?)?; // BEFORE extra shell/proof arguments
@@ -8005,10 +8323,17 @@ fn navigation_reference_variants_body(
         final_return_context!(l, "fv.intake-admit", final_owner_dispatch_workspace(l));
     l.bytes(intake_workspace)?;
     l.step(2)?; // additional final-intake pool argument/forwarding
+    l.step(16)?; // BEFORE immutable depth view forwarding/capture
     let mut variant_inputs = final_return_context!(
         l,
         "fv.intake-other",
-        DeclaredNavigationInputs::from_final_files(&files, input_registries, &mut final_owners, l)
+        DeclaredNavigationInputs::from_final_files(
+            &files,
+            input_registries,
+            &mut final_owners,
+            &depth_view,
+            l
+        )
     );
     l.work.diagnostic_stage("build-second-navigation", 0);
     let variant = expected_source_navigation(&old, &variant_inputs, l.reborrow())?;
