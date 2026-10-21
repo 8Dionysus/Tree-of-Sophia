@@ -2992,6 +2992,245 @@ fn final_owner_dispatch_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usiz
     Ok(total)
 }
 
+// A COMPLETE PublishedStrict numeric token is required. The pinned
+// arbitrary_precision serde route preserves all no-exponent spelling except
+// signed integer zero. Exponents still require the unchanged scalar route.
+// No expected value, fixture identity or owned numeric temporary is used here.
+fn final_pair_borrowed_number<'a>(
+    lexeme: &'a str,
+    l: &mut ReferenceLimits<'_>,
+) -> NavResult<Option<&'a str>> {
+    l.step(8)?;
+    l.bytes(lexeme.len())?; // BEFORE iterator construction and every payload read
+    let mut exponent = false;
+    let mut bytes = lexeme.as_bytes().iter();
+    loop {
+        l.step(8)?; // BEFORE next, including terminal None
+        let Some(byte) = bytes.next() else {
+            break;
+        };
+        let byte = *byte; // one payload read; both tests use the copied register
+        if byte == b'e' || byte == b'E' {
+            exponent = true;
+        }
+    }
+    l.step(4)?;
+    if exponent {
+        return Ok(None);
+    }
+    l.bytes(4)?; // both operands of the exact signed-zero predicate
+    Ok(Some(if lexeme == "-0" { "0" } else { lexeme }))
+}
+
+fn final_pair_borrowed_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    let mut total = 0usize;
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<std::slice::Iter<'_, u8>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut std::slice::Iter<'_, u8>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<Option<&u8>>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<&u8>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<u8>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<bool>(), 4usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<NavResult<Option<&str>>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<Option<&str>>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<&str>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&String>(), 2usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut ReferenceLimits<'_>>(),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<()>>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<usize>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&'static str>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<&&str>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&[u8]>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&&[u8]>(), 4usize);
+    Ok(total)
+}
+
+fn final_pair_borrowed_controls_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
+    let mut total = 0usize;
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<[(&str, Option<&str>, &str); 12]>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<(&str, Option<&str>, &str)>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<std::slice::Iter<'_, (&str, Option<&str>, &str)>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut std::slice::Iter<'_, (&str, Option<&str>, &str)>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<Option<&(&str, Option<&str>, &str)>>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&(&str, Option<&str>, &str)>(),
+        4usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&[(&str, Option<&str>, &str)]>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&[(&str, Option<&str>, &str); 12]>(),
+        2usize
+    );
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<serde_json::Number>()
+            .max(std::mem::size_of::<NavResult<serde_json::Number>>())
+            .max(std::mem::size_of::<
+                Result<serde_json::Number, serde_json::Error>,
+            >()),
+        2usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<&serde_json::Number>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<&str>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&Option<&str>>(), 4usize);
+    final_owner_add!(l, total, std::mem::size_of::<&str>(), 8usize);
+    final_owner_add!(l, total, std::mem::size_of::<&&str>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<&String>(), 2usize);
+    final_owner_add!(l, total, std::mem::size_of::<&[u8]>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<&&[u8]>(), 6usize);
+    final_owner_add!(l, total, std::mem::size_of::<usize>(), 12usize);
+    final_owner_add!(l, total, std::mem::size_of::<Option<usize>>(), 8usize);
+    final_owner_add!(l, total, std::mem::size_of::<bool>(), 6usize);
+    final_owner_add!(
+        l,
+        total,
+        std::mem::size_of::<&mut ReferenceLimits<'_>>(),
+        4usize
+    );
+    final_owner_add!(l, total, std::mem::size_of::<NavResult<()>>(), 4usize);
+    Ok(total)
+}
+
+// These are independent grammar/representation controls, not expected rows.
+// The old scalar primitive and authored normalized spellings both constrain
+// the borrowed result. No additional raw parse/retained facade is called.
+fn final_pair_borrowed_number_controls(l: &mut ReferenceLimits<'_>) -> NavResult<()> {
+    l.step(16)?; // BEFORE literal table/local construction
+    let cases: [(&str, Option<&str>, &str); 12] = [
+        ("0", Some("0"), "0"),
+        ("-0", Some("0"), "0"),
+        ("-0.0", Some("-0.0"), "-0.0"),
+        ("1.0", Some("1.0"), "1.0"),
+        ("12.3400", Some("12.3400"), "12.3400"),
+        (
+            "18446744073709551616",
+            Some("18446744073709551616"),
+            "18446744073709551616",
+        ),
+        (
+            "-9223372036854775809",
+            Some("-9223372036854775809"),
+            "-9223372036854775809",
+        ),
+        (
+            "99999999999999999999999999999999999999999999999999",
+            Some("99999999999999999999999999999999999999999999999999"),
+            "99999999999999999999999999999999999999999999999999",
+        ),
+        ("1e3", None, "1e+3"),
+        ("1E3", None, "1e+3"),
+        ("1e-3", None, "1e-3"),
+        ("1.20E+03", None, "1.20e+03"),
+    ];
+    let mut cases = cases.iter();
+    loop {
+        l.step(20)?; // BEFORE next, terminal None and tuple-field copies
+        let Some(case) = cases.next() else {
+            break;
+        };
+        let &(raw, expected_borrow, expected_old) = case;
+        l.step(8)?;
+        let actual = final_pair_borrowed_number(raw, l)?;
+        l.step(8)?;
+        let parsed = reference_number_from_lexeme(raw, l)?;
+        l.step(32)?; // BEFORE length/checked-bound metadata and equality operands
+        let old = parsed.as_str();
+        let a = match actual {
+            Some(text) => text.len(),
+            None => 0,
+        };
+        let b = match expected_borrow {
+            Some(text) => text.len(),
+            None => 0,
+        };
+        let p = old.len();
+        let e = expected_old.len();
+        let Some(reads) = a.checked_mul(2) else {
+            return Err(ReferenceError::Budget);
+        };
+        let Some(reads) = reads.checked_add(b) else {
+            return Err(ReferenceError::Budget);
+        };
+        let Some(twice_old) = p.checked_mul(2) else {
+            return Err(ReferenceError::Budget);
+        };
+        let Some(reads) = reads.checked_add(twice_old) else {
+            return Err(ReferenceError::Budget);
+        };
+        let Some(reads) = reads.checked_add(e) else {
+            return Err(ReferenceError::Budget);
+        };
+        l.bytes(reads)?;
+        if actual != expected_borrow {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        if old != expected_old {
+            return Err(ReferenceError::InvalidBinding);
+        }
+        if let Some(text) = actual {
+            if text != old {
+                return Err(ReferenceError::InvalidBinding);
+            }
+        }
+    }
+    l.step(4)?;
+    Ok(())
+}
+
 fn final_owner_pair_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
     let mut total = 0usize;
     final_owner_add!(
@@ -3167,6 +3406,11 @@ fn final_owner_pair_workspace(l: &mut ReferenceLimits<'_>) -> NavResult<usize> {
     total = total
         .checked_add(reference_stack_workspace::<FinalVariantPairFrame<'_, '_>>()?)
         .ok_or(ReferenceError::Budget)?;
+    // All old pair/stack/Number holders remain. Add only the new borrowed
+    // classifier's actual nonrecursive carriers, BEFORE pair arguments.
+    l.step(8)?;
+    let borrowed = final_pair_borrowed_workspace(l)?;
+    final_owner_add!(l, total, borrowed, 1usize);
     Ok(total)
 }
 
@@ -3313,21 +3557,43 @@ fn final_owner_pair(
                     }
                 }
                 Source::Number(value) => {
-                    l.step(1)?; // SAME maintained scalar primitive as old owned bridge
-                    let parsed = reference_number_from_lexeme(&value.lexeme, l)?;
-                    l.step(2)?;
-                    match expected {
-                        Some(Value::Number(other)) => {
-                            l.bytes(
-                                parsed
-                                    .as_str()
-                                    .len()
-                                    .checked_add(other.as_str().len())
-                                    .ok_or(ReferenceError::Budget)?,
-                            )?;
-                            state.agrees &= parsed.as_str() == other.as_str();
+                    l.step(1)?;
+                    l.step(6)?; // BEFORE borrowed helper arguments/result dispatch
+                    match final_pair_borrowed_number(&value.lexeme, l)? {
+                        Some(normalized) => {
+                            l.step(2)?;
+                            match expected {
+                                Some(Value::Number(other)) => {
+                                    l.bytes(
+                                        normalized
+                                            .len()
+                                            .checked_add(other.as_str().len())
+                                            .ok_or(ReferenceError::Budget)?,
+                                    )?;
+                                    state.agrees &= normalized == other.as_str();
+                                }
+                                _ => state.agrees = false,
+                            }
                         }
-                        _ => state.agrees = false,
+                        None => {
+                            // Exponent normalization/validation remains the
+                            // SAME fully paid old scalar primitive and Eq route.
+                            let parsed = reference_number_from_lexeme(&value.lexeme, l)?;
+                            l.step(2)?;
+                            match expected {
+                                Some(Value::Number(other)) => {
+                                    l.bytes(
+                                        parsed
+                                            .as_str()
+                                            .len()
+                                            .checked_add(other.as_str().len())
+                                            .ok_or(ReferenceError::Budget)?,
+                                    )?;
+                                    state.agrees &= parsed.as_str() == other.as_str();
+                                }
+                                _ => state.agrees = false,
+                            }
+                        }
                     }
                 }
                 Source::Array(values) => {
@@ -8556,6 +8822,15 @@ fn navigation_reference_variants_body(
     if count_selection.original_counts.is_some() {
         count_first_move(&mut changed, 5, l)?;
     }
+    // AFTER every existing control/assertion/restoration: pay this independent
+    // pure-control invocation, with no credit from earlier dropped pair holders.
+    final_owner_calculator_payment!(l);
+    let mut borrowed_controls = final_pair_borrowed_workspace(l)?;
+    let controls = final_pair_borrowed_controls_workspace(l)?;
+    final_owner_add!(l, borrowed_controls, controls, 1usize);
+    l.bytes(borrowed_controls)?;
+    l.step(16)?;
+    final_pair_borrowed_number_controls(l)?;
     Ok(())
 }
 
