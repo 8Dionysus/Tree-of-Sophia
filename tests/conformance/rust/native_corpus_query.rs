@@ -5007,6 +5007,59 @@ fn expected_source_navigation(
     limits.step(32)?;
     expected_source_navigation_inner(historical, inputs, limits, None)
 }
+// Whole fresh three-count construction, including serial numeric and insertion
+// forwarding. Backing and payload are paid separately before construction.
+const NAVIGATION_COUNTS_HOLDERS: usize = {
+    use serde_json::{Map, Number, Value};
+    use std::mem::{MaybeUninit, align_of, size_of};
+
+    3 * size_of::<Map<String, Value>>()
+        + 8 * size_of::<Value>()
+        + 6 * size_of::<Number>()
+        + 8 * size_of::<String>()
+        + 8 * size_of::<&str>()
+        + 4 * size_of::<&Value>()
+        + 4 * size_of::<&Vec<Value>>()
+        + 4 * size_of::<&mut Map<String, Value>>()
+        + 2 * size_of::<&mut ReferenceLimits<'static>>()
+        + 6 * size_of::<Option<Value>>()
+        + 8 * size_of::<NavResult<()>>()
+        + 4 * size_of::<NavResult<usize>>()
+        + 24 * size_of::<usize>()
+        + 24 * size_of::<Option<usize>>()
+        + 8 * size_of::<bool>()
+        + 2 * size_of::<std::hash::DefaultHasher>()
+        + 16 * size_of::<u64>()
+        + 2 * size_of::<u128>()
+        + 2 * size_of::<[MaybeUninit<u8>; 40]>()
+        + 4 * size_of::<&mut [u8]>()
+        + 4 * size_of::<&[u8]>()
+        // itoa unsigned conversion results, divmod pairs and buffer receivers.
+        + 4 * size_of::<Result<u64, std::num::TryFromIntError>>()
+        + 4 * size_of::<(u32, u32)>()
+        + 8 * size_of::<u32>()
+        + 8 * size_of::<u8>()
+        + 4 * size_of::<&mut [MaybeUninit<u8>; 40]>()
+        + 8 * size_of::<&mut [MaybeUninit<u8>; 20]>()
+        + 8 * size_of::<&[MaybeUninit<u8>]>()
+        + 8 * size_of::<*mut MaybeUninit<u8>>()
+        // Complete insert_full returns and aligned private callback captures.
+        + 4 * size_of::<(usize, Option<Value>)>()
+        + 4
+            * (size_of::<&String>()
+                + size_of::<&[(usize, String, Value)]>()
+                + 3 * align_of::<usize>())
+        + 8 * size_of::<&mut ()>()
+        + 8 * size_of::<&()>()
+        // Entry/slot/bucket/raw-result ownership and return overlap.
+        + 8
+            * (size_of::<u64>()
+                + size_of::<usize>()
+                + size_of::<std::ptr::NonNull<usize>>()
+                + size_of::<&mut ()>()
+                + 4 * align_of::<usize>())
+};
+
 fn expected_source_navigation_inner(
     historical: &serde_json::Value,
     inputs: &DeclaredNavigationInputs<'_>,
@@ -5427,7 +5480,6 @@ fn expected_source_navigation_inner(
             return Err(ReferenceError::InvalidBinding);
         }
     }
-    let counts = json!({"nodes":nodes.len(),"edges":edges.len()});
     l.bytes(
         nodes
             .len()
@@ -5438,6 +5490,24 @@ fn expected_source_navigation_inner(
     let schema = navigation_copy(&historical["schema_version"], 0, l)?;
     let authority = navigation_copy(&historical["authority_boundary"], 0, l)?;
     let rights = navigation_copy(&historical["rights"], 0, l)?;
+    // Preserve the old COPY error order before this independent count repair.
+    l.step(512)?;
+    l.bytes(NAVIGATION_COUNTS_HOLDERS)?;
+    let backing = reference_move_map_backing(3)?;
+    let Some(count_bytes) = backing.checked_add(412) else {
+        return Err(ReferenceError::Budget);
+    };
+    l.bytes(count_bytes)?;
+    l.step(832)?;
+    let Value::Array(rights_rows) = &rights else {
+        return Err(ReferenceError::InvalidBinding);
+    };
+    let rights_count = rights_rows.len();
+    let mut count_fields = serde_json::Map::with_capacity(3);
+    count_fields.insert("nodes".to_owned(), Value::from(nodes.len()));
+    count_fields.insert("edges".to_owned(), Value::from(edges.len()));
+    count_fields.insert("rights".to_owned(), Value::from(rights_count));
+    let counts = Value::Object(count_fields);
     nav_object(
         [
             ("schema_version", schema),
