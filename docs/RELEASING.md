@@ -365,6 +365,8 @@ source/data revision, without consumer source code, Python environments or
 services. See `kag/VALIDATION.md` and `stats/VALIDATION.md`. Consumers import those
 artifacts and own indexing, composition, trust and admission on their side.
 Consumer release identities and currentness do not gate a ToS software release.
+TOS-D-0072 supersedes the former provider-pin/action-fetch requirements, including
+TOS-D-0066; historical decision commands are not current release prerequisites.
 
 The former full repository aggregate is retired. Select the affected source,
 data or external integration operation directly; individual owner procedures

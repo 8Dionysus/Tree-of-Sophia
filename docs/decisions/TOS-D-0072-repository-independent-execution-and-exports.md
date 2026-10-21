@@ -47,6 +47,12 @@ registry and admission. Those procedures are not ToS commands or release gates.
 Retained source bytes, historical evidence and explicit data selection remain
 protected.
 
+This supersedes the KAG provider/action pin and external validation requirements
+in TOS-D-0030, TOS-D-0035, TOS-D-0044, TOS-D-0065 and TOS-D-0066,
+and the KAG integration prescriptions in TOS-D-0026, TOS-D-0028 and TOS-D-0029.
+Those records preserve historical rationale and identities; deleted provider
+pins and adapters must not be restored as prerequisites.
+
 This supersedes ToS-owned integration orchestration in TOS-D-0062. Its separate
 software/corpus identities and exact-byte obligations remain. TOS-D-0071's
 PostgreSQL transactional center and independent portable projections remain.
