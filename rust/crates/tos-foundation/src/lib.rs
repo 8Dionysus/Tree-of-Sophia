@@ -10,8 +10,8 @@ mod identity;
 mod json;
 mod knowledge_model_abi;
 mod logical_ref;
-mod operation_binding;
 pub mod native_software_roles;
+mod operation_binding;
 mod path;
 mod python_value;
 mod unicode;
@@ -50,9 +50,9 @@ pub use knowledge_model_abi::{
 };
 pub use logical_ref::LogicalRecordRefV1;
 pub use operation_binding::{
-    BindingError, CheckedOperationBinding, CompositionLink, DependencyComparison,
-    ExecutionStatus, ManifestCoverageEvidence, OperationBindingLimits, ValueDisposition,
-    check_composition, check_operation_binding, compare_dependency_bindings,
+    BindingError, CheckedOperationBinding, CompositionLink, DependencyComparison, ExecutionStatus,
+    ManifestCoverageEvidence, OperationBindingLimits, ValueDisposition, check_composition,
+    check_operation_binding, compare_dependency_bindings,
 };
 pub use path::RelativePath;
 pub use python_value::{
