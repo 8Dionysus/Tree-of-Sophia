@@ -403,6 +403,12 @@ fn local_inventory_bridge_tei_prepared_snapshot_consumer() {
     let item = serde_json::from_slice::<Value>(&cmd::canonical(&item).unwrap()).unwrap();
     assert_eq!(item["matches"].as_array().unwrap().len(), 1);
     assert_eq!(item["matches"][0]["native_id"], f.config["item_id"]);
+    let source_record: Value =
+        serde_json::from_slice(&files[f.config["item_source_path"].as_str().unwrap()]).unwrap();
+    assert_eq!(
+        item["matches"][0]["attributes"]["source_record"],
+        source_record
+    );
     let file = consumer
         .inspect(
             &selected,
