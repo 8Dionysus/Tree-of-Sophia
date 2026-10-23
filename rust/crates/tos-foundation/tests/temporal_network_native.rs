@@ -229,7 +229,10 @@ fn set_field(value: &mut JsonValue, key: &str, item: JsonValue) {
     let JsonValue::Object(fields) = value else {
         panic!("object fixture required");
     };
-    if let Some((_, old)) = fields.iter_mut().find(|(name, _)| name.as_str() == Some(key)) {
+    if let Some((_, old)) = fields
+        .iter_mut()
+        .find(|(name, _)| name.as_str() == Some(key))
+    {
         *old = item;
     } else {
         fields.push((tos_foundation::JsonString::from_utf8(key), item));
@@ -245,17 +248,15 @@ fn direct_network_admits_whole_roots_before_cloning_identifiers() {
     let oversized = budget.max_expression_bytes.checked_add(1).unwrap();
     for in_context in [false, true] {
         for value in [
-            JsonValue::String(tos_foundation::JsonString::from_utf8(&"x".repeat(oversized))),
+            JsonValue::String(tos_foundation::JsonString::from_utf8(
+                &"x".repeat(oversized),
+            )),
             JsonValue::Array(vec![JsonValue::Null; budget.max_members]),
         ] {
             let mut input = base.clone();
             let mut context = parse("{}");
             set_field(
-                if in_context {
-                    &mut context
-                } else {
-                    &mut input
-                },
+                if in_context { &mut context } else { &mut input },
                 "unused",
                 value,
             );
@@ -271,15 +272,17 @@ fn direct_network_admits_whole_roots_before_cloning_identifiers() {
         let mut input = base.clone();
         let mut context = parse("{}");
         set_field(
-            if in_context {
-                &mut context
-            } else {
-                &mut input
-            },
+            if in_context { &mut context } else { &mut input },
             "unused",
             JsonValue::Object(vec![
-                (tos_foundation::JsonString::from_utf8("same"), JsonValue::Null),
-                (tos_foundation::JsonString::from_utf8("same"), JsonValue::Bool(true)),
+                (
+                    tos_foundation::JsonString::from_utf8("same"),
+                    JsonValue::Null,
+                ),
+                (
+                    tos_foundation::JsonString::from_utf8("same"),
+                    JsonValue::Bool(true),
+                ),
             ]),
         );
         assert!(matches!(
@@ -326,8 +329,8 @@ fn network_parent_keeps_its_explicit_transport_budget() {
     let budget = TemporalBudget::default();
     let direct = network::execute_network(&input, &context).unwrap();
     assert_eq!(status(&direct), "ConsistentWitness");
-    let top = execute_temporal_operation("check_network_consistency", &input, &context, budget)
-        .unwrap();
+    let top =
+        execute_temporal_operation("check_network_consistency", &input, &context, budget).unwrap();
     for (key, value) in direct.as_object().unwrap() {
         assert_eq!(top.object_get(key.as_str().unwrap()), Some(value));
     }
