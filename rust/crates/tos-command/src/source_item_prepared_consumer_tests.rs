@@ -109,7 +109,7 @@ fn local_inventory_bridge_tei_prepared_snapshot_consumer() {
     // The frozen operation fixture carries only the operation's schemas.
     // Add missing current compiler definitions in a separate selected cut;
     // every committed member remains byte-for-byte identical.
-    let repository = support::repository();
+    let repository = repository();
     for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
         let path = entry.unwrap().path();
         if path.is_file()
