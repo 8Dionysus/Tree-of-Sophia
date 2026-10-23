@@ -590,7 +590,7 @@ pub fn execute_temporal_operation(
             }
         }
         "project_to_postgres_range" => {
-            calendar_adapters::project_postgres_range(input, context, budget)?
+            calendar_adapters::project_postgres_range_admitted(input, context, budget)?
         }
         "difference" => difference::execute_difference(input, context, budget)?,
         "prepare_crosswalk_version" => {
@@ -600,17 +600,17 @@ pub fn execute_temporal_operation(
             crosswalk_records::convert_crosswalk_record(input, context, budget)?
         }
         "add_crosswalk_version" => reason("Unsupported", "PendingOwnerBinding"),
-        "add_duration" => calendar_adapters::add_duration(input, context, budget)?,
-        "convert" => calendar_adapters::convert(input, context, budget)?,
+        "add_duration" => calendar_adapters::add_duration_admitted(input, context, budget)?,
+        "convert" => calendar_adapters::convert_admitted(input, context, budget)?,
         "resolve_position"
             if !field(input, "local_date_time").is_null()
                 || !field(input, "zone_ref").is_null() =>
         {
-            calendar_adapters::resolve_position(input, context, budget)?
+            calendar_adapters::resolve_position_admitted(input, context, budget)?
         }
         "resolve_position" => calendar::resolve(input, context),
         "derive_extent" if field(input, "position").object_get("season_code").is_some() => {
-            calendar_adapters::derive_named_extent(input, context, budget)?
+            calendar_adapters::derive_named_extent_admitted(input, context, budget)?
         }
         "derive_extent" => calendar::derive(input, context),
         "compare_positions" => comparison::compare_json(input),

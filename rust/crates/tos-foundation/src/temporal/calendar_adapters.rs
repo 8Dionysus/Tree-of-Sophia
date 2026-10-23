@@ -43,17 +43,14 @@ fn budget_check(
     context: &JsonValue,
     budget: TemporalBudget,
 ) -> Result<(), TemporalError> {
-    // Input size limits are enforced on lexical fields and collections below;
-    // object shape errors are request errors, valid unresolved values payloads.
+    // Public direct adapters share the complete aggregate admission used by
+    // top-level dispatch, before any preserved-input/context clones.
     if input.as_object().is_none() || context.as_object().is_none() {
         return Err(TemporalError::MalformedRequest(
             "input and context must be objects",
         ));
     }
-    if budget.max_members == 0 {
-        return Err(TemporalError::ResourceExhausted("member limit"));
-    }
-    Ok(())
+    super::admit_transport(input, context, budget)
 }
 pub fn add_duration(
     input: &JsonValue,
@@ -61,6 +58,15 @@ pub fn add_duration(
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
     budget_check(input, context, budget)?;
+    add_duration_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both roots; keep one semantic body.
+pub(super) fn add_duration_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let done = |r| Ok(finish(r, input, context, "tos-calendar-month-v1"));
     let anchor = field(input, "anchor");
     if anchor.is_null() {
@@ -150,6 +156,15 @@ pub fn convert(
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
     budget_check(input, context, budget)?;
+    convert_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both roots; keep one semantic body.
+pub(super) fn convert_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let done = |r| Ok(finish(r, input, context, "tos-explicit-crosswalk-v1"));
     let p = field(input, "position");
     if !reference(field(p, "trs_ref")) || !reference(field(input, "target_trs")) {
@@ -346,6 +361,15 @@ pub fn resolve_position(
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
     budget_check(input, context, budget)?;
+    resolve_position_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both roots; keep one semantic body.
+pub(super) fn resolve_position_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let done = |r| {
         Ok(finish(
             r,
@@ -480,6 +504,15 @@ pub fn derive_named_extent(
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
     budget_check(input, context, budget)?;
+    derive_named_extent_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both roots; keep one semantic body.
+pub(super) fn derive_named_extent_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let done = |r| {
         Ok(finish(
             r,
@@ -500,6 +533,25 @@ pub fn derive_named_extent(
     }
     if field(rule, "trs_ref") != field(p, "trs_ref") {
         return done(reason("Unresolved", "CalendarRuleTrsMismatch"));
+    }
+    let position_calendar = p
+        .object_get("calendar")
+        .map(|value| {
+            value.as_str().ok_or(TemporalError::MalformedRequest(
+                "position calendar must be a string",
+            ))
+        })
+        .transpose()?;
+    let rule_calendar = rule
+        .object_get("calendar")
+        .map(|value| {
+            value.as_str().ok_or(TemporalError::MalformedRequest(
+                "boundary rule calendar must be a string",
+            ))
+        })
+        .transpose()?;
+    if matches!((position_calendar, rule_calendar), (Some(a), Some(b)) if a != b) {
+        return done(reason("Unresolved", "CalendarDeclarationConflict"));
     }
     let Some(rows) = field(rule, "boundaries").as_array() else {
         return Err(TemporalError::MalformedRequest("boundary rows required"));
@@ -560,6 +612,15 @@ pub fn project_postgres_range(
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
     budget_check(input, context, budget)?;
+    project_postgres_range_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both roots; keep one semantic body.
+pub(super) fn project_postgres_range_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let done = |r| {
         Ok(finish(
             r,

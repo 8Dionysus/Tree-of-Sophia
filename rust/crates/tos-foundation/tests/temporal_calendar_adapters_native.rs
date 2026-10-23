@@ -1,4 +1,5 @@
 use tos_foundation::temporal::{TemporalBudget, calendar_adapters::*};
+use tos_foundation::temporal::{TemporalError, execute_temporal_operation};
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 fn parse(s: &str) -> JsonValue {
     parse_json(
@@ -131,7 +132,7 @@ fn crosswalk_versions_are_immutable_and_labels_are_opaque() {
         assert_eq!(
             convert(&input, &context, TemporalBudget::default()),
             Err(tos_foundation::temporal::TemporalError::MalformedRequest(
-                "duplicate crosswalk coordinate"
+                "invalid temporal input/context JSON"
             ))
         );
         assert_eq!(
@@ -144,7 +145,7 @@ fn crosswalk_versions_are_immutable_and_labels_are_opaque() {
                 }
             ),
             Err(tos_foundation::temporal::TemporalError::ResourceExhausted(
-                "mapping member limit"
+                "temporal input/context byte/member/depth limit"
             ))
         );
         assert_eq!((&input, &context), (&before.0, &before.1));
@@ -932,5 +933,305 @@ fn crosswalk_record_guards_reject_tampered_bindings_without_writes() {
         assert_eq!(s(&out, "reason"), Some("NonExactPosition"));
         assert!(f(&out, "position").is_null());
         assert_eq!(f(&out, "preserved_input"), &request);
+    }
+}
+
+type DirectAdapter = fn(&JsonValue, &JsonValue, TemporalBudget) -> Result<JsonValue, TemporalError>;
+
+fn direct_routes() -> [(&'static str, DirectAdapter, &'static str, usize); 5] {
+    [
+        ("add_duration", add_duration, "{}", 2),
+        ("convert", convert, "{}", 2),
+        (
+            "resolve_position",
+            resolve_position,
+            r#"{"zone_ref":"z"}"#,
+            3,
+        ),
+        (
+            "derive_extent",
+            derive_named_extent,
+            r#"{"position":{"season_code":21}}"#,
+            4,
+        ),
+        ("project_to_postgres_range", project_postgres_range, "{}", 2),
+    ]
+}
+
+fn without_dispatch_envelope(mut value: JsonValue) -> JsonValue {
+    let JsonValue::Object(fields) = &mut value else {
+        unreachable!()
+    };
+    fields.retain(|(key, _)| !matches!(key.as_str(), Some("rule_version" | "envelope_version")));
+    value
+}
+
+#[test]
+fn direct_adapters_use_the_same_aggregate_byte_and_node_admission() {
+    let context = parse("{}");
+    for (name, direct, raw, members) in direct_routes() {
+        let input = parse(raw);
+        // These ASCII fixture spellings are already compact; both object roots count.
+        let exact = TemporalBudget {
+            max_expression_bytes: raw.len() + 2,
+            max_members: members,
+            ..TemporalBudget::default()
+        };
+        let expected = direct(&input, &context, exact).unwrap();
+        assert_eq!(f(&expected, "preserved_input"), &input);
+        assert_eq!(f(&expected, "preserved_context"), &context);
+        assert_eq!(
+            without_dispatch_envelope(
+                execute_temporal_operation(name, &input, &context, exact).unwrap()
+            ),
+            expected
+        );
+        for below in [
+            TemporalBudget {
+                max_expression_bytes: exact.max_expression_bytes - 1,
+                ..exact
+            },
+            TemporalBudget {
+                max_members: exact.max_members - 1,
+                ..exact
+            },
+            TemporalBudget {
+                max_members: 0,
+                ..exact
+            },
+        ] {
+            let error = Err(TemporalError::ResourceExhausted(
+                "temporal input/context byte/member/depth limit",
+            ));
+            assert_eq!(direct(&input, &context, below), error);
+            assert_eq!(
+                execute_temporal_operation(name, &input, &context, below),
+                error
+            );
+        }
+    }
+}
+
+#[test]
+fn direct_adapters_admit_unrelated_input_context_and_nested_limits_before_cloning() {
+    for (name, direct, raw, _) in direct_routes() {
+        let original = parse(raw);
+        for in_context in [false, true] {
+            let mut input = original.clone();
+            let mut context = parse("{}");
+            let target = if in_context { &mut context } else { &mut input };
+            set(target, "unused", txt(&"x".repeat(128)));
+            let before = (input.clone(), context.clone());
+            let budget = TemporalBudget {
+                max_expression_bytes: 64,
+                ..TemporalBudget::default()
+            };
+            let error = Err(TemporalError::ResourceExhausted(
+                "temporal input/context byte/member/depth limit",
+            ));
+            assert_eq!(direct(&input, &context, budget), error);
+            assert_eq!(
+                execute_temporal_operation(name, &input, &context, budget),
+                error
+            );
+            assert_eq!((input, context), before);
+        }
+        for in_context in [false, true] {
+            let mut input = original.clone();
+            let mut context = parse("{}");
+            set(
+                if in_context { &mut context } else { &mut input },
+                "unused",
+                JsonValue::Array(vec![JsonValue::Null; 32]),
+            );
+            let budget = TemporalBudget {
+                max_members: 16,
+                ..TemporalBudget::default()
+            };
+            assert!(matches!(
+                direct(&input, &context, budget),
+                Err(TemporalError::ResourceExhausted(_))
+            ));
+            assert!(matches!(
+                execute_temporal_operation(name, &input, &context, budget),
+                Err(TemporalError::ResourceExhausted(_))
+            ));
+        }
+        for (arrays, accepted) in [(63, true), (64, false)] {
+            for in_context in [false, true] {
+                let mut nested = JsonValue::Null;
+                for _ in 0..arrays {
+                    nested = JsonValue::Array(vec![nested]);
+                }
+                let mut input = original.clone();
+                let mut context = parse("{}");
+                set(
+                    if in_context { &mut context } else { &mut input },
+                    "unused",
+                    nested,
+                );
+                let before = (input.clone(), context.clone());
+                let result = direct(&input, &context, TemporalBudget::default());
+                let dispatched =
+                    execute_temporal_operation(name, &input, &context, TemporalBudget::default());
+                if accepted {
+                    assert_eq!(
+                        without_dispatch_envelope(dispatched.unwrap()),
+                        result.unwrap()
+                    );
+                } else {
+                    let error = Err(TemporalError::ResourceExhausted(
+                        "temporal input/context byte/member/depth limit",
+                    ));
+                    assert_eq!(result, error);
+                    assert_eq!(dispatched, error);
+                }
+                assert_eq!((input, context), before);
+            }
+        }
+    }
+}
+
+#[test]
+fn native_nested_duplicate_keys_are_rejected_before_direct_or_top_level_dispatch() {
+    for key in [
+        tos_foundation::JsonString::from_utf8("duplicate"),
+        tos_foundation::JsonString::from_utf16(&[0xd800]),
+    ] {
+        for (name, direct, raw, _) in direct_routes() {
+            for in_context in [false, true] {
+                let duplicate = JsonValue::Object(vec![
+                    (key.clone(), JsonValue::Null),
+                    (key.clone(), JsonValue::Bool(true)),
+                ]);
+                let mut input = parse(raw);
+                let mut context = parse("{}");
+                set(
+                    if in_context { &mut context } else { &mut input },
+                    "unused",
+                    JsonValue::Array(vec![duplicate]),
+                );
+                let before = (input.clone(), context.clone());
+                let error = Err(TemporalError::MalformedRequest(
+                    "invalid temporal input/context JSON",
+                ));
+                assert_eq!(direct(&input, &context, TemporalBudget::default()), error);
+                assert_eq!(
+                    execute_temporal_operation(name, &input, &context, TemporalBudget::default()),
+                    error
+                );
+                assert_eq!(
+                    execute_temporal_operation(
+                        "not-an-operation",
+                        &input,
+                        &context,
+                        TemporalBudget::default()
+                    ),
+                    error
+                );
+                assert_eq!((input, context), before);
+            }
+        }
+    }
+}
+
+fn supplied_named_boundary() -> JsonValue {
+    parse(
+        r#"{"position":{"year":1344,"season_code":21,"trs_ref":"opaque-v9"},"season_boundary_rule":{"version":"source-table-r1","trs_ref":"opaque-v9","calendar":"GregorianProleptic","boundaries":[{"year":1344,"season_code":21,"start":"1344-03-15","end_exclusive":"1344-06-12"}]}}"#,
+    )
+}
+
+#[test]
+fn named_extent_requires_explicit_calendar_agreement_before_table_application() {
+    let context = parse("{}");
+    for declaration in [None, Some("GregorianProleptic"), Some("Julian")] {
+        let mut input = supplied_named_boundary();
+        if let Some(calendar) = declaration {
+            let mut position = f(&input, "position").clone();
+            set(&mut position, "calendar", txt(calendar));
+            set(&mut input, "position", position);
+        }
+        let before = input.clone();
+        let direct = derive_named_extent(&input, &context, TemporalBudget::default()).unwrap();
+        assert_eq!(
+            without_dispatch_envelope(
+                execute_temporal_operation(
+                    "derive_extent",
+                    &input,
+                    &context,
+                    TemporalBudget::default()
+                )
+                .unwrap()
+            ),
+            direct
+        );
+        if declaration == Some("Julian") {
+            assert_eq!(s(&direct, "status"), Some("Unresolved"));
+            assert_eq!(s(&direct, "reason"), Some("CalendarDeclarationConflict"));
+            // A conflict must precede any attempt to read/apply the table.
+            let mut rule = f(&input, "season_boundary_rule").clone();
+            set(&mut rule, "boundaries", JsonValue::Null);
+            set(&mut input, "season_boundary_rule", rule);
+            assert_eq!(
+                s(
+                    &derive_named_extent(&input, &context, TemporalBudget::default()).unwrap(),
+                    "reason"
+                ),
+                Some("CalendarDeclarationConflict")
+            );
+        } else {
+            assert_eq!(s(&direct, "status"), Some("Resolved"));
+            assert_eq!(s(f(&direct, "value"), "start"), Some("1344-03-15"));
+            assert_eq!(f(&direct, "preserved_input"), &before);
+            assert_eq!(
+                f(f(&direct, "preserved_input"), "position")
+                    .object_get("calendar")
+                    .is_some(),
+                declaration.is_some()
+            );
+        }
+    }
+}
+
+#[test]
+fn malformed_named_calendar_declarations_are_not_missing_or_matching_strings() {
+    let context = parse("{}");
+    for malformed in [
+        JsonValue::Null,
+        JsonValue::Bool(false),
+        parse("1"),
+        parse("[]"),
+        parse("{}"),
+        JsonValue::String(tos_foundation::JsonString::from_utf16(&[0xd800])),
+    ] {
+        for on_position in [true, false] {
+            let mut input = supplied_named_boundary();
+            let field_name = if on_position {
+                "position"
+            } else {
+                "season_boundary_rule"
+            };
+            let mut declaration = f(&input, field_name).clone();
+            set(&mut declaration, "calendar", malformed.clone());
+            set(&mut input, field_name, declaration);
+            let error = Err(TemporalError::MalformedRequest(if on_position {
+                "position calendar must be a string"
+            } else {
+                "boundary rule calendar must be a string"
+            }));
+            assert_eq!(
+                derive_named_extent(&input, &context, TemporalBudget::default()),
+                error
+            );
+            assert_eq!(
+                execute_temporal_operation(
+                    "derive_extent",
+                    &input,
+                    &context,
+                    TemporalBudget::default()
+                ),
+                error
+            );
+        }
     }
 }
