@@ -355,8 +355,12 @@ mod tests {
         assert_eq!(stale, 0);
         connection.execute_batch("BEGIN EXCLUSIVE").unwrap();
         let start = Instant::now();
-        let locked = validate_with_feedback(&fixture.root, Some(&fixture.cache)).unwrap();
+        // Bound cache acquisition itself; fallback live validation retains its
+        // separate scan deadline and all source/content assertions below.
+        let opened = FeedbackCache::open(&fixture.cache, start + Duration::from_secs(2));
+        assert!(opened.is_err());
         assert!(start.elapsed() < Duration::from_secs(2));
+        let locked = validate_with_feedback(&fixture.root, Some(&fixture.cache)).unwrap();
         assert_eq!(first.issues, locked.issues);
         assert!(!locked.warnings.is_empty());
         connection
