@@ -42,7 +42,7 @@ shutdown=$((10#$shutdown))
 [[ -x $native && -x /usr/bin/unshare && -x /usr/bin/systemd-run ]] || fail 'selected executables missing'
 script=$(realpath -- "$0")
 # CLOCK_MONOTONIC from Node is the same original caller clock. Do not reset it.
-remaining=$(node --input-type=module -e 'const cutoff=BigInt(process.argv[1]);const now=process.hrtime.bigint();if(cutoff<=now)process.exit(125);console.log((cutoff-now)/1000000n)' "$cutoff")
+remaining=$(node --input-type=module -e 'const cutoff=BigInt(process.argv[1]);const now=process.hrtime.bigint();if(cutoff<=now)process.exit(125);console.log(((cutoff-now)/1000000n).toString())' "$cutoff")
 [[ $remaining =~ ^[0-9]+$ && $remaining -gt $shutdown && $remaining -le 50000 ]] || fail 'original deadline exhausted'
 work_ms=$((remaining-shutdown))
 unit="tos-native-ci-${UID}-$(cat /proc/sys/kernel/random/uuid)"
