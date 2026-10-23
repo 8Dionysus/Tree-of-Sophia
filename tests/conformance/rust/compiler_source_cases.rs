@@ -199,6 +199,24 @@ fn append_current_contract_resources(resources: &mut Vec<Value>) {
         "ToS/contracts/native-pg-private-text-read.schema.json",
         "ToS/contracts/native-role-bindings.schema.json",
         "ToS/contracts/operation-binding-v1.schema.json",
+        "ToS/contracts/pwe-bindings.schema.json",
+        "ToS/contracts/pwe-context.schema.json",
+        "ToS/contracts/pwe-criterion.schema.json",
+        "ToS/contracts/pwe-identity-carrier.schema.json",
+        "ToS/contracts/pwe-identity-correspondence-claim.schema.json",
+        "ToS/contracts/pwe-identity-scenario.schema.json",
+        "ToS/contracts/pwe-name-assignment-claim.schema.json",
+        "ToS/contracts/pwe-predicate.schema.json",
+        "ToS/contracts/pwe-prepared-values-output-profile.schema.json",
+        "ToS/contracts/pwe-prepared-values-record.schema.json",
+        "ToS/contracts/pwe-preserved-candidate.schema.json",
+        "ToS/contracts/pwe-qualification-profile.schema.json",
+        "ToS/contracts/pwe-responsibility-account-claim.schema.json",
+        "ToS/contracts/pwe-scope.schema.json",
+        "ToS/contracts/pwe-signature.schema.json",
+        "ToS/contracts/pwe-source-account-carrier.schema.json",
+        "ToS/contracts/pwe-source-account-scenario.schema.json",
+        "ToS/contracts/pwe-values.schema.json",
         "ToS/contracts/retained-corpus-binding.schema.json",
         "ToS/contracts/ts-native-definition.schema.json",
         "ToS/contracts/ts-native-operation-result.schema.json",
@@ -1776,9 +1794,9 @@ fn native_corpus_composition_case(installed: bool) {
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     reconcile_source_home_inputs(&mut query_oracle, &files);
-    // The selected native cut adds the vocabulary and seven current contracts.
+    // The selected native cut adds the vocabulary and twenty-five current contracts (seven common + eighteen PWE).
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(345));
+    assert_eq!(expected["counts"]["resources"], serde_json::json!(363));
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
