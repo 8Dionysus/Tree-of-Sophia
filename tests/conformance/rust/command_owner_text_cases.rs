@@ -1808,6 +1808,8 @@ fn rebind_journal_fixture(
     }
     let mut ledger = TextFixtureReference::new(deadline, cancelled);
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
+    ledger.pay(super::command_text_cases::TEXT_JOURNAL_SETUP_BYTES);
+    ledger.select_journal_profile(&context);
     let context_raw = ledger.read(&context);
     let context_value = ledger.parse(&context_raw);
     let private = PathBuf::from(context_value["private_root"].as_str().unwrap());

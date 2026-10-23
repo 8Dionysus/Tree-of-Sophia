@@ -38,14 +38,92 @@ pub(super) struct TextFixtureReference<'a> {
     cancelled: &'a AtomicBool,
 }
 
+// Finite aggregate construction profile for both maintained layer-journal captures.
+// The source-derived law retains every read/parse/copy/equality/write and uses
+// a conservative escaped-root bound from the already selected context path.
+const TEXT_FIXTURE_REFERENCE_INITIAL_BYTES: usize = 33_554_432;
+const JOURNAL_REFERENCE_FIXED_WORK: usize = 52_438_653;
+const JOURNAL_REFERENCE_ROOT_WORK: usize = 6_257;
+const JOURNAL_REFERENCE_UID_WORK: usize = 535 * 10;
+const JOURNAL_SETUP_HOLDERS_BYTES: usize = std::mem::size_of::<(
+    [&'static mut TextFixtureReference<'static>; 2],
+    [&'static std::path::PathBuf; 2],
+    [&'static std::path::Path; 2],
+    [&'static std::ffi::OsStr; 2],
+    [&'static [u8]; 2],
+    [usize; 24],
+    [Option<usize>; 16],
+    [&'static str; 16],
+)>();
+const JOURNAL_PATH_HOLDERS_BYTES: usize = std::mem::size_of::<(
+    [&'static std::ffi::OsString; 8],
+    [&'static Vec<u8>; 4],
+    [&'static (); 8], // private Buf/RawVec/RawVecInner sized-reference slots
+    [std::ptr::NonNull<u8>; 10], // six NonNull plus four transparent Unique slots
+    [*mut u8; 4],
+    [*const u8; 2],
+    [*const [u8]; 4], // aggregate byte slices and private Slice raw casts
+    [*const std::ffi::OsStr; 4],
+    [*const std::path::Path; 2],
+    [&'static std::ffi::OsStr; 10],
+    [&'static std::path::Path; 6],
+    [&'static [u8]; 10], // byte slices plus private transparent Slice references
+    [usize; 4],
+    [std::ops::RangeFull; 2],
+    [std::marker::PhantomData<u8>; 2],
+)>();
+pub(super) const TEXT_JOURNAL_SETUP_BYTES: usize =
+    2 * (JOURNAL_SETUP_HOLDERS_BYTES + JOURNAL_PATH_HOLDERS_BYTES);
+const JOURNAL_SETUP_VISITS: usize = 4 * (2 + 2 + 2 + 2 + 2 + 24 + 16 + 16 + 80);
+const _: () = {
+    assert!(JOURNAL_SETUP_HOLDERS_BYTES <= 832);
+    assert!(JOURNAL_PATH_HOLDERS_BYTES <= 896);
+    assert!(std::mem::size_of::<tos_foundation::JsonValue>() <= 64);
+    assert!(std::mem::size_of::<tos_foundation::JsonString>() <= 56);
+    assert!(std::mem::size_of::<serde_json::Value>() <= 96);
+};
+
 impl<'a> TextFixtureReference<'a> {
     pub(super) fn new(deadline: Instant, cancelled: &'a AtomicBool) -> Self {
         Self {
-            bytes: 33_554_432,
+            bytes: TEXT_FIXTURE_REFERENCE_INITIAL_BYTES,
             visits: 300_000,
             deadline,
             cancelled,
         }
+    }
+
+    // Called once on this recipe's fresh ledger, after the caller prepays
+    // TEXT_JOURNAL_SETUP_BYTES and before the first source read. Preserve spent
+    // bytes while selecting this finite test-owned grant; visits never reset.
+    pub(super) fn select_journal_profile(&mut self, context: &std::path::PathBuf) {
+        self.visits = self
+            .visits
+            .checked_sub(JOURNAL_SETUP_VISITS)
+            .expect("fixture reference visits");
+        let root_bound = context
+            .as_os_str()
+            .as_encoded_bytes()
+            .len()
+            .checked_mul(6)
+            .expect("fixture reference bytes");
+        let root_work = JOURNAL_REFERENCE_ROOT_WORK
+            .checked_mul(root_bound)
+            .expect("fixture reference bytes");
+        let total = JOURNAL_REFERENCE_FIXED_WORK
+            .checked_add(root_work)
+            .expect("fixture reference bytes");
+        let total = total
+            .checked_add(JOURNAL_REFERENCE_UID_WORK)
+            .expect("fixture reference bytes");
+        let total = total
+            .checked_add(TEXT_JOURNAL_SETUP_BYTES)
+            .expect("fixture reference bytes");
+        let spent = TEXT_FIXTURE_REFERENCE_INITIAL_BYTES
+            .checked_sub(self.bytes)
+            .expect("fixture reference bytes");
+        let remaining = total.checked_sub(spent).expect("fixture reference bytes");
+        self.bytes = remaining;
     }
 
     pub(super) fn check(&mut self) {
