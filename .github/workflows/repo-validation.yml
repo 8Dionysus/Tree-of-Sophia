@@ -779,6 +779,17 @@ jobs:
             /ToS/philosophy/**/branch.manifest.json
             /ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/source-anchor-backlog.jsonl
             /ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl
+      - name: Preflight the existing private-stage issuer namespace profile
+        run: |
+          # Admission probe only: no ticket, service, policy change or cap increase.
+          # The PG Item operational case remains a separate required acceptance.
+          test "$(id -u)" -ne 0
+          if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          fi
+          /usr/bin/timeout --signal=KILL 10s /usr/bin/unshare \
+            --user --map-root-user --mount --net --pid --mount-proc \
+            --fork --kill-child=SIGKILL /usr/bin/true
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
