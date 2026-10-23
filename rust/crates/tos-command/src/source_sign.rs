@@ -161,6 +161,8 @@ struct SignSourceReader<'a> {
     uid: u32,
     cut: &'a CorpusCutReader,
     observed: BTreeMap<String, Vec<u8>>,
+    // Exact sum of retained observed bodies, updated only on first insertion.
+    observed_bytes: usize,
     native_reads: BTreeSet<String>,
     native_bytes: usize,
     publication: Option<Vec<u8>>,
@@ -209,6 +211,7 @@ impl<'a> SignSourceReader<'a> {
             uid,
             cut,
             observed: BTreeMap::new(),
+            observed_bytes: 0,
             native_reads: BTreeSet::new(),
             native_bytes: 0,
             publication: None,
@@ -292,6 +295,10 @@ impl<'a> SignSourceReader<'a> {
                 "Sign current authored bytes differ from selected cut",
             ));
         }
+        self.observed_bytes = self
+            .observed_bytes
+            .checked_add(raw.len())
+            .ok_or(Error::Invalid("assessment public input byte overflow"))?;
         self.observed.insert(name.to_owned(), raw.clone());
         Ok(raw)
     }
@@ -417,6 +424,10 @@ impl SignNativeRead for SignSourceReader<'_> {
                 }
                 None => {
                     let bytes = self.current_raw(name, limit, deadline, cancelled)?;
+                    self.observed_bytes = self
+                        .observed_bytes
+                        .checked_add(bytes.len())
+                        .ok_or(Error::Invalid("assessment public input byte overflow"))?;
                     self.observed.insert(name.to_owned(), bytes.clone());
                     bytes
                 }
@@ -912,19 +923,16 @@ pub(crate) struct OwnerAssessmentPublicSources<'a> {
 
 impl OwnerAssessmentPublicSources<'_> {
     pub(crate) fn input_bytes(&self) -> Result<usize> {
+        // O(1): fence admission must not traverse private observations before
+        // its caller has paid the inspection work. Preserve the former sum,
+        // including native/publication charges even when bodies overlap.
         self.reader
-            .observed
-            .values()
-            .map(Vec::len)
-            .chain(std::iter::once(self.reader.native_bytes))
-            .chain(std::iter::once(
-                self.reader.publication.as_ref().map_or(0, Vec::len),
-            ))
-            .try_fold(0usize, |total, size| {
-                total
-                    .checked_add(size)
-                    .ok_or(Error::Invalid("assessment public input byte overflow"))
+            .observed_bytes
+            .checked_add(self.reader.native_bytes)
+            .and_then(|total| {
+                total.checked_add(self.reader.publication.as_ref().map_or(0, Vec::len))
             })
+            .ok_or(Error::Invalid("assessment public input byte overflow"))
     }
 
     pub(crate) fn verify_current(
@@ -2492,6 +2500,7 @@ impl OwnerAssessmentPublicSources<'_> {
             uid,
             cut,
             observed,
+            observed_bytes,
             native_reads,
             native_bytes,
             publication,
@@ -2504,12 +2513,13 @@ impl OwnerAssessmentPublicSources<'_> {
             profile_native_inputs,
         } = reader;
         c.path(root_path)?;
-        c.visit(7)?;
+        c.visit(8)?;
         let _ = (
             root,
             identity,
             uid,
             cut,
+            observed_bytes,
             native_bytes,
             publication_selected,
             source_bytes,
