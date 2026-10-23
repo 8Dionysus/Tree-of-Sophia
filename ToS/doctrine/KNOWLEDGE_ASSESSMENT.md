@@ -75,6 +75,45 @@ support.
 Unknown and conflicting findings remain inspectable. Competing admissible judgments remain visible as disagreement. Research may
 continue with that dispute explicitly open.
 
+### Manual registry authoring
+
+The separate `registry-manual-authoring-v1` use qualifies a source Claim for
+manual transfer readiness. Its protected owner scope, policy, authority and
+competence must actually permit that use; a source field or request cannot
+grant it. Earlier `research` uses and historical assessment scopes retain their
+meaning. Negative, deferred and withdrawal judgments keep their existing route.
+
+For positive manual-use qualification, the exact Claim carries the versioned
+[`manual-authoring-basis`](../contracts/manual-authoring-basis.schema.json) in
+`qualifiers.manual_authoring`. Its question binds the exact subject metadata,
+predicate and an existing Claim-local value pointer. An explicitly uncertain,
+disputed or unknown-polarity Claim cannot declare that finding determinate.
+Independent determinate fields remain separate Claims, unaffected by that finding.
+
+An unresolved finding has one reason-specific basis: source contradiction;
+information absent within a justified read extent; or unestablished identity.
+It retains actual exact evidence and locators, coverage grounds, exclusions,
+alternatives, residual and a discriminating condition or justified objective
+boundary. Contradiction additionally binds its criterion and scope and distinct
+same-question alternatives. Identity additionally binds its level, criterion,
+comparisons and known non-joins; a name match issues no identity. Pending work,
+unread sources and unsupported operations are not historical findings.
+
+The native admission rule requires every cited exact record to belong to the
+actual owner-selected required closure and every citation to appear with its
+exact locator in the qualified assessment. Missing, stale, foreign-question or
+empty grounds refuse positive manual use. Source-owned criteria and competent
+assessment still judge incompatibility, relevance and adequacy: different values,
+nonempty prose and a schema pass do not establish those judgments. Existing
+authority, independence, quality and currentness rules remain necessary; no
+universal source quota or truth probability is added.
+
+A fully preserved and read-back historical unknown can complete transfer while
+the historical question remains unresolved. Unread, unverified, unsupported or
+blocked work cannot. Transfer completion additionally requires the full batch's
+subject-matter acceptance; this use does not itself authorize writing, identity
+merge, research use, rights, publication or canon.
+
 ## History and withdrawal
 
 ### Text-layer quality and dependent use

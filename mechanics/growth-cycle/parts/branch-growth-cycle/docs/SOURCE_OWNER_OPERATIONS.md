@@ -135,6 +135,30 @@ bind them to actual source and authority records. Local invariant checks belong 
 
 ## Source-owner journal
 
+### Reason-specific manual authoring admission
+
+The existing assessment command and current-view calculation support the separate
+`registry-manual-authoring-v1` requested use. It requires a genuinely selected
+protected scope and policy/authority/competence permitting that use; discovery or
+an inline basis supplies no grant. No such production owner or policy is issued
+by this documentation.
+
+The exact source Claim's `qualifiers.manual_authoring` follows the
+[versioned basis contract](../../../../../ToS/contracts/manual-authoring-basis.schema.json)
+and [source assessment law](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md#manual-registry-authoring).
+Prepare the real source Claim with the ordinary typed authoring owner, select its
+actual required evidence closure, then assess this exact Claim for this explicit
+use and read the recalculated current result. Raw source creation remains
+unreviewed; retaining an assertion is not positive transfer readiness.
+
+Each exact citation must already be in the actual owner's required closure and
+in assessment evidence with the same locator. Missing source selection refuses;
+neither copying a Claim into a request nor adding a claimed `complete` flag fixes
+it. Source-backed historical uncertainty and unfinished agent work have distinct
+dispositions. Existing negative/defer/withdraw routes remain available under
+their own exact-source and authority conditions. Earlier research admission is
+not silently reinterpreted as this new use.
+
 ### Owner-local translation Alignment through the PG source command
 
 The protected `tos_local_native_alignment_owner_v1` grant remains the source
