@@ -26,6 +26,11 @@ if [[ ${1-} == --delegated ]]; then
   printf '%s\n' 0 > "$common/consumer/memory.swap.max"
   [[ -w $common/consumer/cgroup.kill ]] || fail 'consumer kill delegation required'
   current
+  if [[ -n ${TOS_NATIVE_STAGE_DIAGNOSTICS:-} ]]; then
+    /usr/bin/timeout 2s /usr/bin/systemctl show "$TOS_NATIVE_STAGE_UNIT" \
+      --property=User,Group,PrivateUsers,PrivateMounts,PrivateNetwork,NoNewPrivileges,RestrictNamespaces,CapabilityBoundingSet,AmbientCapabilities,SystemCallFilter,AppArmorProfile,Delegate,MemoryMax,MemorySwapMax,RuntimeMaxUSec,TimeoutStopUSec,KillMode
+    current
+  fi
   exec "$native" private-stage-run --unshare-exe /usr/bin/unshare \
     --consumer-cgroup "$common/consumer" --scratch-parent "$scratch" \
     --quota-bytes 536870912 --inodes 65536 --working-ram-bytes 2684354560 \
@@ -45,7 +50,13 @@ script=$(realpath -- "$0")
 remaining=$(node --input-type=module -e 'const cutoff=BigInt(process.argv[1]);const now=process.hrtime.bigint();if(cutoff<=now)process.exit(125);console.log(((cutoff-now)/1000000n).toString())' "$cutoff")
 [[ $remaining =~ ^[0-9]+$ && $remaining -gt $shutdown && $remaining -le 50000 ]] || fail 'original deadline exhausted'
 work_ms=$((remaining-shutdown))
+diagnostic=${TOS_NATIVE_STAGE_DIAGNOSTICS:-}
+[[ -z $diagnostic || $diagnostic == snapshot-only || $diagnostic == trace ]] || fail 'unknown diagnostic mode'
 unit="tos-native-ci-${UID}-$(cat /proc/sys/kernel/random/uuid)"
+diagnostic_env=()
+if [[ -n $diagnostic ]]; then
+  diagnostic_env+=(--setenv="TOS_NATIVE_STAGE_DIAGNOSTICS=$diagnostic" --setenv="TOS_NATIVE_STAGE_UNIT=$unit")
+fi
 # Unit identity is unique to this invocation; cleanup never signals a sampled PID.
 cleanup() {
   result=$?
@@ -65,7 +76,7 @@ trap 'exit 143' TERM
 # systemd owns stop/kill/reaping; Bash never signals a sampled child PID.
 # RuntimeMaxSec is a relative fallback from activation; it does NOT prove
 # original absolute deadline containment or cancellation cleanup. SOURCE DRAFT.
-sudo -n /usr/bin/systemd-run --quiet --wait --pipe --expand-environment=no --unit="$unit" \
+sudo -n /usr/bin/systemd-run "${diagnostic_env[@]}" --quiet --wait --pipe --expand-environment=no --unit="$unit" \
   --property="User=$(id -un)" --property="Group=$(id -gn)" \
   --property=Type=exec --property="TimeoutStartSec=${work_ms}ms" --property=Delegate=yes --property=MemoryMax=3221225472 --property=MemorySwapMax=0 \
   --property="RuntimeMaxSec=${work_ms}ms" --property="TimeoutStopSec=${shutdown}ms" \

@@ -441,7 +441,7 @@ jobs:
     needs: plan
     if: ${{ needs.plan.outputs.rust == 'true' }}
     name: Rust Workspace, Reader and WebAssembly Host
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         # Docker Official Image, pinned to the verified upstream OCI index digest.
@@ -473,6 +473,7 @@ jobs:
             /tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json
             /.github/workflows/repo-validation.yml
             /.github/scripts/delegate-native-stage-systemd.sh
+            /.github/scripts/diagnose-native-stage.py
             /.github/workflows/cloudflare-edge.yml
             /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
@@ -813,20 +814,49 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
-      - name: Preflight the genuine private-stage issuer in the existing CI delegation
+      - name: Read actual host policy without loading or executing a new profile
+        run: |
+          sudo -n --preserve-env=ImageOS,ImageVersion /usr/bin/python3 "$GITHUB_WORKSPACE/.github/scripts/diagnose-native-stage.py" \
+            > "$RUNNER_TEMP/tos-stage-host-diagnostic.json"
+          cat "$RUNNER_TEMP/tos-stage-host-diagnostic.json"
+      - name: Snapshot the real ordinary issuer without attempting namespaces
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
           CARGO_BUILD_JOBS: "2"
         run: |
+          set -o pipefail
           cargo build --locked -p tos-access --bin tos-access
           root="$RUNNER_TEMP/tos-pg-item-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           mkdir -m 700 "$root" "$root/lab" "$root/stage"
           cutoff=$(node -e 'console.log((process.hrtime.bigint()+45000000000n).toString())')
+          export TOS_NATIVE_STAGE_DIAGNOSTICS=snapshot-only
+          set +e
           /usr/bin/bash "$GITHUB_WORKSPACE/.github/scripts/delegate-native-stage-systemd.sh" \
             "$CARGO_TARGET_DIR/debug/tos-access" "$root/stage" "$root/lab" "$cutoff" 5000 \
-            -- /usr/bin/prlimit --as=1073741824:1073741824 --fsize=67108864:67108864 -- /usr/bin/true
-          printf 'TOS_CMD2_LAB_ROOT=%s\n' "$root/lab" >> "$GITHUB_ENV"
+            -- /usr/bin/prlimit --as=1073741824:1073741824 --fsize=67108864:67108864 -- /usr/bin/true 2>&1 | tee "$RUNNER_TEMP/tos-stage-issuer-snapshot.log"
+          snapshot_status=("${PIPESTATUS[@]}")
+          set -e
+          # Only this diagnostic wrapper accepts the dedicated nonzero exit.
+          [[ ${#snapshot_status[@]} == 2 && ${snapshot_status[0]} == 79 && ${snapshot_status[1]} == 0 ]]
+          /usr/bin/python3 - "$RUNNER_TEMP/tos-stage-issuer-snapshot.log" <<'PY'
+          import json,sys
+          records=[]
+          for line in open(sys.argv[1]):
+              if line.startswith('{'):
+                  value=json.loads(line)
+                  if value.get('schema')=='tos_ci_stage_diagnostic_v1': records.append(value)
+          assert len(records)==1
+          value=records[0]
+          assert value['role']=='outer-before-unshare' and value['mode']=='snapshot-only'
+          assert value['outcome']=='diagnostic-only' and value['diagnostic_exit_code']==79
+          assert value['ticket_issued_by_diagnostic'] is False
+          PY
+          printf '%s\n' 'Diagnostic read complete; operational stage and PG remain NOTRUN.'
+      - name: Keep operational stage gate closed pending separate review
+        run: |
+          printf '%s\n' 'Native stage operational gate pending separate reviewed selection.' >&2
+          exit 125
       - name: Prepare retained source-cut fixture
         run: |
           source_ref="$(cat tests/conformance/rust/retained-opening-source.txt)"
@@ -951,6 +981,15 @@ jobs:
           if mountpoint -q "$root/mounted"; then
             sudo umount "$root/mounted"
           fi
+      - name: Preserve read-only native stage diagnosis
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tos-stage-diagnosis-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/tos-stage-host-diagnostic.json
+            ${{ runner.temp }}/tos-stage-issuer-snapshot.log
+          if-no-files-found: warn
 
   required_gate:
     name: Repo Validation
