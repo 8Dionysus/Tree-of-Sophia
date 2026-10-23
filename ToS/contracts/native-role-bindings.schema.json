@@ -60,17 +60,17 @@
           ]
         },
         "type_id": {
-          "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/typeId"
+          "$ref": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/typeId"
         },
         "record_type": {
-          "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/record_type"
+          "$ref": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/record_type"
         },
         "schema_version": {
           "type": "string",
           "minLength": 1
         },
         "schema_ref": {
-          "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/schemas/items/properties/schema_ref"
+          "$ref": "https://treeofsophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/schemas/items/properties/schema_ref"
         }
       }
     }

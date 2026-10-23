@@ -259,12 +259,8 @@ impl<'a> NativeRoleResolver<'a> {
         let entity_digest = match self.entity_digest {
             Some(digest) => digest,
             None => {
-                let digest = admitted_digest(
-                    &self.entities,
-                    self.budget,
-                    self.deadline,
-                    self.cancelled,
-                )?;
+                let digest =
+                    admitted_digest(&self.entities, self.budget, self.deadline, self.cancelled)?;
                 self.entity_digest = Some(digest);
                 digest
             }
@@ -480,7 +476,9 @@ fn check_pin_fields(
             .len()
             .checked_mul(2)
             .and_then(|n| n.checked_add(expected.id.as_str().len()))
-            .ok_or(Error::Unsupported("native role pin comparison work overflow"))?,
+            .ok_or(Error::Unsupported(
+                "native role pin comparison work overflow",
+            ))?,
     )?;
     let version_value = cmd::field(value, version)?;
     if let JsonValue::Number(number) = version_value {
@@ -504,7 +502,9 @@ fn reserve_reference_copies(
     let bytes = refs
         .iter()
         .try_fold(path.len(), |n, r| n.checked_add(r.id.as_str().len()))
-        .ok_or(Error::Unsupported("native role reference-copy size overflow"))?;
+        .ok_or(Error::Unsupported(
+            "native role reference-copy size overflow",
+        ))?;
     budget.charge_work(bytes)?;
     budget.charge_bytes(bytes)
 }
