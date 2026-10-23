@@ -6,7 +6,19 @@
   "lifecycle": "candidate",
   "owner_ref": "ToS/contracts/pwe-name-assignment-claim.schema.json",
   "domain_type_ids": [
-    "tos.entity.semantic-object"
+    "tos.entity.agent",
+    "tos.entity.organization",
+    "tos.entity.work",
+    "tos.entity.expression",
+    "tos.entity.edition",
+    "tos.entity.item",
+    "tos.entity.artifact",
+    "tos.entity.file",
+    "tos.entity.document",
+    "tos.entity.collection",
+    "tos.entity.composite",
+    "tos.entity.textual-fragment",
+    "tos.entity.quotation-passage"
   ],
   "directionality": "directed",
   "transitive": false,

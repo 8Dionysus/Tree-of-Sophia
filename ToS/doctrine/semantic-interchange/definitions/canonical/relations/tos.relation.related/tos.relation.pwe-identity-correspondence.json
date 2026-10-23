@@ -6,7 +6,16 @@
   "lifecycle": "candidate",
   "owner_ref": "ToS/contracts/pwe-identity-correspondence-claim.schema.json",
   "domain_type_ids": [
-    "tos.entity.semantic-object"
+    "tos.entity.agent",
+    "tos.entity.work",
+    "tos.entity.expression",
+    "tos.entity.edition",
+    "tos.entity.item",
+    "tos.entity.artifact",
+    "tos.entity.file",
+    "tos.entity.textual-fragment",
+    "tos.entity.quotation-passage",
+    "tos.entity.composite"
   ],
   "directionality": "directed",
   "transitive": false,
