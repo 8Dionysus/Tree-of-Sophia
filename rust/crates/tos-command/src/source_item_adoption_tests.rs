@@ -28,7 +28,11 @@ fn item_retained_orphan_recovers_through_owner_for_resume_and_rollback() {
 }
 
 fn retained_orphan_case(decision: &str, payload: Option<(&str, &str, &[u8])>) {
-    let repository = support::repository();
+    let repository = if payload.is_some() {
+        inventory_bridge::repository()
+    } else {
+        support::repository()
+    };
     let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);
     let expect_commit = decision == "resume";

@@ -12,6 +12,61 @@ const TEI: &[u8] = br#"<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><div
 #[path = "source_item_prepared_consumer_tests.rs"]
 mod prepared_consumer;
 
+/// A transferred test image must read an explicitly selected, exact source
+/// checkout instead of the builder's baked-in CARGO_MANIFEST_DIR. This selects
+/// fixture/software inputs only; the real owner, capture and currentness fences
+/// below still execute unchanged.
+pub(super) fn repository() -> PathBuf {
+    let selected = std::env::var_os("TOS_ITEM_ADOPTION_TEST_REPOSITORY");
+    let expected_tree = std::env::var_os("TOS_ITEM_ADOPTION_TEST_TREE");
+    let (Some(selected), Some(expected_tree)) = (selected, expected_tree) else {
+        assert!(
+            std::env::var_os("TOS_ITEM_ADOPTION_TEST_REPOSITORY").is_none()
+                && std::env::var_os("TOS_ITEM_ADOPTION_TEST_TREE").is_none(),
+            "selected Item test repository and exact tree must be supplied together"
+        );
+        return support::repository();
+    };
+    let selected = PathBuf::from(selected);
+    assert!(
+        selected.is_absolute(),
+        "Item test repository must be absolute"
+    );
+    let repository = selected
+        .canonicalize()
+        .expect("selected Item test repository");
+    let expected_tree = expected_tree.into_string().expect("Item test tree UTF8");
+    assert!(
+        expected_tree.len() == 40 && expected_tree.bytes().all(|byte| byte.is_ascii_hexdigit()),
+        "Item test repository requires an exact Git tree"
+    );
+    let actual = std::process::Command::new("git")
+        .arg("--no-optional-locks")
+        .arg("-C")
+        .arg(&repository)
+        .args(["rev-parse", "HEAD^{tree}"])
+        .output()
+        .expect("read selected Item test tree");
+    assert!(actual.status.success(), "selected Item test Git tree");
+    assert_eq!(
+        String::from_utf8(actual.stdout).unwrap().trim(),
+        expected_tree,
+        "selected Item test source tree differs"
+    );
+    let status = std::process::Command::new("git")
+        .arg("--no-optional-locks")
+        .arg("-C")
+        .arg(&repository)
+        .args(["status", "--porcelain=v1"])
+        .output()
+        .expect("read selected Item test source status");
+    assert!(
+        status.status.success() && status.stdout.is_empty(),
+        "selected Item test source checkout must be clean"
+    );
+    repository
+}
+
 pub(super) fn select_payload(fixture: &mut Value, name: &str, media: &str, raw: &[u8]) {
     let input = PathBuf::from(fixture["input"].as_str().unwrap());
     fs::write(&input, raw).unwrap();
@@ -41,7 +96,7 @@ struct Fixture {
 }
 impl Fixture {
     fn new(name: &str, media: &str, raw: &[u8]) -> Self {
-        let repository = support::repository();
+        let repository = repository();
         let deadline = Instant::now() + Duration::from_secs(900);
         let cancelled = AtomicBool::new(false);
         let temporary = tempfile::tempdir().unwrap();
