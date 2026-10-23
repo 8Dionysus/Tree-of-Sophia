@@ -40,7 +40,10 @@ type Result<T> = std::result::Result<T, OwnerDayRangeError>;
 
 #[derive(Clone, Copy, Debug)]
 pub struct OwnerDayRangeBudget {
+    /// Aggregate JSON transport limits for the generated projection input/context.
     pub temporal: TemporalBudget,
+    /// Maximum source chronology members, independent of JSON value-node count.
+    pub max_chronology_members: usize,
     /// Logical adapter residency, not allocator/process RSS admission.
     pub max_extra_owned_bytes: usize,
     pub max_extra_json_visits: usize,
@@ -320,7 +323,8 @@ pub fn with_loaded_chronology_day_range<'owner, T>(
     consume: impl for<'view> FnOnce(&mut OwnerDayRangeView<'view>) -> Result<T>,
 ) -> Result<T> {
     loaded.recheck(deadline, cancelled)?;
-    if budget.temporal.max_members == 0
+    if budget.max_chronology_members == 0
+        || budget.temporal.max_members == 0
         || budget.temporal.max_pairings == 0
         || budget.temporal.max_expression_bytes == 0
         || budget.max_extra_owned_bytes == 0
@@ -342,7 +346,7 @@ pub fn with_loaded_chronology_day_range<'owner, T>(
     let bound = loaded.bound();
     let chronology = bound.chronology();
     let members = &chronology.member_claim_revisions;
-    if members.len() > budget.temporal.max_members {
+    if members.len() > budget.max_chronology_members {
         return Err(OwnerDayRangeError::BudgetExceeded);
     }
     let mut index = None;

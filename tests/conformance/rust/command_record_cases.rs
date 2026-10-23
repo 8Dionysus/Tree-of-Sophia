@@ -2776,10 +2776,10 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                     &supplement,
                     OwnerDayRangeBudget {
                         temporal: tos_foundation::temporal::TemporalBudget {
-                            max_members: 1,
                             max_pairings: 128,
                             ..tos_foundation::temporal::TemporalBudget::default()
                         },
+                        max_chronology_members: 1,
                         max_extra_owned_bytes: 4 * 1024 * 1024,
                         max_extra_json_visits: 65_536,
                     },
@@ -2905,10 +2905,10 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                         &parse(&canonical_json(&invalid)),
                         OwnerDayRangeBudget {
                             temporal: tos_foundation::temporal::TemporalBudget {
-                                max_members: 1,
                                 max_pairings: 128,
                                 ..tos_foundation::temporal::TemporalBudget::default()
                             },
+                            max_chronology_members: 1,
                             max_extra_owned_bytes: 4 * 1024 * 1024,
                             max_extra_json_visits: 65_536,
                         },
