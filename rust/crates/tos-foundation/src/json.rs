@@ -2160,11 +2160,7 @@ fn write_value(
                             // parser admission retains its separate contract.
                             output.poll.admit_work(bytes, 0)?;
                         }
-                        checked_units_equal(
-                            left,
-                            right,
-                            &mut output.poll,
-                        )?
+                        checked_units_equal(left, right, &mut output.poll)?
                     } else {
                         pair[0].1.0.units == pair[1].1.0.units
                     };
