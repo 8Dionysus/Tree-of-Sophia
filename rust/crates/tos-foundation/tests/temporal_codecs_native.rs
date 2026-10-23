@@ -1,4 +1,6 @@
-use tos_foundation::temporal::{TemporalBudget, codecs::capture_tei};
+use tos_foundation::temporal::{
+    TemporalBudget, TemporalError, codecs::capture_tei, execute_temporal_operation,
+};
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 fn parse(s: &str) -> JsonValue {
     parse_json(
@@ -30,6 +32,57 @@ fn input(xml: &str) -> JsonValue {
 }
 fn run(xml: &str) -> JsonValue {
     capture_tei(&input(xml), &parse("{}"), TemporalBudget::default()).unwrap()
+}
+#[test]
+fn direct_tei_requires_object_roots_before_transport_admission() {
+    let i = input("<date when='1962-10'/>");
+    let c = parse("{}");
+    for bad in [
+        JsonValue::Null,
+        JsonValue::Array(vec![]),
+        JsonValue::Bool(false),
+        parse("1"),
+        parse(r#""context""#),
+    ] {
+        for bad_input in [false, true] {
+            let (input, context) = if bad_input { (&bad, &c) } else { (&i, &bad) };
+            for budget in [
+                TemporalBudget::default(),
+                TemporalBudget {
+                    max_expression_bytes: 0,
+                    max_members: 0,
+                    max_pairings: 0,
+                },
+            ] {
+                assert!(matches!(
+                    capture_tei(input, context, budget),
+                    Err(TemporalError::MalformedRequest(
+                        "input and context must be objects"
+                    ))
+                ));
+                assert!(matches!(
+                    execute_temporal_operation("capture_expression", input, context, budget),
+                    Err(TemporalError::MalformedRequest(
+                        "input and context must be objects"
+                    ))
+                ));
+            }
+        }
+    }
+    let direct = capture_tei(&i, &c, TemporalBudget::default()).unwrap();
+    let top = execute_temporal_operation(
+        "capture_expression",
+        &i,
+        &c,
+        TemporalBudget::default(),
+    )
+    .unwrap();
+    assert_eq!(s(&direct, "status"), Some("Complete"));
+    assert_eq!(f(&direct, "preserved_input"), &i);
+    assert_eq!(f(&direct, "preserved_context"), &c);
+    for (key, value) in direct.as_object().unwrap() {
+        assert_eq!(top.object_get(key.as_str().unwrap()), Some(value));
+    }
 }
 #[test]
 fn exact_raw_and_month_granularity() {

@@ -274,6 +274,11 @@ pub fn capture_tei(
     context: &JsonValue,
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
+    if input.as_object().is_none() || context.as_object().is_none() {
+        return Err(TemporalError::MalformedRequest(
+            "input and context must be objects",
+        ));
+    }
     super::admit_transport(input, context, budget)?;
     capture_tei_admitted(input, context, budget)
 }
