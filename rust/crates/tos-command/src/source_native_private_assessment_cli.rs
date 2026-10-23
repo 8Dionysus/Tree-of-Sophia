@@ -2535,30 +2535,58 @@ fn configured_scope_using(
 ) -> SourceCommandResult<JsonValue> {
     access.inspect(0, 128)?; // fixed selector controls, not variable key/language work
     let subjects = access.field(config, "subjects")?;
-    let selected = access.get(subjects, subject_id)?.ok_or(SourceCommandError::Denied(
-        "assessment subject is outside configured scope",
-    ))?;
+    let selected = access
+        .get(subjects, subject_id)?
+        .ok_or(SourceCommandError::Denied(
+            "assessment subject is outside configured scope",
+        ))?;
     let scope = access.copied(selected)?;
-    const KEYS: [&str; 8] = ["record", "assertion_layer", "risk", "languages", "maker_id", "requested_use", "access_allowed", "form_language_context"];
+    const KEYS: [&str; 8] = [
+        "record",
+        "assertion_layer",
+        "risk",
+        "languages",
+        "maker_id",
+        "requested_use",
+        "access_allowed",
+        "form_language_context",
+    ];
     let extended = access.version(config)? != OwnerVersion::V1
         && access.get(&scope, "form_language_context")?.is_some();
     access.exact_keys(&scope, &KEYS[..if extended { 8 } else { 7 }])?;
-    let languages = access.field(&scope, "languages")?.as_array().ok_or(SourceCommandError::Invalid("expected array field"))?;
-    if languages.is_empty() { return Err(SourceCommandError::Denied("assessment configured access scope is incomplete")); }
+    let languages = access
+        .field(&scope, "languages")?
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("expected array field"))?;
+    if languages.is_empty() {
+        return Err(SourceCommandError::Denied(
+            "assessment configured access scope is incomplete",
+        ));
+    }
     for language in languages {
         access.inspect(0, 1)?;
         if language.as_str().is_none_or(str::is_empty) {
-            return Err(SourceCommandError::Denied("assessment configured access scope is incomplete"));
+            return Err(SourceCommandError::Denied(
+                "assessment configured access scope is incomplete",
+            ));
         }
     }
     for key in ["assertion_layer", "risk", "maker_id", "requested_use"] {
-        if access.get(&scope, key)?.and_then(JsonValue::as_str).is_none() {
-            return Err(SourceCommandError::Denied("assessment configured access scope is incomplete"));
+        if access
+            .get(&scope, key)?
+            .and_then(JsonValue::as_str)
+            .is_none()
+        {
+            return Err(SourceCommandError::Denied(
+                "assessment configured access scope is incomplete",
+            ));
         }
     }
     let allowed = access.field(&scope, "access_allowed")?;
     if !access.optional_equal(Some(allowed), Some(&JsonValue::Bool(true)))? {
-        return Err(SourceCommandError::Denied("assessment configured access scope is incomplete"));
+        return Err(SourceCommandError::Denied(
+            "assessment configured access scope is incomplete",
+        ));
     }
     Ok(scope)
 }
@@ -2633,7 +2661,12 @@ pub(crate) fn select_current_scope_with_admission(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, JsonValue)> {
-    select_current_scope_using(config, request, all_by_id, &mut ScopeAccess::admitted(budget, whole, deadline, cancelled))
+    select_current_scope_using(
+        config,
+        request,
+        all_by_id,
+        &mut ScopeAccess::admitted(budget, whole, deadline, cancelled),
+    )
 }
 
 fn select_current_scope_using(
@@ -2650,27 +2683,47 @@ fn select_current_scope_using(
     let scope_record = access.field(&scope, "record")?;
     if !access.same(&current_ref, scope_record)?
         || !access.describe(request)?
-            && !access.same(&current_ref, request.expected_subject.as_ref().ok_or(SourceCommandError::Invalid("assessment expected subject is absent"))?)?
+            && !access.same(
+                &current_ref,
+                request
+                    .expected_subject
+                    .as_ref()
+                    .ok_or(SourceCommandError::Invalid(
+                        "assessment expected subject is absent",
+                    ))?,
+            )?
     {
-        return Err(SourceCommandError::Conflict("assessment expected subject or owner scope is stale"));
+        return Err(SourceCommandError::Conflict(
+            "assessment expected subject or owner scope is stale",
+        ));
     }
     let body = access.field(&current, "payload")?;
     if access.get(body, "claim_id")?.is_some() {
         let maker_object = access.get(body, "maker")?;
-        let maker = match maker_object { Some(maker) => access.get(maker, "agent_ref")?, None => None };
+        let maker = match maker_object {
+            Some(maker) => access.get(maker, "agent_ref")?,
+            None => None,
+        };
         let expected_layer = access.field(&scope, "assertion_layer")?;
-        let actual_layer = access.get(body, "assertion_layer")?.unwrap_or(&JsonValue::Null);
+        let actual_layer = access
+            .get(body, "assertion_layer")?
+            .unwrap_or(&JsonValue::Null);
         let layer_matches = access.optional_equal(Some(expected_layer), Some(actual_layer))?;
         let maker_matches = if layer_matches {
             let expected_maker = access.field(&scope, "maker_id")?;
             access.optional_equal(maker, Some(expected_maker))?
-        } else { false };
-        if !layer_matches || !maker_matches
-        {
-            return Err(SourceCommandError::Denied("assessment source Claim scope differs from its layer or maker"));
+        } else {
+            false
+        };
+        if !layer_matches || !maker_matches {
+            return Err(SourceCommandError::Denied(
+                "assessment source Claim scope differs from its layer or maker",
+            ));
         }
     } else {
-        let schema = access.get(body, "schema_version")?.and_then(JsonValue::as_str);
+        let schema = access
+            .get(body, "schema_version")?
+            .and_then(JsonValue::as_str);
         let human_form = match schema {
             Some(schema) => access.text_equal(schema, "tos_human_form_v1")?,
             None => false,
@@ -2682,10 +2735,13 @@ fn select_current_scope_using(
                 let maker = access.field(&scope, "maker_id")?;
                 let creator = access.field(body, "creator_id")?;
                 access.optional_equal(Some(maker), Some(creator))?
-            } else { false };
-            if !layer_matches || !maker_matches
-            {
-                return Err(SourceCommandError::Denied("assessment source form scope differs from its creator"));
+            } else {
+                false
+            };
+            if !layer_matches || !maker_matches {
+                return Err(SourceCommandError::Denied(
+                    "assessment source form scope differs from its creator",
+                ));
             }
         }
     }
