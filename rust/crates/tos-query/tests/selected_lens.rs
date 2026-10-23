@@ -362,7 +362,7 @@ fn adapt_historical_corpus_search_packet_schemas(oracle: &mut JsonValue) {
 fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
     // The pinned Python oracle predates native route and source-text gateway
     // wording. Apply only those pinned contract deltas and the separate
-    // registry-v46 adjustment below; all other fields remain compared.
+    // registry-v47 adjustment below; all other fields remain compared.
     let api_source_bytes = tos_query::knowledge_contracts::KNOWLEDGE_PROGRAM_CONTRACTS
         .iter()
         .find(|(_, path, _)| *path == "access/contracts/knowledge-api.v1.json")
@@ -493,12 +493,13 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
         adapted, 10,
         "only the known route statements and source-text gateway contract may adapt"
     );
-    // Registry v46 retires Python owner handles; the historical output remains
+    // Registry v46 retires Python owner handles; v47 adds three PWE profiles.
+    // The historical output remains
     // independently authenticated before applying these authored route changes.
     let registry = field_mut(contracts, "relation_type_registry");
     assert_eq!(field(registry, "registry_version").as_u64(), Some(45));
     *field_mut(registry, "registry_version") =
-        parse_json(b"46", JsonMode::PublishedStrict, JsonLimits::default())
+        parse_json(b"47", JsonMode::PublishedStrict, JsonLimits::default())
             .unwrap()
             .into_root();
     let JsonValue::Array(relations) = field_mut(registry, "relations") else {
@@ -532,13 +533,13 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
     assert_eq!(refs.len(), 9);
     refs.retain(|v| v.as_str() != Some("scripts/philosophy_graph_projection_common.py"));
     assert_eq!(refs.len(), 8);
-    // The frozen v39 entity registry is retained in full. Only the three
-    // explicitly authored C4 profile rows and version40 are added below;
+    // The frozen v39 entity registry is retained in full. Only the eighteen
+    // explicitly authored C4/PWE profile rows and version41 are added below;
     // expected rows are literal source-reviewed data, never query output.
     let registry = field_mut(contracts, "entity_type_registry");
     assert_eq!(field(registry, "registry_version").as_u64(), Some(39));
     *field_mut(registry, "registry_version") =
-        parse_json(b"40", JsonMode::PublishedStrict, JsonLimits::default())
+        parse_json(b"41", JsonMode::PublishedStrict, JsonLimits::default())
             .unwrap()
             .into_root();
     let authored_profiles = r###"[
@@ -682,6 +683,653 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
       ]
     },
     "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-signature",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-signature",
+      "en": "pwe-signature",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE signature Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-signature.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-signature"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-signature"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-signature",
+      "id_prefix": "tos.pwe-signature.",
+      "source_basename": "pwe-signature.json",
+      "catalog_filename": "pwe-signatures.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_signature_v1",
+          "schema_ref": "ToS/contracts/pwe-signature.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-predicate",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-predicate",
+      "en": "pwe-predicate",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE predicate Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-predicate.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-predicate"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-predicate"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-predicate",
+      "id_prefix": "tos.pwe-predicate.",
+      "source_basename": "pwe-predicate.json",
+      "catalog_filename": "pwe-predicates.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_predicate_v1",
+          "schema_ref": "ToS/contracts/pwe-predicate.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-qualification-profile",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-qualification-profile",
+      "en": "pwe-qualification-profile",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE qualification-profile Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-qualification-profile.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-qualification-profile"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-qualification-profile"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-qualification-profile",
+      "id_prefix": "tos.pwe-qualification-profile.",
+      "source_basename": "pwe-qualification-profile.json",
+      "catalog_filename": "pwe-qualification-profiles.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_qualification_profile_v1",
+          "schema_ref": "ToS/contracts/pwe-qualification-profile.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-context",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-context",
+      "en": "pwe-context",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE context Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-context.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-context"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-context"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-context",
+      "id_prefix": "tos.pwe-context.",
+      "source_basename": "pwe-context.json",
+      "catalog_filename": "pwe-contexts.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_context_v1",
+          "schema_ref": "ToS/contracts/pwe-context.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-scope",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-scope",
+      "en": "pwe-scope",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE scope Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-scope.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-scope"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-scope"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-scope",
+      "id_prefix": "tos.pwe-scope.",
+      "source_basename": "pwe-scope.json",
+      "catalog_filename": "pwe-scopes.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_scope_v1",
+          "schema_ref": "ToS/contracts/pwe-scope.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-criterion",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-criterion",
+      "en": "pwe-criterion",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE criterion-policy Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-criterion.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-criterion"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-criterion"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-criterion",
+      "id_prefix": "tos.pwe-criterion.",
+      "source_basename": "pwe-criterion.json",
+      "catalog_filename": "pwe-criterions.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_criterion_v1",
+          "schema_ref": "ToS/contracts/pwe-criterion.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-identity-carrier",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-identity-carrier",
+      "en": "pwe-identity-carrier",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE joint-carrier Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-identity-carrier.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-identity-carrier"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-identity-carrier"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-identity-carrier",
+      "id_prefix": "tos.pwe-identity-carrier.",
+      "source_basename": "pwe-identity-carrier.json",
+      "catalog_filename": "pwe-identity-carriers.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_identity_carrier_v1",
+          "schema_ref": "ToS/contracts/pwe-identity-carrier.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-identity-scenario",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-identity-scenario",
+      "en": "pwe-identity-scenario",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE scenario Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-identity-scenario.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-identity-scenario"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-identity-scenario"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-identity-scenario",
+      "id_prefix": "tos.pwe-identity-scenario.",
+      "source_basename": "pwe-identity-scenario.json",
+      "catalog_filename": "pwe-identity-scenarios.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_identity_scenario_v1",
+          "schema_ref": "ToS/contracts/pwe-identity-scenario.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-source-account-carrier",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-source-account-carrier",
+      "en": "pwe-source-account-carrier",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE joint-carrier Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-source-account-carrier.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-source-account-carrier"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-source-account-carrier"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-source-account-carrier",
+      "id_prefix": "tos.pwe-source-account-carrier.",
+      "source_basename": "pwe-source-account-carrier.json",
+      "catalog_filename": "pwe-source-account-carriers.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_source_account_carrier_v1",
+          "schema_ref": "ToS/contracts/pwe-source-account-carrier.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-source-account-scenario",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-source-account-scenario",
+      "en": "pwe-source-account-scenario",
+      "ru": null
+    },
+    "definition": "A source-owned selected PWE scenario Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-source-account-scenario.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-source-account-scenario"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-source-account-scenario"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-source-account-scenario",
+      "id_prefix": "tos.pwe-source-account-scenario.",
+      "source_basename": "pwe-source-account-scenario.json",
+      "catalog_filename": "pwe-source-account-scenarios.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_source_account_scenario_v1",
+          "schema_ref": "ToS/contracts/pwe-source-account-scenario.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.name-assignment",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "name-assignment",
+      "en": "name-assignment",
+      "ru": null
+    },
+    "definition": "Claim-scoped PWE account value retaining its source, exact basis and qualification; it is not an endpoint identity or an admitted proposition.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-values.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "name-assignment"
+      }
+    ],
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.responsibility-account",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "responsibility-account",
+      "en": "responsibility-account",
+      "ru": null
+    },
+    "definition": "Claim-scoped PWE account value retaining its source, exact basis and qualification; it is not an endpoint identity or an admitted proposition.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-values.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "responsibility-account"
+      }
+    ],
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.identity-correspondence",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "identity-correspondence",
+      "en": "identity-correspondence",
+      "ru": null
+    },
+    "definition": "Claim-scoped PWE account value retaining its source, exact basis and qualification; it is not an endpoint identity or an admitted proposition.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-values.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "identity-correspondence"
+      }
+    ],
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-prepared-values",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-prepared-values",
+      "en": "pwe-prepared-values",
+      "ru": null
+    },
+    "definition": "Native PWE preservation pwe-prepared-values with separately checked wrapper/body/item schema bindings. Completed producer output does not execute semantic resolution or grant source authority.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-prepared-values-record.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-prepared-values"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-prepared-values"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-prepared-values",
+      "id_prefix": "tos.pwe-prepared-values.",
+      "source_basename": "pwe-prepared-values.json",
+      "catalog_filename": "pwe-prepared-valuess.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_prepared_values_record_v1",
+          "schema_ref": "ToS/contracts/pwe-prepared-values-record.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-preserved-candidate.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.pwe-prepared-values-output-profile",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "pwe-prepared-values-output-profile",
+      "en": "pwe-prepared-values-output-profile",
+      "ru": null
+    },
+    "definition": "Native PWE preservation pwe-prepared-values-output-profile with separately checked wrapper/body/item schema bindings. Completed producer output does not execute semantic resolution or grant source authority.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-prepared-values-output-profile.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "pwe-prepared-values-output-profile"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "pwe-prepared-values-output-profile"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "pwe-prepared-values-output-profile",
+      "id_prefix": "tos.pwe-prepared-values-output-profile.",
+      "source_basename": "pwe-prepared-values-output-profile.json",
+      "catalog_filename": "pwe-prepared-values-output-profiles.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_prepared_values_output_profile_v1",
+          "schema_ref": "ToS/contracts/pwe-prepared-values-output-profile.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/pwe-preserved-candidate.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
   }
 ]"###;
     let additions = parse_json(
@@ -692,9 +1340,9 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
     .unwrap()
     .into_root();
     let JsonValue::Array(additions) = additions else {
-        panic!("three authored C4 profiles");
+        panic!("eighteen authored native profiles");
     };
-    assert_eq!(additions.len(), 3);
+    assert_eq!(additions.len(), 18);
     let JsonValue::Array(types) = field_mut(registry, "types") else {
         panic!("entity registry types");
     };
@@ -704,7 +1352,219 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
         assert!(!types.iter().any(|row| field(row, "type_id").as_str() == Some(id)));
         types.push(addition);
     }
-    assert_eq!(types.len(), 163);
+    assert_eq!(types.len(), 178);
+    // Three literal source-owned PWE Claim profiles are appended to the
+    // independently preserved196 historical relation rows after v46 migration.
+    let registry = field_mut(contracts, "relation_type_registry");
+    let authored_relations = r###"[
+  {
+    "parent_relation_type_ids": [
+      "tos.relation.related"
+    ],
+    "abstract": false,
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-name-assignment-claim.schema.json",
+    "domain_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "directionality": "directed",
+    "transitive": false,
+    "inverse_relation_type_id": null,
+    "cardinality": {
+      "per_subject_min": null,
+      "per_subject_max": null,
+      "per_object_min": null,
+      "per_object_max": null
+    },
+    "assertion_mode": "reified-claim",
+    "evidence_required": true,
+    "review_requirement": "recorded",
+    "supersedes_relation_type_id": null,
+    "relation_type_id": "tos.relation.pwe-name-assignment",
+    "labels": {
+      "default": "pwe_name_assignment",
+      "en": "pwe_name_assignment",
+      "ru": null
+    },
+    "inverse_labels": null,
+    "definition": "Preserves the complete qualified name-assignment account from its source. Neither sign nor admission implies historical identity, authorship transfer or exhaustive scope.",
+    "range_type_ids": [
+      "tos.entity.name-assignment"
+    ],
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_predicate_id": "pwe_name_assignment",
+        "scope": "claim-predicate"
+      }
+    ],
+    "source_claim_profile": {
+      "profile_version": 1,
+      "reader": "pwe-exact-basis-v1",
+      "value_kind": "name-assignment",
+      "assertion_layers": [
+        "bibliographic_assertion"
+      ],
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_name_assignment_claim_v1",
+          "schema_ref": "ToS/contracts/pwe-name-assignment-claim.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/source-claim-record.schema.json",
+            "ToS/contracts/claim-packet.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "parent_relation_type_ids": [
+      "tos.relation.related"
+    ],
+    "abstract": false,
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-responsibility-account-claim.schema.json",
+    "domain_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "directionality": "directed",
+    "transitive": false,
+    "inverse_relation_type_id": null,
+    "cardinality": {
+      "per_subject_min": null,
+      "per_subject_max": null,
+      "per_object_min": null,
+      "per_object_max": null
+    },
+    "assertion_mode": "reified-claim",
+    "evidence_required": true,
+    "review_requirement": "recorded",
+    "supersedes_relation_type_id": null,
+    "relation_type_id": "tos.relation.pwe-responsibility-account",
+    "labels": {
+      "default": "pwe_responsibility_account",
+      "en": "pwe_responsibility_account",
+      "ru": null
+    },
+    "inverse_labels": null,
+    "definition": "Preserves the complete qualified responsibility-account account from its source. Neither sign nor admission implies historical identity, authorship transfer or exhaustive scope.",
+    "range_type_ids": [
+      "tos.entity.responsibility-account"
+    ],
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_predicate_id": "pwe_responsibility_account",
+        "scope": "claim-predicate"
+      }
+    ],
+    "source_claim_profile": {
+      "profile_version": 1,
+      "reader": "pwe-exact-basis-v1",
+      "value_kind": "responsibility-account",
+      "assertion_layers": [
+        "bibliographic_assertion"
+      ],
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_responsibility_account_claim_v1",
+          "schema_ref": "ToS/contracts/pwe-responsibility-account-claim.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/source-claim-record.schema.json",
+            "ToS/contracts/claim-packet.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "parent_relation_type_ids": [
+      "tos.relation.related"
+    ],
+    "abstract": false,
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/pwe-identity-correspondence-claim.schema.json",
+    "domain_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "directionality": "directed",
+    "transitive": false,
+    "inverse_relation_type_id": null,
+    "cardinality": {
+      "per_subject_min": null,
+      "per_subject_max": null,
+      "per_object_min": null,
+      "per_object_max": null
+    },
+    "assertion_mode": "reified-claim",
+    "evidence_required": true,
+    "review_requirement": "recorded",
+    "supersedes_relation_type_id": null,
+    "relation_type_id": "tos.relation.pwe-identity-correspondence",
+    "labels": {
+      "default": "pwe_identity_correspondence",
+      "en": "pwe_identity_correspondence",
+      "ru": null
+    },
+    "inverse_labels": null,
+    "definition": "Preserves the complete qualified identity-correspondence account from its source. Neither sign nor admission implies historical identity, authorship transfer or exhaustive scope.",
+    "range_type_ids": [
+      "tos.entity.identity-correspondence"
+    ],
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_predicate_id": "pwe_identity_correspondence",
+        "scope": "claim-predicate"
+      }
+    ],
+    "source_claim_profile": {
+      "profile_version": 1,
+      "reader": "pwe-exact-basis-v1",
+      "value_kind": "identity-correspondence",
+      "assertion_layers": [
+        "identity_assertion"
+      ],
+      "schemas": [
+        {
+          "schema_version": "tos_pwe_identity_correspondence_claim_v1",
+          "schema_ref": "ToS/contracts/pwe-identity-correspondence-claim.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/source-claim-record.schema.json",
+            "ToS/contracts/claim-packet.schema.json",
+            "ToS/contracts/pwe-values.schema.json",
+            "ToS/contracts/operation-binding-v1.schema.json"
+          ]
+        }
+      ]
+    }
+  }
+]"###;
+    let additions = parse_json(
+        authored_relations.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let JsonValue::Array(additions) = additions else {
+        panic!("three authored PWE relation profiles");
+    };
+    assert_eq!(additions.len(), 3);
+    let JsonValue::Array(relations) = field_mut(registry, "relations") else {
+        panic!("relation registry profiles");
+    };
+    assert_eq!(relations.len(), 196);
+    for addition in additions {
+        let id = field(&addition, "relation_type_id").as_str().unwrap();
+        assert!(!relations.iter().any(|row| field(row, "relation_type_id").as_str() == Some(id)));
+        relations.push(addition);
+    }
+    assert_eq!(relations.len(), 199);
 }
 
 fn adapt_duplicate_inline_philosophy_oracle(oracle: &mut JsonValue) {
