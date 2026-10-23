@@ -11,6 +11,7 @@ mod json;
 mod knowledge_model_abi;
 mod logical_ref;
 pub mod native_software_roles;
+mod operation_binding;
 mod path;
 mod python_value;
 mod unicode;
@@ -48,6 +49,11 @@ pub use knowledge_model_abi::{
     KNOWLEDGE_POSTINGS_MODEL_ABIS, is_managed_knowledge_model_abi, is_managed_navigation_model_abi,
 };
 pub use logical_ref::LogicalRecordRefV1;
+pub use operation_binding::{
+    BindingError, CheckedOperationBinding, CompositionLink, DependencyComparison, ExecutionStatus,
+    ManifestCoverageEvidence, OperationBindingLimits, ValueDisposition, check_composition,
+    check_operation_binding, compare_dependency_bindings,
+};
 pub use path::RelativePath;
 pub use python_value::{
     python_equals, python_float_text, python_lower, python_lower_json_string, python_member,

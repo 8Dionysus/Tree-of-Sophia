@@ -1,0 +1,550 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/operation-binding-v1.schema.json",
+  "title": "Candidate exact operation binding; structural checks only",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "operator_ref",
+    "context_ref",
+    "selection_ref",
+    "inputs",
+    "dependency_manifest",
+    "value",
+    "execution",
+    "applicability",
+    "assessment",
+    "certificates",
+    "warrant_refs",
+    "authority_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_operation_binding_v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_ref": {
+      "$ref": "#/$defs/exactRef"
+    },
+    "context_ref": {
+      "$ref": "#/$defs/exactRef"
+    },
+    "selection_ref": {
+      "$ref": "#/$defs/exactRef"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slot",
+          "profile_ref",
+          "record_ref"
+        ],
+        "properties": {
+          "slot": {
+            "type": "string",
+            "minLength": 1
+          },
+          "profile_ref": {
+            "$ref": "#/$defs/exactRef"
+          },
+          "record_ref": {
+            "$ref": "#/$defs/exactRef"
+          }
+        }
+      }
+    },
+    "dependency_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_ref",
+        "observable_ref",
+        "coverage",
+        "entries"
+      ],
+      "properties": {
+        "manifest_ref": {
+          "$ref": "#/$defs/exactRef"
+        },
+        "observable_ref": {
+          "$ref": "#/$defs/exactRef"
+        },
+        "coverage": {
+          "enum": [
+            "DeclaredCompleteForObservable",
+            "Incomplete",
+            "Unresolved"
+          ]
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slot",
+              "role",
+              "ref"
+            ],
+            "properties": {
+              "slot": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "Source",
+                  "Interpretation",
+                  "Theory",
+                  "Structure",
+                  "Map",
+                  "RuleSet",
+                  "Operator",
+                  "Context",
+                  "SelectionPolicy",
+                  "CandidateDomain",
+                  "Coverage",
+                  "Method",
+                  "AssessmentPolicy",
+                  "AuthorityOrCompetence",
+                  "OtherExplicit"
+                ]
+              },
+              "ref": {
+                "$ref": "#/$defs/exactRef"
+              }
+            }
+          }
+        }
+      }
+    },
+    "value": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "output_ref",
+            "output_profile_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "Produced"
+            },
+            "output_ref": {
+              "$ref": "#/$defs/exactRef"
+            },
+            "output_profile_ref": {
+              "$ref": "#/$defs/exactRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason",
+            "domain_evidence_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "Undefined"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "domain_evidence_ref": {
+              "$ref": "#/$defs/exactRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "output_ref",
+            "output_profile_ref",
+            "partial_schema_ref",
+            "coverage_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "Partial"
+            },
+            "output_ref": {
+              "$ref": "#/$defs/exactRef"
+            },
+            "output_profile_ref": {
+              "$ref": "#/$defs/exactRef"
+            },
+            "partial_schema_ref": {
+              "$ref": "#/$defs/exactRef"
+            },
+            "coverage_ref": {
+              "$ref": "#/$defs/exactRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "NoCompleteValue"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "execution": {
+      "enum": [
+        "NotStarted",
+        "Running",
+        "Completed",
+        "ResourceLimit",
+        "Unsupported",
+        "Error",
+        "BlockedByUpstream"
+      ]
+    },
+    "applicability": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "evidence_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "Applicable"
+            },
+            "evidence_ref": {
+              "$ref": "#/$defs/exactRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "failed_precondition_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "NotApplicable"
+            },
+            "failed_precondition_ref": {
+              "$ref": "#/$defs/exactRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "ApplicabilityUnresolved"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "assessment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "NotRelevant"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "assessment_ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "AssessmentReference"
+            },
+            "assessment_ref": {
+              "$ref": "#/$defs/exactRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "NotAssessed"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "certificates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "certificate_ref",
+          "binding_status",
+          "bound_run_id",
+          "bound_operator_ref",
+          "bound_input_refs",
+          "bound_context_ref",
+          "bound_selection_ref",
+          "bound_dependency_manifest_ref",
+          "bound_output_ref"
+        ],
+        "properties": {
+          "certificate_ref": {
+            "$ref": "#/$defs/exactRef"
+          },
+          "binding_status": {
+            "const": "UnverifiedReference"
+          },
+          "bound_run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "bound_operator_ref": {
+            "$ref": "#/$defs/exactRef"
+          },
+          "bound_input_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "slot",
+                "profile_ref",
+                "record_ref"
+              ],
+              "properties": {
+                "slot": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "profile_ref": {
+                  "$ref": "#/$defs/exactRef"
+                },
+                "record_ref": {
+                  "$ref": "#/$defs/exactRef"
+                }
+              }
+            }
+          },
+          "bound_context_ref": {
+            "$ref": "#/$defs/exactRef"
+          },
+          "bound_selection_ref": {
+            "$ref": "#/$defs/exactRef"
+          },
+          "bound_dependency_manifest_ref": {
+            "$ref": "#/$defs/exactRef"
+          },
+          "bound_output_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/exactRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "warrant_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/exactRef"
+      },
+      "uniqueItems": true
+    },
+    "authority_boundary": {
+      "const": "StructuralBindingOnlyNoAdmissionOrProofVerification"
+    }
+  },
+  "$defs": {
+    "exactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615
+        },
+        "digest": {
+          "type": "string",
+          "minLength": 71,
+          "maxLength": 71,
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "value": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "Produced",
+                  "Undefined"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "const": "Completed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "const": "Completed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "Produced",
+                  "Undefined",
+                  "Partial"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "value": {
+            "properties": {
+              "kind": {
+                "const": "Partial"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "enum": [
+              "Completed",
+              "Running",
+              "ResourceLimit",
+              "Unsupported",
+              "Error",
+              "BlockedByUpstream"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "value": {
+            "properties": {
+              "kind": {
+                "const": "NoCompleteValue"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "enum": [
+              "NotStarted",
+              "Running",
+              "ResourceLimit",
+              "Unsupported",
+              "Error",
+              "BlockedByUpstream"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
