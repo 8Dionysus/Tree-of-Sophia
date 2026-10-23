@@ -520,7 +520,9 @@ That bridge stays:
 It supports orientation between separately owned conceptual and operational meanings.
 Conceptual meaning remains authored in ToS.
 Operational meaning remains authored in the source AoA repository.
-Machine-readable counterpart projections belong downstream in `aoa-kag`.
+ToS owns its portable machine-readable exports. A downstream consumer may
+construct counterpart projections in its own system; no consumer repository,
+index or integration is required for ToS work.
 
 See [COUNTERPART_POLICY](COUNTERPART_POLICY.md) for the compact policy and example pairs.
 

@@ -970,7 +970,159 @@ fn check_historical_simple_inputs(
 }
 
 // Rich comparisons qualify the historical INPUT domain, never a SUT answer.
-const CLAIM_RICH_ROWS: [usize; 6] = [65_536, 458_752, 2_621_440, 3_145_728, 1_048_576, 1_048_576];
+const CLAIM_RICH_ROWS: [usize; 6] = [65_536, 458_752, 2_621_440, 3_145_728, 524_288, 1_572_864];
+// Source-bound cumulative allowance for the existing Rich test recipe. This is
+// logical reference work, independent of product and per-operation JSON limits.
+fn rich_claim_scenario_profile_v1() -> (usize, usize) {
+    (536_870_912, 8_388_608)
+}
+const RICH_POLICY_SETUP: usize = std::mem::size_of::<(
+    JsonLimits,
+    [(usize, usize); 2],
+    [usize; 24],
+    [Option<usize>; 8],
+    [bool; 4],
+    [ClaimReferenceResult<()>; 2],
+    [&usize; 2],
+)>();
+const RICH_POLICY_CODEC: usize =
+    std::mem::size_of::<([JsonLimits; 2], [usize; 4], bool, [&usize; 2])>();
+// Pay the future digest-session call custody through the existing fresh-policy
+// admission, before the first new ownership receiver is formed.
+const RICH_DIGEST_PRECALL: usize = std::mem::size_of::<(
+    [&mut RichClaimBudget<'_>; 4],
+    [&mut ClaimReferenceBudget<'_>; 4],
+    [usize; 8],
+    [Option<usize>; 4],
+    [ClaimReferenceResult<()>; 2],
+    [ClaimReferenceError; 2],
+)>();
+// Source-bound Rich digest workspace: retain the complete depth-64 writer
+// and strict numeric-parser slot laws while keeping the old wire limit separate.
+// The private writer fields are enclosed by their public field types plus all
+// five sink payloads and a tag. The closed authenticated recipe has at most
+// nineteen simultaneously live object-sort slots and short integer lexemes.
+const RICH_DIGEST_WRITER: usize = 65
+    * std::mem::size_of::<Vec<(usize, &(tos_foundation::JsonString, JsonValue))>>()
+    + 2 * std::mem::size_of::<String>()
+    + std::mem::size_of::<usize>()
+    + 2 * (std::mem::size_of::<(
+        Option<&mut dyn FnMut() -> Result<(), tos_foundation::FoundationError>>,
+        Option<&mut dyn FnMut(usize, usize) -> Result<(), tos_foundation::FoundationError>>,
+        usize,
+    )>() + std::mem::size_of::<[usize; 12]>());
+const RICH_DIGEST_SORT: usize =
+    19 * std::mem::size_of::<(usize, &(tos_foundation::JsonString, JsonValue))>();
+const RICH_DIGEST_NUMERIC: usize = 65
+    * (std::mem::size_of::<JsonValue>()
+        + std::mem::size_of::<tos_foundation::JsonString>()
+        + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>()
+        + 2 * std::mem::size_of::<Vec<JsonValue>>());
+// Complete strict collection batch, including generated catalog rows. This is
+// monotone parser admission, separate from the unchanged wire/framing policy.
+// All arithmetic is compile-time checked; no observed refusal selects a size.
+const RICH_COLLECTION_BATCH_RESERVATION: usize = 16_384
+    + RICH_DIGEST_NUMERIC
+    + 1920 * std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>()
+    + 660 * std::mem::size_of::<JsonValue>()
+    + 314_993
+    + 28_138
+    + 239 * (8 * (std::mem::size_of::<(Vec<u16>, usize)>() + 1) + 16)
+    + 135;
+const RICH_DIGEST_WIRE_BYTES: usize = 8192;
+const RICH_DIGEST_CALCULATOR: usize = std::mem::size_of::<(
+    [usize; 16],
+    [Option<usize>; 8],
+    [ClaimReferenceResult<Digest256>; 2],
+    [&mut RichClaimBudget<'_>; 2],
+    [ClaimReferenceError; 2],
+    [bool; 4],
+)>();
+const RICH_DIGEST_WIRE: usize = std::mem::size_of::<(
+    [Option<usize>; 4],
+    [usize; 4],
+    [&usize; 4],
+    [&Option<usize>; 2],
+    [bool; 2],
+)>();
+fn rich_digest_reservation() -> Option<usize> {
+    let Some(bridge) = 0usize.checked_add(16_384) else {
+        return None;
+    };
+    let Some(writer) = bridge.checked_add(RICH_DIGEST_WRITER) else {
+        return None;
+    };
+    let Some(sorted) = writer.checked_add(RICH_DIGEST_SORT) else {
+        return None;
+    };
+    let Some(wire) = sorted.checked_add(RICH_DIGEST_WIRE_BYTES) else {
+        return None;
+    };
+    let Some(numeric) = wire.checked_add(RICH_DIGEST_NUMERIC) else {
+        return None;
+    };
+    // The pinned scalar String growth floor encloses the recipe's <=4-byte
+    // integer lexemes; strict kind/lexeme validation still runs in both passes.
+    let Some(reservation) = numeric.checked_add(8) else {
+        return None;
+    };
+    Some(reservation)
+}
+// Thirty sequential codec calls bound either fresh Rich ledger. Their work is
+// prepaid in full; the new nonescaping carrier enclosure is reserved once.
+const RICH_POLICY_STATE: usize =
+    RICH_POLICY_SETUP + RICH_POLICY_CODEC + RICH_DIGEST_CALCULATOR + RICH_DIGEST_WIRE
+        + RICH_DIGEST_PRECALL;
+// Pay original numeric-input-bound metadata before any writer construction.
+// Sixty initialization flows plus two passes of four bounded contexts and
+// thirty-two closed-recipe digest Numbers; no extra runtime debit or carrier.
+const RICH_NUMERIC_BOUND_FLOWS: usize = 60 + 2 * (4 * 2114 + 32);
+const RICH_NUMERIC_BOUND_BYTES: usize = RICH_NUMERIC_BOUND_FLOWS * 32;
+const RICH_NUMERIC_BOUND_VISITS: usize = RICH_NUMERIC_BOUND_FLOWS * 8;
+const RICH_POLICY_BYTES: usize = RICH_POLICY_SETUP
+    + 30 * RICH_POLICY_CODEC
+    + 4 * RICH_DIGEST_CALCULATOR
+    + 30 * (4 * RICH_DIGEST_CALCULATOR + 4 * RICH_DIGEST_WIRE)
+    + 4 * RICH_DIGEST_PRECALL
+    + RICH_NUMERIC_BOUND_BYTES;
+const RICH_POLICY_VISITS: usize = 128 + 30 * 32 + 32 + 30 * (128 + 32) + 128
+    + RICH_NUMERIC_BOUND_VISITS;
+// Actual typed arrays for the private reusable-operation contract.
+// Anonymous closure terms below are explicit capture-layout enclosures:
+// Instant + two thin references, or two thin references. Mutable capture
+// references bound the corresponding concrete closure's thin receivers;
+// these expressions do not claim that a closure is a tuple.
+const RICH_DIGEST_SETUP_STATE: usize =
+    std::mem::size_of::<[RichDigestSession;2]>()
+    + std::mem::size_of::<[ClaimReferenceResult<RichDigestSession>;2]>()
+    + std::mem::size_of::<[ClaimReferenceError;4]>()
+    + std::mem::size_of::<[&mut RichClaimBudget<'_>;8]>()
+    + tos_foundation::CANONICAL_REUSE_SETUP_STATE;
+const RICH_DIGEST_CALL_STATE: usize =
+    std::mem::size_of::<[ClaimReferenceResult<Digest256>;4]>()
+    + std::mem::size_of::<[ClaimReferenceError;4]>()
+    + std::mem::size_of::<[&mut RichDigestSession;16]>()
+    + std::mem::size_of::<[&RichDigestSession;4]>()
+    + std::mem::size_of::<[(Instant, &AtomicBool, &std::cell::Cell<Option<ClaimReferenceError>>);2]>()
+    + std::mem::size_of::<[(&mut ClaimReferenceBudget<'_>, &std::cell::Cell<Option<ClaimReferenceError>>);2]>()
+    + std::mem::size_of::<[&mut (Instant, &AtomicBool, &std::cell::Cell<Option<ClaimReferenceError>>);4]>()
+    + std::mem::size_of::<[&mut (&mut ClaimReferenceBudget<'_>, &std::cell::Cell<Option<ClaimReferenceError>>);4]>()
+    + std::mem::size_of::<[std::cell::Cell<Option<ClaimReferenceError>>;2]>()
+    + std::mem::size_of::<[&std::cell::Cell<Option<ClaimReferenceError>>;8]>()
+    + std::mem::size_of::<[Option<ClaimReferenceError>;4]>()
+    + std::mem::size_of::<[&AtomicBool;4]>()
+    + std::mem::size_of::<[Instant;4]>()
+    + std::mem::size_of::<[&Instant;4]>()
+    + std::mem::size_of::<[&mut ClaimReferenceBudget<'_>;4]>()
+    + std::mem::size_of::<[&mut RichClaimBudget<'_>;4]>()
+    + tos_foundation::CANONICAL_REUSE_CALL_STATE;
+// This is a build-time source-envelope check, not a runtime size probe or
+// a larger reservation selected after observing an allocation.
+const _: () = {
+    assert!(RICH_DIGEST_SETUP_STATE <= 11_624);
+    assert!(RICH_DIGEST_CALL_STATE <= 12_792);
+    assert!(tos_foundation::CANONICAL_REUSE_CORE_STATE <= 2048);
+};
 const RICH_ORIGINAL: usize = 1;
 const RICH_ENTITY: usize = 2;
 const RICH_RELATION: usize = 3;
@@ -1008,7 +1160,7 @@ impl<'a> RichClaimBudget<'a> {
             )
         } else {
             let mut base = ClaimReferenceBudget::new(deadline, cancelled);
-            base.work(0, 128)?;
+            base.work(RICH_POLICY_BYTES, 128 + RICH_POLICY_VISITS)?;
             let sum = CLAIM_RICH_ROWS
                 .iter()
                 .try_fold(0usize, |s, v| s.checked_add(*v))
@@ -1057,6 +1209,29 @@ impl<'a> RichClaimBudget<'a> {
                 .and_then(|v| v.checked_sub(std::mem::size_of::<RichClaimRemaining>()))
                 .and_then(|v| v.checked_sub(std::mem::size_of::<Option<RichRegistryInputs>>()))
                 .ok_or(ClaimReferenceError::Limit)?;
+            if fixed < RICH_POLICY_STATE {
+                return Err(ClaimReferenceError::Limit);
+            }
+            let fixed = fixed - RICH_POLICY_STATE;
+            let (byte_total, visit_total) = rich_claim_scenario_profile_v1();
+            let legacy_visit_total = JsonLimits::default().max_visits;
+            if byte_total < 33_554_432 || visit_total < legacy_visit_total {
+                return Err(ClaimReferenceError::Limit);
+            }
+            let Some(spent_bytes) = 33_554_432usize.checked_sub(base.byte_work) else {
+                return Err(ClaimReferenceError::Limit);
+            };
+            let Some(spent_visits) = legacy_visit_total.checked_sub(base.visits) else {
+                return Err(ClaimReferenceError::Limit);
+            };
+            let Some(next_bytes) = byte_total.checked_sub(spent_bytes) else {
+                return Err(ClaimReferenceError::Limit);
+            };
+            let Some(next_visits) = visit_total.checked_sub(spent_visits) else {
+                return Err(ClaimReferenceError::Limit);
+            };
+            base.byte_work = next_bytes;
+            base.visits = next_visits;
             (base, rows, fixed)
         };
         base.active()?;
@@ -1099,15 +1274,18 @@ impl<'a> RichClaimBudget<'a> {
         row: usize,
         reservation: usize,
     ) -> ClaimReferenceResult<JsonValue> {
-        self.codec(Some(raw), None, row, reservation).map(|v| v.0)
+        self.codec(Some(raw), None, row, reservation, None)
+            .map(|v| v.0)
     }
     fn canonical(
         &mut self,
         value: &JsonValue,
         row: usize,
         reservation: usize,
+        wire_bound: Option<usize>,
     ) -> ClaimReferenceResult<Vec<u8>> {
-        self.codec(None, Some(value), row, reservation).map(|v| v.1)
+        self.codec(None, Some(value), row, reservation, wire_bound)
+            .map(|v| v.1)
     }
     fn codec(
         &mut self,
@@ -1115,6 +1293,7 @@ impl<'a> RichClaimBudget<'a> {
         value: Option<&JsonValue>,
         row: usize,
         reservation: usize,
+        wire_bound: Option<usize>,
     ) -> ClaimReferenceResult<(JsonValue, Vec<u8>)> {
         use std::cell::Cell;
         use tos_foundation::{FoundationError, FoundationErrorCode};
@@ -1129,13 +1308,21 @@ impl<'a> RichClaimBudget<'a> {
             return Err(ClaimReferenceError::Limit);
         }
         self.own(row, reservation)?;
+        let default_visit_limit = JsonLimits::default().max_visits;
         let limits = JsonLimits {
             max_bytes: if raw.is_none() {
-                state.min(JsonLimits::default().max_bytes)
+                match wire_bound {
+                    Some(bound) => bound,
+                    None => state.min(JsonLimits::default().max_bytes),
+                }
             } else {
                 JsonLimits::default().max_bytes
             },
-            max_visits: self.base.visits,
+            max_visits: if self.base.visits < default_visit_limit {
+                self.base.visits
+            } else {
+                default_visit_limit
+            },
             ..JsonLimits::default()
         };
         let first = Cell::new(None);
@@ -1219,11 +1406,192 @@ impl<'a> RichClaimBudget<'a> {
         Ok(result)
     }
     fn digest(&mut self, value: &JsonValue) -> ClaimReferenceResult<Digest256> {
-        let raw = self.canonical(value, RICH_RAW, 24_576)?;
+        let Some(reservation) = rich_digest_reservation() else {
+            return Err(ClaimReferenceError::Limit);
+        };
+        let raw = self.canonical(value, RICH_RAW, reservation, Some(RICH_DIGEST_WIRE_BYTES))?;
         self.base.work(raw.len(), 8)?;
         Ok(Digest256::of_bytes(&raw))
     }
 }
+enum RichDigestSession {
+    Legacy { remaining: usize },
+    Reusable { owner: tos_foundation::CanonicalReuseWorkspace, remaining: usize },
+}
+
+// Called only after setup and all future operation carriers have been paid.
+fn rich_digest_session_new(reusable: bool) -> ClaimReferenceResult<RichDigestSession> {
+    if reusable {
+        let owner = match tos_foundation::CanonicalReuseWorkspace::new() {
+            Ok(owner) => owner,
+            Err(error) => return Err(match error.code {
+                tos_foundation::FoundationErrorCode::BudgetExceeded => ClaimReferenceError::Limit,
+                _ => ClaimReferenceError::InvalidInput,
+            }),
+        };
+        Ok(RichDigestSession::Reusable { owner, remaining: 22 })
+    } else {
+        Ok(RichDigestSession::Legacy { remaining: 4 })
+    }
+}
+
+fn rich_session_digest(
+    value: &JsonValue,
+    b: &mut RichClaimBudget<'_>,
+    session: &mut RichDigestSession,
+) -> ClaimReferenceResult<Digest256> {
+    match session {
+        RichDigestSession::Legacy { remaining } => {
+            let Some(next) = remaining.checked_sub(1) else {
+                return Err(ClaimReferenceError::Limit);
+            };
+            *remaining = next;
+            b.digest(value)
+        }
+        RichDigestSession::Reusable { owner, remaining } => {
+            let Some(next) = remaining.checked_sub(1) else {
+                return Err(ClaimReferenceError::Limit);
+            };
+            *remaining = next;
+            rich_reuse_digest(value, b, owner)
+        }
+    }
+}
+
+fn rich_reuse_digest(
+    value: &JsonValue,
+    b: &mut RichClaimBudget<'_>,
+    owner: &mut tos_foundation::CanonicalReuseWorkspace,
+) -> ClaimReferenceResult<Digest256> {
+    use std::cell::Cell;
+    use tos_foundation::{FoundationError, FoundationErrorCode};
+    let first: Cell<Option<ClaimReferenceError>> = Cell::new(None);
+    let prepared = {
+        let first_ref = &first;
+        let cancelled = b.base.cancelled;
+        let deadline = b.base.deadline;
+        let base = &mut b.base;
+        let mut check = move || {
+            let error = if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                Some(ClaimReferenceError::Cancelled)
+            } else if Instant::now() >= deadline {
+                Some(ClaimReferenceError::Deadline)
+            } else { None };
+            if let Some(error) = error {
+                if first_ref.get().is_none() { first_ref.set(Some(error)); }
+                Err(FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None, detail: String::new(),
+                })
+            } else { Ok(()) }
+        };
+        let mut admit = move |bytes, visits| {
+            match base.work(bytes, visits) {
+                Ok(()) => Ok(()),
+                Err(error) => {
+                    if first_ref.get().is_none() { first_ref.set(Some(error)); }
+                    Err(FoundationError {
+                        code: FoundationErrorCode::BudgetExceeded,
+                        byte_offset: None, detail: String::new(),
+                    })
+                }
+            }
+        };
+        tos_foundation::prepare_source_command_reuse(value, &mut check, &mut admit)
+    };
+    if let Some(error) = first.get() { owner.poison(); return Err(error); }
+    let prepared = match prepared {
+        Ok(Some(prepared)) => prepared,
+        Ok(None) => return match b.digest(value) {
+            Ok(digest) => Ok(digest),
+            Err(error) => { owner.poison(); Err(error) }
+        },
+        Err(error) => {
+            owner.poison();
+            return Err(match error.code {
+                FoundationErrorCode::BudgetExceeded => ClaimReferenceError::Limit,
+                _ => ClaimReferenceError::InvalidInput,
+            });
+        }
+    };
+    let Some(reservation) = rich_digest_reservation() else {
+        owner.poison(); return Err(ClaimReferenceError::Limit);
+    };
+    if let Err(error) = b.base.work(0, 64) { owner.poison(); return Err(error); }
+    let Some(state) = reservation.checked_sub(16_384) else {
+        owner.poison(); return Err(ClaimReferenceError::Limit);
+    };
+    if state == 0 { owner.poison(); return Err(ClaimReferenceError::Limit); }
+    let Some(numbers) = prepared.number_count().checked_mul(16) else {
+        owner.poison(); return Err(ClaimReferenceError::Limit);
+    };
+    let Some(owned) = 16_384usize.checked_add(RICH_DIGEST_WRITER) else {
+        owner.poison(); return Err(ClaimReferenceError::Limit);
+    };
+    let Some(owned) = owned.checked_add(numbers) else {
+        owner.poison(); return Err(ClaimReferenceError::Limit);
+    };
+    if let Err(error) = b.own(RICH_RAW, owned) { owner.poison(); return Err(error); }
+    let default_visit_limit = JsonLimits::default().max_visits;
+    let limits = JsonLimits {
+        max_bytes: RICH_DIGEST_WIRE_BYTES,
+        max_visits: if b.base.visits < default_visit_limit {
+            b.base.visits
+        } else { default_visit_limit },
+        ..JsonLimits::default()
+    };
+    let raw = {
+        let first_ref = &first;
+        let cancelled = b.base.cancelled;
+        let deadline = b.base.deadline;
+        let base = &mut b.base;
+        let mut check = move || {
+            let error = if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+                Some(ClaimReferenceError::Cancelled)
+            } else if Instant::now() >= deadline {
+                Some(ClaimReferenceError::Deadline)
+            } else { None };
+            if let Some(error) = error {
+                if first_ref.get().is_none() { first_ref.set(Some(error)); }
+                Err(FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None, detail: String::new(),
+                })
+            } else { Ok(()) }
+        };
+        let mut admit = move |bytes, visits| {
+            match base.work(bytes, visits) {
+                Ok(()) => Ok(()),
+                Err(error) => {
+                    if first_ref.get().is_none() { first_ref.set(Some(error)); }
+                    Err(FoundationError {
+                        code: FoundationErrorCode::BudgetExceeded,
+                        byte_offset: None, detail: String::new(),
+                    })
+                }
+            }
+        };
+        tos_foundation::canonical_source_command_into_reuse(
+            prepared, owner, limits, state, &mut check, &mut admit,
+        )
+    };
+    if let Some(error) = first.get() { owner.poison(); return Err(error); }
+    let raw = match raw {
+        Ok(raw) => raw,
+        Err(error) => {
+            owner.poison();
+            return Err(match error.code {
+                FoundationErrorCode::BudgetExceeded => ClaimReferenceError::Limit,
+                _ => ClaimReferenceError::InvalidInput,
+            });
+        }
+    };
+    if let Err(error) = b.base.work(0, 32) { owner.poison(); return Err(error); }
+    if raw.capacity > state { owner.poison(); return Err(ClaimReferenceError::Limit); }
+    if let Err(error) = b.base.work(raw.raw.len(), 8) { owner.poison(); return Err(error); }
+    Ok(Digest256::of_bytes(raw.raw))
+}
+
 fn rich_field<'a>(
     v: &'a JsonValue,
     key: &str,
@@ -1497,31 +1865,97 @@ fn rich_unique_row<'a>(
     }
     found.ok_or(ClaimReferenceError::MissingSource)
 }
-fn rich_registry_ids(
-    rows: &[JsonValue],
-    key: &str,
+type RichRegistryEntry<'a> = (&'a str, usize);
+struct RichRegistryIndex<'a> {
+    rows: &'a [JsonValue],
+    _key: &'a str,
+    entries: Vec<RichRegistryEntry<'a>>,
+}
+// Prospective index/lookup owners and forwarding, separate from tuple backing.
+const RICH_REGISTRY_INDEX_HOLDERS: usize = {
+    use std::{
+        alloc::{Layout, LayoutError},
+        collections::TryReserveError,
+        convert::Infallible,
+        mem::{align_of, size_of},
+        ops::{ControlFlow, Range},
+        ptr::NonNull,
+        slice,
+    };
+    type Entry = RichRegistryEntry<'static>;
+    type Index = RichRegistryIndex<'static>;
+    type Rows = std::iter::Enumerate<slice::Iter<'static, JsonValue>>;
+
+    2 * size_of::<Index>()
+        + 3 * size_of::<ClaimReferenceResult<Index>>()
+        + 3 * size_of::<ControlFlow<ClaimReferenceResult<Infallible>, Index>>()
+        + 6 * size_of::<Vec<Entry>>()
+        + 4 * size_of::<&mut Vec<Entry>>()
+        + 12 * size_of::<Entry>()
+        + 8 * size_of::<Option<&Entry>>()
+        + 8 * size_of::<Option<&JsonValue>>()
+        + 6 * size_of::<ClaimReferenceResult<&JsonValue>>()
+        + 3 * size_of::<ControlFlow<ClaimReferenceResult<Infallible>, &JsonValue>>()
+        + 4 * size_of::<Result<(), TryReserveError>>()
+        + 6 * size_of::<ClaimReferenceResult<()>>()
+        + 4 * size_of::<ClaimReferenceResult<usize>>()
+        + 12 * size_of::<&JsonValue>()
+        + 8 * size_of::<&[JsonValue]>()
+        + 8 * size_of::<&str>()
+        + 8 * size_of::<&Index>()
+        + 6 * size_of::<&mut RichClaimBudget<'static>>()
+        + 3 * size_of::<Rows>()
+        + 3 * size_of::<&mut Rows>()
+        + 6 * size_of::<Option<(usize, &JsonValue)>>()
+        + 24 * size_of::<usize>()
+        + 24 * size_of::<Option<usize>>()
+        + 8 * size_of::<std::cmp::Ordering>()
+        + 8 * size_of::<bool>()
+        + 4 * size_of::<Range<usize>>()
+        + 4 * size_of::<&mut Entry>()
+        + 8 * size_of::<*const Entry>()
+        + 8 * size_of::<*mut Entry>()
+        + 8 * (size_of::<Vec<Entry>>()
+            + 2 * size_of::<Layout>()
+            + size_of::<Result<NonNull<[u8]>, TryReserveError>>()
+            + size_of::<Result<Layout, LayoutError>>()
+            + size_of::<Option<(NonNull<[u8]>, Layout)>>()
+            + 4 * size_of::<usize>()
+            + 4 * align_of::<usize>())
+        + 8 * size_of::<&Vec<Entry>>()
+        + 8 * size_of::<&[Entry]>()
+};
+fn rich_registry_ids<'a>(
+    rows: &'a [JsonValue],
+    key: &'a str,
     b: &mut RichClaimBudget<'_>,
-) -> ClaimReferenceResult<()> {
+) -> ClaimReferenceResult<RichRegistryIndex<'a>> {
     b.base.work(0, 32)?;
     if rows.len() > 4096 {
         return Err(ClaimReferenceError::Limit);
     }
     let bytes = rows
         .len()
-        .checked_mul(std::mem::size_of::<&str>())
+        .checked_mul(std::mem::size_of::<RichRegistryEntry<'_>>())
         .ok_or(ClaimReferenceError::Limit)?;
     b.workspace(bytes)?;
-    let mut ids: Vec<&str> = Vec::new();
+    let mut ids: Vec<RichRegistryEntry<'_>> = Vec::new();
     ids.try_reserve_exact(rows.len())
         .map_err(|_| ClaimReferenceError::Limit)?;
     if ids
         .capacity()
-        .checked_mul(std::mem::size_of::<&str>())
+        .checked_mul(std::mem::size_of::<RichRegistryEntry<'_>>())
         .is_none_or(|n| n > bytes)
     {
         return Err(ClaimReferenceError::Limit);
     }
-    for row in rows {
+    let Some(enumeration_work) = rows.len().checked_mul(8) else {
+        return Err(ClaimReferenceError::Limit);
+    };
+    if let Err(error) = b.base.work(0, enumeration_work) {
+        return Err(error);
+    }
+    for (ordinal, row) in rows.iter().enumerate() {
         let id = rich_text(row, key, b)?;
         let (mut lo, mut hi) = (0usize, ids.len());
         while lo < hi {
@@ -1531,11 +1965,11 @@ fn rich_registry_ids(
                 .ok_or(ClaimReferenceError::Limit)?;
             b.base.work(
                 id.len()
-                    .checked_add(ids[mid].len())
+                    .checked_add(ids[mid].0.len())
                     .ok_or(ClaimReferenceError::Limit)?,
                 8,
             )?;
-            match id.cmp(ids[mid]) {
+            match id.cmp(ids[mid].0) {
                 std::cmp::Ordering::Less => hi = mid,
                 std::cmp::Ordering::Greater => {
                     lo = mid.checked_add(1).ok_or(ClaimReferenceError::Limit)?
@@ -1546,12 +1980,69 @@ fn rich_registry_ids(
         let moved = ids
             .len()
             .checked_sub(lo)
-            .and_then(|n| n.checked_mul(std::mem::size_of::<&str>()))
+            .and_then(|n| n.checked_mul(std::mem::size_of::<RichRegistryEntry<'_>>()))
             .ok_or(ClaimReferenceError::Limit)?;
         b.base.work(moved, 16)?;
-        ids.insert(lo, id);
+        ids.insert(lo, (id, ordinal));
     }
-    Ok(())
+    if let Err(error) = b.base.work(0, 16) {
+        return Err(error);
+    }
+    Ok(RichRegistryIndex {
+        rows,
+        _key: key,
+        entries: ids,
+    })
+}
+fn rich_registry_index_row<'a>(
+    index: &RichRegistryIndex<'a>,
+    query: &str,
+    b: &mut RichClaimBudget<'_>,
+) -> ClaimReferenceResult<&'a JsonValue> {
+    if let Err(error) = b.base.work(0, 32) {
+        return Err(error);
+    }
+    let (mut lo, mut hi) = (0usize, index.entries.len());
+    while lo < hi {
+        if let Err(error) = b.base.work(0, 32) {
+            return Err(error);
+        }
+        let Some(mid) = lo.checked_add((hi - lo) / 2) else {
+            return Err(ClaimReferenceError::Limit);
+        };
+        let Some(&(candidate, ordinal)) = index.entries.get(mid) else {
+            return Err(ClaimReferenceError::InvalidInput);
+        };
+        let Some(bytes) = query.len().checked_add(candidate.len()) else {
+            return Err(ClaimReferenceError::Limit);
+        };
+        if let Err(error) = b.base.work(bytes, 8) {
+            return Err(error);
+        }
+        match query.cmp(candidate) {
+            std::cmp::Ordering::Less => hi = mid,
+            std::cmp::Ordering::Greater => {
+                let Some(next) = mid.checked_add(1) else {
+                    return Err(ClaimReferenceError::Limit);
+                };
+                lo = next;
+            }
+            std::cmp::Ordering::Equal => {
+                if let Err(error) = b.base.work(0, 16) {
+                    return Err(error);
+                }
+                let rows = index.rows;
+                return match rows.get(ordinal) {
+                    Some(row) => Ok(row),
+                    None => Err(ClaimReferenceError::InvalidInput),
+                };
+            }
+        }
+    }
+    if let Err(error) = b.base.work(0, 16) {
+        return Err(error);
+    }
+    Err(ClaimReferenceError::MissingSource)
 }
 fn rich_registry_projection(
     current: &JsonValue,
@@ -1562,10 +2053,14 @@ fn rich_registry_projection(
     b: &mut RichClaimBudget<'_>,
 ) -> ClaimReferenceResult<()> {
     let rows = rich_array(current, rows_key, b)?;
-    rich_registry_ids(rows, id_key, b)?;
+    if let Err(error) = b.base.work(0, 128) {
+        return Err(error);
+    }
+    b.workspace(RICH_REGISTRY_INDEX_HOLDERS)?;
+    let index = rich_registry_ids(rows, id_key, b)?;
     for old in historical {
         let id = rich_text(old, id_key, b)?;
-        rich_same(rich_unique_row(rows, id_key, id, b)?, old, b, 0)?;
+        rich_same(rich_registry_index_row(&index, id, b)?, old, b, 0)?;
         for parent in rich_array(old, parents, b)? {
             let id = parent.as_str().ok_or(ClaimReferenceError::InvalidInput)?;
             rich_unique_row(historical, id_key, id, b)?;
@@ -1637,7 +2132,9 @@ fn rich_registry_projection(
     }
     for old in historical {
         let old_id = rich_text(old, id_key, b)?;
-        for profile_key in ["source_record_profile", "source_claim_profile"] {
+        // Claim schema formats may be shared by distinct predicate routes.
+        // Full historical rows and used source mappings are checked separately.
+        for profile_key in ["source_record_profile"] {
             let Some(profile) = claim_reference_field(old, profile_key, &mut b.base)? else {
                 continue;
             };
@@ -1885,7 +2382,7 @@ fn rich_context(
         if !claim_reference_same(&parsed, expected, &mut b.base, 0)? {
             return Err(ClaimReferenceError::WitnessMismatch);
         }
-        let canonical = b.canonical(&parsed, RICH_CONTEXT, 65_536)?;
+        let canonical = b.canonical(&parsed, RICH_CONTEXT, 65_536, None)?;
         let _ = rich_hash(&canonical, b)?;
     }
     Ok(())
@@ -2217,7 +2714,15 @@ fn rich_batch<'a>(
     raw.push(b']');
     // One paid strict array frames the original raw JSON values. No renderer or
     // serializer supplies an answer; all original whole-file hashes were checked.
-    let parsed = b.parse(&raw, RICH_RAW, if collection { 360_448 } else { 131_072 })?;
+    let parsed = b.parse(
+        &raw,
+        RICH_RAW,
+        if collection {
+            RICH_COLLECTION_BATCH_RESERVATION
+        } else {
+            131_072
+        },
+    )?;
     if parsed
         .as_array()
         .ok_or(ClaimReferenceError::InvalidInput)?
@@ -2255,6 +2760,7 @@ fn rich_record_ref(
     identity: &str,
     version: &str,
     b: &mut RichClaimBudget<'_>,
+    session: &mut RichDigestSession,
 ) -> ClaimReferenceResult<Digest256> {
     b.base.work(0, 32)?;
     if reference
@@ -2268,7 +2774,7 @@ fn rich_record_ref(
     {
         return Err(ClaimReferenceError::InvalidInput);
     }
-    let digest = b.digest(record)?;
+    let digest = rich_session_digest(record, b, &mut *session)?;
     if rich_text(record, identity, b)? != rich_text(reference, "id", b)?
         || rich_number(rich_field(record, version, b)?, b)?
             != rich_number(rich_field(reference, "version", b)?, b)?
@@ -2330,6 +2836,7 @@ fn rich_native_record(
     reference: &JsonValue,
     kind: &str,
     b: &mut RichClaimBudget<'_>,
+    session: &mut RichDigestSession,
 ) -> ClaimReferenceResult<()> {
     let d = rich_declared_record(inputs, rich_text(reference, "id", b)?, b)?;
     let record = rich_document(batch, d.path, b)?;
@@ -2345,7 +2852,7 @@ fn rich_native_record(
     {
         return Err(ClaimReferenceError::UnsupportedProfile);
     }
-    let digest = rich_record_ref(record, reference, "record_id", "record_version", b)?;
+    let digest = rich_record_ref(record, reference, "record_id", "record_version", b, &mut *session)?;
     let catalog = match kind {
         "agent" => "ToS/source-witnesses/catalog/agents.jsonl",
         "collection" => "ToS/source-witnesses/catalog/collections.jsonl",
@@ -2369,6 +2876,7 @@ fn rich_claim_inputs(
     batch: &RichBatch<'_>,
     identity: bool,
     b: &mut RichClaimBudget<'_>,
+    session: &mut RichDigestSession,
 ) -> ClaimReferenceResult<()> {
     b.base.work(0, 64)?;
     if inputs.claims.len() != 1 {
@@ -2436,7 +2944,7 @@ fn rich_claim_inputs(
     )?
     .first()
     .ok_or(ClaimReferenceError::MissingSource)?;
-    let _ = b.digest(source_value)?;
+    let _ = rich_session_digest(source_value, b, &mut *session)?;
     let reader = rich_text(profile, "reader", b)?;
     if reader
         != match predicate {
@@ -2500,6 +3008,7 @@ fn rich_claim_inputs(
                     found.ok_or(ClaimReferenceError::WitnessMismatch)?,
                     "agent",
                     b,
+                    &mut *session,
                 )?;
             }
         }
@@ -2598,6 +3107,7 @@ fn rich_package(
     receipt: &JsonValue,
     source_path: &str,
     b: &mut RichClaimBudget<'_>,
+    session: &mut RichDigestSession,
 ) -> ClaimReferenceResult<()> {
     let previous = rich_field(receipt, "previous_source", b)?;
     let id = rich_text(previous, "id", b)?;
@@ -2755,6 +3265,7 @@ fn rich_package(
                 "record_id",
                 "record_version",
                 b,
+                &mut *session,
             )?;
         }
         // Closed primitive copies: two scalar bindings and short schema keys.
@@ -2796,12 +3307,12 @@ fn rich_package(
     if rich_retained(&fingerprint, b, 0)?
         .checked_add(std::mem::size_of::<JsonValue>())
         .is_none_or(|n| n > allocation)
-        || b.digest(&fingerprint)? != rich_hex(revision, b)?
+        || rich_session_digest(&fingerprint, b, &mut *session)? != rich_hex(revision, b)?
     {
         return Err(ClaimReferenceError::WitnessMismatch);
     }
     let receipt_request = rich_field(receipt, "request", b)?;
-    if b.digest(receipt_request)? != rich_hex(rich_text(receipt, "request_digest", b)?, b)? {
+    if rich_session_digest(receipt_request, b, &mut *session)? != rich_hex(rich_text(receipt, "request_digest", b)?, b)? {
         return Err(ClaimReferenceError::WitnessMismatch);
     }
     let publication = rich_field(receipt, "publication", b)?;
@@ -2848,7 +3359,18 @@ fn check_identity_claim_inputs(
     rich_historical_case(registry, id, inputs, b)?;
     rich_input_controls(inputs, registry, mask, b)?;
     let batch = rich_batch(inputs, mask, false, b)?;
-    rich_claim_inputs(inputs, registry, &batch, true, b)?;
+    b.base.work(65_536, 4096)?;
+    b.own(RICH_RAW, RICH_DIGEST_SETUP_STATE)?;
+    let Some(call_state) = RICH_DIGEST_CALL_STATE.checked_mul(4) else {
+        return Err(ClaimReferenceError::Limit);
+    };
+    b.own(RICH_RAW, call_state)?;
+    let Some(call_bytes) = call_state.checked_mul(4) else {
+        return Err(ClaimReferenceError::Limit);
+    };
+    b.base.work(call_bytes, 4 * 512)?;
+    let mut session = rich_digest_session_new(false)?;
+    rich_claim_inputs(inputs, registry, &batch, true, b, &mut session)?;
     Ok(())
 }
 fn check_collection_claim_inputs(
@@ -2870,7 +3392,19 @@ fn check_collection_claim_inputs(
     .ok_or(ClaimReferenceError::MissingSource)?;
     rich_input_controls(inputs, registry, 32, b)?;
     let batch = rich_batch(inputs, 32, true, b)?;
-    rich_claim_inputs(inputs, registry, &batch, false, b)?;
+    b.base.work(65_536, 4096)?;
+    b.own(RICH_RAW, RICH_DIGEST_SETUP_STATE)?;
+    let Some(call_state) = RICH_DIGEST_CALL_STATE.checked_mul(22) else {
+        return Err(ClaimReferenceError::Limit);
+    };
+    b.own(RICH_RAW, call_state)?;
+    let Some(call_bytes) = call_state.checked_mul(4) else {
+        return Err(ClaimReferenceError::Limit);
+    };
+    b.base.work(call_bytes, 22 * 512)?;
+    b.own(RICH_RAW, RICH_DIGEST_WIRE_BYTES)?;
+    let mut session = rich_digest_session_new(true)?;
+    rich_claim_inputs(inputs, registry, &batch, false, b, &mut session)?;
     let requested = rich_field(value, "collection_version", b)?;
     let subject = rich_text(requested, "id", b)?;
     let primary = rich_declared_record(inputs, subject, b)?;
@@ -2921,7 +3455,7 @@ fn check_collection_claim_inputs(
             Err(ClaimReferenceError::WitnessMismatch) => false,
             Err(e) => return Err(e),
         };
-        rich_package(inputs, &batch, receipt, primary.path, b)?;
+        rich_package(inputs, &batch, receipt, primary.path, b, &mut session)?;
         if is_requested {
             let manifest_path = rich_string(
                 &[rich_text(receipt, "archive_path", b)?, "/manifest.json"],
@@ -2946,7 +3480,7 @@ fn check_collection_claim_inputs(
         return Err(ClaimReferenceError::AmbiguousIdentity);
     }
     let current_ref = previous.ok_or(ClaimReferenceError::MissingSource)?;
-    rich_native_record(inputs, &batch, current_ref, "collection", b)?;
+    rich_native_record(inputs, &batch, current_ref, "collection", b, &mut session)?;
     if rich_number(rich_field(current, "record_version", b)?, b)?
         <= rich_number(rich_field(requested, "version", b)?, b)?
     {
@@ -3009,7 +3543,7 @@ fn check_collection_claim_inputs(
                 return Err(ClaimReferenceError::WitnessMismatch);
             }
         }
-        rich_record_ref(record, reference, "claim_id", "claim_version", b)?;
+        rich_record_ref(record, reference, "claim_id", "claim_version", b, &mut session)?;
         if rich_text(row, "source_claim_file_ref", b)? != stream_path
             || rich_number(rich_field(row, "source_claim_line", b)?, b)?
                 != u64::try_from(piece.line).map_err(|_| ClaimReferenceError::Limit)?
@@ -3069,7 +3603,7 @@ fn check_collection_claim_inputs(
         if rich_text(work, "record_id", b)? != member
             || rich_text(work, "record_type", b)? != "work"
             || rich_text(catalog, "source_record_ref", b)? != d.path
-            || b.digest(work)? != rich_hex(rich_text(catalog, "record_sha256", b)?, b)?
+            || rich_session_digest(work, b, &mut session)? != rich_hex(rich_text(catalog, "record_sha256", b)?, b)?
         {
             return Err(ClaimReferenceError::WitnessMismatch);
         }
@@ -9749,5 +10283,121 @@ fn native_claim_cli_creates_revises_and_cold_replays_original_bytes() {
             assert!(Instant::now() < deadline);
         }
         drop(software);
+    }
+}
+
+#[cfg(test)]
+mod canonical_reuse_regressions {
+    use super::*;
+    use tos_foundation::{JsonNumber, JsonNumberKind};
+
+    // Same paid session setup as the two existing Rich entrypoints. In
+    // particular None fallback never refunds this setup or the reusable wire.
+    fn paid_session(
+        b: &mut RichClaimBudget<'_>, reusable: bool,
+    ) -> ClaimReferenceResult<RichDigestSession> {
+        b.base.work(65_536, 4096)?;
+        b.own(RICH_RAW, RICH_DIGEST_SETUP_STATE)?;
+        let calls = if reusable { 22usize } else { 4usize };
+        let Some(call_state) = RICH_DIGEST_CALL_STATE.checked_mul(calls) else {
+            return Err(ClaimReferenceError::Limit);
+        };
+        b.own(RICH_RAW, call_state)?;
+        let Some(call_bytes) = call_state.checked_mul(4) else {
+            return Err(ClaimReferenceError::Limit);
+        };
+        b.base.work(call_bytes, calls * 512)?;
+        if reusable { b.own(RICH_RAW, RICH_DIGEST_WIRE_BYTES)?; }
+        rich_digest_session_new(reusable)
+    }
+
+    fn number(kind: JsonNumberKind, lexeme: &str) -> JsonValue {
+        JsonValue::Number(JsonNumber { kind, lexeme: lexeme.to_owned() })
+    }
+
+    fn remaining(session: &RichDigestSession) -> usize {
+        match session {
+            RichDigestSession::Legacy { remaining }
+            | RichDigestSession::Reusable { remaining, .. } => *remaining,
+        }
+    }
+
+    #[test]
+    fn actual_dispatcher_none_fallback_retains_paid_ownership() {
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(600);
+        let cases = [
+            (JsonNumberKind::Float, "1.25", Some("1.25")),
+            (JsonNumberKind::Int, "12345", Some("12345")),
+            (JsonNumberKind::Int, "1.0", None),
+        ];
+        for (kind, lexeme, expected) in cases {
+            let root = number(kind, lexeme);
+            let mut old = RichClaimBudget::enter(deadline, &cancelled, None).unwrap();
+            let old_result = old.digest(&root);
+            match expected {
+                Some(bytes) => {
+                    let reference = tos_foundation::canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+                        &root, CanonicalProfile::SourceCommandInputV1,
+                        JsonLimits { max_bytes: RICH_DIGEST_WIRE_BYTES, ..JsonLimits::default() },
+                        rich_digest_reservation().unwrap() - 16_384,
+                        &mut || Ok(()), &mut |_, _| Ok(()),
+                    ).unwrap().0;
+                    assert_eq!(reference, bytes.as_bytes());
+                    assert_eq!(old_result, Ok(Digest256::of_bytes(&reference)));
+                    assert_eq!(old_result, Ok(Digest256::of_bytes(bytes.as_bytes())));
+                }
+                None => assert_eq!(old_result, Err(ClaimReferenceError::InvalidInput)),
+            }
+            for reusable in [true, false] {
+                let mut b = RichClaimBudget::enter(deadline, &cancelled, None).unwrap();
+                let before_setup = b.rows[RICH_RAW];
+                let mut session = paid_session(&mut b, reusable).unwrap();
+                let calls = if reusable { 22 } else { 4 };
+                let setup_own = RICH_DIGEST_SETUP_STATE + calls * RICH_DIGEST_CALL_STATE
+                    + if reusable { RICH_DIGEST_WIRE_BYTES } else { 0 };
+                let after_setup = b.rows[RICH_RAW];
+                assert_eq!(before_setup - after_setup, setup_own);
+                assert_eq!(remaining(&session), calls);
+                let state_after_setup = b.base.state;
+                let result = rich_session_digest(&root, &mut b, &mut session);
+                assert_eq!(result, old_result);
+                let reservation = rich_digest_reservation().unwrap();
+                assert_eq!(b.rows[RICH_RAW], after_setup - reservation);
+                assert_eq!(b.base.state, state_after_setup - reservation);
+                assert_eq!(before_setup - b.rows[RICH_RAW], setup_own + reservation);
+                assert_eq!(remaining(&session), calls - 1);
+            }
+        }
+    }
+
+    #[test]
+    fn actual_dispatcher_preserves_first_claim_error() {
+        for (cancel, expire, exhaust, expected) in [
+            (true, false, false, ClaimReferenceError::Cancelled),
+            (false, true, false, ClaimReferenceError::Deadline),
+            (false, false, true, ClaimReferenceError::Limit),
+            (true, false, true, ClaimReferenceError::Cancelled),
+        ] {
+            let cancelled = AtomicBool::new(false);
+            let deadline = Instant::now() + Duration::from_secs(600);
+            let mut b = RichClaimBudget::enter(deadline, &cancelled, None).unwrap();
+            let mut session = paid_session(&mut b, true).unwrap();
+            if exhaust {
+                let left = b.base.byte_work;
+                b.base.work(left, 0).unwrap();
+                assert_eq!(b.base.byte_work, 0);
+            }
+            if expire {
+                b.base.deadline = Instant::now().checked_sub(Duration::from_secs(1)).unwrap();
+            }
+            // Exhaustion is paid while supervision is still active, then this
+            // deliberate test-owned control chooses the first Claim error.
+            cancelled.store(cancel, std::sync::atomic::Ordering::Relaxed);
+            let root = JsonValue::Bool(true);
+            let result = rich_session_digest(&root, &mut b, &mut session);
+            assert_eq!(result, Err(expected));
+            assert_eq!(remaining(&session), 21);
+        }
     }
 }

@@ -39,7 +39,8 @@ Contributor owner-port routes remain available without it.
 | triggered | the selected profile package body | procedure, authority boundary, refusal/return semantics, and negative controls | nearest repository owner or stronger AoA owner named by the bundle |
 | on demand | references and examples in the selected profile package | schema, rationale, or a worked shape | return to the triggered body and its owner route |
 | executable or review | owner-provided helpers and checks | local helper or review aid with its declared mechanical scope | use the named owner validation lane |
-| owner port | `evals/`, `stats/`, `kag/`, and `memo/` | local intake and handoff pressure | the named sibling owner |
+| owner port | `evals/`, `stats/`, and `memo/` | local intake and handoff pressure | the named sibling owner |
+| source export | `kag/` | portable ToS source-return artifact | native ToS verification; consumer integration stays outside ToS |
 
 The machine map is `agent-surface.manifest.json`. The generated structural
 read model is `agent-surface.current.json`. The map is authored here; the
@@ -56,8 +57,12 @@ this entrypoint and reads the manifest on demand.
 | --- | --- | --- | --- |
 | `evals/PORT.yaml` | eval pressure before suite or verdict work | `aoa-evals` | local packet/route shape; hand to central selection/proof/verdict owner |
 | `stats/port.manifest.json` | an owner-local measurement question or reference packet | `aoa-stats` for shared grammar; ToS for the question | source rows, route map, and reference packet; return to atlas and stats owners |
-| `kag/manifest.json` | a downstream KAG/MCP consumer requests the provider family | `aoa-kag` for registry/composition; ToS derived exports remain source | derived export, local provider family, and downstream registry/MCP consumer |
+| `kag/README.md` | a portable ToS source-return export is requested | Tree-of-Sophia | native export and verification; optional import belongs to the consumer outside ToS |
 | `memo/PORT.yaml` | reviewed evidence suggests a tree-local memory candidate | `aoa-memo` | candidate-only local route; reviewed handoff goes to the stronger memory owner |
+
+The historical profile may include `aoa-kag`, but that selection is not a ToS
+export dependency or a required validation step. Consumers choose and maintain
+their own indexing integrations; ToS completes at its verified artifact.
 
 Local ports carry references, candidates, generated views and receipts with
 explicit source and status. Live runtime state, central eval decisions, KAG
@@ -76,7 +81,7 @@ Use the task-probe matrix in the machine map for the smallest chain below.
 | approval or dry-run | host runtime approval or target runtime preview | authority classification -> preview -> explicit confirmation -> owner carrier | obtain authorization from the responsible owner |
 | eval intake | `evals/PORT.yaml` -> `aoa-evals` | local pressure -> local validation -> central selection/proof/verdict | obtain verdicts from the central eval owner |
 | owner-local stats | `stats/port.manifest.json` -> `aoa-stats` | question -> measurement -> evidence-linked packet -> shared grammar | verify current state at the measurement source |
-| KAG currentness | `kag/manifest.json` -> `aoa-kag` | source export -> derived seam -> provider validation -> registry/MCP | resolve runtime graph authority through its owner |
+| KAG source-export currentness | `kag/README.md` | ToS source contract -> immutable export -> native verification -> return artifact | no external checkout, skill, consumer index or import is required |
 | memo candidate | `memo/PORT.yaml` -> `aoa-memo` | candidate-only route -> local validation -> reviewed owner intake | admit durable memory through the reviewed memory route |
 
 ## Context and safety

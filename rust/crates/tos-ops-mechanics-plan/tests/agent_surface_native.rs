@@ -390,6 +390,17 @@ fn source_export_port_checks_only_its_tos_routes() {
     let check =
         |port: &Value| source_export_issues(&mut RouteSources::new(&root).unwrap(), port).unwrap();
     assert_eq!(check(&port), vec![]);
+    for external_owner in ["aoa-kag", "Tree-of-Sophia and aoa-kag"] {
+        let mut changed = port.clone();
+        changed["canonical_owner"] = json!(external_owner);
+        assert_eq!(
+            check(&changed),
+            vec![(
+                "kag_provider".into(),
+                "ToS source export must remain owned by Tree-of-Sophia".into()
+            )]
+        );
+    }
     let path = port["generated_family"]["builder"]
         .as_str()
         .unwrap()
@@ -401,6 +412,28 @@ fn source_export_port_checks_only_its_tos_routes() {
     );
     port["generated_family"]["scope"] = json!("external_integration_release");
     assert!(!check(&port).is_empty());
+}
+
+#[test]
+fn standalone_export_routes_do_not_require_a_consumer_checkout_or_import() {
+    let source = manifest();
+    let port = &source["owner_ports"]["kag_provider"];
+    assert_eq!(port["canonical_owner"], "Tree-of-Sophia");
+    assert_eq!(port["manifest"], "kag/README.md");
+    let probe = source["task_probes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|probe| probe["id"] == "kag_currentness")
+        .unwrap();
+    for step in probe["required_chain"].as_array().unwrap() {
+        let step = step.as_str().unwrap();
+        assert!(!step.contains("aoa-kag"));
+        assert!(!step.contains("consumer-owned import"));
+    }
+    let workflow = include_str!("../../../../.github/workflows/repo-validation.yml");
+    assert!(!workflow.contains("aoa-kag"));
+    assert!(!workflow.contains("provider_pin.json"));
 }
 
 #[test]

@@ -19,11 +19,9 @@ const EXPECTED_BOUNDED_HOP: &str = "ToS/public-compatibility/concept_node.exampl
 const EXPECTED_FALLBACK: &str = "ToS/doctrine/KNOWLEDGE_MODEL.md";
 const LEGACY_HOP_FIELD: &str = "lineage_or_context_hop";
 pub const DOCUMENTATION_POLICY: &str = "scripts/tiny_entry_route.source.json";
-const BOUNDARY_REQUIRED_TOKENS: [&str; 5] = [
+const BOUNDARY_REQUIRED_TOKENS: [&str; 3] = [
     "ToS-authored authority",
-    "aoa-kag",
-    "aoa-sdk routing control plane",
-    "aoa-routing compatibility namespace",
+    "does not delegate authority",
     "downstream derived system",
 ];
 const REQUIRED_FILES: [&str; 9] = [
@@ -431,7 +429,7 @@ mod tests {
         )
         .unwrap();
         write(SOURCE_NODE_PATH, r#"{"node_id":"fixture-node"}"#);
-        let mut route = serde_json::json!({"route_id":EXPECTED_ROUTE_ID,"root_surface":EXPECTED_ROOT_SURFACE,"node_kind":EXPECTED_NODE_KIND,"node_id":"fixture-node","capsule_surface":EXPECTED_CAPSULE_SURFACE,"authority_surface":EXPECTED_AUTHORITY_SURFACE,"bounded_hop":EXPECTED_BOUNDED_HOP,"fallback":EXPECTED_FALLBACK,"non_identity_boundary":BOUNDARY_REQUIRED_TOKENS.join(" ")});
+        let mut route = serde_json::json!({"route_id":EXPECTED_ROUTE_ID,"root_surface":EXPECTED_ROOT_SURFACE,"node_kind":EXPECTED_NODE_KIND,"node_id":"fixture-node","capsule_surface":EXPECTED_CAPSULE_SURFACE,"authority_surface":EXPECTED_AUTHORITY_SURFACE,"bounded_hop":EXPECTED_BOUNDED_HOP,"fallback":EXPECTED_FALLBACK,"non_identity_boundary":"This standalone ToS route does not replace ToS-authored authority and does not delegate authority to any downstream derived system."});
         write(ROUTE_PATH, &route.to_string());
         let cancel = AtomicI32::new(0);
         assert!(
@@ -439,6 +437,18 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+        // No external consumer name is required, but non-delegation still is.
+        let boundary = route["non_identity_boundary"].clone();
+        route["non_identity_boundary"] =
+            Value::String("ToS-authored authority; an optional downstream derived system.".into());
+        write(ROUTE_PATH, &route.to_string());
+        assert!(
+            validate(&root, &mut RouteSources::new(&root).unwrap(), &cancel)
+                .unwrap()
+                .iter()
+                .any(|(_, message)| message.contains("must contain 'does not delegate authority'"))
+        );
+        route["non_identity_boundary"] = boundary;
         route["root_surface"] = Value::String(ROUTE_DOC_PATH.into());
         route[LEGACY_HOP_FIELD] = Value::String(ROUTE_DOC_PATH.into());
         route["non_identity_boundary"] = Value::String("aoa-kag".into());

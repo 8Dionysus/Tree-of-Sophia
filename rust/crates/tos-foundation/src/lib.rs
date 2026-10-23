@@ -25,6 +25,9 @@ pub use digest::{Digest256, Digest256Hasher};
 pub use error::{FoundationError, FoundationErrorCode, Result};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
 pub use json::{
+    CanonicalReusePrepared, CanonicalReuseWorkspace, CanonicalSlice,
+    CANONICAL_REUSE_SETUP_STATE, CANONICAL_REUSE_CALL_STATE, CANONICAL_REUSE_CORE_STATE,
+    prepare_source_command_reuse, canonical_source_command_into_reuse,
     CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1,
     canonical_bytes_v1_with_check, canonical_bytes_v1_with_state_budget,

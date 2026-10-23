@@ -204,10 +204,10 @@
       "local_owner": "kag/AGENTS.md",
       "manifest": "kag/README.md",
       "consumer": "downstream source-return consumers",
-      "load_moment": "when a downstream consumer requests the portable ToS provider family or its currentness",
-      "canonical_owner": "8Dionysus/aoa-kag for registry/composition; ToS derived exports own meaning",
+      "load_moment": "when a portable ToS source-return export or its local verification is requested",
+      "canonical_owner": "Tree-of-Sophia",
       "freshness": "ToS source-export contract and producer; consumer index state is outside this repository",
-      "next_organ": "native ToS export and verification -> consumer-owned import",
+      "next_organ": "verified ToS source-return artifact; optional consumer import is owned outside ToS",
       "currentness_inputs": [
         "kag/AGENTS.md",
         "kag/README.md",
@@ -381,13 +381,14 @@
         "authored ToS source-export contract",
         "explicit immutable ToS export",
         "native ToS export verification",
-        "consumer-owned import"
+        "return the verified source-return artifact"
       ],
-      "mandatory_reading_depth": 5,
+      "mandatory_reading_depth": 4,
       "negative_controls": [
         "local provider is not runtime graph authority",
         "generated record does not author ToS meaning",
-        "software route validation does not check an unselected external integration"
+        "software route validation does not check an unselected external integration",
+        "consumer checkout, skills, index validation and import are never prerequisites for ToS export or completion"
       ]
     },
     {
@@ -447,9 +448,9 @@
     },
     {
       "path": "kag/",
-      "role": "local KAG provider port",
-      "load_moment": "provider consumer request",
-      "canonical_owner": "Tree-of-Sophia and aoa-kag"
+      "role": "ToS source-return export",
+      "load_moment": "standalone export request",
+      "canonical_owner": "Tree-of-Sophia"
     },
     {
       "path": "memo/",

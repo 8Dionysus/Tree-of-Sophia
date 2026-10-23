@@ -8,7 +8,21 @@
 - ToS layers: mechanics, docs, scripts, tests, validation
 - Tree classes: mechanics package, mechanics part, command lane, context boundary
 - Guard families: mechanics symmetry, progressive disclosure, command authority, owner boundary, route-law, validator restraint
-- Posture: accepted
+- Posture: accepted; KAG integration prescriptions superseded by TOS-D-0072
+
+## Current status: superseded KAG integration
+
+The KAG provider/action pin, external checkout, builder, validator and CI-fetch
+prescriptions below are historical and superseded by
+[TOS-D-0072](TOS-D-0072-repository-independent-execution-and-exports.md).
+ToS builds and verifies its own source-return export without `aoa-kag`.
+Consumer indexing, provider configuration and admission run on the consumer's
+side; they are not ToS commands, completion criteria or release gates.
+Historical identities and evidence below remain unchanged; paths to retired
+provider files describe that historical state, not files to recreate.
+
+Only the KAG integration prescriptions are superseded; unrelated route and
+source-authority rationale remains in force.
 
 ## Context
 

@@ -83,7 +83,8 @@ If a counterpart bridge needs to become machine-readable or retrieval-ready:
 
 - conceptual origin stays in `Tree-of-Sophia`
 - operational meaning stays in the source AoA repository
-- derived projection belongs in `aoa-kag`
+- ToS builds its own portable derived export; any consumer projection or index
+  belongs to that independently selected consumer
 - anti-collapse policy belongs in `Agents-of-Abyss`
 
 That handoff keeps ToS authored while still allowing disciplined bridges outward.

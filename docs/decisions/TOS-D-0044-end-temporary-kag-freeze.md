@@ -8,7 +8,18 @@
 - ToS layers: derived exports, local KAG provider
 - Tree classes: none
 - Guard families: source-first authority, currentness, generated parity
-- Posture: accepted by explicit operator instruction
+- Posture: superseded by TOS-D-0072
+
+## Current status: superseded KAG integration
+
+The KAG provider/action pin, external checkout, builder, validator and CI-fetch
+prescriptions below are historical and superseded by
+[TOS-D-0072](TOS-D-0072-repository-independent-execution-and-exports.md).
+ToS builds and verifies its own source-return export without `aoa-kag`.
+Consumer indexing, provider configuration and admission run on the consumer's
+side; they are not ToS commands, completion criteria or release gates.
+Historical identities and evidence below remain unchanged; paths to retired
+provider files describe that historical state, not files to recreate.
 
 ## Context
 
