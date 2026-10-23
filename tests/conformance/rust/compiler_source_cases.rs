@@ -648,6 +648,17 @@ impl CurrentReference {
         {
             return Err("reference regular pinned file");
         }
+        self.pinned_blob_from_verified_entry(repository, path)
+    }
+    // Only callers with a regular-file entry from this same immutable commit
+    // may skip the redundant per-path ls-tree. Blob size/content reads retain
+    // their original prospective fees, limits and deadline.
+    fn pinned_blob_from_verified_entry(
+        &mut self,
+        repository: &Path,
+        path: &str,
+    ) -> Result<Vec<u8>, &'static str> {
+        RelativePath::parse(path).map_err(|_| "reference path")?;
         let spec = format!("{}:{path}", self.commit);
         let size = self.git_read(repository, &["cat-file", "-s", &spec], 64)?;
         let size: usize = std::str::from_utf8(&size)
@@ -762,8 +773,13 @@ fn source_inputs(deadline: Instant) -> (BTreeMap<String, Vec<u8>>, CurrentRefere
         .visit(metadata.len().checked_add(512 * 512).unwrap())
         .unwrap();
     let mut authored = BTreeMap::new();
+    // reference_direct_schemas checks regular mode, blob kind/hash, direct
+    // path, uniqueness and complete metadata EOF from the pinned ls-tree.
+    // Reuse that evidence instead of spawning/debiting ls-tree once per schema.
     for path in reference_direct_schemas(&metadata).unwrap() {
-        let raw = reference.pinned_blob(&repository, path).unwrap();
+        let raw = reference
+            .pinned_blob_from_verified_entry(&repository, path)
+            .unwrap();
         reference_insert(&mut authored, path, raw).unwrap();
     }
     let home = reference
