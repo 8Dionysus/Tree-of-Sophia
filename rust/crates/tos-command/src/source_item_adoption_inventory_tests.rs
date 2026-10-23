@@ -8,6 +8,10 @@ use std::path::PathBuf;
 const PRIVATE_TEXT: &str = "SYNTHETIC_PRIVATE_SOURCE_TEXT";
 const TEI: &[u8] = br#"<TEI xmlns="http://www.tei-c.org/ns/1.0"><text><body><div><p>SYNTHETIC_PRIVATE_SOURCE_TEXT</p></div></body></text></TEI>"#;
 
+// A owns the prepared publication/consumer seam; the local owner fixture is shared.
+#[path = "source_item_prepared_consumer_tests.rs"]
+mod prepared_consumer;
+
 pub(super) fn select_payload(fixture: &mut Value, name: &str, media: &str, raw: &[u8]) {
     let input = PathBuf::from(fixture["input"].as_str().unwrap());
     fs::write(&input, raw).unwrap();
