@@ -63,6 +63,8 @@ pub mod prepared_source_binding;
 #[cfg(feature = "source-tools")]
 pub mod private_tmpfs_stage;
 #[cfg(feature = "source-tools")]
+pub mod pwe_native;
+#[cfg(feature = "source-tools")]
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
     public_d1_limits,
