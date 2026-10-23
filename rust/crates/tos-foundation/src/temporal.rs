@@ -616,7 +616,7 @@ pub fn execute_temporal_operation(
         "compare_positions" => comparison::compare_json(input),
         "relate_extents" => comparison::relate_json(input, context, budget),
         "relate_claims" => comparison::relate_claims_json(input, context, budget),
-        "check_network_consistency" => network::execute_network(input, context)?,
+        "check_network_consistency" => network::execute_network_admitted(input, context)?,
         _ => reason("Unsupported", "OperationNotImplemented"),
     };
     if result.object_get("rule_version").is_none() {

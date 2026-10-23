@@ -171,12 +171,22 @@ fn relation_edges(relation: &str, a: usize, b: usize, source: usize, out: &mut V
 
 /// Declared exact common-axis profile only. No unsupported relation is silently
 /// dropped. Unsupported profile is classified before solver resource evaluation.
+/// Direct calls use the default aggregate temporal transport limits.
 pub fn execute_network(input: &JsonValue, context: &JsonValue) -> Result<JsonValue, TemporalError> {
     if input.as_object().is_none() || context.as_object().is_none() {
         return Err(TemporalError::MalformedRequest(
             "network input/context must be objects",
         ));
     }
+    super::admit_transport(input, context, super::TemporalBudget::default())?;
+    execute_network_admitted(input, context)
+}
+
+// Parent dispatch retains its caller-selected, already-admitted transport limits.
+pub(super) fn execute_network_admitted(
+    input: &JsonValue,
+    _context: &JsonValue,
+) -> Result<JsonValue, TemporalError> {
     if string(input, "profile") != Some(PROFILE)
         || string(input, "node_shape") != Some("finite-proper-interval")
         || string(input, "endpoint_domain") != Some("exact-strict-weak-order")

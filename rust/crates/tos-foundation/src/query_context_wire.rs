@@ -71,8 +71,8 @@ fn concrete_state(state: &JsonValue, snapshot: &JsonValue) -> Result<JsonValue, 
 fn same_state(a: &JsonValue, b: &JsonValue) -> bool {
     // An omitted wire TRS does not invent one. A supplied conflicting TRS cannot match.
     get(a, "type") == get(b, "type")
-        && get(a, "cutoff") == get(b, "cutoff")
-        && (a.object_get("trs_ref").is_none() || get(a, "trs_ref") == get(b, "trs_ref"))
+        && same_json(get(a, "cutoff"), get(b, "cutoff"))
+        && (a.object_get("trs_ref").is_none() || same_json(get(a, "trs_ref"), get(b, "trs_ref")))
 }
 /// Pure selector resolution. The caller must verify source descriptor provenance.
 pub fn resolve_context_json(

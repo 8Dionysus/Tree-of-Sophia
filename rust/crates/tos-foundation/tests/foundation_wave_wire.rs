@@ -215,3 +215,79 @@ fn attributed_selection_requires_the_named_knower() {
         Err(TemporalError::MalformedRequest(_))
     ));
 }
+
+#[test]
+fn system_cutoff_and_trs_object_order_preserves_exact_values() {
+    use tos_foundation::query_context_wire::resolve_context_json;
+
+    let mut input = frozen_input();
+    let mut manifest = get(&input, "snapshot_manifest").clone();
+    let mut frozen = get(&manifest, "frozen_knowledge_selection").clone();
+    put(
+        &mut frozen,
+        "system_state",
+        parse(
+            r#"{"type":"SystemAsOf","cutoff":{"day":[1,2],"year":1886},"trs_ref":{"version":"rules-1","id":"calendar-A"}}"#,
+        ),
+    );
+    put(&mut manifest, "frozen_knowledge_selection", frozen.clone());
+    put(&mut input, "snapshot_manifest", manifest);
+    for (state, matches) in [
+        (
+            parse(
+                r#"{"type":"SystemAsOf","cutoff":{"year":1886,"day":[1,2]},"trs_ref":{"id":"calendar-A","version":"rules-1"}}"#,
+            ),
+            true,
+        ),
+        (
+            parse(
+                r#"{"type":"SystemAsOf","cutoff":{"year":1887,"day":[1,2]},"trs_ref":{"id":"calendar-A","version":"rules-1"}}"#,
+            ),
+            false,
+        ),
+        (
+            parse(
+                r#"{"type":"SystemAsOf","cutoff":{"year":1886,"day":[2,1]},"trs_ref":{"id":"calendar-A","version":"rules-1"}}"#,
+            ),
+            false,
+        ),
+        (
+            parse(
+                r#"{"type":"SystemAsOf","cutoff":{"year":1886,"day":[1,2]},"trs_ref":{"id":"calendar-A","version":"rules-2"}}"#,
+            ),
+            false,
+        ),
+        (
+            parse(r#"{"type":"SystemAsOf","cutoff":{"year":1886,"day":[1,2]}}"#),
+            true,
+        ),
+        (
+            parse(
+                r#"{"type":"SystemAsOf","cutoff":{"year":1886.0,"day":[1,2]},"trs_ref":{"id":"calendar-A","version":"rules-1"}}"#,
+            ),
+            false,
+        ),
+    ] {
+        put(request_mut(&mut input), "system_state", state);
+        let before = input.clone();
+        for direct in [false, true] {
+            let actual = if direct {
+                resolve_context_json(&input, &parse("{}"), TemporalBudget::default()).unwrap()
+            } else {
+                call("resolve_temporal_query_context", &input).unwrap()
+            };
+            if matches {
+                assert_eq!(text(&actual, "status"), Some("Resolved"));
+                assert_eq!(get(&actual, "effective_knowledge_selection"), &frozen);
+            } else {
+                assert_eq!(text(&actual, "status"), Some("ContextMismatch"));
+                assert_eq!(
+                    get(&actual, "mismatched_dimensions"),
+                    &parse(r#"["system_state"]"#)
+                );
+                assert_eq!(get(&actual, "result"), &JsonValue::Null);
+            }
+            assert_eq!(input, before);
+        }
+    }
+}
