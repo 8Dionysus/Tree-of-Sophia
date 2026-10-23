@@ -259,8 +259,11 @@ fn successful_profile(name: &str, media: &str, raw: &[u8], profile: &str) {
     assert_eq!(rights["redistribution_posture"], "not_authorized");
     let manifest: Value =
         serde_json::from_slice(&fs::read(home.join("item.manifest.json")).unwrap()).unwrap();
+    let deposit_receipt: Value =
+        serde_json::from_slice(&fs::read(home.join("item-deposit-receipt.json")).unwrap()).unwrap();
     let mut expected_payload = deposit::payload_entry(&f.config).unwrap();
-    expected_payload["fixity_verified_at"] = request["fixity_verified_at"].clone();
+    expected_payload["fixity_verified_at"] = deposit_receipt["deposited_at"].clone();
+    cmd::validate_instant(deposit_receipt["deposited_at"].as_str().unwrap()).unwrap();
     assert_eq!(manifest["payload_files"][0], expected_payload);
     let stored: Value =
         serde_json::from_slice(&fs::read(home.join("resource-inventory.json")).unwrap()).unwrap();
