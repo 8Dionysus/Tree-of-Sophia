@@ -70,13 +70,8 @@ fn direct_tei_requires_object_roots_before_transport_admission() {
         }
     }
     let direct = capture_tei(&i, &c, TemporalBudget::default()).unwrap();
-    let top = execute_temporal_operation(
-        "capture_expression",
-        &i,
-        &c,
-        TemporalBudget::default(),
-    )
-    .unwrap();
+    let top = execute_temporal_operation("capture_expression", &i, &c, TemporalBudget::default())
+        .unwrap();
     assert_eq!(s(&direct, "status"), Some("Complete"));
     assert_eq!(f(&direct, "preserved_input"), &i);
     assert_eq!(f(&direct, "preserved_context"), &c);

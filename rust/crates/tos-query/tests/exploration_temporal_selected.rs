@@ -72,8 +72,7 @@ fn same_json_fields(left: &JsonValue, right: &JsonValue) -> bool {
                 })
         }
         (JsonValue::Array(left), JsonValue::Array(right)) => {
-            left.len() == right.len()
-                && left.iter().zip(right).all(|(a, b)| same_json_fields(a, b))
+            left.len() == right.len() && left.iter().zip(right).all(|(a, b)| same_json_fields(a, b))
         }
         _ => left == right,
     }
