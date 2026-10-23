@@ -1070,9 +1070,11 @@ fn rich_digest_reservation() -> Option<usize> {
 }
 // Thirty sequential codec calls bound either fresh Rich ledger. Their work is
 // prepaid in full; the new nonescaping carrier enclosure is reserved once.
-const RICH_POLICY_STATE: usize =
-    RICH_POLICY_SETUP + RICH_POLICY_CODEC + RICH_DIGEST_CALCULATOR + RICH_DIGEST_WIRE
-        + RICH_DIGEST_PRECALL;
+const RICH_POLICY_STATE: usize = RICH_POLICY_SETUP
+    + RICH_POLICY_CODEC
+    + RICH_DIGEST_CALCULATOR
+    + RICH_DIGEST_WIRE
+    + RICH_DIGEST_PRECALL;
 // Pay original numeric-input-bound metadata before any writer construction.
 // Sixty initialization flows plus two passes of four bounded contexts and
 // thirty-two closed-recipe digest Numbers; no extra runtime debit or carrier.
@@ -1085,36 +1087,56 @@ const RICH_POLICY_BYTES: usize = RICH_POLICY_SETUP
     + 30 * (4 * RICH_DIGEST_CALCULATOR + 4 * RICH_DIGEST_WIRE)
     + 4 * RICH_DIGEST_PRECALL
     + RICH_NUMERIC_BOUND_BYTES;
-const RICH_POLICY_VISITS: usize = 128 + 30 * 32 + 32 + 30 * (128 + 32) + 128
-    + RICH_NUMERIC_BOUND_VISITS;
+const RICH_POLICY_VISITS: usize =
+    128 + 30 * 32 + 32 + 30 * (128 + 32) + 128 + RICH_NUMERIC_BOUND_VISITS;
 // Actual typed arrays for the private reusable-operation contract.
 // Anonymous closure terms below are explicit capture-layout enclosures:
 // Instant + two thin references, or two thin references. Mutable capture
 // references bound the corresponding concrete closure's thin receivers;
 // these expressions do not claim that a closure is a tuple.
-const RICH_DIGEST_SETUP_STATE: usize =
-    std::mem::size_of::<[RichDigestSession;2]>()
-    + std::mem::size_of::<[ClaimReferenceResult<RichDigestSession>;2]>()
-    + std::mem::size_of::<[ClaimReferenceError;4]>()
-    + std::mem::size_of::<[&mut RichClaimBudget<'_>;8]>()
+const RICH_DIGEST_SETUP_STATE: usize = std::mem::size_of::<[RichDigestSession; 2]>()
+    + std::mem::size_of::<[ClaimReferenceResult<RichDigestSession>; 2]>()
+    + std::mem::size_of::<[ClaimReferenceError; 4]>()
+    + std::mem::size_of::<[&mut RichClaimBudget<'_>; 8]>()
     + tos_foundation::CANONICAL_REUSE_SETUP_STATE;
-const RICH_DIGEST_CALL_STATE: usize =
-    std::mem::size_of::<[ClaimReferenceResult<Digest256>;4]>()
-    + std::mem::size_of::<[ClaimReferenceError;4]>()
-    + std::mem::size_of::<[&mut RichDigestSession;16]>()
-    + std::mem::size_of::<[&RichDigestSession;4]>()
-    + std::mem::size_of::<[(Instant, &AtomicBool, &std::cell::Cell<Option<ClaimReferenceError>>);2]>()
-    + std::mem::size_of::<[(&mut ClaimReferenceBudget<'_>, &std::cell::Cell<Option<ClaimReferenceError>>);2]>()
-    + std::mem::size_of::<[&mut (Instant, &AtomicBool, &std::cell::Cell<Option<ClaimReferenceError>>);4]>()
-    + std::mem::size_of::<[&mut (&mut ClaimReferenceBudget<'_>, &std::cell::Cell<Option<ClaimReferenceError>>);4]>()
-    + std::mem::size_of::<[std::cell::Cell<Option<ClaimReferenceError>>;2]>()
-    + std::mem::size_of::<[&std::cell::Cell<Option<ClaimReferenceError>>;8]>()
-    + std::mem::size_of::<[Option<ClaimReferenceError>;4]>()
-    + std::mem::size_of::<[&AtomicBool;4]>()
-    + std::mem::size_of::<[Instant;4]>()
-    + std::mem::size_of::<[&Instant;4]>()
-    + std::mem::size_of::<[&mut ClaimReferenceBudget<'_>;4]>()
-    + std::mem::size_of::<[&mut RichClaimBudget<'_>;4]>()
+const RICH_DIGEST_CALL_STATE: usize = std::mem::size_of::<[ClaimReferenceResult<Digest256>; 4]>()
+    + std::mem::size_of::<[ClaimReferenceError; 4]>()
+    + std::mem::size_of::<[&mut RichDigestSession; 16]>()
+    + std::mem::size_of::<[&RichDigestSession; 4]>()
+    + std::mem::size_of::<
+        [(
+            Instant,
+            &AtomicBool,
+            &std::cell::Cell<Option<ClaimReferenceError>>,
+        ); 2],
+    >()
+    + std::mem::size_of::<
+        [(
+            &mut ClaimReferenceBudget<'_>,
+            &std::cell::Cell<Option<ClaimReferenceError>>,
+        ); 2],
+    >()
+    + std::mem::size_of::<
+        [&mut (
+            Instant,
+            &AtomicBool,
+            &std::cell::Cell<Option<ClaimReferenceError>>,
+        ); 4],
+    >()
+    + std::mem::size_of::<
+        [&mut (
+            &mut ClaimReferenceBudget<'_>,
+            &std::cell::Cell<Option<ClaimReferenceError>>,
+        ); 4],
+    >()
+    + std::mem::size_of::<[std::cell::Cell<Option<ClaimReferenceError>>; 2]>()
+    + std::mem::size_of::<[&std::cell::Cell<Option<ClaimReferenceError>>; 8]>()
+    + std::mem::size_of::<[Option<ClaimReferenceError>; 4]>()
+    + std::mem::size_of::<[&AtomicBool; 4]>()
+    + std::mem::size_of::<[Instant; 4]>()
+    + std::mem::size_of::<[&Instant; 4]>()
+    + std::mem::size_of::<[&mut ClaimReferenceBudget<'_>; 4]>()
+    + std::mem::size_of::<[&mut RichClaimBudget<'_>; 4]>()
     + tos_foundation::CANONICAL_REUSE_CALL_STATE;
 // This is a build-time source-envelope check, not a runtime size probe or
 // a larger reservation selected after observing an allocation.
@@ -1415,8 +1437,13 @@ impl<'a> RichClaimBudget<'a> {
     }
 }
 enum RichDigestSession {
-    Legacy { remaining: usize },
-    Reusable { owner: tos_foundation::CanonicalReuseWorkspace, remaining: usize },
+    Legacy {
+        remaining: usize,
+    },
+    Reusable {
+        owner: tos_foundation::CanonicalReuseWorkspace,
+        remaining: usize,
+    },
 }
 
 // Called only after setup and all future operation carriers have been paid.
@@ -1424,12 +1451,19 @@ fn rich_digest_session_new(reusable: bool) -> ClaimReferenceResult<RichDigestSes
     if reusable {
         let owner = match tos_foundation::CanonicalReuseWorkspace::new() {
             Ok(owner) => owner,
-            Err(error) => return Err(match error.code {
-                tos_foundation::FoundationErrorCode::BudgetExceeded => ClaimReferenceError::Limit,
-                _ => ClaimReferenceError::InvalidInput,
-            }),
+            Err(error) => {
+                return Err(match error.code {
+                    tos_foundation::FoundationErrorCode::BudgetExceeded => {
+                        ClaimReferenceError::Limit
+                    }
+                    _ => ClaimReferenceError::InvalidInput,
+                });
+            }
         };
-        Ok(RichDigestSession::Reusable { owner, remaining: 22 })
+        Ok(RichDigestSession::Reusable {
+            owner,
+            remaining: 22,
+        })
     } else {
         Ok(RichDigestSession::Legacy { remaining: 4 })
     }
@@ -1476,36 +1510,52 @@ fn rich_reuse_digest(
                 Some(ClaimReferenceError::Cancelled)
             } else if Instant::now() >= deadline {
                 Some(ClaimReferenceError::Deadline)
-            } else { None };
+            } else {
+                None
+            };
             if let Some(error) = error {
-                if first_ref.get().is_none() { first_ref.set(Some(error)); }
+                if first_ref.get().is_none() {
+                    first_ref.set(Some(error));
+                }
                 Err(FoundationError {
                     code: FoundationErrorCode::BudgetExceeded,
-                    byte_offset: None, detail: String::new(),
+                    byte_offset: None,
+                    detail: String::new(),
                 })
-            } else { Ok(()) }
+            } else {
+                Ok(())
+            }
         };
-        let mut admit = move |bytes, visits| {
-            match base.work(bytes, visits) {
-                Ok(()) => Ok(()),
-                Err(error) => {
-                    if first_ref.get().is_none() { first_ref.set(Some(error)); }
-                    Err(FoundationError {
-                        code: FoundationErrorCode::BudgetExceeded,
-                        byte_offset: None, detail: String::new(),
-                    })
+        let mut admit = move |bytes, visits| match base.work(bytes, visits) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                if first_ref.get().is_none() {
+                    first_ref.set(Some(error));
                 }
+                Err(FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None,
+                    detail: String::new(),
+                })
             }
         };
         tos_foundation::prepare_source_command_reuse(value, &mut check, &mut admit)
     };
-    if let Some(error) = first.get() { owner.poison(); return Err(error); }
+    if let Some(error) = first.get() {
+        owner.poison();
+        return Err(error);
+    }
     let prepared = match prepared {
         Ok(Some(prepared)) => prepared,
-        Ok(None) => return match b.digest(value) {
-            Ok(digest) => Ok(digest),
-            Err(error) => { owner.poison(); Err(error) }
-        },
+        Ok(None) => {
+            return match b.digest(value) {
+                Ok(digest) => Ok(digest),
+                Err(error) => {
+                    owner.poison();
+                    Err(error)
+                }
+            };
+        }
         Err(error) => {
             owner.poison();
             return Err(match error.code {
@@ -1515,29 +1565,45 @@ fn rich_reuse_digest(
         }
     };
     let Some(reservation) = rich_digest_reservation() else {
-        owner.poison(); return Err(ClaimReferenceError::Limit);
+        owner.poison();
+        return Err(ClaimReferenceError::Limit);
     };
-    if let Err(error) = b.base.work(0, 64) { owner.poison(); return Err(error); }
+    if let Err(error) = b.base.work(0, 64) {
+        owner.poison();
+        return Err(error);
+    }
     let Some(state) = reservation.checked_sub(16_384) else {
-        owner.poison(); return Err(ClaimReferenceError::Limit);
+        owner.poison();
+        return Err(ClaimReferenceError::Limit);
     };
-    if state == 0 { owner.poison(); return Err(ClaimReferenceError::Limit); }
+    if state == 0 {
+        owner.poison();
+        return Err(ClaimReferenceError::Limit);
+    }
     let Some(numbers) = prepared.number_count().checked_mul(16) else {
-        owner.poison(); return Err(ClaimReferenceError::Limit);
+        owner.poison();
+        return Err(ClaimReferenceError::Limit);
     };
     let Some(owned) = 16_384usize.checked_add(RICH_DIGEST_WRITER) else {
-        owner.poison(); return Err(ClaimReferenceError::Limit);
+        owner.poison();
+        return Err(ClaimReferenceError::Limit);
     };
     let Some(owned) = owned.checked_add(numbers) else {
-        owner.poison(); return Err(ClaimReferenceError::Limit);
+        owner.poison();
+        return Err(ClaimReferenceError::Limit);
     };
-    if let Err(error) = b.own(RICH_RAW, owned) { owner.poison(); return Err(error); }
+    if let Err(error) = b.own(RICH_RAW, owned) {
+        owner.poison();
+        return Err(error);
+    }
     let default_visit_limit = JsonLimits::default().max_visits;
     let limits = JsonLimits {
         max_bytes: RICH_DIGEST_WIRE_BYTES,
         max_visits: if b.base.visits < default_visit_limit {
             b.base.visits
-        } else { default_visit_limit },
+        } else {
+            default_visit_limit
+        },
         ..JsonLimits::default()
     };
     let raw = {
@@ -1550,32 +1616,43 @@ fn rich_reuse_digest(
                 Some(ClaimReferenceError::Cancelled)
             } else if Instant::now() >= deadline {
                 Some(ClaimReferenceError::Deadline)
-            } else { None };
+            } else {
+                None
+            };
             if let Some(error) = error {
-                if first_ref.get().is_none() { first_ref.set(Some(error)); }
+                if first_ref.get().is_none() {
+                    first_ref.set(Some(error));
+                }
                 Err(FoundationError {
                     code: FoundationErrorCode::BudgetExceeded,
-                    byte_offset: None, detail: String::new(),
+                    byte_offset: None,
+                    detail: String::new(),
                 })
-            } else { Ok(()) }
+            } else {
+                Ok(())
+            }
         };
-        let mut admit = move |bytes, visits| {
-            match base.work(bytes, visits) {
-                Ok(()) => Ok(()),
-                Err(error) => {
-                    if first_ref.get().is_none() { first_ref.set(Some(error)); }
-                    Err(FoundationError {
-                        code: FoundationErrorCode::BudgetExceeded,
-                        byte_offset: None, detail: String::new(),
-                    })
+        let mut admit = move |bytes, visits| match base.work(bytes, visits) {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                if first_ref.get().is_none() {
+                    first_ref.set(Some(error));
                 }
+                Err(FoundationError {
+                    code: FoundationErrorCode::BudgetExceeded,
+                    byte_offset: None,
+                    detail: String::new(),
+                })
             }
         };
         tos_foundation::canonical_source_command_into_reuse(
             prepared, owner, limits, state, &mut check, &mut admit,
         )
     };
-    if let Some(error) = first.get() { owner.poison(); return Err(error); }
+    if let Some(error) = first.get() {
+        owner.poison();
+        return Err(error);
+    }
     let raw = match raw {
         Ok(raw) => raw,
         Err(error) => {
@@ -1586,9 +1663,18 @@ fn rich_reuse_digest(
             });
         }
     };
-    if let Err(error) = b.base.work(0, 32) { owner.poison(); return Err(error); }
-    if raw.capacity > state { owner.poison(); return Err(ClaimReferenceError::Limit); }
-    if let Err(error) = b.base.work(raw.raw.len(), 8) { owner.poison(); return Err(error); }
+    if let Err(error) = b.base.work(0, 32) {
+        owner.poison();
+        return Err(error);
+    }
+    if raw.capacity > state {
+        owner.poison();
+        return Err(ClaimReferenceError::Limit);
+    }
+    if let Err(error) = b.base.work(raw.raw.len(), 8) {
+        owner.poison();
+        return Err(error);
+    }
     Ok(Digest256::of_bytes(raw.raw))
 }
 
@@ -2852,7 +2938,14 @@ fn rich_native_record(
     {
         return Err(ClaimReferenceError::UnsupportedProfile);
     }
-    let digest = rich_record_ref(record, reference, "record_id", "record_version", b, &mut *session)?;
+    let digest = rich_record_ref(
+        record,
+        reference,
+        "record_id",
+        "record_version",
+        b,
+        &mut *session,
+    )?;
     let catalog = match kind {
         "agent" => "ToS/source-witnesses/catalog/agents.jsonl",
         "collection" => "ToS/source-witnesses/catalog/collections.jsonl",
@@ -3312,7 +3405,9 @@ fn rich_package(
         return Err(ClaimReferenceError::WitnessMismatch);
     }
     let receipt_request = rich_field(receipt, "request", b)?;
-    if rich_session_digest(receipt_request, b, &mut *session)? != rich_hex(rich_text(receipt, "request_digest", b)?, b)? {
+    if rich_session_digest(receipt_request, b, &mut *session)?
+        != rich_hex(rich_text(receipt, "request_digest", b)?, b)?
+    {
         return Err(ClaimReferenceError::WitnessMismatch);
     }
     let publication = rich_field(receipt, "publication", b)?;
@@ -3543,7 +3638,14 @@ fn check_collection_claim_inputs(
                 return Err(ClaimReferenceError::WitnessMismatch);
             }
         }
-        rich_record_ref(record, reference, "claim_id", "claim_version", b, &mut session)?;
+        rich_record_ref(
+            record,
+            reference,
+            "claim_id",
+            "claim_version",
+            b,
+            &mut session,
+        )?;
         if rich_text(row, "source_claim_file_ref", b)? != stream_path
             || rich_number(rich_field(row, "source_claim_line", b)?, b)?
                 != u64::try_from(piece.line).map_err(|_| ClaimReferenceError::Limit)?
@@ -3603,7 +3705,8 @@ fn check_collection_claim_inputs(
         if rich_text(work, "record_id", b)? != member
             || rich_text(work, "record_type", b)? != "work"
             || rich_text(catalog, "source_record_ref", b)? != d.path
-            || rich_session_digest(work, b, &mut session)? != rich_hex(rich_text(catalog, "record_sha256", b)?, b)?
+            || rich_session_digest(work, b, &mut session)?
+                != rich_hex(rich_text(catalog, "record_sha256", b)?, b)?
         {
             return Err(ClaimReferenceError::WitnessMismatch);
         }
@@ -10294,7 +10397,8 @@ mod canonical_reuse_regressions {
     // Same paid session setup as the two existing Rich entrypoints. In
     // particular None fallback never refunds this setup or the reusable wire.
     fn paid_session(
-        b: &mut RichClaimBudget<'_>, reusable: bool,
+        b: &mut RichClaimBudget<'_>,
+        reusable: bool,
     ) -> ClaimReferenceResult<RichDigestSession> {
         b.base.work(65_536, 4096)?;
         b.own(RICH_RAW, RICH_DIGEST_SETUP_STATE)?;
@@ -10307,12 +10411,17 @@ mod canonical_reuse_regressions {
             return Err(ClaimReferenceError::Limit);
         };
         b.base.work(call_bytes, calls * 512)?;
-        if reusable { b.own(RICH_RAW, RICH_DIGEST_WIRE_BYTES)?; }
+        if reusable {
+            b.own(RICH_RAW, RICH_DIGEST_WIRE_BYTES)?;
+        }
         rich_digest_session_new(reusable)
     }
 
     fn number(kind: JsonNumberKind, lexeme: &str) -> JsonValue {
-        JsonValue::Number(JsonNumber { kind, lexeme: lexeme.to_owned() })
+        JsonValue::Number(JsonNumber {
+            kind,
+            lexeme: lexeme.to_owned(),
+        })
     }
 
     fn remaining(session: &RichDigestSession) -> usize {
@@ -10354,7 +10463,8 @@ mod canonical_reuse_regressions {
                 let before_setup = b.rows[RICH_RAW];
                 let mut session = paid_session(&mut b, reusable).unwrap();
                 let calls = if reusable { 22 } else { 4 };
-                let setup_own = RICH_DIGEST_SETUP_STATE + calls * RICH_DIGEST_CALL_STATE
+                let setup_own = RICH_DIGEST_SETUP_STATE
+                    + calls * RICH_DIGEST_CALL_STATE
                     + if reusable { RICH_DIGEST_WIRE_BYTES } else { 0 };
                 let after_setup = b.rows[RICH_RAW];
                 assert_eq!(before_setup - after_setup, setup_own);

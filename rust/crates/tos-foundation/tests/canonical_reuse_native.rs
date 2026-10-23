@@ -19,20 +19,31 @@ const WRITER: usize = 65 * size_of::<Vec<(usize, &(JsonString, JsonValue))>>()
         usize,
     )>() + size_of::<[usize; 12]>());
 const SORT: usize = 19 * size_of::<(usize, &(JsonString, JsonValue))>();
-const NUMERIC: usize = 65 * (size_of::<JsonValue>() + size_of::<JsonString>()
-    + size_of::<HashMap<Vec<u16>, usize>>() + 2 * size_of::<Vec<JsonValue>>());
+const NUMERIC: usize = 65
+    * (size_of::<JsonValue>()
+        + size_of::<JsonString>()
+        + size_of::<HashMap<Vec<u16>, usize>>()
+        + 2 * size_of::<Vec<JsonValue>>());
 const AVAILABLE: usize = WRITER + SORT + 8192 + NUMERIC + 8;
 
 fn limits() -> JsonLimits {
-    JsonLimits { max_bytes: 8192, ..JsonLimits::default() }
+    JsonLimits {
+        max_bytes: 8192,
+        ..JsonLimits::default()
+    }
 }
 
 fn decoded(raw: &str) -> JsonValue {
-    parse_json(raw.as_bytes(), JsonMode::PublishedStrict, limits()).unwrap().into_root()
+    parse_json(raw.as_bytes(), JsonMode::PublishedStrict, limits())
+        .unwrap()
+        .into_root()
 }
 
 fn number(kind: JsonNumberKind, lexeme: &str) -> JsonValue {
-    JsonValue::Number(JsonNumber { kind, lexeme: lexeme.to_owned() })
+    JsonValue::Number(JsonNumber {
+        kind,
+        lexeme: lexeme.to_owned(),
+    })
 }
 
 fn prepared(value: &JsonValue) -> CanonicalReusePrepared<'_> {
@@ -45,16 +56,27 @@ fn prepared(value: &JsonValue) -> CanonicalReusePrepared<'_> {
 
 fn legacy(value: &JsonValue, limits: JsonLimits) -> Result<(Vec<u8>, usize)> {
     canonical_bytes_v1_with_state_budget_and_visits_and_admission(
-        value, CanonicalProfile::SourceCommandInputV1, limits, AVAILABLE,
-        &mut || Ok(()), &mut |_, _| Ok(()),
+        value,
+        CanonicalProfile::SourceCommandInputV1,
+        limits,
+        AVAILABLE,
+        &mut || Ok(()),
+        &mut |_, _| Ok(()),
     )
 }
 
 fn selected<'w>(
-    value: &JsonValue, owner: &'w mut CanonicalReuseWorkspace, limits: JsonLimits,
+    value: &JsonValue,
+    owner: &'w mut CanonicalReuseWorkspace,
+    limits: JsonLimits,
 ) -> Result<CanonicalSlice<'w>> {
     canonical_source_command_into_reuse(
-        prepared(value), owner, limits, AVAILABLE, &mut || Ok(()), &mut |_, _| Ok(()),
+        prepared(value),
+        owner,
+        limits,
+        AVAILABLE,
+        &mut || Ok(()),
+        &mut |_, _| Ok(()),
     )
 }
 
@@ -71,9 +93,18 @@ fn assert_poisoned(owner: &mut CanonicalReuseWorkspace) {
     let checks = Cell::new(0usize);
     let admits = Cell::new(0usize);
     let error = error_of(canonical_source_command_into_reuse(
-        token, owner, limits(), AVAILABLE,
-        &mut || { checks.set(checks.get() + 1); Ok(()) },
-        &mut |_, _| { admits.set(admits.get() + 1); Ok(()) },
+        token,
+        owner,
+        limits(),
+        AVAILABLE,
+        &mut || {
+            checks.set(checks.get() + 1);
+            Ok(())
+        },
+        &mut |_, _| {
+            admits.set(admits.get() + 1);
+            Ok(())
+        },
     ));
     assert_eq!(error.code, FoundationErrorCode::BudgetExceeded);
     assert_eq!((checks.get(), admits.get()), (0, 0));
@@ -82,12 +113,16 @@ fn assert_poisoned(owner: &mut CanonicalReuseWorkspace) {
 #[test]
 fn changing_nested_roots_preserve_bytes_and_wire_identity() {
     let cases = [
-        ("{\"z\":[1,-0,{\"b\":true,\"a\":\"é\\n\"}],\"a\":null}",
-         "{\"a\":null,\"z\":[1,0,{\"a\":\"é\\n\",\"b\":true}]}"),
+        (
+            "{\"z\":[1,-0,{\"b\":true,\"a\":\"é\\n\"}],\"a\":null}",
+            "{\"a\":null,\"z\":[1,0,{\"a\":\"é\\n\",\"b\":true}]}",
+        ),
         ("[{\"same\":1},{\"same\":2}]", "[{\"same\":1},{\"same\":2}]"),
         ("{}", "{}"),
-        ("{\"text\":\"a longer independent root without stale suffix\",\"array\":[null,false,[],{}]}",
-         "{\"array\":[null,false,[],{}],\"text\":\"a longer independent root without stale suffix\"}"),
+        (
+            "{\"text\":\"a longer independent root without stale suffix\",\"array\":[null,false,[],{}]}",
+            "{\"array\":[null,false,[],{}],\"text\":\"a longer independent root without stale suffix\"}",
+        ),
     ];
     let mut owner = CanonicalReuseWorkspace::new().unwrap();
     let mut first_storage = None;
@@ -113,9 +148,12 @@ fn changing_nested_roots_preserve_bytes_and_wire_identity() {
 
 #[test]
 fn storage_hints_return_none_without_validating() {
-    let large_object = JsonValue::Object((0..20).rev().map(|i| {
-        (JsonString::from_utf8(&format!("k{i:02}")), JsonValue::Null)
-    }).collect());
+    let large_object = JsonValue::Object(
+        (0..20)
+            .rev()
+            .map(|i| (JsonString::from_utf8(&format!("k{i:02}")), JsonValue::Null))
+            .collect(),
+    );
     let object_bytes = concat!(
         "{\"k00\":null,\"k01\":null,\"k02\":null,\"k03\":null,\"k04\":null,",
         "\"k05\":null,\"k06\":null,\"k07\":null,\"k08\":null,\"k09\":null,",
@@ -132,7 +170,7 @@ fn storage_hints_return_none_without_validating() {
     ];
     for (root, expected) in cases {
         match prepare_source_command_reuse(&root, &mut || Ok(()), &mut |_, _| Ok(())) {
-            Ok(None) => {},
+            Ok(None) => {}
             Ok(Some(_)) => panic!("unsupported hint must return None"),
             Err(error) => panic!("hint must not semantically validate: {error:?}"),
         }
@@ -147,13 +185,17 @@ fn storage_hints_return_none_without_validating() {
 #[test]
 fn decoded_duplicate_and_lone_surrogate_keys_refuse_and_poison() {
     let cases = [
-        (JsonValue::Object(vec![
-            (JsonString::from_utf8("a"), JsonValue::Null),
-            (JsonString::from_utf16(&[0x0061]), JsonValue::Bool(true)),
-        ]), FoundationErrorCode::DuplicateMember),
-        (JsonValue::Object(vec![
-            (JsonString::from_utf16(&[0xD800]), JsonValue::Null),
-        ]), FoundationErrorCode::InvalidUnicodeScalar),
+        (
+            JsonValue::Object(vec![
+                (JsonString::from_utf8("a"), JsonValue::Null),
+                (JsonString::from_utf16(&[0x0061]), JsonValue::Bool(true)),
+            ]),
+            FoundationErrorCode::DuplicateMember,
+        ),
+        (
+            JsonValue::Object(vec![(JsonString::from_utf16(&[0xD800]), JsonValue::Null)]),
+            FoundationErrorCode::InvalidUnicodeScalar,
+        ),
     ];
     for (root, code) in cases {
         assert_eq!(error_of(legacy(&root, limits())).code, code);
@@ -166,12 +208,22 @@ fn decoded_duplicate_and_lone_surrogate_keys_refuse_and_poison() {
 #[test]
 fn negative_zero_and_full_numeric_validation_preserved() {
     let mut owner = CanonicalReuseWorkspace::new().unwrap();
-    for (lexeme, spelling) in [("-0", "0"), ("0", "0"), ("-1", "-1"), ("12", "12"), ("9999", "9999")] {
+    for (lexeme, spelling) in [
+        ("-0", "0"),
+        ("0", "0"),
+        ("-1", "-1"),
+        ("12", "12"),
+        ("9999", "9999"),
+    ] {
         let cases = [
             (number(JsonNumberKind::Int, lexeme), spelling.to_owned()),
-            (JsonValue::Object(vec![(JsonString::from_utf8("n"),
-                JsonValue::Array(vec![number(JsonNumberKind::Int, lexeme)]))]),
-             format!("{{\"n\":[{spelling}]}}")),
+            (
+                JsonValue::Object(vec![(
+                    JsonString::from_utf8("n"),
+                    JsonValue::Array(vec![number(JsonNumberKind::Int, lexeme)]),
+                )]),
+                format!("{{\"n\":[{spelling}]}}"),
+            ),
         ];
         for (root, expected) in cases {
             let old = legacy(&root, limits()).unwrap();
@@ -192,7 +244,10 @@ fn sentinel() -> FoundationError {
 }
 
 #[derive(Clone, Copy)]
-enum Callback { Check, Admit }
+enum Callback {
+    Check,
+    Admit,
+}
 
 #[test]
 fn callback_errors_survive_prepare_count_and_emit() {
@@ -200,10 +255,14 @@ fn callback_errors_survive_prepare_count_and_emit() {
     for kind in [Callback::Check, Callback::Admit] {
         let error = match kind {
             Callback::Check => error_of(prepare_source_command_reuse(
-                &root, &mut || Err(sentinel()), &mut |_, _| Ok(()),
+                &root,
+                &mut || Err(sentinel()),
+                &mut |_, _| Ok(()),
             )),
             Callback::Admit => error_of(prepare_source_command_reuse(
-                &root, &mut || Ok(()), &mut |_, _| Err(sentinel()),
+                &root,
+                &mut || Ok(()),
+                &mut |_, _| Err(sentinel()),
             )),
         };
         assert_eq!(error, sentinel());
@@ -216,34 +275,57 @@ fn callback_errors_survive_prepare_count_and_emit() {
         let admits = Cell::new(0usize);
         let mut control_owner = CanonicalReuseWorkspace::new().unwrap();
         let output = canonical_source_command_into_reuse(
-            prepared(&root), &mut control_owner, limits(), AVAILABLE,
-            &mut || { checks.set(checks.get() + 1); Ok(()) },
-            &mut |_, _| { admits.set(admits.get() + 1); Ok(()) },
-        ).unwrap();
+            prepared(&root),
+            &mut control_owner,
+            limits(),
+            AVAILABLE,
+            &mut || {
+                checks.set(checks.get() + 1);
+                Ok(())
+            },
+            &mut |_, _| {
+                admits.set(admits.get() + 1);
+                Ok(())
+            },
+        )
+        .unwrap();
         assert_eq!(output.raw, b"{\"a\":{\"x\":true},\"z\":[1,2]}");
         assert!(checks.get() > 1 && admits.get() > 1);
-        let last = match kind { Callback::Check => checks.get(), Callback::Admit => admits.get() };
+        let last = match kind {
+            Callback::Check => checks.get(),
+            Callback::Admit => admits.get(),
+        };
         for failure_at in [1, last] {
             let checks = Cell::new(0usize);
             let admits = Cell::new(0usize);
             let mut owner = CanonicalReuseWorkspace::new().unwrap();
             let error = error_of(canonical_source_command_into_reuse(
-                prepared(&root), &mut owner, limits(), AVAILABLE,
+                prepared(&root),
+                &mut owner,
+                limits(),
+                AVAILABLE,
                 &mut || {
                     checks.set(checks.get() + 1);
                     if matches!(kind, Callback::Check) && checks.get() == failure_at {
                         Err(sentinel())
-                    } else { Ok(()) }
+                    } else {
+                        Ok(())
+                    }
                 },
                 &mut |_, _| {
                     admits.set(admits.get() + 1);
                     if matches!(kind, Callback::Admit) && admits.get() == failure_at {
                         Err(sentinel())
-                    } else { Ok(()) }
+                    } else {
+                        Ok(())
+                    }
                 },
             ));
             assert_eq!(error, sentinel());
-            let observed = match kind { Callback::Check => checks.get(), Callback::Admit => admits.get() };
+            let observed = match kind {
+                Callback::Check => checks.get(),
+                Callback::Admit => admits.get(),
+            };
             assert_eq!(observed, failure_at);
             assert_poisoned(&mut owner);
         }
@@ -253,19 +335,41 @@ fn callback_errors_survive_prepare_count_and_emit() {
 #[test]
 fn wire_depth_visit_limits_refuse_without_recovery() {
     let cases = [
-        (JsonValue::Bool(true), JsonLimits { max_bytes: 1, ..limits() }),
-        (decoded("[[[]]]"), JsonLimits { max_depth: 1, ..limits() }),
-        (decoded("[true]"), JsonLimits { max_visits: 1, ..limits() }),
+        (
+            JsonValue::Bool(true),
+            JsonLimits {
+                max_bytes: 1,
+                ..limits()
+            },
+        ),
+        (
+            decoded("[[[]]]"),
+            JsonLimits {
+                max_depth: 1,
+                ..limits()
+            },
+        ),
+        (
+            decoded("[true]"),
+            JsonLimits {
+                max_visits: 1,
+                ..limits()
+            },
+        ),
     ];
     for (root, lowered) in cases {
-        assert_eq!(error_of(legacy(&root, lowered)).code, FoundationErrorCode::BudgetExceeded);
+        assert_eq!(
+            error_of(legacy(&root, lowered)).code,
+            FoundationErrorCode::BudgetExceeded
+        );
         let mut owner = CanonicalReuseWorkspace::new().unwrap();
-        assert_eq!(error_of(selected(&root, &mut owner, lowered)).code,
-            FoundationErrorCode::BudgetExceeded);
+        assert_eq!(
+            error_of(selected(&root, &mut owner, lowered)).code,
+            FoundationErrorCode::BudgetExceeded
+        );
         assert_poisoned(&mut owner);
     }
 }
-
 
 #[test]
 fn shrinking_numeric_spellings_keep_original_input_limit() {
@@ -276,12 +380,16 @@ fn shrinking_numeric_spellings_keep_original_input_limit() {
     ] {
         for (root, expected) in [
             (number(kind, lexeme), spelling.to_owned()),
-            (JsonValue::Array(vec![number(kind, lexeme)]), format!("[{spelling}]")),
+            (
+                JsonValue::Array(vec![number(kind, lexeme)]),
+                format!("[{spelling}]"),
+            ),
         ] {
             if kind == JsonNumberKind::Float {
-                assert!(matches!(prepare_source_command_reuse(
-                    &root, &mut || Ok(()), &mut |_, _| Ok(()),
-                ), Ok(None)));
+                assert!(matches!(
+                    prepare_source_command_reuse(&root, &mut || Ok(()), &mut |_, _| Ok(()),),
+                    Ok(None)
+                ));
             }
             for profile in [
                 CanonicalProfile::SourceCommandInputV1,
@@ -290,13 +398,23 @@ fn shrinking_numeric_spellings_keep_original_input_limit() {
             ] {
                 let expected = if profile == CanonicalProfile::CorpusSnapshotV1 {
                     format!("{expected}\n")
-                } else { expected.clone() };
+                } else {
+                    expected.clone()
+                };
                 let (raw, _) = canonical_bytes_v1_with_state_budget_and_visits_and_admission(
-                    &root, profile, limits(), AVAILABLE,
-                    &mut || Ok(()), &mut |_, _| Ok(()),
-                ).unwrap();
+                    &root,
+                    profile,
+                    limits(),
+                    AVAILABLE,
+                    &mut || Ok(()),
+                    &mut |_, _| Ok(()),
+                )
+                .unwrap();
                 assert_eq!(raw, expected.as_bytes());
-                assert_eq!(raw, tos_foundation::canonical_bytes_v1(&root, profile, limits()).unwrap());
+                assert_eq!(
+                    raw,
+                    tos_foundation::canonical_bytes_v1(&root, profile, limits()).unwrap()
+                );
             }
         }
     }
@@ -309,7 +427,10 @@ fn original_numeric_input_bound_and_strict_refusals_remain() {
         (JsonNumberKind::Float, "1.0000", 4),
     ] {
         let root = number(kind, lexeme);
-        let limited = JsonLimits { max_bytes: bound, ..limits() };
+        let limited = JsonLimits {
+            max_bytes: bound,
+            ..limits()
+        };
         let error = error_of(legacy(&root, limited));
         assert_eq!(error.code, FoundationErrorCode::BudgetExceeded);
         assert_eq!(error.detail, "JSON byte budget exceeded");
@@ -322,10 +443,30 @@ fn original_numeric_input_bound_and_strict_refusals_remain() {
         }
     }
     for (kind, lexeme, code, detail) in [
-        (JsonNumberKind::Int, "01", FoundationErrorCode::InvalidNumber, "leading zero"),
-        (JsonNumberKind::Int, "1.0", FoundationErrorCode::InvalidNumber, "number lexeme and kind disagree"),
-        (JsonNumberKind::Float, "1", FoundationErrorCode::InvalidNumber, "number lexeme and kind disagree"),
-        (JsonNumberKind::Float, "1e999", FoundationErrorCode::NonfiniteFloat, "nonfinite or unrepresentable float"),
+        (
+            JsonNumberKind::Int,
+            "01",
+            FoundationErrorCode::InvalidNumber,
+            "leading zero",
+        ),
+        (
+            JsonNumberKind::Int,
+            "1.0",
+            FoundationErrorCode::InvalidNumber,
+            "number lexeme and kind disagree",
+        ),
+        (
+            JsonNumberKind::Float,
+            "1",
+            FoundationErrorCode::InvalidNumber,
+            "number lexeme and kind disagree",
+        ),
+        (
+            JsonNumberKind::Float,
+            "1e999",
+            FoundationErrorCode::NonfiniteFloat,
+            "nonfinite or unrepresentable float",
+        ),
     ] {
         let error = error_of(legacy(&number(kind, lexeme), limits()));
         assert_eq!(error.code, code);

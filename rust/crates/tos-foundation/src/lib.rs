@@ -25,23 +25,21 @@ pub use digest::{Digest256, Digest256Hasher};
 pub use error::{FoundationError, FoundationErrorCode, Result};
 pub use identity::{ExactRecordRef, RecordVersion, SourceRevision, StableId};
 pub use json::{
-    CanonicalReusePrepared, CanonicalReuseWorkspace, CanonicalSlice,
-    CANONICAL_REUSE_SETUP_STATE, CANONICAL_REUSE_CALL_STATE, CANONICAL_REUSE_CORE_STATE,
-    prepare_source_command_reuse, canonical_source_command_into_reuse,
-    CanonicalProfile, EncodedJson, JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode,
-    JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_bytes_v1,
-    canonical_bytes_v1_with_check, canonical_bytes_v1_with_state_budget,
-    canonical_bytes_v1_with_state_budget_and_visits,
+    CANONICAL_REUSE_CALL_STATE, CANONICAL_REUSE_CORE_STATE, CANONICAL_REUSE_SETUP_STATE,
+    CanonicalProfile, CanonicalReusePrepared, CanonicalReuseWorkspace, CanonicalSlice, EncodedJson,
+    JsonDocument, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber, JsonNumberKind,
+    JsonString, JsonValue, canonical_bytes_v1, canonical_bytes_v1_with_check,
+    canonical_bytes_v1_with_state_budget, canonical_bytes_v1_with_state_budget_and_visits,
     canonical_bytes_v1_with_state_budget_and_visits_and_admission,
     canonical_bytes_v1_with_state_budget_and_visits_and_check, canonical_bytes_v1_with_visits,
     canonical_count_v1, canonical_digest_v1, canonical_feed_digest_v1,
     canonical_feed_digest_v1_with_check, canonical_raw_bytes_profile, canonical_raw_bytes_v1,
-    emit_json_profile, emit_preserved_json, emit_python_compact_json,
-    emit_python_compact_json_with_state_budget_and_visits_and_check,
+    canonical_source_command_into_reuse, emit_json_profile, emit_preserved_json,
+    emit_python_compact_json, emit_python_compact_json_with_state_budget_and_visits_and_check,
     emit_python_pretty_sorted_json_with_state_budget, emit_value_preserved_json,
     order_json_object_members_with_check, parse_json, parse_json_profile, parse_json_with_check,
     parse_json_with_state_budget, parse_json_with_state_budget_and_admission,
-    parse_json_with_state_budget_and_check,
+    parse_json_with_state_budget_and_check, prepare_source_command_reuse,
 };
 pub use knowledge_model_abi::{
     KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V1, KNOWLEDGE_MODEL_ABI_MANAGED_NAVIGATION_V2,
