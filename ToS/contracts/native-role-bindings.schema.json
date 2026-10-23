@@ -60,20 +60,17 @@
           ]
         },
         "type_id": {
-          "type": "string",
-          "pattern": "^tos\\.entity\\.[a-z][a-z0-9-]*$"
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/typeId"
         },
         "record_type": {
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*$"
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/record_type"
         },
         "schema_version": {
           "type": "string",
           "minLength": 1
         },
         "schema_ref": {
-          "type": "string",
-          "pattern": "^ToS/contracts/[a-z][a-z0-9-]*\\.schema\\.json$"
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-entity-type-registry.schema.json#/$defs/sourceRecordProfile/properties/schemas/items/properties/schema_ref"
         }
       }
     }

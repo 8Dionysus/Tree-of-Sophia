@@ -16,6 +16,7 @@ use tos_source_store::CorpusCutReader;
 use tos_validation::{item_rules::ItemLimits, source_cut::CutWorkerSchemaExecutor};
 
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
+const ENTITY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
 const ROLE_SCHEMA: &str = "ToS/contracts/native-role-bindings.schema.json";
 
 /// Dispatch roles are local to these consumers, not a universal type system.
@@ -116,7 +117,7 @@ impl<'a> NativeRoleResolver<'a> {
         let bindings = cmd::parse(raw)?;
         check_pin(&bindings, registry.exact, "registry_id", "registry_version")?;
         source_revisions::schema_for_source_path_worker(
-            worker, deadline, cancelled, ctx, &[ROLE_SCHEMA.into()], ROLE_SCHEMA, registry.path, &bindings,
+            worker, deadline, cancelled, ctx, &[ROLE_SCHEMA.into(), ENTITY_SCHEMA.into()], ROLE_SCHEMA, registry.path, &bindings,
         )?;
         let row_work = cmd::array(&bindings, "role_bindings")?.len()
             .checked_mul(cmd::array(&entities, "types")?.len())
