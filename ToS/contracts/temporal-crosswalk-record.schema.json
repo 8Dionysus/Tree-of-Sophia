@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/temporal-crosswalk-record.schema.json",
+  "title": "Versioned temporal finite crosswalk source record",
+  "description": "Storage and schema acceptance do not admit this mapping as conversion policy. Integer applicability, rows, predecessor/version invariants require the bounded codec and writer checks.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "semantic_content"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_temporal_crosswalk_record_v1"
+        },
+        "record_type": {
+          "const": "temporal-crosswalk"
+        },
+        "record_id": {
+          "type": "string",
+          "pattern": "^tos\\.temporal-crosswalk\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "semantic_content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile",
+            "source_trs",
+            "target_trs",
+            "rule_profile",
+            "rules_version",
+            "applicability",
+            "rows",
+            "predecessor_source_record_ref",
+            "provenance"
+          ],
+          "properties": {
+            "profile": {
+              "const": "tos_stored_finite_crosswalk_v1"
+            },
+            "source_trs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "version"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "target_trs": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "version"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "version": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "rule_profile": {
+              "const": "finite-mapping-v1"
+            },
+            "rules_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "applicability": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "min",
+                "max",
+                "unit",
+                "origin"
+              ],
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": -9223372036854775808,
+                  "maximum": 9223372036854775807
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": -9223372036854775808,
+                  "maximum": 9223372036854775807
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "origin": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "rows": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^(0|-?[1-9][0-9]*)$"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": -9223372036854775808,
+                "maximum": 9223372036854775807
+              }
+            },
+            "predecessor_source_record_ref": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "digest"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "digest": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              ]
+            },
+            "provenance": {
+              "type": "object",
+              "minProperties": 1
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

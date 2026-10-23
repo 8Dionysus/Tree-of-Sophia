@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.tradition",
+  "parent_type_ids": [
+    "tos.entity.navigation-object"
+  ],
+  "abstract": false,
+  "object_role": "navigation",
+  "labels": {
+    "default": "Tradition route",
+    "ru": "Маршрут традиции",
+    "en": "Tradition route"
+  },
+  "definition": "A source-tree tradition route.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/philosophy/AGENTS.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "tradition"
+    }
+  ],
+  "supersedes_type_id": null
+}

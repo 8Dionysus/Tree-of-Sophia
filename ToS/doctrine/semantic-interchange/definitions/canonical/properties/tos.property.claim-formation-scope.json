@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-formation-scope",
+  "field": "attributes.source_claim.qualifiers.formation_scope",
+  "labels": {
+    "default": "Intellectual relationship scope",
+    "ru": "Область интеллектуальной связи",
+    "en": "Intellectual relationship scope"
+  },
+  "definition": "The specific historical affiliation, transformation or articulation asserted, not an endorsement.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -194,7 +194,8 @@ impl BoundCmpKnowledge<'_> {
         Ok(expected)
     }
 
-    pub(crate) fn source_for_adapter(&self, adapter: &str) -> Option<&str> {
+    /// Read-only unique source graph lookup; this grants no read authority.
+    pub fn source_for_adapter(&self, adapter: &str) -> Option<&str> {
         let mut sources = self
             .vocabulary
             .sources

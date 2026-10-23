@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.thought-operation-prerequisites",
+  "field": "attributes.source_record.semantic_content.prerequisites",
+  "labels": {
+    "default": "Declared prerequisites",
+    "ru": "Заявленные предпосылки операции",
+    "en": "Declared prerequisites"
+  },
+  "definition": "Source-described prerequisites; an empty list means none recorded, not proof that none exist.",
+  "value_type": "string-array",
+  "applies_to": [
+    "tos.entity.thought-operation"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "contains",
+    "in",
+    "exists"
+  ]
+}

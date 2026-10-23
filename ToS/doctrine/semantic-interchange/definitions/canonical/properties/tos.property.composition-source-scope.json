@@ -1,0 +1,27 @@
+{
+  "property_id": "tos.property.composition-source-scope",
+  "field": "attributes.value.source_scope",
+  "labels": {
+    "default": "Composition scope",
+    "ru": "Область состава",
+    "en": "Composition scope"
+  },
+  "definition": "The source-attributed composition scope of this exact Claim; not a global fact, completeness proof, historical chronology or admission.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.intellectual-part-composition",
+    "tos.entity.research-corpus-membership",
+    "tos.entity.physical-part-composition",
+    "tos.entity.collection-member-order"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "in",
+    "exists",
+    "contains"
+  ]
+}

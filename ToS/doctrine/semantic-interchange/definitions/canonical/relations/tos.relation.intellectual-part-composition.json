@@ -1,0 +1,74 @@
+{
+  "relation_type_id": "tos.relation.intellectual-part-composition",
+  "parent_relation_type_ids": [],
+  "abstract": false,
+  "labels": {
+    "default": "Has attributed part composition",
+    "ru": "Имеет приписанный состав частей",
+    "en": "Has attributed part composition"
+  },
+  "inverse_labels": {
+    "default": "Part composition attributed to",
+    "ru": "Состав частей приписан",
+    "en": "Part composition attributed to"
+  },
+  "definition": "Attributes proper intellectual parts within a stated scope, with explicit extent and local order. Competing compositions retain their own Claim contexts and assessment.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/source-member-structure-claim.schema.json",
+  "domain_type_ids": [
+    "tos.entity.intellectual-object"
+  ],
+  "range_type_ids": [
+    "tos.entity.intellectual-part-composition"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "intellectual_part_composition",
+      "scope": "claim-predicate"
+    }
+  ],
+  "supersedes_relation_type_id": null,
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "structured-reference-value-v1",
+    "value_kind": "intellectual-part-composition",
+    "object_reference_set": {
+      "member_type_ids": [
+        "tos.entity.intellectual-object"
+      ],
+      "min_items": 1,
+      "max_items": 128,
+      "subject_is_member": false,
+      "structure_adapter": "scoped-members-v1"
+    },
+    "assertion_layers": [
+      "scholarly_report",
+      "textual_observation",
+      "bibliographic_assertion"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_source_member_structure_claim_v1",
+        "schema_ref": "ToS/contracts/source-member-structure-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/source-structured-value.schema.json",
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/scoped-member-structure.schema.json"
+        ]
+      }
+    ]
+  }
+}

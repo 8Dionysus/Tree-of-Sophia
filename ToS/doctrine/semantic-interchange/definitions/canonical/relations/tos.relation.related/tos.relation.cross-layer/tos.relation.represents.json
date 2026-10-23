@@ -1,0 +1,40 @@
+{
+  "relation_type_id": "tos.relation.represents",
+  "parent_relation_type_ids": [
+    "tos.relation.cross-layer"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "represents",
+    "ru": "представляет",
+    "en": "represents"
+  },
+  "inverse_labels": {
+    "default": "is represented by",
+    "ru": "представлено",
+    "en": "is represented by"
+  },
+  "definition": "States that one explicit representation stands for another identified object under a source-owned assertion.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [],
+  "supersedes_relation_type_id": null
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.reception-history-reception-account",
+  "field": "attributes.source_record.semantic_content.reception_account",
+  "labels": {
+    "default": "Reception account",
+    "ru": "Описание рецепции",
+    "en": "Reception account"
+  },
+  "definition": "A source-attributed account of reception or its historical change, not an evaluation by ToS.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.reception-history"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

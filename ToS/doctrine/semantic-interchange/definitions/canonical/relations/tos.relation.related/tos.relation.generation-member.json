@@ -1,0 +1,62 @@
+{
+  "relation_type_id": "tos.relation.generation-member",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "includes the attributed cohort member",
+    "ru": "включает приписанного участника поколения",
+    "en": "includes the attributed cohort member"
+  },
+  "inverse_labels": {
+    "default": "is attributed to the generation",
+    "ru": "отнесён к поколению",
+    "en": "is attributed to the generation"
+  },
+  "definition": "Assigns a person to a source-described cohort under the declared generational criterion and evidential scope.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.historical-generation"
+  ],
+  "range_type_ids": [
+    "tos.entity.agent"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "generation_member",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_historical_context_claim_v1",
+        "schema_ref": "ToS/contracts/historical-context-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

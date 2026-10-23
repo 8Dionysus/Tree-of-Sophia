@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.research-corpus-research-purpose",
+  "field": "attributes.source_record.semantic_content.research_purpose",
+  "labels": {
+    "default": "Research purpose",
+    "ru": "Исследовательская цель",
+    "en": "Research purpose"
+  },
+  "definition": "The source-described research purpose of this persistent corpus; exact membership, order and admission remain separate Claims.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.research-corpus"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "type_id": "tos.entity.thing",
+  "parent_type_ids": [],
+  "abstract": true,
+  "object_role": "root",
+  "labels": {
+    "default": "Thing",
+    "ru": "Объект",
+    "en": "Thing"
+  },
+  "definition": "The root for declared ToS entity families in the semantic interchange hierarchy.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [],
+  "supersedes_type_id": null
+}

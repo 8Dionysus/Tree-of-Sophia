@@ -1,0 +1,46 @@
+{
+  "relation_type_id": "tos.relation.projects",
+  "parent_relation_type_ids": [
+    "tos.relation.structural"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "projects",
+    "ru": "проецирует",
+    "en": "projects"
+  },
+  "inverse_labels": {
+    "default": "is projected by",
+    "ru": "проецируется через",
+    "en": "is projected by"
+  },
+  "definition": "Connects carrier representations that explicitly declare the same persistent ToS entity identity.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": "tos.relation.projected-by",
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "derived-projection",
+  "evidence_required": false,
+  "review_requirement": "none",
+  "source_mappings": [
+    {
+      "source_graph": "semantic-interchange",
+      "source_predicate_id": "projects",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

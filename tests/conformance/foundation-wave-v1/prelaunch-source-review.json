@@ -1,0 +1,43 @@
+{
+  "kind": "IndependentReadOnlySourceCheckpoint",
+  "source_commit": "17fae94d8",
+  "runtime_status": "NotExecuted",
+  "heavy_launches": 0,
+  "denied_operation_retries": 0,
+  "bindings": {
+    "rust/crates/tos-foundation/src/temporal.rs": "27e425b07aa0e870f14e076e71af23d1e98edd5c2b0fa3978ea02f4e1c2ba6b3",
+    "rust/crates/tos-foundation/src/temporal/difference.rs": "a00409556c0489ba8aaadadb67f3ae239948374bbc863d4b23b27fba20ad26e7",
+    "rust/crates/tos-foundation/tests/temporal_difference_native.rs": "7d1556e4824b773baa369cfeda5a46da429f7d378a15b2622b6c5e9a5152248c",
+    "tests/conformance/rust/command_claim_cases.rs": "6f38c54988c5d4853a1127a43d6a01ff3e7a9c685e63360d0f2f64ac9c3f3baf",
+    "rust/crates/tos-foundation/tests/temporal_core_native.rs": "564894f1258ebe44d6f1072c01a9e6d4265157c1b9253b5ddc7afd4ce37c61f1",
+    "rust/crates/tos-foundation/tests/temporal_codecs_native.rs": "498d544d15cbf77c26b8a891e7a1d5d9696599645509b83a630012abaaf5fec1"
+  },
+  "findings": [
+    {
+      "issue": "Difference public module and dispatch absent after cherry-pick",
+      "reported_to": "I/C",
+      "resolution": "Source corrected in17fae94d8; compile remains unverified"
+    },
+    {
+      "issue": "Claim history extension actual state assertions",
+      "resolution": "Source includes exact preappend v1 member and cut, actualv2 current raw, cold describe/inspect-version, exact archived v1 bytes/digests and frozen/newfence assertions; runtime pending"
+    },
+    {
+      "issue": "Test cleanup preservation",
+      "resolution": "Owner core consolidated9to4 distinct risks against retained independent R12; codecs11to8 parameterized sourcecalendar/bounds/conflicts. Source review shows important assertions retained; rerun pending."
+    }
+  ],
+  "test_function_counts_source_only": {
+    "foundation_wave_context": 9,
+    "foundation_wave_wire": 6,
+    "temporal_context_native": 5,
+    "foundation_wave_temporal": 12,
+    "temporal_core_native": 4,
+    "temporal_codecs_native": 8,
+    "temporal_calendar_adapters_native": 8,
+    "temporal_network_native": 6,
+    "temporal_difference_native": 3
+  },
+  "total_test_functions_source_only": 61,
+  "oracle60_unchanged": true
+}

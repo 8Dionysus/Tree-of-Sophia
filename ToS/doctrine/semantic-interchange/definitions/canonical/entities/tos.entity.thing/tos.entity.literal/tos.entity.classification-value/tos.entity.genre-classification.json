@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.genre-classification",
+  "parent_type_ids": [
+    "tos.entity.classification-value"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Attributed genre",
+    "ru": "Приписанный жанр",
+    "en": "Attributed genre"
+  },
+  "definition": "A source-attributed genre designation of an intellectual object within a stated classification context.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/source-classification-claim.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "genre-classification"
+    }
+  ],
+  "supersedes_type_id": null
+}

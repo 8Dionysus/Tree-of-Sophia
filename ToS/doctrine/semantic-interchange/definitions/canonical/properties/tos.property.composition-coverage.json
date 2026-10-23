@@ -1,0 +1,26 @@
+{
+  "property_id": "tos.property.composition-coverage",
+  "field": "attributes.value.coverage",
+  "labels": {
+    "default": "Declared composition coverage",
+    "ru": "Заявленная полнота состава",
+    "en": "Declared composition coverage"
+  },
+  "definition": "The source-attributed declared composition coverage of this exact Claim; not a global fact, completeness proof, historical chronology or admission.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.intellectual-part-composition",
+    "tos.entity.research-corpus-membership",
+    "tos.entity.physical-part-composition",
+    "tos.entity.collection-member-order"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

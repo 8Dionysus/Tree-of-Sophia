@@ -1,0 +1,18 @@
+{
+  "type_id": "tos.entity.linguistic-system",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": true,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Linguistic system",
+    "ru": "Языковая система",
+    "en": "Linguistic system"
+  },
+  "definition": "A source-described linguistic system or variety. Language and dialect relationships are recorded as scoped, contestable Claims.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [],
+  "supersedes_type_id": null
+}

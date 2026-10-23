@@ -1,0 +1,67 @@
+{
+  "relation_type_id": "tos.relation.conception-expressed-in",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "is interpreted as expressed in",
+    "ru": "интерпретируется как выраженная в",
+    "en": "is interpreted as expressed in"
+  },
+  "inverse_labels": {
+    "default": "is interpreted as expressing a conception",
+    "ru": "интерпретируется как выражающее трактовку",
+    "en": "is interpreted as expressing a conception"
+  },
+  "definition": "Interprets a specified intellectual or textual object as expressing a conception, with evidence, scope and the source's assertive or conditional force explicit.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.conception"
+  ],
+  "range_type_ids": [
+    "tos.entity.work",
+    "tos.entity.expression",
+    "tos.entity.document"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "conception_expressed_in",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "semantic-relation-v1",
+    "assertion_layers": [
+      "scholarly_report",
+      "semantic_interpretation"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_semantic_relation_claim_v1",
+        "schema_ref": "ToS/contracts/semantic-relation-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

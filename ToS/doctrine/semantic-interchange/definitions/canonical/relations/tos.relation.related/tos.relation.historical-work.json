@@ -1,0 +1,60 @@
+{
+  "relation_type_id": "tos.relation.historical-work",
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_source_relation_claim_v1",
+        "schema_ref": "ToS/contracts/source-relation-claim.schema.json",
+        "schema_dependencies": []
+      }
+    ]
+  },
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "concerns work",
+    "ru": "относится к произведению",
+    "en": "concerns work"
+  },
+  "inverse_labels": {
+    "default": "is concerned by historical situation",
+    "ru": "связано с исторической ситуацией",
+    "en": "is concerned by historical situation"
+  },
+  "definition": "Associates a historical situation topically with a Work. Specific creation, publication, reading, reception and influence relations have their own Claims.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.historical-situation"
+  ],
+  "range_type_ids": [
+    "tos.entity.work"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "historical_work",
+      "scope": "claim-predicate"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

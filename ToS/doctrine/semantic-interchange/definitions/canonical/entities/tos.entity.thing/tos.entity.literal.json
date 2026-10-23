@@ -1,0 +1,27 @@
+{
+  "type_id": "tos.entity.literal",
+  "parent_type_ids": [
+    "tos.entity.thing"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Claim-scoped literal",
+    "ru": "Литерал утверждения",
+    "en": "Claim-scoped literal"
+  },
+  "definition": "A value whose scope and reference are owned by its Claim.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "literal"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "literal"
+    }
+  ],
+  "supersedes_type_id": null
+}

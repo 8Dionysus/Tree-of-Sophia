@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.annotation-lexeme",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Native annotation lexeme",
+    "ru": "Лексема в исходной разметке",
+    "en": "Native annotation lexeme"
+  },
+  "definition": "A source-declared lexical grouping within a native semantic-annotation-v2 packet, preserving its identity basis, version, source anchors and admission status under that native profile.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "annotation-lexeme"
+    }
+  ],
+  "supersedes_type_id": null
+}

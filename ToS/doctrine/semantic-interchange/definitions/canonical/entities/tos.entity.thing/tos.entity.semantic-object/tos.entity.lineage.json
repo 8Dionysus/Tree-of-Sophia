@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.lineage",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Lineage",
+    "ru": "Линия развития",
+    "en": "Lineage"
+  },
+  "definition": "An authored lineage or movement path between semantic objects.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/tos-node-contract.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "canon",
+      "source_kind_id": "lineage"
+    }
+  ],
+  "supersedes_type_id": null
+}

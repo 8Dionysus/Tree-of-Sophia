@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-canonization-selection-basis",
+  "field": "attributes.source_record.semantic_content.selection_basis",
+  "labels": {
+    "default": "Historical selection basis",
+    "ru": "Основание исторического отбора",
+    "en": "Historical selection basis"
+  },
+  "definition": "The criteria and practices by which the historical community distinguishes an authoritative or exemplary repertoire.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-canonization"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

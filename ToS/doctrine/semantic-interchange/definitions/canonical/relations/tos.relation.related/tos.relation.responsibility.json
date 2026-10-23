@@ -1,0 +1,37 @@
+{
+  "relation_type_id": "tos.relation.responsibility",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": true,
+  "labels": {
+    "default": "has responsibility bearer",
+    "ru": "имеет носителя ответственности",
+    "en": "has responsibility bearer"
+  },
+  "inverse_labels": null,
+  "definition": "The family of role-specific responsibility relations involving Agents.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "domain_type_ids": [
+    "tos.entity.intellectual-object"
+  ],
+  "range_type_ids": [
+    "tos.entity.agent",
+    "tos.entity.organization"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [],
+  "supersedes_relation_type_id": null
+}

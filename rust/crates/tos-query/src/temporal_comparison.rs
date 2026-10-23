@@ -467,6 +467,130 @@ where
         unique_issues(issues),
     ))
 }
+/// Caller-declared display request only; it grants no policy or chronology admission.
+pub const CLAIM_PROJECTION_OPERATION: &str = "tos.knowledge.temporal.project_claims";
+pub const CLAIM_PROJECTION_INTENDED_USE: &str = "read_only_public_knowledge_claim_projection_v1";
+
+pub(crate) fn project_temporal_claims<L>(
+    revision: &str,
+    request: &JsonValue,
+    source_graph: &str,
+    mut lookup: L,
+    limits: JsonLimits,
+    max_members: usize,
+) -> Result<JsonValue, SearchV2Error>
+where
+    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchV2Error>,
+{
+    let invalid = || {
+        err(
+            SearchV2ErrorCode::InvalidRequest,
+            "invalid Claim projection request",
+        )
+    };
+    if !request.as_object().is_some_and(|o| o.len() == 4)
+        || get(request, "schema_version") != Some("tos_claim_projection_request_v1")
+        || !get(request, "source_revision").is_some_and(bare)
+    {
+        return Err(invalid());
+    }
+    let members = field(request, "members").as_array().ok_or_else(invalid)?;
+    if members.is_empty() {
+        return Err(invalid());
+    }
+    if members.len() > max_members {
+        return Err(err(
+            SearchV2ErrorCode::BudgetExceeded,
+            "Claim projection member budget",
+        ));
+    }
+    let display = field(request, "display_perspective");
+    let keys = display.as_object().ok_or_else(invalid)?;
+    if keys.iter().any(|(key, _)| {
+        !matches!(
+            key.as_str(),
+            Some("profile_ref" | "mode" | "requested_calendar" | "requested_language")
+        )
+    }) || get(display, "mode") != Some("SourcePreserving")
+    {
+        return Err(invalid());
+    }
+    let profile = field(display, "profile_ref");
+    if !profile.as_object().is_some_and(|o| o.len() == 3)
+        || !get(profile, "id").is_some_and(|s| tos_foundation::StableId::parse(s).is_ok())
+        || field(profile, "version")
+            .as_u64()
+            .and_then(|v| tos_foundation::RecordVersion::new(v).ok())
+            .is_none()
+        || !get(profile, "digest").is_some_and(|s| Digest256::from_prefixed(s).is_ok())
+        || ["requested_calendar", "requested_language"]
+            .iter()
+            .any(|key| {
+                display
+                    .object_get(key)
+                    .is_some_and(|v| !v.as_str().is_some_and(|s| !s.is_empty()))
+            })
+    {
+        return Err(invalid());
+    }
+    let mut seen = BTreeSet::new();
+    for member in members {
+        // Share exact node/content-revision validation with the existing comparator.
+        let pair = object(vec![
+            ("schema_version", text("tos_temporal_comparison_request_v1")),
+            ("source_revision", field(request, "source_revision").clone()),
+            ("left", member.clone()),
+            ("right", member.clone()),
+        ]);
+        validate_temporal_request(&pair)?;
+        if !seen.insert(get(member, "node_id").ok_or_else(invalid)?) {
+            return Err(invalid());
+        }
+    }
+    if get(request, "source_revision") != Some(revision) {
+        return Err(err(
+            SearchV2ErrorCode::StaleSelection,
+            "Claim projection source revision changed",
+        ));
+    }
+    let mut rows = Vec::with_capacity(members.len());
+    for member in members {
+        let selected = operand(member, source_graph, &mut lookup, limits)?;
+        rows.push(object(vec![
+            ("member", member.clone()),
+            ("operand", selected.packet),
+            ("source_status", text(selected.status)),
+            (
+                "source_issues",
+                JsonValue::Array(selected.issues.iter().map(|s| text(s)).collect()),
+            ),
+            ("derived_coordinate", JsonValue::Null),
+            ("derived_coordinate_status", text("Unresolved")),
+            (
+                "derived_coordinate_reason",
+                text("SourcePreservingDoesNotDeriveCoordinates"),
+            ),
+        ]));
+    }
+    Ok(object(vec![
+        ("schema_version", text("tos_claim_projection_result_v1")),
+        ("source_revision", text(revision)),
+        ("display_perspective", display.clone()),
+        ("rows", JsonValue::Array(rows)),
+        ("projection_scope", text("exact-selected-model-members")),
+        ("profile_binding", text("caller-declared-display-request")),
+        (
+            "authority_boundary",
+            object(vec![
+                ("creates_inferred_claim", JsonValue::Bool(false)),
+                ("performs_assessment", JsonValue::Bool(false)),
+                ("binds_persisted_chronology", JsonValue::Bool(false)),
+                ("admits_display_policy", JsonValue::Bool(false)),
+            ]),
+        ),
+    ]))
+}
+
 /// Maintained request validation before any carrier I/O. Revision equality
 /// remains a selected snapshot check in the comparator.
 pub fn validate_temporal_request(request: &JsonValue) -> Result<(), SearchV2Error> {
@@ -657,6 +781,363 @@ where
             ]),
         ),
     ]))
+}
+
+pub const CLAIM_LIST_OPERATION: &str = "tos.knowledge.temporal.list_claims";
+pub const CLAIM_LIST_INTENDED_USE: &str = "read_only_public_knowledge_claim_list_v1";
+
+pub(crate) struct ClaimListBinding<'a> {
+    pub revision: &'a str,
+    pub source_graph: &'a str,
+    pub model_receipt: &'a str,
+    pub index_digest: &'a str,
+    pub policy_digest: &'a str,
+}
+pub(crate) struct ClaimListRequest {
+    pub filter: JsonValue,
+    pub page_size: usize,
+    pub scan_limit: usize,
+    pub after: Option<(String, i64)>,
+    pub query_digest: String,
+}
+fn list_invalid() -> SearchV2Error {
+    err(
+        SearchV2ErrorCode::InvalidRequest,
+        "invalid Claim list request or cursor",
+    )
+}
+pub(crate) fn parse_claim_list_request(
+    request: &JsonValue,
+    binding: &ClaimListBinding<'_>,
+    max_matches: usize,
+    max_rows: u64,
+    limits: JsonLimits,
+    temporal_budget: tos_foundation::temporal::TemporalBudget,
+) -> Result<ClaimListRequest, SearchV2Error> {
+    if !request.as_object().is_some_and(|o| o.len() == 6)
+        || get(request, "schema_version") != Some("tos_claim_list_request_v1")
+        || ![
+            "source_revision",
+            "filter",
+            "page_size",
+            "scan_limit",
+            "after",
+        ]
+        .iter()
+        .all(|k| request.object_get(k).is_some())
+        || !get(request, "source_revision").is_some_and(bare)
+    {
+        return Err(list_invalid());
+    }
+    if get(request, "source_revision") != Some(binding.revision) {
+        return Err(err(
+            SearchV2ErrorCode::StaleSelection,
+            "Claim list source revision changed",
+        ));
+    }
+    let filter = field(request, "filter");
+    for (key, value) in filter.as_object().ok_or_else(list_invalid)? {
+        let key = key.as_str().ok_or_else(list_invalid)?;
+        if key == "temporal" {
+            tos_foundation::temporal::validate_claim_coordinate_filter(value, temporal_budget)
+                .map_err(claim_list_temporal_error)?;
+            continue;
+        }
+        if matches!(
+            key,
+            "frozen_chronology"
+                | "attributed_knowledge"
+                | "world_valid_time"
+                | "system_as_of"
+                | "source_publication_as_of"
+        ) {
+            return Err(err(
+                SearchV2ErrorCode::UnsupportedModel,
+                "Claim list temporal or frozen source binding unavailable",
+            ));
+        }
+        if !matches!(
+            key,
+            "subject_ref" | "predicate" | "claim_type" | "assertion_layer" | "visibility"
+        ) || !value.as_str().is_some_and(|v| !v.is_empty())
+        {
+            return Err(list_invalid());
+        }
+    }
+    let count = |key| {
+        field(request, key)
+            .as_u64()
+            .and_then(|v| usize::try_from(v).ok())
+            .filter(|v| *v > 0)
+            .ok_or_else(list_invalid)
+    };
+    let page_size = count("page_size")?;
+    let scan_limit = count("scan_limit")?;
+    // Each examined candidate costs one keyset row and one authenticated payload row.
+    if page_size > max_matches || scan_limit > usize::try_from(max_rows / 2).unwrap_or(usize::MAX) {
+        return Err(err(
+            SearchV2ErrorCode::BudgetExceeded,
+            "Claim list page or scan budget",
+        ));
+    }
+    let query_digest = sha(
+        &object(vec![
+            ("filter", filter.clone()),
+            ("page_size", field(request, "page_size").clone()),
+            ("scan_limit", field(request, "scan_limit").clone()),
+            ("source_graph", text(binding.source_graph)),
+        ]),
+        limits,
+    )?;
+    let cursor = field(request, "after");
+    let after = if cursor.is_null() {
+        None
+    } else {
+        if !cursor.as_object().is_some_and(|o| o.len() == 8)
+            || get(cursor, "schema_version") != Some("tos_claim_list_cursor_v1")
+        {
+            return Err(list_invalid());
+        }
+        for (key, expected) in [
+            ("source_revision", binding.revision),
+            ("model_receipt_id", binding.model_receipt),
+            ("index_sha256", binding.index_digest),
+            ("source_graph", binding.source_graph),
+        ] {
+            if get(cursor, key) != Some(expected) {
+                return Err(err(
+                    SearchV2ErrorCode::StaleSelection,
+                    "Claim list cursor selection changed",
+                ));
+            }
+        }
+        if get(cursor, "policy_sha256") != Some(binding.policy_digest) {
+            return Err(err(
+                SearchV2ErrorCode::StalePolicy,
+                "Claim list cursor policy changed",
+            ));
+        }
+        if get(cursor, "query_sha256") != Some(query_digest.as_str()) {
+            return Err(list_invalid());
+        }
+        let position = field(cursor, "source_order")
+            .as_u64()
+            .and_then(|v| i64::try_from(v).ok())
+            .ok_or_else(list_invalid)?;
+        Some((binding.source_graph.to_owned(), position))
+    };
+    Ok(ClaimListRequest {
+        filter: filter.clone(),
+        page_size,
+        scan_limit,
+        after,
+        query_digest,
+    })
+}
+pub(crate) fn claim_list_cursor(
+    binding: &ClaimListBinding<'_>,
+    query_digest: &str,
+    position: i64,
+) -> JsonValue {
+    object(vec![
+        ("schema_version", text("tos_claim_list_cursor_v1")),
+        ("source_revision", text(binding.revision)),
+        ("model_receipt_id", text(binding.model_receipt)),
+        ("index_sha256", text(binding.index_digest)),
+        ("policy_sha256", text(binding.policy_digest)),
+        ("query_sha256", text(query_digest)),
+        ("source_graph", text(binding.source_graph)),
+        (
+            "source_order",
+            JsonValue::Number(tos_foundation::JsonNumber {
+                kind: JsonNumberKind::Int,
+                lexeme: position.to_string(),
+            }),
+        ),
+    ])
+}
+pub(crate) fn selected_claim_list_row(
+    carrier: &JsonValue,
+    id: &str,
+    source_graph: &str,
+    filter: &JsonValue,
+    limits: JsonLimits,
+) -> Result<Option<JsonValue>, SearchV2Error> {
+    if get(carrier, "id") != Some(id)
+        || get(carrier, "source_graph") != Some(source_graph)
+        || get(carrier, "kind_id").is_none()
+    {
+        return Err(corrupt());
+    }
+    if get(carrier, "kind_id") != Some("claim") {
+        if get(carrier, "type_id") == Some("tos.entity.claim") {
+            return Err(corrupt());
+        }
+        return Ok(None);
+    }
+    containers(carrier)?;
+    let source = path(carrier, &["attributes", "source_claim"]);
+    let semantics = path(carrier, &["semantics", "claim"]);
+    let version = field(source, "claim_version");
+    if get(carrier, "type_id") != Some("tos.entity.claim")
+        || get(field(carrier, "type_mapping"), "status") != Some("mapped")
+        || source.as_object().is_none()
+        || !get(source, "claim_id").is_some_and(|s| tos_foundation::StableId::parse(s).is_ok())
+        || version
+            .as_u64()
+            .and_then(|v| tos_foundation::RecordVersion::new(v).ok())
+            .is_none()
+        || field(source, "claim_id") != field(semantics, "claim_id")
+        || version != field(semantics, "claim_version")
+        || field(source, "predicate") != field(semantics, "source_predicate_id")
+        || get(semantics, "predicate_mapping_status") != Some("mapped")
+    {
+        return Err(corrupt());
+    }
+    let source_digest = sha(source, limits)?;
+    if get(field(carrier, "attributes"), "source_sha256") != Some(source_digest.as_str())
+        || !get(carrier, "content_revision").is_some_and(bare)
+    {
+        return Err(corrupt());
+    }
+    for key in [
+        "subject_ref",
+        "predicate",
+        "claim_type",
+        "assertion_layer",
+        "visibility",
+    ] {
+        if !get(source, key).is_some_and(|s| !s.is_empty()) {
+            return Err(corrupt());
+        }
+    }
+    for (key, wanted) in filter.as_object().ok_or_else(list_invalid)? {
+        if key.as_str() == Some("temporal") {
+            continue;
+        }
+        if field(source, key.as_str().ok_or_else(list_invalid)?) != wanted {
+            return Ok(None);
+        }
+    }
+    Ok(Some(object(vec![
+        ("node_id", text(id)),
+        (
+            "content_revision",
+            field(carrier, "content_revision").clone(),
+        ),
+        (
+            "claim_ref",
+            object(vec![
+                ("id", field(source, "claim_id").clone()),
+                ("version", version.clone()),
+                ("digest", text(&format!("sha256:{source_digest}"))),
+            ]),
+        ),
+        ("carrier", carrier.clone()),
+    ])))
+}
+
+pub(crate) fn claim_list_temporal_error(
+    reason: tos_foundation::temporal::TemporalError,
+) -> SearchV2Error {
+    use tos_foundation::temporal::TemporalError;
+    match reason {
+        TemporalError::MalformedRequest(message) => err(SearchV2ErrorCode::InvalidRequest, message),
+        TemporalError::ResourceExhausted(message) => {
+            err(SearchV2ErrorCode::BudgetExceeded, message)
+        }
+    }
+}
+fn list_exact_reference(
+    value: &JsonValue,
+    prefixed: bool,
+) -> Result<tos_foundation::ExactRecordRef, SearchV2Error> {
+    let digest = get(value, "digest").ok_or_else(corrupt)?;
+    Ok(tos_foundation::ExactRecordRef {
+        id: tos_foundation::StableId::parse(get(value, "id").ok_or_else(corrupt)?)
+            .map_err(|_| corrupt())?,
+        version: tos_foundation::RecordVersion::new(
+            field(value, "version").as_u64().ok_or_else(corrupt)?,
+        )
+        .map_err(|_| corrupt())?,
+        digest: if prefixed {
+            Digest256::from_prefixed(digest)
+        } else {
+            Digest256::from_hex(digest)
+        }
+        .map_err(|_| corrupt())?,
+    })
+}
+pub(crate) fn evaluate_selected_claim_list_temporal(
+    row: &JsonValue,
+    filter: &JsonValue,
+    source_revision: tos_foundation::SourceRevision,
+    budget: tos_foundation::temporal::TemporalBudget,
+) -> Result<JsonValue, SearchV2Error> {
+    use tos_foundation::temporal::{
+        ClaimCarrierError, decode_claim_carrier, evaluate_claim_coordinate_filter,
+    };
+    let claim_ref = list_exact_reference(field(row, "claim_ref"), true)?;
+    let source = path(row, &["carrier", "attributes", "source_claim"]);
+    let decoded = match source.object_get("qualifiers") {
+        None => Ok(None),
+        Some(qualifiers) => decode_claim_carrier(qualifiers, budget),
+    };
+    let decoded = match decoded {
+        Ok(value) => value,
+        Err(reason) => {
+            let (domain, reason) = match reason {
+                ClaimCarrierError::Malformed(reason) => ("Unresolved", reason),
+                ClaimCarrierError::Unsupported(reason) => ("Unsupported", reason),
+                ClaimCarrierError::ResourceLimit => {
+                    return Err(err(
+                        SearchV2ErrorCode::BudgetExceeded,
+                        "Claim list source temporal carrier budget",
+                    ));
+                }
+            };
+            return Ok(object(vec![
+                (
+                    "schema_version",
+                    text("tos_claim_coordinate_source_refusal_v1"),
+                ),
+                ("outcome", text("Refused")),
+                ("domain", text(domain)),
+                ("reason", text(reason)),
+                ("claim_ref", field(row, "claim_ref").clone()),
+                ("source_revision", text(&source_revision.0.to_prefixed())),
+                ("assertion_scope", text("SupplementalCarrierOnly")),
+                ("legacy_object_assessment", text("NotExamined")),
+                ("preserved_filter", filter.clone()),
+                (
+                    "source_temporal_packet",
+                    field(field(source, "qualifiers"), "temporal_claim_carrier").clone(),
+                ),
+            ]));
+        }
+    };
+    let result = evaluate_claim_coordinate_filter(
+        decoded.as_ref(),
+        filter,
+        &claim_ref,
+        source_revision,
+        budget,
+    )
+    .map_err(claim_list_temporal_error)?;
+    // The documented wires differ; compare parsed identities, never digest spellings.
+    if list_exact_reference(field(&result, "claim_ref"), false)? != claim_ref
+        || tos_foundation::SourceRevision(
+            Digest256::from_prefixed(get(&result, "source_revision").ok_or_else(corrupt)?)
+                .map_err(|_| corrupt())?,
+        ) != source_revision
+        || !matches!(
+            get(&result, "outcome"),
+            Some("Match" | "NoMatch" | "Refused")
+        )
+    {
+        return Err(corrupt());
+    }
+    Ok(result)
 }
 
 #[cfg(test)]

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.intellectual-legacy-transmission-basis",
+  "field": "attributes.source_record.semantic_content.transmission_basis",
+  "labels": {
+    "default": "Legacy transmission basis",
+    "ru": "Основание наследия",
+    "en": "Legacy transmission basis"
+  },
+  "definition": "The source-described continuity, transformations and gaps supporting this legacy; resemblance does not establish a direct causal chain.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.intellectual-legacy"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

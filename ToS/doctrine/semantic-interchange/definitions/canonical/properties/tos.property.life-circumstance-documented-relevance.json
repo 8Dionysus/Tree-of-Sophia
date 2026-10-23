@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.life-circumstance-documented-relevance",
+  "field": "attributes.source_record.semantic_content.documented_relevance",
+  "labels": {
+    "default": "Documented relevance",
+    "ru": "Документированная значимость",
+    "en": "Documented relevance"
+  },
+  "definition": "What the source supports about the condition's relevance, distinguished from causal interpretation.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.life-circumstance"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

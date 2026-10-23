@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.time-role",
+  "field": "semantics.time.role",
+  "labels": {
+    "default": "Time role",
+    "ru": "Роль времени",
+    "en": "Time role"
+  },
+  "definition": "What the dating concerns. Historical time is separate from witness creation, data capture and knowledge revision.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.temporal-assertion"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

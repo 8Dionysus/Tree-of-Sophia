@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-social-time-note",
+  "field": "attributes.source_claim.qualifiers.time_scope_note",
+  "labels": {
+    "default": "Relationship time-scope note",
+    "ru": "Временная оговорка связи",
+    "en": "Relationship time-scope note"
+  },
+  "definition": "Source-owned historical scope wording, including unknown bounds; it supplies no normalized temporal key or capture time.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

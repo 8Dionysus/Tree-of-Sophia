@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.thought-operation-operation-account",
+  "field": "attributes.source_record.semantic_content.operation_account",
+  "labels": {
+    "default": "Operation account",
+    "ru": "Описание мыслительной операции",
+    "en": "Operation account"
+  },
+  "definition": "What is done conceptually and what is not implied by doing it; no executable is selected.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.thought-operation"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

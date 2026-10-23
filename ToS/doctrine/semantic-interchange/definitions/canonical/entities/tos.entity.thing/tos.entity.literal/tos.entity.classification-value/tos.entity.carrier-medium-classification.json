@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.carrier-medium-classification",
+  "parent_type_ids": [
+    "tos.entity.classification-value"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Attributed carrier medium",
+    "ru": "Приписанный вид носителя",
+    "en": "Attributed carrier medium"
+  },
+  "definition": "A source-attributed carrier category of a physical artifact or bibliographic item, such as papyrus, codex or printed book, within the stated classification scope.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/source-classification-claim.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "carrier-medium-classification"
+    }
+  ],
+  "supersedes_type_id": null
+}

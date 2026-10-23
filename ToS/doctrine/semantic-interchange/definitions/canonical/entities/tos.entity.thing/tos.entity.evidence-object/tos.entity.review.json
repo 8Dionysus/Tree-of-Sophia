@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.review",
+  "parent_type_ids": [
+    "tos.entity.evidence-object"
+  ],
+  "abstract": false,
+  "object_role": "evidence",
+  "labels": {
+    "default": "Review",
+    "ru": "Рецензирование",
+    "en": "Review"
+  },
+  "definition": "A distinct review event or decision over an assertion.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/claim-packet.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "review"
+    }
+  ],
+  "supersedes_type_id": null
+}

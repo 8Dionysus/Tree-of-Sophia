@@ -1,0 +1,91 @@
+{
+  "type_id": "tos.entity.philosophy-meta",
+  "parent_type_ids": [
+    "tos.entity.navigation-object"
+  ],
+  "abstract": false,
+  "object_role": "projection",
+  "labels": {
+    "default": "Philosophy projection metadata",
+    "ru": "Метаданные философской проекции",
+    "en": "Philosophy projection metadata"
+  },
+  "definition": "Metadata describing atlas, graph-view, table and dossier projections.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/derived-exports/AGENTS.md",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "atlas",
+      "labels": {
+        "default": "Philosophical atlas",
+        "ru": "Философский атлас",
+        "en": "Philosophical atlas"
+      }
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "atlas-node-type",
+      "labels": {
+        "default": "Atlas object type",
+        "ru": "Тип объекта атласа",
+        "en": "Atlas object type"
+      }
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "atlas-relation-kind",
+      "labels": {
+        "default": "Atlas relation kind",
+        "ru": "Вид связи атласа",
+        "en": "Atlas relation kind"
+      }
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "graph-view",
+      "labels": {
+        "default": "Graph view",
+        "ru": "Представление графа",
+        "en": "Graph view"
+      }
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "view-section",
+      "labels": {
+        "default": "View section",
+        "ru": "Раздел представления",
+        "en": "View section"
+      }
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "master-table",
+      "labels": {
+        "default": "Source table",
+        "ru": "Исходная таблица",
+        "en": "Source table"
+      }
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "master-table-row",
+      "labels": {
+        "default": "Source table row",
+        "ru": "Строка исходной таблицы",
+        "en": "Source table row"
+      }
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "prepared-dossier",
+      "labels": {
+        "default": "Prepared dossier",
+        "ru": "Подготовленное досье",
+        "en": "Prepared dossier"
+      }
+    }
+  ],
+  "supersedes_type_id": null
+}

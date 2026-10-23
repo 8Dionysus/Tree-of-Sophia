@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.translatability-search-outcome",
+  "field": "attributes.value.search_report.outcome",
+  "labels": {
+    "default": "Reported rendering search outcome",
+    "ru": "Сообщаемый результат поиска перевода",
+    "en": "Reported rendering search outcome"
+  },
+  "definition": "Outcome only for the stated sought criterion and coverage; missing is not none found, and none found is not untranslatability.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-translatability"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

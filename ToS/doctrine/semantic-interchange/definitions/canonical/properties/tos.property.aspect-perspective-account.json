@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.aspect-perspective-account",
+  "field": "attributes.source_record.semantic_content.perspective_account",
+  "labels": {
+    "default": "Perspective account",
+    "ru": "Описание аспекта",
+    "en": "Perspective account"
+  },
+  "definition": "What this perspective selects and leaves aside; the subject viewed through it is linked by separate grounded claims.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.aspect"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

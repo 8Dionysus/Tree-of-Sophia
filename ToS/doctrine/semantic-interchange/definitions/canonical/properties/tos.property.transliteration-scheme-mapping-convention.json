@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.transliteration-scheme-mapping-convention",
+  "field": "attributes.source_record.semantic_content.mapping_convention",
+  "labels": {
+    "default": "Transliteration convention",
+    "ru": "Правило транслитерации",
+    "en": "Transliteration convention"
+  },
+  "definition": "A source-described notation and mapping convention, not a translation or an executed text transformation.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.transliteration-scheme"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

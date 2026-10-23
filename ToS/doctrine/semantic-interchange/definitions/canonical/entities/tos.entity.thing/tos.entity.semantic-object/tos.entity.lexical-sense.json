@@ -1,0 +1,52 @@
+{
+  "type_id": "tos.entity.lexical-sense",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Lexical sense",
+    "ru": "Значение слова",
+    "en": "Lexical sense"
+  },
+  "definition": "A situated lexical reading retained as its own research referent. Sense-of and interpretation-of links are separately grounded Claims; descriptive corrections preserve competing readings and their identities.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "lexical-sense"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "sense"
+    },
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "sense"
+    }
+  ],
+  "supersedes_type_id": null,
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "record_type": "sense",
+    "id_prefix": "tos.sense.",
+    "source_basename": "sense.json",
+    "catalog_filename": "senses.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_lexical_description_record_v1",
+        "schema_ref": "ToS/contracts/lexical-description-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  }
+}

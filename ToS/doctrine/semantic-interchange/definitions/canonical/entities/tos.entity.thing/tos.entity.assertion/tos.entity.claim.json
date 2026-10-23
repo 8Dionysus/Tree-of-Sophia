@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.claim",
+  "parent_type_ids": [
+    "tos.entity.assertion"
+  ],
+  "abstract": false,
+  "object_role": "assertion",
+  "labels": {
+    "default": "Claim",
+    "ru": "Утверждение с доказательствами",
+    "en": "Claim"
+  },
+  "definition": "A reified evidence-bearing assertion with its own version, maker, provenance and review state.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/claim-packet.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "claim"
+    }
+  ],
+  "supersedes_type_id": null
+}

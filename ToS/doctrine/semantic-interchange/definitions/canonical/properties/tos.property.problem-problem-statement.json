@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.problem-problem-statement",
+  "field": "attributes.source_record.semantic_content.problem_statement",
+  "labels": {
+    "default": "Problem statement",
+    "ru": "Постановка проблемы",
+    "en": "Problem statement"
+  },
+  "definition": "The substantive tension or difficulty being investigated; its being recorded does not prove that all authors share it.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.problem"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -598,6 +598,369 @@ pub(crate) fn collect_schema_refs(
     Ok(())
 }
 
+// A bounded 2020-12 schema-position walk, not a validator or URI resolver.
+// Map member NAMES are data; their values are schemas even when named const
+// or examples. Conversely schema-level annotation/assertion payloads are data.
+fn walk_profile_schema(
+    value: &JsonValue,
+    root: bool,
+    depth: usize,
+    visit: &mut impl FnMut(&JsonValue, bool) -> SourceCommandResult<()>,
+) -> SourceCommandResult<bool> {
+    if depth > 128 {
+        return Err(SourceCommandError::Unsupported("schema position depth"));
+    }
+    if matches!(value, JsonValue::Bool(_)) {
+        return Ok(true);
+    }
+    let Some(fields) = value.as_object() else {
+        return Ok(false);
+    };
+    visit(value, root)?;
+    let mut supported = true;
+    for (key, child) in fields {
+        match key.as_str() {
+            Some("$defs" | "properties" | "patternProperties" | "dependentSchemas") => {
+                if let Some(map) = child.as_object() {
+                    for (_, schema) in map {
+                        supported &= walk_profile_schema(schema, false, depth + 1, visit)?;
+                    }
+                } else {
+                    supported = false;
+                }
+            }
+            Some("allOf" | "anyOf" | "oneOf" | "prefixItems") => {
+                if let JsonValue::Array(array) = child {
+                    for schema in array {
+                        supported &= walk_profile_schema(schema, false, depth + 1, visit)?;
+                    }
+                } else {
+                    supported = false;
+                }
+            }
+            Some(
+                "additionalProperties"
+                | "unevaluatedProperties"
+                | "unevaluatedItems"
+                | "items"
+                | "contains"
+                | "not"
+                | "if"
+                | "then"
+                | "else"
+                | "propertyNames",
+            ) => {
+                supported &= walk_profile_schema(child, false, depth + 1, visit)?;
+            }
+            // Known non-subschema positions. Never walk instance DATA values.
+            Some(
+                "const" | "enum" | "default" | "examples" | "dependentRequired" | "$comment"
+                | "$id" | "$ref" | "$dynamicRef" | "$schema" | "$anchor" | "$dynamicAnchor"
+                | "$recursiveRef" | "$recursiveAnchor" | "type" | "required" | "title"
+                | "description" | "deprecated" | "readOnly" | "writeOnly" | "format" | "pattern"
+                | "minimum" | "maximum" | "exclusiveMinimum" | "exclusiveMaximum" | "multipleOf"
+                | "minLength" | "maxLength" | "minItems" | "maxItems" | "uniqueItems"
+                | "minContains" | "maxContains" | "minProperties" | "maxProperties"
+                | "contentEncoding" | "contentMediaType",
+            ) => {}
+            // Custom/unknown vocabulary may introduce other schema positions.
+            // No partial closure is claimed: callers retain the old loader.
+            _ => supported = false,
+        }
+    }
+    Ok(supported)
+}
+
+fn simple_schema_scope(value: &JsonValue) -> SourceCommandResult<bool> {
+    let mut scope_supported = true;
+    let positions_supported = walk_profile_schema(value, true, 0, &mut |node, root| {
+        for (key, child) in node.as_object().expect("schema object").iter() {
+            match key.as_str() {
+                Some("$id") if !root => scope_supported = false,
+                Some("$anchor" | "$dynamicAnchor" | "$recursiveRef" | "$recursiveAnchor") => {
+                    scope_supported = false
+                }
+                Some("$schema")
+                    if child.as_str() != Some("https://json-schema.org/draft/2020-12/schema") =>
+                {
+                    scope_supported = false
+                }
+                Some("$ref" | "$dynamicRef") => {
+                    if let Some(reference) = child.as_str() {
+                        let (base, fragment) = reference.split_once('#').unwrap_or((reference, ""));
+                        let local = base
+                            .strip_prefix("https://tree-of-sophia.local/")
+                            .or_else(|| base.strip_prefix("https://treeofsophia.local/"));
+                        let path = local.unwrap_or(base);
+                        if (!fragment.is_empty() && !fragment.starts_with('/'))
+                            || (!base.is_empty()
+                                && (local.is_none() && base.contains(':')
+                                    || path.starts_with('/')
+                                    || path.contains('\\')
+                                    || path.split('/').any(|p| matches!(p, "" | "." | ".."))))
+                        {
+                            scope_supported = false;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    })?;
+    Ok(scope_supported && positions_supported)
+}
+
+// Exact IDs in schema positions only; no relative scope rebasing is attempted.
+fn claims_required_schema_uri(
+    value: &JsonValue,
+    required: &BTreeMap<String, String>,
+) -> SourceCommandResult<bool> {
+    let mut collision = false;
+    walk_profile_schema(value, true, 0, &mut |schema, _| {
+        collision |= schema
+            .object_get("$id")
+            .and_then(JsonValue::as_str)
+            .is_some_and(|uri| required.contains_key(uri));
+        Ok(())
+    })?;
+    Ok(collision)
+}
+
+// Preserve the shared old walker's semantics. Only this scoped owner projects
+// its real schema-position reference fields into the existing path resolver.
+fn collect_profile_schema_refs(
+    value: &JsonValue,
+    from: &str,
+    out: &mut BTreeSet<String>,
+) -> SourceCommandResult<()> {
+    let supported = walk_profile_schema(value, true, 0, &mut |schema, _| {
+        for key in ["$ref", "$dynamicRef"] {
+            if let Some(reference) = schema.object_get(key) {
+                collect_schema_refs(&cmd::object(vec![(key, reference.clone())]), from, out, 0)?;
+            }
+        }
+        Ok(())
+    })?;
+    if !supported {
+        return Err(SourceCommandError::Unsupported(
+            "scoped schema positions unavailable",
+        ));
+    }
+    Ok(())
+}
+
+fn simple_profile_record_roots(
+    profile: &JsonValue,
+    config: &JsonValue,
+    record: &JsonValue,
+    roots: &mut BTreeSet<String>,
+) -> SourceCommandResult<bool> {
+    if record.object_get("native_text_binding").is_some() {
+        return Ok(false);
+    }
+    if cmd::text(record, "record_id")? != cmd::text(config, "record_id")? {
+        return Err(SourceCommandError::Denied(
+            "public profile schema subject differs",
+        ));
+    }
+    let route = selected_profile_schema_route(profile, record)?;
+    roots.insert(cmd::text(route, "schema_ref")?.to_owned());
+    roots.extend(texts(route, "schema_dependencies", 128)?);
+    Ok(true)
+}
+
+/// Filesystem simple PublicProfile worker resources, derived by the owner
+/// from exact current/retained records. None preserves the unchanged shared
+/// all-schema route. This does not filter the command context or its source cut,
+/// validate/admit a profile, or replace the normal schema/history/CAS checks.
+pub(crate) fn simple_profile_schema_files(
+    ctx: &CommandContext,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<Vec<SourceFile>>> {
+    let (config, family) = configuration(ctx)?;
+    if !family.profile() {
+        return Ok(None);
+    }
+    let active = || {
+        if Instant::now() >= deadline || cancelled.load(Ordering::Relaxed) {
+            Err(SourceCommandError::Unsupported(
+                "profile schema selection cancelled or expired",
+            ))
+        } else {
+            Ok(())
+        }
+    };
+    active()?;
+    let registry = cmd::parse(required(ctx, REGISTRY)?)?;
+    let entries = cmd::array(&registry, "types")?;
+    let mut selected = entries.iter().filter(|entry| {
+        cmd::text(entry, "type_id").ok() == cmd::text(&config, "profile_type_id").ok()
+    });
+    let entry = selected
+        .next()
+        .ok_or(SourceCommandError::Denied("profile type absent"))?;
+    if selected.next().is_some() {
+        return Err(SourceCommandError::Invalid("duplicate entity type"));
+    }
+    let profile = cmd::field(entry, "source_record_profile")?;
+    if !matches!(
+        cmd::text(profile, "reader")?,
+        "corpus-metadata-v1" | "semantic-metadata-v1"
+    ) || [
+        "native_binding_adapter",
+        "retained_native_adapter",
+        "identity_proposal_adapter",
+        "creation_gate",
+    ]
+    .iter()
+    .any(|key| profile.object_get(key).is_some())
+        || uses_native_identity_inventory(cmd::text(&config, "record_id")?)
+    {
+        return Ok(None);
+    }
+    let source_path = cmd::text(&config, "source_path")?;
+    let (_, base) = split(source_path)?;
+    let files = package(ctx, source_path, false, None)?;
+    let record = cmd::parse(
+        files
+            .get(base)
+            .ok_or(SourceCommandError::Invalid("record missing"))?,
+    )?;
+    let mut schemas = BTreeSet::from([
+        "ToS/contracts/semantic-entity-type-registry.schema.json".to_owned(),
+        CORPUS_SCHEMA.to_owned(),
+        "ToS/contracts/source-metadata-record.schema.json".to_owned(),
+        "ToS/contracts/knowledge-assessment.schema.json".to_owned(),
+        "ToS/contracts/human-form.schema.json".to_owned(),
+        "ToS/contracts/human-form-set.schema.json".to_owned(),
+        "ToS/contracts/human-form-template.schema.json".to_owned(),
+    ]);
+    if !simple_profile_record_roots(profile, &config, &record, &mut schemas)? {
+        return Ok(None);
+    }
+    // Use the existing typed history and archive verifier, not arbitrary blob
+    // scanning or a caller-supplied retained schema list. Normal replay still
+    // verifies every prefix and successor after worker preparation.
+    let retained = history(&files, &record)?;
+    let mut remaining = READONLY_RECORD_MAX_BYTES as u64;
+    for receipt in cmd::array(&retained, "receipts")? {
+        active()?;
+        let (archive, _) = read_archive_bounded(
+            ctx,
+            &config,
+            receipt,
+            Some(remaining),
+            Some(READONLY_RECORD_MAX_BYTES),
+            false,
+        )?;
+        let bytes = archive
+            .values()
+            .try_fold(0u64, |n, raw| n.checked_add(raw.len() as u64))
+            .ok_or(SourceCommandError::Unsupported(
+                "profile schema archive byte budget",
+            ))?;
+        remaining = remaining
+            .checked_sub(bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "profile schema archive byte budget",
+            ))?;
+        let old = cmd::parse(
+            archive
+                .get(base)
+                .ok_or(SourceCommandError::Conflict("archive record missing"))?,
+        )?;
+        if !simple_profile_record_roots(profile, &config, &old, &mut schemas)? {
+            return Ok(None);
+        }
+    }
+    let mut checked = BTreeSet::new();
+    let mut uris = BTreeMap::new();
+    let mut selected_bytes = 0usize;
+    while let Some(name) = schemas.iter().find(|p| !checked.contains(*p)).cloned() {
+        active()?;
+        if schemas.len() > 128
+            || !name.starts_with("ToS/contracts/")
+            || !name.ends_with(".schema.json")
+        {
+            return Err(SourceCommandError::Unsupported(
+                "selected schema dependency budget or route",
+            ));
+        }
+        path(&name)?;
+        let raw = required(ctx, &name)?;
+        selected_bytes = selected_bytes
+            .checked_add(raw.len())
+            .filter(|n| *n <= READONLY_RECORD_MAX_BYTES)
+            .ok_or(SourceCommandError::Unsupported(
+                "profile schema selected byte budget",
+            ))?;
+        if raw.len() > 4 * 1024 * 1024 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected schema budget",
+            ));
+        }
+        let value = cmd::parse(raw)?; // required parse failures are never ignored
+        let uri = cmd::text(&value, "$id")?;
+        if uri != format!("https://tree-of-sophia.local/{name}")
+            && uri != format!("https://treeofsophia.local/{name}")
+        {
+            return Err(SourceCommandError::Invalid(
+                "record revision schema identity",
+            ));
+        }
+        if uris.insert(uri.to_owned(), name.clone()).is_some() {
+            return Err(SourceCommandError::Invalid("duplicate selected schema URI"));
+        }
+        if !simple_schema_scope(&value)? {
+            return Ok(None);
+        }
+        collect_profile_schema_refs(&value, &name, &mut schemas)?;
+        checked.insert(name);
+    }
+    // An unused resource cannot shadow a selected URI, including through a
+    // nested resource identifier. Unsupported scopes retain the old complete
+    // loader; oversized resources retain its fail-closed per-resource cap.
+    let mut unsupported_unused_scope = false;
+    for file in &ctx.files {
+        active()?;
+        let name = file.path.as_str();
+        if !name.starts_with("ToS/contracts/")
+            || !name.ends_with(".schema.json")
+            || checked.contains(name)
+        {
+            continue;
+        }
+        if file.raw.len() > 4 * 1024 * 1024 {
+            return Err(SourceCommandError::Invalid(
+                "record revision selected schema budget",
+            ));
+        }
+        // Malformed unused bytes cannot form a usable schema resource. Required
+        // parse errors above still propagate rather than entering this branch.
+        if let Ok(value) = cmd::parse(&file.raw) {
+            if claims_required_schema_uri(&value, &uris)? {
+                return Err(SourceCommandError::Invalid("duplicate selected schema URI"));
+            }
+            if !simple_schema_scope(&value)? {
+                unsupported_unused_scope = true;
+            }
+        }
+    }
+    active()?;
+    if unsupported_unused_scope {
+        return Ok(None);
+    }
+    Ok(Some(
+        ctx.files
+            .iter()
+            .filter(|f| checked.contains(f.path.as_str()))
+            .cloned()
+            .collect(),
+    ))
+}
+
 /// Collect only inputs for one catalog-selected subject record. Selection is
 /// navigation, not acceptance: the resolver subsequently verifies schemas,
 /// typed history, manifest bindings and exact successor reconstruction.
@@ -5889,6 +6252,12 @@ fn ancestry<'a>(
 }
 /// Match the maintained native inventory discovery against complete anchored
 /// membership. A caller-selected list alone can never prove absence.
+fn uses_native_identity_inventory(record_id: &str) -> bool {
+    ["occurrence", "lexeme", "sense", "sign", "concept"]
+        .iter()
+        .any(|kind| record_id.starts_with(&format!("tos.{kind}.")))
+}
+
 fn native_identity_inventory(
     cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
@@ -5897,10 +6266,7 @@ fn native_identity_inventory(
     ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
     record_id: &str,
 ) -> SourceCommandResult<(Option<String>, bool)> {
-    if !["occurrence", "lexeme", "sense", "sign", "concept"]
-        .iter()
-        .any(|kind| record_id.starts_with(&format!("tos.{kind}.")))
-    {
+    if !uses_native_identity_inventory(record_id) {
         return Ok((None, false));
     }
     let cut = cut.ok_or(SourceCommandError::Unsupported(
@@ -8262,6 +8628,414 @@ mod readonly_descriptor_tests {
                 .is_err()
             );
         }
+
+        // Scoped selector proof cases remain in this existing parameter family.
+        // Synthetic schema/context bytes prove mechanisms, never owner admission.
+        const ROOT: &str = "ToS/contracts/selector-record.schema.json";
+        const RECORD: &str = "ToS/source-witnesses/metadata/selector/specimen.json";
+        fn put(ctx: &mut CommandContext, name: &str, value: serde_json::Value) {
+            let raw = serde_json::to_vec(&value).unwrap();
+            if let Some(file) = ctx.files.iter_mut().find(|f| f.path.as_str() == name) {
+                file.raw = raw;
+            } else {
+                ctx.files.push(SourceFile {
+                    path: path(name).unwrap(),
+                    raw,
+                });
+            }
+        }
+        fn schema(name: &str) -> serde_json::Value {
+            serde_json::json!({"$schema":"https://json-schema.org/draft/2020-12/schema","$id":format!("https://tree-of-sophia.local/{name}"),"type":"object"})
+        }
+        fn context() -> CommandContext {
+            let mut ctx = CommandContext {
+                base_revision: tos_foundation::SourceRevision(Digest256::of_bytes(
+                    b"synthetic selector context",
+                )),
+                configuration_raw: serde_json::to_vec(&serde_json::json!({
+                    "schema_version":"tos_local_profile_revision_owner_v1","uid":1000,
+                    "principal_id":"synthetic:selector","authority_ref":"synthetic:selector-only",
+                    "source_root":"/synthetic/selector","source_path":RECORD,
+                    "expires_at":"2099-01-01T00:00:00Z","record_id":"tos.specimen.selector",
+                    "profile_type_id":"tos.entity.selector","allowed_operations":["record.revise"],
+                    "allowed_form_ids":[],"allowed_fields":["notes"]}))
+                .unwrap(),
+                request_raw: b"{}".to_vec(),
+                recorded_at: "2026-10-19T00:00:00Z".into(),
+                effective_uid: 1000,
+                files: vec![],
+            };
+            put(
+                &mut ctx,
+                REGISTRY,
+                serde_json::json!({"types":[{"type_id":"tos.entity.selector",
+                "source_record_profile":{"reader":"corpus-metadata-v1","record_type":"specimen",
+                "schemas":[{"schema_version":"selector_record_v1","schema_ref":ROOT,"schema_dependencies":[]}]} }]}),
+            );
+            for name in [
+                "semantic-entity-type-registry",
+                "corpus-record",
+                "source-metadata-record",
+                "knowledge-assessment",
+                "human-form",
+                "human-form-set",
+                "human-form-template",
+            ] {
+                let name = format!("ToS/contracts/{name}.schema.json");
+                put(&mut ctx, &name, schema(&name));
+            }
+            let mut root = schema(ROOT);
+            root["$ref"] = serde_json::json!("selector-direct.schema.json");
+            root["required"] = serde_json::json!(["marker"]);
+            root["properties"] = serde_json::json!({"marker":{"const":"declared"}});
+            put(&mut ctx, ROOT, root);
+            let direct = "ToS/contracts/selector-direct.schema.json";
+            let mut value = schema(direct);
+            value["$ref"] = serde_json::json!("selector-leaf.schema.json");
+            put(&mut ctx, direct, value);
+            let leaf = "ToS/contracts/selector-leaf.schema.json";
+            put(&mut ctx, leaf, schema(leaf));
+            put(
+                &mut ctx,
+                RECORD,
+                serde_json::json!({"schema_version":"selector_record_v1",
+                "record_type":"specimen","record_id":"tos.specimen.selector","record_version":1,
+                "notes":"old","marker":"declared"}),
+            );
+            ctx
+        }
+        fn select(ctx: &CommandContext) -> SourceCommandResult<Option<Vec<SourceFile>>> {
+            simple_profile_schema_files(
+                ctx,
+                Instant::now() + std::time::Duration::from_secs(10),
+                &AtomicBool::new(false),
+            )
+        }
+        let baseline = select(&context()).unwrap().unwrap();
+        assert_eq!(baseline.len(), 10); // seven fixed + record + direct + leaf
+        for keyword in ["const", "enum", "default", "examples"] {
+            for literal in [
+                serde_json::json!({"$id":format!("https://tree-of-sophia.local/{ROOT}")}),
+                serde_json::json!({"$ref":"ghost.schema.json"}),
+                serde_json::json!({"$ref":37}),
+                serde_json::json!({"$dynamicRef":"https://external.invalid/ghost"}),
+            ] {
+                let data = if ["enum", "examples"].contains(&keyword) {
+                    serde_json::json!([literal])
+                } else {
+                    literal
+                };
+                let value = parse(serde_json::json!({keyword:data}));
+                assert!(
+                    simple_schema_scope(&value).unwrap(),
+                    "data keyword={keyword}"
+                );
+                let required_uris = BTreeMap::from([(
+                    format!("https://tree-of-sophia.local/{ROOT}"),
+                    ROOT.to_owned(),
+                )]);
+                assert!(!claims_required_schema_uri(&value, &required_uris).unwrap());
+                let mut references = BTreeSet::new();
+                collect_profile_schema_refs(&value, ROOT, &mut references).unwrap();
+                assert!(references.is_empty());
+                // A valid unused schema carrying the same DATA must not cause
+                // duplicate-ID rejection, false dependencies or ALL fallback.
+                let mut ctx = context();
+                let unused = "ToS/contracts/selector-unused.schema.json";
+                let mut resource = schema(unused);
+                // Use the literal keyword payload, not an extra schema wrapper.
+                let payload =
+                    serde_json::from_slice::<serde_json::Value>(&cmd::canonical(&value).unwrap())
+                        .unwrap()[keyword]
+                        .clone();
+                resource[keyword] = payload.clone();
+                put(&mut ctx, unused, resource);
+                assert_eq!(select(&ctx).unwrap().unwrap(), baseline);
+                // The SAME literal reference/ID data in a REQUIRED schema
+                // cannot create a ghost dependency or reference-type error.
+                let mut root: serde_json::Value =
+                    serde_json::from_slice(required(&ctx, ROOT).unwrap()).unwrap();
+                root[keyword] = payload;
+                put(&mut ctx, ROOT, root);
+                assert_eq!(
+                    select(&ctx)
+                        .unwrap()
+                        .unwrap()
+                        .iter()
+                        .map(|f| f.path.clone())
+                        .collect::<BTreeSet<_>>(),
+                    baseline.iter().map(|f| f.path.clone()).collect()
+                );
+            }
+        }
+        for (map, member, reference) in [
+            ("$defs", "const", "$ref"),
+            ("properties", "examples", "$dynamicRef"),
+        ] {
+            let value = parse(serde_json::json!({map:{member:{reference:"needed.schema.json"}}}));
+            let mut refs = BTreeSet::new();
+            collect_profile_schema_refs(&value, ROOT, &mut refs).unwrap();
+            assert_eq!(
+                refs,
+                BTreeSet::from(["ToS/contracts/needed.schema.json".to_owned()])
+            );
+            let alias = parse(
+                serde_json::json!({map:{member:{"$id":format!("https://tree-of-sophia.local/{ROOT}")}}}),
+            );
+            let required_uris = BTreeMap::from([(
+                format!("https://tree-of-sophia.local/{ROOT}"),
+                ROOT.to_owned(),
+            )]);
+            assert!(claims_required_schema_uri(&alias, &required_uris).unwrap());
+            assert!(!simple_schema_scope(&alias).unwrap());
+        }
+        for case in [
+            "root-alias",
+            "nested-alias",
+            "later-alias",
+            "oversize",
+            "missing-root",
+            "missing-ref",
+            "malformed-root",
+            "bad-uri",
+            "bad-ref-type",
+        ] {
+            let mut ctx = context();
+            let unused = "ToS/contracts/selector-unused.schema.json";
+            match case {
+                "root-alias" => put(&mut ctx, unused, schema(ROOT)),
+                "nested-alias" | "later-alias" => {
+                    if case == "later-alias" {
+                        let first = "ToS/contracts/selector-first.schema.json";
+                        let mut v = schema(first);
+                        v["$defs"] = serde_json::json!({"relative":{"$id":"relative"}});
+                        put(&mut ctx, first, v);
+                    }
+                    let mut v = schema(unused);
+                    v["$defs"] = serde_json::json!({"const":{"$id":format!("https://tree-of-sophia.local/{ROOT}")}});
+                    put(&mut ctx, unused, v);
+                }
+                "oversize" => ctx.files.push(SourceFile {
+                    path: path(unused).unwrap(),
+                    raw: vec![b' '; 4 * 1024 * 1024 + 1],
+                }),
+                "missing-root" => ctx.files.retain(|f| f.path.as_str() != ROOT),
+                "missing-ref" => ctx
+                    .files
+                    .retain(|f| f.path.as_str() != "ToS/contracts/selector-leaf.schema.json"),
+                "malformed-root" => {
+                    ctx.files
+                        .iter_mut()
+                        .find(|f| f.path.as_str() == ROOT)
+                        .unwrap()
+                        .raw = b"{".to_vec()
+                }
+                "bad-uri" => {
+                    let mut v = schema(ROOT);
+                    v["$id"] = serde_json::json!("https://external.invalid/root");
+                    put(&mut ctx, ROOT, v);
+                }
+                "bad-ref-type" => {
+                    let mut v = schema(ROOT);
+                    v["$ref"] = serde_json::json!(37);
+                    put(&mut ctx, ROOT, v);
+                }
+                _ => unreachable!(),
+            }
+            assert!(select(&ctx).is_err(), "case={case}");
+        }
+        for unsupported in [
+            serde_json::json!({"$defs":{"inner":{"$id":"relative"}}}),
+            serde_json::json!({"$anchor":"named"}),
+            serde_json::json!({"$ref":"#named"}),
+            serde_json::json!({"customVocabulary":{"schema":true}}),
+        ] {
+            for required in [false, true] {
+                let mut ctx = context();
+                let name = if required {
+                    ROOT
+                } else {
+                    "ToS/contracts/selector-unused.schema.json"
+                };
+                let mut resource = schema(name);
+                for (k, v) in unsupported.as_object().unwrap() {
+                    resource[k] = v.clone();
+                }
+                put(&mut ctx, name, resource);
+                assert!(
+                    select(&ctx).unwrap().is_none(),
+                    "unsupported={unsupported}, required={required}"
+                );
+            }
+        }
+        let mut dynamic = context();
+        let direct = "ToS/contracts/selector-direct.schema.json";
+        let mut v = schema(direct);
+        v["$dynamicRef"] = serde_json::json!("selector-leaf.schema.json");
+        put(&mut dynamic, direct, v);
+        assert_eq!(
+            select(&dynamic)
+                .unwrap()
+                .unwrap()
+                .iter()
+                .map(|f| f.path.clone())
+                .collect::<BTreeSet<_>>(),
+            baseline.iter().map(|f| f.path.clone()).collect()
+        );
+        dynamic
+            .files
+            .retain(|f| f.path.as_str() != "ToS/contracts/selector-leaf.schema.json");
+        assert!(select(&dynamic).is_err());
+        // Actual schema-probe evaluation of both valid/invalid instance bytes
+        // under the selected closure; no worker/rights/admission claim.
+        for valid in [false, true] {
+            for unused in [false, true] {
+                let mut ctx = context();
+                let mut record: serde_json::Value =
+                    serde_json::from_slice(required(&ctx, RECORD).unwrap()).unwrap();
+                record["marker"] = if valid {
+                    serde_json::json!("declared")
+                } else {
+                    serde_json::json!(42)
+                };
+                put(&mut ctx, RECORD, record);
+                if unused {
+                    put(
+                        &mut ctx,
+                        "ToS/contracts/selector-unused.schema.json",
+                        serde_json::json!({"$id":"https://external.invalid/unused","type":"null"}),
+                    );
+                }
+                let files = select(&ctx).unwrap().unwrap();
+                let resources = files.iter().map(|f| tos_validation::SchemaResource {
+                    uri: cmd::text(&cmd::parse(&f.raw).unwrap(), "$id")
+                        .unwrap()
+                        .to_owned(),
+                    raw: f.raw.clone(),
+                });
+                let probe = tos_validation::SchemaBackendProbe::new(
+                    resources,
+                    tos_validation::FormatProfile::LegacyPythonObserved20260923,
+                )
+                .unwrap();
+                assert_eq!(
+                    probe
+                        .is_valid_raw(
+                            &format!("https://tree-of-sophia.local/{ROOT}"),
+                            required(&ctx, RECORD).unwrap()
+                        )
+                        .unwrap(),
+                    valid
+                );
+            }
+        }
+        // Current/retained route union is source selection, not a declaration
+        // that a schema-version migration was admitted by the writer.
+        let profile = parse(serde_json::json!({"record_type":"specimen","schemas":[
+            {"schema_version":"v0","schema_ref":"ToS/contracts/old.schema.json","schema_dependencies":[]},
+            {"schema_version":"v1","schema_ref":ROOT,"schema_dependencies":[]}]}));
+        let config = parse(serde_json::json!({"record_id":"tos.specimen.selector"}));
+        let mut union = BTreeSet::new();
+        for version in ["v1", "v0"] {
+            assert!(simple_profile_record_roots(&profile,&config,&parse(serde_json::json!({
+                "record_id":"tos.specimen.selector","record_type":"specimen","schema_version":version})),&mut union).unwrap());
+        }
+        assert_eq!(
+            union,
+            BTreeSet::from([ROOT.to_owned(), "ToS/contracts/old.schema.json".to_owned()])
+        );
+        // An actually reconstructed synthetic predecessor package exercises
+        // the existing archive path/digest reader used by selector discovery.
+        let mut retained = context();
+        let config = cmd::parse(&retained.configuration_raw).unwrap();
+        let old = cmd::parse(required(&retained, RECORD).unwrap()).unwrap();
+        let old_subject = source_forms::metadata_subject(&old).unwrap();
+        let old_files =
+            Package::from([("specimen.json".to_owned(), cmd::canonical(&old).unwrap())]);
+        let inspection = Inspection {
+            files: old_files.clone(),
+            record: old.clone(),
+            subject: old_subject.clone(),
+            history: history(&old_files, &old).unwrap(),
+            profile: JsonValue::Null,
+            schemas: vec![],
+            native_identity_snapshot: None,
+            native_text_snapshot: None,
+        };
+        let request = parse(
+            serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"record.revise",
+            "fields":{"notes":"new"},"forms":[],"reason":"synthetic selector archive","command_id":"synthetic:selector-revision",
+            "expected_source":serde_json::from_slice::<serde_json::Value>(&cmd::canonical(&old_subject).unwrap()).unwrap(),
+            "expected_revision":revision(&old_files).unwrap(),"expected_dependencies":Digest256::of_bytes(b"synthetic-dependencies").to_prefixed(),
+            "expected_configuration":cmd::record_digest(&config).unwrap().to_prefixed()}),
+        );
+        let current = revised(&old, &request).unwrap();
+        let subject = source_forms::metadata_subject(&current).unwrap();
+        let receipt = receipt(
+            &config,
+            RevisionFamily::PublicProfile,
+            &inspection,
+            &request,
+            &subject,
+            &[],
+            &retained.recorded_at,
+        )
+        .unwrap();
+        for change in retained_archive_changes(
+            &retained,
+            &config,
+            RevisionFamily::PublicProfile,
+            &old_files,
+            &old_subject,
+        )
+        .unwrap()
+        {
+            retained.files.push(SourceFile {
+                path: change.path,
+                raw: change.after.unwrap(),
+            });
+        }
+        put(
+            &mut retained,
+            RECORD,
+            serde_json::from_slice(&cmd::canonical(&current).unwrap()).unwrap(),
+        );
+        let history_path = "ToS/source-witnesses/metadata/selector/source-revision-history.json";
+        put(
+            &mut retained,
+            history_path,
+            serde_json::json!({"schema_version":"tos_source_revision_history_v1","record_id":"tos.specimen.selector",
+            "receipts":[serde_json::from_slice::<serde_json::Value>(&cmd::canonical(&receipt).unwrap()).unwrap()]}),
+        );
+        assert_eq!(select(&retained).unwrap().unwrap(), baseline);
+        retained
+            .files
+            .retain(|f| !f.path.as_str().ends_with(".blob"));
+        assert!(select(&retained).is_err());
+        let mut fallback = context();
+        let mut configuration: serde_json::Value =
+            serde_json::from_slice(&fallback.configuration_raw).unwrap();
+        configuration["schema_version"] = serde_json::json!("tos_local_corpus_revision_owner_v1");
+        configuration
+            .as_object_mut()
+            .unwrap()
+            .remove("profile_type_id");
+        configuration["record_type"] = serde_json::json!("agent");
+        fallback.configuration_raw = serde_json::to_vec(&configuration).unwrap();
+        assert!(select(&fallback).unwrap().is_none());
+        let mut scope_family = context();
+        let mut config: serde_json::Value =
+            serde_json::from_slice(&scope_family.configuration_raw).unwrap();
+        config["schema_version"] = serde_json::json!("tos_local_profile_revision_owner_v2");
+        scope_family.configuration_raw = serde_json::to_vec(&config).unwrap();
+        assert_eq!(select(&scope_family).unwrap().unwrap(), baseline);
+        let mut adapter = context();
+        let mut registry: serde_json::Value =
+            serde_json::from_slice(required(&adapter, REGISTRY).unwrap()).unwrap();
+        registry["types"][0]["source_record_profile"]["native_binding_adapter"] =
+            serde_json::json!("source-text-unit-v1");
+        put(&mut adapter, REGISTRY, registry);
+        assert!(select(&adapter).unwrap().is_none());
     }
 
     #[test]

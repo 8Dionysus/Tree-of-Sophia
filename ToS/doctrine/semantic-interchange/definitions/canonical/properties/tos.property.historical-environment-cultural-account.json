@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-environment-cultural-account",
+  "field": "attributes.source_record.semantic_content.cultural_account",
+  "labels": {
+    "default": "Cultural conditions",
+    "ru": "Культурная среда",
+    "en": "Cultural conditions"
+  },
+  "definition": "Source-described cultural practices and conditions, not uniform beliefs.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-environment"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

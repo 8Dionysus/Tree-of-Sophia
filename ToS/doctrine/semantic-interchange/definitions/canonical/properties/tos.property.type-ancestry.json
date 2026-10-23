@@ -1,0 +1,22 @@
+{
+  "property_id": "tos.property.type-ancestry",
+  "field": "semantics.type_ancestors",
+  "labels": {
+    "default": "Type and supertypes",
+    "ru": "Тип и надтипы",
+    "en": "Type and supertypes"
+  },
+  "definition": "Registered type closure, including this type. Contains selects a type and all its descendants.",
+  "value_type": "string-array",
+  "applies_to": [
+    "tos.entity.thing"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "contains",
+    "in"
+  ]
+}

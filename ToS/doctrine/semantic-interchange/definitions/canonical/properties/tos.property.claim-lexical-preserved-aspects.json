@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-lexical-preserved-aspects",
+  "field": "attributes.source_claim.qualifiers.preserved_aspects",
+  "labels": {
+    "default": "Reported preserved aspects",
+    "ru": "Сообщаемые сохраняемые аспекты",
+    "en": "Reported preserved aspects"
+  },
+  "definition": "Which aspects of the situated reading are proposed to survive this rendering; no completeness or acceptance follows.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}
