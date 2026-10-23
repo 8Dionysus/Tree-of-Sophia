@@ -1,6 +1,7 @@
 //! Reuses actual protected frames and the maintained evaluator. No bool grant,
 //! report factory, per-callback budget reset or journal writer is introduced.
-use super::{MAX_BYTES, canonical, invalid, unsupported};
+use super::{MAX_BYTES, invalid, unsupported};
+use super::budget::CanonicalLedger;
 use crate::{
     source_assessment_journal::{
         AssessmentHistory, AssessmentJournalFence, ProtectedAssessmentJournal,
@@ -15,8 +16,7 @@ use crate::{
 };
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, sync::atomic::AtomicBool, time::Instant};
 use tos_foundation::{
-    CutPreparedSchemaExecutionBinding, Digest256, JsonLimits, JsonMode, JsonValue, RelativePath,
-    SourceRevision, parse_json_with_state_budget,
+    CutPreparedSchemaExecutionBinding, Digest256, JsonValue, RelativePath, SourceRevision,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::{
@@ -108,6 +108,111 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         self.verify()?;
         Ok(value)
     }
+    /// Lend the original exact-source owner frames for one maintained read.
+    /// The callback must retain its real inventory/history/readset and spend
+    /// these same ledgers; it may not construct a worker, authority or budget.
+    pub(crate) fn with_exact_dependency<T>(
+        &mut self,
+        read: impl FnOnce(
+            &CommandContext,
+            &CorpusCutReader,
+            &mut CutWorkerSchemaExecutor,
+            &mut OperationBudget,
+            &Rc<RefCell<ClaimCallBudget>>,
+            Instant,
+            &AtomicBool,
+        ) -> SourceCommandResult<T>,
+    ) -> SourceCommandResult<T> {
+        self.verify()?;
+        let result = read(
+            self.context,
+            self.cut,
+            self.worker,
+            self.budget,
+            self.whole,
+            self.deadline,
+            self.cancelled,
+        );
+        // Attempt the original fence even on callback failure. A successful
+        // value is never released after a source/worker/currentness failure.
+        // Neither refusal path refunds previously spent ledger prefixes.
+        let fenced = self.verify();
+        match (result, fenced) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+    pub(super) fn canonical(&mut self, value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
+            .canonical(value)
+    }
+    pub(super) fn hash_bytes(&mut self, bytes: &[u8]) -> SourceCommandResult<Digest256> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
+            .hash_bytes(bytes)
+    }
+    pub(super) fn same(
+        &mut self,
+        left: &JsonValue,
+        right: &JsonValue,
+    ) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
+            .same(left, right)
+    }
+    pub(super) fn exact_match(
+        &mut self,
+        reference: &serde_json::Value,
+        value: &JsonValue,
+        identity: &str,
+        version: &str,
+    ) -> SourceCommandResult<()> {
+        super::exact_match(
+            reference,
+            value,
+            identity,
+            version,
+            &mut CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled),
+        )
+    }
+    /// Same maintained assessment-envelope projection and whole source digest;
+    /// unlike owner_reference(), its canonical/hash passes use held admission.
+    pub(super) fn claim_reference(
+        &mut self,
+        row: &JsonValue,
+    ) -> SourceCommandResult<serde_json::Value> {
+        cmd::exact_keys(row, &["id", "version", "payload", "origin_id"])?;
+        let id = cmd::text(row, "id")?;
+        let version = cmd::field(row, "version")?
+            .as_u64()
+            .ok_or(invalid("PWE selected Claim envelope version"))?;
+        let mut ledger = CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
+        let digest = ledger.digest(cmd::field(row, "payload")?)?;
+        self.budget.charge_work(id.len())?;
+        self.retain(
+            id.len()
+                .checked_mul(64)
+                .and_then(|n| n.checked_add(1024))
+                .ok_or(unsupported("PWE Claim reference holder overflow"))?,
+        )?;
+        Ok(serde_json::json!({"id":id,"version":version,"digest":digest.to_prefixed()}))
+    }
+    pub(super) fn encoded_len(
+        &mut self,
+        value: &serde_json::Value,
+    ) -> SourceCommandResult<usize> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
+            .encoded_len(value)
+    }
+    pub(super) fn reserve_domain_copy(
+        &mut self,
+        value: &serde_json::Value,
+    ) -> SourceCommandResult<()> {
+        let bytes = self.encoded_len(value)?;
+        self.budget.charge_work(bytes)?;
+        self.retain(
+            bytes.checked_mul(64).and_then(|n| n.checked_add(256))
+                .ok_or(unsupported("PWE retained value copy overflow"))?,
+        )
+    }
     pub(crate) fn revision(&self) -> SourceRevision {
         self.context.base_revision
     }
@@ -128,7 +233,12 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
     }
     pub(crate) fn verify(&mut self) -> SourceCommandResult<()> {
         active(self.deadline, self.cancelled)?;
-        self.budget.charge_work(1)?;
+        let summaries = self.private.retained_raw.len()
+            .checked_add(self.context.files.len())
+            .and_then(|n| n.checked_add(self.histories.len()))
+            .and_then(|n| n.checked_add(1))
+            .ok_or(unsupported("PWE fence summary work overflow"))?;
+        self.budget.charge_work(summaries)?;
         // Charge the known retained source-byte envelope on every guard.
         // Configuration/transport metadata and software/schema work keep their
         // existing native owner budgets; this is not a physical-I/O theorem.
@@ -136,7 +246,10 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             .private
             .input_bytes()?
             .checked_add(self.public.input_bytes()?)
-            .and_then(|n| n.checked_add(self.grant.configuration_raw().len()))
+            .and_then(|n| {
+                self.grant.configuration_raw().len().checked_mul(2)
+                    .and_then(|twice| n.checked_add(twice))
+            })
             .ok_or(unsupported("PWE fence byte overflow"))?;
         for file in &self.context.files {
             fence_bytes = fence_bytes
@@ -148,6 +261,10 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
                 .checked_add(history.input_bytes()?)
                 .ok_or(unsupported("PWE history fence byte overflow"))?;
         }
+        // Both with_exact_dependency fences enter here independently. Fund
+        // their actual source-byte inspection work BEFORE executing either
+        // currentness traversal, including both grant checks within one fence.
+        self.budget.charge_work(fence_bytes)?;
         self.budget.charge_bytes(fence_bytes)?;
         self.whole
             .try_borrow_mut()
@@ -214,32 +331,21 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             .try_borrow_mut()
             .map_err(|_| invalid("PWE whole-call budget in use"))?;
         whole.read(u64::try_from(raw.len()).map_err(|_| invalid("PWE source size conversion"))?)?;
-        whole.check_live(raw.len())?;
+        let available = whole.remaining_live()?;
+        whole.retain(raw.len())?;
         let mut copy = Vec::new();
         copy.try_reserve_exact(raw.len())
             .map_err(|_| unsupported("PWE source buffer reservation"))?;
+        if copy.capacity() > available {
+            return Err(unsupported("PWE source buffer live allowance"));
+        }
+        whole.retain(copy.capacity().saturating_sub(raw.len()))?;
         copy.extend_from_slice(raw);
         Ok(copy)
     }
     pub(crate) fn parse(&mut self, raw: &[u8]) -> SourceCommandResult<JsonValue> {
-        active(self.deadline, self.cancelled)?;
-        self.budget.charge_work(raw.len())?;
-        let live = self
-            .whole
-            .try_borrow()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .remaining_live()?
-            .checked_sub(raw.len())
-            .ok_or(unsupported("PWE parser/input simultaneous holders"))?;
-        parse_json_with_state_budget(
-            raw,
-            JsonMode::PublishedStrict,
-            JsonLimits::new(MAX_BYTES, 96, 1_000_000, 4096)
-                .map_err(|_| invalid("PWE parser limits"))?,
-            live,
-        )
-        .map(|doc| doc.into_root())
-        .map_err(|_| invalid("PWE strict selected JSON"))
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
+            .parse_selected(raw)
     }
     pub(crate) fn check_schema(
         &mut self,
@@ -253,13 +359,7 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         {
             return Err(unsupported("PWE actual schema is not in selected worker"));
         }
-        self.whole
-            .try_borrow()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .check_live(MAX_BYTES)?;
-        let raw = canonical(record)?;
-        self.budget.charge_bytes(raw.len())?;
-        self.budget.charge_work(raw.len())?;
+        let raw = self.canonical(record)?;
         match self
             .worker
             .check(path, &raw, schema, self.deadline, self.cancelled)
@@ -292,20 +392,15 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         &mut self,
         value: &JsonValue,
     ) -> SourceCommandResult<serde_json::Value> {
-        self.whole
-            .try_borrow()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .check_live(MAX_BYTES)?;
-        let raw = canonical(value)?;
-        self.budget.charge_work(raw.len())?;
-        self.budget.charge_bytes(raw.len())?;
-        self.retain(
-            raw.len()
-                .checked_mul(64)
-                .and_then(|n| n.checked_add(256))
-                .ok_or(unsupported("PWE conversion holder overflow"))?,
-        )?;
-        serde_json::from_slice(&raw).map_err(|_| invalid("PWE native/domain conversion"))
+        let raw = self.canonical(value)?;
+        self.decode_domain(&raw)
+    }
+    pub(super) fn decode_domain(
+        &mut self,
+        raw: &[u8],
+    ) -> SourceCommandResult<serde_json::Value> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
+            .decode_domain(raw)
     }
     /// Evaluate the actual protected plan under the already held histories and
     /// existing worker/budget. No caller-supplied assessment boolean is read.
@@ -314,7 +409,8 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         plan: &AssessmentEvaluationPlan<'_>,
     ) -> SourceCommandResult<AssessmentMechanicsReport> {
         self.verify()?;
-        if !cmd::same(plan.config, self.grant.configuration())? {
+        let grant = self.grant;
+        if !self.same(plan.config, grant.configuration())? {
             return Err(SourceCommandError::Conflict(
                 "PWE assessment protected configuration differs",
             ));
@@ -324,8 +420,8 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             plan.request,
             &plan.all_by_id,
         )?;
-        if !cmd::same(&current, &plan.current)?
-            || !cmd::same(&scope, &plan.scope)?
+        if !self.same(&current, &plan.current)?
+            || !self.same(&scope, &plan.scope)?
             || plan.source_route
                 != tos_validation::assessment::AssessmentSourceRoute::SourceBoundClaim
         {

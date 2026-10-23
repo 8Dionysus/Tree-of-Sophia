@@ -1,6 +1,6 @@
 use super::{
     BindingRegistry, ExactDependencyReader, HeldFrames, MAX_RECORDS, NativeBasis, RoleCache,
-    canonical, exact_match, invalid, refuse, unsupported,
+    invalid, refuse, unsupported,
 };
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_native_cli::private_assessment::AssessmentEvaluationPlan;
@@ -140,26 +140,18 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             .source_records
             .get(index)
             .ok_or(invalid("PWE selected source index"))?;
-        if !cmd::same(source, &plan.current)? {
+        if !self.frames.same(source, &plan.current)? {
             return Err(SourceCommandError::Conflict(
                 "PWE selected source Claim shadowed",
             ));
         }
         let document = cmd::field(source, "payload")?;
         let path = self.frames.source_path(id)?.to_owned();
-        let native_ref = crate::source_native_cli::private_assessment::owner_reference(source)?;
-        let ref_raw = canonical(&native_ref)?;
-        let reference: Value = serde_json::from_slice(&ref_raw)
-            .map_err(|_| invalid("PWE native Claim reference conversion"))?;
-        exact_match(&reference, document, "claim_id", "claim_version")?;
-        let raw = canonical(document)?;
-        self.frames.retain(
-            raw.len()
-                .checked_mul(64)
-                .ok_or(unsupported("PWE Claim holder overflow"))?,
-        )?;
-        let claim: Value =
-            serde_json::from_slice(&raw).map_err(|_| invalid("PWE native Claim conversion"))?;
+        let reference = self.frames.claim_reference(source)?;
+        self.frames
+            .exact_match(&reference, document, "claim_id", "claim_version")?;
+        let raw = self.frames.canonical(document)?;
+        let claim = self.frames.decode_domain(&raw)?;
         let prepared = session
             .prepare(&claim["object"])
             .map_err(|_| invalid("PWE selected account value shape"))?;
@@ -219,11 +211,7 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             .current_admission()
             .get("policy")
             .ok_or(invalid("PWE native policy ref absent"))?;
-        self.frames.retain(
-            super::encoded_len(policy)?
-                .checked_mul(64)
-                .ok_or(unsupported("PWE policy reference holder overflow"))?,
-        )?;
+        self.frames.reserve_domain_copy(policy)?;
         let policy = policy.clone();
         self.frames.retain(
             raw.len()

@@ -1,9 +1,11 @@
 //! Native Claim reader data, invoked only after actual profile/schema/grant
 //! selection by the maintained source_claims owner. This pure extraction is
 //! neither grounding evidence nor a source/assessment authorization token.
-use super::{MAX_RECORDS, canonical, invalid, unsupported};
+use super::budget::CanonicalLedger;
+use super::{MAX_RECORDS, invalid, unsupported};
 use crate::source_claims::ClaimCallBudget;
 use crate::source_command::{self as cmd, SourceCommandResult};
+use crate::source_native_cli::private_assessment::OperationBudget;
 use std::{cell::RefCell, rc::Rc, sync::atomic::AtomicBool, time::Instant};
 use tos_compiler::pwe_native::Session;
 use tos_foundation::JsonValue;
@@ -29,22 +31,13 @@ pub(crate) struct ClaimDependencies {
 pub(crate) fn extract_claim_dependencies(
     claim: &JsonValue,
     session: &mut Session<'_>,
+    budget: &mut OperationBudget,
     whole: &Rc<RefCell<ClaimCallBudget>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ClaimDependencies> {
     crate::source_creation_store::active(deadline, cancelled)?;
-    let raw = canonical(claim)?;
-    let fee = raw
-        .len()
-        .checked_mul(64)
-        .ok_or(unsupported("PWE source reader holder overflow"))?;
-    whole
-        .try_borrow_mut()
-        .map_err(|_| invalid("PWE whole-call budget in use"))?
-        .retain(fee)?;
-    let claim: serde_json::Value = serde_json::from_slice(&raw)
-        .map_err(|_| invalid("PWE selected source Claim conversion"))?;
+    let claim = CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(claim)?;
     let object = claim
         .get("object")
         .ok_or(invalid("PWE Claim object absent"))?;
@@ -135,6 +128,7 @@ pub(crate) fn check_description_revision(
     old_ref: &JsonValue,
     new: &JsonValue,
     new_ref: &JsonValue,
+    budget: &mut OperationBudget,
     whole: &Rc<RefCell<ClaimCallBudget>>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -142,17 +136,8 @@ pub(crate) fn check_description_revision(
     crate::source_creation_store::active(deadline, cancelled)?;
     let mut values = Vec::new();
     for value in [old, old_ref, new, new_ref] {
-        let raw = canonical(value)?;
-        whole
-            .try_borrow_mut()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .retain(
-                raw.len()
-                    .checked_mul(64)
-                    .ok_or(unsupported("PWE correction holder overflow"))?,
-            )?;
         values.push(
-            serde_json::from_slice(&raw).map_err(|_| invalid("PWE correction selected JSON"))?,
+            CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(value)?,
         );
     }
     session.description_revision(&values[0],&values[1],&values[2],&values[3])
@@ -169,6 +154,7 @@ pub(crate) fn check_independent_correction(
     new: &JsonValue,
     new_ref: &JsonValue,
     lineage: &JsonValue,
+    budget: &mut OperationBudget,
     whole: &Rc<RefCell<ClaimCallBudget>>,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -176,17 +162,8 @@ pub(crate) fn check_independent_correction(
     crate::source_creation_store::active(deadline, cancelled)?;
     let mut values = Vec::new();
     for value in [old, old_ref, new, new_ref, lineage] {
-        let raw = canonical(value)?;
-        whole
-            .try_borrow_mut()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .retain(
-                raw.len()
-                    .checked_mul(64)
-                    .ok_or(unsupported("PWE correction holder overflow"))?,
-            )?;
         values.push(
-            serde_json::from_slice(&raw).map_err(|_| invalid("PWE correction selected JSON"))?,
+            CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(value)?,
         );
     }
     session

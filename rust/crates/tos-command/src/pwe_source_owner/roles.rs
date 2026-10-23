@@ -1,6 +1,6 @@
 //! Actual C4 role cache and a separate exact non-formal source reader port.
 //! C4 owns role registration/history; PWE checks application body semantics.
-use super::{HeldFrames, MAX_BYTES, canonical, exact_match, invalid, unsupported};
+use super::{HeldFrames, invalid, unsupported};
 use crate::source_command::{SourceCommandResult, SourceDependency};
 use serde_json::Value;
 use tos_compiler::pwe_native::BasisSlot;
@@ -36,7 +36,7 @@ impl ResolvedDependency {
         let mut origin_present = false;
         for dependency in &self.dependencies {
             let raw = frames.selected_bytes(dependency.path.as_str())?;
-            if Digest256::of_bytes(&raw) != dependency.raw_sha256 {
+            if frames.hash_bytes(&raw)? != dependency.raw_sha256 {
                 return Err(crate::source_command::SourceCommandError::Conflict(
                     "PWE exact derivation source bytes changed",
                 ));
@@ -46,12 +46,7 @@ impl ResolvedDependency {
         if !origin_present {
             return Err(invalid("PWE record origin not in derivation closure"));
         }
-        frames
-            .whole
-            .try_borrow()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .check_live(MAX_BYTES)?;
-        exact_match(
+        frames.exact_match(
             reference,
             &self.document,
             self.identity_field,
@@ -61,19 +56,7 @@ impl ResolvedDependency {
         crate::source_creation_store::active(frames.deadline, frames.cancelled)
     }
     pub(super) fn into_serde(self, frames: &mut HeldFrames<'_, '_>) -> SourceCommandResult<Value> {
-        let raw = canonical(&self.document)?;
-        // Conservative logical conversion holder reservation; no RSS theorem.
-        // The original native document is still held during conversion.
-        let fee = raw
-            .len()
-            .checked_mul(64)
-            .and_then(|n| n.checked_add(256))
-            .ok_or(unsupported("PWE conversion state overflow"))?;
-        frames.retain(fee)?;
-        if raw.len() > MAX_BYTES {
-            return Err(unsupported("PWE record conversion byte cap"));
-        }
-        serde_json::from_slice(&raw).map_err(|_| invalid("PWE native-to-domain conversion"))
+        frames.domain_value(&self.document)
     }
 }
 
@@ -145,7 +128,7 @@ impl RoleCache {
                 "PWE formal kind registry pin differs",
             ));
         }
-        let work = super::encoded_len(wire)?
+        let work = frames.encoded_len(wire)?
             .checked_add(256)
             .and_then(|n| n.checked_mul(self.records.len().checked_add(1)?))
             .ok_or(unsupported("PWE role cache comparison work overflow"))?;

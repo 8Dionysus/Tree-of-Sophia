@@ -155,7 +155,7 @@ impl NativeBasis {
         metadata: &[tos_compiler::pwe_native::CheckedMetadata<'_>],
     ) -> SourceCommandResult<()> {
         for item in metadata {
-            let work = super::encoded_len(item.value())?
+            let work = frames.encoded_len(item.value())?
                 .checked_add(256)
                 .and_then(|n| n.checked_mul(self.contents.len().checked_add(1)?))
                 .ok_or(unsupported("PWE metadata comparison work overflow"))?;
@@ -200,11 +200,7 @@ impl NativeBasis {
             .map_err(|_| unsupported("PWE basis pins reservation"))?;
         for index in &self.occurrences {
             let reference = &self.contents[*index].reference;
-            frames.retain(
-                super::encoded_len(reference)?
-                    .checked_mul(64)
-                    .ok_or(unsupported("PWE basis pin holder overflow"))?,
-            )?;
+            frames.reserve_domain_copy(reference)?;
             out.push(reference.clone());
         }
         Ok(out)
@@ -215,7 +211,8 @@ impl NativeBasis {
         frames: &mut HeldFrames<'_, '_>,
     ) -> SourceCommandResult<bool> {
         for reference in pins {
-            frames.budget.charge_work(super::encoded_len(reference)?)?;
+            let bytes = frames.encoded_len(reference)?;
+            frames.budget.charge_work(bytes)?;
         }
         // ResolvedBasis has private construction. Its native digest checker has
         // already checked each full supplied value against this exact pin. We

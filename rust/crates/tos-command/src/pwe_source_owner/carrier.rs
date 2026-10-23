@@ -108,15 +108,22 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
             return Err(unsupported("PWE carrier scenario count cap"));
         }
         let mut groups = Vec::new();
-        host.frames.retain(
-            scenario_refs
-                .len()
-                .checked_mul(std::mem::size_of::<SelectedGroup>())
-                .ok_or(unsupported("PWE group reservation overflow"))?,
-        )?;
-        groups
-            .try_reserve_exact(scenario_refs.len())
+        let slots = scenario_refs.len()
+            .checked_mul(std::mem::size_of::<SelectedGroup>())
+            .ok_or(unsupported("PWE group reservation overflow"))?;
+        let available = host.frames.whole.try_borrow()
+            .map_err(|_| invalid("PWE whole-call budget in use"))?
+            .remaining_live()?;
+        host.frames.retain(slots)?;
+        groups.try_reserve_exact(scenario_refs.len())
             .map_err(|_| unsupported("PWE group reservation"))?;
+        let actual = groups.capacity()
+            .checked_mul(std::mem::size_of::<SelectedGroup>())
+            .ok_or(unsupported("PWE group capacity overflow"))?;
+        if actual > available {
+            return Err(unsupported("PWE group live allowance"));
+        }
+        host.frames.retain(actual.saturating_sub(slots))?;
         for (i, reference) in scenario_refs.iter().enumerate() {
             if scenario_refs[..i].contains(reference) || !declared.contains(reference) {
                 return Err(SourceCommandError::Conflict(
@@ -178,16 +185,17 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
                 return Err(invalid("PWE source group cardinality"));
             }
             let group_value = claim.pointer(pointer).ok_or(invalid("PWE group absent"))?;
-            let holder = super::encoded_len(group_value)?
-                .checked_mul(64)
-                .and_then(|n| n.checked_add(1024))
-                .ok_or(unsupported("PWE group holder overflow"))?;
-            host.frames.retain(holder)?;
+            host.frames.reserve_domain_copy(reference)?;
+            host.frames.reserve_domain_copy(group_value)?;
             groups.push(SelectedGroup {
                 reference: reference.clone(),
                 positive: positive.clone(),
             });
         }
+        host.frames.reserve_domain_copy(carrier_ref)?;
+        host.frames.reserve_domain_copy(context)?;
+        host.frames.reserve_domain_copy(scope)?;
+        host.frames.retain(std::mem::size_of::<SelectedCarrier>())?;
         host.frames.verify()?;
         Ok(SelectedCarrier {
             reference: carrier_ref.clone(),
@@ -210,6 +218,8 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
                 "PWE carrier source/worker differs",
             ));
         }
+        host.frames.budget.charge_work(1)?;
+        host.frames.retain(std::mem::size_of::<Self>())?;
         Ok(Self { host, selection })
     }
 }

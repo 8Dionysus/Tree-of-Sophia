@@ -1,6 +1,6 @@
 //! Native output-profile adapter. Whole Record -> /body container -> each item
 //! are separate checks. Completed production never executes semantic resolution.
-use super::{HeldFrames, ResolvedDependency, exact_match, invalid, unsupported};
+use super::{HeldFrames, ResolvedDependency, invalid, unsupported};
 use crate::source_command::SourceCommandResult;
 use serde_json::Value;
 use tos_compiler::pwe_native::{PreparedAccount, Session};
@@ -93,8 +93,8 @@ impl NativePreservedCandidate {
         )?;
         profile.verify(&pr, frames)?;
         output.verify(&or, frames)?;
-        exact_match(&pr, &profile.document, "record_id", "record_version")?;
-        exact_match(&or, &output.document, "record_id", "record_version")?;
+        frames.exact_match(&pr, &profile.document, "record_id", "record_version")?;
+        frames.exact_match(&or, &output.document, "record_id", "record_version")?;
         frames.check_schema(&profile.source_path, &profile.document, PROFILE)?;
         frames.check_schema(&output.source_path, &output.document, SCHEMAS[0])?;
         let body = output
