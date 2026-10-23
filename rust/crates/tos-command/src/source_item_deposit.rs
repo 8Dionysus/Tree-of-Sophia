@@ -235,7 +235,9 @@ fn inventory_outcome(
             }
         }
         if canonical(&inventory)?.len() > MAX_INVENTORY {
-            return Err(SourceCommandError::Unsupported("bounded Item inventory output"));
+            return Err(SourceCommandError::Unsupported(
+                "bounded Item inventory output",
+            ));
         }
         Ok(inventory)
     });
@@ -262,21 +264,18 @@ fn observe_inventory(
     authorize()?;
     let descriptor = inventory_descriptor(config)?;
     let mut authority_error: Option<SourceCommandError> = None;
-    let result = crate::source_item_inventory::observe(
-        file,
-        &descriptor,
-        deadline,
-        cancelled,
-        &mut || {
+    let result =
+        crate::source_item_inventory::observe(file, &descriptor, deadline, cancelled, &mut || {
             if let Some(error) = &authority_error {
                 return Err(error.clone());
             }
-            active(deadline, cancelled).and_then(|()| authorize()).map_err(|error| {
-                authority_error = Some(error.clone());
-                error
-            })
-        },
-    );
+            active(deadline, cancelled)
+                .and_then(|()| authorize())
+                .map_err(|error| {
+                    authority_error = Some(error.clone());
+                    error
+                })
+        });
     // A provider refusal can be a limitation; a lost grant or expired budget
     // cannot. Retain the original failure even if a parser maps its error.
     if let Some(error) = authority_error {
@@ -835,7 +834,12 @@ mod tests {
         let descriptor = inventory_descriptor(&config).unwrap();
         assert_eq!(descriptor.as_object().unwrap().len(), 7);
         assert_eq!(descriptor["relative_path"], "payload/selected.txt");
-        for field in ["input_path", "source_root", "recovery_root", "payload_authority_ref"] {
+        for field in [
+            "input_path",
+            "source_root",
+            "recovery_root",
+            "payload_authority_ref",
+        ] {
             assert!(descriptor.get(field).is_none());
         }
         let mut file = tempfile::tempfile().unwrap();
@@ -848,12 +852,17 @@ mod tests {
             Instant::now() + Duration::from_secs(5),
             &AtomicBool::new(false),
             &mut || Ok(()),
-        ).unwrap();
+        )
+        .unwrap();
         assert!(limitation.is_null());
         assert_eq!(inventory["profile"], "plain_utf8_file_v1");
         assert_eq!(inventory["file_sha256"], config["sha256"]);
         assert_eq!(inventory["resources"][0]["locator"]["byte_end"], raw.len());
-        assert!(!serde_json::to_string(&inventory).unwrap().contains("private source phrase"));
+        assert!(
+            !serde_json::to_string(&inventory)
+                .unwrap()
+                .contains("private source phrase")
+        );
         file.rewind().unwrap();
         let mut retained = Vec::new();
         file.read_to_end(&mut retained).unwrap();
@@ -877,7 +886,12 @@ mod tests {
         let overhead = canonical(&bounded).unwrap().len();
         bounded["padding"] = json!("x".repeat(MAX_INVENTORY - overhead));
         assert_eq!(canonical(&bounded).unwrap().len(), MAX_INVENTORY);
-        assert!(inventory_outcome(&descriptor, Ok(bounded.clone())).unwrap().1.is_null());
+        assert!(
+            inventory_outcome(&descriptor, Ok(bounded.clone()))
+                .unwrap()
+                .1
+                .is_null()
+        );
         bounded["padding"] = json!("x".repeat(MAX_INVENTORY - overhead + 1));
         let (value, limitation) = inventory_outcome(&descriptor, Ok(bounded)).unwrap();
         assert!(value.is_null());
@@ -901,7 +915,11 @@ mod tests {
                 &AtomicBool::new(false),
                 &mut || {
                     calls += 1;
-                    if calls == 2 { Err(error.clone()) } else { Ok(()) }
+                    if calls == 2 {
+                        Err(error.clone())
+                    } else {
+                        Ok(())
+                    }
                 },
             );
             assert_eq!(result, Err(error));
@@ -922,7 +940,9 @@ mod tests {
             &cancelled,
             &mut || {
                 calls += 1;
-                if calls == 2 { cancelled.store(true, Ordering::Relaxed); }
+                if calls == 2 {
+                    cancelled.store(true, Ordering::Relaxed);
+                }
                 Ok(())
             },
         );
@@ -933,7 +953,10 @@ mod tests {
             &config(b"selected"),
             Instant::now(),
             &AtomicBool::new(false),
-            &mut || { calls += 1; Ok(()) },
+            &mut || {
+                calls += 1;
+                Ok(())
+            },
         );
         assert!(matches!(result, Err(SourceCommandError::Denied(_))));
         assert_eq!(calls, 0);
