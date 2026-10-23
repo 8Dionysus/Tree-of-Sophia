@@ -1009,4 +1009,31 @@ mod tests {
         assert!(matches!(result, Err(SourceCommandError::Denied(_))));
         assert_eq!(calls, 0);
     }
+
+    #[test]
+    fn inventory_provider_current_owner_failure_stops_the_owned_process() {
+        let expected = SourceCommandError::Conflict("fixture provider owner withdrawn");
+        let mut checks = 0;
+        let started = Instant::now();
+        let result = crate::source_text_owner_ocr::bounded_process_with_stdin_guarded(
+            "/usr/bin/sleep",
+            &["30"],
+            Some(Path::new("/")),
+            None,
+            1,
+            started + Duration::from_secs(10),
+            &AtomicBool::new(false),
+            &mut || {
+                checks += 1;
+                if checks == 2 {
+                    Err(expected.clone())
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert_eq!(result, Err(expected));
+        assert_eq!(checks, 2);
+        assert!(started.elapsed() < Duration::from_secs(10));
+    }
 }
