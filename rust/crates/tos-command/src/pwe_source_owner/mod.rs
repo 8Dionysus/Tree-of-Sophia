@@ -58,11 +58,20 @@ fn exact_match(
 ) -> SourceCommandResult<()> {
     let actual_digest = ledger.digest(actual)?;
     let reference = ledger.exact(value)?;
-    let actual_id = ledger.native_get(actual, id_field)?.and_then(JsonValue::as_str);
-    let names = match actual_id { Some(id) => ledger.text_equal(id, reference.id.as_str())?, None => false };
-    let version = ledger.native_get(actual, version_field)?.and_then(JsonValue::as_u64);
+    let actual_id = ledger
+        .native_get(actual, id_field)?
+        .and_then(JsonValue::as_str);
+    let names = match actual_id {
+        Some(id) => ledger.text_equal(id, reference.id.as_str())?,
+        None => false,
+    };
+    let version = ledger
+        .native_get(actual, version_field)?
+        .and_then(JsonValue::as_u64);
     if !names || version != Some(reference.version.get()) || actual_digest != reference.digest {
-        return Err(SourceCommandError::Conflict("PWE selected exact record differs"));
+        return Err(SourceCommandError::Conflict(
+            "PWE selected exact record differs",
+        ));
     }
     Ok(())
 }

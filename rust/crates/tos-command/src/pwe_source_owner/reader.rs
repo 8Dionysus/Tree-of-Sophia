@@ -39,7 +39,8 @@ pub(crate) fn extract_claim_dependencies(
 ) -> SourceCommandResult<ClaimDependencies> {
     crate::source_creation_store::active(deadline, cancelled)?;
     let claim = CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(claim)?;
-    let object = CanonicalLedger::new(budget, whole, deadline, cancelled).get(&claim, "object")?
+    let object = CanonicalLedger::new(budget, whole, deadline, cancelled)
+        .get(&claim, "object")?
         .ok_or(invalid("PWE Claim object absent"))?;
     let prepared = session
         .prepare(object)

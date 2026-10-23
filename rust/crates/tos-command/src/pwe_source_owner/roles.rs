@@ -78,8 +78,26 @@ impl RoleCache {
         if !frames.text_equal(selection.path, super::registry::BINDINGS)? {
             return Err(invalid("PWE selected role registry path"));
         }
-        frames.inspect_access(selection.exact.id.as_str().len().checked_add(kind_binding.id.as_str().len()).ok_or(unsupported("PWE role pin copy size"))?, 1)?;
-        frames.retain(selection.exact.id.as_str().len().checked_add(kind_binding.id.as_str().len()).and_then(|n| n.checked_add(256)).ok_or(unsupported("PWE role pin holders"))?)?;
+        frames.inspect_access(
+            selection
+                .exact
+                .id
+                .as_str()
+                .len()
+                .checked_add(kind_binding.id.as_str().len())
+                .ok_or(unsupported("PWE role pin copy size"))?,
+            1,
+        )?;
+        frames.retain(
+            selection
+                .exact
+                .id
+                .as_str()
+                .len()
+                .checked_add(kind_binding.id.as_str().len())
+                .and_then(|n| n.checked_add(256))
+                .ok_or(unsupported("PWE role pin holders"))?,
+        )?;
         Ok(Self {
             registry_exact: selection.exact.clone(),
             kind_binding: kind_binding.clone(),
@@ -94,27 +112,59 @@ impl RoleCache {
     ) -> SourceCommandResult<Value> {
         let record_wire = frames.get(wire, "record")?;
         let (record, kind) = if let Some(record_wire) = record_wire {
-            if wire.as_object().map(|o| o.len()) != Some(2) { return Err(invalid("PWE TypedRef shape")); }
+            if wire.as_object().map(|o| o.len()) != Some(2) {
+                return Err(invalid("PWE TypedRef shape"));
+            }
             let kind_wire = frames.field(wire, "kind_binding")?;
             (frames.exact(record_wire)?, frames.exact(kind_wire)?)
         } else {
             frames.inspect_access(self.kind_binding.id.as_str().len(), 1)?;
-            frames.retain(self.kind_binding.id.as_str().len().checked_add(128).ok_or(unsupported("PWE role kind holder"))?)?;
+            frames.retain(
+                self.kind_binding
+                    .id
+                    .as_str()
+                    .len()
+                    .checked_add(128)
+                    .ok_or(unsupported("PWE role kind holder"))?,
+            )?;
             (frames.exact(wire)?, self.kind_binding.clone())
         };
-        if !frames.exact_equal(&kind, &self.kind_binding)? { return Err(crate::source_command::SourceCommandError::Conflict("PWE formal kind registry pin differs")); }
+        if !frames.exact_equal(&kind, &self.kind_binding)? {
+            return Err(crate::source_command::SourceCommandError::Conflict(
+                "PWE formal kind registry pin differs",
+            ));
+        }
         let mut cached = None;
         for (index, candidate) in self.records.iter().enumerate() {
             frames.inspect_access(0, 1)?;
-            if candidate.role() == role && frames.exact_equal(candidate.exact(), &record)? && frames.exact_equal(candidate.kind_binding(), &kind)? { cached = Some(index); break; }
+            if candidate.role() == role
+                && frames.exact_equal(candidate.exact(), &record)?
+                && frames.exact_equal(candidate.kind_binding(), &kind)?
+            {
+                cached = Some(index);
+                break;
+            }
         }
-        let index = if let Some(index) = cached { index } else {
-            if self.records.len() >= super::MAX_RECORDS { return Err(unsupported("PWE formal role cache cap")); }
+        let index = if let Some(index) = cached {
+            index
+        } else {
+            if self.records.len() >= super::MAX_RECORDS {
+                return Err(unsupported("PWE formal role cache cap"));
+            }
             frames.retain(8192)?;
-            let selected = frames.with_roles(RoleRegistrySelection { path: super::registry::BINDINGS, exact: &self.registry_exact }, |r| r.resolve(role, &kind, &record))?;
+            let selected = frames.with_roles(
+                RoleRegistrySelection {
+                    path: super::registry::BINDINGS,
+                    exact: &self.registry_exact,
+                },
+                |r| r.resolve(role, &kind, &record),
+            )?;
             frames.retain(selected.evidence().returned_state_bytes)?;
-            self.records.try_reserve_exact(1).map_err(|_| unsupported("PWE formal role cache reservation"))?;
-            self.records.push(selected); self.records.len() - 1
+            self.records
+                .try_reserve_exact(1)
+                .map_err(|_| unsupported("PWE formal role cache reservation"))?;
+            self.records.push(selected);
+            self.records.len() - 1
         };
         let selected = &self.records[index];
         if selected.source_revision() != frames.revision() {

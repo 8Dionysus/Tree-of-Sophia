@@ -62,7 +62,13 @@ impl NativeBasis {
             // source reader port. Role/order/multiplicity are never discarded.
             // Extractor role names are fixed static tags; pay their bounded
             // literal dispatch and predecessor-tag checks before matching.
-            frames.inspect_access(slot.role.len().checked_mul(16).ok_or(unsupported("PWE role tag work"))?, 1)?;
+            frames.inspect_access(
+                slot.role
+                    .len()
+                    .checked_mul(16)
+                    .ok_or(unsupported("PWE role tag work"))?,
+                1,
+            )?;
             let formal = if slot.inner % 2 == 1 {
                 match slot.role {
                     "scope" | "scope_ref" => Some(crate::source_native_roles::NativeRole::Scope),
@@ -120,7 +126,10 @@ impl NativeBasis {
             let index = match index {
                 Some(index) => {
                     let old = &out.contents[index];
-                    if !frames.equal(&old.value, &value)? || !frames.text_equal(old.identity, identity)? || !frames.text_equal(old.version, version)? {
+                    if !frames.equal(&old.value, &value)?
+                        || !frames.text_equal(old.identity, identity)?
+                        || !frames.text_equal(old.version, version)?
+                    {
                         return Err(invalid(
                             "PWE repeated exact dependency content/route differs",
                         ));
@@ -161,18 +170,35 @@ impl NativeBasis {
             let mut record_found = false;
             let mut registry_found = false;
             for content in &self.contents {
-                if frames.reference_matches(&content.reference, item.reference())? && frames.equal(&content.value, item.value())? { record_found = true; }
+                if frames.reference_matches(&content.reference, item.reference())?
+                    && frames.equal(&content.value, item.value())?
+                {
+                    record_found = true;
+                }
                 if frames.reference_matches(&content.reference, item.registry())?
                     && frames.text_equal(content.identity, "registry_id")?
-                    && frames.text_equal(content.version, "registry_version")? { registry_found = true; }
+                    && frames.text_equal(content.version, "registry_version")?
+                {
+                    registry_found = true;
+                }
             }
-            if !record_found || !registry_found { return Err(unsupported("PWE metadata/registry is not in native exact dependency closure")); }
+            if !record_found || !registry_found {
+                return Err(unsupported(
+                    "PWE metadata/registry is not in native exact dependency closure",
+                ));
+            }
         }
         Ok(())
     }
-    fn find(&self, reference: &Value, frames: &mut HeldFrames<'_, '_>) -> SourceCommandResult<Option<usize>> {
+    fn find(
+        &self,
+        reference: &Value,
+        frames: &mut HeldFrames<'_, '_>,
+    ) -> SourceCommandResult<Option<usize>> {
         for (index, content) in self.contents.iter().enumerate() {
-            if frames.equal(&content.reference, reference)? { return Ok(Some(index)); }
+            if frames.equal(&content.reference, reference)? {
+                return Ok(Some(index));
+            }
         }
         Ok(None)
     }
@@ -198,9 +224,13 @@ impl NativeBasis {
         basis: &ResolvedBasis<'_>,
         frames: &mut HeldFrames<'_, '_>,
     ) -> SourceCommandResult<bool> {
-        if basis.slots().len() != pins.len() { return Ok(false); }
+        if basis.slots().len() != pins.len() {
+            return Ok(false);
+        }
         for (slot, reference) in basis.slots().iter().zip(pins) {
-            if !frames.reference_matches(reference, slot.slot.reference)? { return Ok(false); }
+            if !frames.reference_matches(reference, slot.slot.reference)? {
+                return Ok(false);
+            }
         }
         Ok(true)
     }
@@ -223,7 +253,10 @@ impl NativeBasis {
                 .contents
                 .get(slot)
                 .ok_or_else(|| refuse(invalid("PWE basis content absent")))?;
-            if !frames.reference_matches(&content.reference, requested).map_err(refuse)? {
+            if !frames
+                .reference_matches(&content.reference, requested)
+                .map_err(refuse)?
+            {
                 return Err(tos_compiler::pwe_native::Error::ExactMismatch);
             }
             Ok(SuppliedExact {

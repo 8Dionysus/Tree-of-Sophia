@@ -269,11 +269,25 @@ impl<'a> CanonicalLedger<'a> {
             work,
         )
     }
-    pub(super) fn inspect_access(&mut self, bytes: usize, visits: usize) -> SourceCommandResult<()> {
-        admit_prefix(self.budget, self.whole, self.deadline, self.cancelled, bytes, visits)
+    pub(super) fn inspect_access(
+        &mut self,
+        bytes: usize,
+        visits: usize,
+    ) -> SourceCommandResult<()> {
+        admit_prefix(
+            self.budget,
+            self.whole,
+            self.deadline,
+            self.cancelled,
+            bytes,
+            visits,
+        )
     }
     pub(super) fn reserve_access(&mut self, bytes: usize) -> SourceCommandResult<()> {
-        self.whole.try_borrow_mut().map_err(|_| invalid("PWE whole-call budget in use"))?.retain(bytes)
+        self.whole
+            .try_borrow_mut()
+            .map_err(|_| invalid("PWE whole-call budget in use"))?
+            .retain(bytes)
     }
     fn inspect_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
         if bytes > MAX_BYTES {
