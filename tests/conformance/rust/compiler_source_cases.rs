@@ -197,6 +197,7 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
 fn append_current_contract_resources(resources: &mut Vec<Value>) {
     for path in [
         "ToS/contracts/native-pg-private-text-read.schema.json",
+        "ToS/contracts/operation-binding-v1.schema.json",
         "ToS/contracts/retained-corpus-binding.schema.json",
     ] {
         assert!(
