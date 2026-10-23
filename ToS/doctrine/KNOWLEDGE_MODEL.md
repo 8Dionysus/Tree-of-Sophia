@@ -71,6 +71,11 @@ and projection boundary is defined by
 stable IDs preserve continuity of evidence-bearing records while versioned
 interpretations remain open to reassessment.
 
+The shared typed reference, qualification, map, result and change contracts are defined in
+[COMMON_CORE_CONTRACT](COMMON_CORE_CONTRACT.md). Domain profiles specialize those
+contracts; mathematical proof, source applicability, scoped admission and executed
+runtime evidence remain separate.
+
 ## Node families
 
 ToS may grow multiple node families. At the public baseline, the most important are:
