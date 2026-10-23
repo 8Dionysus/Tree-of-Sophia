@@ -34,6 +34,10 @@ use tos_validation::source_cut::{
     CandidateCutWorkerSchemaExecutor, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
 };
 
+#[path = "source_native_private_assessment_scope.rs"]
+mod scope_admission;
+use scope_admission::ScopeAccess;
+
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 const QUALITY_BASIS_SCHEMA: &str = "ToS/contracts/native-text-layer-quality-basis.schema.json";
@@ -445,7 +449,11 @@ pub(crate) enum OwnerVersion {
 
 impl OwnerVersion {
     pub(crate) fn from_config(config: &JsonValue) -> SourceCommandResult<Self> {
-        match cmd::text(config, "schema_version")? {
+        Self::from_schema(cmd::text(config, "schema_version")?)
+    }
+
+    fn from_schema(schema: &str) -> SourceCommandResult<Self> {
+        match schema {
             "tos_local_assessment_owner_v1" => Ok(Self::V1),
             "tos_local_assessment_owner_v2" => Ok(Self::V2),
             "tos_local_assessment_owner_v3" => Ok(Self::V3),
@@ -2520,6 +2528,41 @@ fn configured_scope(config: &JsonValue, subject_id: &str) -> SourceCommandResult
     Ok(scope)
 }
 
+fn configured_scope_using(
+    config: &JsonValue,
+    subject_id: &str,
+    access: &mut ScopeAccess<'_>,
+) -> SourceCommandResult<JsonValue> {
+    access.inspect(0, 128)?; // fixed selector controls, not variable key/language work
+    let subjects = access.field(config, "subjects")?;
+    let selected = access.get(subjects, subject_id)?.ok_or(SourceCommandError::Denied(
+        "assessment subject is outside configured scope",
+    ))?;
+    let scope = access.copied(selected)?;
+    const KEYS: [&str; 8] = ["record", "assertion_layer", "risk", "languages", "maker_id", "requested_use", "access_allowed", "form_language_context"];
+    let extended = access.version(config)? != OwnerVersion::V1
+        && access.get(&scope, "form_language_context")?.is_some();
+    access.exact_keys(&scope, &KEYS[..if extended { 8 } else { 7 }])?;
+    let languages = access.field(&scope, "languages")?.as_array().ok_or(SourceCommandError::Invalid("expected array field"))?;
+    if languages.is_empty() { return Err(SourceCommandError::Denied("assessment configured access scope is incomplete")); }
+    for language in languages {
+        access.inspect(0, 1)?;
+        if language.as_str().is_none_or(str::is_empty) {
+            return Err(SourceCommandError::Denied("assessment configured access scope is incomplete"));
+        }
+    }
+    for key in ["assertion_layer", "risk", "maker_id", "requested_use"] {
+        if access.get(&scope, key)?.and_then(JsonValue::as_str).is_none() {
+            return Err(SourceCommandError::Denied("assessment configured access scope is incomplete"));
+        }
+    }
+    let allowed = access.field(&scope, "access_allowed")?;
+    if !access.optional_equal(Some(allowed), Some(&JsonValue::Bool(true)))? {
+        return Err(SourceCommandError::Denied("assessment configured access scope is incomplete"));
+    }
+    Ok(scope)
+}
+
 pub(crate) fn select_current_scope(
     config: &JsonValue,
     request: &ParsedRequest,
@@ -2574,6 +2617,77 @@ pub(crate) fn select_current_scope(
         return Err(SourceCommandError::Denied(
             "assessment source form scope differs from its creator",
         ));
+    }
+    Ok((current, scope))
+}
+
+/// Same maintained selection rules with the caller's original operation/whole
+/// ledgers. This returns selected data, never an access grant or admission.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn select_current_scope_with_admission(
+    config: &JsonValue,
+    request: &ParsedRequest,
+    all_by_id: &BTreeMap<String, JsonValue>,
+    budget: &mut OperationBudget,
+    whole: &std::rc::Rc<std::cell::RefCell<crate::source_claims::ClaimCallBudget>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, JsonValue)> {
+    select_current_scope_using(config, request, all_by_id, &mut ScopeAccess::admitted(budget, whole, deadline, cancelled))
+}
+
+fn select_current_scope_using(
+    config: &JsonValue,
+    request: &ParsedRequest,
+    all_by_id: &BTreeMap<String, JsonValue>,
+    access: &mut ScopeAccess<'_>,
+) -> SourceCommandResult<(JsonValue, JsonValue)> {
+    access.inspect(0, 64)?;
+    let selected = access.current(all_by_id, &request.subject_id)?;
+    let current = access.copied(selected)?;
+    let current_ref = access.reference(&current)?;
+    let scope = configured_scope_using(config, &request.subject_id, access)?;
+    let scope_record = access.field(&scope, "record")?;
+    if !access.same(&current_ref, scope_record)?
+        || !access.describe(request)?
+            && !access.same(&current_ref, request.expected_subject.as_ref().ok_or(SourceCommandError::Invalid("assessment expected subject is absent"))?)?
+    {
+        return Err(SourceCommandError::Conflict("assessment expected subject or owner scope is stale"));
+    }
+    let body = access.field(&current, "payload")?;
+    if access.get(body, "claim_id")?.is_some() {
+        let maker_object = access.get(body, "maker")?;
+        let maker = match maker_object { Some(maker) => access.get(maker, "agent_ref")?, None => None };
+        let expected_layer = access.field(&scope, "assertion_layer")?;
+        let actual_layer = access.get(body, "assertion_layer")?.unwrap_or(&JsonValue::Null);
+        let layer_matches = access.optional_equal(Some(expected_layer), Some(actual_layer))?;
+        let maker_matches = if layer_matches {
+            let expected_maker = access.field(&scope, "maker_id")?;
+            access.optional_equal(maker, Some(expected_maker))?
+        } else { false };
+        if !layer_matches || !maker_matches
+        {
+            return Err(SourceCommandError::Denied("assessment source Claim scope differs from its layer or maker"));
+        }
+    } else {
+        let schema = access.get(body, "schema_version")?.and_then(JsonValue::as_str);
+        let human_form = match schema {
+            Some(schema) => access.text_equal(schema, "tos_human_form_v1")?,
+            None => false,
+        };
+        if human_form {
+            let layer = access.text(&scope, "assertion_layer")?;
+            let layer_matches = access.text_equal(layer, "human_projection")?;
+            let maker_matches = if layer_matches {
+                let maker = access.field(&scope, "maker_id")?;
+                let creator = access.field(body, "creator_id")?;
+                access.optional_equal(Some(maker), Some(creator))?
+            } else { false };
+            if !layer_matches || !maker_matches
+            {
+                return Err(SourceCommandError::Denied("assessment source form scope differs from its creator"));
+            }
+        }
     }
     Ok((current, scope))
 }
