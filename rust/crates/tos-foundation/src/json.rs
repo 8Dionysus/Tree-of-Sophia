@@ -1207,6 +1207,8 @@ fn canonical_write_style(profile: CanonicalProfile) -> WriteStyle {
 /// Canonical bytes with the same state/visit limits and a prefix work owner.
 /// Admit each count/emit byte and visitor prefix before processing it, retaining
 /// successful charges on refusal instead of charging the whole output ceiling.
+/// Key comparisons additionally admit their bounded input-byte windows before
+/// scanning them; the returned visit count remains the actual value visits.
 pub fn canonical_bytes_v1_with_state_budget_and_visits_and_admission(
     value: &JsonValue,
     profile: CanonicalProfile,
@@ -2600,6 +2602,7 @@ fn checked_key_sort(
         b: &JsonString,
         poll: &mut JsonCheck<'_>,
     ) -> Result<std::cmp::Ordering> {
+        poll.admit_work(1, 0)?;
         match (a.as_str(), b.as_str()) {
             (Some(a), Some(b)) => {
                 for (a, b) in a
@@ -2608,6 +2611,9 @@ fn checked_key_sort(
                     .zip(b.as_bytes().chunks(CHECK_BYTES))
                 {
                     poll.now()?;
+                    // Both chunks are <= CHECK_BYTES. Pay their input scan
+                    // before lexicographic comparison, including long prefixes.
+                    poll.admit_work(a.len() + b.len(), 0)?;
                     let ordering = a.cmp(b);
                     if ordering != std::cmp::Ordering::Equal {
                         return Ok(ordering);
@@ -2767,11 +2773,14 @@ fn checked_units_digest(units: &[u16], poll: &mut JsonCheck<'_>) -> Result<Diges
 }
 
 fn checked_units_equal(a: &[u16], b: &[u16], poll: &mut JsonCheck<'_>) -> Result<bool> {
+    poll.admit_work(1, 0)?;
     if a.len() != b.len() {
         return Ok(false);
     }
     for (a, b) in a.chunks(CHECK_BYTES / 2).zip(b.chunks(CHECK_BYTES / 2)) {
         poll.now()?;
+        // Each pair contains at most CHECK_BYTES UTF-16 units in total.
+        poll.admit_work((a.len() + b.len()) * std::mem::size_of::<u16>(), 0)?;
         if a != b {
             return Ok(false);
         }
