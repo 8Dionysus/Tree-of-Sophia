@@ -1,13 +1,19 @@
 //! Source-backed formal-role records over the maintained native Record reader.
 //! No role row, descriptor, exact pin or returned value grants current use.
 use crate::{
-    source_command::{self as cmd, CommandContext, SourceCommandError as Error, SourceCommandResult as Result},
+    source_command::{
+        self as cmd, CommandContext, SourceCommandError as Error, SourceCommandResult as Result,
+    },
     source_native_private_assessment_cli::OperationBudget,
     source_private_assessment_sources::PrivateAssessmentSources,
     source_revisions::{self, ResolvedRecordVersion},
     source_text_owner::OwnerTextContext,
 };
-use std::{collections::BTreeSet, sync::atomic::{AtomicBool, Ordering}, time::Instant};
+use std::{
+    collections::BTreeSet,
+    sync::atomic::{AtomicBool, Ordering},
+    time::Instant,
+};
 use tos_foundation::{
     CanonicalProfile, ExactRecordRef, JsonLimits, JsonValue, RelativePath, SourceRevision,
     canonical_digest_v1,
@@ -22,17 +28,31 @@ const ROLE_SCHEMA: &str = "ToS/contracts/native-role-bindings.schema.json";
 /// Dispatch roles are local to these consumers, not a universal type system.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum NativeRole {
-    Signature, Predicate, QualificationProfile, Context, Scope, CriterionPolicy,
-    JointCarrier, Scenario, TsDefinition, TsValueProfile, TsOperationResult,
+    Signature,
+    Predicate,
+    QualificationProfile,
+    Context,
+    Scope,
+    CriterionPolicy,
+    JointCarrier,
+    Scenario,
+    TsDefinition,
+    TsValueProfile,
+    TsOperationResult,
 }
 impl NativeRole {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
-            Self::Signature => "signature", Self::Predicate => "predicate",
-            Self::QualificationProfile => "qualification-profile", Self::Context => "context",
-            Self::Scope => "scope", Self::CriterionPolicy => "criterion-policy",
-            Self::JointCarrier => "joint-carrier", Self::Scenario => "scenario",
-            Self::TsDefinition => "ts-definition", Self::TsValueProfile => "ts-value-profile",
+            Self::Signature => "signature",
+            Self::Predicate => "predicate",
+            Self::QualificationProfile => "qualification-profile",
+            Self::Context => "context",
+            Self::Scope => "scope",
+            Self::CriterionPolicy => "criterion-policy",
+            Self::JointCarrier => "joint-carrier",
+            Self::Scenario => "scenario",
+            Self::TsDefinition => "ts-definition",
+            Self::TsValueProfile => "ts-value-profile",
             Self::TsOperationResult => "ts-operation-result",
         }
     }
@@ -54,11 +74,21 @@ pub(crate) struct NativeRoleRecord {
     resolved: ResolvedRecordVersion,
 }
 impl NativeRoleRecord {
-    pub(crate) fn role(&self) -> NativeRole { self.role }
-    pub(crate) fn exact(&self) -> &ExactRecordRef { &self.exact }
-    pub(crate) fn kind_binding(&self) -> &ExactRecordRef { &self.kind_binding }
-    pub(crate) fn source_revision(&self) -> SourceRevision { self.source_revision }
-    pub(crate) fn evidence(&self) -> &ResolvedRecordVersion { &self.resolved }
+    pub(crate) fn role(&self) -> NativeRole {
+        self.role
+    }
+    pub(crate) fn exact(&self) -> &ExactRecordRef {
+        &self.exact
+    }
+    pub(crate) fn kind_binding(&self) -> &ExactRecordRef {
+        &self.kind_binding
+    }
+    pub(crate) fn source_revision(&self) -> SourceRevision {
+        self.source_revision
+    }
+    pub(crate) fn evidence(&self) -> &ResolvedRecordVersion {
+        &self.resolved
+    }
 }
 
 /// Borrow the actual protected native frames; there is no JSON/boolean issuer.
@@ -91,51 +121,104 @@ impl<'a> NativeRoleResolver<'a> {
     ) -> Result<Self> {
         ctx.check()?;
         sources.verify_current(owner, ctx, cut, deadline, cancelled)?;
-        if worker.source_revision() != ctx.base_revision || cut.current().revision() != ctx.base_revision {
-            return Err(Error::Conflict("native role source/worker selection differs"));
+        if worker.source_revision() != ctx.base_revision
+            || cut.current().revision() != ctx.base_revision
+        {
+            return Err(Error::Conflict(
+                "native role source/worker selection differs",
+            ));
         }
         // Verify custody of every selected authored input, including schemas,
         // role declarations and retained history. Charge BEFORE reading copies.
         // Physical membership alone grants neither semantic membership nor use.
-        for file in ctx.files.iter().filter(|f| f.path.as_str().starts_with("ToS/")) {
+        for file in ctx
+            .files
+            .iter()
+            .filter(|f| f.path.as_str().starts_with("ToS/"))
+        {
             budget.charge_bytes(file.raw.len())?;
             budget.charge_work(file.raw.len())?;
-            let actual = cut.read_member(ctx.base_revision, &file.path, file.raw.len() as u64, deadline, cancelled)
-                .map_err(|_| Error::Unsupported("native role selected source custody incomplete"))?;
+            let actual = cut
+                .read_member(
+                    ctx.base_revision,
+                    &file.path,
+                    file.raw.len() as u64,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| {
+                    Error::Unsupported("native role selected source custody incomplete")
+                })?;
             if actual.raw != file.raw {
                 return Err(Error::Conflict("native role selected source bytes differ"));
             }
         }
-        let entity_path = RelativePath::parse(ENTITIES).map_err(|_| Error::Invalid("native entity registry path"))?;
-        let entity_raw = ctx.file(&entity_path)?.ok_or(Error::Unsupported("native entity registry is not selected"))?;
+        let entity_path = RelativePath::parse(ENTITIES)
+            .map_err(|_| Error::Invalid("native entity registry path"))?;
+        let entity_raw = ctx
+            .file(&entity_path)?
+            .ok_or(Error::Unsupported("native entity registry is not selected"))?;
         budget.charge_work(entity_raw.len())?;
-        let entities = source_revisions::validate_source_profile_registry(worker, deadline, cancelled, ctx)?;
-        let path = RelativePath::parse(registry.path).map_err(|_| Error::Invalid("native role registry path"))?;
-        if !registry.path.starts_with("ToS/doctrine/semantic-interchange/") || !registry.path.ends_with(".json") {
+        let entities =
+            source_revisions::validate_source_profile_registry(worker, deadline, cancelled, ctx)?;
+        let path = RelativePath::parse(registry.path)
+            .map_err(|_| Error::Invalid("native role registry path"))?;
+        if !registry
+            .path
+            .starts_with("ToS/doctrine/semantic-interchange/")
+            || !registry.path.ends_with(".json")
+        {
             return Err(Error::Invalid("native role registry source home"));
         }
-        let raw = ctx.file(&path)?.ok_or(Error::Unsupported("native role registry is not selected"))?;
+        let raw = ctx
+            .file(&path)?
+            .ok_or(Error::Unsupported("native role registry is not selected"))?;
         budget.charge_bytes(raw.len())?;
         budget.charge_work(raw.len())?;
         let bindings = cmd::parse(raw)?;
         check_pin(&bindings, registry.exact, "registry_id", "registry_version")?;
         source_revisions::schema_for_source_path_worker(
-            worker, deadline, cancelled, ctx, &[ROLE_SCHEMA.into(), ENTITY_SCHEMA.into()], ROLE_SCHEMA, registry.path, &bindings,
+            worker,
+            deadline,
+            cancelled,
+            ctx,
+            &[ROLE_SCHEMA.into(), ENTITY_SCHEMA.into()],
+            ROLE_SCHEMA,
+            registry.path,
+            &bindings,
         )?;
-        let row_work = cmd::array(&bindings, "role_bindings")?.len()
+        let row_work = cmd::array(&bindings, "role_bindings")?
+            .len()
             .checked_mul(cmd::array(&entities, "types")?.len())
             .ok_or(Error::Unsupported("native role dispatch work overflow"))?;
         budget.charge_work(row_work)?;
         check_role_rows(&bindings, &entities)?;
         sources.verify_current(owner, ctx, cut, deadline, cancelled)?;
-        Ok(Self { ctx, cut, owner, sources, worker, budget, entities, bindings, deadline, cancelled })
+        Ok(Self {
+            ctx,
+            cut,
+            owner,
+            sources,
+            worker,
+            budget,
+            entities,
+            bindings,
+            deadline,
+            cancelled,
+        })
     }
 
     pub(crate) fn check_current(&self) -> Result<()> {
         if self.cancelled.load(Ordering::Relaxed) || Instant::now() >= self.deadline {
             return Err(Error::Denied("native role operation cancelled or expired"));
         }
-        self.sources.verify_current(self.owner, self.ctx, self.cut, self.deadline, self.cancelled)
+        self.sources.verify_current(
+            self.owner,
+            self.ctx,
+            self.cut,
+            self.deadline,
+            self.cancelled,
+        )
     }
 
     pub(crate) fn resolve(
@@ -145,14 +228,30 @@ impl<'a> NativeRoleResolver<'a> {
         exact: &ExactRecordRef,
     ) -> Result<NativeRoleRecord> {
         self.check_current()?;
-        check_pin(&self.entities, kind_binding, "registry_id", "registry_version")?;
-        let scan_work = self.ctx.files.iter().filter(|f| f.path.as_str().starts_with("ToS/"))
+        check_pin(
+            &self.entities,
+            kind_binding,
+            "registry_id",
+            "registry_version",
+        )?;
+        let scan_work = self
+            .ctx
+            .files
+            .iter()
+            .filter(|f| f.path.as_str().starts_with("ToS/"))
             .try_fold(0usize, |n, f| n.checked_add(f.raw.len()))
-            .ok_or(Error::Unsupported("native role owner-discovery work overflow"))?;
+            .ok_or(Error::Unsupported(
+                "native role owner-discovery work overflow",
+            ))?;
         self.budget.charge_work(scan_work)?;
         let allowance = self.budget.limits()?;
-        let read_cap = allowance.batch.max_total_raw_bytes.min(allowance.max_work / 4);
-        if read_cap == 0 { return Err(Error::Unsupported("native role remaining read/work budget")); }
+        let read_cap = allowance
+            .batch
+            .max_total_raw_bytes
+            .min(allowance.max_work / 4);
+        if read_cap == 0 {
+            return Err(Error::Unsupported("native role remaining read/work budget"));
+        }
         let limits = ItemLimits {
             max_member_bytes: allowance.max_input_bytes.min(read_cap),
             max_total_bytes: read_cap as u64,
@@ -162,73 +261,133 @@ impl<'a> NativeRoleResolver<'a> {
         };
         let pin = wire_pin(exact);
         let mut resolved = source_revisions::resolve_role_record_version_from_cut(
-            self.ctx, self.cut, &pin, limits, self.worker, self.cancelled,
+            self.ctx,
+            self.cut,
+            &pin,
+            limits,
+            self.worker,
+            self.cancelled,
         )?;
-        self.budget.charge_bytes(usize::try_from(resolved.bytes_read)
-            .map_err(|_| Error::Unsupported("native role read accounting overflow"))?)?;
-        self.budget.charge_work(usize::try_from(resolved.bytes_read).ok()
-            .and_then(|n| n.checked_mul(4)).ok_or(Error::Unsupported("native role read/work overflow"))?)?;
+        self.budget.charge_bytes(
+            usize::try_from(resolved.bytes_read)
+                .map_err(|_| Error::Unsupported("native role read accounting overflow"))?,
+        )?;
+        self.budget.charge_work(
+            usize::try_from(resolved.bytes_read)
+                .ok()
+                .and_then(|n| n.checked_mul(4))
+                .ok_or(Error::Unsupported("native role read/work overflow"))?,
+        )?;
         self.budget.charge_bytes(resolved.returned_state_bytes)?;
         // The maintained reader verifies exact current/retained versions, source
         // schema and history. Recheck exact content and role after that read.
         check_pin(&resolved.record, exact, "record_id", "record_version")?;
         let descriptor = resolved.readonly_descriptor(&self.entities)?;
         check_resolved_role(&self.bindings, role, &resolved.record, &descriptor)?;
-        self.budget.charge_bytes(cmd::canonical(&resolved.record)?.len())?;
-        self.budget.charge_bytes(cmd::canonical(&descriptor)?.len())?;
+        self.budget
+            .charge_bytes(cmd::canonical(&resolved.record)?.len())?;
+        self.budget
+            .charge_bytes(cmd::canonical(&descriptor)?.len())?;
         resolved.descriptor = Some(descriptor);
         self.check_current()?;
-        Ok(NativeRoleRecord { role, exact: exact.clone(), kind_binding: kind_binding.clone(),
-            source_revision: self.ctx.base_revision, resolved })
+        Ok(NativeRoleRecord {
+            role,
+            exact: exact.clone(),
+            kind_binding: kind_binding.clone(),
+            source_revision: self.ctx.base_revision,
+            resolved,
+        })
     }
 }
 
 fn check_pin(value: &JsonValue, expected: &ExactRecordRef, id: &str, version: &str) -> Result<()> {
-    let actual = canonical_digest_v1(value, CanonicalProfile::SourceRecordDigestV1,
-        JsonLimits { max_bytes: 8_388_608, ..JsonLimits::default() })
-        .map_err(|_| Error::Invalid("native role canonical source record"))?;
+    let actual = canonical_digest_v1(
+        value,
+        CanonicalProfile::SourceRecordDigestV1,
+        JsonLimits {
+            max_bytes: 8_388_608,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| Error::Invalid("native role canonical source record"))?;
     if cmd::text(value, id)? != expected.id.as_str()
-        || cmd::field(value, version)?.as_u64() != Some(expected.version.get()) || actual != expected.digest {
-        return Err(Error::Conflict("native role exact identity/version/digest differs"));
+        || cmd::field(value, version)?.as_u64() != Some(expected.version.get())
+        || actual != expected.digest
+    {
+        return Err(Error::Conflict(
+            "native role exact identity/version/digest differs",
+        ));
     }
     Ok(())
 }
 fn wire_pin(exact: &ExactRecordRef) -> JsonValue {
-    cmd::object(vec![("id", cmd::string(exact.id.as_str())),
+    cmd::object(vec![
+        ("id", cmd::string(exact.id.as_str())),
         ("version", cmd::number(exact.version.get())),
-        ("digest", cmd::string(&exact.digest.to_prefixed()))])
+        ("digest", cmd::string(&exact.digest.to_prefixed())),
+    ])
 }
 
 fn check_role_rows(bindings: &JsonValue, entities: &JsonValue) -> Result<()> {
     let mut keys = BTreeSet::new();
     for row in cmd::array(bindings, "role_bindings")? {
-        let key = (cmd::text(row, "role")?, cmd::text(row, "record_type")?, cmd::text(row, "schema_version")?);
-        if !keys.insert(key) { return Err(Error::Conflict("ambiguous native role binding")); }
-        let owners = cmd::array(entities, "types")?.iter()
-            .filter(|e| cmd::text(e, "type_id").ok() == cmd::text(row, "type_id").ok()).collect::<Vec<_>>();
-        if owners.len() != 1 { return Err(Error::Unsupported("native role type has no selected owner")); }
+        let key = (
+            cmd::text(row, "role")?,
+            cmd::text(row, "record_type")?,
+            cmd::text(row, "schema_version")?,
+        );
+        if !keys.insert(key) {
+            return Err(Error::Conflict("ambiguous native role binding"));
+        }
+        let owners = cmd::array(entities, "types")?
+            .iter()
+            .filter(|e| cmd::text(e, "type_id").ok() == cmd::text(row, "type_id").ok())
+            .collect::<Vec<_>>();
+        if owners.len() != 1 {
+            return Err(Error::Unsupported("native role type has no selected owner"));
+        }
         let profile = cmd::field(owners[0], "source_record_profile")?;
-        if cmd::text(profile, "record_type")? != key.1 { return Err(Error::Conflict("native role kind mapping differs")); }
-        let routes = cmd::array(profile, "schemas")?.iter()
-            .filter(|r| cmd::text(r, "schema_version").ok() == Some(key.2)).collect::<Vec<_>>();
-        if routes.len() != 1 || cmd::text(routes[0], "schema_ref")? != cmd::text(row, "schema_ref")? {
-            return Err(Error::Unsupported("native role exact schema route absent or ambiguous"));
+        if cmd::text(profile, "record_type")? != key.1 {
+            return Err(Error::Conflict("native role kind mapping differs"));
+        }
+        let routes = cmd::array(profile, "schemas")?
+            .iter()
+            .filter(|r| cmd::text(r, "schema_version").ok() == Some(key.2))
+            .collect::<Vec<_>>();
+        if routes.len() != 1 || cmd::text(routes[0], "schema_ref")? != cmd::text(row, "schema_ref")?
+        {
+            return Err(Error::Unsupported(
+                "native role exact schema route absent or ambiguous",
+            ));
         }
     }
     Ok(())
 }
-fn check_resolved_role(bindings: &JsonValue, role: NativeRole, record: &JsonValue, descriptor: &JsonValue) -> Result<()> {
-    let rows = cmd::array(bindings, "role_bindings")?.iter().filter(|r| {
-        cmd::text(r, "role").ok() == Some(role.as_str())
-            && cmd::text(r, "record_type").ok() == cmd::text(record, "record_type").ok()
-            && cmd::text(r, "schema_version").ok() == cmd::text(record, "schema_version").ok()
-    }).collect::<Vec<_>>();
-    if rows.len() != 1 { return Err(Error::Unsupported("requested native role has no unique source binding")); }
+fn check_resolved_role(
+    bindings: &JsonValue,
+    role: NativeRole,
+    record: &JsonValue,
+    descriptor: &JsonValue,
+) -> Result<()> {
+    let rows = cmd::array(bindings, "role_bindings")?
+        .iter()
+        .filter(|r| {
+            cmd::text(r, "role").ok() == Some(role.as_str())
+                && cmd::text(r, "record_type").ok() == cmd::text(record, "record_type").ok()
+                && cmd::text(r, "schema_version").ok() == cmd::text(record, "schema_version").ok()
+        })
+        .collect::<Vec<_>>();
+    if rows.len() != 1 {
+        return Err(Error::Unsupported(
+            "requested native role has no unique source binding",
+        ));
+    }
     let row = rows[0];
     if cmd::text(descriptor, "adapter")? != "declared-profile"
         || cmd::text(descriptor, "identity_field")? != "record_id"
         || cmd::text(descriptor, "profile_type_id")? != cmd::text(row, "type_id")?
-        || cmd::text(descriptor, "source_schema_ref")? != cmd::text(row, "schema_ref")? {
+        || cmd::text(descriptor, "source_schema_ref")? != cmd::text(row, "schema_ref")?
+    {
         return Err(Error::Conflict("resolved native role descriptor differs"));
     }
     Ok(())
@@ -241,7 +400,10 @@ mod tests {
     fn native_role_requires_actual_declared_profile_and_requested_role() {
         // Actual source registry. The existing canon Context type is not a
         // declared native metadata profile merely because its label matches.
-        let entities = cmd::parse(include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json")).unwrap();
+        let entities = cmd::parse(include_bytes!(
+            "../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json"
+        ))
+        .unwrap();
         let canon = cmd::parse(br#"{"role_bindings":[{"role":"context","type_id":"tos.entity.context","record_type":"context","schema_version":"tos_node_v1","schema_ref":"ToS/contracts/tos-node-contract.schema.json"}]}"#).unwrap();
         assert!(check_role_rows(&canon, &entities).is_err());
         let declared = cmd::parse(br#"{"role_bindings":[{"role":"ts-value-profile","type_id":"tos.entity.ts-native-value-profile","record_type":"ts-native-value-profile","schema_version":"tos_ts_native_value_profile_record_v1","schema_ref":"ToS/contracts/ts-native-value-profile.schema.json"}]}"#).unwrap();
@@ -252,7 +414,12 @@ mod tests {
         assert!(check_resolved_role(&declared, NativeRole::Context, &record, &descriptor).is_err());
         let mut duplicate = declared.clone();
         if let JsonValue::Array(rows) = cmd::field(&declared, "role_bindings").unwrap() {
-            cmd::set(&mut duplicate, "role_bindings", JsonValue::Array(vec![rows[0].clone(), rows[0].clone()])).unwrap();
+            cmd::set(
+                &mut duplicate,
+                "role_bindings",
+                JsonValue::Array(vec![rows[0].clone(), rows[0].clone()]),
+            )
+            .unwrap();
         }
         assert!(check_role_rows(&duplicate, &entities).is_err());
     }

@@ -7388,7 +7388,10 @@ pub struct ResolvedRecordVersion {
 }
 
 impl ResolvedRecordVersion {
-    pub(crate) fn readonly_descriptor(&self, registry: &JsonValue) -> SourceCommandResult<JsonValue> {
+    pub(crate) fn readonly_descriptor(
+        &self,
+        registry: &JsonValue,
+    ) -> SourceCommandResult<JsonValue> {
         let kind = cmd::text(&self.route_profile, "record_type")?;
         let schema_version = cmd::text(&self.record, "schema_version")?;
         let native_witness = matches!(
@@ -7592,10 +7595,19 @@ pub(crate) fn resolve_role_record_version_from_cut(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedRecordVersion> {
     if cut.current().revision() != ctx.base_revision {
-        return Err(SourceCommandError::Conflict("role record selected cut differs"));
+        return Err(SourceCommandError::Conflict(
+            "role record selected cut differs",
+        ));
     }
     resolve_record_version_selected(
-        ctx, Some(cut), None, Some(limits), exact, worker, limits.deadline, cancelled,
+        ctx,
+        Some(cut),
+        None,
+        Some(limits),
+        exact,
+        worker,
+        limits.deadline,
+        cancelled,
     )
 }
 
