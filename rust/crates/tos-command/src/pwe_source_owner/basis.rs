@@ -108,7 +108,7 @@ impl NativeBasis {
         Ok(basis.slots().len()==pins.len() && basis.slots().iter().zip(pins)
             .all(|(slot,reference)|reference.get("id").and_then(Value::as_str)==Some(slot.slot.reference.id())
                 && reference.get("version").and_then(Value::as_u64)==Some(slot.slot.reference.version())
-                && reference.get("digest").and_then(Value::as_str).and_then(|d|tos_foundation::Digest256::from_prefixed(d).ok())==Some(slot.slot.reference.digest()))))
+                && reference.get("digest").and_then(Value::as_str).and_then(|d|tos_foundation::Digest256::from_prefixed(d).ok())==Some(slot.slot.reference.digest())))
     }
     /// Session::resolve_basis performs its existing exact record check again.
     /// Cache order must equal extractor order; no bare-ID map is substituted.

@@ -363,9 +363,9 @@ impl Session<'_> {
             self.check()?;
             let eligible = match input.assessment {
                 Some(report) => {
-                    let access_scope=owner.assessment_scope(&view.basis,input.claim_ref)?;
-                    self.current_assessment(q, cr, report,access_scope)?
-                },
+                    let access_scope = owner.assessment_scope(&view.basis, input.claim_ref)?;
+                    self.current_assessment(q, cr, report, access_scope)?
+                }
                 None => false,
             };
             let outcome = self.str_field(a.value(), "asserted_outcome")?;

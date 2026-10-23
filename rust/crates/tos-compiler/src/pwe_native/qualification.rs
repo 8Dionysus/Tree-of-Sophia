@@ -612,17 +612,21 @@ impl Session<'_> {
     /// Unresolved entries remain in the original value; they cannot be returned
     /// as resolved basis. Fails atomically, without publishing a partial list.
     pub fn exact_basis<'v>(&mut self, p: &PreparedAccount<'v>) -> Result<Vec<BasisSlot<'v>>> {
-        self.collect_basis(p,None)
+        self.collect_basis(p, None)
     }
     /// Native source creation may preserve unknown attribution/qualification.
     /// Every *bound* slot is still mandatory; unknowns remain explicit and do
     /// not produce an exact ref. The strict consumer API above is unchanged.
-    pub fn preserved_basis<'v>(&mut self,p:&PreparedAccount<'v>)->Result<PreservedBasis<'v>> {
-        let mut unresolved=self.vec(0)?;
-        let slots=self.collect_basis(p,Some(&mut unresolved))?;
-        Ok(PreservedBasis{slots,unresolved})
+    pub fn preserved_basis<'v>(&mut self, p: &PreparedAccount<'v>) -> Result<PreservedBasis<'v>> {
+        let mut unresolved = self.vec(0)?;
+        let slots = self.collect_basis(p, Some(&mut unresolved))?;
+        Ok(PreservedBasis { slots, unresolved })
     }
-    fn collect_basis<'v>(&mut self,p:&PreparedAccount<'v>,mut unresolved:Option<&mut Vec<UnresolvedBasisSlot<'v>>>)->Result<Vec<BasisSlot<'v>>> {
+    fn collect_basis<'v>(
+        &mut self,
+        p: &PreparedAccount<'v>,
+        mut unresolved: Option<&mut Vec<UnresolvedBasisSlot<'v>>>,
+    ) -> Result<Vec<BasisSlot<'v>>> {
         self.admit(p.value)?;
         let mut slots = self.vec(0)?;
         let v = p.value;
@@ -630,7 +634,7 @@ impl Session<'_> {
         self.basis_typed(&mut slots, "subject", 0, 0, x)?;
         for key in ["scope", "world"] {
             let x = self.field(v, key)?;
-            self.basis_bound(&mut slots,&mut unresolved,key,0,0,x)?;
+            self.basis_bound(&mut slots, &mut unresolved, key, 0, 0, x)?;
         }
         let x = self.field(v, "endpoints")?;
         for (i, x) in self.array(x)?.iter().enumerate() {
@@ -639,7 +643,7 @@ impl Session<'_> {
         let x = self.field(v, "basis")?;
         for (i, x) in self.array(x)?.iter().enumerate() {
             let b = self.field(x, "input")?;
-            self.basis_bound(&mut slots,&mut unresolved,"basis input",i,0,b)?;
+            self.basis_bound(&mut slots, &mut unresolved, "basis input", i, 0, b)?;
         }
         let q = self.field(v, "qualification")?;
         for key in [
@@ -650,7 +654,7 @@ impl Session<'_> {
             "qualification_profile_ref",
         ] {
             let b = self.field(q, key)?;
-            self.basis_bound(&mut slots,&mut unresolved,key,0,0,b)?;
+            self.basis_bound(&mut slots, &mut unresolved, key, 0, 0, b)?;
         }
         let x = self.field(v, "source_locations")?;
         for (i, x) in self.array(x)?.iter().enumerate() {
@@ -686,7 +690,7 @@ impl Session<'_> {
         match p.kind {
             Kind::Name => {
                 let b = self.field(v, "named_bearer")?;
-                self.basis_bound(&mut slots,&mut unresolved,"named bearer",0,0,b)?;
+                self.basis_bound(&mut slots, &mut unresolved, "named bearer", 0, 0, b)?;
             }
             Kind::Identity => {
                 for key in ["left", "right"] {
@@ -695,7 +699,7 @@ impl Session<'_> {
                 }
                 for key in ["criterion", "similarity_method"] {
                     let b = self.field(v, key)?;
-                    self.basis_bound(&mut slots,&mut unresolved,key,0,0,b)?;
+                    self.basis_bound(&mut slots, &mut unresolved, key, 0, 0, b)?;
                 }
             }
             Kind::Responsibility => {
@@ -726,15 +730,30 @@ impl Session<'_> {
         }
         Ok(slots)
     }
-    fn basis_bound<'v>(&mut self,out:&mut Vec<BasisSlot<'v>>,missing:&mut Option<&mut Vec<UnresolvedBasisSlot<'v>>>,
-        role:&'static str,outer:usize,inner:usize,binding:&'v Value)->Result<()> {
-        match self.bound(binding,role) {
-            Ok(value)=>self.basis_typed(out,role,outer,inner,value),
-            Err(Error::NeedsBinding(_))=>match missing.as_deref_mut() {
-                Some(missing)=>self.push(missing,UnresolvedBasisSlot{role,outer,inner,binding}),
-                None=>Err(Error::NeedsBinding(role)),
+    fn basis_bound<'v>(
+        &mut self,
+        out: &mut Vec<BasisSlot<'v>>,
+        missing: &mut Option<&mut Vec<UnresolvedBasisSlot<'v>>>,
+        role: &'static str,
+        outer: usize,
+        inner: usize,
+        binding: &'v Value,
+    ) -> Result<()> {
+        match self.bound(binding, role) {
+            Ok(value) => self.basis_typed(out, role, outer, inner, value),
+            Err(Error::NeedsBinding(_)) => match missing.as_deref_mut() {
+                Some(missing) => self.push(
+                    missing,
+                    UnresolvedBasisSlot {
+                        role,
+                        outer,
+                        inner,
+                        binding,
+                    },
+                ),
+                None => Err(Error::NeedsBinding(role)),
             },
-            Err(error)=>Err(error),
+            Err(error) => Err(error),
         }
     }
     fn basis_typed<'v>(
