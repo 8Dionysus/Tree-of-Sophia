@@ -531,7 +531,7 @@ pub(super) fn derive_named_extent_admitted(
     if !reference(field(rule, "version")) || !reference(field(p, "trs_ref")) {
         return done(reason("Unresolved", "VersionedCalendarRulesRequired"));
     }
-    if field(rule, "trs_ref") != field(p, "trs_ref") {
+    if !crate::query_context::same_json(field(rule, "trs_ref"), field(p, "trs_ref")) {
         return done(reason("Unresolved", "CalendarRuleTrsMismatch"));
     }
     let position_calendar = p
@@ -679,7 +679,7 @@ pub(super) fn project_postgres_range_admitted(
         put(&mut r, "missing_requirements", JsonValue::Array(missing));
         return done(r);
     }
-    if field(sidecar, "trs_ref") != field(extent, "trs_ref") {
+    if !crate::query_context::same_json(field(sidecar, "trs_ref"), field(extent, "trs_ref")) {
         return done(reason("Unresolved", "SidecarTrsMismatch"));
     }
     let start =

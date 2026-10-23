@@ -361,3 +361,58 @@ fn network_parent_keeps_its_explicit_transport_budget() {
     }
     assert_eq!(larger, before);
 }
+
+#[test]
+fn structured_network_axes_ignore_object_order_and_keep_complete_content() {
+    let axis = parse(r#"{"trs":{"id":"opaque","version":"v1"},"unit":"day","origin":"zero"}"#);
+    for (declared, matches) in [
+        (r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"}}"#, true),
+        (r#"{"origin":"zero","unit":"day","trs":{"version":"v2","id":"opaque"}}"#, false),
+        (r#"{"origin":"zero","unit":"hour","trs":{"version":"v1","id":"opaque"}}"#, false),
+        (r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"},"extra":null}"#, false),
+    ] {
+        for node_declaration in [true, false] {
+            let declared = parse(declared);
+            let mut input = request(
+                r#"[{"id":"A"},{"id":"B"}]"#,
+                r#"[{"a":"A","b":"B","relation":"before"}]"#,
+                10000,
+            );
+            set_field(&mut input, "endpoint_axis", axis.clone());
+            if node_declaration {
+                let mut nodes = field(&input, "nodes").clone();
+                if let JsonValue::Array(rows) = &mut nodes {
+                    set_field(&mut rows[0], "axis", declared);
+                }
+                set_field(&mut input, "nodes", nodes);
+            } else {
+                let mut constraints = field(&input, "constraints").clone();
+                if let JsonValue::Array(rows) = &mut constraints {
+                    set_field(&mut rows[0], "endpoint_axis", declared);
+                }
+                set_field(&mut input, "constraints", constraints);
+            }
+            let before = input.clone();
+            let direct = run(&input);
+            let parent = tos_foundation::temporal::execute_temporal_operation(
+                "check_network_consistency",
+                &input,
+                &parse("{}"),
+                tos_foundation::temporal::TemporalBudget::default(),
+            )
+            .unwrap();
+            for result in [&direct, &parent] {
+                if matches {
+                    assert_eq!(status(result), "ConsistentWitness");
+                } else {
+                    assert_eq!(status(result), "Unsupported");
+                    assert_eq!(
+                        field(result, "reason").as_str(),
+                        Some("IncompatibleEndpointAxes")
+                    );
+                }
+            }
+            assert_eq!(input, before);
+        }
+    }
+}

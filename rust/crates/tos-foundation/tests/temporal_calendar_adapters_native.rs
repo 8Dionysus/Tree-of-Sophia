@@ -1378,3 +1378,60 @@ fn native_nested_duplicates_are_refused_by_direct_crosswalk_record_entrypoints()
         }
     }
 }
+
+#[test]
+fn structured_calendar_refs_ignore_object_order_but_preserve_values() {
+    let original = parse(r#"{"id":"opaque-v9","version":"v1"}"#);
+    for (other, matches) in [
+        (r#"{"version":"v1","id":"opaque-v9"}"#, true),
+        (r#"{"version":"v2","id":"opaque-v9"}"#, false),
+        (r#"{"version":"v1","id":"other"}"#, false),
+        (r#"{"version":"v1","id":"opaque-v9","extra":null}"#, false),
+    ] {
+        let other = parse(other);
+        let mut named = supplied_named_boundary();
+        let mut position = f(&named, "position").clone();
+        let mut rule = f(&named, "season_boundary_rule").clone();
+        set(&mut position, "trs_ref", original.clone());
+        set(&mut rule, "trs_ref", other.clone());
+        set(&mut named, "position", position);
+        set(&mut named, "season_boundary_rule", rule);
+        let mut projection = parse(&projection_input("opaque-v9", "GregorianProleptic"));
+        let mut extent = f(&projection, "source_extent").clone();
+        let mut sidecar = f(&projection, "sidecar").clone();
+        set(&mut extent, "trs_ref", original.clone());
+        set(&mut sidecar, "trs_ref", other);
+        set(&mut projection, "source_extent", extent);
+        set(&mut projection, "sidecar", sidecar);
+        for (operation, input, mismatch) in [
+            ("derive_named_extent", named, "CalendarRuleTrsMismatch"),
+            ("project_postgres_range", projection, "SidecarTrsMismatch"),
+        ] {
+            let before = input.clone();
+            let context = parse("{}");
+            let direct = if operation == "derive_named_extent" {
+                derive_named_extent(&input, &context, TemporalBudget::default())
+            } else {
+                project_postgres_range(&input, &context, TemporalBudget::default())
+            }
+            .unwrap();
+            let parent =
+                execute_temporal_operation(operation, &input, &context, TemporalBudget::default())
+                    .unwrap();
+            for result in [&direct, &parent] {
+                if matches {
+                    assert_ne!(s(result, "reason"), Some(mismatch));
+                    let expected = if operation == "derive_named_extent" {
+                        "Resolved"
+                    } else {
+                        "Projected"
+                    };
+                    assert_eq!(s(result, "status"), Some(expected));
+                } else {
+                    assert_eq!(s(result, "reason"), Some(mismatch));
+                }
+            }
+            assert_eq!(input, before);
+        }
+    }
+}

@@ -286,7 +286,7 @@ pub(super) fn execute_network_admitted(
             }
         }
         if let Some(declared) = node.object_get("axis") {
-            if declared != axis {
+            if !crate::query_context::same_json(declared, axis) {
                 return Ok(outcome("Unsupported", "IncompatibleEndpointAxes", false, 0));
             }
         }
@@ -334,7 +334,7 @@ pub(super) fn execute_network_admitted(
             ));
         }
         if let Some(declared) = c.object_get("endpoint_axis") {
-            if declared != axis {
+            if !crate::query_context::same_json(declared, axis) {
                 return Ok(outcome("Unsupported", "IncompatibleEndpointAxes", false, 0));
             }
         }
