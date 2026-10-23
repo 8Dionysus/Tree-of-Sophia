@@ -211,6 +211,15 @@ pub(super) fn convert_admitted(
         if values.is_empty() {
             reason("OutOfCoverage", "EmptyCrosswalkEntry")
         } else {
+            // A finite candidate set contains coordinates, not row-status
+            // declarations. Validate the whole set before cloning any value.
+            for value in values {
+                if integer(value).is_none() && value.as_str().is_none() {
+                    return Err(TemporalError::MalformedRequest(
+                        "invalid mapping coordinate",
+                    ));
+                }
+            }
             let candidates = values
                 .iter()
                 .map(|v| {

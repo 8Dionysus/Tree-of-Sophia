@@ -166,6 +166,68 @@ fn zone(calendar: &str, offsets: &str, local: &str) -> String {
         r#"{{{calendar}"local_date_time":"{local}","zone_ref":"renamed-zone","transition_fixture":{{"fixture_id":"renamed-rules-v4","validity_window":["2021-10-31T00:00:00","2021-10-31T03:00:00"],"offsets_for_local_wall_time":{offsets}}}}}"#
     )
 }
+
+#[test]
+fn crosswalk_candidate_sets_validate_every_coordinate_before_projection() {
+    let context = parse(r#"{"fixture":"retained-context"}"#);
+    for entry in [
+        "[null]",
+        "[true]",
+        "[false]",
+        "[{}]",
+        "[[42]]",
+        "[1.5]",
+        "[9223372036854775808]",
+        "[42,null]",
+        "[42,true]",
+        r#"["opaque",{"status":"Partial"}]"#,
+    ] {
+        let input = parse(&format!(
+            r#"{{"position":{{"value":10,"trs_ref":"source-v1"}},"target_trs":"target-v1","crosswalk_version":"mapping-v1","fixture_mapping":{{"10":{entry}}}}}"#
+        ));
+        let before = (input.clone(), context.clone());
+        let expected = Err(TemporalError::MalformedRequest(
+            "invalid mapping coordinate",
+        ));
+        assert_eq!(
+            convert(&input, &context, TemporalBudget::default()),
+            expected
+        );
+        assert_eq!(
+            execute_temporal_operation("convert", &input, &context, TemporalBudget::default()),
+            expected
+        );
+        assert_eq!((&input, &context), (&before.0, &before.1));
+    }
+    for entry in ["[]", "[42]", r#"[42,"opaque-target"]"#, r#"["",0,-1]"#] {
+        let input = parse(&format!(
+            r#"{{"position":{{"value":10,"trs_ref":"source-v1"}},"target_trs":"target-v1","crosswalk_version":"mapping-v1","fixture_mapping":{{"10":{entry}}}}}"#
+        ));
+        let before = (input.clone(), context.clone());
+        let direct = convert(&input, &context, TemporalBudget::default()).unwrap();
+        let parent =
+            execute_temporal_operation("convert", &input, &context, TemporalBudget::default())
+                .unwrap();
+        assert_eq!(without_dispatch_envelope(parent), direct);
+        let values = parse(entry);
+        let values = values.as_array().unwrap();
+        if values.is_empty() {
+            assert_eq!(s(&direct, "status"), Some("OutOfCoverage"));
+            assert_eq!(s(&direct, "reason"), Some("EmptyCrosswalkEntry"));
+        } else {
+            assert_eq!(s(&direct, "status"), Some("Ambiguous"));
+            let candidates = f(&direct, "candidates").as_array().unwrap();
+            assert_eq!(candidates.len(), values.len());
+            for (candidate, value) in candidates.iter().zip(values) {
+                assert_eq!(f(candidate, "value"), value);
+                assert_eq!(f(candidate, "trs_ref"), f(&input, "target_trs"));
+            }
+        }
+        assert_eq!(f(&direct, "preserved_input"), &input);
+        assert_eq!(f(&direct, "preserved_context"), &context);
+        assert_eq!((&input, &context), (&before.0, &before.1));
+    }
+}
 #[test]
 fn original_fold_missing_calendar_is_gap_and_clarified_fold_is_actual_computation() {
     let raw = zone("", r#"["+02:00","+01:00"]"#, "2021-10-31T01:30:00");
