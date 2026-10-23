@@ -3006,7 +3006,12 @@ fn assert_initial_creation_receipt_rows(case: &RevisionCase, work: &Value) {
             .position(|candidate| candidate == path)
             .expect("required creation schema belongs to the independent fixture");
         let batch_start = (ordinal / 64) * 64;
-        let members = case.all_source.len().checked_sub(batch_start).unwrap().min(64);
+        let members = case
+            .all_source
+            .len()
+            .checked_sub(batch_start)
+            .unwrap()
+            .min(64);
         sum.checked_add(u64::try_from(members).unwrap().checked_add(1).unwrap())
             .unwrap()
     });
