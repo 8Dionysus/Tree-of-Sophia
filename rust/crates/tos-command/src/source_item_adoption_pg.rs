@@ -109,7 +109,9 @@ fn retained_inventory_binding(
     ))?;
     let limitation = request
         .get("inventory_limitation")
-        .ok_or(SourceCommandError::Invalid("PG Item inventory limitation absent"))?;
+        .ok_or(SourceCommandError::Invalid(
+            "PG Item inventory limitation absent",
+        ))?;
     if stage.pointer("/binding/request") != Some(&request)
         || stage.pointer("/observation/inventory") != Some(inventory)
         || stage.pointer("/observation/limitation") != Some(limitation)
@@ -2414,7 +2416,12 @@ pub(crate) fn prepare_pg_item_adoption(
             "PG Item finished native byte identity differs",
         ));
     }
-    published_inventory_binding(&owner.configuration, &owner.request, &finished.child, &stage)?;
+    published_inventory_binding(
+        &owner.configuration,
+        &owner.request,
+        &finished.child,
+        &stage,
+    )?;
     let receipt = super::finished_receipt(&finished.child)?;
     let materializations =
         super::compound_views(&finished.parent, &finished.child, &owner.claim_id)?;

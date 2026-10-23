@@ -264,8 +264,12 @@ fn observe_inventory(
     authorize()?;
     let descriptor = inventory_descriptor(config)?;
     let mut authority_error: Option<SourceCommandError> = None;
-    let result =
-        crate::source_item_inventory::observe(file, &descriptor, deadline, cancelled, &mut || {
+    let result = crate::source_item_inventory::observe_with_pdf(
+        file,
+        &descriptor,
+        deadline,
+        cancelled,
+        &mut || {
             if let Some(error) = &authority_error {
                 return Err(error.clone());
             }
@@ -275,7 +279,9 @@ fn observe_inventory(
                     authority_error = Some(error.clone());
                     error
                 })
-        });
+        },
+        &mut |probe, raw, limit, check| pdf_probe(probe, raw, limit, deadline, cancelled, check),
+    );
     // A provider refusal can be a limitation; a lost grant or expired budget
     // cannot. Retain the original failure even if a parser maps its error.
     if let Some(error) = authority_error {
@@ -284,6 +290,48 @@ fn observe_inventory(
     active(deadline, cancelled)?;
     authorize()?;
     inventory_outcome(&descriptor, result)
+}
+
+fn pdf_probe(
+    probe: crate::source_item_inventory::PdfInventoryProbe,
+    raw: &[u8],
+    limit: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<u8>> {
+    use crate::source_item_inventory::PdfInventoryProbe;
+    let page_count;
+    let (program, args): (&str, &[&str]) = match probe {
+        PdfInventoryProbe::PageCount => ("/usr/bin/pdfinfo", &["-"]),
+        PdfInventoryProbe::PageBoxes { page_count: count } => {
+            page_count = count.to_string();
+            (
+                "/usr/bin/pdfinfo",
+                &["-f", "1", "-l", &page_count, "-box", "-"],
+            )
+        }
+        PdfInventoryProbe::Images => ("/usr/bin/pdfimages", &["-list", "-"]),
+    };
+    crate::source_text_owner_ocr::bounded_process_with_stdin_guarded(
+        program,
+        args,
+        Some(Path::new("/")),
+        Some(raw),
+        limit,
+        deadline,
+        cancelled,
+        check,
+    )
+    .map_err(|error| match error {
+        SourceCommandError::Denied("native owner verifier unavailable") => {
+            SourceCommandError::Unsupported("Item PDF inventory provider unavailable")
+        }
+        SourceCommandError::Denied("native owner OCR verification refused") => {
+            SourceCommandError::Invalid("Item PDF inventory probe refused")
+        }
+        error => error,
+    })
 }
 
 pub(crate) fn observe(

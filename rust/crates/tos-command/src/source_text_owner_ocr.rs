@@ -83,7 +83,32 @@ pub(crate) fn bounded_process_with_stdin(
     end: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<u8>> {
+    bounded_process_with_stdin_guarded(
+        program,
+        args,
+        cwd,
+        stdin,
+        stdout_limit,
+        end,
+        cancelled,
+        &mut || Ok(()),
+    )
+}
+
+/// The same bounded process protocol with the caller's current owner fence.
+/// A failed fence terminates and reaps the owned child before returning it.
+pub(crate) fn bounded_process_with_stdin_guarded(
+    program: &str,
+    args: &[&str],
+    cwd: Option<&Path>,
+    stdin: Option<&[u8]>,
+    stdout_limit: usize,
+    end: Instant,
+    cancelled: &AtomicBool,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<u8>> {
     active(end, cancelled)?;
+    check()?;
     let mut command = Command::new(program);
     command
         .args(args)
@@ -164,7 +189,7 @@ pub(crate) fn bounded_process_with_stdin(
     ];
     let mut failed = None;
     while status.is_none() || streams.iter().any(Option::is_none) {
-        if let Err(error) = active(end, cancelled) {
+        if let Err(error) = active(end, cancelled).and_then(|()| check()) {
             failed = Some(error);
             break;
         }
@@ -207,6 +232,7 @@ pub(crate) fn bounded_process_with_stdin(
         ));
     }
     active(end, cancelled)?;
+    check()?;
     streams[0].take().ok_or(invalid())
 }
 

@@ -111,10 +111,9 @@ fn pg_inventory_publication_preserves_file_inventory_profiles() {
         let fixture = fixture(media_type, profile);
         verify(&fixture).unwrap();
         verify(&fixture).expect("reconstructing the same retained observation is repeatable");
-        let deposit: Value = serde_json::from_slice(
-            fixture.child.get("item-deposit-receipt.json").unwrap(),
-        )
-        .unwrap();
+        let deposit: Value =
+            serde_json::from_slice(fixture.child.get("item-deposit-receipt.json").unwrap())
+                .unwrap();
         assert_eq!(deposit["metadata_committed"], false);
         assert_eq!(deposit["grants_admission"], false);
     }
@@ -167,19 +166,31 @@ fn pg_inventory_publication_rejects_consumer_rights_provenance_and_receipt_drift
             json!("substituted"),
         ),
         ("resource-inventory.json", "/files", json!([])),
-        ("resource-inventory.json", "/item_id", json!("tos.item.other")),
+        (
+            "resource-inventory.json",
+            "/item_id",
+            json!("tos.item.other"),
+        ),
         (
             "resource-inventory.json",
             "/provenance_event_ref",
             json!("tos.event.other"),
         ),
-        ("resource-inventory.json", "/source_text_included", json!(true)),
+        (
+            "resource-inventory.json",
+            "/source_text_included",
+            json!(true),
+        ),
         (
             "resource-inventory.json",
             "/inventory_authority",
             json!("admission"),
         ),
-        ("rights.json", "/redistribution_posture", json!("authorized")),
+        (
+            "rights.json",
+            "/redistribution_posture",
+            json!("authorized"),
+        ),
         (
             "source-create-request.json",
             "/inventory/profile",
@@ -192,7 +203,8 @@ fn pg_inventory_publication_rejects_consumer_rights_provenance_and_receipt_drift
         ),
     ] {
         let mut fixture = fixture("application/pdf", "pdf_pages_v1");
-        let mut changed: Value = serde_json::from_slice(fixture.child.get(member).unwrap()).unwrap();
+        let mut changed: Value =
+            serde_json::from_slice(fixture.child.get(member).unwrap()).unwrap();
         *changed.pointer_mut(pointer).unwrap() = value;
         fixture.child.insert(member.into(), raw(&changed));
         assert!(
