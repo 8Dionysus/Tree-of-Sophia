@@ -116,7 +116,7 @@ impl<'a,'scope> HeldFrames<'a,'scope> {
         self.budget.charge_work(raw.len())?;
         let live=self.whole.try_borrow().map_err(|_|invalid("PWE whole-call budget in use"))?.remaining_live()?
             .checked_sub(raw.len()).ok_or(unsupported("PWE parser/input simultaneous holders"))?;
-        parse_json_with_state_budget(raw,JsonMode::PublishedStrict,JsonLimits::new(MAX_BYTES,96,1_000_000,4096),live)
+        parse_json_with_state_budget(raw,JsonMode::PublishedStrict,JsonLimits::new(MAX_BYTES,96,1_000_000,4096).map_err(|_|invalid("PWE parser limits"))?,live)
             .map(|doc|doc.into_root()).map_err(|_|invalid("PWE strict selected JSON"))
     }
     pub(crate) fn check_schema(&mut self,path:&str,record:&JsonValue,schema:&str)->SourceCommandResult<()> {

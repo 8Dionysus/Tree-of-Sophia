@@ -48,7 +48,7 @@ fn exact_match(value: &Value, actual: &JsonValue, id_field: &str, version_field:
     } Ok(())
 }
 fn canonical(value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
-    canonical_bytes_v1(value,CanonicalProfile::SourceRecordDigestV1,JsonLimits::new(MAX_BYTES,96,1_000_000,4096))
+    canonical_bytes_v1(value,CanonicalProfile::SourceRecordDigestV1,JsonLimits::new(MAX_BYTES,96,1_000_000,4096).map_err(|_|invalid("PWE canonical limits"))?)
         .map_err(|_|invalid("PWE canonical source Record"))
 }
 fn encoded_len(value:&Value)->SourceCommandResult<usize> {
