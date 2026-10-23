@@ -1620,7 +1620,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                             .iter()
                             .find(|claim| get(claim, "id").as_str() == Some(id))
                             .unwrap();
-                        assert_eq!(get(row, "carrier"), *original);
+                        assert!(same_json_fields(get(row, "carrier"), original));
                         let source = get(get(original, "attributes"), "source_claim");
                         let reference = get(row, "claim_ref");
                         assert_eq!(get(reference, "id"), get(source, "claim_id"));
