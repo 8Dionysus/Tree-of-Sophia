@@ -16,8 +16,9 @@ use std::{
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, ExactRecordRef, FoundationError, FoundationErrorCode, JsonLimits,
-    JsonValue, RelativePath, SourceRevision,
+    JsonDocument, JsonMode, JsonValue, RelativePath, SourceRevision,
     canonical_bytes_v1_with_state_budget_and_visits_and_admission,
+    parse_json_with_state_budget_and_admission,
 };
 use tos_source_store::CorpusCutReader;
 use tos_validation::{item_rules::ItemLimits, source_cut::CutWorkerSchemaExecutor};
@@ -97,6 +98,22 @@ impl NativeRoleRecord {
     }
     pub(crate) fn evidence(&self) -> &ResolvedRecordVersion {
         &self.resolved
+    }
+}
+
+/// Original PublishedStrict source document plus its maintained exact/history
+/// observation. This private constructor cannot certify a reconstructed value.
+/// Consumers retain the resolver/owner fence; this holder grants no current use.
+pub(crate) struct NativeRoleDocument {
+    record: NativeRoleRecord,
+    document: JsonDocument,
+}
+impl NativeRoleDocument {
+    pub(crate) fn record(&self) -> &NativeRoleRecord {
+        &self.record
+    }
+    pub(crate) fn document(&self) -> &JsonDocument {
+        &self.document
     }
 }
 
@@ -245,6 +262,102 @@ impl<'a> NativeRoleResolver<'a> {
             self.deadline,
             self.cancelled,
         )
+    }
+
+    /// Preserve the actual source bytes required by native TS and other
+    /// document-borrowing consumers. The maintained reader selects current or
+    /// retained history first; only its verified physical locator is reread.
+    /// The original operation ledger pays read/copy/parse/hash prefixes before
+    /// execution. This does not supply the separate whole-call owner adapter.
+    pub(crate) fn resolve_document(
+        &mut self,
+        role: NativeRole,
+        kind_binding: &ExactRecordRef,
+        exact: &ExactRecordRef,
+    ) -> Result<NativeRoleDocument> {
+        let result = self.resolve_document_inner(role, kind_binding, exact);
+        // Preserve the original read failure, but attempt the actual live
+        // fence even after failure. No successful holder escapes a failed fence.
+        let fenced = self.check_current();
+        match (result, fenced) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+
+    fn resolve_document_inner(
+        &mut self,
+        role: NativeRole,
+        kind_binding: &ExactRecordRef,
+        exact: &ExactRecordRef,
+    ) -> Result<NativeRoleDocument> {
+        let record = self.resolve(role, kind_binding, exact)?;
+        let source = &record.resolved.source;
+        // source_evidence has seven fixed keys of at most 23 bytes, owned
+        // by the maintained reader. Three lookups and one u64 lexeme use
+        // this prospective bound; these are not arbitrary source JSON keys.
+        self.budget.charge_work(3 * 7 * 64 + 20)?;
+        let size = usize::try_from(cmd::integer(source, "record_bytes")?)
+            .map_err(|_| Error::Unsupported("native source document size overflow"))?;
+        let source_path = match record.resolved.version_status {
+            "current" => record.resolved.source_path.as_str(),
+            "historical" => cmd::text(source, "archive_blob_ref")?,
+            _ => return Err(Error::Unsupported("native source document version route")),
+        };
+        self.budget.charge_work(
+            source_path
+                .len()
+                .checked_mul(4)
+                .ok_or(Error::Unsupported("native document locator work overflow"))?,
+        )?;
+        self.budget.charge_bytes(source_path.len())?;
+        let path = RelativePath::parse(source_path)
+            .map_err(|_| Error::Invalid("native source document physical locator"))?;
+        // A verified descriptor supplies the exact selected raw size. No
+        // current/latest fallback or serialization of resolved.record is used.
+        let allowance = self.budget.limits()?;
+        if size == 0 || size > allowance.max_input_bytes {
+            return Err(Error::Unsupported("native source document read allowance"));
+        }
+        self.budget.charge_bytes(size)?;
+        self.budget.charge_work(size)?;
+        let raw = self
+            .cut
+            .read_member(
+                self.ctx.base_revision,
+                &path,
+                size as u64,
+                self.deadline.min(allowance.deadline),
+                self.cancelled,
+            )
+            .map_err(|_| Error::Conflict("native exact document source unavailable"))?
+            .raw;
+        self.budget.charge_work(raw.len())?;
+        // The digest formatter owns a new 7+64 byte prefixed string.
+        self.budget.charge_bytes(71)?;
+        self.budget.charge_work(71)?;
+        let actual_raw_digest = Digest256::of_bytes(&raw).to_prefixed();
+        let expected_raw_digest = cmd::text(source, "record_sha256")?;
+        self.budget.charge_work(
+            actual_raw_digest
+                .len()
+                .checked_add(expected_raw_digest.len())
+                .ok_or(Error::Unsupported("native raw digest comparison overflow"))?,
+        )?;
+        if raw.len() != size || actual_raw_digest != expected_raw_digest {
+            return Err(Error::Conflict("native exact document raw source differs"));
+        }
+        let document = admitted_document(&raw, self.budget, self.deadline, self.cancelled)?;
+        check_pin(
+            document.root(),
+            exact,
+            "record_id",
+            "record_version",
+            self.budget,
+            self.deadline,
+            self.cancelled,
+        )?;
+        Ok(NativeRoleDocument { record, document })
     }
 
     pub(crate) fn resolve(
@@ -439,6 +552,75 @@ fn admitted_canonical(
         admission_error.unwrap_or(Error::Invalid("native role canonical source record"))
     })
 }
+fn admitted_document(
+    raw: &[u8],
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<JsonDocument> {
+    let remaining = budget.limits()?;
+    let defaults = JsonLimits::default();
+    let limits = JsonLimits {
+        max_bytes: remaining.max_input_bytes,
+        max_visits: defaults.max_visits.min(remaining.max_work),
+        ..defaults
+    };
+    // Same conservative native conversion-holder fee as the PWE codec owner.
+    // Reserve it BEFORE the parser allocates; the parser's state cap is the
+    // reservation itself. No original byte/state ceiling is enlarged.
+    let reserved = raw
+        .len()
+        .checked_mul(64)
+        .and_then(|n| n.checked_add(1024))
+        .ok_or(Error::Unsupported("native document state reservation overflow"))?;
+    budget.charge_bytes(reserved)?;
+    let mut admission_error = None;
+    let parsed = {
+        let mut check = || {
+            if cancelled.load(Ordering::Relaxed)
+                || Instant::now() >= deadline.min(remaining.deadline)
+            {
+                Err(FoundationError::new(
+                    FoundationErrorCode::BudgetExceeded,
+                    "native role document cutoff",
+                ))
+            } else {
+                Ok(())
+            }
+        };
+        let mut admit = |bytes: usize, visits: usize| {
+            let work = bytes.checked_add(visits).ok_or_else(|| {
+                FoundationError::new(
+                    FoundationErrorCode::BudgetExceeded,
+                    "native document work",
+                )
+            })?;
+            if let Err(error) = budget
+                .charge_work(work)
+                .and_then(|_| budget.charge_bytes(bytes))
+            {
+                admission_error = Some(error);
+                return Err(FoundationError::new(
+                    FoundationErrorCode::BudgetExceeded,
+                    "native document admission",
+                ));
+            }
+            Ok(())
+        };
+        parse_json_with_state_budget_and_admission(
+            raw,
+            JsonMode::PublishedStrict,
+            limits,
+            reserved,
+            &mut check,
+            &mut admit,
+        )
+    };
+    parsed.map_err(|_| {
+        admission_error.unwrap_or(Error::Invalid("native role strict source document"))
+    })
+}
+
 fn admitted_digest(
     value: &JsonValue,
     budget: &mut OperationBudget,
@@ -606,6 +788,12 @@ mod tests {
             admitted_canonical(&value, &mut budget, deadline, &cancelled).unwrap(),
             expected
         );
+        let document =
+            admitted_document(br#"{"a":1}"#, &mut budget, deadline, &cancelled).unwrap();
+        assert_eq!(document.root(), &value);
+        assert!(
+            admitted_document(br#"{"a":1,"a":2}"#, &mut budget, deadline, &cancelled).is_err()
+        );
         let remaining = budget.limits().unwrap().max_work;
         budget.charge_work(remaining - 1).unwrap();
         assert!(admitted_canonical(&value, &mut budget, deadline, &cancelled).is_err());
@@ -613,6 +801,7 @@ mod tests {
         // resets the original owner allowance for another canonical attempt.
         assert!(budget.limits().is_err());
         assert!(admitted_digest(&value, &mut budget, deadline, &cancelled).is_err());
+        assert!(admitted_document(br#"{"a":1}"#, &mut budget, deadline, &cancelled).is_err());
     }
     #[test]
     fn native_role_requires_actual_declared_profile_and_requested_role() {
