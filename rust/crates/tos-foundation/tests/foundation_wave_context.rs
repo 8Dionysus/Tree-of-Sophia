@@ -330,3 +330,75 @@ fn identities_and_cutoff_values_are_data_not_special_case_constants() {
         assert_eq!(replay.selection, frozen.selection);
     }
 }
+
+#[test]
+fn typed_cutoff_duplicate_members_match_one_to_one() {
+    let object = |entries: &[(&str, &str)]| {
+        JsonValue::Object(
+            entries
+                .iter()
+                .map(|(key, value)| (JsonString::from_utf8(key), text(value)))
+                .collect(),
+        )
+    };
+    let repeated = object(&[("x", "one"), ("x", "one")]);
+    let changed = object(&[("x", "one"), ("x", "two")]);
+    for (selected, requested, matches) in [
+        (repeated.clone(), repeated.clone(), true),
+        (repeated.clone(), changed.clone(), false),
+        (
+            object(&[("x", "one"), ("y", "two")]),
+            object(&[("y", "two"), ("x", "one")]),
+            true,
+        ),
+        (
+            object(&[("x", "one"), ("y", "two"), ("x", "two")]),
+            object(&[("x", "one"), ("x", "two"), ("y", "two")]),
+            true,
+        ),
+        (changed, object(&[("x", "two"), ("x", "one")]), false),
+        (repeated.clone(), object(&[("x", "one")]), false),
+        (
+            JsonValue::Array(vec![repeated]),
+            JsonValue::Array(vec![object(&[("x", "one"), ("x", "two")])]),
+            false,
+        ),
+    ] {
+        let selected = Cutoff {
+            value: selected,
+            trs: Some(exact("fixture-clock", 1)),
+        };
+        let requested = Cutoff {
+            value: requested,
+            trs: selected.trs.clone(),
+        };
+        let mut frozen = manifest();
+        frozen.selection.system_as_of = selected.clone();
+        let attributed = frozen.selection.attributed_knowledge.as_mut().unwrap();
+        attributed.cutoff = selected.clone();
+        frozen.selection.source_publication_as_of = Some(selected);
+        let before = frozen.clone();
+        let mut attributed = frozen.selection.attributed_knowledge.clone().unwrap();
+        attributed.cutoff = requested.clone();
+        let request = QueryContext {
+            system_state: Some(SystemState::AsOf(requested.clone())),
+            attributed_knowledge: Some(Some(attributed)),
+            source_publication_as_of: Some(Some(requested)),
+            ..Default::default()
+        };
+        let result = resolve_query_context(&snapshot(), &request, Some(&frozen));
+        if matches {
+            assert_eq!(resolved(result).selection, frozen.selection);
+        } else {
+            assert_eq!(
+                result,
+                Ok(ContextResolution::ContextMismatch(vec![
+                    MismatchDimension::SystemState,
+                    MismatchDimension::AttributedKnowledgeAsOf,
+                    MismatchDimension::SourcePublicationAsOf,
+                ]))
+            );
+        }
+        assert_eq!(frozen, before);
+    }
+}

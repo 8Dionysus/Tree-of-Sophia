@@ -83,9 +83,13 @@ pub(crate) fn same_json(a: &JsonValue, b: &JsonValue) -> bool {
     match (a, b) {
         (JsonValue::Object(a), JsonValue::Object(b)) => {
             a.len() == b.len()
-                && a.iter().all(|(key, value)| {
+                && a.iter().enumerate().all(|(index, (key, value))| {
+                    // Distinct keys may move; repeated keys retain their own
+                    // occurrence order and cannot reuse one right-hand member.
+                    let occurrence = a[..index].iter().filter(|(k, _)| k == key).count();
                     b.iter()
-                        .find(|(k, _)| k == key)
+                        .filter(|(k, _)| k == key)
+                        .nth(occurrence)
                         .is_some_and(|(_, other)| same_json(value, other))
                 })
         }
