@@ -6,6 +6,7 @@
 pub mod backup_recovery;
 pub mod backup_recovery_cli;
 mod durable_adapter;
+mod pwe_source_owner;
 pub mod source_admission;
 mod source_admission_candidate;
 mod source_admission_candidate_records;

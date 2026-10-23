@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.pwe-scope",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "pwe-scope",
+    "en": "pwe-scope",
+    "ru": null
+  },
+  "definition": "A source-owned selected PWE scope Record; role/schema compatibility does not grant historical truth, identity merge, admission or coverage.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/pwe-scope.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "pwe-scope"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "pwe-scope"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "semantic-metadata-v1",
+    "record_type": "pwe-scope",
+    "id_prefix": "tos.pwe-scope.",
+    "source_basename": "pwe-scope.json",
+    "catalog_filename": "pwe-scopes.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_pwe_scope_v1",
+        "schema_ref": "ToS/contracts/pwe-scope.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/pwe-values.schema.json",
+          "ToS/contracts/operation-binding-v1.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

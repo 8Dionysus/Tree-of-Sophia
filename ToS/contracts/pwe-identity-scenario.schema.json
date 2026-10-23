@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-identity-scenario.schema.json",
+  "title": "PWE selected native pwe-identity-scenario",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "record_type": {
+          "const": "pwe-identity-scenario"
+        },
+        "schema_version": {
+          "const": "tos_pwe_identity_scenario_v1"
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "interpretation",
+            "carrier_ref",
+            "context_ref",
+            "scope_ref",
+            "criterion_ref",
+            "claim_refs"
+          ],
+          "properties": {
+            "interpretation": {
+              "const": "co-selected-account-assertions-v1"
+            },
+            "carrier_ref": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/operation-binding-v1.schema.json#/$defs/exactRef"
+            },
+            "context_ref": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/typedRef"
+            },
+            "scope_ref": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/typedRef"
+            },
+            "criterion_ref": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/typedRef"
+            },
+            "claim_refs": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4096,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "https://tree-of-sophia.local/ToS/contracts/operation-binding-v1.schema.json#/$defs/exactRef"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "Candidate native source route. Authored instances, exact pins, current protected assessment and registration are separate inputs. A declaration issues neither source truth nor admission nor coverage."
+}

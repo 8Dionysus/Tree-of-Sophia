@@ -333,3 +333,37 @@ fn description_revision_preserves_source_evidence() {
             .is_err()
     );
 }
+
+/// Pure source-reader regression over the retained local candidates. This is
+/// not a native owner, grant, assessment or admitted production-source fixture.
+#[test]
+fn native_reader_preserves_unknown_and_ordered_exact_slots() {
+    let cancel = AtomicBool::new(false);
+    let record: Value =
+        serde_json::from_str(include_str!("fixtures/prepared-pwe-values.json")).unwrap();
+    let value = &record["body"]["values"][0];
+    let mut s = session(&cancel);
+    let account = s.prepare(value).unwrap();
+    let basis = s.preserved_basis(&account).unwrap();
+    assert!(!basis.slots.is_empty());
+    assert!(!basis.unresolved.is_empty());
+    assert_eq!(basis.slots[0].role, "subject");
+    assert_eq!(basis.slots[0].inner, 0);
+    assert_eq!(basis.slots[1].role, "subject");
+    assert_eq!(basis.slots[1].inner, 1);
+    assert!(
+        basis
+            .slots
+            .iter()
+            .enumerate()
+            .any(|(i, a)| basis.slots[..i].iter().any(|b| a.reference == b.reference))
+    );
+    for missing in &basis.unresolved {
+        assert_eq!(missing.binding["state"], "unresolved");
+        assert!(missing.binding["source_wording"].as_str().is_some());
+    }
+    assert!(matches!(
+        s.exact_basis(&account),
+        Err(Error::NeedsBinding(_))
+    ));
+}

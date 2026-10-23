@@ -20,8 +20,8 @@ compatibility guard until I/C completes that paired integration. No main,
 release, production or corpus-runtime selection is implied by this local change.
 
 The initial migration records 160 entity types, 168 properties and 196 relations
-in original registry order. The current candidate manifest has 165 entity types,
-168 properties and 196 relations: the two reviewed temporal types follow the
+in original registry order. The current candidate manifest has 180 entity types,
+168 properties and 199 relations: the two reviewed temporal types follow the
 historical entries. The initial entries retain the complete migration mapping:
 `collection` and stable `id` identify the old array member; `path` identifies its
 selected home; `previous_paths` records subsequent home moves. Shared
@@ -204,3 +204,12 @@ are declared native metadata kinds, not source-created instances, assessment or
 authority. Their narrow C4 source gate remains pending; prior topology/temporal
 reviews are not represented as accepting these additions. Merge/selection of
 this proposal requires its actual common source review and native gates.
+
+## PWE candidate extension
+
+Fifteen PWE candidate entity definitions and three qualified Claim relations have
+individual canonical homes and ordered manifest entries. The compatibility pair
+is derived from those inputs. The historical selection review does not accept
+these added definitions; their source review and native compatibility checks are
+separate gates. No source instance, admission, complete evidence or historical
+identity judgment is introduced by this candidate extension.
