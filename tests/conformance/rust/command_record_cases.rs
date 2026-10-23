@@ -5095,7 +5095,7 @@ process.stdout.write(output);"#;
                                 |p| p.starts_with("ToS/contracts/") && p.ends_with(".schema.json")
                             )
                             .count(),
-                        64
+                        67 // 62 selected schemas plus the five exact pinned additions above.
                     );
                     assert_eq!(c01_authored[relative], v2_raw);
                     assert_eq!(c01_authored[c01_archive], v1_raw);
