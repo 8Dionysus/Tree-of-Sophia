@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 46,
+  "registry_version": 47,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -2575,6 +2575,192 @@
       "review_requirement": "accepted",
       "source_mappings": [],
       "supersedes_relation_type_id": null
+    },
+    {
+      "parent_relation_type_ids": [
+        "tos.relation.related"
+      ],
+      "abstract": false,
+      "lifecycle": "candidate",
+      "owner_ref": "ToS/contracts/pwe-name-assignment-claim.schema.json",
+      "domain_type_ids": [
+        "tos.entity.semantic-object"
+      ],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {
+        "per_subject_min": null,
+        "per_subject_max": null,
+        "per_object_min": null,
+        "per_object_max": null
+      },
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "supersedes_relation_type_id": null,
+      "relation_type_id": "tos.relation.pwe-name-assignment",
+      "labels": {
+        "default": "pwe_name_assignment",
+        "en": "pwe_name_assignment",
+        "ru": null
+      },
+      "inverse_labels": null,
+      "definition": "Preserves the complete qualified name-assignment account from its source. Neither sign nor admission implies historical identity, authorship transfer or exhaustive scope.",
+      "range_type_ids": [
+        "tos.entity.name-assignment"
+      ],
+      "source_mappings": [
+        {
+          "source_graph": "source-claims",
+          "source_predicate_id": "pwe_name_assignment",
+          "scope": "claim-predicate"
+        }
+      ],
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "pwe-exact-basis-v1",
+        "value_kind": "name-assignment",
+        "assertion_layers": [
+          "bibliographic_assertion"
+        ],
+        "schemas": [
+          {
+            "schema_version": "tos_pwe_name_assignment_claim_v1",
+            "schema_ref": "ToS/contracts/pwe-name-assignment-claim.schema.json",
+            "schema_dependencies": [
+              "ToS/contracts/source-claim-record.schema.json",
+              "ToS/contracts/claim-packet.schema.json",
+              "ToS/contracts/pwe-values.schema.json",
+              "ToS/contracts/operation-binding-v1.schema.json"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "parent_relation_type_ids": [
+        "tos.relation.related"
+      ],
+      "abstract": false,
+      "lifecycle": "candidate",
+      "owner_ref": "ToS/contracts/pwe-responsibility-account-claim.schema.json",
+      "domain_type_ids": [
+        "tos.entity.semantic-object"
+      ],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {
+        "per_subject_min": null,
+        "per_subject_max": null,
+        "per_object_min": null,
+        "per_object_max": null
+      },
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "supersedes_relation_type_id": null,
+      "relation_type_id": "tos.relation.pwe-responsibility-account",
+      "labels": {
+        "default": "pwe_responsibility_account",
+        "en": "pwe_responsibility_account",
+        "ru": null
+      },
+      "inverse_labels": null,
+      "definition": "Preserves the complete qualified responsibility-account account from its source. Neither sign nor admission implies historical identity, authorship transfer or exhaustive scope.",
+      "range_type_ids": [
+        "tos.entity.responsibility-account"
+      ],
+      "source_mappings": [
+        {
+          "source_graph": "source-claims",
+          "source_predicate_id": "pwe_responsibility_account",
+          "scope": "claim-predicate"
+        }
+      ],
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "pwe-exact-basis-v1",
+        "value_kind": "responsibility-account",
+        "assertion_layers": [
+          "bibliographic_assertion"
+        ],
+        "schemas": [
+          {
+            "schema_version": "tos_pwe_responsibility_account_claim_v1",
+            "schema_ref": "ToS/contracts/pwe-responsibility-account-claim.schema.json",
+            "schema_dependencies": [
+              "ToS/contracts/source-claim-record.schema.json",
+              "ToS/contracts/claim-packet.schema.json",
+              "ToS/contracts/pwe-values.schema.json",
+              "ToS/contracts/operation-binding-v1.schema.json"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "parent_relation_type_ids": [
+        "tos.relation.related"
+      ],
+      "abstract": false,
+      "lifecycle": "candidate",
+      "owner_ref": "ToS/contracts/pwe-identity-correspondence-claim.schema.json",
+      "domain_type_ids": [
+        "tos.entity.semantic-object"
+      ],
+      "directionality": "directed",
+      "transitive": false,
+      "inverse_relation_type_id": null,
+      "cardinality": {
+        "per_subject_min": null,
+        "per_subject_max": null,
+        "per_object_min": null,
+        "per_object_max": null
+      },
+      "assertion_mode": "reified-claim",
+      "evidence_required": true,
+      "review_requirement": "recorded",
+      "supersedes_relation_type_id": null,
+      "relation_type_id": "tos.relation.pwe-identity-correspondence",
+      "labels": {
+        "default": "pwe_identity_correspondence",
+        "en": "pwe_identity_correspondence",
+        "ru": null
+      },
+      "inverse_labels": null,
+      "definition": "Preserves the complete qualified identity-correspondence account from its source. Neither sign nor admission implies historical identity, authorship transfer or exhaustive scope.",
+      "range_type_ids": [
+        "tos.entity.identity-correspondence"
+      ],
+      "source_mappings": [
+        {
+          "source_graph": "source-claims",
+          "source_predicate_id": "pwe_identity_correspondence",
+          "scope": "claim-predicate"
+        }
+      ],
+      "source_claim_profile": {
+        "profile_version": 1,
+        "reader": "pwe-exact-basis-v1",
+        "value_kind": "identity-correspondence",
+        "assertion_layers": [
+          "identity_assertion"
+        ],
+        "schemas": [
+          {
+            "schema_version": "tos_pwe_identity_correspondence_claim_v1",
+            "schema_ref": "ToS/contracts/pwe-identity-correspondence-claim.schema.json",
+            "schema_dependencies": [
+              "ToS/contracts/source-claim-record.schema.json",
+              "ToS/contracts/claim-packet.schema.json",
+              "ToS/contracts/pwe-values.schema.json",
+              "ToS/contracts/operation-binding-v1.schema.json"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

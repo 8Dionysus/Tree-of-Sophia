@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-bindings.schema.json",
+  "title": "PWE native reader/argument binding declaration, not authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "registry_version",
+    "bindings",
+    "role_bindings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tos_pwe_bindings_v1"
+    },
+    "registry_id": {
+      "const": "tos.pwe.bindings"
+    },
+    "registry_version": {
+      "const": 1
+    },
+    "bindings": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "predicate",
+              "relation_type_id",
+              "value_kind",
+              "reader",
+              "profile_version",
+              "schema_version",
+              "schema_ref",
+              "assertion_layer",
+              "arguments"
+            ],
+            "properties": {
+              "predicate": {
+                "const": "pwe_name_assignment"
+              },
+              "relation_type_id": {
+                "const": "tos.relation.pwe-name-assignment"
+              },
+              "value_kind": {
+                "const": "name-assignment"
+              },
+              "reader": {
+                "const": "pwe-exact-basis-v1"
+              },
+              "profile_version": {
+                "const": 1
+              },
+              "schema_version": {
+                "const": "tos_pwe_name_assignment_claim_v1"
+              },
+              "schema_ref": {
+                "const": "ToS/contracts/pwe-name-assignment-claim.schema.json"
+              },
+              "assertion_layer": {
+                "const": "bibliographic_assertion"
+              },
+              "arguments": {
+                "const": [
+                  "subject",
+                  "subject_role",
+                  "assignment",
+                  "name",
+                  "name_function",
+                  "named_bearer"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "predicate",
+              "relation_type_id",
+              "value_kind",
+              "reader",
+              "profile_version",
+              "schema_version",
+              "schema_ref",
+              "assertion_layer",
+              "arguments"
+            ],
+            "properties": {
+              "predicate": {
+                "const": "pwe_responsibility_account"
+              },
+              "relation_type_id": {
+                "const": "tos.relation.pwe-responsibility-account"
+              },
+              "value_kind": {
+                "const": "responsibility-account"
+              },
+              "reader": {
+                "const": "pwe-exact-basis-v1"
+              },
+              "profile_version": {
+                "const": 1
+              },
+              "schema_version": {
+                "const": "tos_pwe_responsibility_account_claim_v1"
+              },
+              "schema_ref": {
+                "const": "ToS/contracts/pwe-responsibility-account-claim.schema.json"
+              },
+              "assertion_layer": {
+                "const": "bibliographic_assertion"
+              },
+              "arguments": {
+                "const": [
+                  "subject",
+                  "role",
+                  "attribution_mode",
+                  "assignees",
+                  "responsibility_scope",
+                  "role_basis"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "predicate",
+              "relation_type_id",
+              "value_kind",
+              "reader",
+              "profile_version",
+              "schema_version",
+              "schema_ref",
+              "assertion_layer",
+              "arguments"
+            ],
+            "properties": {
+              "predicate": {
+                "const": "pwe_identity_correspondence"
+              },
+              "relation_type_id": {
+                "const": "tos.relation.pwe-identity-correspondence"
+              },
+              "value_kind": {
+                "const": "identity-correspondence"
+              },
+              "reader": {
+                "const": "pwe-exact-basis-v1"
+              },
+              "profile_version": {
+                "const": 1
+              },
+              "schema_version": {
+                "const": "tos_pwe_identity_correspondence_claim_v1"
+              },
+              "schema_ref": {
+                "const": "ToS/contracts/pwe-identity-correspondence-claim.schema.json"
+              },
+              "assertion_layer": {
+                "const": "identity_assertion"
+              },
+              "arguments": {
+                "const": [
+                  "left",
+                  "right",
+                  "identity_level",
+                  "criterion",
+                  "asserted_outcome"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "role_bindings": {
+      "const": [
+        {
+          "role": "signature",
+          "type_id": "tos.entity.pwe-signature",
+          "record_type": "pwe-signature",
+          "schema_version": "tos_pwe_signature_v1",
+          "schema_ref": "ToS/contracts/pwe-signature.schema.json"
+        },
+        {
+          "role": "predicate",
+          "type_id": "tos.entity.pwe-predicate",
+          "record_type": "pwe-predicate",
+          "schema_version": "tos_pwe_predicate_v1",
+          "schema_ref": "ToS/contracts/pwe-predicate.schema.json"
+        },
+        {
+          "role": "qualification-profile",
+          "type_id": "tos.entity.pwe-qualification-profile",
+          "record_type": "pwe-qualification-profile",
+          "schema_version": "tos_pwe_qualification_profile_v1",
+          "schema_ref": "ToS/contracts/pwe-qualification-profile.schema.json"
+        },
+        {
+          "role": "context",
+          "type_id": "tos.entity.pwe-context",
+          "record_type": "pwe-context",
+          "schema_version": "tos_pwe_context_v1",
+          "schema_ref": "ToS/contracts/pwe-context.schema.json"
+        },
+        {
+          "role": "scope",
+          "type_id": "tos.entity.pwe-scope",
+          "record_type": "pwe-scope",
+          "schema_version": "tos_pwe_scope_v1",
+          "schema_ref": "ToS/contracts/pwe-scope.schema.json"
+        },
+        {
+          "role": "criterion-policy",
+          "type_id": "tos.entity.pwe-criterion",
+          "record_type": "pwe-criterion",
+          "schema_version": "tos_pwe_criterion_v1",
+          "schema_ref": "ToS/contracts/pwe-criterion.schema.json"
+        },
+        {
+          "role": "joint-carrier",
+          "type_id": "tos.entity.pwe-identity-carrier",
+          "record_type": "pwe-identity-carrier",
+          "schema_version": "tos_pwe_identity_carrier_v1",
+          "schema_ref": "ToS/contracts/pwe-identity-carrier.schema.json"
+        },
+        {
+          "role": "scenario",
+          "type_id": "tos.entity.pwe-identity-scenario",
+          "record_type": "pwe-identity-scenario",
+          "schema_version": "tos_pwe_identity_scenario_v1",
+          "schema_ref": "ToS/contracts/pwe-identity-scenario.schema.json"
+        },
+        {
+          "role": "joint-carrier",
+          "type_id": "tos.entity.pwe-source-account-carrier",
+          "record_type": "pwe-source-account-carrier",
+          "schema_version": "tos_pwe_source_account_carrier_v1",
+          "schema_ref": "ToS/contracts/pwe-source-account-carrier.schema.json"
+        },
+        {
+          "role": "scenario",
+          "type_id": "tos.entity.pwe-source-account-scenario",
+          "record_type": "pwe-source-account-scenario",
+          "schema_version": "tos_pwe_source_account_scenario_v1",
+          "schema_ref": "ToS/contracts/pwe-source-account-scenario.schema.json"
+        }
+      ]
+    }
+  },
+  "$comment": "Actual entity/relation registry, selected schema worker, C4 role records, capture/config/source/access/assessment/journal fences and shared accounting remain required. No ExactRefs or source records are manufactured by this declaration."
+}

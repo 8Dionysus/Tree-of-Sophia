@@ -56,6 +56,17 @@ pub struct ViewBasis<'v> {
 /// caller returns NeedsBinding until the owner-approved registration is present.
 pub trait ConsumerOwner {
     fn current_fence(&mut self, basis: &ViewBasis<'_>) -> Result<()>;
+    /// A native access scope contains the exact assessed Claim record. A view
+    /// over several Claims therefore needs each Claim's protected scope, while
+    /// content scope/context/criterion remain common query coordinates. The
+    /// default preserves the original single-scope consumer behavior.
+    fn assessment_scope<'o>(
+        &'o mut self,
+        basis: &'o ViewBasis<'_>,
+        _claim_ref: &Value,
+    ) -> Result<&'o Value> {
+        Ok(basis.assessment_scope)
+    }
     fn account_dispatch<'o>(
         &'o mut self,
         view: &ViewBasis<'_>,
@@ -351,7 +362,10 @@ impl Session<'_> {
             self.check_dispatch(a, &row)?;
             self.check()?;
             let eligible = match input.assessment {
-                Some(report) => self.current_assessment(q, cr, report)?,
+                Some(report) => {
+                    let access_scope=owner.assessment_scope(&view.basis,input.claim_ref)?;
+                    self.current_assessment(q, cr, report,access_scope)?
+                },
                 None => false,
             };
             let outcome = self.str_field(a.value(), "asserted_outcome")?;
@@ -412,6 +426,7 @@ impl Session<'_> {
         q: &Query<'_>,
         claim: PweRef<'_>,
         report: &AssessmentMechanicsReport,
+        access_scope: &Value,
     ) -> Result<bool> {
         // Reports are native mechanics results, never authorization tokens.
         // Their own source/schema worker holders remain with ConsumerOwner.
@@ -425,7 +440,8 @@ impl Session<'_> {
         }
         self.admit(report.scope())?;
         self.admit(report.current_admission())?;
-        if !self.equal(report.scope(), q.assessment_scope)? {
+        self.admit(access_scope)?;
+        if !self.equal(report.scope(), access_scope)? {
             return Err(Error::QualificationMismatch("current assessment scope"));
         }
         let a = report.current_admission();
@@ -438,7 +454,7 @@ impl Session<'_> {
             return Err(Error::ExactMismatch);
         }
         let used = self.field(a, "use")?;
-        let requested = self.field(q.assessment_scope, "requested_use")?;
+        let requested = self.field(access_scope, "requested_use")?;
         if !self.equal(used, requested)? {
             return Err(Error::QualificationMismatch("current use"));
         }

@@ -58,6 +58,7 @@ pub mod source_metadata_publication;
 mod source_metadata_publication_assembly;
 pub mod source_native_cli;
 pub(crate) mod source_native_roles;
+mod pwe_source_owner;
 pub mod source_navigation_bootstrap;
 mod source_navigation_claim_input;
 mod source_navigation_claim_selection;

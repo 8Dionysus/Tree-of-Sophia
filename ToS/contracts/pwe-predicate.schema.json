@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-predicate.schema.json",
+  "title": "PWE selected native pwe-predicate",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "record_type": {
+          "const": "pwe-predicate"
+        },
+        "schema_version": {
+          "const": "tos_pwe_predicate_v1"
+        },
+        "body": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value_kind",
+                "arguments"
+              ],
+              "properties": {
+                "value_kind": {
+                  "const": "name-assignment"
+                },
+                "arguments": {
+                  "const": [
+                    "subject",
+                    "subject_role",
+                    "assignment",
+                    "name",
+                    "name_function",
+                    "named_bearer"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value_kind",
+                "arguments"
+              ],
+              "properties": {
+                "value_kind": {
+                  "const": "responsibility-account"
+                },
+                "arguments": {
+                  "const": [
+                    "subject",
+                    "role",
+                    "attribution_mode",
+                    "assignees",
+                    "responsibility_scope",
+                    "role_basis"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value_kind",
+                "arguments"
+              ],
+              "properties": {
+                "value_kind": {
+                  "const": "identity-correspondence"
+                },
+                "arguments": {
+                  "const": [
+                    "left",
+                    "right",
+                    "identity_level",
+                    "criterion",
+                    "asserted_outcome"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "Candidate native source route. Authored instances, exact pins, current protected assessment and registration are separate inputs. A declaration issues neither source truth nor admission nor coverage."
+}
