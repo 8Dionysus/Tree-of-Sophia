@@ -1,7 +1,7 @@
 //! One full private Claim lifecycle through the composed native owner route.
 //! All records and grants are synthetic; no source admission follows.
 use super::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::{Read, Seek, SeekFrom};
 use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::os::unix::process::CommandExt;
@@ -44,6 +44,189 @@ fn request_digest(value: &Value) -> String {
         .unwrap(),
     )
     .to_prefixed()
+}
+
+// A test-owned reference for the configuration binding, built solely from the
+// selected fixture inputs before describe. Native context validation remains
+// the authority; this model checks the complete digest domain independently.
+fn configuration_reference(owner_raw: &[u8], snapshot: &Value, grammars: &Value) -> String {
+    request_digest(&serde_json::json!({
+        "configuration_bytes":Digest256::of_bytes(owner_raw).to_prefixed(),
+        "context":request_digest(snapshot),
+        "grammars":grammars
+    }))
+}
+
+fn fixture_configuration_reference(
+    owner: &Path,
+    context: &Path,
+    public: &Path,
+    private: &Path,
+    authored: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+) -> String {
+    assert!(Instant::now() < deadline);
+    let normalized = |path: &Path| {
+        let text = path.to_str().unwrap();
+        assert!(text.len() <= MAX_SOURCE_PATH_BYTES && path.is_absolute());
+        assert!(text.is_ascii() && !text.bytes().any(|byte| byte.is_ascii_control()));
+        assert!(text != "/" && !text.ends_with('/') && !text.contains(['\\', '\0']));
+        assert!(
+            text[1..]
+                .split('/')
+                .all(|part| !["", ".", ".."].contains(&part))
+        );
+        text.to_owned()
+    };
+    let mut raw_total = 0u64;
+    let mut read = |path: &Path| {
+        let metadata = fs::symlink_metadata(path).unwrap();
+        assert!(metadata.is_file() && !metadata.file_type().is_symlink());
+        raw_total = raw_total.checked_add(metadata.len()).unwrap();
+        assert!(raw_total <= MAX_SOURCE_BYTES);
+        let raw = fs::read(path).unwrap();
+        assert_eq!(raw.len() as u64, metadata.len());
+        raw
+    };
+    normalized(owner);
+    let context_path = normalized(context);
+    let owner_raw = read(owner);
+    let context_raw = read(context);
+    // Pre-admit four conservative reference envelopes and a raw-input variant
+    // within the same ordinary fixture byte bound. This is a logical encoded
+    // construction bound, not an allocator or RSS measurement.
+    let reference_upper = 32usize
+        .checked_mul(7 * (MAX_SOURCE_PATH_BYTES + 128))
+        .and_then(|bytes| bytes.checked_add(8192))
+        .unwrap();
+    assert!(
+        raw_total
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(1))
+            .and_then(|bytes| bytes.checked_add(reference_upper.checked_mul(4).unwrap() as u64))
+            .unwrap()
+            <= MAX_SOURCE_BYTES
+    );
+    let grant: Value = serde_json::from_slice(&owner_raw).unwrap();
+    let config: Value = serde_json::from_slice(&context_raw).unwrap();
+    let prefix = config["private_prefix"].as_str().unwrap();
+    assert!(prefix.len() <= MAX_SOURCE_PATH_BYTES && prefix.is_ascii());
+    assert!(!prefix.bytes().any(|byte| byte.is_ascii_control()));
+    assert_eq!(grant["source_context_ref"], context_path);
+    let public_path = normalized(public);
+    let private_path = normalized(private);
+    assert_eq!(config["public_root"], public_path);
+    assert_eq!(config["private_root"], private_path);
+    let tuple = |path: &Path| {
+        let metadata = fs::symlink_metadata(path).unwrap();
+        assert!(metadata.is_dir() && !metadata.file_type().is_symlink());
+        serde_json::json!([
+            metadata.dev(),
+            metadata.ino(),
+            metadata.uid(),
+            metadata.mode() & 0o7777
+        ])
+    };
+    let schema = &authored["ToS/contracts/owner-local-source-context.schema.json"];
+    let snapshot = serde_json::json!({
+        "schema_version":"tos_owner_local_source_context_v1",
+        "configuration_path":context_path,
+        "configuration_sha256":Digest256::of_bytes(&context_raw).to_hex(),
+        "schema_sha256":Digest256::of_bytes(schema).to_hex(),
+        "roots":{"source-contract-root":tuple(public),"owner-local-root":tuple(private)},
+        "routing":{"private_prefix":config["private_prefix"],
+            "public_root":public_path,"private_root":private_path}
+    });
+    let selections = grant["claim_selections"].as_array().unwrap();
+    assert!((1..=32).contains(&selections.len()));
+    // At most seven grammar entries per selection, with bounded paths and
+    // fixed-width hashes. This is the containing fixture's existing allowance.
+    let mut grammars = BTreeMap::new();
+    for selection in selections {
+        assert!(Instant::now() < deadline);
+        let identity = selection["claim_id"].as_str().unwrap();
+        assert!(identity.len() <= MAX_SOURCE_PATH_BYTES && identity.is_ascii());
+        assert!(!identity.bytes().any(|byte| byte.is_ascii_control()));
+        let sources = selection["source_records"].as_array().unwrap();
+        let native = selection["native_bindings"].as_array().unwrap();
+        assert!(sources.len().checked_add(native.len()).unwrap() <= MAX_SOURCE_FILES);
+        let mut paths = BTreeSet::from([
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+            "ToS/contracts/semantic-relation-type-registry.schema.json",
+            "ToS/contracts/semantic-entity-type-registry.schema.json",
+            "ToS/contracts/owner-local-source-context.schema.json",
+        ]);
+        for source in sources {
+            let profile = source["profile_type_id"].as_str().unwrap();
+            if profile.strip_prefix("tos.entity.").is_some_and(|kind| {
+                [
+                    "agent",
+                    "place",
+                    "organization",
+                    "work",
+                    "expression",
+                    "edition",
+                    "collection",
+                    "item",
+                ]
+                .contains(&kind)
+            }) {
+                paths.insert("ToS/contracts/corpus-record.schema.json");
+            }
+            if !source.get("source_binding").unwrap().is_null() {
+                paths.insert("ToS/contracts/native-text-unit-binding.schema.json");
+            }
+        }
+        if !native.is_empty() {
+            paths.insert("ToS/contracts/native-text-unit-binding.schema.json");
+        }
+        let hashes: BTreeMap<_, _> = paths
+            .into_iter()
+            .map(|path| (path, Digest256::of_bytes(&authored[path]).to_hex()))
+            .collect();
+        assert!(grammars.insert(identity, hashes).is_none());
+    }
+    let grammars = serde_json::to_value(grammars).unwrap();
+    let expected = configuration_reference(&owner_raw, &snapshot, &grammars);
+    // Reference sensitivity uses declared inputs, with no additional owner call.
+    let mut changed_snapshot = snapshot.clone();
+    changed_snapshot["roots"]["owner-local-root"][1] =
+        serde_json::json!(snapshot["roots"]["owner-local-root"][1].as_u64().unwrap() ^ 1);
+    assert_ne!(snapshot, changed_snapshot);
+    assert_ne!(
+        expected,
+        configuration_reference(&owner_raw, &changed_snapshot, &grammars)
+    );
+    drop(changed_snapshot);
+    let mut changed_grammars = grammars.clone();
+    changed_grammars[selections[0]["claim_id"].as_str().unwrap()]["ToS/contracts/owner-local-source-context.schema.json"] =
+        serde_json::json!(Digest256::of_bytes(b"changed selected grammar").to_hex());
+    assert_ne!(
+        expected,
+        configuration_reference(&owner_raw, &snapshot, &changed_grammars)
+    );
+    drop(changed_grammars);
+    let mut changed_owner = owner_raw.clone();
+    changed_owner.push(b' ');
+    assert_ne!(
+        expected,
+        configuration_reference(&changed_owner, &snapshot, &grammars)
+    );
+    drop(changed_owner);
+    let mut missing_grammar = grammars.clone();
+    missing_grammar[selections[0]["claim_id"].as_str().unwrap()]
+        .as_object_mut()
+        .unwrap()
+        .remove("ToS/contracts/owner-local-source-context.schema.json")
+        .unwrap();
+    assert_ne!(
+        expected,
+        configuration_reference(&owner_raw, &snapshot, &missing_grammar)
+    );
+    drop(missing_grammar);
+    assert!(Instant::now() < deadline);
+    expected
 }
 
 fn assert_same_keys(left: &Value, right: &Value) {
@@ -676,6 +859,8 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
 
     let mut native_calls = 0usize;
+    let expected_configuration =
+        fixture_configuration_reference(&owner, &context, &public, &private, &authored, deadline);
     let private_seed = private_snapshot(&private, deadline);
     let call = |request: &Value, native_calls: &mut usize| {
         assert!(Instant::now() < deadline);
@@ -707,11 +892,9 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         &mut native_calls,
     );
     let mut expected_before = selected["before"].clone();
-    // This digest binds the relocated context and protected owner bytes. Its
-    // historical value cannot survive relocation; the actual value must be a
-    // valid binding, remain equal through prepare, and reject drift below.
-    assert!(Digest256::from_prefixed(required(&before, "owner_configuration")).is_ok());
-    expected_before["owner_configuration"] = before["owner_configuration"].clone();
+    // Bind the relocated context, owner bytes and selected grammars from inputs,
+    // rather than replacing the historical expectation with the native result.
+    expected_before["owner_configuration"] = serde_json::json!(expected_configuration);
     assert_eq!(before, expected_before);
     assert_eq!(before["target_exists"], false);
     let preview_request = request(

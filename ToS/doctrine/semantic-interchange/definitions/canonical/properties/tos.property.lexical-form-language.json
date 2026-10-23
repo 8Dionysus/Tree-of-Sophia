@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.lexical-form-language",
+  "field": "attributes.source_record.form_identity.language",
+  "labels": {
+    "default": "Declared form language",
+    "ru": "Указанный язык формы",
+    "en": "Declared form language"
+  },
+  "definition": "The source-declared written-form identity field, distinct from the language and script of its description. No occurrence or language attribution is inferred.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-form"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

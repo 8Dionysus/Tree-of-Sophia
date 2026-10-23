@@ -1,0 +1,63 @@
+{
+  "relation_type_id": "tos.relation.historical-dating",
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "historical-temporal-v1",
+    "assertion_layers": [
+      "scholarly_report"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_source_temporal_claim_v1",
+        "schema_ref": "ToS/contracts/source-temporal-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/historical-claim.schema.json",
+          "ToS/contracts/corpus-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has proposed historical dating",
+    "ru": "имеет предложенную историческую датировку",
+    "en": "has proposed historical dating"
+  },
+  "inverse_labels": {
+    "default": "dates historical situation",
+    "ru": "датирует историческую ситуацию",
+    "en": "dates historical situation"
+  },
+  "definition": "Dates a historical situation through evidence with explicit precision and status, including approximate, disputed, unknown and relative accounts. Competing datings remain separate Claims with their own assessment.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.historical-situation"
+  ],
+  "range_type_ids": [
+    "tos.entity.temporal-assertion"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "historical_dating",
+      "scope": "claim-predicate"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

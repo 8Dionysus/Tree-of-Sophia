@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.rhetorical-figure-figure-account",
+  "field": "attributes.source_record.semantic_content.figure_account",
+  "labels": {
+    "default": "Figure account",
+    "ru": "Описание фигуры",
+    "en": "Figure account"
+  },
+  "definition": "The identified rhetorical arrangement and its role in the source, not a historical person or automatic interpretation.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.rhetorical-figure"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

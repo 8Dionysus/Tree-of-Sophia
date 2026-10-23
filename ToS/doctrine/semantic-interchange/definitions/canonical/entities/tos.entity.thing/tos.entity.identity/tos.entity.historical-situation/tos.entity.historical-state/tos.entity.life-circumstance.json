@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.life-circumstance",
+  "parent_type_ids": [
+    "tos.entity.historical-state"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Life circumstance",
+    "ru": "Жизненное обстоятельство",
+    "en": "Life circumstance"
+  },
+  "definition": "A documented condition of a person's life, including bodily circumstances where relevant to the source account. Its relationship to philosophical content is examined through explicit evidence.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "life-circumstance"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "life-circumstance"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "life-circumstance",
+    "id_prefix": "tos.life-circumstance.",
+    "source_basename": "life-circumstance.json",
+    "catalog_filename": "life-circumstances.jsonl",
+    "graph_layer": "historical",
+    "schemas": [
+      {
+        "schema_version": "tos_historical_context_record_v1",
+        "schema_ref": "ToS/contracts/historical-context-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

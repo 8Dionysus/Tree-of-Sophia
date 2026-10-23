@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.thought-experiment-assumption-coverage",
+  "field": "attributes.source_record.semantic_content.assumption_coverage",
+  "labels": {
+    "default": "Assumption coverage",
+    "ru": "Полнота указанных допущений",
+    "en": "Assumption coverage"
+  },
+  "definition": "Declared coverage of recorded assumptions; claimed completeness is not mechanically established.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.thought-experiment"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

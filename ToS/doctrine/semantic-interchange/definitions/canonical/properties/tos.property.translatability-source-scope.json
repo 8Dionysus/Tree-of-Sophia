@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.translatability-source-scope",
+  "field": "attributes.value.source_scope",
+  "labels": {
+    "default": "Lexical source scope",
+    "ru": "Исходная лексическая область",
+    "en": "Lexical source scope"
+  },
+  "definition": "The exact lexical use or reading considered; it does not quantify over every use of a word.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-translatability"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

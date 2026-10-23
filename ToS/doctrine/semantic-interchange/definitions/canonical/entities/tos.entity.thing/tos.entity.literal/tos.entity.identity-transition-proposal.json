@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.identity-transition-proposal",
+  "parent_type_ids": [
+    "tos.entity.literal"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Identity transition proposal",
+    "ru": "Предложение перехода идентичности",
+    "en": "Identity transition proposal"
+  },
+  "definition": "The complete, unexecuted merge or split plan inside one exact Claim. Execution and reference migration require a separately authorized transition.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "identity-transition-proposal"
+    }
+  ],
+  "supersedes_type_id": null
+}

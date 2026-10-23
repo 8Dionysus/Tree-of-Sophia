@@ -370,19 +370,47 @@ fn walk(root: &File, path: &str, uid: u32) -> SourceCommandResult<File> {
     }
     Ok(fd)
 }
+/// Read limits are not allocation admission. Legacy preserves the old reader;
+/// Exact is for fresh physical rereads of a retained length, including EOF/stamp.
+#[derive(Clone, Copy)]
+pub(crate) enum ReadLength {
+    Legacy(usize),
+    AtMost(usize),
+    Exact(usize),
+}
+
 pub(crate) fn raw(
     file: &mut File,
     cap: usize,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<u8>> {
+    raw_with_length_limit(file, ReadLength::Legacy(cap), deadline, cancelled)
+}
+
+pub(crate) fn raw_with_length_limit(
+    file: &mut File,
+    length: ReadLength,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    let cap = match length {
+        ReadLength::Legacy(cap) | ReadLength::AtMost(cap) | ReadLength::Exact(cap) => cap,
+    };
     let before = file
         .metadata()
         .map_err(|_| SourceCommandError::Invalid("creation read metadata"))?;
-    if !before.is_file() || before.len() > cap as u64 {
+    if !before.is_file() || !matches!(length, ReadLength::Exact(_)) && before.len() > cap as u64 {
         return Err(SourceCommandError::Invalid(
             "creation read byte/type budget",
         ));
+    }
+    if let ReadLength::Exact(expected) = length {
+        if before.len() != expected as u64 {
+            return Err(SourceCommandError::Conflict(
+                "creation input length changed",
+            ));
+        }
     }
     let mut bytes = Vec::new();
     let mut buffer = [0u8; 65536];
@@ -395,9 +423,12 @@ pub(crate) fn raw(
             break;
         }
         if bytes.len().checked_add(n).is_none_or(|size| size > cap) {
-            return Err(SourceCommandError::Invalid(
-                "creation read exceeds byte budget",
-            ));
+            return Err(match length {
+                ReadLength::Exact(_) => {
+                    SourceCommandError::Conflict("creation input length changed")
+                }
+                _ => SourceCommandError::Invalid("creation read exceeds byte budget"),
+            });
         }
         bytes.extend_from_slice(&buffer[..n]);
     }

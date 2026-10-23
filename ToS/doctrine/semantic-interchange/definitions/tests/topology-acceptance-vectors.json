@@ -1,0 +1,3674 @@
+{
+  "schema_version": "tos_topology_preparation_v1",
+  "source_commit": "4555e5c00e67fc0a064900080b1c4c68b9bcfd3e",
+  "generated_at_utc": "2026-10-19T05:40:00Z",
+  "scope": "read-only inventory and synthetic acceptance specifications; no repository migration or runtime tests",
+  "entities": [
+    {
+      "id": "tos.entity.collection-member-order",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/scoped-member-structure.schema.json"
+    },
+    {
+      "id": "tos.entity.physical-part-composition",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/scoped-member-structure.schema.json"
+    },
+    {
+      "id": "tos.entity.research-corpus",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/contracts/research-corpus-record.schema.json"
+    },
+    {
+      "id": "tos.entity.intellectual-part-composition",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/scoped-member-structure.schema.json"
+    },
+    {
+      "id": "tos.entity.research-corpus-membership",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/scoped-member-structure.schema.json"
+    },
+    {
+      "id": "tos.entity.identity-transition-proposal",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.motif-proposal",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/source-occurrence-motif-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.lexical-translatability",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/source-lexical-translatability-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.lexical-form",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.linguistic-system",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.language",
+      "parents": [
+        "tos.entity.linguistic-system"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.linguistic-variety",
+      "parents": [
+        "tos.entity.linguistic-system"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.script",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.transliteration-scheme",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.content-form-classification",
+      "parents": [
+        "tos.entity.classification-value"
+      ],
+      "owner_ref": "ToS/contracts/source-classification-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.carrier-medium-classification",
+      "parents": [
+        "tos.entity.classification-value"
+      ],
+      "owner_ref": "ToS/contracts/source-classification-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.classification-value",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/source-classification-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.genre-classification",
+      "parents": [
+        "tos.entity.classification-value"
+      ],
+      "owner_ref": "ToS/contracts/source-classification-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.communication-medium-classification",
+      "parents": [
+        "tos.entity.classification-value"
+      ],
+      "owner_ref": "ToS/contracts/source-classification-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.reception-history",
+      "parents": [
+        "tos.entity.historical-situation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.reception-process",
+      "parents": [
+        "tos.entity.historical-process",
+        "tos.entity.reception-history"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-canonization",
+      "parents": [
+        "tos.entity.reception-process"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-forgetting",
+      "parents": [
+        "tos.entity.historical-process",
+        "tos.entity.reception-history"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.rediscovery-episode",
+      "parents": [
+        "tos.entity.historical-event",
+        "tos.entity.reception-history"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.intellectual-legacy",
+      "parents": [
+        "tos.entity.historical-state",
+        "tos.entity.reception-history"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.composite",
+      "parents": [
+        "tos.entity.intellectual-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.textual-fragment",
+      "parents": [
+        "tos.entity.intellectual-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.quotation-passage",
+      "parents": [
+        "tos.entity.intellectual-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.textual-survival",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/source-textual-survival-claim.schema.json"
+    },
+    {
+      "id": "tos.entity.biographical-episode",
+      "parents": [
+        "tos.entity.historical-event"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.biographical-phase",
+      "parents": [
+        "tos.entity.historical-situation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-period",
+      "parents": [
+        "tos.entity.historical-situation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-generation",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-environment",
+      "parents": [
+        "tos.entity.historical-state"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.life-circumstance",
+      "parents": [
+        "tos.entity.historical-state"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.intellectual-formation",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.intellectual-school",
+      "parents": [
+        "tos.entity.intellectual-formation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.intellectual-tradition",
+      "parents": [
+        "tos.entity.intellectual-formation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.intellectual-movement",
+      "parents": [
+        "tos.entity.intellectual-formation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.social-group",
+      "parents": [
+        "tos.entity.organization"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.community",
+      "parents": [
+        "tos.entity.social-group"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.institutional-body",
+      "parents": [
+        "tos.entity.organization"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.thought-method",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.thought-operation",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.thought-move",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.thought-experiment",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.thought-image",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.rhetorical-figure",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.metaphor",
+      "parents": [
+        "tos.entity.rhetorical-figure"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.value",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.ideal",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.ontological-commitment",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.aspect",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.philosophical-category",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.problem",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.problem-family",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.question",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.position",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.distinction",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.opposition",
+      "parents": [
+        "tos.entity.distinction"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.thesis",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.argument",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.inference-step",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.objection",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.crosscutting-concept",
+      "parents": [
+        "tos.entity.concept"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.conception",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.document",
+      "parents": [
+        "tos.entity.intellectual-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.letter",
+      "parents": [
+        "tos.entity.document"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.artifact",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.historical-situation",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-event",
+      "parents": [
+        "tos.entity.historical-situation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-process",
+      "parents": [
+        "tos.entity.historical-situation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.historical-state",
+      "parents": [
+        "tos.entity.historical-situation"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.text-layer",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.anchor",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.text-unit",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.occurrence",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.lexeme",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.lexical-sense",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.sign",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.annotation-sign",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.annotation-occurrence",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.entity.annotation-lexeme",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.entity.annotation-lexical-sense",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.entity.annotation",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.annotation-claim",
+      "parents": [
+        "tos.entity.claim"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.annotation-evidence",
+      "parents": [
+        "tos.entity.evidence"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.annotation-review",
+      "parents": [
+        "tos.entity.review"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.annotation-relation",
+      "parents": [
+        "tos.entity.assertion"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.thing",
+      "parents": [],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.identity",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.agent",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/contracts/corpus-record.schema.json"
+    },
+    {
+      "id": "tos.entity.organization",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/contracts/corpus-record.schema.json"
+    },
+    {
+      "id": "tos.entity.intellectual-object",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.work",
+      "parents": [
+        "tos.entity.intellectual-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.expression",
+      "parents": [
+        "tos.entity.intellectual-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.manifestation",
+      "parents": [
+        "tos.entity.intellectual-object"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.edition",
+      "parents": [
+        "tos.entity.manifestation"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.collection",
+      "parents": [
+        "tos.entity.manifestation"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.item",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.file",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.link",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/contracts/source-link.schema.json"
+    },
+    {
+      "id": "tos.entity.semantic-object",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/KNOWLEDGE_MODEL.md"
+    },
+    {
+      "id": "tos.entity.source",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.concept",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.principle",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.lineage",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.event",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.state",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.support",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.context",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.analogy",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.synthesis",
+      "parents": [
+        "tos.entity.semantic-object"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.entity.assertion",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.claim",
+      "parents": [
+        "tos.entity.assertion"
+      ],
+      "owner_ref": "ToS/contracts/claim-packet.schema.json"
+    },
+    {
+      "id": "tos.entity.temporal-object",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.temporal-assertion",
+      "parents": [
+        "tos.entity.assertion",
+        "tos.entity.temporal-object"
+      ],
+      "owner_ref": "ToS/contracts/first-publication-chronology.schema.json"
+    },
+    {
+      "id": "tos.entity.temporal-instant",
+      "parents": [
+        "tos.entity.temporal-object"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.temporal-interval",
+      "parents": [
+        "tos.entity.temporal-object"
+      ],
+      "owner_ref": "ToS/contracts/first-publication-chronology.schema.json"
+    },
+    {
+      "id": "tos.entity.provision-activity",
+      "parents": [
+        "tos.entity.assertion",
+        "tos.entity.temporal-object"
+      ],
+      "owner_ref": "ToS/contracts/provision-activity.schema.json"
+    },
+    {
+      "id": "tos.entity.literal",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.place-mention",
+      "parents": [
+        "tos.entity.literal"
+      ],
+      "owner_ref": "ToS/contracts/provision-activity.schema.json"
+    },
+    {
+      "id": "tos.entity.evidence-object",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.entity.evidence",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/contracts/claim-packet.schema.json"
+    },
+    {
+      "id": "tos.entity.record-version",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/contracts/record-version-view.schema.json"
+    },
+    {
+      "id": "tos.entity.review",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/contracts/claim-packet.schema.json"
+    },
+    {
+      "id": "tos.entity.provenance-event",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/contracts/provenance-event.schema.json"
+    },
+    {
+      "id": "tos.entity.maker",
+      "parents": [
+        "tos.entity.evidence-object"
+      ],
+      "owner_ref": "ToS/contracts/claim-packet.schema.json"
+    },
+    {
+      "id": "tos.entity.spatial-object",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.entity.place",
+      "parents": [
+        "tos.entity.identity",
+        "tos.entity.spatial-object"
+      ],
+      "owner_ref": "ToS/contracts/corpus-record.schema.json"
+    },
+    {
+      "id": "tos.entity.navigation-object",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.branch",
+      "parents": [
+        "tos.entity.navigation-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.era",
+      "parents": [
+        "tos.entity.navigation-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.navigation-region",
+      "parents": [
+        "tos.entity.navigation-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.tradition",
+      "parents": [
+        "tos.entity.navigation-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.school-tradition",
+      "parents": [
+        "tos.entity.navigation-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.source-planting",
+      "parents": [
+        "tos.entity.navigation-object"
+      ],
+      "owner_ref": "ToS/contracts/philosophy-source-planting.schema.json"
+    },
+    {
+      "id": "tos.entity.source-witness",
+      "parents": [
+        "tos.entity.identity"
+      ],
+      "owner_ref": "ToS/source-witnesses/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.philosophy-object",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.figure",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.institution",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.text-corpus",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.controversy",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.genre",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.medium",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.language-script",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.transmission-channel",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.method",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.preservation-state",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.civilization-literary-complex",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.frontier-case",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.artifact-anchor",
+      "parents": [
+        "tos.entity.philosophy-object"
+      ],
+      "owner_ref": "ToS/philosophy/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.philosophy-meta",
+      "parents": [
+        "tos.entity.navigation-object"
+      ],
+      "owner_ref": "ToS/derived-exports/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.repository-object",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/derived-exports/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.repository-root",
+      "parents": [
+        "tos.entity.repository-object"
+      ],
+      "owner_ref": "ToS/source_home.manifest.json"
+    },
+    {
+      "id": "tos.entity.repository-branch",
+      "parents": [
+        "tos.entity.repository-object"
+      ],
+      "owner_ref": "ToS/source_home.manifest.json"
+    },
+    {
+      "id": "tos.entity.repository-manifest",
+      "parents": [
+        "tos.entity.repository-object"
+      ],
+      "owner_ref": "ToS/derived-exports/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.repository-resource",
+      "parents": [
+        "tos.entity.repository-object"
+      ],
+      "owner_ref": "ToS/derived-exports/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.unresolved-endpoint",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/derived-exports/AGENTS.md"
+    },
+    {
+      "id": "tos.entity.unmapped",
+      "parents": [
+        "tos.entity.thing"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    }
+  ],
+  "properties": [
+    {
+      "id": "tos.property.composition-source-scope",
+      "applies_to": [
+        "tos.entity.intellectual-part-composition",
+        "tos.entity.research-corpus-membership",
+        "tos.entity.physical-part-composition",
+        "tos.entity.collection-member-order"
+      ]
+    },
+    {
+      "id": "tos.property.composition-coverage",
+      "applies_to": [
+        "tos.entity.intellectual-part-composition",
+        "tos.entity.research-corpus-membership",
+        "tos.entity.physical-part-composition",
+        "tos.entity.collection-member-order"
+      ]
+    },
+    {
+      "id": "tos.property.composition-membership-basis",
+      "applies_to": [
+        "tos.entity.intellectual-part-composition",
+        "tos.entity.research-corpus-membership",
+        "tos.entity.physical-part-composition",
+        "tos.entity.collection-member-order"
+      ]
+    },
+    {
+      "id": "tos.property.composition-ordering-mode",
+      "applies_to": [
+        "tos.entity.intellectual-part-composition",
+        "tos.entity.research-corpus-membership",
+        "tos.entity.physical-part-composition",
+        "tos.entity.collection-member-order"
+      ]
+    },
+    {
+      "id": "tos.property.composition-ordering-basis",
+      "applies_to": [
+        "tos.entity.intellectual-part-composition",
+        "tos.entity.research-corpus-membership",
+        "tos.entity.physical-part-composition",
+        "tos.entity.collection-member-order"
+      ]
+    },
+    {
+      "id": "tos.property.composition-limitations",
+      "applies_to": [
+        "tos.entity.intellectual-part-composition",
+        "tos.entity.research-corpus-membership",
+        "tos.entity.physical-part-composition",
+        "tos.entity.collection-member-order"
+      ]
+    },
+    {
+      "id": "tos.property.research-corpus-research-purpose",
+      "applies_to": [
+        "tos.entity.research-corpus"
+      ]
+    },
+    {
+      "id": "tos.property.research-corpus-selection-criterion",
+      "applies_to": [
+        "tos.entity.research-corpus"
+      ]
+    },
+    {
+      "id": "tos.property.research-corpus-coverage-account",
+      "applies_to": [
+        "tos.entity.research-corpus"
+      ]
+    },
+    {
+      "id": "tos.property.record-version-resolution",
+      "applies_to": [
+        "tos.entity.record-version"
+      ]
+    },
+    {
+      "id": "tos.property.record-version-posture",
+      "applies_to": [
+        "tos.entity.record-version"
+      ]
+    },
+    {
+      "id": "tos.property.motif-proposed-signification",
+      "applies_to": [
+        "tos.entity.motif-proposal"
+      ]
+    },
+    {
+      "id": "tos.property.motif-grouping-basis",
+      "applies_to": [
+        "tos.entity.motif-proposal"
+      ]
+    },
+    {
+      "id": "tos.property.motif-source-scope",
+      "applies_to": [
+        "tos.entity.motif-proposal"
+      ]
+    },
+    {
+      "id": "tos.property.motif-contrast",
+      "applies_to": [
+        "tos.entity.motif-proposal"
+      ]
+    },
+    {
+      "id": "tos.property.motif-limitations",
+      "applies_to": [
+        "tos.entity.motif-proposal"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-source-language",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-target-language",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-source-scope",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-target-scope",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-aspects-in-scope",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-rendering-judgment",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-aspect-transfer",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-preserved-aspects",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-limitations",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-search-outcome",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-search-criterion",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-search-coverage",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.translatability-search-method",
+      "applies_to": [
+        "tos.entity.lexical-translatability"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-source-scope",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-target-scope",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-source-language",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-target-language",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-chronology-basis",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-common-origin-basis",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-translation-scope",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-preserved-aspects",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-lexical-limitations",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.occurrence-account",
+      "applies_to": [
+        "tos.entity.occurrence"
+      ]
+    },
+    {
+      "id": "tos.property.occurrence-context",
+      "applies_to": [
+        "tos.entity.occurrence"
+      ]
+    },
+    {
+      "id": "tos.property.lexeme-lexical-account",
+      "applies_to": [
+        "tos.entity.lexeme"
+      ]
+    },
+    {
+      "id": "tos.property.lexeme-grammatical-account",
+      "applies_to": [
+        "tos.entity.lexeme"
+      ]
+    },
+    {
+      "id": "tos.property.sense-sense-account",
+      "applies_to": [
+        "tos.entity.lexical-sense"
+      ]
+    },
+    {
+      "id": "tos.property.sense-interpretation-context",
+      "applies_to": [
+        "tos.entity.lexical-sense"
+      ]
+    },
+    {
+      "id": "tos.property.sense-semantic-range",
+      "applies_to": [
+        "tos.entity.lexical-sense"
+      ]
+    },
+    {
+      "id": "tos.property.lexical-form-form-account",
+      "applies_to": [
+        "tos.entity.lexical-form"
+      ]
+    },
+    {
+      "id": "tos.property.lexical-form-written-representation",
+      "applies_to": [
+        "tos.entity.lexical-form"
+      ]
+    },
+    {
+      "id": "tos.property.lexical-form-language",
+      "applies_to": [
+        "tos.entity.lexical-form"
+      ]
+    },
+    {
+      "id": "tos.property.lexical-form-script",
+      "applies_to": [
+        "tos.entity.lexical-form"
+      ]
+    },
+    {
+      "id": "tos.property.lexical-form-representation-kind",
+      "applies_to": [
+        "tos.entity.lexical-form"
+      ]
+    },
+    {
+      "id": "tos.property.language-system-account",
+      "applies_to": [
+        "tos.entity.language"
+      ]
+    },
+    {
+      "id": "tos.property.linguistic-variety-system-account",
+      "applies_to": [
+        "tos.entity.linguistic-variety"
+      ]
+    },
+    {
+      "id": "tos.property.linguistic-variety-distinguishing-basis",
+      "applies_to": [
+        "tos.entity.linguistic-variety"
+      ]
+    },
+    {
+      "id": "tos.property.script-script-account",
+      "applies_to": [
+        "tos.entity.script"
+      ]
+    },
+    {
+      "id": "tos.property.script-sign-inventory-scope",
+      "applies_to": [
+        "tos.entity.script"
+      ]
+    },
+    {
+      "id": "tos.property.transliteration-scheme-mapping-convention",
+      "applies_to": [
+        "tos.entity.transliteration-scheme"
+      ]
+    },
+    {
+      "id": "tos.property.transliteration-scheme-coverage-and-loss",
+      "applies_to": [
+        "tos.entity.transliteration-scheme"
+      ]
+    },
+    {
+      "id": "tos.property.classification-term-language",
+      "applies_to": [
+        "tos.entity.classification-value"
+      ]
+    },
+    {
+      "id": "tos.property.classification-term-script",
+      "applies_to": [
+        "tos.entity.classification-value"
+      ]
+    },
+    {
+      "id": "tos.property.classification-term",
+      "applies_to": [
+        "tos.entity.classification-value"
+      ]
+    },
+    {
+      "id": "tos.property.classification-basis",
+      "applies_to": [
+        "tos.entity.classification-value"
+      ]
+    },
+    {
+      "id": "tos.property.classification-scope",
+      "applies_to": [
+        "tos.entity.classification-value"
+      ]
+    },
+    {
+      "id": "tos.property.file-media-type",
+      "applies_to": [
+        "tos.entity.file"
+      ]
+    },
+    {
+      "id": "tos.property.reception-history-reception-account",
+      "applies_to": [
+        "tos.entity.reception-history"
+      ]
+    },
+    {
+      "id": "tos.property.reception-history-receiving-context",
+      "applies_to": [
+        "tos.entity.reception-history"
+      ]
+    },
+    {
+      "id": "tos.property.reception-process-engagement-basis",
+      "applies_to": [
+        "tos.entity.reception-process"
+      ]
+    },
+    {
+      "id": "tos.property.historical-canonization-selection-basis",
+      "applies_to": [
+        "tos.entity.historical-canonization"
+      ]
+    },
+    {
+      "id": "tos.property.historical-canonization-authority-scope",
+      "applies_to": [
+        "tos.entity.historical-canonization"
+      ]
+    },
+    {
+      "id": "tos.property.historical-forgetting-evidence-boundary",
+      "applies_to": [
+        "tos.entity.historical-forgetting"
+      ]
+    },
+    {
+      "id": "tos.property.rediscovery-episode-prior-access-boundary",
+      "applies_to": [
+        "tos.entity.rediscovery-episode"
+      ]
+    },
+    {
+      "id": "tos.property.intellectual-legacy-transmission-basis",
+      "applies_to": [
+        "tos.entity.intellectual-legacy"
+      ]
+    },
+    {
+      "id": "tos.property.composite-composition-account",
+      "applies_to": [
+        "tos.entity.composite"
+      ]
+    },
+    {
+      "id": "tos.property.composite-editorial-method",
+      "applies_to": [
+        "tos.entity.composite"
+      ]
+    },
+    {
+      "id": "tos.property.composite-coverage-account",
+      "applies_to": [
+        "tos.entity.composite"
+      ]
+    },
+    {
+      "id": "tos.property.fragment-account",
+      "applies_to": [
+        "tos.entity.textual-fragment"
+      ]
+    },
+    {
+      "id": "tos.property.fragment-boundary-basis",
+      "applies_to": [
+        "tos.entity.textual-fragment"
+      ]
+    },
+    {
+      "id": "tos.property.quotation-account",
+      "applies_to": [
+        "tos.entity.quotation-passage"
+      ]
+    },
+    {
+      "id": "tos.property.quotation-location",
+      "applies_to": [
+        "tos.entity.quotation-passage"
+      ]
+    },
+    {
+      "id": "tos.property.textual-survival-status",
+      "applies_to": [
+        "tos.entity.textual-survival"
+      ]
+    },
+    {
+      "id": "tos.property.biographical-episode-episode-account",
+      "applies_to": [
+        "tos.entity.biographical-episode"
+      ]
+    },
+    {
+      "id": "tos.property.biographical-episode-biographical-relevance",
+      "applies_to": [
+        "tos.entity.biographical-episode"
+      ]
+    },
+    {
+      "id": "tos.property.biographical-phase-phase-account",
+      "applies_to": [
+        "tos.entity.biographical-phase"
+      ]
+    },
+    {
+      "id": "tos.property.biographical-phase-phase-boundary-basis",
+      "applies_to": [
+        "tos.entity.biographical-phase"
+      ]
+    },
+    {
+      "id": "tos.property.historical-period-period-account",
+      "applies_to": [
+        "tos.entity.historical-period"
+      ]
+    },
+    {
+      "id": "tos.property.historical-period-periodization-basis",
+      "applies_to": [
+        "tos.entity.historical-period"
+      ]
+    },
+    {
+      "id": "tos.property.historical-generation-generation-account",
+      "applies_to": [
+        "tos.entity.historical-generation"
+      ]
+    },
+    {
+      "id": "tos.property.historical-generation-cohort-basis",
+      "applies_to": [
+        "tos.entity.historical-generation"
+      ]
+    },
+    {
+      "id": "tos.property.historical-environment-environment-account",
+      "applies_to": [
+        "tos.entity.historical-environment"
+      ]
+    },
+    {
+      "id": "tos.property.historical-environment-political-account",
+      "applies_to": [
+        "tos.entity.historical-environment"
+      ]
+    },
+    {
+      "id": "tos.property.historical-environment-economic-account",
+      "applies_to": [
+        "tos.entity.historical-environment"
+      ]
+    },
+    {
+      "id": "tos.property.historical-environment-cultural-account",
+      "applies_to": [
+        "tos.entity.historical-environment"
+      ]
+    },
+    {
+      "id": "tos.property.historical-environment-religious-account",
+      "applies_to": [
+        "tos.entity.historical-environment"
+      ]
+    },
+    {
+      "id": "tos.property.historical-environment-educational-account",
+      "applies_to": [
+        "tos.entity.historical-environment"
+      ]
+    },
+    {
+      "id": "tos.property.historical-environment-scientific-technological-account",
+      "applies_to": [
+        "tos.entity.historical-environment"
+      ]
+    },
+    {
+      "id": "tos.property.life-circumstance-circumstance-account",
+      "applies_to": [
+        "tos.entity.life-circumstance"
+      ]
+    },
+    {
+      "id": "tos.property.life-circumstance-documented-relevance",
+      "applies_to": [
+        "tos.entity.life-circumstance"
+      ]
+    },
+    {
+      "id": "tos.property.life-circumstance-evidence-limitations",
+      "applies_to": [
+        "tos.entity.life-circumstance"
+      ]
+    },
+    {
+      "id": "tos.property.life-circumstance-bodily-account",
+      "applies_to": [
+        "tos.entity.life-circumstance"
+      ]
+    },
+    {
+      "id": "tos.property.formation-account",
+      "applies_to": [
+        "tos.entity.intellectual-formation"
+      ]
+    },
+    {
+      "id": "tos.property.intellectual-school-inquiry-lineage",
+      "applies_to": [
+        "tos.entity.intellectual-school"
+      ]
+    },
+    {
+      "id": "tos.property.intellectual-tradition-transmission-account",
+      "applies_to": [
+        "tos.entity.intellectual-tradition"
+      ]
+    },
+    {
+      "id": "tos.property.intellectual-movement-movement-orientation",
+      "applies_to": [
+        "tos.entity.intellectual-movement"
+      ]
+    },
+    {
+      "id": "tos.property.formation-scope-note",
+      "applies_to": [
+        "tos.entity.intellectual-formation"
+      ]
+    },
+    {
+      "id": "tos.property.formation-identity-criterion",
+      "applies_to": [
+        "tos.entity.intellectual-formation"
+      ]
+    },
+    {
+      "id": "tos.property.claim-formation-scope",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-relation-basis",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-social-scope",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.claim-social-time-note",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    },
+    {
+      "id": "tos.property.social-group-group-account",
+      "applies_to": [
+        "tos.entity.social-group"
+      ]
+    },
+    {
+      "id": "tos.property.social-group-membership-boundary",
+      "applies_to": [
+        "tos.entity.social-group"
+      ]
+    },
+    {
+      "id": "tos.property.community-community-practice",
+      "applies_to": [
+        "tos.entity.community"
+      ]
+    },
+    {
+      "id": "tos.property.institutional-body-institutional-account",
+      "applies_to": [
+        "tos.entity.institutional-body"
+      ]
+    },
+    {
+      "id": "tos.property.social-scope-note",
+      "applies_to": [
+        "tos.entity.social-group",
+        "tos.entity.institutional-body"
+      ]
+    },
+    {
+      "id": "tos.property.social-identity-criterion",
+      "applies_to": [
+        "tos.entity.social-group",
+        "tos.entity.institutional-body"
+      ]
+    },
+    {
+      "id": "tos.property.thought-method-method-account",
+      "applies_to": [
+        "tos.entity.thought-method"
+      ]
+    },
+    {
+      "id": "tos.property.thought-method-applicability-conditions",
+      "applies_to": [
+        "tos.entity.thought-method"
+      ]
+    },
+    {
+      "id": "tos.property.thought-operation-operation-account",
+      "applies_to": [
+        "tos.entity.thought-operation"
+      ]
+    },
+    {
+      "id": "tos.property.thought-operation-prerequisites",
+      "applies_to": [
+        "tos.entity.thought-operation"
+      ]
+    },
+    {
+      "id": "tos.property.thought-move-movement-account",
+      "applies_to": [
+        "tos.entity.thought-move"
+      ]
+    },
+    {
+      "id": "tos.property.thought-move-context-requirement",
+      "applies_to": [
+        "tos.entity.thought-move"
+      ]
+    },
+    {
+      "id": "tos.property.thought-experiment-scenario-account",
+      "applies_to": [
+        "tos.entity.thought-experiment"
+      ]
+    },
+    {
+      "id": "tos.property.thought-experiment-assumptions",
+      "applies_to": [
+        "tos.entity.thought-experiment"
+      ]
+    },
+    {
+      "id": "tos.property.thought-experiment-assumption-coverage",
+      "applies_to": [
+        "tos.entity.thought-experiment"
+      ]
+    },
+    {
+      "id": "tos.property.thought-experiment-examined-consequence",
+      "applies_to": [
+        "tos.entity.thought-experiment"
+      ]
+    },
+    {
+      "id": "tos.property.thought-image-image-account",
+      "applies_to": [
+        "tos.entity.thought-image"
+      ]
+    },
+    {
+      "id": "tos.property.thought-image-image-mode",
+      "applies_to": [
+        "tos.entity.thought-image"
+      ]
+    },
+    {
+      "id": "tos.property.rhetorical-figure-figure-account",
+      "applies_to": [
+        "tos.entity.rhetorical-figure"
+      ]
+    },
+    {
+      "id": "tos.property.metaphor-source-domain",
+      "applies_to": [
+        "tos.entity.metaphor"
+      ]
+    },
+    {
+      "id": "tos.property.metaphor-target-domain",
+      "applies_to": [
+        "tos.entity.metaphor"
+      ]
+    },
+    {
+      "id": "tos.property.metaphor-mapping-basis",
+      "applies_to": [
+        "tos.entity.metaphor"
+      ]
+    },
+    {
+      "id": "tos.property.value-value-account",
+      "applies_to": [
+        "tos.entity.value"
+      ]
+    },
+    {
+      "id": "tos.property.value-valuation-context",
+      "applies_to": [
+        "tos.entity.value"
+      ]
+    },
+    {
+      "id": "tos.property.ideal-ideal-account",
+      "applies_to": [
+        "tos.entity.ideal"
+      ]
+    },
+    {
+      "id": "tos.property.ideal-realization-posture",
+      "applies_to": [
+        "tos.entity.ideal"
+      ]
+    },
+    {
+      "id": "tos.property.ontological-commitment-commitment-account",
+      "applies_to": [
+        "tos.entity.ontological-commitment"
+      ]
+    },
+    {
+      "id": "tos.property.ontological-commitment-commitment-force",
+      "applies_to": [
+        "tos.entity.ontological-commitment"
+      ]
+    },
+    {
+      "id": "tos.property.aspect-perspective-account",
+      "applies_to": [
+        "tos.entity.aspect"
+      ]
+    },
+    {
+      "id": "tos.property.philosophical-category-category-account",
+      "applies_to": [
+        "tos.entity.philosophical-category"
+      ]
+    },
+    {
+      "id": "tos.property.problem-problem-statement",
+      "applies_to": [
+        "tos.entity.problem"
+      ]
+    },
+    {
+      "id": "tos.property.problem-inquiry-stakes",
+      "applies_to": [
+        "tos.entity.problem"
+      ]
+    },
+    {
+      "id": "tos.property.problem-family-grouping-basis",
+      "applies_to": [
+        "tos.entity.problem-family"
+      ]
+    },
+    {
+      "id": "tos.property.question-question-text",
+      "applies_to": [
+        "tos.entity.question"
+      ]
+    },
+    {
+      "id": "tos.property.question-presupposition-account",
+      "applies_to": [
+        "tos.entity.question"
+      ]
+    },
+    {
+      "id": "tos.property.position-stance-account",
+      "applies_to": [
+        "tos.entity.position"
+      ]
+    },
+    {
+      "id": "tos.property.distinction-differentiation-criterion",
+      "applies_to": [
+        "tos.entity.distinction"
+      ]
+    },
+    {
+      "id": "tos.property.opposition-opposition-basis",
+      "applies_to": [
+        "tos.entity.opposition"
+      ]
+    },
+    {
+      "id": "tos.property.thesis-proposition",
+      "applies_to": [
+        "tos.entity.thesis"
+      ]
+    },
+    {
+      "id": "tos.property.thesis-assertion-force",
+      "applies_to": [
+        "tos.entity.thesis"
+      ]
+    },
+    {
+      "id": "tos.property.argument-reconstruction",
+      "applies_to": [
+        "tos.entity.argument"
+      ]
+    },
+    {
+      "id": "tos.property.argument-coverage",
+      "applies_to": [
+        "tos.entity.argument"
+      ]
+    },
+    {
+      "id": "tos.property.inference-transition",
+      "applies_to": [
+        "tos.entity.inference-step"
+      ]
+    },
+    {
+      "id": "tos.property.inference-mode",
+      "applies_to": [
+        "tos.entity.inference-step"
+      ]
+    },
+    {
+      "id": "tos.property.objection-challenge",
+      "applies_to": [
+        "tos.entity.objection"
+      ]
+    },
+    {
+      "id": "tos.property.semantic-scope-note",
+      "applies_to": [
+        "tos.entity.crosscutting-concept",
+        "tos.entity.conception",
+        "tos.entity.thesis",
+        "tos.entity.argument",
+        "tos.entity.inference-step",
+        "tos.entity.objection",
+        "tos.entity.aspect",
+        "tos.entity.philosophical-category",
+        "tos.entity.problem",
+        "tos.entity.problem-family",
+        "tos.entity.question",
+        "tos.entity.position",
+        "tos.entity.distinction",
+        "tos.entity.opposition",
+        "tos.entity.thought-method",
+        "tos.entity.thought-operation",
+        "tos.entity.thought-move",
+        "tos.entity.thought-experiment",
+        "tos.entity.thought-image",
+        "tos.entity.rhetorical-figure",
+        "tos.entity.metaphor",
+        "tos.entity.value",
+        "tos.entity.ideal",
+        "tos.entity.ontological-commitment",
+        "tos.entity.linguistic-system",
+        "tos.entity.script",
+        "tos.entity.transliteration-scheme",
+        "tos.entity.lexeme",
+        "tos.entity.lexical-sense",
+        "tos.entity.lexical-form",
+        "tos.entity.occurrence"
+      ]
+    },
+    {
+      "id": "tos.property.semantic-identity-criterion",
+      "applies_to": [
+        "tos.entity.crosscutting-concept",
+        "tos.entity.conception",
+        "tos.entity.thesis",
+        "tos.entity.argument",
+        "tos.entity.inference-step",
+        "tos.entity.objection",
+        "tos.entity.aspect",
+        "tos.entity.philosophical-category",
+        "tos.entity.problem",
+        "tos.entity.problem-family",
+        "tos.entity.question",
+        "tos.entity.position",
+        "tos.entity.distinction",
+        "tos.entity.opposition",
+        "tos.entity.thought-method",
+        "tos.entity.thought-operation",
+        "tos.entity.thought-move",
+        "tos.entity.thought-experiment",
+        "tos.entity.thought-image",
+        "tos.entity.rhetorical-figure",
+        "tos.entity.metaphor",
+        "tos.entity.value",
+        "tos.entity.ideal",
+        "tos.entity.ontological-commitment",
+        "tos.entity.linguistic-system",
+        "tos.entity.script",
+        "tos.entity.transliteration-scheme",
+        "tos.entity.lexeme",
+        "tos.entity.lexical-sense",
+        "tos.entity.lexical-form",
+        "tos.entity.occurrence"
+      ]
+    },
+    {
+      "id": "tos.property.time-calendar",
+      "applies_to": [
+        "tos.entity.temporal-assertion"
+      ]
+    },
+    {
+      "id": "tos.property.time-role",
+      "applies_to": [
+        "tos.entity.temporal-assertion"
+      ]
+    },
+    {
+      "id": "tos.property.time-certainty",
+      "applies_to": [
+        "tos.entity.temporal-assertion"
+      ]
+    },
+    {
+      "id": "tos.property.time-declared-year-numbering",
+      "applies_to": [
+        "tos.entity.temporal-assertion"
+      ]
+    },
+    {
+      "id": "tos.property.time-relative-relation",
+      "applies_to": [
+        "tos.entity.temporal-assertion"
+      ]
+    },
+    {
+      "id": "tos.property.time-sort-start",
+      "applies_to": [
+        "tos.entity.thing"
+      ]
+    },
+    {
+      "id": "tos.property.time-sort-end",
+      "applies_to": [
+        "tos.entity.thing"
+      ]
+    },
+    {
+      "id": "tos.property.title",
+      "applies_to": [
+        "tos.entity.thing"
+      ]
+    },
+    {
+      "id": "tos.property.review-state",
+      "applies_to": [
+        "tos.entity.thing"
+      ]
+    },
+    {
+      "id": "tos.property.type-ancestry",
+      "applies_to": [
+        "tos.entity.thing"
+      ]
+    },
+    {
+      "id": "tos.property.time-start",
+      "applies_to": [
+        "tos.entity.temporal-object"
+      ]
+    },
+    {
+      "id": "tos.property.time-end",
+      "applies_to": [
+        "tos.entity.temporal-object"
+      ]
+    },
+    {
+      "id": "tos.property.claim-version",
+      "applies_to": [
+        "tos.entity.claim"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "tos.relation.document-catalogue-date",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/document-catalogue-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.document-catalogue-origin",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/document-catalogue-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.document-catalogue-destination",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/document-catalogue-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.subject-identity-transition-proposal",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.collection-member-order",
+      "parents": [],
+      "owner_ref": "ToS/contracts/source-member-structure-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.physical-part-composition",
+      "parents": [],
+      "owner_ref": "ToS/contracts/source-member-structure-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.intellectual-part-composition",
+      "parents": [],
+      "owner_ref": "ToS/contracts/source-member-structure-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.research-corpus-membership",
+      "parents": [],
+      "owner_ref": "ToS/contracts/source-member-structure-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.claim-supersedes",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.identity-transition-proposal",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.described-by",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/object-link-claim-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.metadata-at",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/object-link-claim-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.downloadable-at",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/object-link-claim-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.rights-statement-at",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/object-link-claim-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.claim-value-member",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.occurrence-motif-proposal",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-translatability",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-inherited-from",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-borrowed-from",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-formed-from",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-cognate-with",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-sense-developed-from",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-translation-correspondence",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.occurrence-has-form",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.occurrence-of-lexeme",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.occurrence-has-sense",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-form-of",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexical-sense-of",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.lexeme-in-language",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.inscription-language",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.inscription-script",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.dialect-of",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.historical-language-stage-of",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.transliteration-source-script",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.transliteration-notation-script",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.classified-content-form",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.classified-carrier-medium",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.classified-genre",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.classified-communication-medium",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.receives",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.historically-canonizes",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.historically-forgets",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.rediscovers",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.legacy-of",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.reception-carrier",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.composite-reconstructs",
+      "parents": [],
+      "owner_ref": "ToS/contracts/scholarly-composite-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.composite-included-in",
+      "parents": [],
+      "owner_ref": "ToS/contracts/scholarly-composite-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.composite-contains-passage",
+      "parents": [],
+      "owner_ref": "ToS/contracts/scholarly-composite-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.composite-compiled-by",
+      "parents": [
+        "tos.relation.responsibility"
+      ],
+      "owner_ref": "ToS/contracts/scholarly-composite-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.fragment-of",
+      "parents": [],
+      "owner_ref": "ToS/contracts/textual-passage-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.quotation-in",
+      "parents": [],
+      "owner_ref": "ToS/contracts/textual-passage-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.quotation-preserves-fragment",
+      "parents": [],
+      "owner_ref": "ToS/contracts/textual-passage-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.textual-survival",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.biographical-subject",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.phase-contains-episode",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.generation-member",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.generation-in-period",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.situation-in-period",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.contextualized-by-environment",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-in-environment",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.circumstance-during-phase",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.intellectually-associated-with",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.school-in-tradition",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.movement-reworks-tradition",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.formation-articulated-in",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.social-member-of",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.learned-from",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.studied-at",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.taught-at",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.collaborated-with",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.corresponded-with",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.friendship-with",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conflicted-with",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.method-uses-operation",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.move-uses-operation",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.experiment-uses-method",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.experiment-assumes-thesis",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.experiment-tests-thesis",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.experiment-adopts-commitment",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-has-commitment",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.thought-uses-image",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.thought-uses-figure",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.ideal-exemplifies-value",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.position-affirms-value",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.method-guided-by-value",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.image-presents-conception",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.problem-family-member",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.problem-has-question",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.question-proposed-answer",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.position-has-thesis",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.position-addresses-problem",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-has-aspect",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.aspect-of-concept",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.category-organizes-concept",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.distinction-first-term",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.distinction-second-term",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.argument-has-step",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.step-has-premise",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.step-has-conclusion",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-has-thesis",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.argument-for-thesis",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.objection-to-step",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.objection-to-thesis",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.objection-to-argument",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.objection-to-conception",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.objection-developed-by-argument",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.thought-expressed-in",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.thought-attributed-to",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-of",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-attributed-to",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-expressed-in",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-redefines",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-rejects",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-narrows",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-expands",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-secularizes",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-psychologizes",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-politicizes",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.conception-inverts",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.correspondence-sender",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.correspondence-addressee",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.document-carried-by",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.historical-document",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.document-concerns-work",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.historical-date-anchor",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/historical-claim.schema.json"
+    },
+    {
+      "id": "tos.relation.historical-dating",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.historical-participant",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.historical-place",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.historical-work",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.has-text-layer",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.has-annotation",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.anchored-in",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.has-text-unit",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.has-anchor",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.annotation-member",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.assertion-subject",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.assertion-object",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.assertion-evidence",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.assertion-review",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.asserted-by",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json"
+    },
+    {
+      "id": "tos.relation.related",
+      "parents": [],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.unmapped",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.philosophy-conceptual",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md"
+    },
+    {
+      "id": "tos.relation.candidate-authorizing-figure",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.candidate-translator-involvement",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.candidate-material-realization",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.philosophy-historical",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md"
+    },
+    {
+      "id": "tos.relation.philosophy-transmission",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md"
+    },
+    {
+      "id": "tos.relation.philosophy-evidential",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md"
+    },
+    {
+      "id": "tos.relation.philosophy-language",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md"
+    },
+    {
+      "id": "tos.relation.projection-pressure",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/philosophy/atlas/README.md"
+    },
+    {
+      "id": "tos.relation.projection-structure",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/philosophy/graph-workbench/README.md"
+    },
+    {
+      "id": "tos.relation.link-access",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/corpus-record.schema.json"
+    },
+    {
+      "id": "tos.relation.canon-node-relation",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/tos-node-contract.schema.json"
+    },
+    {
+      "id": "tos.relation.canon-registered-predicate",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/canon/registries/predicates.csv"
+    },
+    {
+      "id": "tos.relation.structural",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/source_home.manifest.json"
+    },
+    {
+      "id": "tos.relation.contains-structurally",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/source_home.manifest.json"
+    },
+    {
+      "id": "tos.relation.owns-manifest",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/derived-exports/AGENTS.md"
+    },
+    {
+      "id": "tos.relation.owns-resource",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/derived-exports/AGENTS.md"
+    },
+    {
+      "id": "tos.relation.has-source-planting",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/contracts/philosophy-source-planting.schema.json"
+    },
+    {
+      "id": "tos.relation.grounds-source-backlog-anchor",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/contracts/philosophy-source-planting.schema.json"
+    },
+    {
+      "id": "tos.relation.projects",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.has-record-version",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/contracts/record-version-view.schema.json"
+    },
+    {
+      "id": "tos.relation.promotion-basis-version",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/contracts/sign-description-record.schema.json"
+    },
+    {
+      "id": "tos.relation.projected-by",
+      "parents": [
+        "tos.relation.structural"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.bibliographic-topology",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.has-expression",
+      "parents": [
+        "tos.relation.bibliographic-topology"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.embodied-by",
+      "parents": [
+        "tos.relation.bibliographic-topology"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.exemplified-by",
+      "parents": [
+        "tos.relation.bibliographic-topology"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.has-file",
+      "parents": [
+        "tos.relation.bibliographic-topology"
+      ],
+      "owner_ref": "ToS/contracts/source-item-manifest.schema.json"
+    },
+    {
+      "id": "tos.relation.contains-work",
+      "parents": [
+        "tos.relation.bibliographic-topology"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.is-derivative-of",
+      "parents": [
+        "tos.relation.bibliographic-topology"
+      ],
+      "owner_ref": "ToS/contracts/expression-derivation.schema.json"
+    },
+    {
+      "id": "tos.relation.responsibility",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.authored-by",
+      "parents": [
+        "tos.relation.responsibility"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.translated-by",
+      "parents": [
+        "tos.relation.responsibility"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.edited-by",
+      "parents": [
+        "tos.relation.responsibility"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.afterword-by",
+      "parents": [
+        "tos.relation.responsibility"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.contributed-by",
+      "parents": [
+        "tos.relation.responsibility"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.designed-by",
+      "parents": [
+        "tos.relation.responsibility"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.claim-structure",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+    },
+    {
+      "id": "tos.relation.has-subject",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+    },
+    {
+      "id": "tos.relation.has-object",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+    },
+    {
+      "id": "tos.relation.claim-supported-by",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+    },
+    {
+      "id": "tos.relation.claim-counterevidenced-by",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.made-by",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+    },
+    {
+      "id": "tos.relation.generated-by",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json"
+    },
+    {
+      "id": "tos.relation.has-normalized-place",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/provision-activity.schema.json"
+    },
+    {
+      "id": "tos.relation.has-normalized-agent",
+      "parents": [
+        "tos.relation.claim-structure"
+      ],
+      "owner_ref": "ToS/contracts/provision-activity.schema.json"
+    },
+    {
+      "id": "tos.relation.first-publication-chronology",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/first-publication-chronology.schema.json"
+    },
+    {
+      "id": "tos.relation.provision-activity",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/contracts/provision-activity.schema.json"
+    },
+    {
+      "id": "tos.relation.temporal-assertion",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    },
+    {
+      "id": "tos.relation.cross-layer",
+      "parents": [
+        "tos.relation.related"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.represents",
+      "parents": [
+        "tos.relation.cross-layer"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.grounded-in",
+      "parents": [
+        "tos.relation.cross-layer"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.about",
+      "parents": [
+        "tos.relation.cross-layer"
+      ],
+      "owner_ref": "ToS/doctrine/semantic-interchange/README.md"
+    },
+    {
+      "id": "tos.relation.same-as",
+      "parents": [
+        "tos.relation.cross-layer"
+      ],
+      "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md"
+    }
+  ],
+  "observed": {
+    "entity_count": 160,
+    "property_count": 168,
+    "relation_count": 196,
+    "entity_roots": [
+      "tos.entity.thing"
+    ],
+    "entity_multi_parent_count": 7,
+    "missing_parent_refs": [],
+    "cycles": [],
+    "max_entity_depth_including_root": 6,
+    "max_relation_depth_including_root": 3
+  },
+  "cases": [
+    {
+      "id": "T0-001",
+      "operation": "inventory_split_assemble",
+      "input": "all pinned definitions, shared metadata and envelope",
+      "expected": {
+        "all_ids_preserved": true,
+        "all_field_values_preserved": true,
+        "semantic_edges_preserved": true,
+        "undeclared_additions": 0
+      },
+      "byte_identity": "separate serialization gate; parsed equality does not prove bytes"
+    },
+    {
+      "id": "T0-002",
+      "mutation": "duplicate canonical definition path for the same ID",
+      "expected_status": "Rejected(DuplicateCanonicalDefinition)"
+    },
+    {
+      "id": "T0-003",
+      "mutation": "missing semantic parent ID",
+      "expected_status": "Rejected(UnresolvedParent)"
+    },
+    {
+      "id": "T0-004",
+      "mutation": "A navigation parent B and B navigation parent A",
+      "expected_status": "Rejected(NavigationCycle)"
+    },
+    {
+      "id": "T0-005",
+      "mutation": "Place semantic parent identity removed to fit navigation tree",
+      "expected_status": "Rejected(SemanticEdgeLoss)"
+    },
+    {
+      "id": "T0-006",
+      "mutation": "move canonical path, preserve ID/parents/definition; update manifest",
+      "expected_status": "Accepted",
+      "expected": "same semantic query results, exact ID references unchanged, old path in history"
+    },
+    {
+      "id": "T0-007",
+      "mutation": "add navigation root to relation forest without semantic edges",
+      "expected_status": "Accepted",
+      "expected": "all existing semantic root relationships unchanged"
+    },
+    {
+      "id": "T0-008",
+      "mutation": "edit generated registry independently of canonical definitions",
+      "expected_status": "Rejected(GeneratedOutputDivergence)"
+    },
+    {
+      "id": "T0-009",
+      "mutation": "type has no reachable canonical navigation home",
+      "expected_status": "Rejected(UnplacedDefinition)"
+    },
+    {
+      "id": "T0-010",
+      "mutation": "display labels changed but stable IDs/semantic data unchanged",
+      "expected_status": "Accepted",
+      "expected": "semantic results unchanged except displayed labels"
+    },
+    {
+      "id": "T0-011",
+      "mutation": "new valid instance within an existing type/profile",
+      "expected_status": "Accepted",
+      "expected": "no new generic handler branch or type definition file for the instance"
+    },
+    {
+      "id": "T0-012",
+      "mutation": "assembly interrupted before complete candidate validation",
+      "expected_status": "NotPublished",
+      "expected": "old accepted registry remains selected"
+    }
+  ],
+  "baseline_files": [
+    {
+      "path": "baseline/entity-types.v1.json",
+      "source_url": "https://github.com/8Dionysus/Tree-of-Sophia/blob/4555e5c00e67fc0a064900080b1c4c68b9bcfd3e/ToS/doctrine/semantic-interchange/entity-types.v1.json",
+      "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465"
+    },
+    {
+      "path": "baseline/relation-types.v1.json",
+      "source_url": "https://github.com/8Dionysus/Tree-of-Sophia/blob/4555e5c00e67fc0a064900080b1c4c68b9bcfd3e/ToS/doctrine/semantic-interchange/relation-types.v1.json",
+      "sha256": "3400adff8cf910dff3f6a045c6e56ff286f6081e2b65f76135512560ff6323db"
+    }
+  ]
+}

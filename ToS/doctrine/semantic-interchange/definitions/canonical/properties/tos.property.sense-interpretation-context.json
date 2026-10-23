@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.sense-interpretation-context",
+  "field": "attributes.source_record.semantic_content.interpretation_context",
+  "labels": {
+    "default": "Interpretation context",
+    "ru": "Контекст толкования",
+    "en": "Interpretation context"
+  },
+  "definition": "The declared interpretive context and limits in which this reading is investigated.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-sense"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

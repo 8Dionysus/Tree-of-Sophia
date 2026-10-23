@@ -2418,3 +2418,186 @@ fn current_promotion(
         ("grants_issuance_authority", JsonValue::Bool(false)),
     ]))
 }
+
+use crate::temporal_research_crosswalk::c01_each;
+
+/// C01 opt-in transfer boundary; full existing selector and both validators run.
+pub(crate) fn select_owner_assessment_public_sources_with_return_limit<'a>(
+    public_root: &Path,
+    cut: &'a CorpusCutReader,
+    base: &CommandContext,
+    config: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<OwnerAssessmentPublicSources<'a>> {
+    use crate::temporal_research_crosswalk::{C01Counter, C01Row};
+    let mut a = adapter.reserve(C01Row::Sources)?;
+    a.public_v2(config)?;
+    let selected = match select_owner_assessment_public_sources(
+        public_root,
+        cut,
+        base,
+        config,
+        worker,
+        deadline,
+        cancelled,
+    ) {
+        Ok(value) => value,
+        Err(error) => return a.error(error),
+    };
+    a.visit(64)?;
+    if selected.rows.len() != 1
+        || !selected.native_rows.is_empty()
+        || !selected.native_summaries.is_empty()
+        || !selected.native_contracts.is_empty()
+        || !selected.claim_dependencies.is_empty()
+        || !selected.form_paths.is_empty()
+        || !selected.form_sets.is_empty()
+    {
+        return Err(Error::Unsupported(
+            "C01 one-source no-form/native/dependency profile",
+        ));
+    }
+    {
+        let mut c = C01Counter::new(&mut a)?;
+        selected.c01_count(&mut c)?;
+    }
+    Ok(selected)
+}
+impl OwnerAssessmentPublicSources<'_> {
+    fn c01_count<'v>(
+        &'v self,
+        c: &mut crate::temporal_research_crosswalk::C01Counter<'v, '_, '_>,
+    ) -> Result<()> {
+        let Self {
+            reader,
+            rows,
+            native_rows,
+            native_summaries,
+            native_contracts,
+            claim_dependencies,
+            fixity,
+            identity_snapshots,
+            record_paths,
+            form_paths,
+            form_sets,
+        } = self;
+        c.root::<Result<Self>>()?;
+        let SignSourceReader {
+            root_path,
+            root,
+            identity,
+            uid,
+            cut,
+            observed,
+            native_reads,
+            native_bytes,
+            publication,
+            publication_selected,
+            source_reads,
+            source_bytes,
+            source_carriers,
+            source_dependencies,
+            identity_snapshot,
+            profile_native_inputs,
+        } = reader;
+        c.path(root_path)?;
+        c.visit(7)?;
+        let _ = (
+            root,
+            identity,
+            uid,
+            cut,
+            native_bytes,
+            publication_selected,
+            source_bytes,
+        );
+        c.visit(1)?;
+        c.btree::<String, Vec<u8>>(observed.len())?;
+        c01_each!(c, observed, (path, bytes), {
+            c.visit(1)?;
+            c.string(path)?;
+            c.bytes(bytes)?;
+        });
+        c.visit(1)?;
+        macro_rules! set {
+            ($set:expr) => {{
+                c.visit(1)?;
+                c.visit(1)?;
+                c.btree::<String, ()>($set.len())?;
+                c01_each!(c, $set, name, {
+                    c.visit(1)?;
+                    c.string(name)?;
+                });
+                c.visit(1)?;
+            }};
+        }
+        set!(native_reads);
+        set!(source_reads);
+        set!(source_dependencies);
+        c.visit(64)?;
+        if let Some(raw) = publication {
+            c.bytes(raw)?;
+        }
+        c.strings(source_carriers)?;
+        c.visit(64)?;
+        if let Some(value) = identity_snapshot {
+            c.string(value)?;
+        }
+        c.visit(1)?;
+        c.btree::<(String, &'static str), Digest256>(profile_native_inputs.len())?;
+        c01_each!(c, profile_native_inputs, ((path, category), digest), {
+            c.visit(1)?;
+            c.string(path)?;
+            c.visit(2)?;
+            let _ = (category, digest);
+        });
+        c.visit(1)?;
+        c.json_vec(rows)?;
+        c.json_vec(native_rows)?;
+        c.json_vec(native_summaries)?;
+        c.json_vec(fixity)?;
+        macro_rules! string_map {
+            ($map:expr) => {{
+                c.visit(1)?;
+                c.visit(1)?;
+                c.btree::<String, String>($map.len())?;
+                c01_each!(c, $map, (key, value), {
+                    c.visit(1)?;
+                    c.string(key)?;
+                    c.string(value)?;
+                });
+                c.visit(1)?;
+            }};
+        }
+        string_map!(native_contracts);
+        string_map!(record_paths);
+        string_map!(form_paths);
+        c.visit(1)?;
+        c.btree::<String, Vec<JsonValue>>(claim_dependencies.len())?;
+        c01_each!(c, claim_dependencies, (key, values), {
+            c.visit(1)?;
+            c.string(key)?;
+            c.json_vec(values)?;
+        });
+        c.visit(1)?;
+        macro_rules! json_map {
+            ($map:expr) => {{
+                c.visit(1)?;
+                c.visit(1)?;
+                c.btree::<String, JsonValue>($map.len())?;
+                c01_each!(c, $map, (key, value), {
+                    c.visit(1)?;
+                    c.string(key)?;
+                    c.json(value)?;
+                });
+                c.visit(1)?;
+            }};
+        }
+        json_map!(identity_snapshots);
+        json_map!(form_sets);
+        Ok(())
+    }
+}

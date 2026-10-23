@@ -244,16 +244,8 @@ finally:
         fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
     };
     write_profile(&invocation);
-    let describe = alignment_native_cli(
-        &repository,
-        &owner,
-        &invocation_path,
-        &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
-        deadline,
-    );
-    assert_eq!(describe["result"]["status"], "ready");
-    // Relocation changes protected path bytes. Recompute the declared binding
-    // from those exact bytes and the three current source-owned contracts.
+    // Freeze the independent raw owner/contract INPUT basis before describe.
+    // This is the relocated fixture's declared binding, not native output.
     let contracts = [
         "ToS/contracts/public-native-text-create-owner.schema.json",
         "ToS/contracts/public-native-text-authority.schema.json",
@@ -271,6 +263,14 @@ finally:
         "protected_configuration_bytes": Digest256::of_bytes(&fs::read(&owner).unwrap()).to_prefixed(),
         "contracts": contracts,
     });
+    let describe = alignment_native_cli(
+        &repository,
+        &owner,
+        &invocation_path,
+        &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+        deadline,
+    );
+    assert_eq!(describe["result"]["status"], "ready");
     assert_eq!(
         describe["result"]["configuration"],
         Digest256::of_bytes(&command_binding_bytes(&expected_configuration)).to_prefixed()

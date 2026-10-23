@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.thought-method-method-account",
+  "field": "attributes.source_record.semantic_content.method_account",
+  "labels": {
+    "default": "Method account",
+    "ru": "Описание метода",
+    "en": "Method account"
+  },
+  "definition": "What inquiry this method conducts and how; its description does not prove that it succeeds.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.thought-method"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

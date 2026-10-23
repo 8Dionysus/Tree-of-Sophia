@@ -1,0 +1,31 @@
+{
+  "type_id": "tos.entity.unresolved-endpoint",
+  "parent_type_ids": [
+    "tos.entity.thing"
+  ],
+  "abstract": false,
+  "object_role": "unresolved",
+  "labels": {
+    "default": "Unresolved relation endpoint",
+    "ru": "Неразрешённый конец отношения",
+    "en": "Unresolved relation endpoint"
+  },
+  "definition": "A projection placeholder for an existing source-local endpoint whose full entity representation is unavailable in the selected carrier.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/derived-exports/AGENTS.md",
+  "source_mappings": [
+    {
+      "source_graph": "canon",
+      "source_kind_id": "relation-endpoint"
+    },
+    {
+      "source_graph": "candidate-intake",
+      "source_kind_id": "relation-endpoint"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "candidate-endpoint"
+    }
+  ],
+  "supersedes_type_id": null
+}

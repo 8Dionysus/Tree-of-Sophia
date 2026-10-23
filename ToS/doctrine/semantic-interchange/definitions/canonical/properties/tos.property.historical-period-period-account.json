@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-period-period-account",
+  "field": "attributes.source_record.semantic_content.period_account",
+  "labels": {
+    "default": "Period account",
+    "ru": "Описание периода",
+    "en": "Period account"
+  },
+  "definition": "The historical developments or configurations by which this periodization is described.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-period"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

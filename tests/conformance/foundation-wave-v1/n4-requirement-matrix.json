@@ -1,0 +1,100 @@
+{
+  "kind": "AdditiveN4RequirementMatrix",
+  "state": "PreparedNotExecuted",
+  "source": "Published N4 related alternatives and Possible; exact public-safe source in n4-specification.json",
+  "retained_family": "One parameterized shared-versus-independent-versus-unknown family after accepted seam",
+  "shared_math": {
+    "parameter_values": [
+      0,
+      10
+    ],
+    "left": "k",
+    "right": "k+1",
+    "allowed_pairs": [
+      [
+        0,
+        1
+      ],
+      [
+        10,
+        11
+      ]
+    ],
+    "exact_relations": [
+      "before"
+    ]
+  },
+  "independent_math": {
+    "left_candidates": [
+      0,
+      10
+    ],
+    "right_candidates": [
+      1,
+      11
+    ],
+    "allowed_pairs": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        11
+      ],
+      [
+        10,
+        1
+      ],
+      [
+        10,
+        11
+      ]
+    ],
+    "exact_relations": [
+      "after",
+      "before"
+    ]
+  },
+  "cases": [
+    {
+      "dependence": "shared",
+      "minimum_v1": "Unsupported or Unresolved with dependence metadata preserved; do not report an exact Cartesian possibleAfter."
+    },
+    {
+      "dependence": "independent",
+      "minimum_v1": "Exact Possible before/after with all four pair witnesses for these marginals; no longer permitted to call current required Cartesian support Unsupported."
+    },
+    {
+      "dependence": "unknown",
+      "minimum_v1": "Unsupported or Unresolved with metadata preserved; no assumed independence."
+    }
+  ],
+  "wire_fields_finalized": true,
+  "original60_unchanged": true,
+  "parameterized_metamorphic_variants": [
+    "Original opaque IDs",
+    "Renamed opaque IDs including case-distinct and Unicode identifiers",
+    "Candidate/order permutation with dependency meaning unchanged"
+  ],
+  "possible_semantics": "Each exact Possible relation needs an allowed joint-state witness; a conservative upper bound must be explicitly distinguished.",
+  "runtime_binding_dependency": "T1 separate finite-two-set implementation commit after guard298e3bca5; then single resource slot",
+  "runtime_status": "PreparedNotExecuted",
+  "wire_discriminant": "input.alternative_dependence",
+  "wire_discriminant_values": [
+    "Independent",
+    "Correlated",
+    "Unknown"
+  ],
+  "absence_semantics": "Unknown unless an explicitly admitted named independent profile declares independence.",
+  "conflicting_metadata_keys": [
+    "correlation_ref",
+    "world_constraints",
+    "dependency_refs",
+    "joint_worlds"
+  ],
+  "two_set_independent_v1": "Required current-v1 finite Cartesian enumeration on explicit compatible ordinal/calendar rank profile. checked_mul pairing bound before iteration; empty Unresolved; singleton relation union Entailed, multiple Possible.",
+  "supported_scalar_control": "Explicit Independent, leftpositions[0,10], rightposition11 on explicit ordinal-rank profile -> Entailed before.",
+  "budget_zero_precedence": true,
+  "independent_pair_evidence": "pair_relations rows contain original integer left/right candidates and independently checked relations; every allowed pair present exactly once."
+}

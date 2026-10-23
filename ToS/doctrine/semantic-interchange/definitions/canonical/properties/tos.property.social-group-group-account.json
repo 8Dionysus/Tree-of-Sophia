@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.social-group-group-account",
+  "field": "attributes.source_record.semantic_content.group_account",
+  "labels": {
+    "default": "Group account",
+    "ru": "Описание группы",
+    "en": "Group account"
+  },
+  "definition": "What holds this collective together; mere similarity of members is insufficient.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.social-group"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

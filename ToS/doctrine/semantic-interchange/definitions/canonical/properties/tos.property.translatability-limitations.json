@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.translatability-limitations",
+  "field": "attributes.value.limitations",
+  "labels": {
+    "default": "Translatability limitations",
+    "ru": "Ограничения оценки переводимости",
+    "en": "Translatability limitations"
+  },
+  "definition": "Reported losses, unexamined aspects and open alternatives of the scoped judgment.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-translatability"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

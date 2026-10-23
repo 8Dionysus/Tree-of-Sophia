@@ -338,6 +338,39 @@ impl OperationBudget {
         })
     }
 
+    /// Lower this same operation's actual remainder; never replenish consumed work.
+    pub(crate) fn lower_remaining(&mut self, input: usize, work: usize) -> SourceCommandResult<()> {
+        if input == 0 || work == 0 || input > self.bytes_remaining || work > self.work_remaining {
+            return Err(SourceCommandError::Invalid(
+                "assessment lower input/work budget",
+            ));
+        }
+        self.bytes_remaining = input;
+        self.work_remaining = work;
+        Ok(())
+    }
+
+    /// Select lower per-session resources, without changing the operation deadline.
+    /// This setter alone does not account aggregate CPU across multiple sessions.
+    pub(crate) fn lower_worker_resources(
+        &mut self,
+        cpu_seconds: u64,
+        address_bytes: u64,
+    ) -> SourceCommandResult<()> {
+        if cpu_seconds == 0
+            || address_bytes == 0
+            || cpu_seconds > self.worker_cpu_seconds
+            || address_bytes > self.worker_address_space_bytes
+        {
+            return Err(SourceCommandError::Invalid(
+                "assessment lower worker resources",
+            ));
+        }
+        self.worker_cpu_seconds = cpu_seconds;
+        self.worker_address_space_bytes = address_bytes;
+        Ok(())
+    }
+
     pub(crate) fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
         self.bytes_remaining =
             self.bytes_remaining
@@ -5349,3 +5382,375 @@ fn materialization_stop(
 #[cfg(test)]
 #[path = "../tests/fixtures/capacity-d-v1/assessment_operation_tests.rs"]
 mod capacity_d_r4;
+
+use crate::temporal_research_crosswalk::c01_each;
+
+/// Borrow-only resolver inputs: no resolved holder crosses the C01 boundary.
+pub(crate) struct AssessmentBorrowedPlanInputs<'a> {
+    pub(crate) config: &'a JsonValue,
+    pub(crate) configuration_raw: &'a [u8],
+    pub(crate) request: &'a ParsedRequest,
+    pub(crate) version: OwnerVersion,
+    pub(crate) public_rows: &'a [JsonValue],
+    pub(crate) private_rows: &'a [AssessmentRecordInput],
+    pub(crate) public_native_rows: &'a [JsonValue],
+    pub(crate) private_native_rows: &'a [AssessmentRecordInput],
+    pub(crate) public_fixity: &'a [JsonValue],
+    pub(crate) public_identity_snapshots: &'a BTreeMap<String, JsonValue>,
+    pub(crate) public_claim_dependencies: &'a BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) private_source_snapshot: &'a str,
+    pub(crate) private_native_snapshots: &'a [String],
+    pub(crate) private_required_source_refs: &'a BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) private_required_languages: &'a BTreeMap<String, Vec<String>>,
+    pub(crate) native_summaries: &'a [JsonValue],
+    pub(crate) layers: Option<&'a crate::source_private_assessment_layers::PrivateAssessmentLayers>,
+    pub(crate) layer_preflight:
+        Option<&'a crate::source_private_assessment_layers::OwnerLocalLayerPreflight>,
+}
+
+pub(crate) fn selected_c01_command_context_with_return_limit(
+    cut: &CorpusCutReader,
+    configuration_raw: &[u8],
+    request_raw: &[u8],
+    operation: &mut OperationBudget,
+    adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CommandContext> {
+    use crate::temporal_research_crosswalk::{C01Counter, C01Row};
+    let mut a = adapter.reserve(C01Row::Context)?;
+    operation.c01_interface_profile(&mut a)?;
+    // The original builder never inspects context_configuration (let _ = ...).
+    // Keep actual config/request BYTES and full23-file selection unchanged;
+    // do not import a caller-owned unused DOM before its accounting boundary.
+    let value = match selected_command_context(
+        cut,
+        configuration_raw,
+        request_raw,
+        JsonValue::Null,
+        operation,
+        deadline,
+        cancelled,
+    ) {
+        Ok(value) => value,
+        Err(error) => return a.error(error),
+    };
+    {
+        let mut c = C01Counter::new(&mut a)?;
+        let CommandContext {
+            base_revision,
+            configuration_raw,
+            request_raw,
+            recorded_at,
+            effective_uid,
+            files,
+        } = &value;
+        c.root::<SourceCommandResult<CommandContext>>()?;
+        c.visit(2)?;
+        let _ = (base_revision, effective_uid);
+        c.bytes(configuration_raw)?;
+        c.bytes(request_raw)?;
+        c.string(recorded_at)?;
+        c.visit(1)?;
+        c.slots::<SourceFile>(files.capacity())?;
+        c01_each!(c, files, file, {
+            c.visit(1)?;
+            let SourceFile { path, raw } = file;
+            c.relative_path(path)?;
+            c.bytes(raw)?;
+        });
+        c.visit(1)?;
+    }
+    Ok(value)
+}
+
+pub(crate) fn resolve_and_plan_c01_with_return_limit<'a>(
+    inputs: AssessmentBorrowedPlanInputs<'a>,
+    operation: &mut OperationBudget,
+    adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentEvaluationPlan<'a>> {
+    use crate::temporal_research_crosswalk::{C01Counter, C01Row};
+    let mut a = adapter.reserve(C01Row::Plan)?;
+    operation.c01_interface_profile(&mut a)?;
+    let AssessmentBorrowedPlanInputs {
+        config,
+        configuration_raw,
+        request,
+        version,
+        public_rows,
+        private_rows,
+        public_native_rows,
+        private_native_rows,
+        public_fixity,
+        public_identity_snapshots,
+        public_claim_dependencies,
+        private_source_snapshot,
+        private_native_snapshots,
+        private_required_source_refs,
+        private_required_languages,
+        native_summaries,
+        layers,
+        layer_preflight,
+    } = inputs;
+    a.public_v2(config)?;
+    a.visit(64)?;
+    if version != OwnerVersion::V2
+        || request.operation != "inspect"
+        || public_rows.len() != 1
+        || !private_rows.is_empty()
+        || !public_native_rows.is_empty()
+        || !private_native_rows.is_empty()
+        || !public_claim_dependencies.is_empty()
+        || !private_native_snapshots.is_empty()
+        || !private_required_source_refs.is_empty()
+        || !private_required_languages.is_empty()
+        || !native_summaries.is_empty()
+        || layers.is_some()
+        || layer_preflight.is_some()
+    {
+        return Err(SourceCommandError::Unsupported(
+            "C01 V2 inspect selected-source profile",
+        ));
+    }
+    a.six_envelopes(config)?;
+    let resolved = match AssessmentResolvedSources::from_selected_rows(
+        public_rows,
+        private_rows,
+        public_native_rows,
+        private_native_rows,
+        operation,
+    ) {
+        Ok(value) => value,
+        Err(error) => return a.error(error),
+    };
+    let plan = match plan_assessment_evaluation(
+        AssessmentEvaluationInputs {
+            config,
+            configuration_raw,
+            request,
+            version,
+            resolved,
+            public_fixity,
+            public_identity_snapshots,
+            public_claim_dependencies,
+            private_source_snapshot,
+            private_native_snapshots,
+            private_required_source_refs,
+            private_required_languages,
+            native_summaries,
+            layers,
+            layer_preflight,
+        },
+        operation,
+        deadline,
+        cancelled,
+    ) {
+        Ok(value) => value,
+        Err(error) => return a.error(error),
+    };
+    {
+        let mut c = C01Counter::new(&mut a)?;
+        plan.c01_count(&mut c)?;
+    }
+    Ok(plan)
+}
+impl AssessmentEvaluationPlan<'_> {
+    fn c01_count<'v>(
+        &'v self,
+        c: &mut crate::temporal_research_crosswalk::C01Counter<'v, '_, '_>,
+    ) -> SourceCommandResult<()> {
+        let Self {
+            config,
+            request,
+            version,
+            resolved,
+            all_by_id,
+            base_snapshot,
+            current,
+            scope,
+            subject_required_source_refs,
+            required_sources,
+            source_route,
+            subject_quality_requirements,
+            parent_context,
+            parent_quality_requirements,
+            lock_subjects,
+            public_claim_dependencies,
+            private_required_source_refs,
+            layers,
+        } = self;
+        c.root::<SourceCommandResult<Self>>()?;
+        c.visit(6)?;
+        let _ = (
+            config,
+            request,
+            version,
+            public_claim_dependencies,
+            private_required_source_refs,
+            layers,
+        );
+        c.visit(64)?;
+        if !matches!(source_route, AssessmentSourceRoute::SelectedSource)
+            || !subject_quality_requirements.is_empty()
+            || parent_context.is_some()
+            || !parent_quality_requirements.is_empty()
+            || layers.is_some()
+        {
+            return Err(SourceCommandError::Unsupported(
+                "C01 no-quality/parent/layer plan",
+            ));
+        }
+        let AssessmentResolvedSources {
+            source_records,
+            source_index,
+            native_records,
+            native_index,
+            resolved_rows,
+            resolved_index,
+        } = resolved;
+        c.json_vec(source_records)?;
+        c.json_vec(native_records)?;
+        c.json_vec(resolved_rows)?;
+        macro_rules! index {
+            ($map:expr) => {{
+                c.visit(1)?;
+                c.visit(1)?;
+                c.btree::<String, usize>($map.len())?;
+                c01_each!(c, $map, (key, value), {
+                    c.visit(1)?;
+                    c.string(key)?;
+                    c.visit(1)?;
+                    let _ = value;
+                });
+                c.visit(1)?;
+            }};
+        }
+        index!(source_index);
+        index!(native_index);
+        index!(resolved_index);
+        c.visit(1)?;
+        c.btree::<String, JsonValue>(all_by_id.len())?;
+        c01_each!(c, all_by_id, (key, value), {
+            c.visit(1)?;
+            c.string(key)?;
+            c.json(value)?;
+        });
+        c.visit(1)?;
+        c.string(base_snapshot)?;
+        c.json(current)?;
+        c.json(scope)?;
+        c.json_vec(subject_required_source_refs)?;
+        c.json_vec(required_sources)?;
+        c.visit(1)?;
+        c.slots::<QualityRequirement>(subject_quality_requirements.capacity())?;
+        c.visit(1)?;
+        c.slots::<QualityRequirement>(parent_quality_requirements.capacity())?;
+        c.strings(lock_subjects)
+    }
+}
+
+pub(crate) fn evaluate_assessment_histories_c01_with_return_limit<W, F>(
+    plan: &AssessmentEvaluationPlan<'_>,
+    histories: &BTreeMap<String, AssessmentHistory>,
+    observed_now: &str,
+    source_revision: Option<SourceRevision>,
+    source_identity: Digest256,
+    worker: &mut W,
+    operation: &mut OperationBudget,
+    adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
+    cancelled: &AtomicBool,
+    evaluate: &mut F,
+) -> SourceCommandResult<AssessmentEvaluationResult>
+where
+    W: CutSchemaExecutor,
+    F: FnMut(
+        &AssessmentReadInput,
+        &mut W,
+        AssessmentLimits,
+        &AtomicBool,
+    ) -> SourceCommandResult<AssessmentMechanicsReport>,
+{
+    use crate::temporal_research_crosswalk::{C01Counter, C01Row};
+    let mut a = adapter.reserve(C01Row::Result)?;
+    operation.c01_interface_profile(&mut a)?;
+    a.visit(64)?;
+    if plan.version != OwnerVersion::V2
+        || plan.request.operation != "inspect"
+        || histories.len() != 1
+        || plan.layers.is_some()
+        || plan.parent_context.is_some()
+        || !plan.subject_quality_requirements.is_empty()
+        || !plan.parent_quality_requirements.is_empty()
+        || !matches!(plan.source_route, AssessmentSourceRoute::SelectedSource)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "C01 closed inspect evaluation",
+        ));
+    }
+    let result = match evaluate_assessment_histories(
+        plan,
+        histories,
+        observed_now,
+        source_revision,
+        source_identity,
+        worker,
+        operation,
+        cancelled,
+        evaluate,
+    ) {
+        Ok(value) => value,
+        Err(error) => return a.error(error),
+    };
+    {
+        let mut c = C01Counter::new(&mut a)?;
+        let AssessmentEvaluationResult {
+            current_snapshot,
+            quality_bases,
+            admission_bases,
+            current_report,
+            append_report,
+            parent_assessment,
+            source_read_ready,
+        } = &result;
+        c.root::<SourceCommandResult<AssessmentEvaluationResult>>()?;
+        c.visit(64)?;
+        if !quality_bases.is_empty()
+            || !admission_bases.is_empty()
+            || append_report.is_some()
+            || parent_assessment.is_some()
+        {
+            return Err(SourceCommandError::Unsupported("C01 closed inspect result"));
+        }
+        c.string(current_snapshot)?;
+        c.visit(1)?;
+        c.slots::<(QualityRequirement, JsonValue)>(quality_bases.capacity())?;
+        c.visit(1)?;
+        c.slots::<(
+            QualityRequirement,
+            AssessmentRecordInput,
+            bool,
+            Vec<JsonValue>,
+        )>(admission_bases.capacity())?;
+        c.report(current_report)?;
+        c.visit(3)?;
+        let _ = (append_report, parent_assessment, source_read_ready);
+    }
+    Ok(result)
+}
+
+impl OperationBudget {
+    fn c01_interface_profile(
+        &self,
+        a: &mut crate::temporal_research_crosswalk::C01Admission<'_>,
+    ) -> SourceCommandResult<()> {
+        a.visit(64)?;
+        if self.bytes_remaining > 33554432 || self.work_remaining > 4194304 {
+            return Err(SourceCommandError::Invalid(
+                "C01 delegated lower input/work profile",
+            ));
+        }
+        Ok(())
+    }
+}

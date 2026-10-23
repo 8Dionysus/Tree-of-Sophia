@@ -1,0 +1,65 @@
+{
+  "relation_type_id": "tos.relation.document-concerns-work",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "is identified as concerning work",
+    "ru": "соотнесено с произведением",
+    "en": "is identified as concerning work"
+  },
+  "inverse_labels": {
+    "default": "is identified as subject of document",
+    "ru": "указано как предмет документа",
+    "en": "is identified as subject of document"
+  },
+  "definition": "Attributes a document's subject matter to a Work, preserving whether the identification comes from explicit wording or scholarly interpretation.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "domain_type_ids": [
+    "tos.entity.document"
+  ],
+  "range_type_ids": [
+    "tos.entity.work"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "document_concerns_work",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report",
+      "bibliographic_assertion"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_source_relation_claim_v1",
+        "schema_ref": "ToS/contracts/source-relation-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/source-claim-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

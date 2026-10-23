@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.biographical-episode-biographical-relevance",
+  "field": "attributes.source_record.semantic_content.biographical_relevance",
+  "labels": {
+    "default": "Biographical relevance",
+    "ru": "Биографическая значимость",
+    "en": "Biographical relevance"
+  },
+  "definition": "Why the episode is documented as relevant to a life, with limits; significance is not causal proof.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.biographical-episode"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

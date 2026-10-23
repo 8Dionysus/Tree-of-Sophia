@@ -1,0 +1,46 @@
+{
+  "relation_type_id": "tos.relation.grounded-in",
+  "parent_relation_type_ids": [
+    "tos.relation.cross-layer"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "grounded in",
+    "ru": "обосновано через",
+    "en": "grounded in"
+  },
+  "inverse_labels": {
+    "default": "grounds",
+    "ru": "обосновывает",
+    "en": "grounds"
+  },
+  "definition": "Connects a semantic object or claim to the exact source identity or evidence that grounds it.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "derived-projection",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "semantic-interchange",
+      "source_predicate_id": "grounded_in",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

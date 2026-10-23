@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.time-certainty",
+  "field": "semantics.time.certainty",
+  "labels": {
+    "default": "Dating precision posture",
+    "ru": "Характер точности датировки",
+    "en": "Dating precision posture"
+  },
+  "definition": "Exact, approximate, uncertain or unknown date value. Exactness at the declared precision is not evidence that the enclosing Claim is true or accepted.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.temporal-assertion"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

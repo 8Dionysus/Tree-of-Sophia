@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.problem-inquiry-stakes",
+  "field": "attributes.source_record.semantic_content.inquiry_stakes",
+  "labels": {
+    "default": "Stakes of inquiry",
+    "ru": "Значимость исследования",
+    "en": "Stakes of inquiry"
+  },
+  "definition": "Why resolving or reframing this difficulty matters within the stated inquiry, not a compulsory project value.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.problem"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

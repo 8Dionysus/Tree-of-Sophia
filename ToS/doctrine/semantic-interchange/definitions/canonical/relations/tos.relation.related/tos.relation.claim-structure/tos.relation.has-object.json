@@ -1,0 +1,46 @@
+{
+  "relation_type_id": "tos.relation.has-object",
+  "parent_relation_type_ids": [
+    "tos.relation.claim-structure"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has object",
+    "ru": "имеет объект",
+    "en": "has object"
+  },
+  "inverse_labels": {
+    "default": "is object of claim",
+    "ru": "является объектом утверждения",
+    "en": "is object of claim"
+  },
+  "definition": "Connects a reified Claim to its identity or literal object representation.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+  "domain_type_ids": [
+    "tos.entity.claim"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": 1,
+    "per_subject_max": 1,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": false,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "has_object",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

@@ -160,68 +160,917 @@ fn schema_sources(repository: &Path) -> BTreeMap<String, Vec<u8>> {
     }
     authored
 }
-fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
+// CurrentDeclared is test-owned source evidence, never a production plan/output.
+// One logical construction counter is shared by intake, rows and pure variants.
+// Fixed, opt-in reference diagnostics. No input values/paths or backtrace are
+// captured. Buffers, stderr handle and all report/control holders are prepaid
+// before the first variant computation. This is not a new resource allowance.
+#[derive(Clone, Copy)]
+struct ReferenceRefusal {
+    stage: &'static str,
+    item: usize,
+    kind: &'static str,
+    location: &'static std::panic::Location<'static>,
+    request_bytes: Option<usize>,
+    request_visits: Option<usize>,
+    stage_bytes: usize,
+    stage_visits: usize,
+    left: usize,
+    visits_left: usize,
+}
+struct ReferenceDiagnostic {
+    stage: &'static str,
+    item: usize,
+    stage_bytes: usize,
+    stage_visits: usize,
+    prepaid_bytes: usize,
+    prepaid_visits: usize,
+    first: Option<ReferenceRefusal>,
+    reported: bool,
+    buffer: [u8; 640],
+    digits: [u8; 20],
+    used: usize,
+    output: std::io::Stderr,
+}
+impl ReferenceDiagnostic {
+    fn push(&mut self, byte: u8) {
+        if let Some(slot) = self.buffer.get_mut(self.used) {
+            *slot = byte;
+            self.used += 1;
+        }
+    }
+    fn text(&mut self, text: &[u8]) {
+        for &byte in text {
+            self.push(byte);
+        }
+    }
+    fn number(&mut self, mut value: usize) {
+        let mut start = self.digits.len();
+        loop {
+            start -= 1;
+            self.digits[start] = b'0' + (value % 10) as u8;
+            value /= 10;
+            if value == 0 {
+                break;
+            }
+        }
+        for i in start..self.digits.len() {
+            self.push(self.digits[i]);
+        }
+    }
+    fn optional_number(&mut self, value: Option<usize>) {
+        if let Some(value) = value {
+            self.number(value);
+        } else {
+            self.text(b"unknown");
+        }
+    }
+    fn report(&mut self, error: &'static str, left: usize, visits_left: usize) {
+        use std::io::Write;
+        if self.reported {
+            return;
+        }
+        self.reported = true;
+        self.text(b"reference-first-refusal error=");
+        self.text(error.as_bytes());
+        if let Some(first) = self.first {
+            self.text(b" stage=");
+            self.text(first.stage.as_bytes());
+            self.text(b" item=");
+            self.number(first.item);
+            self.text(b" kind=");
+            self.text(first.kind.as_bytes());
+            self.text(b" source=");
+            // Source basename only, never host/runtime/input locators.
+            self.text(
+                first
+                    .location
+                    .file()
+                    .as_bytes()
+                    .rsplit(|b| *b == b'/')
+                    .next()
+                    .unwrap_or(b"unknown"),
+            );
+            self.push(b':');
+            self.number(first.location.line() as usize);
+            self.push(b':');
+            self.number(first.location.column() as usize);
+            self.text(b" request_bytes=");
+            self.optional_number(first.request_bytes);
+            self.text(b" request_visits=");
+            self.optional_number(first.request_visits);
+            self.text(b" stage_bytes=");
+            self.number(first.stage_bytes);
+            self.text(b" stage_visits=");
+            self.number(first.stage_visits);
+            self.text(b" pre_bytes=");
+            self.number(first.left);
+            self.text(b" pre_visits=");
+            self.number(first.visits_left);
+        } else {
+            // A local/state/depth guard can refuse without reaching the two
+            // counters. Do not invent a debit or a deeper source location.
+            self.text(b" kind=unlatched stage=");
+            self.text(self.stage.as_bytes());
+            self.text(b" item=");
+            self.number(self.item);
+            self.text(b" request_bytes=unknown request_visits=unknown");
+        }
+        self.text(b" final_bytes=");
+        self.number(left);
+        self.text(b" final_visits=");
+        self.number(visits_left);
+        self.text(b" diagnostic_bytes=");
+        self.number(self.prepaid_bytes);
+        self.text(b" diagnostic_visits=");
+        self.number(self.prepaid_visits);
+        self.push(b'\n');
+        // Exactly one best-effort write. No formatting/heap buffer/retry/flush;
+        // partial output or reporting failure NEVER changes the original Err.
+        let _ = self.output.write(&self.buffer[..self.used]);
+    }
+}
+// Test-owned cumulative scenario work; not RAM, a product quota or a new clock.
+// The original source_inputs bootstrap remains 32 MiB / 1 M visits.
+const COMPOSITION_REFERENCE_SCENARIO_V2_BYTES: usize = 2_147_483_648;
+const COMPOSITION_REFERENCE_SCENARIO_V2_VISITS: usize = 67_108_864;
+struct CompositionPhase {
+    attempted: bool,
+}
+// Compile-time inventory: caller owner/initializer, helper arguments, checked
+// subtraction/move/return and cutoff holders. No runtime fee calculator.
+const COMPOSITION_PHASE_SETUP_BYTES: usize = 2 * std::mem::size_of::<CompositionPhase>()
+    + 2 * std::mem::size_of::<&mut CompositionPhase>()
+    + 4 * std::mem::size_of::<&mut CurrentReference>()
+    + 3 * std::mem::size_of::<&AtomicBool>()
+    + 24 * std::mem::size_of::<usize>()
+    + 4 * std::mem::size_of::<Option<usize>>()
+    + 12 * std::mem::size_of::<bool>()
+    + 8 * std::mem::size_of::<Result<(), &'static str>>()
+    + 8 * std::mem::size_of::<&'static str>()
+    + 4 * std::mem::size_of::<&usize>()
+    + 2 * std::mem::size_of::<Ordering>()
+    + 2 * std::mem::size_of::<Instant>()
+    + 2 * std::mem::size_of::<&Instant>();
+fn activate_composition_reference_scenario_v2(
+    work: &mut CurrentReference,
+    cancelled: &AtomicBool,
+    phase: &mut CompositionPhase,
+) -> Result<(), &'static str> {
+    work.visit(64)?; // BEFORE phase read and all fixed activation work
+    if phase.attempted {
+        return Err("composition reference phase already attempted");
+    }
+    phase.attempted = true; // no retry/new owner on any later error
+    if cancelled.load(Ordering::Relaxed) {
+        return Err("composition reference cancelled");
+    }
+    if COMPOSITION_REFERENCE_SCENARIO_V2_BYTES < 32 * 1024 * 1024
+        || COMPOSITION_REFERENCE_SCENARIO_V2_VISITS < 1_000_000
+    {
+        return Err("composition reference profile below bootstrap");
+    }
+    // Both snapshots include the setup AND activation admissions above.
+    let old_b = work.left;
+    let old_v = work.visits_left;
+    let Some(spent_b) = (32usize * 1024 * 1024).checked_sub(old_b) else {
+        return Err("composition reference bootstrap bytes");
+    };
+    let Some(spent_v) = 1_000_000usize.checked_sub(old_v) else {
+        return Err("composition reference bootstrap visits");
+    };
+    let Some(next_b) = COMPOSITION_REFERENCE_SCENARIO_V2_BYTES.checked_sub(spent_b) else {
+        return Err("composition reference scenario bytes");
+    };
+    let Some(next_v) = COMPOSITION_REFERENCE_SCENARIO_V2_VISITS.checked_sub(spent_v) else {
+        return Err("composition reference scenario visits");
+    };
+    if cancelled.load(Ordering::Relaxed) {
+        return Err("composition reference cancelled");
+    }
+    work.charge(0)?; // original absolute deadline, before the callback-free commit
+    // TOTAL - next == actual spent. No fallible operation between these stores.
+    work.left = next_b;
+    work.visits_left = next_v;
+    Ok(())
+}
+
+struct CurrentReference {
+    commit: String,
+    left: usize,
+    visits_left: usize,
+    deadline: Instant,
+    diagnostic: Option<Box<ReferenceDiagnostic>>,
+}
+impl CurrentReference {
+    fn begin_variant_diagnostic(&mut self) -> Result<(), &'static str> {
+        use std::mem::size_of;
+        if self.diagnostic.is_some() {
+            return Err("reference diagnostic already active");
+        }
+        // Checked additive terminal-context fee math is paid before evaluation.
+        self.visit(128)?;
+        let holders = size_of::<ReferenceDiagnostic>()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(size_of::<[u8; 640]>()))
+            .and_then(|n| n.checked_add(size_of::<[u8; 20]>()))
+            // live Box pointee plus construction/move and array initializer
+            // temporaries; first-record
+            // copy/report transition and arithmetic/borrow/stdio control state.
+            .and_then(|n| n.checked_add(size_of::<ReferenceRefusal>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(8)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(16)?))
+            .and_then(|n| n.checked_add(size_of::<std::io::Stderr>()))
+            .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(6)?))
+            .and_then(|n| n.checked_add(size_of::<std::io::Result<usize>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<Result<(), &'static str>>().checked_mul(4)?))
+            // Flat terminal-note receivers, forwarding, string/slice Eq and
+            // checked fee/control holders; no new persistent diagnostic state.
+            .and_then(|n| n.checked_add(size_of::<&mut CurrentReference>().checked_mul(2)?))
+            .and_then(|n| {
+                n.checked_add(size_of::<Option<&mut Box<ReferenceDiagnostic>>>().checked_mul(2)?)
+            })
+            .and_then(|n| n.checked_add(size_of::<&mut Box<ReferenceDiagnostic>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceDiagnostic>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&Option<ReferenceRefusal>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&mut ReferenceLimits<'_>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&'static str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&'static str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<Result<(), &'static str>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(216)) // four complete 27+27 byte stage comparisons
+            // Final-only detail/offset classifier, additive to the old notes.
+            .and_then(|n| n.checked_add(size_of::<&String>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&str>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<&&[u8]>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<Option<usize>>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<usize>().checked_mul(6)?))
+            .and_then(|n| n.checked_add(size_of::<bool>().checked_mul(6)?))
+            .and_then(|n| n.checked_add(size_of::<&'static str>().checked_mul(2)?))
+            .and_then(|n| n.checked_add(size_of::<&usize>().checked_mul(4)?))
+            .and_then(|n| n.checked_add(120)) // detail Eq66 + fifth stage Eq54
+            .and_then(|n| n.checked_add(640)) // distinct bounded report-byte work
+            .ok_or("reference diagnostic state overflow")?;
+        self.charge(holders)?;
+        // <=64 fixed stage stores, <=13 usize spellings*20 digits, <=640
+        // report byte stores and one write. No new algorithm traversal/counter.
+        let report_visits = 64 + 13 * 20 + 640 + 1 + 48 + 12 + 24;
+        self.visit(report_visits)?;
+        self.diagnostic = Some(Box::new(ReferenceDiagnostic {
+            stage: "variants-entry",
+            item: 0,
+            stage_bytes: self.left,
+            stage_visits: self.visits_left,
+            prepaid_bytes: holders,
+            prepaid_visits: report_visits + 128,
+            first: None,
+            reported: false,
+            buffer: [0; 640],
+            digits: [0; 20],
+            used: 0,
+            output: std::io::stderr(),
+        }));
+        Ok(())
+    }
+    // Err-only return context. Primitive first records and old entry snapshots
+    // remain authoritative; deepest annotation wins without another report.
+    fn note_unlatched_final_phase(&mut self, phase: &'static str) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            if diagnostic.first.is_none() && diagnostic.stage == "parse-final-variant-members" {
+                diagnostic.stage = phase;
+            }
+        }
+    }
+    fn diagnostic_stage(&mut self, stage: &'static str, item: usize) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            diagnostic.stage = stage;
+            diagnostic.item = item;
+            diagnostic.stage_bytes = self.left;
+            diagnostic.stage_visits = self.visits_left;
+        }
+    }
+    // Called only after the COMPLETE expected-negative family returned Ok.
+    // A legitimate depth guard need not reach either counter, but the existing
+    // Budget assertion can also consume a counter refusal. Such a candidate is
+    // not the later propagated error. Clear observation only, never resources.
+    fn diagnostic_expected_controls_consumed(&mut self) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            diagnostic.first = None;
+            diagnostic.stage = "post-expected-controls";
+            diagnostic.item = 0;
+            diagnostic.stage_bytes = self.left;
+            diagnostic.stage_visits = self.visits_left;
+            // reported/used/buffers and every execution counter stay unchanged.
+        }
+    }
+    #[track_caller]
+    fn note_refusal(&mut self, kind: &'static str, bytes: Option<usize>, visits: Option<usize>) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            if diagnostic.first.is_none() {
+                diagnostic.first = Some(ReferenceRefusal {
+                    stage: diagnostic.stage,
+                    item: diagnostic.item,
+                    kind,
+                    location: std::panic::Location::caller(),
+                    request_bytes: bytes,
+                    request_visits: visits,
+                    stage_bytes: diagnostic.stage_bytes,
+                    stage_visits: diagnostic.stage_visits,
+                    left: self.left,
+                    visits_left: self.visits_left,
+                });
+            }
+        }
+    }
+    fn report_refusal(&mut self, error: &'static str) {
+        if let Some(diagnostic) = self.diagnostic.as_mut() {
+            diagnostic.report(error, self.left, self.visits_left);
+        }
+    }
+    #[track_caller]
+    fn visit(&mut self, count: usize) -> Result<(), &'static str> {
+        let Some(next) = self.visits_left.checked_sub(count) else {
+            self.note_refusal("visit-limit", None, Some(count));
+            return Err("reference visit limit");
+        };
+        self.visits_left = next;
+        self.charge(0)
+    }
+    #[track_caller]
+    fn charge(&mut self, bytes: usize) -> Result<(), &'static str> {
+        if Instant::now() >= self.deadline {
+            self.note_refusal("deadline", Some(bytes), None);
+            return Err("reference deadline");
+        }
+        let Some(next) = self.left.checked_sub(bytes) else {
+            self.note_refusal("byte-limit", Some(bytes), None);
+            return Err("reference work limit");
+        };
+        self.left = next;
+        Ok(())
+    }
+    fn parsed(&mut self, raw: &[u8]) -> Result<Value, &'static str> {
+        self.visit(raw.len())?;
+        // Logical source-value/header/temporary allowance, not allocator/RSS.
+        self.charge(
+            raw.len()
+                .checked_mul(128)
+                .and_then(|n| n.checked_add(4096))
+                .ok_or("reference parse overflow")?,
+        )?;
+        serde_json::from_slice(raw).map_err(|_| "reference JSON")
+    }
+    fn git_read(
+        &mut self,
+        repository: &Path,
+        args: &[&str],
+        limit: usize,
+    ) -> Result<Vec<u8>, &'static str> {
+        use std::io::{Read, Seek, SeekFrom};
+        use std::process::Stdio;
+        // Same logical output allowance plus explicit spool/read/poll holders.
+        // A pipe read/wait could otherwise outlive the case's cutoff check.
+        self.charge(limit.checked_add(1).ok_or("reference read overflow")?)?;
+        self.charge(
+            limit
+                .checked_add(4096 + 512)
+                .ok_or("reference spool overflow")?,
+        )?;
+        let mut spool = tempfile::tempfile().map_err(|_| "reference Git spool")?;
+        let stdout = spool
+            .try_clone()
+            .map_err(|_| "reference Git spool handle")?;
+        let mut command = Command::new("git");
+        command
+            .arg("--literal-pathspecs")
+            .arg("-C")
+            .arg(repository)
+            .args(args);
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(key);
+            }
+        }
+        self.charge(0)?;
+        let mut child = command
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            .stdout(Stdio::from(stdout))
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|_| "reference Git spawn")?;
+        let status = loop {
+            // Poll the actual child and its actual output, not an external stat
+            // of an unrelated pathname. Never block on a live stdout pipe.
+            let refusal = if self.visit(1).is_err() {
+                Some("reference cutoff/work limit")
+            } else if Instant::now() >= self.deadline {
+                Some("reference deadline")
+            } else {
+                match spool.metadata() {
+                    Ok(meta) if meta.len() <= limit as u64 => None,
+                    Ok(_) => Some("reference Git byte limit"),
+                    Err(_) => Some("reference Git spool metadata"),
+                }
+            };
+            if let Some(reason) = refusal {
+                let _ = child.kill();
+                let _ = child.wait(); // reap only after terminating the child
+                return Err(reason);
+            }
+            match child.try_wait() {
+                Ok(Some(status)) => break status,
+                Ok(None) => {
+                    let left = self.deadline.saturating_duration_since(Instant::now());
+                    std::thread::sleep(left.min(Duration::from_millis(5)));
+                }
+                Err(_) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err("reference Git wait");
+                }
+            }
+        };
+        self.charge(0)?;
+        if !status.success() {
+            return Err("reference Git status");
+        }
+        if spool
+            .metadata()
+            .map_err(|_| "reference Git spool metadata")?
+            .len()
+            > limit as u64
+        {
+            return Err("reference Git byte limit");
+        }
+        spool
+            .seek(SeekFrom::Start(0))
+            .map_err(|_| "reference Git spool seek")?;
+        let mut output = Vec::with_capacity(limit + 1);
+        let mut buffer = [0u8; 4096];
+        loop {
+            self.charge(0)?;
+            let room = (limit + 1 - output.len()).min(buffer.len());
+            let count = spool
+                .read(&mut buffer[..room])
+                .map_err(|_| "reference Git read")?;
+            if count == 0 {
+                break;
+            }
+            output.extend_from_slice(&buffer[..count]);
+            if output.len() > limit {
+                return Err("reference Git byte limit");
+            }
+        }
+        self.charge(0)?;
+        Ok(output)
+    }
+    fn pinned_blob(&mut self, repository: &Path, path: &str) -> Result<Vec<u8>, &'static str> {
+        RelativePath::parse(path).map_err(|_| "reference path")?;
+        let pin = self.commit.clone();
+        let entry = self.git_read(
+            repository,
+            &["ls-tree", "-z", "--full-tree", &pin, "--", path],
+            path.len().checked_add(128).ok_or("reference path bytes")?,
+        )?;
+        let text = std::str::from_utf8(&entry).map_err(|_| "reference file metadata UTF8")?;
+        let expected_suffix = format!("\t{path}\0");
+        if !text.starts_with("100644 blob ")
+            || !text.ends_with(&expected_suffix)
+            || text.bytes().filter(|b| *b == 0).count() != 1
+        {
+            return Err("reference regular pinned file");
+        }
+        let spec = format!("{}:{path}", self.commit);
+        let size = self.git_read(repository, &["cat-file", "-s", &spec], 64)?;
+        let size: usize = std::str::from_utf8(&size)
+            .map_err(|_| "reference size UTF8")?
+            .trim()
+            .parse()
+            .map_err(|_| "reference size")?;
+        if size > 2 * 1024 * 1024 {
+            return Err("reference member limit");
+        }
+        let raw = self.git_read(repository, &["cat-file", "blob", &spec], size)?;
+        if raw.len() != size {
+            return Err("reference blob size");
+        }
+        Ok(raw)
+    }
+}
+fn reference_direct_schemas(metadata: &[u8]) -> Result<Vec<&str>, &'static str> {
+    if !metadata.ends_with(&[0]) {
+        return Err("reference tree EOF");
+    }
+    let text = std::str::from_utf8(metadata).map_err(|_| "reference tree UTF8")?;
+    let mut selected = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+    for (index, entry) in text.split_terminator('\0').enumerate() {
+        if index >= 512 {
+            return Err("reference tree count");
+        }
+        let (fields, path) = entry.split_once('\t').ok_or("reference tree row")?;
+        let fields = fields.split_whitespace().collect::<Vec<_>>();
+        if fields.len() != 3 {
+            return Err("reference tree fields");
+        }
+        RelativePath::parse(path).map_err(|_| "reference tree path")?;
+        let Some(name) = path.strip_prefix("ToS/contracts/") else {
+            return Err("reference tree root");
+        };
+        if name.contains('/') || !name.ends_with(".schema.json") {
+            continue;
+        }
+        if fields[0] != "100644"
+            || fields[1] != "blob"
+            || fields[2].len() != 40
+            || !fields[2].bytes().all(|c| c.is_ascii_hexdigit())
+        {
+            return Err("reference schema blob");
+        }
+        if !seen.insert(path) {
+            return Err("reference duplicate schema");
+        }
+        selected.push(path);
+    }
+    if selected.is_empty() {
+        return Err("reference empty schemas");
+    }
+    selected.sort_unstable();
+    Ok(selected)
+}
+fn reference_insert(
+    files: &mut BTreeMap<String, Vec<u8>>,
+    path: &str,
+    raw: Vec<u8>,
+) -> Result<(), &'static str> {
+    RelativePath::parse(path).map_err(|_| "reference input path")?;
+    if files.contains_key(path) {
+        return Err("reference duplicate input");
+    }
+    if files.len() >= 512 || raw.len() > 2 * 1024 * 1024 {
+        return Err("reference input count/member");
+    }
+    let total = files
+        .values()
+        .try_fold(raw.len(), |n, v| n.checked_add(v.len()))
+        .ok_or("reference input overflow")?;
+    if total > 16 * 1024 * 1024 {
+        return Err("reference input bytes");
+    }
+    files.insert(path.to_owned(), raw);
+    Ok(())
+}
+// Common authored inputs only. Composition does not need the repository-plan
+// capture extras; do not construct/debit a capture map that its caller discards.
+fn source_inputs(deadline: Instant) -> (BTreeMap<String, Vec<u8>>, CurrentReference) {
     let repository = super::validation_cut_cases::repository();
-    let mut authored = schema_sources(&repository);
-    let home = fs::read(repository.join("ToS/source_home.manifest.json")).unwrap();
-    let home_value: Value = serde_json::from_slice(&home).unwrap();
-    authored.insert("ToS/source_home.manifest.json".into(), home);
+    let mut reference = CurrentReference {
+        commit: String::new(),
+        left: 32 * 1024 * 1024,
+        visits_left: 1_000_000,
+        deadline,
+        diagnostic: None,
+    };
+    reference.charge(16 * 1024).unwrap(); // one live Git/read/parse control workspace
+    let commit = reference
+        .git_read(&repository, &["rev-parse", "HEAD^{commit}"], 64)
+        .unwrap();
+    reference.commit = std::str::from_utf8(&commit).unwrap().trim().to_owned();
+    assert_eq!(reference.commit.len(), 40);
+    assert!(reference.commit.bytes().all(|c| c.is_ascii_hexdigit()));
+    let pin = reference.commit.clone();
+    let metadata = reference
+        .git_read(
+            &repository,
+            &["ls-tree", "-rz", "--full-tree", &pin, "--", "ToS/contracts"],
+            2 * 1024 * 1024,
+        )
+        .unwrap();
+    // Reserve bounded path/index state before parsing the tree metadata.
+    reference
+        .charge(metadata.len().checked_mul(4).unwrap() + 512 * 128)
+        .unwrap();
+    reference
+        .visit(metadata.len().checked_add(512 * 512).unwrap())
+        .unwrap();
+    let mut authored = BTreeMap::new();
+    for path in reference_direct_schemas(&metadata).unwrap() {
+        let raw = reference.pinned_blob(&repository, path).unwrap();
+        reference_insert(&mut authored, path, raw).unwrap();
+    }
+    let home = reference
+        .pinned_blob(&repository, "ToS/source_home.manifest.json")
+        .unwrap();
+    let home_value = reference.parsed(&home).unwrap();
+    reference_insert(&mut authored, "ToS/source_home.manifest.json", home).unwrap();
     for branch in home_value["branches"].as_array().unwrap() {
         let surface = branch["owner_surface"].as_str().unwrap();
-        authored.insert(surface.into(), fs::read(repository.join(surface)).unwrap());
+        let raw = reference.pinned_blob(&repository, surface).unwrap();
+        reference_insert(&mut authored, surface, raw).unwrap();
     }
+    (authored, reference)
+}
+
+fn sources(
+    deadline: Instant,
+) -> (
+    BTreeMap<String, Vec<u8>>,
+    BTreeMap<String, Vec<u8>>,
+    CurrentReference,
+) {
+    let (authored, mut reference) = source_inputs(deadline);
+    let repository = super::validation_cut_cases::repository();
+    // Repository-plan still constructs and prepays its complete capture input.
+    // Composition uses source_inputs instead; no drop/refund/reset credit.
+    reference
+        .charge(authored.iter().map(|(p, v)| p.len() + v.len() + 256).sum())
+        .unwrap();
     let mut captured = authored.clone();
-    // Genuine maintained compatibility mirror remains weaker than canon.
-    // A separate original manifest also exercises the captured-component
-    // manifest read path; neither is a member of the declared source cut.
-    for companion in [
+    for path in [
         "ToS/public-compatibility/source_node.example.json",
         "ToS/philosophy/philosophy.manifest.json",
+        "rust/crates/tos-compiler/src/lib.rs",
     ] {
-        assert!(!authored.contains_key(companion));
-        captured.insert(
-            companion.into(),
-            fs::read(repository.join(companion)).unwrap(),
-        );
+        let raw = reference.pinned_blob(&repository, path).unwrap();
+        reference_insert(&mut captured, path, raw).unwrap();
     }
-    captured.insert(
-        "rust/crates/tos-compiler/src/lib.rs".into(),
-        fs::read(repository.join("rust/crates/tos-compiler/src/lib.rs")).unwrap(),
-    );
-    assert!(captured.len() <= 512);
-    assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
-    (authored, captured)
+    (authored, captured, reference)
 }
-// The frozen Python captures predate these authored contracts, while the current
-// source-home capture includes all tracked ToS paths outside explicit exclusions.
-fn append_current_contract_resources(resources: &mut Vec<Value>) {
-    for path in [
-        "ToS/contracts/native-pg-private-text-read.schema.json",
-        "ToS/contracts/native-role-bindings.schema.json",
-        "ToS/contracts/operation-binding-v1.schema.json",
-        "ToS/contracts/retained-corpus-binding.schema.json",
-        "ToS/contracts/ts-native-definition.schema.json",
-        "ToS/contracts/ts-native-operation-result.schema.json",
-        "ToS/contracts/ts-native-value-profile.schema.json",
+// These finite roles are a test contract, not calls to the production classifier.
+fn reference_resource_role(path: &str) -> Result<(&str, &str, &str), &'static str> {
+    let tail = path
+        .strip_prefix("ToS/")
+        .ok_or("reference non-ToS resource")?;
+    let directory = tail.split_once('/').map(|(v, _)| v);
+    let (owner, layer) = match directory {
+        None => ("ToS", "source_home"),
+        Some("candidate-intake") => ("ToS/candidate-intake", "candidate_intake"),
+        Some("canon") => ("ToS/canon", "canon"),
+        Some("contracts") => ("ToS/contracts", "contract"),
+        Some("doctrine") => ("ToS/doctrine", "doctrine"),
+        Some("derived-exports") => ("ToS/derived-exports", "derived_export"),
+        Some("philosophy") => ("ToS/philosophy", "domain_topology"),
+        Some("public-compatibility") => ("ToS/public-compatibility", "public_compatibility"),
+        Some("research-packets") => ("ToS/research-packets", "research_packet"),
+        Some("review-ledger") => ("ToS/review-ledger", "review_evidence"),
+        Some("source-witnesses") => ("ToS/source-witnesses", "source_witness"),
+        Some("zarathustra") => ("ToS/zarathustra", "golden_route_orientation"),
+        _ => return Err("reference undeclared resource role"),
+    };
+    let name = path.rsplit('/').next().unwrap();
+    let kind = match name {
+        "AGENTS.md" => "route_card",
+        "source_home.manifest.json" => "source_home_manifest",
+        "philosophy.manifest.json" => "philosophy_manifest",
+        "branch.manifest.json" => "branch_manifest",
+        "node.json" => "node_payload",
+        "edges.csv" => "relation_pack",
+        _ if directory == Some("source-witnesses") => "source_witness",
+        _ if directory == Some("research-packets") => "research_packet",
+        _ if directory == Some("review-ledger") => "review_note",
+        _ if directory == Some("derived-exports") => "derived_export",
+        _ if directory == Some("contracts") && name.ends_with(".schema.json") => "contract_schema",
+        _ if name.ends_with(".json") => "json",
+        _ if name.ends_with(".md") => "markdown",
+        _ if name.ends_with(".csv") => "tabular",
+        _ => return Err("reference unsupported resource kind"),
+    };
+    Ok((kind, owner, layer))
+}
+fn reference_metadata_matches(
+    files: &BTreeMap<&str, &[u8]>,
+    observed: &[(&str, usize, Digest256)],
+) -> bool {
+    files.len() == observed.len()
+        && observed.iter().enumerate().all(|(i, (p, n, h))| {
+            !observed[..i].iter().any(|(prior, _, _)| prior == p)
+                && files
+                    .get(*p)
+                    .is_some_and(|raw| raw.len() == *n && Digest256::of_bytes(raw) == *h)
+        })
+}
+fn reference_repository_rows(
+    reference: &mut CurrentReference,
+    files: &BTreeMap<String, Vec<u8>>,
+) -> Result<BTreeMap<&'static str, Vec<Value>>, &'static str> {
+    if files.len() > 512 {
+        return Err("reference row input count");
+    }
+    let total = files
+        .values()
+        .try_fold(0usize, |n, v| n.checked_add(v.len()))
+        .ok_or("reference row input overflow")?;
+    if total > 16 * 1024 * 1024 {
+        return Err("reference row input bytes");
+    }
+    reference.visit(
+        files
+            .keys()
+            .try_fold(
+                files.len().checked_mul(128).ok_or("reference row visits")?,
+                |n, p| n.checked_add(p.len()),
+            )
+            .ok_or("reference row visits")?,
+    )?;
+    let mut result = BTreeMap::from([
+        ("branches", Vec::new()),
+        ("manifests", Vec::new()),
+        ("resources", Vec::new()),
+        ("source_order", Vec::new()),
+    ]);
+    let home = reference.parsed(
+        files
+            .get("ToS/source_home.manifest.json")
+            .ok_or("reference home absent")?,
+    )?;
+    let mut ids = std::collections::BTreeSet::new();
+    for (ordinal, b) in home["branches"]
+        .as_array()
+        .ok_or("reference branches")?
+        .iter()
+        .enumerate()
+    {
+        let id = b["id"].as_str().ok_or("reference branch ID")?;
+        let path = b["path"].as_str().ok_or("reference branch path")?;
+        let surface = b["owner_surface"]
+            .as_str()
+            .ok_or("reference branch owner")?;
+        if !ids.insert(id) || !files.contains_key(surface) {
+            return Err("reference duplicate/missing branch");
+        }
+        let text_bytes = [
+            id.len(),
+            path.len(),
+            surface.len(),
+            b["role"].as_str().ok_or("reference branch role")?.len(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)
+        .ok_or("reference branch bytes")?;
+        reference.charge(
+            text_bytes
+                .checked_mul(8)
+                .and_then(|n| n.checked_add(8192))
+                .ok_or("reference branch bytes")?,
+        )?;
+        let layer_path = format!("{}/AGENTS.md", path.trim_end_matches('/'));
+        let (_, _, layer) = reference_resource_role(&layer_path)?;
+        result.get_mut("branches").unwrap().push(json!({"id":id,"path":path,"owner_surface":surface,"authority_layer":layer,"role":b["role"]}));
+        result
+            .get_mut("source_order")
+            .unwrap()
+            .push(json!({"collection":"branches","id":id,"ordinal":ordinal}));
+    }
+    for (ordinal, (path, raw)) in files
+        .iter()
+        .filter(|(p, _)| p.starts_with("ToS/"))
+        .enumerate()
+    {
+        if raw.len() > 2 * 1024 * 1024 {
+            return Err("reference row member bytes");
+        }
+        reference.charge(
+            8192usize
+                .checked_add(path.len().checked_mul(8).ok_or("reference row overflow")?)
+                .ok_or("reference row overflow")?,
+        )?;
+        let (kind, owner, layer) = reference_resource_role(path)?;
+        result.get_mut("resources").unwrap().push(json!({"path":path,"resource_kind":kind,"owner_branch":owner,"authority_layer":layer,"sha256":Digest256::of_bytes(raw).to_hex(),"size_bytes":raw.len()}));
+        result
+            .get_mut("source_order")
+            .unwrap()
+            .push(json!({"collection":"resources","id":path,"ordinal":ordinal}));
+        if path.ends_with(".manifest.json") {
+            let value = reference.parsed(raw)?;
+            let version = match value.get("schema_version") {
+                None | Some(Value::Null) => "",
+                Some(Value::String(s)) => s,
+                _ => return Err("reference manifest version profile"),
+            };
+            let declared = if path == "ToS/source_home.manifest.json" {
+                value.get("home")
+            } else {
+                value.get("path")
+            }
+            .and_then(Value::as_str);
+            let n = result["manifests"].len();
+            result.get_mut("manifests").unwrap().push(json!({"path":path,"manifest_kind":kind,"owner_branch":owner,"authority_layer":layer,"schema_version":version,"branch_id":value.get("branch_id").and_then(Value::as_str),"declared_path":declared,"sha256":Digest256::of_bytes(raw).to_hex()}));
+            result
+                .get_mut("source_order")
+                .unwrap()
+                .push(json!({"collection":"manifests","id":path,"ordinal":n}));
+        }
+    }
+    // Explicit logical emission bound is prepaid in each row's allowance.
+    for rows in result.values() {
+        if serde_json::to_vec(rows)
+            .map_err(|_| "reference row JSON")?
+            .len()
+            > 16 * 1024 * 1024
+        {
+            return Err("reference row output bytes");
+        }
+    }
+    Ok(result)
+}
+fn reference_input_variants(reference: &mut CurrentReference) {
+    let h = "0000000000000000000000000000000000000000";
+    for (name, body) in [
+        (
+            "different-a.schema.json",
+            b"{\"type\":\"string\"}".as_slice(),
+        ),
+        (
+            "renamed-b.schema.json",
+            b"{\"type\":\"integer\"}".as_slice(),
+        ),
     ] {
-        assert!(
-            !resources.iter().any(|row| row["path"] == path),
-            "historical Python oracle predates current contract {path}"
+        reference.charge(32 * 1024).unwrap();
+        reference.visit(4096).unwrap();
+        let path = format!("ToS/contracts/{name}");
+        let meta = format!("100644 blob {h}\t{path}\0");
+        assert_eq!(
+            reference_direct_schemas(meta.as_bytes()).unwrap(),
+            vec![path.as_str()]
         );
-        resources.push(json!({
-            "path": path,
-            "resource_kind": "contract_schema",
-            "owner_branch": "ToS/contracts",
-            "authority_layer": "contract",
-            "sha256": "",
-            "size_bytes": 0,
-        }));
+        let nested = format!("{meta}100644 blob {h}\tToS/contracts/nested/ignored.schema.json\0");
+        assert_eq!(
+            reference_direct_schemas(nested.as_bytes()).unwrap(),
+            vec![path.as_str()]
+        );
+        assert!(reference_direct_schemas(format!("{meta}{meta}").as_bytes()).is_err());
+        assert!(reference_direct_schemas(meta.replace("100644", "120000").as_bytes()).is_err());
+        let mut files = BTreeMap::new();
+        reference_insert(&mut files, &path, body.to_vec()).unwrap();
+        assert!(reference_insert(&mut files, &path, body.to_vec()).is_err());
+        let borrowed = files
+            .iter()
+            .map(|(p, raw)| (p.as_str(), raw.as_slice()))
+            .collect::<BTreeMap<_, _>>();
+        assert!(reference_metadata_matches(
+            &borrowed,
+            &[(&path, body.len(), Digest256::of_bytes(body))]
+        ));
+        assert!(!reference_metadata_matches(
+            &borrowed,
+            &[(&path, body.len() + 1, Digest256::of_bytes(body))]
+        ));
+        assert!(!reference_metadata_matches(
+            &borrowed,
+            &[(&path, body.len(), Digest256::of_bytes(b"changed"))]
+        ));
+        assert!(!reference_metadata_matches(&borrowed, &[]));
+        assert!(!reference_metadata_matches(
+            &borrowed,
+            &[(
+                "ToS/contracts/undeclared.schema.json",
+                body.len(),
+                Digest256::of_bytes(body)
+            )]
+        ));
+        assert_eq!(
+            reference_resource_role(&path).unwrap(),
+            ("contract_schema", "ToS/contracts", "contract")
+        );
+        assert!(reference_resource_role("ToS/undeclared/x.json").is_err());
+        assert!(reference_direct_schemas(meta.trim_end_matches('\0').as_bytes()).is_err());
+        drop(borrowed);
+        reference_insert(&mut files, "ToS/source_home.manifest.json",
+            br#"{"home":"ToS/","branches":[{"id":"contracts","path":"ToS/contracts","owner_surface":"ToS/contracts/AGENTS.md","role":"Different declared input"}]}"#.to_vec()).unwrap();
+        reference_insert(
+            &mut files,
+            "ToS/contracts/AGENTS.md",
+            b"Independent owner surface".to_vec(),
+        )
+        .unwrap();
+        let rows = reference_repository_rows(reference, &files).unwrap();
+        let row = rows["resources"]
+            .iter()
+            .find(|row| row["path"] == path)
+            .unwrap();
+        assert_eq!(
+            row,
+            &json!({"path":path,"resource_kind":"contract_schema","owner_branch":"ToS/contracts","authority_layer":"contract","sha256":Digest256::of_bytes(body).to_hex(),"size_bytes":body.len()})
+        );
+        assert_eq!(rows["branches"][0]["role"], "Different declared input");
+        assert_eq!(rows["resources"].len(), files.len());
     }
 }
 
 #[test]
 fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
-    let (authored, captured) = sources();
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let (authored, captured, mut reference) = sources(deadline);
+    reference_input_variants(&mut reference);
+    let mut reference_rows = reference_repository_rows(&mut reference, &captured).unwrap();
     let fixture = tempfile::tempdir().unwrap();
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
@@ -255,7 +1104,6 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         .to_owned();
     let capture = super::source_cut_cases::captured_software_fixture(&git_root, &commit, &["ToS"]);
     let cancelled = AtomicBool::new(false);
-    let deadline = Instant::now() + Duration::from_secs(60);
     let read_limits = ReadLimits {
         max_manifest_bytes: 2 * 1024 * 1024,
         max_manifest_entries: 512,
@@ -271,6 +1119,28 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         &cancelled,
     )
     .unwrap();
+    reference.charge(512 * 256).unwrap();
+    reference
+        .visit(captured.len().checked_mul(captured.len()).unwrap())
+        .unwrap();
+    let declared = captured
+        .iter()
+        .filter(|(p, _)| p.starts_with("ToS/"))
+        .map(|(p, raw)| (p.as_str(), raw.as_slice()))
+        .collect::<BTreeMap<_, _>>();
+    let observed = inventory
+        .members()
+        .map(|m| {
+            (
+                m.path.as_str(),
+                usize::try_from(m.size_bytes).unwrap(),
+                m.sha256,
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(reference_metadata_matches(&declared, &observed));
+    drop(declared);
+    drop(observed);
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&authored, &store);
     let reader = CorpusReader::open_existing(&store, read_limits).unwrap();
@@ -414,15 +1284,18 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
     )
     .unwrap();
     render_repository_source_plan(&mut stage, &plan, &vocabulary, deadline, &cancelled).unwrap();
-    let mut expected = crate::frozen_legacy_python_oracle("repository-topology");
-    reconcile_source_home_inputs(&mut expected, &captured);
+    // HistoricalExact evidence retains its original input scope; CurrentDeclared
+    // rows were independently frozen before capture/planning, not patched from it.
+    let mut historical = crate::frozen_legacy_python_oracle("repository-topology");
+    assert_eq!(historical["resources"].as_array().unwrap().len(), 202);
+    reconcile_source_home_inputs(&mut historical, &captured);
     let source = &vocabulary
         .sources
         .iter()
         .find(|source| source.adapter_profile == "repository-topology-v1")
         .unwrap()
         .source_graph_id;
-    let mut orders = Vec::new();
+    let mut orders = reference_rows.remove("source_order").unwrap();
     for collection in ["branches", "manifests", "resources"] {
         let mut actual = Vec::new();
         let mut after = None;
@@ -438,24 +1311,7 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
                 break;
             }
         }
-        let mut wanted = expected[collection].as_array().unwrap().clone();
-        if collection == "resources" {
-            append_current_contract_resources(&mut wanted);
-            for row in &mut wanted {
-                let path = required(row, "path");
-                let raw = captured.get(path).expect("selected topology resource");
-                row["sha256"] = json!(Digest256::of_bytes(raw).to_hex());
-                row["size_bytes"] = json!(raw.len());
-            }
-            // The source-home capture assigns resource ordinals in selected
-            // inventory path order. The historical oracle is already sorted;
-            // restore that order after appending the current contract row.
-            wanted.sort_by_key(|v| v["path"].as_str().unwrap().to_owned());
-        }
-        for (ordinal, row) in wanted.iter().enumerate() {
-            let id = row.get("id").or_else(|| row.get("path")).unwrap();
-            orders.push(json!({"collection":collection,"id":id,"ordinal":ordinal}));
-        }
+        let mut wanted = reference_rows.remove(collection).unwrap();
         // Raw roots sort by identity, independently from owner array ordinal.
         wanted.sort_by_key(|v| {
             v.get("id")
@@ -913,10 +1769,33 @@ fn native_catalog_fixture_with_graph(
 }
 
 pub(crate) fn publish_native_catalog_fixture(repository: &Path, root: &Path, deadline: Instant) {
+    publish_native_catalog_fixture_inner(repository, root, deadline, None);
+}
+
+/// A selected command fixture keeps its exact offline schema closure rather
+/// than importing unrelated contracts into the metadata revision dispatcher.
+pub(crate) fn publish_native_catalog_fixture_with_selected_schemas(
+    repository: &Path,
+    root: &Path,
+    deadline: Instant,
+    schemas: &BTreeMap<String, Vec<u8>>,
+) {
+    publish_native_catalog_fixture_inner(repository, root, deadline, Some(schemas));
+}
+
+fn publish_native_catalog_fixture_inner(
+    repository: &Path,
+    root: &Path,
+    deadline: Instant,
+    selected_schemas: Option<&BTreeMap<String, Vec<u8>>>,
+) {
     // The migrated profile registry references the current contract closure.
     // Frozen command fixtures retain their original schemas; add only missing
     // owner schemas before freezing the next selected source revision.
-    for (relative, raw) in schema_sources(repository) {
+    let schemas = selected_schemas
+        .cloned()
+        .unwrap_or_else(|| schema_sources(repository));
+    for (relative, raw) in schemas {
         let target = root.join(relative);
         if !target.exists() {
             fs::create_dir_all(target.parent().unwrap()).unwrap();
@@ -924,6 +1803,20 @@ pub(crate) fn publish_native_catalog_fixture(repository: &Path, root: &Path, dea
         }
     }
     let inputs = fixture_catalog_inputs(root);
+    if let Some(selected) = selected_schemas {
+        assert!(!selected.is_empty() && selected.len() <= 128);
+        let actual = inputs
+            .iter()
+            .filter(|(path, _)| {
+                path.starts_with("ToS/contracts/") && path.ends_with(".schema.json")
+            })
+            .map(|(path, raw)| (path.clone(), raw.clone()))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(
+            &actual, selected,
+            "catalog fixture exact selected schema closure"
+        );
+    }
     let publication_path = root.join("ToS/source-witnesses/.metadata-publication.json");
     let publication_raw = match fs::read(&publication_path) {
         Ok(raw) => Some(raw),
@@ -1073,6 +1966,886 @@ fn corpus_full_limits(source_count: usize) -> tos_compiler::FullKnowledgeLimits 
     }
 }
 
+/// Full native producer at an ALREADY selected S. No new cut, subset,
+/// caller header, managed fallback or synthetic Original is constructed here.
+/// Fixture stage authority is explicitly synthetic; producer/source fixity is real.
+pub(crate) fn native_selected_model_at_existing_cut(
+    cut: &tos_source_store::CorpusCutReader,
+    revision: tos_foundation::SourceRevision,
+    software: &tos_source_store::SoftwareCaptureReader,
+    selected_path: std::path::PathBuf,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> tos_compiler::knowledge_full_fixture::FullKnowledgeFixture {
+    use tos_compiler::knowledge_canon_source::*;
+    use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
+    use tos_compiler::source_bibliographic::{BibliographicLimits, BibliographicSourceCut};
+    use tos_compiler::source_corpus::*;
+    use tos_compiler::source_navigation_source::project_source_navigation_from_cut;
+    use tos_compiler::source_witness_catalog::{SourceCatalogLimits, SourceCatalogValidator};
+    use tos_compiler::{
+        SourceCatalogInputLimits, plan_source_catalog_inputs, render_source_bibliographic_plan,
+    };
+    fn raw_receipt(
+        source: &str,
+        collection: &str,
+        role: &str,
+        profile: &str,
+        rows: &BTreeMap<String, Vec<u8>>,
+    ) -> InputCollectionReceipt {
+        let mut hash = tos_foundation::Digest256Hasher::new();
+        for (id, raw) in rows {
+            hash.update(&(id.len() as u64).to_be_bytes());
+            hash.update(id.as_bytes());
+            hash.update(Digest256::of_bytes(raw).as_bytes());
+        }
+        InputCollectionReceipt {
+            source_graph: source.into(),
+            collection: collection.into(),
+            input_role: role.into(),
+            adapter_profile: profile.into(),
+            expected_count: rows.len() as u64,
+            expected_root_sha256: hash.finalize().to_hex(),
+        }
+    }
+    let started = Instant::now();
+    assert!(started < deadline);
+    let fixture = tempfile::tempdir().unwrap();
+    let mut files = BTreeMap::new();
+    let mut stream = cut.stream(revision).unwrap();
+    let expected = stream.expectation();
+    while let Some(member) = stream.next_member(deadline, cancelled).unwrap() {
+        assert_eq!(member.revision, revision);
+        assert!(files.len() < 512 && member.raw.len() <= 2 * 1024 * 1024);
+        assert!(
+            files
+                .insert(member.path.as_str().to_owned(), member.raw)
+                .is_none()
+        );
+    }
+    assert_eq!(stream.coverage(), Some(expected));
+    assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    // Authoritative repository planner checks inventory too; preflight the
+    // complete S membership against actual captured metadata without relabeling.
+    for (path, raw) in &files {
+        let metadata = software
+            .member(&tos_foundation::RelativePath::parse(path).unwrap())
+            .expect("full S member absent from actual software inventory");
+        assert_eq!(metadata.sha256, Digest256::of_bytes(raw));
+        assert_eq!(metadata.size_bytes, raw.len() as u64);
+        // capture_git maps regular Git tree mode 100644 to permission bits
+        // 0644; SoftwareCaptureReader validates that declared representation.
+        assert_eq!(metadata.mode, 0o644);
+    }
+    // Retain actual verified membership in the existing command log, without
+    // raw contents. Admit a conservative JSON-escape bound before allocation.
+    let manifest_limit = 128 * 1024;
+    let manifest_bound = files
+        .keys()
+        .try_fold(1024usize, |used, path| {
+            path.len()
+                .checked_mul(6)
+                .and_then(|n| n.checked_add(256))
+                .and_then(|n| used.checked_add(n))
+                .filter(|n| *n <= manifest_limit)
+        })
+        .expect("actual S manifest evidence budget");
+    let manifest_rows = files.iter().map(|(path, raw)| {
+        let metadata = software.member(&tos_foundation::RelativePath::parse(path).unwrap()).unwrap();
+        json!({"path":path,"size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_prefixed(),
+            "mode":metadata.mode})
+    }).collect::<Vec<_>>();
+    let manifest = json!({"event":"tos_actual_frozen_source_manifest_v1",
+        "source_revision":revision.0.to_prefixed(),"mode_representation":"permission_bits",
+        "membership":{"count":expected.count,"sha256":expected.digest.to_prefixed()},
+        "members":manifest_rows});
+    let manifest_raw = serde_json::to_vec(&manifest).unwrap();
+    assert!(manifest_raw.len().checked_add(1).unwrap() <= manifest_bound);
+    writeln!(
+        std::io::stderr().lock(),
+        "{}",
+        std::str::from_utf8(&manifest_raw).unwrap()
+    )
+    .unwrap();
+    // Fixed direct reads are admitted against actual S BEFORE any producer.
+    // Registry-derived profile routes retain their existing owner verifier.
+    for required in [
+        "ToS/source_home.manifest.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/source-witness-bibliographic-graph.schema.json",
+        "ToS/contracts/tos-corpus-index.schema.json",
+        "ToS/contracts/tos-source-home.schema.json",
+        "ToS/contracts/tos-node-contract.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/human-form-template.schema.json",
+        "ToS/contracts/source-claim-record.schema.json",
+        "ToS/contracts/historical-claim.schema.json",
+        "ToS/contracts/source-temporal-claim.schema.json",
+        "ToS/contracts/claim-display-fields.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+    ] {
+        assert!(
+            files.contains_key(required),
+            "fixed producer input absent from actual S: {required}"
+        );
+    }
+    for required in [
+        "rust/crates/tos-compiler/src/source_corpus.rs",
+        "access/contracts/runtime-data.v1.json",
+    ] {
+        assert!(
+            software
+                .member(&tos_foundation::RelativePath::parse(required).unwrap())
+                .is_some(),
+            "fixed producer software input absent: {required}"
+        );
+    }
+    // Descriptor bytes belong to the SAME authenticated S, not an ambient
+    // test file; the actual normalizer/header pin this exact descriptor.
+    let descriptor = files["ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"].clone();
+    let vocabulary =
+        QueryVocabulary::parse(&descriptor, tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES)
+            .unwrap();
+    let full_limits = corpus_full_limits(vocabulary.sources.len());
+    let runtime_path =
+        tos_foundation::RelativePath::parse("access/contracts/runtime-data.v1.json").unwrap();
+    let runtime_components = software
+        .select_components(std::slice::from_ref(&runtime_path))
+        .unwrap();
+    let runtime_raw = software
+        .read_selected_component(
+            &runtime_components,
+            &runtime_path,
+            1_048_576,
+            deadline,
+            cancelled,
+        )
+        .unwrap();
+    let runtime: Value = serde_json::from_slice(&runtime_raw).unwrap();
+    let outputs = runtime["subjects"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["subject_id"] == "tos-corpus-index")
+        .collect::<Vec<_>>();
+    assert_eq!(outputs.len(), 1);
+    let output_path = outputs[0]["source_path"].as_str().unwrap().to_owned();
+    let membership = cut.stream(revision).unwrap().expectation();
+    let binding = SourceBinding {
+        owner_profile: "private-selected-fixture".into(),
+        source_cut: revision.0.to_hex(),
+        through_commit_seq: 0,
+        membership_root: membership.digest.to_hex(),
+        index_generation: revision.0.to_hex(),
+        route_map_version: "fixture-v1".into(),
+        reader_abi: "fixture-v1".into(),
+        projection_root_sha256: Digest256::of_bytes(b"independent-native-corpus-plan").to_hex(),
+        complete: true,
+    };
+    let limits = BibliographicLimits {
+        catalog: SourceCatalogLimits {
+            max_files: 512,
+            max_rows: 4096,
+            max_file_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_contract_bytes: 16 * 1024 * 1024,
+            max_output_row_bytes: 1024 * 1024,
+        },
+        max_claim_cohort_rows: 16,
+        max_claim_cohort_bytes: 16 * 1024 * 1024,
+        max_output_rows: 4096,
+        max_output_bytes: 16 * 1024 * 1024,
+        deadline,
+    };
+    let catalog_plan = plan_source_catalog_inputs(
+        &cut,
+        revision,
+        membership,
+        &binding,
+        SourceCatalogInputLimits {
+            max_manifest_members: 512,
+            max_selected_members: 512,
+            max_plan_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        limits,
+        &cancelled,
+    )
+    .unwrap();
+    let owner = FixtureOwner;
+    let isolation = FixtureIsolation;
+    let stage_limits = StageLimits {
+        sqlite: Limits {
+            max_rows: 8192,
+            max_row_bytes: 2 * 1024 * 1024,
+            max_output_bytes: 64 * 1024 * 1024,
+            max_work_bytes: 128 * 1024 * 1024,
+            sqlite_cache_kib: 512,
+            max_sql_vm_steps: 20_000_000,
+        },
+        max_temp_bytes: 64 * 1024 * 1024,
+        max_seek_rows: 16,
+        max_seek_bytes: 32 * 1024 * 1024,
+    };
+    let mut catalog_stage = KnowledgeStage::create(
+        &fixture.path().join("catalog.sqlite"),
+        stage_limits,
+        catalog_plan.input_receipt(),
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
+    operation.max_chunks = limits.max_output_rows;
+    operation.max_total_units = limits.max_output_rows;
+    let worker_path = super::validation_cut_cases::selected_worker_path();
+    let worker = ExactWorkerIdentity {
+        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
+        absolute_path: worker_path,
+    };
+    // Exact schema closure and image preparation belong to this whole case.
+    // The scalar laboratory's five-second default may expire during that
+    // preparation; only time left on the original whole clock is available.
+    let remaining = deadline
+        .checked_duration_since(Instant::now())
+        .filter(|duration| !duration.is_zero())
+        .expect("native corpus whole schema preparation deadline");
+    let schema_budget = ExecutorBudget {
+        execution_wall: remaining,
+        ..ExecutorBudget::laboratory()
+    };
+    operation.total_execution_wall = remaining;
+    operation.operation_cpu_seconds = remaining.as_secs().saturating_add(1);
+    operation.operation_address_space_bytes = schema_budget.address_space_bytes;
+    let validator = SourceCatalogValidator::from_cut(
+        &cut,
+        &worker,
+        schema_budget,
+        CutWorkerLimits {
+            max_receipts: 4096,
+            max_receipt_bytes: 16 * 1024 * 1024,
+        },
+        operation,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
+    let candidate = render_source_bibliographic_plan(
+        &catalog_plan,
+        &cut,
+        revision,
+        membership,
+        &mut catalog_stage,
+        &validator,
+        &mut forms,
+        limits,
+        512,
+        16 * 1024 * 1024,
+    )
+    .unwrap();
+    assert!(candidate.catalog.record_count > 1);
+    assert!(candidate.bibliographic.edge_count > 0);
+    let canon_files = files
+        .iter()
+        .filter(|(p, _)| {
+            (p.starts_with("ToS/canon/")
+                && (p.ends_with("/node.json") || p.ends_with("/node.human-forms.json")))
+                || ((p.starts_with("ToS/canon/") || p.starts_with("ToS/candidate-intake/"))
+                    && p.ends_with("/edges.csv"))
+        })
+        .map(|(p, b)| (p.clone(), b.clone()))
+        .collect::<BTreeMap<_, _>>();
+    assert!(
+        canon_files.is_empty(),
+        "this bounded recipe declares explicit zero canon input"
+    );
+    let contracts = [
+        "ToS/contracts/tos-node-contract.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+    ]
+    .into_iter()
+    .map(|p| (p.into(), files[p].clone()))
+    .collect::<BTreeMap<_, _>>();
+    let canon_inputs = vec![
+        raw_receipt(
+            CANON_SOURCE_CUSTODY,
+            "source-files",
+            CANON_SOURCE_FILES_ROLE,
+            CANON_SOURCE_FILES_PROFILE,
+            &canon_files,
+        ),
+        raw_receipt(
+            CANON_SOURCE_CUSTODY,
+            "contracts",
+            CANON_SOURCE_CONTRACTS_ROLE,
+            CANON_SOURCE_CONTRACTS_PROFILE,
+            &contracts,
+        ),
+    ];
+    let mut canon_planner = KnowledgeStage::create(
+        &fixture.path().join("canon.sqlite"),
+        stage_limits,
+        ExactInputReceipt {
+            binding: binding.clone(),
+            collections: canon_inputs,
+        },
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    for (collection, rows) in [("source-files", &canon_files), ("contracts", &contracts)] {
+        let mut entries = rows.iter();
+        loop {
+            let borrowed = entries
+                .by_ref()
+                .take(stage_limits.max_seek_rows)
+                .map(|(id, raw)| InputRow {
+                    source_graph: CANON_SOURCE_CUSTODY,
+                    collection,
+                    id,
+                    payload: raw,
+                })
+                .collect::<Vec<_>>();
+            if borrowed.is_empty() {
+                break;
+            }
+            canon_planner.ingest_input_batch(&borrowed).unwrap();
+        }
+    }
+    let canon_limits = CanonSourceLimits {
+        max_manifest_members: 512,
+        max_selected_members: 512,
+        max_nodes: 128,
+        max_packs: 16,
+        max_edges: 1024,
+        max_source_bytes: 2 * 1024 * 1024,
+        max_raw_row_bytes: 2 * 1024 * 1024,
+        max_csv_fields: 128,
+        max_csv_record_bytes: 2 * 1024 * 1024,
+        max_forms: 256,
+        max_forms_output_bytes: 262144,
+        max_page_rows: 8,
+        max_page_bytes: 16 * 1024 * 1024,
+        max_work_bytes: 64 * 1024 * 1024,
+    };
+    let root_raw = serde_json::to_vec(
+        &json!({"node_id":"fixture-source-root","node_type":"repository-root",
+        "label":"Selected fixture repository","source_ref":"ToS/source_home.manifest.json"}),
+    )
+    .unwrap();
+    let root_sha = Digest256::of_bytes(&root_raw).to_hex();
+    let (repository_plan, canon_plan) = plan_native_corpus_source_families(
+        &mut canon_planner,
+        &cut,
+        &software,
+        &binding,
+        &vocabulary,
+        RepositoryRootInput {
+            source_cut: &binding.source_cut,
+            material: &root_raw,
+            material_sha256: &root_sha,
+            identity_id: "root:fixture-source-root",
+        },
+        &validator,
+        RepositorySourceLimits {
+            max_inventory_members: 512,
+            max_source_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 2 * 1024 * 1024,
+            max_plan_bytes: 16 * 1024 * 1024,
+            max_work_bytes: 32 * 1024 * 1024,
+        },
+        canon_limits,
+        deadline,
+        &cancelled,
+        tos_command::source_forms_compiler::materialize_compiler_forms,
+    )
+    .unwrap();
+    assert_eq!(canon_plan.receipt().nodes, 0);
+    assert_eq!(canon_plan.receipt().packs, 0);
+    assert_eq!(canon_plan.receipt().edges, 0);
+    let entities: Value =
+        serde_json::from_slice(&files["ToS/doctrine/semantic-interchange/entity-types.v1.json"])
+            .unwrap();
+    let source = BibliographicSourceCut {
+        cut: &cut,
+        expected_revision: revision,
+        expected_membership: membership,
+        stage_source_cut: &binding.source_cut,
+        max_read_files: 512,
+        max_read_bytes: 16 * 1024 * 1024,
+    };
+    let navigation = project_source_navigation_from_cut(
+        &mut catalog_stage,
+        &candidate.catalog,
+        &source,
+        &validator,
+        &entities,
+        &mut forms,
+        limits,
+    )
+    .unwrap();
+    assert!(!navigation.value()["edges"].as_array().unwrap().is_empty());
+    let mut collections = repository_plan.receipt().collections.clone();
+    collections.extend(
+        canon_plan
+            .receipt()
+            .collections
+            .iter()
+            .map(|c| InputCollectionReceipt {
+                source_graph: c.source_graph.clone(),
+                collection: c.collection.clone(),
+                input_role: c.input_role.clone(),
+                adapter_profile: c.adapter_profile.clone(),
+                expected_count: c.count,
+                expected_root_sha256: c.root_sha256.clone(),
+            }),
+    );
+    collections.extend(catalog_plan.input_receipt().collections);
+    let mut target = KnowledgeStage::create(
+        &fixture.path().join("corpus.sqlite"),
+        stage_limits,
+        ExactInputReceipt {
+            binding: binding.clone(),
+            collections,
+        },
+        &owner,
+        &isolation,
+    )
+    .unwrap();
+    render_repository_source_plan(
+        &mut target,
+        &repository_plan,
+        &vocabulary,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    render_canon_source_plan(
+        &mut canon_planner,
+        &canon_plan,
+        &cut,
+        revision,
+        membership,
+        &mut target,
+        canon_limits,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    for input in &catalog_plan.input_receipt().collections {
+        let mut after = None;
+        loop {
+            let page = catalog_stage
+                .scan_input(
+                    &input.source_graph,
+                    &input.collection,
+                    after.as_deref(),
+                    stage_limits.max_seek_rows,
+                )
+                .unwrap();
+            if !page.rows.is_empty() {
+                let borrowed = page
+                    .rows
+                    .iter()
+                    .map(|row| InputRow {
+                        source_graph: &input.source_graph,
+                        collection: &input.collection,
+                        id: &row.id,
+                        payload: &row.payload,
+                    })
+                    .collect::<Vec<_>>();
+                target.ingest_input_batch(&borrowed).unwrap();
+            }
+            after = page.next_id;
+            if after.is_none() {
+                break;
+            }
+        }
+    }
+    let originals = tos_compiler::NavigationOriginalLimits {
+        max_rows: 4096,
+        max_row_bytes: limits.catalog.max_output_row_bytes,
+        max_total_bytes: 16 * 1024 * 1024,
+    };
+    let projection = project_native_corpus_from_sources(
+        &mut target,
+        &vocabulary,
+        &cut,
+        &software,
+        &repository_plan,
+        &canon_plan,
+        &navigation,
+        &validator,
+        NativeCorpusLimits {
+            originals,
+            max_work_bytes: 128 * 1024 * 1024,
+            schema_work: operation,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    // The projection already finished the one shared schema operation. Close
+    // its sealed worker image before the independent oracle and selected DB.
+    drop(validator);
+    let mut graph = BibliographicOutput::default();
+    tos_compiler::source_bibliographic::render_bibliographic_graph(
+        &mut catalog_stage,
+        &candidate.catalog,
+        &candidate.bibliographic,
+        limits,
+        &mut graph,
+    )
+    .unwrap();
+    // These private planners have completed their producer/proof work. The
+    // independent selected stage consumes owned receipts/rows, not their DBs.
+    // KnowledgeStage::Drop owns candidate/sidecar/lease deletion for these
+    // unfinished private stages. Release them before the final allocation;
+    // verify removal without attempting a second filesystem deletion.
+    drop(catalog_stage);
+    drop(canon_planner);
+    assert!(
+        matches!(fs::symlink_metadata(fixture.path().join("catalog.sqlite")),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound)
+    );
+    assert!(
+        matches!(fs::symlink_metadata(fixture.path().join("canon.sqlite")),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound)
+    );
+    let mut selected_rows = BTreeMap::<(String, String), BTreeMap<String, Vec<u8>>>::new();
+    let mut selected_collections = repository_plan.receipt().collections.clone();
+    selected_collections.extend(canon_plan.receipt().collections.iter().map(|c| {
+        InputCollectionReceipt {
+            source_graph: c.source_graph.clone(),
+            collection: c.collection.clone(),
+            input_role: c.input_role.clone(),
+            adapter_profile: c.adapter_profile.clone(),
+            expected_count: c.count,
+            expected_root_sha256: c.root_sha256.clone(),
+        }
+    }));
+    for source in &vocabulary.sources {
+        if [
+            "repository-topology-v1",
+            "canon-node-relation-v1",
+            "candidate-relation-v1",
+        ]
+        .contains(&source.adapter_profile.as_str())
+        {
+            continue;
+        }
+        if source.adapter_profile == "declared-identity-and-source-ref-joins-v1" {
+            // This derived family declares scope, not source node/edge rows.
+            // Its actual relations consume the complete same-cut base seal.
+            selected_collections.push(raw_receipt(
+                &source.source_graph_id,
+                "join_scope",
+                &source.input_role,
+                &source.adapter_profile,
+                &BTreeMap::new(),
+            ));
+            continue;
+        }
+        let names: &[&str] = if source.adapter_profile == "reified-bibliographic-claims-v1" {
+            &["nodes", "edges", "claim_traces"]
+        } else {
+            &["nodes", "edges"]
+        };
+        for &collection in names {
+            let mut rows = BTreeMap::new();
+            let values = match source.adapter_profile.as_str() {
+                "source-navigation-node-edge-v1" => navigation.value()[collection]
+                    .as_array()
+                    .unwrap()
+                    .as_slice(),
+                "reified-bibliographic-claims-v1" => {
+                    graph.0.get(collection).map_or(&[][..], Vec::as_slice)
+                }
+                // The selected authored recipe has no inputs for these raw
+                // families. Zero receipts are explicit; no philosophy original
+                // component or whole-source philosophy parity is claimed.
+                "philosophy-node-edge-v1" | "indexed-node-edge-v1" => &[],
+                _ => panic!("unsupported selected source family"),
+            };
+            let key = match collection {
+                "nodes" => "node_id",
+                "edges" => "edge_id",
+                "claim_traces" => "claim_ref",
+                _ => unreachable!(),
+            };
+            for value in values {
+                let id = value[key].as_str().unwrap().to_owned();
+                let raw = serde_json::to_vec(value).unwrap();
+                assert!(raw.len() <= limits.catalog.max_output_row_bytes);
+                assert!(rows.insert(id, raw).is_none());
+            }
+            selected_collections.push(raw_receipt(
+                &source.source_graph_id,
+                collection,
+                &source.input_role,
+                &source.adapter_profile,
+                &rows,
+            ));
+            assert!(
+                selected_rows
+                    .insert((source.source_graph_id.clone(), collection.into()), rows)
+                    .is_none()
+            );
+        }
+    }
+    let mut selected_binding = binding.clone();
+    selected_binding.projection_root_sha256 =
+        Digest256::of_bytes(&serde_json::to_vec(&selected_collections).unwrap()).to_hex();
+    assert!(!selected_path.exists());
+    fs::create_dir_all(selected_path.parent().unwrap()).unwrap();
+    // Keep the actual SQLite allocation compatible with the existing final
+    // VACUUM's two-database temp reserve. This narrows output, not host quota.
+    let search_work_bytes = 2 * 1024 * 1024 * 1024;
+    let mut selected_stage_limits = stage_limits;
+    // This independent fixture stage has a finite 2 GiB work ceiling.
+    // selected_rows excludes repository and canon rows streamed from plans,
+    // so its raw length is not the complete normalized search workload.
+    // The ceiling covers document
+    // materialization, trigram probes/rehash/sort, posting writes and merges,
+    // and final root verification under separate row/posting/temp limits. This
+    // is a fixture work ceiling, not a measured total or a production limit.
+    selected_stage_limits.sqlite.max_work_bytes = search_work_bytes;
+    selected_stage_limits.sqlite.max_output_bytes = stage_limits
+        .sqlite
+        .max_output_bytes
+        .min(stage_limits.max_temp_bytes / 2);
+    let selected_isolation = NativeSelectedIsolation {
+        started,
+        deadline,
+        cancelled: &cancelled,
+        enabled: AtomicBool::new(false),
+        catalog_seen: AtomicBool::new(false),
+        search_seen: AtomicBool::new(false),
+    };
+    let mut selected_stage = KnowledgeStage::create(
+        &selected_path,
+        selected_stage_limits,
+        ExactInputReceipt {
+            binding: selected_binding.clone(),
+            collections: selected_collections,
+        },
+        &owner,
+        &selected_isolation,
+    )
+    .unwrap();
+    render_repository_source_plan(
+        &mut selected_stage,
+        &repository_plan,
+        &vocabulary,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    // The source planner is consumed by its first successful render above.
+    // Continue from that actual frozen output, never reopen an erased plan or
+    // recreate private tables in the independent selected stage.
+    let mut transfer_work = 0u64;
+    for collection in &canon_plan.receipt().collections {
+        let mut after = None;
+        let mut count = 0u64;
+        let mut root = tos_foundation::Digest256Hasher::new();
+        loop {
+            assert!(Instant::now() < deadline);
+            assert!(!cancelled.load(std::sync::atomic::Ordering::Relaxed));
+            let page = target
+                .scan_input(
+                    &collection.source_graph,
+                    &collection.collection,
+                    after.as_deref(),
+                    16,
+                )
+                .unwrap();
+            let mut borrowed = Vec::with_capacity(page.rows.len());
+            for row in &page.rows {
+                transfer_work = transfer_work
+                    .checked_add(u64::try_from(row.id.len() + row.payload.len()).unwrap())
+                    .filter(|n| *n <= stage_limits.sqlite.max_work_bytes)
+                    .expect("native selected transfer work budget");
+                count += 1;
+                assert!(count <= collection.count);
+                root.update(&(row.id.len() as u64).to_be_bytes());
+                root.update(row.id.as_bytes());
+                root.update(Digest256::of_bytes(&row.payload).as_bytes());
+                borrowed.push(InputRow {
+                    source_graph: &collection.source_graph,
+                    collection: &collection.collection,
+                    id: &row.id,
+                    payload: &row.payload,
+                });
+            }
+            if !borrowed.is_empty() {
+                selected_stage.ingest_input_batch(&borrowed).unwrap();
+            }
+            after = page.next_id;
+            if after.is_none() {
+                break;
+            }
+        }
+        assert_eq!(count, collection.count);
+        assert_eq!(root.finalize().to_hex(), collection.root_sha256);
+    }
+    // Canon EOF/count/root was checked during transfer above. The native
+    // projection already owns its independent Original producer evidence.
+    drop(target);
+    assert!(
+        matches!(fs::symlink_metadata(fixture.path().join("corpus.sqlite")),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound)
+    );
+    for ((source, collection), rows) in &selected_rows {
+        let mut entries = rows.iter();
+        loop {
+            let borrowed = entries
+                .by_ref()
+                .take(stage_limits.max_seek_rows)
+                .map(|(id, raw)| InputRow {
+                    source_graph: source,
+                    collection,
+                    id,
+                    payload: raw,
+                })
+                .collect::<Vec<_>>();
+            if borrowed.is_empty() {
+                break;
+            }
+            selected_stage.ingest_input_batch(&borrowed).unwrap();
+        }
+    }
+    // Bind this original plan to the final selected transport, not the prior
+    // corpus planner's projection root. The producer validates every other
+    // source-selection field and preserves its independent output proof.
+    let original = tos_compiler::prepare_native_corpus_original(
+        &projection,
+        &tos_foundation::RelativePath::parse(&output_path).unwrap(),
+        &selected_binding,
+        &vocabulary,
+        tos_compiler::CorpusOriginalSourceLimits {
+            originals,
+            max_members: 1,
+            max_work_bytes: 64 * 1024 * 1024,
+        },
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    let mut navigation_header = navigation.value().clone();
+    for field in ["nodes", "edges", "rights"] {
+        navigation_header.as_object_mut().unwrap().remove(field);
+    }
+    let navigation_header_raw = serde_json::to_vec(&navigation_header).unwrap();
+    let navigation_claim = tos_compiler::NavigationHeaderClaim {
+        expected_sha256: Digest256::of_bytes(&navigation_header_raw).to_hex(),
+        raw_json: navigation_header_raw,
+    };
+    let rights = navigation.value()["rights"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| serde_json::to_vec(r).unwrap())
+        .collect::<Vec<_>>();
+    let rights_refs = rights.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    let rights_root = tos_compiler::navigation_original_rights_root(&rights_refs);
+    let additional = tos_compiler::NativeFamilyInputs {
+        prepared_canon_projection: false,
+        prepared_philosophy_projection: false,
+        repository_root: Some(repository_plan.root_input()),
+        navigation_original: Some(tos_compiler::NavigationOriginalInput {
+            rights: &rights_refs,
+            expected_rights_root_sha256: &rights_root,
+            limits: originals,
+        }),
+        philosophy_original: None,
+        corpus_original: Some(&original),
+        topology: tos_compiler::TopologyLimits {
+            max_rows: stage_limits.sqlite.max_rows,
+            max_page_rows: 16,
+            max_row_bytes: stage_limits.sqlite.max_row_bytes,
+            max_work_bytes: stage_limits.sqlite.max_work_bytes,
+        },
+        canon_prepare: tos_compiler::knowledge_canon_prepare::CanonPrepareLimits {
+            max_nodes: stage_limits.sqlite.max_rows,
+            max_packs: stage_limits.sqlite.max_rows,
+            max_edges: stage_limits.sqlite.max_rows,
+            max_node_relations: stage_limits.sqlite.max_rows,
+            max_page_rows: 16,
+            max_row_bytes: limits.catalog.max_output_row_bytes,
+            max_work_bytes: stage_limits.sqlite.max_work_bytes,
+        },
+        canon: tos_compiler::knowledge_canon_materialize::CanonMaterializeLimits {
+            max_raw_bytes: limits.catalog.max_output_row_bytes,
+            max_output_bytes: limits.catalog.max_output_row_bytes,
+            max_registry_bytes: 4 * 1024 * 1024,
+            max_page_rows: 16,
+            max_page_bytes: 16 * 1024 * 1024,
+            max_rows: stage_limits.sqlite.max_rows,
+            max_work_bytes: stage_limits.sqlite.max_work_bytes,
+        },
+        indexed: tos_compiler::IndexedLimits {
+            max_row_bytes: limits.catalog.max_output_row_bytes,
+            max_page_rows: 16,
+        },
+        processing_run: None,
+    };
+    selected_isolation.enabled.store(true, Ordering::Relaxed);
+    let selected = tos_compiler::knowledge_full_fixture::finish_native_source_fixture(
+        selected_stage,
+        selected_path,
+        &files["ToS/doctrine/semantic-interchange/entity-types.v1.json"],
+        &files["ToS/doctrine/semantic-interchange/relation-types.v1.json"],
+        vocabulary.clone(),
+        descriptor,
+        &navigation_claim,
+        additional,
+        full_limits,
+    );
+    let cold = selected.open().unwrap();
+    let receipt = cold.corpus_original_receipt().unwrap();
+    assert_eq!(
+        receipt.origin.native_producer.as_ref(),
+        Some(projection.receipt())
+    );
+    assert!(receipt.origin.source_git_commit.is_none());
+    assert_eq!(receipt.origin.members.len(), 1);
+    assert_eq!(
+        selected
+            .corpus_original
+            .as_ref()
+            .unwrap()
+            .component_root_sha256,
+        selected
+            .expectation
+            .corpus_original_root_sha256
+            .as_ref()
+            .unwrap()
+            .as_str()
+    );
+    assert_eq!(selected.expectation.source_cut, binding.source_cut);
+    assert_eq!(
+        selected.expectation.membership_root,
+        membership.digest.to_hex()
+    );
+    assert_eq!(
+        selected.expectation.through_commit_seq,
+        binding.through_commit_seq
+    );
+    drop(cold);
+    assert_eq!(projection.receipt().source_revision, revision.0.to_hex());
+    assert!(!selected.graph_input_bytes.is_empty());
+    selected
+}
+
 fn native_corpus_composition_case(installed: bool) {
     use tos_compiler::knowledge_canon_source::*;
     use tos_compiler::knowledge_stage::{InputCollectionReceipt, InputRow};
@@ -1162,7 +2935,7 @@ fn native_corpus_composition_case(installed: bool) {
         );
         phase(started, deadline, "preflight-passed");
     }
-    let (mut files, _) = sources();
+    let (mut files, mut reference) = source_inputs(deadline);
     let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
     files.insert(
         vocabulary_path.into(),
@@ -1206,46 +2979,199 @@ fn native_corpus_composition_case(installed: bool) {
     }
     assert!(files.len() <= 512);
     assert!(files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    let mut reference_rows = reference_repository_rows(&mut reference, &files).unwrap();
+    let limits = BibliographicLimits {
+        catalog: SourceCatalogLimits {
+            max_files: 512,
+            max_rows: 4096,
+            max_file_bytes: 2 * 1024 * 1024,
+            max_row_bytes: 1024 * 1024,
+            max_contract_bytes: 16 * 1024 * 1024,
+            max_output_row_bytes: 1024 * 1024,
+        },
+        max_claim_cohort_rows: 16,
+        max_claim_cohort_bytes: 16 * 1024 * 1024,
+        max_output_rows: 4096,
+        max_output_bytes: 16 * 1024 * 1024,
+        deadline,
+    };
+    // H packet is authenticated archival evidence; C navigation is built from
+    // independently declared raw inputs BEFORE capture/render, never actual.
+    let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
+    let mut retained_expected = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        guard
+            .retained_root(&historical_raw, guard.max_output_bytes)
+            .unwrap()
+    };
+    let historical_navigation = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        let requested =
+            reference_take_member(&mut retained_expected, "source_navigation", &mut guard).unwrap();
+        move_reference_value(requested, &mut guard).unwrap()
+    };
+    let expected_navigation = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        let registries = NavigationRegistries::from_files(&files, &mut guard).unwrap();
+        let inputs = DeclaredNavigationInputs::from_files(&files, &registries, &mut guard).unwrap();
+        // OLD bootstrap pays BEFORE the phase owner and helper reborrows exist.
+        guard.work.visit(64).unwrap();
+        guard.work.charge(COMPOSITION_PHASE_SETUP_BYTES).unwrap();
+        let mut composition_phase = CompositionPhase { attempted: false };
+        activate_composition_reference_scenario_v2(
+            &mut *guard.work,
+            guard.cancelled,
+            &mut composition_phase,
+        )
+        .unwrap();
+        historical_builder_handoff_payment(&mut guard).unwrap();
+        let (nav, historical_navigation) =
+            expected_source_navigation_owned(historical_navigation, &inputs, guard.reborrow())
+                .unwrap();
+        navigation_variant_handoff_payment(&mut guard).unwrap();
+        navigation_reference_variants(historical_navigation, &nav, inputs, &mut guard).unwrap();
+        nav
+    };
     phase(started, deadline, "selected-inputs-ready");
     let fixture = tempfile::TempDir::new().unwrap();
     let git_root = fixture.path().join("selected-git");
     fs::create_dir(&git_root).unwrap();
     git(&git_root, &["init", "-q"]);
-    let mut captured = files.clone();
-    // The native capture binds one exact maintained compiler implementation
-    // beside the authored ToS cut; neither one becomes the other's authority.
+    // Prepay the same bounded metadata state BEFORE constructing the union.
+    // Raw input buffers stay in files; the four added buffers have local owners.
+    // Original insert/override order is preserved, including collisions.
+    reference.charge(512 * 256).unwrap();
+    let extras = [
+        "rust/crates/tos-compiler/src/lib.rs",
+        "rust/crates/tos-compiler/src/source_corpus.rs",
+        "rust/crates/tos-validation/src/bin/tos-schema-worker.rs",
+        "access/contracts/runtime-data.v1.json",
+    ];
+    assert!(
+        files
+            .len()
+            .checked_add(extras.iter().filter(|p| !files.contains_key(**p)).count())
+            .unwrap()
+            <= 512
+    );
+    let mut capture_total = files
+        .values()
+        .try_fold(0usize, |n, raw| n.checked_add(raw.len()))
+        .unwrap();
+    fn capture_extra(
+        repository: &Path,
+        path: &str,
+        reference: &mut CurrentReference,
+        replaced: usize,
+        total: &mut usize,
+    ) -> Vec<u8> {
+        use std::io::Read;
+        let mut file = fs::File::open(repository.join(path)).unwrap();
+        let size = usize::try_from(file.metadata().unwrap().len()).unwrap();
+        assert!(size <= 2 * 1024 * 1024);
+        let prospective = total
+            .checked_sub(replaced)
+            .and_then(|n| n.checked_add(size))
+            .unwrap();
+        assert!(prospective <= 16 * 1024 * 1024);
+        let limit = size.checked_add(1).unwrap();
+        reference
+            .charge(
+                limit
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(4096 + 256))
+                    .unwrap(),
+            )
+            .unwrap();
+        let mut out = Vec::with_capacity(limit);
+        let mut buffer = [0u8; 4096];
+        while out.len() < limit {
+            reference.charge(0).unwrap();
+            reference.visit(1).unwrap();
+            let room = (limit - out.len()).min(buffer.len());
+            let count = file.read(&mut buffer[..room]).unwrap();
+            if count == 0 {
+                break;
+            }
+            out.extend_from_slice(&buffer[..count]);
+        }
+        reference.charge(0).unwrap();
+        assert_eq!(out.len(), size, "capture input changed during read");
+        *total = prospective;
+        out
+    }
     let compiler = "rust/crates/tos-compiler/src/lib.rs";
-    captured.insert(
-        compiler.into(),
-        fs::read(repository.join(compiler)).unwrap(),
+    let compiler_raw = capture_extra(
+        &repository,
+        compiler,
+        &mut reference,
+        files.get(compiler).map_or(0, Vec::len),
+        &mut capture_total,
     );
     let corpus_owner = "rust/crates/tos-compiler/src/source_corpus.rs";
-    captured.insert(
-        corpus_owner.into(),
-        fs::read(repository.join(corpus_owner)).unwrap(),
+    let corpus_raw = capture_extra(
+        &repository,
+        corpus_owner,
+        &mut reference,
+        files.get(corpus_owner).map_or(0, Vec::len),
+        &mut capture_total,
     );
     let worker_source = "rust/crates/tos-validation/src/bin/tos-schema-worker.rs";
-    captured.insert(
-        worker_source.into(),
-        fs::read(repository.join(worker_source)).unwrap(),
+    let worker_raw = capture_extra(
+        &repository,
+        worker_source,
+        &mut reference,
+        files.get(worker_source).map_or(0, Vec::len),
+        &mut capture_total,
     );
-    let declaration_raw =
-        fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
-    let declaration: Value = serde_json::from_slice(&declaration_raw).unwrap();
-    let outputs = declaration["subjects"]
-        .as_array()
-        .unwrap()
+    let declaration_raw = capture_extra(
+        &repository,
+        "access/contracts/runtime-data.v1.json",
+        &mut reference,
+        files
+            .get("access/contracts/runtime-data.v1.json")
+            .map_or(0, Vec::len),
+        &mut capture_total,
+    );
+    // Keep the old complete declaration parse/domain and exact output selection.
+    let declaration: Value = reference.parsed(&declaration_raw).unwrap();
+    let subjects = declaration["subjects"].as_array().unwrap();
+    reference
+        .charge(
+            subjects
+                .len()
+                .checked_mul(3)
+                .map(|n| n.max(4))
+                .and_then(|n| n.checked_mul(std::mem::size_of::<&Value>()))
+                .unwrap(),
+        )
+        .unwrap();
+    reference
+        .visit(subjects.len().checked_add(1).unwrap())
+        .unwrap();
+    let outputs = subjects
         .iter()
         .filter(|subject| subject["subject_id"] == "tos-corpus-index")
         .collect::<Vec<_>>();
     assert_eq!(outputs.len(), 1);
-    let output_path = outputs[0]["source_path"].as_str().unwrap().to_owned();
+    let selected_path = outputs[0]["source_path"].as_str().unwrap();
+    reference
+        .charge(selected_path.len().checked_add(128).unwrap())
+        .unwrap();
+    let output_path = selected_path.to_owned();
+    let mut captured = files
+        .iter()
+        .map(|(path, raw)| (path.as_str(), raw.as_slice()))
+        .collect::<BTreeMap<_, _>>();
+    captured.insert(compiler, compiler_raw.as_slice());
+    captured.insert(corpus_owner, corpus_raw.as_slice());
+    captured.insert(worker_source, worker_raw.as_slice());
     captured.insert(
-        "access/contracts/runtime-data.v1.json".into(),
-        declaration_raw,
+        "access/contracts/runtime-data.v1.json",
+        declaration_raw.as_slice(),
     );
     assert!(captured.len() <= 512);
-    assert!(captured.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
+    assert!(captured.values().map(|raw| raw.len()).sum::<usize>() <= 16 * 1024 * 1024);
     phase(started, deadline, "capture-inputs-ready");
     for (path, raw) in &captured {
         let target = git_root.join(path);
@@ -1310,6 +3236,32 @@ fn native_corpus_composition_case(installed: bool) {
         &cancelled,
     )
     .unwrap();
+    reference
+        .visit(captured.len().checked_mul(captured.len()).unwrap())
+        .unwrap();
+    let observed = software
+        .members()
+        .map(|m| {
+            (
+                m.path.as_str(),
+                usize::try_from(m.size_bytes).unwrap(),
+                m.sha256,
+            )
+        })
+        .collect::<Vec<_>>();
+    reference
+        .charge(
+            captured
+                .values()
+                .try_fold(0usize, |n, raw| {
+                    n.checked_add(raw.len()).and_then(|n| n.checked_add(64))
+                })
+                .unwrap(),
+        )
+        .unwrap();
+    assert!(reference_metadata_matches(&captured, &observed));
+    drop(captured); // no borrowed union outlives any extra owner
+    drop(observed);
     let store = fixture.path().join("source-store");
     let revision = super::validation_cut_cases::write_cut_store(&files, &store);
     // The retained consumer recipe stays small and keeps its historical
@@ -1359,21 +3311,6 @@ fn native_corpus_composition_case(installed: bool) {
         reader_abi: "fixture-v1".into(),
         projection_root_sha256: Digest256::of_bytes(b"independent-native-corpus-plan").to_hex(),
         complete: true,
-    };
-    let limits = BibliographicLimits {
-        catalog: SourceCatalogLimits {
-            max_files: 512,
-            max_rows: 4096,
-            max_file_bytes: 2 * 1024 * 1024,
-            max_row_bytes: 1024 * 1024,
-            max_contract_bytes: 16 * 1024 * 1024,
-            max_output_row_bytes: 1024 * 1024,
-        },
-        max_claim_cohort_rows: 16,
-        max_claim_cohort_bytes: 16 * 1024 * 1024,
-        max_output_rows: 4096,
-        max_output_bytes: 16 * 1024 * 1024,
-        deadline,
     };
     let catalog_plan = plan_source_catalog_inputs(
         &cut,
@@ -1715,8 +3652,10 @@ fn native_corpus_composition_case(installed: bool) {
         fs::create_dir_all(to.parent().unwrap()).unwrap();
         fs::write(to, raw).unwrap();
     }
-    let historical_raw = crate::frozen_legacy_python_oracle_raw("corpus-composition");
-    let mut expected: Value = serde_json::from_slice(&historical_raw).unwrap();
+    let mut expected = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        move_reference_value(retained_expected, &mut guard).unwrap()
+    };
     reconcile_source_home_inputs(&mut expected, &files);
     assert_eq!(
         expected["validation_refs"],
@@ -1730,55 +3669,31 @@ fn native_corpus_composition_case(installed: bool) {
         "rust/crates/tos-compiler/src/source_corpus.rs",
         "tests/conformance/rust/compiler_source_cases.rs",
     ]);
-    let resource_rows = expected["resources"].as_array_mut().unwrap();
-    let vocabulary_path = "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json";
-    assert!(
-        !resource_rows
-            .iter()
-            .any(|row| row["path"] == vocabulary_path)
-    );
-    resource_rows.push(serde_json::json!({
-        "path":vocabulary_path, "resource_kind":"json", "owner_branch":"ToS/doctrine",
-        "authority_layer":"doctrine", "sha256":"", "size_bytes":0,
-    }));
-    append_current_contract_resources(resource_rows);
-    for row in resource_rows.iter_mut() {
-        let path = row["path"].as_str().unwrap();
-        let raw = files
-            .get(path)
-            .unwrap_or_else(|| panic!("selected resource absent: {path}"));
-        row["sha256"] = serde_json::json!(Digest256::of_bytes(raw).to_hex());
-        row["size_bytes"] = serde_json::json!(raw.len());
+    assert_eq!(expected["resources"].as_array().unwrap().len(), 337);
+    for collection in ["branches", "manifests", "resources"] {
+        expected[collection] = serde_json::json!(reference_rows.remove(collection).unwrap());
     }
-    resource_rows.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
-    expected["counts"]["resources"] = serde_json::json!(resource_rows.len());
-    assert_retained_corpus_navigation_extension(
-        &projection.value()["source_navigation"],
-        &expected["source_navigation"],
-        &files,
-    );
-    expected["source_navigation"] = projection.value()["source_navigation"].clone();
-    expected["counts"]["source_navigation_nodes"] = json!(12);
-    expected["counts"]["source_navigation_edges"] = json!(10);
-    let expected_limits = JsonLimits::new(16 * 1024 * 1024, 96, 1_000_000, 4096).unwrap();
-    let expected_document = parse_json(
-        &serde_json::to_vec(&expected).unwrap(),
-        JsonMode::PublishedStrict,
-        expected_limits,
-    )
-    .unwrap();
-    let mut expected_raw = canonical_bytes_v1(
-        expected_document.root(),
-        CanonicalProfile::SourceRecordDigestV1,
-        expected_limits,
-    )
-    .unwrap();
+    expected["counts"]["resources"] =
+        serde_json::json!(expected["resources"].as_array().unwrap().len());
+    expected["source_navigation"] = expected_navigation;
+    expected["counts"]["source_navigation_nodes"] =
+        expected["source_navigation"]["counts"]["nodes"].clone();
+    expected["counts"]["source_navigation_edges"] =
+        expected["source_navigation"]["counts"]["edges"].clone();
+    let mut expected_raw = {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        guard.canonical_value(&expected).unwrap()
+    };
+    reference.charge(1).unwrap();
+    assert!(expected_raw.len() < 16 * 1024 * 1024);
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     reconcile_source_home_inputs(&mut query_oracle, &files);
-    // The selected native cut adds the vocabulary and seven current contracts.
+    // CurrentDeclared counts derive from the independently frozen input recipe;
+    // the historical query packets retain their own 337-resource source scope.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(345));
+    reference.visit(9 * 3).unwrap();
+    reference.charge(9 * 3 * 192).unwrap();
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
@@ -1794,15 +3709,15 @@ fn native_corpus_composition_case(installed: bool) {
         assert_eq!(*count, serde_json::json!(337));
         *count = expected["counts"]["resources"].clone();
         let parent = pointer.strip_suffix("/resources").unwrap();
-        for (field, old, new) in [
-            ("source_navigation_nodes", 6, 12),
-            ("source_navigation_edges", 4, 10),
+        for (field, old) in [
+            ("source_navigation_nodes", 6),
+            ("source_navigation_edges", 4),
         ] {
             let value = query_oracle
                 .pointer_mut(&format!("{parent}/{field}"))
                 .unwrap();
             assert_eq!(*value, json!(old));
-            *value = json!(new);
+            *value = expected["counts"][field].clone();
         }
     }
     for pointer in [
@@ -1825,6 +3740,19 @@ fn native_corpus_composition_case(installed: bool) {
             }
             _ => serde_json::json!("tos_corpus_mcp_packet_v2"),
         };
+    }
+    {
+        let mut guard = ReferenceLimits::for_case(&mut reference, &cancelled, &limits).unwrap();
+        guard.compare_work(&expected, 0).unwrap();
+        guard.compare_work(projection.value(), 0).unwrap();
+        guard
+            .bytes(
+                expected_raw
+                    .len()
+                    .checked_add(projection.output_bytes().len())
+                    .unwrap(),
+            )
+            .unwrap();
     }
     assert_eq!(projection.value(), &expected);
     assert_eq!(projection.output_bytes(), expected_raw.as_slice());

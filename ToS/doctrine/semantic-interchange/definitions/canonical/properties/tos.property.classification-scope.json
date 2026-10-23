@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.classification-scope",
+  "field": "attributes.value.scope_note",
+  "labels": {
+    "default": "Classification scope",
+    "ru": "Область классификации",
+    "en": "Classification scope"
+  },
+  "definition": "The specific object, realization or passage and contextual limits to which the classification applies.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.classification-value"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

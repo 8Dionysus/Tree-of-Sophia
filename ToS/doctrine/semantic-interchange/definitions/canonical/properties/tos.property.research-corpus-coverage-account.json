@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.research-corpus-coverage-account",
+  "field": "attributes.source_record.semantic_content.coverage_account",
+  "labels": {
+    "default": "Corpus coverage account",
+    "ru": "Описание охвата корпуса",
+    "en": "Corpus coverage account"
+  },
+  "definition": "The source-described corpus coverage account of this persistent corpus; exact membership, order and admission remain separate Claims.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.research-corpus"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -306,6 +306,7 @@ impl JsonValue {
             WriteStyle::PythonCompact
         };
         let mut output = JsonOutput {
+            numeric_input_max_bytes: limits.max_bytes,
             sink: JsonSink::Digest {
                 hasher,
                 bytes: *written,
@@ -1137,7 +1138,7 @@ pub fn canonical_bytes_v1_with_check(
         WriteStyle::PythonCompact
     };
     let mut bytes = Vec::new();
-    let mut output = JsonOutput::bytes(&mut bytes);
+    let mut output = JsonOutput::bytes(&mut bytes, limits.max_bytes);
     output.poll = JsonCheck::new(Some(check));
     write_document_into(value, limits, style, &mut output)?;
     Ok(bytes)
@@ -1204,9 +1205,461 @@ fn canonical_write_style(profile: CanonicalProfile) -> WriteStyle {
     }
 }
 
+// Optional caller-owned storage for consecutive source-command canonical
+// operations. No input reference or validation result survives in this owner.
+struct SortFrame {
+    start: usize,
+    len: usize,
+}
+
+pub struct CanonicalReuseWorkspace {
+    wire: Vec<u8>,
+    ordinals: [usize; 19],
+    frames: [SortFrame; 65],
+    used: usize,
+    busy: bool,
+    poisoned: bool,
+}
+
+impl CanonicalReuseWorkspace {
+    /// Construct empty storage. Allocation is deferred until a complete count.
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            wire: Vec::new(),
+            ordinals: [0; 19],
+            frames: [const { SortFrame { start: 0, len: 0 } }; 65],
+            used: 0,
+            busy: false,
+            poisoned: false,
+        })
+    }
+
+    /// A failed operation is terminal for this owner; no retry releases spend.
+    pub fn poison(&mut self) {
+        self.poisoned = true;
+    }
+}
+
+struct ArenaView<'w> {
+    ordinals: &'w mut [usize],
+    frames: &'w mut [SortFrame],
+    used: &'w mut usize,
+}
+
+pub struct CanonicalReusePrepared<'v> {
+    root: &'v JsonValue,
+    peak_keys: usize,
+    max_number_len: usize,
+    numbers: usize,
+}
+
+pub struct CanonicalSlice<'w> {
+    pub raw: &'w [u8],
+    pub visits: usize,
+    pub capacity: usize,
+}
+
+impl CanonicalReusePrepared<'_> {
+    pub fn number_count(&self) -> usize {
+        self.numbers
+    }
+}
+
+#[derive(Clone, Copy)]
+struct ScanFrame<'v> {
+    value: &'v JsonValue,
+    next: usize,
+    fields: usize,
+}
+
+/// Size immutable storage hints; this is not a semantic validation witness.
+/// An unsupported hint selects the complete ordinary canonical route.
+pub fn prepare_source_command_reuse<'v>(
+    root: &'v JsonValue,
+    check: &mut dyn FnMut() -> Result<()>,
+    admit: &mut dyn FnMut(usize, usize) -> Result<()>,
+) -> Result<Option<CanonicalReusePrepared<'v>>> {
+    admit(128, 16)?;
+    let mut stack = [ScanFrame {
+        value: root,
+        next: 0,
+        fields: 0,
+    }; 65];
+    let mut depth = 0usize;
+    let mut active = 0usize;
+    let mut peak_keys = 0usize;
+    let mut max_number_len = 0usize;
+    let mut numbers = 0usize;
+    loop {
+        check()?;
+        if stack[depth].next == 0 {
+            match stack[depth].value {
+                JsonValue::Object(entries) => {
+                    let Some(next) = active.checked_add(entries.len()) else {
+                        return Ok(None);
+                    };
+                    active = next;
+                    peak_keys = peak_keys.max(active);
+                    if peak_keys > 19 {
+                        return Ok(None);
+                    }
+                    stack[depth].fields = entries.len();
+                }
+                JsonValue::Array(items) => stack[depth].fields = items.len(),
+                JsonValue::Number(number) => {
+                    admit(64, 24)?;
+                    let raw = number.lexeme.as_bytes();
+                    if !matches!(number.kind, JsonNumberKind::Int) || raw.len() > 4 {
+                        return Ok(None);
+                    }
+                    let mut digits = raw.iter();
+                    let mut first = digits.next();
+                    if matches!(first, Some(b'-')) {
+                        first = digits.next();
+                    }
+                    if matches!(first, Some(b'0')) {
+                        if digits.next().is_some() {
+                            return Ok(None);
+                        }
+                    } else {
+                        if !matches!(first, Some(b'1'..=b'9')) {
+                            return Ok(None);
+                        }
+                        while let Some(byte) = digits.next() {
+                            if !byte.is_ascii_digit() {
+                                return Ok(None);
+                            }
+                        }
+                    }
+                    let Some(next) = numbers.checked_add(1) else {
+                        return Ok(None);
+                    };
+                    numbers = next;
+                    max_number_len = max_number_len.max(raw.len());
+                }
+                _ => {}
+            }
+            stack[depth].next = 1;
+        }
+        if stack[depth].next - 1 < stack[depth].fields {
+            if depth == 64 {
+                return Ok(None);
+            }
+            admit(128, 16)?;
+            let child = match stack[depth].value {
+                JsonValue::Object(entries) => match entries.get(stack[depth].next - 1) {
+                    Some(entry) => Some(&entry.1),
+                    None => None,
+                },
+                JsonValue::Array(items) => items.get(stack[depth].next - 1),
+                _ => None,
+            };
+            let Some(child) = child else {
+                return Ok(None);
+            };
+            let Some(next) = stack[depth].next.checked_add(1) else {
+                return Ok(None);
+            };
+            stack[depth].next = next;
+            depth += 1;
+            stack[depth] = ScanFrame {
+                value: child,
+                next: 0,
+                fields: 0,
+            };
+        } else {
+            if matches!(stack[depth].value, JsonValue::Object(_)) {
+                let Some(next) = active.checked_sub(stack[depth].fields) else {
+                    return Ok(None);
+                };
+                active = next;
+            }
+            if depth == 0 {
+                break;
+            }
+            depth -= 1;
+        }
+    }
+    Ok(Some(CanonicalReusePrepared {
+        root,
+        peak_keys,
+        max_number_len,
+        numbers,
+    }))
+}
+
+/// Emit a complete source-command value into caller-owned, nonescaping storage.
+/// The caller has admitted the persistent backing before this operation begins.
+pub fn canonical_source_command_into_reuse<'w>(
+    prepared: CanonicalReusePrepared<'_>,
+    owner: &'w mut CanonicalReuseWorkspace,
+    mut limits: JsonLimits,
+    available: usize,
+    check: &mut dyn FnMut() -> Result<()>,
+    admit: &mut dyn FnMut(usize, usize) -> Result<()>,
+) -> Result<CanonicalSlice<'w>> {
+    if owner.busy || owner.poisoned || owner.used != 0 {
+        return Err(state_error());
+    }
+    owner.busy = true;
+    // Every early return is terminal. Success clears this flag only after emit.
+    owner.poisoned = true;
+    let scratch_slots = limits
+        .max_depth
+        .checked_add(1)
+        .and_then(|depth| {
+            depth.checked_mul(std::mem::size_of::<Vec<(usize, &(JsonString, JsonValue))>>())
+        })
+        .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<FormatCount>()))
+        .and_then(|n| n.checked_add(2 * std::mem::size_of::<JsonOutput>()))
+        .ok_or_else(state_error)?;
+    if scratch_slots > available {
+        return Err(state_error());
+    }
+    let style = canonical_write_style(CanonicalProfile::SourceCommandInputV1);
+    let mut arena = ArenaView {
+        ordinals: &mut owner.ordinals[..],
+        frames: &mut owner.frames[..],
+        used: &mut owner.used,
+    };
+    let (count, used) = {
+        let mut count_sink = JsonOutput {
+            numeric_input_max_bytes: limits.max_bytes,
+            poll: JsonCheck::with_admission(Some(&mut *check), Some(&mut *admit)),
+            sink: JsonSink::StateCount {
+                count: 0,
+                available,
+                scratch: scratch_slots,
+            },
+        };
+        limits.validate()?;
+        count_sink.poll.now()?;
+        let mut count_visits = 0;
+        let mut count_numeric = 0;
+        write_value_reuse(
+            prepared.root,
+            &mut count_sink,
+            0,
+            &mut count_visits,
+            &mut count_numeric,
+            limits,
+            style,
+            true,
+            &mut arena,
+        )?;
+        if style.newline() {
+            emit(&mut count_sink, b"\n", limits)?;
+        }
+        count_sink.poll.now()?;
+        let used = count_visits
+            .checked_add(count_numeric)
+            .ok_or_else(state_error)?;
+        let count = count_sink.len();
+        if count
+            > available
+                .checked_sub(scratch_slots)
+                .ok_or_else(state_error)?
+        {
+            return Err(state_error());
+        }
+        (count, used)
+    };
+    if *arena.used != 0 || count > 8192 {
+        return Err(state_error());
+    }
+    // Count has completed; previous output is not mutated before this boundary.
+    owner.wire.clear();
+    if owner.wire.capacity() == 0 {
+        owner
+            .wire
+            .try_reserve_exact(8192)
+            .map_err(|_| state_error())?;
+    }
+    if owner.wire.capacity() != 8192
+        || owner.wire.capacity()
+            > available
+                .checked_sub(scratch_slots)
+                .ok_or_else(state_error)?
+    {
+        return Err(state_error());
+    }
+    let visits = {
+        let mut output = JsonOutput {
+            numeric_input_max_bytes: limits.max_bytes,
+            poll: JsonCheck::with_admission(Some(&mut *check), Some(&mut *admit)),
+            sink: JsonSink::StateBytes {
+                bytes: &mut owner.wire,
+                available,
+                scratch: scratch_slots,
+            },
+        };
+        limits.max_bytes = limits.max_bytes.min(count);
+        limits.max_visits = limits
+            .max_visits
+            .checked_sub(used)
+            .ok_or_else(state_error)?;
+        limits.validate()?;
+        output.poll.now()?;
+        let mut emit_visits = 0;
+        let mut emit_numeric = 0;
+        write_value_reuse(
+            prepared.root,
+            &mut output,
+            0,
+            &mut emit_visits,
+            &mut emit_numeric,
+            limits,
+            style,
+            true,
+            &mut arena,
+        )?;
+        if style.newline() {
+            emit(&mut output, b"\n", limits)?;
+        }
+        output.poll.now()?;
+        used.checked_add(emit_visits)
+            .and_then(|n| n.checked_add(emit_numeric))
+            .ok_or_else(state_error)?
+    };
+    if owner.wire.len() != count {
+        return Err(FoundationError::new(
+            Code::InvalidJson,
+            "canonical count differs",
+        ));
+    }
+    if *arena.used != 0 {
+        return Err(state_error());
+    }
+    owner.busy = false;
+    owner.poisoned = false;
+    Ok(CanonicalSlice {
+        raw: owner.wire.as_slice(),
+        visits,
+        capacity: owner.wire.capacity(),
+    })
+}
+
+// Source-sized private storage handles for prospective caller admission.
+// The ordinal closure's sole captured slice and thin receiver are explicit
+// capture enclosures; all named value/reference terms use their actual types.
+pub const CANONICAL_REUSE_SETUP_STATE: usize = std::mem::size_of::<[CanonicalReuseWorkspace; 2]>()
+    + std::mem::size_of::<[Result<CanonicalReuseWorkspace>; 2]>()
+    + std::mem::size_of::<[FoundationError; 4]>()
+    + std::mem::size_of::<[usize; 24]>()
+    + std::mem::size_of::<[Option<usize>; 8]>()
+    + std::mem::size_of::<[bool; 8]>()
+    + std::mem::size_of::<[std::collections::TryReserveError; 4]>()
+    + std::mem::size_of::<[std::result::Result<(), std::collections::TryReserveError>; 4]>()
+    + std::mem::size_of::<[&mut Vec<u8>; 4]>()
+    + std::mem::size_of::<[&CanonicalReuseWorkspace; 4]>()
+    + std::mem::size_of::<[&mut CanonicalReuseWorkspace; 4]>()
+    + std::mem::size_of::<[&mut std::result::Result<(), std::collections::TryReserveError>; 2]>()
+    + std::mem::size_of::<[SortFrame; 2]>();
+
+pub const CANONICAL_REUSE_CALL_STATE: usize = std::mem::size_of::<[ScanFrame<'_>; 65]>()
+    + std::mem::size_of::<[ScanFrame<'_>; 2]>()
+    + std::mem::size_of::<[CanonicalReusePrepared<'_>; 2]>()
+    + std::mem::size_of::<[Option<CanonicalReusePrepared<'_>>; 2]>()
+    + std::mem::size_of::<[Result<Option<CanonicalReusePrepared<'_>>>; 2]>()
+    + std::mem::size_of::<[&JsonValue; 8]>()
+    + std::mem::size_of::<[&mut dyn FnMut() -> Result<()>; 2]>()
+    + std::mem::size_of::<[&mut dyn FnMut(usize, usize) -> Result<()>; 2]>()
+    + std::mem::size_of::<[usize; 16]>()
+    + std::mem::size_of::<[Option<usize>; 8]>()
+    + std::mem::size_of::<[FoundationError; 4]>()
+    + std::mem::size_of::<[Result<()>; 4]>()
+    + std::mem::size_of::<[bool; 16]>()
+    + std::mem::size_of::<[Option<&JsonValue>; 4]>()
+    + std::mem::size_of::<[Option<&(JsonString, JsonValue)>; 4]>()
+    + std::mem::size_of::<[&Vec<JsonValue>; 4]>()
+    + std::mem::size_of::<[&Vec<(JsonString, JsonValue)>; 4]>()
+    + std::mem::size_of::<[&ScanFrame<'_>; 4]>()
+    + std::mem::size_of::<[&mut ScanFrame<'_>; 4]>()
+    + std::mem::size_of::<[&[u8]; 4]>()
+    + std::mem::size_of::<[&JsonNumber; 4]>()
+    + std::mem::size_of::<[std::slice::Iter<'_, u8>; 2]>()
+    + std::mem::size_of::<[Option<&u8>; 4]>()
+    + std::mem::size_of::<[&u8; 4]>()
+    + std::mem::size_of::<[&mut ArenaView<'_>; 130]>()
+    + std::mem::size_of::<[&mut CanonicalReuseWorkspace; 16]>()
+    + std::mem::size_of::<[usize; 162]>()
+    + std::mem::size_of::<[std::ops::Range<usize>; 65]>()
+    + std::mem::size_of::<[Option<usize>; 16]>()
+    + std::mem::size_of::<[Result<()>; 4]>()
+    + std::mem::size_of::<[Result<std::cmp::Ordering>; 4]>()
+    + std::mem::size_of::<[Result<(usize, usize)>; 4]>()
+    + std::mem::size_of::<[Result<JsonDocument>; 2]>()
+    + std::mem::size_of::<[JsonValue; 2]>()
+    + std::mem::size_of::<[JsonNumber; 2]>()
+    + std::mem::size_of::<[String; 4]>()
+    + std::mem::size_of::<[&JsonNumber; 4]>()
+    + std::mem::size_of::<[&[u8]; 4]>()
+    + std::mem::size_of::<[&[usize]; 4]>()
+    + std::mem::size_of::<[&mut [usize]; 4]>()
+    + std::mem::size_of::<[&[(JsonString, JsonValue)]; 4]>()
+    + std::mem::size_of::<[Option<String>; 2]>()
+    + std::mem::size_of::<[Option<&mut dyn FnMut() -> Result<()>>; 2]>()
+    + std::mem::size_of::<[Option<&mut dyn FnMut(usize, usize) -> Result<()>>; 2]>()
+    + std::mem::size_of::<[JsonLimits; 2]>()
+    + std::mem::size_of::<[bool; 16]>()
+    + std::mem::size_of::<[FoundationError; 4]>()
+    + std::mem::size_of::<[CanonicalReusePrepared<'_>; 2]>()
+    + std::mem::size_of::<[Option<CanonicalReusePrepared<'_>>; 2]>()
+    + std::mem::size_of::<[Result<Option<CanonicalReusePrepared<'_>>>; 2]>()
+    + std::mem::size_of::<[CanonicalSlice<'_>; 2]>()
+    + std::mem::size_of::<[Result<CanonicalSlice<'_>>; 2]>()
+    + std::mem::size_of::<[ArenaView<'_>; 2]>()
+    + std::mem::size_of::<[&CanonicalSlice<'_>; 4]>()
+    + std::mem::size_of::<[&mut dyn FnMut() -> Result<()>; 4]>()
+    + std::mem::size_of::<[&mut dyn FnMut(usize, usize) -> Result<()>; 4]>()
+    + std::mem::size_of::<[Digest256; 4]>()
+    + std::mem::size_of::<[&JsonValue; 130]>()
+    + std::mem::size_of::<[&mut JsonOutput<'_, '_>; 4]>()
+    + std::mem::size_of::<[&JsonOutput<'_, '_>; 4]>()
+    + std::mem::size_of::<[&usize; 8]>()
+    + std::mem::size_of::<[&[(JsonString, JsonValue)]; 2]>()
+    + std::mem::size_of::<[&mut &[(JsonString, JsonValue)]; 4]>()
+    + std::mem::size_of::<[&mut [SortFrame]; 8]>()
+    + std::mem::size_of::<[&[SortFrame]; 4]>()
+    + std::mem::size_of::<[&SortFrame; 4]>()
+    + std::mem::size_of::<[&mut SortFrame; 4]>()
+    + std::mem::size_of::<[&mut usize; 4]>()
+    + std::mem::size_of::<[&mut [usize; 19]; 2]>()
+    + std::mem::size_of::<[&mut [SortFrame; 65]; 2]>()
+    + std::mem::size_of::<[&mut Vec<u8>; 6]>()
+    + std::mem::size_of::<[&Vec<u8>; 4]>()
+    + std::mem::size_of::<[&String; 4]>()
+    + std::mem::size_of::<[&mut std::slice::Iter<'_, u8>; 4]>()
+    + std::mem::size_of::<[&CanonicalReusePrepared<'_>; 4]>()
+    + std::mem::size_of::<[&Vec<u8>; 2]>();
+
+pub const CANONICAL_REUSE_CORE_STATE: usize = std::mem::size_of::<[Parser<'_, '_>; 1]>()
+    + std::mem::size_of::<[JsonDocument; 2]>()
+    + std::mem::size_of::<[Result<JsonDocument>; 2]>()
+    + std::mem::size_of::<[JsonValue; 2]>()
+    + std::mem::size_of::<[JsonNumber; 2]>()
+    + std::mem::size_of::<[String; 4]>()
+    + std::mem::size_of::<[Option<String>; 2]>()
+    + std::mem::size_of::<[FoundationError; 4]>()
+    + std::mem::size_of::<[Result<()>; 4]>()
+    + std::mem::size_of::<[&JsonNumber; 4]>()
+    + std::mem::size_of::<[&[u8]; 4]>()
+    + std::mem::size_of::<[usize; 12]>()
+    + std::mem::size_of::<[bool; 8]>()
+    + std::mem::size_of::<[&mut dyn FnMut() -> Result<()>; 2]>()
+    + std::mem::size_of::<[&mut dyn FnMut(usize, usize) -> Result<()>; 2]>()
+    + std::mem::size_of::<[u8; 128]>()
+    + std::mem::size_of::<[&JsonDocument; 4]>()
+    + std::mem::size_of::<[&JsonValue; 4]>()
+    + std::mem::size_of::<[&mut Parser<'_, '_>; 2]>();
+
 /// Canonical bytes with the same state/visit limits and a prefix work owner.
 /// Admit each count/emit byte and visitor prefix before processing it, retaining
 /// successful charges on refusal instead of charging the whole output ceiling.
+/// Key comparisons additionally admit their bounded input-byte windows before
+/// scanning them; the returned visit count remains the actual value visits.
 pub fn canonical_bytes_v1_with_state_budget_and_visits_and_admission(
     value: &JsonValue,
     profile: CanonicalProfile,
@@ -1285,6 +1738,7 @@ fn write_with_state_budget_and_visits(
     }
     let (count, used) = {
         let mut count_sink = JsonOutput {
+            numeric_input_max_bytes: limits.max_bytes,
             poll: JsonCheck::with_admission(
                 check
                     .as_mut()
@@ -1327,12 +1781,8 @@ fn write_with_state_budget_and_visits(
     {
         return Err(state_error());
     }
-    limits.max_bytes = limits.max_bytes.min(count);
-    limits.max_visits = limits
-        .max_visits
-        .checked_sub(used)
-        .ok_or_else(state_error)?;
     let mut output = JsonOutput {
+        numeric_input_max_bytes: limits.max_bytes,
         poll: JsonCheck::with_admission(
             check
                 .as_mut()
@@ -1351,6 +1801,11 @@ fn write_with_state_budget_and_visits(
             scratch: scratch_slots,
         },
     };
+    limits.max_bytes = limits.max_bytes.min(count);
+    limits.max_visits = limits
+        .max_visits
+        .checked_sub(used)
+        .ok_or_else(state_error)?;
     let (emit_visits, emit_numeric) =
         write_document_into_with_visits(value, limits, style, &mut output, true)?;
     if bytes.len() != count {
@@ -1384,7 +1839,7 @@ pub fn canonical_bytes_v1_with_visits(
         value,
         limits,
         style,
-        &mut JsonOutput::bytes(&mut bytes),
+        &mut JsonOutput::bytes(&mut bytes, limits.max_bytes),
         true,
     )?;
     Ok((bytes, writer_visits, numeric_parse_visits))
@@ -1402,7 +1857,7 @@ pub fn canonical_count_v1(
             WriteStyle::PythonCompact
         }
     };
-    let mut output = JsonOutput::count();
+    let mut output = JsonOutput::count(limits.max_bytes);
     write_document_into(value, limits, style, &mut output)?;
     Ok(output.len())
 }
@@ -1457,6 +1912,7 @@ fn canonical_feed_digest_inner(
 ) -> Result<()> {
     limits.validate()?;
     let mut output = JsonOutput {
+        numeric_input_max_bytes: limits.max_bytes,
         sink: JsonSink::Digest {
             hasher,
             bytes: *written,
@@ -1696,18 +2152,21 @@ enum JsonSink<'a> {
 struct JsonOutput<'a, 'c> {
     sink: JsonSink<'a>,
     poll: JsonCheck<'c>,
+    numeric_input_max_bytes: usize,
 }
 impl<'a, 'c> JsonOutput<'a, 'c> {
-    fn bytes(bytes: &'a mut Vec<u8>) -> Self {
+    fn bytes(bytes: &'a mut Vec<u8>, numeric_input_max_bytes: usize) -> Self {
         Self {
             sink: JsonSink::Bytes(bytes),
             poll: JsonCheck::new(None),
+            numeric_input_max_bytes,
         }
     }
-    fn count() -> Self {
+    fn count(numeric_input_max_bytes: usize) -> Self {
         Self {
             sink: JsonSink::Count(0),
             poll: JsonCheck::new(None),
+            numeric_input_max_bytes,
         }
     }
     fn state_remaining(&self) -> Option<usize> {
@@ -1760,7 +2219,12 @@ impl<'a, 'c> JsonOutput<'a, 'c> {
 }
 fn write_document(value: &JsonValue, limits: JsonLimits, style: WriteStyle) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
-    write_document_into(value, limits, style, &mut JsonOutput::bytes(&mut bytes))?;
+    write_document_into(
+        value,
+        limits,
+        style,
+        &mut JsonOutput::bytes(&mut bytes, limits.max_bytes),
+    )?;
     Ok(bytes)
 }
 fn write_document_into(
@@ -1979,6 +2443,7 @@ fn write_value(
             // JsonValue is public for owner-schema traversal. Do not trust a caller-built
             // Number to carry a valid JSON lexeme or the declared numeric kind.
             let mut validation_limits = limits;
+            validation_limits.max_bytes = output.numeric_input_max_bytes;
             if combined_visit_limit {
                 let completed_visits =
                     visits.checked_add(*numeric_parse_visits).ok_or_else(|| {
@@ -2146,11 +2611,19 @@ fn write_value(
                 }
                 for pair in ordered.windows(2) {
                     let duplicate = if checked_scalar_keys {
-                        checked_units_equal(
-                            &pair[0].1.0.units,
-                            &pair[1].1.0.units,
-                            &mut output.poll,
-                        )?
+                        let left = &pair[0].1.0.units;
+                        let right = &pair[1].1.0.units;
+                        output.poll.admit_work(1, 0)?;
+                        if left.len() == right.len() {
+                            let bytes = left
+                                .len()
+                                .checked_mul(2 * std::mem::size_of::<u16>())
+                                .ok_or_else(state_error)?;
+                            // Prepay both source key buffers before equality;
+                            // parser admission retains its separate contract.
+                            output.poll.admit_work(bytes, 0)?;
+                        }
+                        checked_units_equal(left, right, &mut output.poll)?
                     } else {
                         pair[0].1.0.units == pair[1].1.0.units
                     };
@@ -2339,6 +2812,281 @@ fn write_value(
             }
             emit(output, b"}", limits)?;
         }
+    }
+    Ok(())
+}
+
+fn write_value_reuse(
+    value: &JsonValue,
+    output: &mut JsonOutput<'_, '_>,
+    depth: usize,
+    visits: &mut usize,
+    numeric_parse_visits: &mut usize,
+    limits: JsonLimits,
+    style: WriteStyle,
+    combined_visit_limit: bool,
+    arena: &mut ArenaView<'_>,
+) -> Result<()> {
+    if !matches!(value, JsonValue::Array(_) | JsonValue::Object(_)) {
+        return write_value(
+            value,
+            output,
+            depth,
+            visits,
+            numeric_parse_visits,
+            limits,
+            style,
+            combined_visit_limit,
+        );
+    }
+    output.poll.work(256)?;
+    let completed_visits = if combined_visit_limit {
+        visits.checked_add(*numeric_parse_visits).ok_or_else(|| {
+            FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
+        })?
+    } else {
+        *visits
+    };
+    if depth > limits.max_depth || completed_visits >= limits.max_visits {
+        return Err(FoundationError::new(
+            Code::BudgetExceeded,
+            "JSON output structural budget exceeded",
+        ));
+    }
+    output.poll.admit_work(0, 1)?;
+    *visits += 1;
+    match value {
+        JsonValue::Array(items) => {
+            emit(output, b"[", limits)?;
+            for (index, item) in items.iter().enumerate() {
+                if index != 0 {
+                    emit(
+                        output,
+                        if style.pretty() {
+                            &b",\n"[..]
+                        } else {
+                            &b","[..]
+                        },
+                        limits,
+                    )?;
+                } else if style.pretty() {
+                    emit(output, b"\n", limits)?;
+                }
+                if style.pretty() {
+                    emit_indent(output, depth + 1, limits)?;
+                }
+                write_value_reuse(
+                    item,
+                    output,
+                    depth + 1,
+                    visits,
+                    numeric_parse_visits,
+                    limits,
+                    style,
+                    combined_visit_limit,
+                    &mut *arena,
+                )?;
+            }
+            if style.pretty() && !items.is_empty() {
+                emit(output, b"\n", limits)?;
+                emit_indent(output, depth, limits)?;
+            }
+            emit(output, b"]", limits)?;
+        }
+        JsonValue::Object(entries) => {
+            let completed_visits = if combined_visit_limit {
+                visits.checked_add(*numeric_parse_visits).ok_or_else(|| {
+                    FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
+                })?
+            } else {
+                *visits
+            };
+            if entries.len() > limits.max_visits.saturating_sub(completed_visits) {
+                return Err(FoundationError::new(
+                    Code::BudgetExceeded,
+                    "JSON output structural budget exceeded",
+                ));
+            }
+            {
+                let bytes = entries
+                    .len()
+                    .checked_mul(std::mem::size_of::<(usize, &(JsonString, JsonValue))>())
+                    .ok_or_else(state_error)?;
+                if bytes > output.state_remaining().ok_or_else(state_error)? {
+                    return Err(state_error());
+                }
+                output.poll.admit_work(64, 8)?;
+                let start = *arena.used;
+                let end = start.checked_add(entries.len()).ok_or_else(state_error)?;
+                if end > arena.ordinals.len() || depth >= arena.frames.len() {
+                    return Err(state_error());
+                }
+                output.reserve_scratch(bytes)?;
+                arena.frames[depth].start = start;
+                arena.frames[depth].len = entries.len();
+                *arena.used = end;
+                let mut index = 0usize;
+                while index < entries.len() {
+                    output.poll.admit_work(64, 8)?;
+                    arena.ordinals[start + index] = index;
+                    index += 1;
+                }
+                for (key, _) in entries {
+                    output.poll.work(256)?;
+                    if key.as_str().is_none() {
+                        return Err(FoundationError::new(
+                            Code::InvalidUnicodeScalar,
+                            "JSON output key is not a Unicode scalar string",
+                        ));
+                    }
+                }
+                output.poll.now()?;
+                let entries: &[(JsonString, JsonValue)] = entries;
+                checked_heap_sort(
+                    &mut arena.ordinals[start..end],
+                    &mut output.poll,
+                    move |a, b, poll| {
+                        poll.admit_work(64, 8)?;
+                        match (entries[*a].0.as_str(), entries[*b].0.as_str()) {
+                            (Some(left), Some(right)) => {
+                                for (left, right) in left
+                                    .as_bytes()
+                                    .chunks(CHECK_BYTES)
+                                    .zip(right.as_bytes().chunks(CHECK_BYTES))
+                                {
+                                    poll.now()?;
+                                    let ordering = left.cmp(right);
+                                    if ordering != std::cmp::Ordering::Equal {
+                                        return Ok(ordering);
+                                    }
+                                }
+                                Ok(match left.len().cmp(&right.len()) {
+                                    std::cmp::Ordering::Equal => a.cmp(b),
+                                    ordering => ordering,
+                                })
+                            }
+                            (left, right) => {
+                                poll.now()?;
+                                Ok(match left.cmp(&right) {
+                                    std::cmp::Ordering::Equal => a.cmp(b),
+                                    ordering => ordering,
+                                })
+                            }
+                        }
+                    },
+                )?;
+                let mut index = 1usize;
+                while index < entries.len() {
+                    output.poll.admit_work(64, 8)?;
+                    if checked_units_equal(
+                        &entries[arena.ordinals[start + index - 1]].0.units,
+                        &entries[arena.ordinals[start + index]].0.units,
+                        &mut output.poll,
+                    )? {
+                        return Err(FoundationError::new(
+                            Code::DuplicateMember,
+                            "duplicate decoded JSON member",
+                        ));
+                    }
+                    index += 1;
+                }
+                emit(output, b"{", limits)?;
+                checked_heap_sort(
+                    &mut arena.ordinals[start..end],
+                    &mut output.poll,
+                    move |a, b, poll| {
+                        poll.admit_work(64, 8)?;
+                        match (entries[*a].0.as_str(), entries[*b].0.as_str()) {
+                            (Some(left), Some(right)) => {
+                                for (left, right) in left
+                                    .as_bytes()
+                                    .chunks(CHECK_BYTES)
+                                    .zip(right.as_bytes().chunks(CHECK_BYTES))
+                                {
+                                    poll.now()?;
+                                    let ordering = left.cmp(right);
+                                    if ordering != std::cmp::Ordering::Equal {
+                                        return Ok(ordering);
+                                    }
+                                }
+                                Ok(match left.len().cmp(&right.len()) {
+                                    std::cmp::Ordering::Equal => a.cmp(b),
+                                    ordering => ordering,
+                                })
+                            }
+                            (left, right) => {
+                                poll.now()?;
+                                Ok(match left.cmp(&right) {
+                                    std::cmp::Ordering::Equal => a.cmp(b),
+                                    ordering => ordering,
+                                })
+                            }
+                        }
+                    },
+                )?;
+            }
+            output.poll.admit_work(64, 8)?;
+            let start = {
+                let frame = &arena.frames[depth];
+                frame.start
+            };
+            let len = {
+                let frame = &arena.frames[depth];
+                frame.len
+            };
+            let range = start..start + len;
+            let mut index = 0usize;
+            while index < len {
+                output.poll.admit_work(64, 8)?;
+                let (key, item) = &entries[arena.ordinals[range.start + index]];
+                if index != 0 {
+                    emit(
+                        output,
+                        if style.pretty() {
+                            &b",\n"[..]
+                        } else {
+                            &b","[..]
+                        },
+                        limits,
+                    )?;
+                } else if style.pretty() {
+                    emit(output, b"\n", limits)?;
+                }
+                if style.pretty() {
+                    emit_indent(output, depth + 1, limits)?;
+                }
+                write_string(key, output, true, limits)?;
+                emit(
+                    output,
+                    if style.pretty() {
+                        &b": "[..]
+                    } else {
+                        &b":"[..]
+                    },
+                    limits,
+                )?;
+                write_value_reuse(
+                    item,
+                    output,
+                    depth + 1,
+                    visits,
+                    numeric_parse_visits,
+                    limits,
+                    style,
+                    combined_visit_limit,
+                    &mut *arena,
+                )?;
+                index += 1;
+            }
+            output.release_scratch(len * std::mem::size_of::<(usize, &(JsonString, JsonValue))>());
+            *arena.used = range.start;
+            if style.pretty() && !entries.is_empty() {
+                emit(output, b"\n", limits)?;
+                emit_indent(output, depth, limits)?;
+            }
+            emit(output, b"}", limits)?;
+        }
+        _ => {}
     }
     Ok(())
 }
@@ -2600,6 +3348,7 @@ fn checked_key_sort(
         b: &JsonString,
         poll: &mut JsonCheck<'_>,
     ) -> Result<std::cmp::Ordering> {
+        poll.admit_work(1, 0)?;
         match (a.as_str(), b.as_str()) {
             (Some(a), Some(b)) => {
                 for (a, b) in a
@@ -2608,6 +3357,9 @@ fn checked_key_sort(
                     .zip(b.as_bytes().chunks(CHECK_BYTES))
                 {
                     poll.now()?;
+                    // Both chunks are <= CHECK_BYTES. Pay their input scan
+                    // before lexicographic comparison, including long prefixes.
+                    poll.admit_work(a.len() + b.len(), 0)?;
                     let ordering = a.cmp(b);
                     if ordering != std::cmp::Ordering::Equal {
                         return Ok(ordering);

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.lexeme-grammatical-account",
+  "field": "attributes.source_record.semantic_content.grammatical_account",
+  "labels": {
+    "default": "Grammatical account",
+    "ru": "Грамматический разбор",
+    "en": "Grammatical account"
+  },
+  "definition": "A source-qualified grammatical account; unknown or competing analyses remain explicit.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexeme"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

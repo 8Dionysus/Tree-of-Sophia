@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.annotation-claim",
+  "parent_type_ids": [
+    "tos.entity.claim"
+  ],
+  "abstract": false,
+  "object_role": "assertion",
+  "labels": {
+    "default": "Annotation claim",
+    "ru": "Утверждение разметки",
+    "en": "Annotation claim"
+  },
+  "definition": "Claim under the semantic annotation v2 contract, preserving proposition, evidence, maker, alternatives and review refs.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "annotation-claim"
+    }
+  ],
+  "supersedes_type_id": null
+}

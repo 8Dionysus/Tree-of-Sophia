@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.ts-native-operation-result",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "TS native operation-result",
+    "ru": "Нативный результат операции времени или пространства",
+    "en": "Native time or space operation result"
+  },
+  "definition": "An addressable TS domain computation result whose exact profile and inputs govern interpretation; a computed result alone is not a source-level entailment or coverage assessment.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/ts-native-operation-result.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "ts-native-operation-result"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "ts-native-operation-result"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "semantic-metadata-v1",
+    "record_type": "ts-native-operation-result",
+    "id_prefix": "tos.ts-native-operation-result.",
+    "source_basename": "ts-native-operation-result.json",
+    "catalog_filename": "ts-native-operation-results.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_ts_native_operation_result_record_v1",
+        "schema_ref": "ToS/contracts/ts-native-operation-result.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

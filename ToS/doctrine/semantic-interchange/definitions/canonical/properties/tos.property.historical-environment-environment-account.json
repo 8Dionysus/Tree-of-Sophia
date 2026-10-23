@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-environment-environment-account",
+  "field": "attributes.source_record.semantic_content.environment_account",
+  "labels": {
+    "default": "Environment account",
+    "ru": "Описание среды",
+    "en": "Environment account"
+  },
+  "definition": "The scoped configuration of conditions, including what this description does not cover.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-environment"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}
