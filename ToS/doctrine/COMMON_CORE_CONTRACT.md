@@ -172,8 +172,15 @@ publication or canon. Competent authorized human/agent judgments follow
 [KNOWLEDGE_ASSESSMENT](KNOWLEDGE_ASSESSMENT.md); actual human consent remains human.
 
 The standalone [operation-binding-v1 schema](../contracts/operation-binding-v1.schema.json)
-is a structural sidecar, not a source metadata kind or grant. The foundation
-checker validates the complete native JsonValue envelope, closed shapes,
+is a structural sidecar, not a source metadata kind or grant. Its repository
+resource ID is `https://tree-of-sophia.local/ToS/contracts/operation-binding-v1.schema.json`,
+matching the existing HTTPS, fragment-free schema-resource loader. The historical
+`urn:tos:candidate:operation-binding-v1` remains the identity of the archived
+candidate resource; its exact bytes/references are not rewritten. New repository
+adapters must pin the adopted resource and digest explicitly. Envelope fields
+and local fragment definitions are unchanged by this resource-ID adoption.
+The foundation checker validates the complete native JsonValue envelope,
+closed shapes,
 unique keys/slots, exact reference boundaries, V/X compatibility and certificate
 subjects. Certificate input order matters. Certificate descriptors remain
 UnverifiedReference; theorem bodies are not read. Record versions use native
