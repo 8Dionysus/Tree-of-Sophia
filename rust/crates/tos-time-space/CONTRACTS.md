@@ -200,7 +200,23 @@ honour their own limits, and their I/O is not concealed as local work.
 
 ## Current historical correction and remaining bindings
 
-TS B2 erratum v1.0.0: Library `libfile_8b5ecd7c7ab481918f57ada843dc0cc5`, version0,
+Current documentary selection: full matrix v0.3.3, Library
+`libfile_ca5cae5e2a6081918cc873ecce1dbd04`, version0, 1837085B, SHA256
+`f2bfab950875eb602a577319c88121e851e0ee8f215e0073385c695bbdca23d3`, together
+with TS B2 erratum v1.0.1, Library `libfile_8b5ecd7c7ab481918f57ada843dc0cc5`,
+version1, 83932B, SHA256
+`26d614416b3826475cb1cdcec083fde255d64994fb055482a73e00ca5e4f300b`.
+Its `current_implementation_dependency_override` selects these dependencies for
+exact accepted TS package version1 (344893B, SHA256
+`f7d552ab16cd831162f9ff67a54da7ea10065c45d138f86f36bb68ae0ba630a9`).
+The package and its embedded original files retain their raw integrity hashes;
+this integration note does not pretend those historical files contained the update.
+Root reports Astra R5 full documentary ACCEPT, B5/N13 closed: review Library
+`libfile_11cdd7a5619081919324f71c5791390a`, version4, 215531B, SHA256
+`66427ecf9ecf292acfee28788d9deeae1610425fe75a8c662e946cdcd7ce4663`.
+This closes the earlier documentary HOLD, not the separate native/runtime gate.
+
+Historical source-delivery TS B2 erratum v1.0.0: Library `libfile_8b5ecd7c7ab481918f57ada843dc0cc5`, version0,
 74461B, SHA256 `5dd0bf0f2c46cb42c4472d45f5505f7256c7f0faa397e3737b021de007daa662`.
 It pins R3 review v2 SHA256
 `28481b35dceb195f201284d81a4fdc45161108ad7aa7b4b47ef9bb49af7291df`, §10.7.3,
@@ -208,10 +224,11 @@ and corrected matrix candidate `libfile_9917fcc59b3081918dd828ab43550070` versio
 document v0.3.2, 1833445B, SHA256
 `eb2a7e611f6b0ed2d74617d8964f993434380645a9ee891bd6c25a33908ef1f6`.
 The exact three snapshot block dependencies and their historical raw hashes are
-in the erratum, whose current selection withdraws E009=EHESS and the false S051
+in that historical erratum. The current selection above also withdraws E009=EHESS and the false S051
 raw-key contradiction. Actual v19 E009=Collège de France, E042=EPHE VI/EHESS;
 R282 year/status unknown persists. Original MD/JSON/payload/ZIP bytes unchanged.
-The full documentary scope is pending addressed Astra review, not accepted here.
+The original source delivery recorded full documentary acceptance as pending;
+that status is superseded by the current R5 documentary ACCEPT above.
 
 Addressed requirements to root/common owner:
 
