@@ -3,6 +3,16 @@
   "status": "source_and_testspec_only_not_executed",
   "base_commit": "6d2e9d001e73f3c79d0183861a4bd834f872fabe",
   "owner": "C PG Item adoption; root transfers to sole integrator A",
+  "executable_pg_case": {
+    "integration_base_commit": "00050be420e6356e33cfc4f8321f0a5844654280",
+    "source": "rust/crates/tos-command/tests/postgres_durable_lab/postgres_item_inventory.rs",
+    "status": "implemented_not_compiled_or_executed_in_C_environment",
+    "command": ["cargo", "+1.98.1", "test", "--locked", "--offline", "-p", "tos-command", "--features", "postgres-lab", "--test", "postgres_durable_lab", "postgres_real_revision::postgres_item_inventory::real_pg_item_inventory_commit_replay_ready_recovery_and_prepared_consumer", "--", "--ignored", "--exact", "--nocapture", "--test-threads=1"],
+    "selection": "Ignored by default because execution requires the previously admitted build/PG window; an ordinary ignored-test count is not acceptance.",
+    "required_environment": ["TOS_CMD_POSTGRES_URL: dedicated admitted PG16 endpoint", "TOS_SCHEMA_WORKER_PATH: absolute matching built worker", "TOS_CMD2_NATIVE_OWNER_COMMAND: absolute matching built owner or the Cargo-provided test binary", "TOS_CMD2_LAB_ROOT: explicit private fixture directory inside the issued stage root", "TOS_STAGE_TICKET_FD and TOS_STAGE_ROOT: existing kernel-verified private stage resource ticket"],
+    "resource_policy": "300-second whole-case deadline and existing native call/worker budgets; actual admitted storage, RAM and execution remain with the issuer. No self-issued ticket, permissive StageIsolation, ownership bypass, install, PG startup or admission increase.",
+    "path": ["exact frozen synthetic source bootstrap into PG/STO", "production PG prepare-create over new DjVu XML inventory provider", "real PG apply interruption with nontransactional trigger witness and retained ready attempt", "new-process recovery and one durable commit", "new-process exact replay and same-command collision refusal", "cold predecessor and current source reads with exact inventory/rights", "authenticated complete PG export", "native catalogue, bibliographic and navigation producers", "native_prepare SQLite publication with independent completion and binding", "two openings of PreparedLocalExecutor with real HTTP inspect of Item and File", "rights revocation refuses another replay"]
+  },
   "unit_tests": {
     "command": ["cargo", "+1.98.1", "test", "--locked", "--offline", "-p", "tos-command", "--lib", "source_creation_store::item_adoption::pg::inventory_custody_tests::", "--", "--test-threads=1"],
     "requires_postgres": false,

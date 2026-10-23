@@ -38,6 +38,9 @@ use tos_source_store::{
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
+#[path = "postgres_item_inventory.rs"]
+mod postgres_item_inventory;
+
 const AGENT_DIRS: &[&str] = &["parmenides-of-elea", "justus-lipsius", "hans-hahn"];
 const SHARED_SOURCE: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -829,6 +832,15 @@ fn software_fixture(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SoftwareFixture {
+    software_fixture_for_components(repository, software_component_paths(), deadline, cancelled)
+}
+
+fn software_fixture_for_components(
+    repository: &Path,
+    components: Vec<String>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SoftwareFixture {
     let scratch = ScratchRoot::new();
     fs::set_permissions(&scratch.0, fs::Permissions::from_mode(0o700)).unwrap();
     let commit_output = Command::new("git")
@@ -845,7 +857,6 @@ fn software_fixture(
     assert_eq!(commit.len(), 40);
     let capture = scratch.0.join("software-capture");
     let restored = scratch.0.join("software-restored");
-    let components = software_component_paths();
     let include_prefixes = components.clone();
     let captured = tos_source_store::capture_git(
         CaptureGitRequest {
