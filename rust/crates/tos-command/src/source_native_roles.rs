@@ -15,8 +15,8 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, ExactRecordRef, FoundationError, FoundationErrorCode, JsonLimits,
-    JsonDocument, JsonMode, JsonValue, RelativePath, SourceRevision,
+    CanonicalProfile, Digest256, ExactRecordRef, FoundationError, FoundationErrorCode,
+    JsonDocument, JsonLimits, JsonMode, JsonValue, RelativePath, SourceRevision,
     canonical_bytes_v1_with_state_budget_and_visits_and_admission,
     parse_json_with_state_budget_and_admission,
 };
@@ -572,7 +572,9 @@ fn admitted_document(
         .len()
         .checked_mul(64)
         .and_then(|n| n.checked_add(1024))
-        .ok_or(Error::Unsupported("native document state reservation overflow"))?;
+        .ok_or(Error::Unsupported(
+            "native document state reservation overflow",
+        ))?;
     budget.charge_bytes(reserved)?;
     let mut admission_error = None;
     let parsed = {
@@ -590,10 +592,7 @@ fn admitted_document(
         };
         let mut admit = |bytes: usize, visits: usize| {
             let work = bytes.checked_add(visits).ok_or_else(|| {
-                FoundationError::new(
-                    FoundationErrorCode::BudgetExceeded,
-                    "native document work",
-                )
+                FoundationError::new(FoundationErrorCode::BudgetExceeded, "native document work")
             })?;
             if let Err(error) = budget
                 .charge_work(work)
@@ -788,12 +787,9 @@ mod tests {
             admitted_canonical(&value, &mut budget, deadline, &cancelled).unwrap(),
             expected
         );
-        let document =
-            admitted_document(br#"{"a":1}"#, &mut budget, deadline, &cancelled).unwrap();
+        let document = admitted_document(br#"{"a":1}"#, &mut budget, deadline, &cancelled).unwrap();
         assert_eq!(document.root(), &value);
-        assert!(
-            admitted_document(br#"{"a":1,"a":2}"#, &mut budget, deadline, &cancelled).is_err()
-        );
+        assert!(admitted_document(br#"{"a":1,"a":2}"#, &mut budget, deadline, &cancelled).is_err());
         let remaining = budget.limits().unwrap().max_work;
         budget.charge_work(remaining - 1).unwrap();
         assert!(admitted_canonical(&value, &mut budget, deadline, &cancelled).is_err());
