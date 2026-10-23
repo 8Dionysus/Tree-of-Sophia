@@ -1,0 +1,32 @@
+{
+  "kind": "AdditiveN3PublicSpecification",
+  "source_title": "Temporal core specification and acceptance criteria",
+  "source_section": "N3 public operation coverage; 2026-10-19 06:48 UTC",
+  "original60_unchanged": true,
+  "blocks": [
+    {
+      "markdown": "### Уточнение N3: покрытие публичных операций, не только число примеров",
+      "sha256": "bb40dab919a1457406e9b33063d31894a5966d84e241e9c99047201b0abd6817"
+    },
+    {
+      "markdown": "19 октября 2026, 06:48 UTC. Выполнена сверка таблицы A3 и поля operation всех 60 исходных JSON-векторов. Прямых векторов difference, project_claims, add_crosswalk_version и mark_claim_disputed/superseded нет. Это пробел приёмочной матрицы, не доказательство отсутствия реализации. project_to_postgres_range не заменяет project_claims. expand_recurrence прямо отложена после v1 и этим дополнением не переносится вперёд.",
+      "sha256": "e9d171dfe2ca00feebb8a12e7c7fe2385708544c39634edc30a7ad96ef9dfee5"
+    },
+    {
+      "markdown": "Ниже дополнение ожидаемой семантики. Точный wire envelope выбирается после mapping на существующие операции; названия новых success-status не навязываются. Все данные синтетические.",
+      "sha256": "ba189ad4e49c63b7d4471c5c3fc90f528f03ea1a1cf398f1048c0c34c3ef0f24"
+    },
+    {
+      "markdown": "| ID | Операция и полный смысл входа | Проверяемый результат |\n|---|---|---|\n| N3-D01 | difference: начало=4, конец=10; одна явно объявленная числовая ось X, единица seconds, начало O, версия правил1; elapsed duration | Значение6 seconds на этой оси; исходные позиции и версии не меняются |\n| N3-D02 | difference: значения4 и10 в X/Y без crosswalk | Incomparable/NoCrosswalk согласно принятому envelope; числовая6 не возвращается как измеренная длительность |\n| N3-D03 | difference: даты месячной/годовой гранулярности, требование elapsed seconds, нет часовой шкалы/правил | Не придумывать секунды или полночь; явный insufficient-context результат с сохранённым входом |\n| N3-P01 | project_claims: две противоречащие датировки одного события, закреплённые revisions; явно выбранная display perspective | Обе датировки и provenance доступны; display не создаёт третью «истинную» дату и не пишет новую claim revision |\n| N3-P02 | project_claims: неизвестный календарь; основной UI Gregorian | Не присваивать Gregorian исходнику; показать исходную датировку/неопределённость, отсутствие сравнимой координаты явно |\n| N3-P03 | project_claims: источник датирован только годом, два разных display profiles | Ни один профиль не добавляет точный месяц/день/UTC; old claims/raw digests неизменны |\n| N3-C01 | add_crosswalk_version: существующее отображение X→Y v1 с областью[0,10], новая v2 с иным подтверждённым правилом/областью | Создана новая версия с provenance; явный запросv1 воспроизводит прежний результат; pinned chronology не становитсяv2 молча |\n| N3-C02 | convert черезv1 вне[0,10] при наличииv2 с более широкой областью | OutOfCoverage дляv1; наличиеv2 не разрешает скрытое переключение |\n| N3-S01 | mark_claim_disputed: существующая claim revision c@r1 и новое assessment с основанием | Исходное свидетельство сохранено; новая оценка не означает false/withdrawn без отдельного утверждения; прежний snapshot читается |\n| N3-S02 | superseded: c@r1 заменено c@r2 в текущем выборе | Связь замены, причина и revisions доступны; c@r1 не уничтожена, ссылка и frozen query воспроизводимы при нынешних правах |",
+      "sha256": "34b83683f69e62d586aa3f806b1a9c989123889ff14349ce3e4e75e4c9e52b9b"
+    },
+    {
+      "markdown": "**Требуемое evidence:** фактическое чтение состояния до/после, revisions и digest, повторные запросы по закреплённым версиям, отсутствие незаявленных write side effects. Ответные booleans о сохранности недостаточны. При отсутствии runtime binding указать точный неподключённый operation/owner/условие, не отмечать строку пройденной по одному source review.",
+      "sha256": "534ee0e5c7e4558276475a6501830490d4bace8685a8c0f72f9f58e72df7fbdc"
+    },
+    {
+      "markdown": "Сверка и критерии переданы I/C. Исходный набор 60 сохраняется; дополнительное покрытие учитывается отдельно, без искусственного увеличения прежнего pass-count.",
+      "sha256": "8c14b0f1c538740db420b33aad4974ea61148ca78beee77eae42e7d2419c9719"
+    }
+  ]
+}

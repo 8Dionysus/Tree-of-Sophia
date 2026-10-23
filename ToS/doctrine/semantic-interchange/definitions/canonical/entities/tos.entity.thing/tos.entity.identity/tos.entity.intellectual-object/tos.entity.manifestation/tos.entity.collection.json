@@ -1,0 +1,27 @@
+{
+  "type_id": "tos.entity.collection",
+  "parent_type_ids": [
+    "tos.entity.manifestation"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Collection",
+    "ru": "Сборник",
+    "en": "Collection"
+  },
+  "definition": "An aggregate publication or container with evidence-bearing membership claims.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "collection"
+    },
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "collection"
+    }
+  ],
+  "supersedes_type_id": null
+}

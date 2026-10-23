@@ -1,0 +1,47 @@
+{
+  "relation_type_id": "tos.relation.philosophy-language",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "language or script relation",
+    "ru": "связь языка или письменности",
+    "en": "language or script relation"
+  },
+  "inverse_labels": null,
+  "definition": "Stable interchange family for declared language and script use; exact predicate_id distinguishes language from script.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "direct",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "uses_language",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "uses_script",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

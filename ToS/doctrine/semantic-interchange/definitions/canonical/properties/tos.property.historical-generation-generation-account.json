@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-generation-generation-account",
+  "field": "attributes.source_record.semantic_content.generation_account",
+  "labels": {
+    "default": "Generation account",
+    "ru": "Описание поколения",
+    "en": "Generation account"
+  },
+  "definition": "The cohort as described by its source, without implying uniform experience or belief.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-generation"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

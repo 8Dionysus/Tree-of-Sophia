@@ -1,0 +1,18 @@
+{
+  "type_id": "tos.entity.navigation-object",
+  "parent_type_ids": [
+    "tos.entity.thing"
+  ],
+  "abstract": true,
+  "object_role": "navigation",
+  "labels": {
+    "default": "Navigation object",
+    "ru": "Навигационный объект",
+    "en": "Navigation object"
+  },
+  "definition": "An object representing tree or atlas navigation and routes to domain records.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/philosophy/AGENTS.md",
+  "source_mappings": [],
+  "supersedes_type_id": null
+}

@@ -1,0 +1,66 @@
+{
+  "relation_type_id": "tos.relation.composite-compiled-by",
+  "parent_relation_type_ids": [
+    "tos.relation.responsibility"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "Compiled by",
+    "ru": "Составлено исследователем",
+    "en": "Compiled by"
+  },
+  "definition": "Attributes the contextual compiler role for a modern scholarly composition to the named responsible agent.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/scholarly-composite-claim.schema.json",
+  "domain_type_ids": [
+    "tos.entity.composite"
+  ],
+  "range_type_ids": [
+    "tos.entity.agent"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "composite_compiled_by",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report",
+      "textual_observation"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_scholarly_composite_claim_v1",
+        "schema_ref": "ToS/contracts/scholarly-composite-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-claim-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null,
+  "inverse_labels": {
+    "default": "Compiler of",
+    "ru": "Составитель",
+    "en": "Compiler of"
+  }
+}

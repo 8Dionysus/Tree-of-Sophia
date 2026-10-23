@@ -1,0 +1,62 @@
+{
+  "relation_type_id": "tos.relation.circumstance-during-phase",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "is documented during the life phase",
+    "ru": "засвидетельствовано в жизненной фазе",
+    "en": "is documented during the life phase"
+  },
+  "inverse_labels": {
+    "default": "has the documented circumstance",
+    "ru": "имеет засвидетельствованное обстоятельство",
+    "en": "has the documented circumstance"
+  },
+  "definition": "Associates a life condition with a stated phase, preserving the source's temporal extent and other limits.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.life-circumstance"
+  ],
+  "range_type_ids": [
+    "tos.entity.biographical-phase"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "circumstance_during_phase",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_historical_context_claim_v1",
+        "schema_ref": "ToS/contracts/historical-context-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

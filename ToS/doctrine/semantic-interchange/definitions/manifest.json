@@ -1,0 +1,3730 @@
+{
+  "schema_version": "tos_definition_tree_v1",
+  "posture": "selected-authored",
+  "baseline": [
+    {
+      "path": "baseline/entity-types.v1.json",
+      "sha256": "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465"
+    },
+    {
+      "path": "baseline/relation-types.v1.json",
+      "sha256": "3400adff8cf910dff3f6a045c6e56ff286f6081e2b65f76135512560ff6323db"
+    }
+  ],
+  "envelopes": [
+    "shared/entity-types.v1.json",
+    "shared/relation-types.v1.json"
+  ],
+  "navigation_roots": [
+    "navigation.entities",
+    "navigation.properties",
+    "navigation.relations"
+  ],
+  "navigation_groups": {},
+  "entries": [
+    {
+      "id": "tos.entity.collection-member-order",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.collection-member-order.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.physical-part-composition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.physical-part-composition.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.research-corpus",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.research-corpus.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.intellectual-part-composition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.intellectual-part-composition.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.research-corpus-membership",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.research-corpus-membership.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.identity-transition-proposal",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.identity-transition-proposal.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.motif-proposal",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.motif-proposal.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.lexical-translatability",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.lexical-translatability.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.lexical-form",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.lexical-form.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.linguistic-system",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.linguistic-system.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.language",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.linguistic-system/tos.entity.language.json",
+      "navigation_parent": "tos.entity.linguistic-system",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.linguistic-variety",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.linguistic-system/tos.entity.linguistic-variety.json",
+      "navigation_parent": "tos.entity.linguistic-system",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.script",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.script.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.transliteration-scheme",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.transliteration-scheme.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.content-form-classification",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.classification-value/tos.entity.content-form-classification.json",
+      "navigation_parent": "tos.entity.classification-value",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.carrier-medium-classification",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.classification-value/tos.entity.carrier-medium-classification.json",
+      "navigation_parent": "tos.entity.classification-value",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.classification-value",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.classification-value.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.genre-classification",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.classification-value/tos.entity.genre-classification.json",
+      "navigation_parent": "tos.entity.classification-value",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.communication-medium-classification",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.classification-value/tos.entity.communication-medium-classification.json",
+      "navigation_parent": "tos.entity.classification-value",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.reception-history",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.reception-history.json",
+      "navigation_parent": "tos.entity.historical-situation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.reception-process",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-process/tos.entity.reception-process.json",
+      "navigation_parent": "tos.entity.historical-process",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-canonization",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-process/tos.entity.reception-process/tos.entity.historical-canonization.json",
+      "navigation_parent": "tos.entity.reception-process",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-forgetting",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-process/tos.entity.historical-forgetting.json",
+      "navigation_parent": "tos.entity.historical-process",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.rediscovery-episode",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-event/tos.entity.rediscovery-episode.json",
+      "navigation_parent": "tos.entity.historical-event",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.intellectual-legacy",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-state/tos.entity.intellectual-legacy.json",
+      "navigation_parent": "tos.entity.historical-state",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.composite",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.composite.json",
+      "navigation_parent": "tos.entity.intellectual-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.textual-fragment",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.textual-fragment.json",
+      "navigation_parent": "tos.entity.intellectual-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.quotation-passage",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.quotation-passage.json",
+      "navigation_parent": "tos.entity.intellectual-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.textual-survival",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.textual-survival.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.biographical-episode",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-event/tos.entity.biographical-episode.json",
+      "navigation_parent": "tos.entity.historical-event",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.biographical-phase",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.biographical-phase.json",
+      "navigation_parent": "tos.entity.historical-situation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-period",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-period.json",
+      "navigation_parent": "tos.entity.historical-situation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-generation",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-generation.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-environment",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-state/tos.entity.historical-environment.json",
+      "navigation_parent": "tos.entity.historical-state",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.life-circumstance",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-state/tos.entity.life-circumstance.json",
+      "navigation_parent": "tos.entity.historical-state",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.intellectual-formation",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-formation.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.intellectual-school",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-formation/tos.entity.intellectual-school.json",
+      "navigation_parent": "tos.entity.intellectual-formation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.intellectual-tradition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-formation/tos.entity.intellectual-tradition.json",
+      "navigation_parent": "tos.entity.intellectual-formation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.intellectual-movement",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-formation/tos.entity.intellectual-movement.json",
+      "navigation_parent": "tos.entity.intellectual-formation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.social-group",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.organization/tos.entity.social-group.json",
+      "navigation_parent": "tos.entity.organization",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.community",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.organization/tos.entity.social-group/tos.entity.community.json",
+      "navigation_parent": "tos.entity.social-group",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.institutional-body",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.organization/tos.entity.institutional-body.json",
+      "navigation_parent": "tos.entity.organization",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.thought-method",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.thought-method.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.thought-operation",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.thought-operation.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.thought-move",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.thought-move.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.thought-experiment",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.thought-experiment.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.thought-image",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.thought-image.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.rhetorical-figure",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.rhetorical-figure.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.metaphor",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.rhetorical-figure/tos.entity.metaphor.json",
+      "navigation_parent": "tos.entity.rhetorical-figure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.value",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.value.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.ideal",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.ideal.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.ontological-commitment",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.ontological-commitment.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.aspect",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.aspect.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.philosophical-category",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.philosophical-category.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.problem",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.problem.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.problem-family",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.problem-family.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.question",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.question.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.position",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.position.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.distinction",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.distinction.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.opposition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.distinction/tos.entity.opposition.json",
+      "navigation_parent": "tos.entity.distinction",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.thesis",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.thesis.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.argument",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.argument.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.inference-step",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.inference-step.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.objection",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.objection.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.crosscutting-concept",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.concept/tos.entity.crosscutting-concept.json",
+      "navigation_parent": "tos.entity.concept",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.conception",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.conception.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.document",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.document.json",
+      "navigation_parent": "tos.entity.intellectual-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.letter",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.document/tos.entity.letter.json",
+      "navigation_parent": "tos.entity.document",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.artifact",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.artifact.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-situation",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-event",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-event.json",
+      "navigation_parent": "tos.entity.historical-situation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-process",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-process.json",
+      "navigation_parent": "tos.entity.historical-situation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.historical-state",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.historical-situation/tos.entity.historical-state.json",
+      "navigation_parent": "tos.entity.historical-situation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.text-layer",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.text-layer.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.anchor",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.anchor.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.text-unit",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.text-unit.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.occurrence",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.occurrence.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.lexeme",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.lexeme.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.lexical-sense",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.lexical-sense.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.sign",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.sign.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-sign",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.annotation-sign.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-occurrence",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.annotation-occurrence.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-lexeme",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.annotation-lexeme.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-lexical-sense",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.annotation-lexical-sense.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.annotation.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-claim",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.assertion/tos.entity.claim/tos.entity.annotation-claim.json",
+      "navigation_parent": "tos.entity.claim",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-evidence",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.evidence/tos.entity.annotation-evidence.json",
+      "navigation_parent": "tos.entity.evidence",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-review",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.review/tos.entity.annotation-review.json",
+      "navigation_parent": "tos.entity.review",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.annotation-relation",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.assertion/tos.entity.annotation-relation.json",
+      "navigation_parent": "tos.entity.assertion",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.thing",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing.json",
+      "navigation_parent": "navigation.entities",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.identity",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.agent",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.agent.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.organization",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.organization.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.intellectual-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.work",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.work.json",
+      "navigation_parent": "tos.entity.intellectual-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.expression",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.expression.json",
+      "navigation_parent": "tos.entity.intellectual-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.manifestation",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.manifestation.json",
+      "navigation_parent": "tos.entity.intellectual-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.edition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.manifestation/tos.entity.edition.json",
+      "navigation_parent": "tos.entity.manifestation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.collection",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.intellectual-object/tos.entity.manifestation/tos.entity.collection.json",
+      "navigation_parent": "tos.entity.manifestation",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.item",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.item.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.file",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.file.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.link",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.link.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.semantic-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.source",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.source.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.concept",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.concept.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.principle",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.principle.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.lineage",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.lineage.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.event",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.event.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.state",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.state.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.support",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.support.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.context",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.context.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.analogy",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.analogy.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.synthesis",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.synthesis.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.assertion",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.assertion.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.claim",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.assertion/tos.entity.claim.json",
+      "navigation_parent": "tos.entity.assertion",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.temporal-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.temporal-object.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.temporal-assertion",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.assertion/tos.entity.temporal-assertion.json",
+      "navigation_parent": "tos.entity.assertion",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.temporal-instant",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.temporal-object/tos.entity.temporal-instant.json",
+      "navigation_parent": "tos.entity.temporal-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.temporal-interval",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.temporal-object/tos.entity.temporal-interval.json",
+      "navigation_parent": "tos.entity.temporal-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.provision-activity",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.assertion/tos.entity.provision-activity.json",
+      "navigation_parent": "tos.entity.assertion",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.literal",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.place-mention",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.literal/tos.entity.place-mention.json",
+      "navigation_parent": "tos.entity.literal",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.evidence-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.evidence",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.evidence.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.record-version",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.record-version.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.review",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.review.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.provenance-event",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.provenance-event.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.maker",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.evidence-object/tos.entity.maker.json",
+      "navigation_parent": "tos.entity.evidence-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.spatial-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.spatial-object.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.place",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.place.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.navigation-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.branch",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object/tos.entity.branch.json",
+      "navigation_parent": "tos.entity.navigation-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.era",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object/tos.entity.era.json",
+      "navigation_parent": "tos.entity.navigation-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.navigation-region",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object/tos.entity.navigation-region.json",
+      "navigation_parent": "tos.entity.navigation-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.tradition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object/tos.entity.tradition.json",
+      "navigation_parent": "tos.entity.navigation-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.school-tradition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object/tos.entity.school-tradition.json",
+      "navigation_parent": "tos.entity.navigation-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.source-planting",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object/tos.entity.source-planting.json",
+      "navigation_parent": "tos.entity.navigation-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.source-witness",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.source-witness.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.philosophy-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.figure",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.figure.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.institution",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.institution.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.text-corpus",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.text-corpus.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.controversy",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.controversy.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.genre",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.genre.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.medium",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.medium.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.language-script",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.language-script.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.transmission-channel",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.transmission-channel.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.method",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.method.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.preservation-state",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.preservation-state.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.civilization-literary-complex",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.civilization-literary-complex.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.frontier-case",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.frontier-case.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.artifact-anchor",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.philosophy-object/tos.entity.artifact-anchor.json",
+      "navigation_parent": "tos.entity.philosophy-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.philosophy-meta",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.navigation-object/tos.entity.philosophy-meta.json",
+      "navigation_parent": "tos.entity.navigation-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.repository-object",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.repository-object.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.repository-root",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.repository-object/tos.entity.repository-root.json",
+      "navigation_parent": "tos.entity.repository-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.repository-branch",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.repository-object/tos.entity.repository-branch.json",
+      "navigation_parent": "tos.entity.repository-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.repository-manifest",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.repository-object/tos.entity.repository-manifest.json",
+      "navigation_parent": "tos.entity.repository-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.repository-resource",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.repository-object/tos.entity.repository-resource.json",
+      "navigation_parent": "tos.entity.repository-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.unresolved-endpoint",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.unresolved-endpoint.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.unmapped",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.unmapped.json",
+      "navigation_parent": "tos.entity.thing",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composition-source-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composition-source-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composition-coverage",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composition-coverage.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composition-membership-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composition-membership-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composition-ordering-mode",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composition-ordering-mode.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composition-ordering-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composition-ordering-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composition-limitations",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composition-limitations.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.research-corpus-research-purpose",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.research-corpus-research-purpose.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.research-corpus-selection-criterion",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.research-corpus-selection-criterion.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.research-corpus-coverage-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.research-corpus-coverage-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.record-version-resolution",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.record-version-resolution.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.record-version-posture",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.record-version-posture.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.motif-proposed-signification",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.motif-proposed-signification.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.motif-grouping-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.motif-grouping-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.motif-source-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.motif-source-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.motif-contrast",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.motif-contrast.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.motif-limitations",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.motif-limitations.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-source-language",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-source-language.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-target-language",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-target-language.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-source-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-source-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-target-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-target-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-aspects-in-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-aspects-in-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-rendering-judgment",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-rendering-judgment.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-aspect-transfer",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-aspect-transfer.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-preserved-aspects",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-preserved-aspects.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-limitations",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-limitations.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-search-outcome",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-search-outcome.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-search-criterion",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-search-criterion.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-search-coverage",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-search-coverage.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.translatability-search-method",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.translatability-search-method.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-source-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-source-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-target-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-target-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-source-language",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-source-language.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-target-language",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-target-language.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-chronology-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-chronology-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-common-origin-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-common-origin-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-translation-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-translation-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-preserved-aspects",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-preserved-aspects.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-lexical-limitations",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-lexical-limitations.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.occurrence-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.occurrence-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.occurrence-context",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.occurrence-context.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.lexeme-lexical-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.lexeme-lexical-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.lexeme-grammatical-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.lexeme-grammatical-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.sense-sense-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.sense-sense-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.sense-interpretation-context",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.sense-interpretation-context.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.sense-semantic-range",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.sense-semantic-range.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.lexical-form-form-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.lexical-form-form-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.lexical-form-written-representation",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.lexical-form-written-representation.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.lexical-form-language",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.lexical-form-language.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.lexical-form-script",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.lexical-form-script.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.lexical-form-representation-kind",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.lexical-form-representation-kind.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.language-system-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.language-system-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.linguistic-variety-system-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.linguistic-variety-system-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.linguistic-variety-distinguishing-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.linguistic-variety-distinguishing-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.script-script-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.script-script-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.script-sign-inventory-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.script-sign-inventory-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.transliteration-scheme-mapping-convention",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.transliteration-scheme-mapping-convention.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.transliteration-scheme-coverage-and-loss",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.transliteration-scheme-coverage-and-loss.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.classification-term-language",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.classification-term-language.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.classification-term-script",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.classification-term-script.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.classification-term",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.classification-term.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.classification-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.classification-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.classification-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.classification-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.file-media-type",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.file-media-type.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.reception-history-reception-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.reception-history-reception-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.reception-history-receiving-context",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.reception-history-receiving-context.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.reception-process-engagement-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.reception-process-engagement-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-canonization-selection-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-canonization-selection-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-canonization-authority-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-canonization-authority-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-forgetting-evidence-boundary",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-forgetting-evidence-boundary.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.rediscovery-episode-prior-access-boundary",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.rediscovery-episode-prior-access-boundary.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.intellectual-legacy-transmission-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.intellectual-legacy-transmission-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composite-composition-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composite-composition-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composite-editorial-method",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composite-editorial-method.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.composite-coverage-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.composite-coverage-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.fragment-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.fragment-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.fragment-boundary-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.fragment-boundary-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.quotation-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.quotation-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.quotation-location",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.quotation-location.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.textual-survival-status",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.textual-survival-status.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.biographical-episode-episode-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.biographical-episode-episode-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.biographical-episode-biographical-relevance",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.biographical-episode-biographical-relevance.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.biographical-phase-phase-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.biographical-phase-phase-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.biographical-phase-phase-boundary-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.biographical-phase-phase-boundary-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-period-period-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-period-period-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-period-periodization-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-period-periodization-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-generation-generation-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-generation-generation-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-generation-cohort-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-generation-cohort-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-environment-environment-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-environment-environment-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-environment-political-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-environment-political-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-environment-economic-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-environment-economic-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-environment-cultural-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-environment-cultural-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-environment-religious-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-environment-religious-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-environment-educational-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-environment-educational-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.historical-environment-scientific-technological-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.historical-environment-scientific-technological-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.life-circumstance-circumstance-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.life-circumstance-circumstance-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.life-circumstance-documented-relevance",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.life-circumstance-documented-relevance.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.life-circumstance-evidence-limitations",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.life-circumstance-evidence-limitations.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.life-circumstance-bodily-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.life-circumstance-bodily-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.formation-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.formation-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.intellectual-school-inquiry-lineage",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.intellectual-school-inquiry-lineage.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.intellectual-tradition-transmission-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.intellectual-tradition-transmission-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.intellectual-movement-movement-orientation",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.intellectual-movement-movement-orientation.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.formation-scope-note",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.formation-scope-note.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.formation-identity-criterion",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.formation-identity-criterion.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-formation-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-formation-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-relation-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-relation-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-social-scope",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-social-scope.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-social-time-note",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-social-time-note.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.social-group-group-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.social-group-group-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.social-group-membership-boundary",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.social-group-membership-boundary.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.community-community-practice",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.community-community-practice.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.institutional-body-institutional-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.institutional-body-institutional-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.social-scope-note",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.social-scope-note.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.social-identity-criterion",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.social-identity-criterion.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-method-method-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-method-method-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-method-applicability-conditions",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-method-applicability-conditions.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-operation-operation-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-operation-operation-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-operation-prerequisites",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-operation-prerequisites.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-move-movement-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-move-movement-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-move-context-requirement",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-move-context-requirement.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-experiment-scenario-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-experiment-scenario-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-experiment-assumptions",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-experiment-assumptions.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-experiment-assumption-coverage",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-experiment-assumption-coverage.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-experiment-examined-consequence",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-experiment-examined-consequence.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-image-image-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-image-image-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thought-image-image-mode",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thought-image-image-mode.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.rhetorical-figure-figure-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.rhetorical-figure-figure-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.metaphor-source-domain",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.metaphor-source-domain.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.metaphor-target-domain",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.metaphor-target-domain.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.metaphor-mapping-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.metaphor-mapping-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.value-value-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.value-value-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.value-valuation-context",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.value-valuation-context.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.ideal-ideal-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.ideal-ideal-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.ideal-realization-posture",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.ideal-realization-posture.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.ontological-commitment-commitment-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.ontological-commitment-commitment-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.ontological-commitment-commitment-force",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.ontological-commitment-commitment-force.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.aspect-perspective-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.aspect-perspective-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.philosophical-category-category-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.philosophical-category-category-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.problem-problem-statement",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.problem-problem-statement.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.problem-inquiry-stakes",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.problem-inquiry-stakes.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.problem-family-grouping-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.problem-family-grouping-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.question-question-text",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.question-question-text.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.question-presupposition-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.question-presupposition-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.position-stance-account",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.position-stance-account.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.distinction-differentiation-criterion",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.distinction-differentiation-criterion.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.opposition-opposition-basis",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.opposition-opposition-basis.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thesis-proposition",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thesis-proposition.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.thesis-assertion-force",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.thesis-assertion-force.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.argument-reconstruction",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.argument-reconstruction.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.argument-coverage",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.argument-coverage.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.inference-transition",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.inference-transition.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.inference-mode",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.inference-mode.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.objection-challenge",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.objection-challenge.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.semantic-scope-note",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.semantic-scope-note.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.semantic-identity-criterion",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.semantic-identity-criterion.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-calendar",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-calendar.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-role",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-role.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-certainty",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-certainty.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-declared-year-numbering",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-declared-year-numbering.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-relative-relation",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-relative-relation.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-sort-start",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-sort-start.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-sort-end",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-sort-end.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.title",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.title.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.review-state",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.review-state.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.type-ancestry",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.type-ancestry.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-start",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-start.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.time-end",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.time-end.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.property.claim-version",
+      "collection": "property_definitions",
+      "path": "canonical/properties/tos.property.claim-version.json",
+      "navigation_parent": "navigation.properties",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.document-catalogue-date",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.document-catalogue-date.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.document-catalogue-origin",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.document-catalogue-origin.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.document-catalogue-destination",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.document-catalogue-destination.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.subject-identity-transition-proposal",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.subject-identity-transition-proposal.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.collection-member-order",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.collection-member-order.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.physical-part-composition",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.physical-part-composition.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.intellectual-part-composition",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.intellectual-part-composition.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.research-corpus-membership",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.research-corpus-membership.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.claim-supersedes",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-supersedes.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.identity-transition-proposal",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.identity-transition-proposal.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.described-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.described-by.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.metadata-at",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.metadata-at.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.downloadable-at",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.downloadable-at.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.rights-statement-at",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.rights-statement-at.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.claim-value-member",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-value-member.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.occurrence-motif-proposal",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.occurrence-motif-proposal.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-translatability",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-translatability.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-inherited-from",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-inherited-from.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-borrowed-from",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-borrowed-from.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-formed-from",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-formed-from.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-cognate-with",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-cognate-with.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-sense-developed-from",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-sense-developed-from.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-translation-correspondence",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-translation-correspondence.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.occurrence-has-form",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.occurrence-has-form.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.occurrence-of-lexeme",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.occurrence-of-lexeme.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.occurrence-has-sense",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.occurrence-has-sense.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-form-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-form-of.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexical-sense-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexical-sense-of.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.lexeme-in-language",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.lexeme-in-language.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.inscription-language",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.inscription-language.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.inscription-script",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.inscription-script.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.dialect-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.dialect-of.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historical-language-stage-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historical-language-stage-of.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.transliteration-source-script",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.transliteration-source-script.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.transliteration-notation-script",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.transliteration-notation-script.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.classified-content-form",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.classified-content-form.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.classified-carrier-medium",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.classified-carrier-medium.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.classified-genre",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.classified-genre.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.classified-communication-medium",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.classified-communication-medium.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.receives",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.receives.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historically-canonizes",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historically-canonizes.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historically-forgets",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historically-forgets.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.rediscovers",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.rediscovers.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.legacy-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.legacy-of.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.reception-carrier",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.reception-carrier.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.composite-reconstructs",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.composite-reconstructs.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.composite-included-in",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.composite-included-in.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.composite-contains-passage",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.composite-contains-passage.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.composite-compiled-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility/tos.relation.composite-compiled-by.json",
+      "navigation_parent": "tos.relation.responsibility",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.fragment-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.fragment-of.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.quotation-in",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.quotation-in.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.quotation-preserves-fragment",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.quotation-preserves-fragment.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.textual-survival",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.textual-survival.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.biographical-subject",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.biographical-subject.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.phase-contains-episode",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.phase-contains-episode.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.generation-member",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.generation-member.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.generation-in-period",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.generation-in-period.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.situation-in-period",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.situation-in-period.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.contextualized-by-environment",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.contextualized-by-environment.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-in-environment",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-in-environment.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.circumstance-during-phase",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.circumstance-during-phase.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.intellectually-associated-with",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.intellectually-associated-with.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.school-in-tradition",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.school-in-tradition.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.movement-reworks-tradition",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.movement-reworks-tradition.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.formation-articulated-in",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.formation-articulated-in.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.social-member-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.social-member-of.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.learned-from",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.learned-from.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.studied-at",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.studied-at.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.taught-at",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.taught-at.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.collaborated-with",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.collaborated-with.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.corresponded-with",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.corresponded-with.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.friendship-with",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.friendship-with.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conflicted-with",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conflicted-with.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.method-uses-operation",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.method-uses-operation.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.move-uses-operation",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.move-uses-operation.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.experiment-uses-method",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.experiment-uses-method.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.experiment-assumes-thesis",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.experiment-assumes-thesis.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.experiment-tests-thesis",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.experiment-tests-thesis.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.experiment-adopts-commitment",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.experiment-adopts-commitment.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-has-commitment",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-has-commitment.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.thought-uses-image",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.thought-uses-image.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.thought-uses-figure",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.thought-uses-figure.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.ideal-exemplifies-value",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.ideal-exemplifies-value.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.position-affirms-value",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.position-affirms-value.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.method-guided-by-value",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.method-guided-by-value.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.image-presents-conception",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.image-presents-conception.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.problem-family-member",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.problem-family-member.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.problem-has-question",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.problem-has-question.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.question-proposed-answer",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.question-proposed-answer.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.position-has-thesis",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.position-has-thesis.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.position-addresses-problem",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.position-addresses-problem.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-has-aspect",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-has-aspect.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.aspect-of-concept",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.aspect-of-concept.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.category-organizes-concept",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.category-organizes-concept.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.distinction-first-term",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.distinction-first-term.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.distinction-second-term",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.distinction-second-term.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.argument-has-step",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.argument-has-step.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.step-has-premise",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.step-has-premise.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.step-has-conclusion",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.step-has-conclusion.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-has-thesis",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-has-thesis.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.argument-for-thesis",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.argument-for-thesis.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.objection-to-step",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.objection-to-step.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.objection-to-thesis",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.objection-to-thesis.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.objection-to-argument",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.objection-to-argument.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.objection-to-conception",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.objection-to-conception.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.objection-developed-by-argument",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.objection-developed-by-argument.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.thought-expressed-in",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.thought-expressed-in.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.thought-attributed-to",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.thought-attributed-to.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-of.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-attributed-to",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-attributed-to.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-expressed-in",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-expressed-in.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-redefines",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-redefines.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-rejects",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-rejects.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-narrows",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-narrows.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-expands",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-expands.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-secularizes",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-secularizes.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-psychologizes",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-psychologizes.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-politicizes",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-politicizes.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.conception-inverts",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.conception-inverts.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.correspondence-sender",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.correspondence-sender.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.correspondence-addressee",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.correspondence-addressee.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.document-carried-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.document-carried-by.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historical-document",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historical-document.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.document-concerns-work",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.document-concerns-work.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historical-date-anchor",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.historical-date-anchor.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historical-dating",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historical-dating.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historical-participant",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historical-participant.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historical-place",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historical-place.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.historical-work",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.historical-work.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-text-layer",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.has-text-layer.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-annotation",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.has-annotation.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.anchored-in",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.anchored-in.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-text-unit",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.has-text-unit.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-anchor",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.has-anchor.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.annotation-member",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.annotation-member.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.assertion-subject",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.assertion-subject.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.assertion-object",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.assertion-object.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.assertion-evidence",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.assertion-evidence.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.assertion-review",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.assertion-review.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.asserted-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.asserted-by.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.related",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related.json",
+      "navigation_parent": "navigation.relations",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.unmapped",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.unmapped.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.philosophy-conceptual",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.philosophy-conceptual.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.candidate-authorizing-figure",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.candidate-authorizing-figure.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.candidate-translator-involvement",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.candidate-translator-involvement.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.candidate-material-realization",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.candidate-material-realization.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.philosophy-historical",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.philosophy-historical.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.philosophy-transmission",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.philosophy-transmission.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.philosophy-evidential",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.philosophy-evidential.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.philosophy-language",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.philosophy-language.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.projection-pressure",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.projection-pressure.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.projection-structure",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.projection-structure.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.link-access",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.link-access.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.canon-node-relation",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.canon-node-relation.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.canon-registered-predicate",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.canon-registered-predicate.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.structural",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.contains-structurally",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.contains-structurally.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.owns-manifest",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.owns-manifest.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.owns-resource",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.owns-resource.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-source-planting",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.has-source-planting.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.grounds-source-backlog-anchor",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.grounds-source-backlog-anchor.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.projects",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.projects.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-record-version",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.has-record-version.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.promotion-basis-version",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.promotion-basis-version.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.projected-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.structural/tos.relation.projected-by.json",
+      "navigation_parent": "tos.relation.structural",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.bibliographic-topology",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.bibliographic-topology.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-expression",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.bibliographic-topology/tos.relation.has-expression.json",
+      "navigation_parent": "tos.relation.bibliographic-topology",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.embodied-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.bibliographic-topology/tos.relation.embodied-by.json",
+      "navigation_parent": "tos.relation.bibliographic-topology",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.exemplified-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.bibliographic-topology/tos.relation.exemplified-by.json",
+      "navigation_parent": "tos.relation.bibliographic-topology",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-file",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.bibliographic-topology/tos.relation.has-file.json",
+      "navigation_parent": "tos.relation.bibliographic-topology",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.contains-work",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.bibliographic-topology/tos.relation.contains-work.json",
+      "navigation_parent": "tos.relation.bibliographic-topology",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.is-derivative-of",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.bibliographic-topology/tos.relation.is-derivative-of.json",
+      "navigation_parent": "tos.relation.bibliographic-topology",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.responsibility",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.authored-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility/tos.relation.authored-by.json",
+      "navigation_parent": "tos.relation.responsibility",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.translated-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility/tos.relation.translated-by.json",
+      "navigation_parent": "tos.relation.responsibility",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.edited-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility/tos.relation.edited-by.json",
+      "navigation_parent": "tos.relation.responsibility",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.afterword-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility/tos.relation.afterword-by.json",
+      "navigation_parent": "tos.relation.responsibility",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.contributed-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility/tos.relation.contributed-by.json",
+      "navigation_parent": "tos.relation.responsibility",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.designed-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.responsibility/tos.relation.designed-by.json",
+      "navigation_parent": "tos.relation.responsibility",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.claim-structure",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-subject",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.has-subject.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-object",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.has-object.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.claim-supported-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.claim-supported-by.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.claim-counterevidenced-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.claim-counterevidenced-by.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.made-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.made-by.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.generated-by",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.generated-by.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-normalized-place",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.has-normalized-place.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.has-normalized-agent",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.claim-structure/tos.relation.has-normalized-agent.json",
+      "navigation_parent": "tos.relation.claim-structure",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.first-publication-chronology",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.first-publication-chronology.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.provision-activity",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.provision-activity.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.temporal-assertion",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.temporal-assertion.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.cross-layer",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.cross-layer.json",
+      "navigation_parent": "tos.relation.related",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.represents",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.cross-layer/tos.relation.represents.json",
+      "navigation_parent": "tos.relation.cross-layer",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.grounded-in",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.cross-layer/tos.relation.grounded-in.json",
+      "navigation_parent": "tos.relation.cross-layer",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.about",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.cross-layer/tos.relation.about.json",
+      "navigation_parent": "tos.relation.cross-layer",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.relation.same-as",
+      "collection": "relations",
+      "path": "canonical/relations/tos.relation.related/tos.relation.cross-layer/tos.relation.same-as.json",
+      "navigation_parent": "tos.relation.cross-layer",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.chronology-version",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.chronology-version.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.temporal-crosswalk",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.identity/tos.entity.temporal-crosswalk.json",
+      "navigation_parent": "tos.entity.identity",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.ts-native-definition",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.ts-native-definition.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.ts-native-value-profile",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.ts-native-value-profile.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    },
+    {
+      "id": "tos.entity.ts-native-operation-result",
+      "collection": "types",
+      "path": "canonical/entities/tos.entity.thing/tos.entity.semantic-object/tos.entity.ts-native-operation-result.json",
+      "navigation_parent": "tos.entity.semantic-object",
+      "previous_paths": []
+    }
+  ],
+  "selection_review_ref": "ToS/review-ledger/2026-10-19-temporal-definition-selection-review.md"
+}

@@ -1,0 +1,82 @@
+{
+  "relation_type_id": "tos.relation.philosophy-transmission",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "philosophical transmission relation",
+    "ru": "связь передачи и сохранения",
+    "en": "philosophical transmission relation"
+  },
+  "inverse_labels": null,
+  "definition": "The interchange family for transmission, commentary, translation, preservation and survival relations, retaining each source-native predicate and its qualifications.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/philosophy/trunk/relation-kinds/README.md",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "direct",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "canonized_by",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "commented_by",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "fragments_preserved_by",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "preserved_in",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "preserves_in",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "receives_from",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "survives_as",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "translated_into",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "transmits_to",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.ontological-commitment-commitment-account",
+  "field": "attributes.source_record.semantic_content.commitment_account",
+  "labels": {
+    "default": "Commitment account",
+    "ru": "Содержание обязательства",
+    "en": "Commitment account"
+  },
+  "definition": "What ontological commitment is described and under what substantive limits.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.ontological-commitment"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

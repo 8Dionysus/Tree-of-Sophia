@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.conception",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Conception",
+    "ru": "Трактовка",
+    "en": "Conception"
+  },
+  "definition": "A situated account of thought with its own referent identity and substantive description. Attribution, conceptual membership and expression have separately grounded Claims. Historical transformations relate conceptions; descriptive corrections advance the record version while preserving the conception.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "conception"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "conception"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "record_type": "conception",
+    "id_prefix": "tos.conception.",
+    "source_basename": "conception.json",
+    "catalog_filename": "conceptions.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_semantic_description_record_v1",
+        "schema_ref": "ToS/contracts/semantic-description-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

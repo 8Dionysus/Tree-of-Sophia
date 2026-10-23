@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.distinction-differentiation-criterion",
+  "field": "attributes.source_record.semantic_content.differentiation_criterion",
+  "labels": {
+    "default": "Differentiation criterion",
+    "ru": "Основание различения",
+    "en": "Differentiation criterion"
+  },
+  "definition": "In which respect the terms are differentiated; neither shared names nor graph separation supplies this criterion.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.distinction"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.problem",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Problem",
+    "ru": "Проблема",
+    "en": "Problem"
+  },
+  "definition": "An identified tension or difficulty sustaining an inquiry, related to its interrogative formulations and proposed solutions.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "problem"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "problem"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "record_type": "problem",
+    "id_prefix": "tos.problem.",
+    "source_basename": "problem.json",
+    "catalog_filename": "problems.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_thought_topic_record_v1",
+        "schema_ref": "ToS/contracts/thought-topic-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

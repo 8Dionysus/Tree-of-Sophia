@@ -10467,6 +10467,7 @@ fn resolve_claim_reference_evidence(
                 [
                     "command_id",
                     "recorded_at",
+                    "reason",
                     "previous_source",
                     "source",
                     "request_digest",
@@ -10475,6 +10476,12 @@ fn resolve_claim_reference_evidence(
                 .map(|key| Ok((*key, field(receipt, key)?.clone())))
                 .collect::<SourceCommandResult<Vec<_>>>()?,
             );
+            // Identify the exact verified receipt without exposing its request body.
+            set(
+                &mut transition,
+                "receipt_digest",
+                string(&record_digest(receipt)?.to_prefixed()),
+            )?;
             version_status = "historical";
         }
         object(vec![
@@ -10547,6 +10554,106 @@ fn resolve_claim_reference_evidence(
         read.claims.insert(key, result.clone());
     }
     Ok(result)
+}
+
+/// Current public-only exact evidence through the existing retained owner reader.
+/// Construction is restricted to the chronology loader under its held owner
+/// fence; source definitions and callers cannot manufacture authorization.
+pub(crate) struct PublicExactClaimRead {
+    context: CommandContext,
+    retained: RetainedProfileRead,
+    catalog: Rc<RefCell<ClaimCatalogCapture>>,
+}
+impl PublicExactClaimRead {
+    pub(crate) fn new(
+        filesystem: &CreationFilesystem,
+        ctx: &CommandContext,
+        cut: &CorpusCutReader,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        filesystem.current_context(ctx, deadline, cancelled)?;
+        // Reuse the owner cut reader, rather than accepting a caller-selected
+        // subset as the current identity/history inventory.
+        let complete = complete_authored_inputs(ctx, cut, deadline, cancelled)?;
+        let selected = ctx
+            .files
+            .iter()
+            .filter(|file| file.path.as_str().starts_with("ToS/"))
+            .count();
+        if complete.len() != selected
+            || complete
+                .iter()
+                .any(|file| !ctx.files.iter().any(|input| input == file))
+        {
+            return Err(SourceCommandError::Conflict(
+                "Chronology current owner cut closure differs",
+            ));
+        }
+        drop(complete);
+        let catalog = Rc::new(RefCell::new(
+            filesystem.select_claim_catalog(deadline, cancelled)?,
+        ));
+        catalog.borrow().bind_cut(cut, deadline, cancelled)?;
+        let retained = RetainedProfileRead::new(
+            ctx,
+            worker,
+            deadline,
+            cancelled,
+            Some(catalog.clone()),
+            None,
+        )?;
+        let result = Self {
+            context: ctx.clone(),
+            retained,
+            catalog,
+        };
+        result.recheck(filesystem, deadline, cancelled)?;
+        Ok(result)
+    }
+    pub(crate) fn resolve(
+        &mut self,
+        reference: &JsonValue,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(JsonValue, JsonValue, &'static str)> {
+        let resolved = resolve_claim_reference_evidence(
+            &self.context,
+            Some(&mut self.retained),
+            reference,
+            deadline,
+            cancelled,
+        )?;
+        let public =
+            |value: &JsonValue| matches!(value.as_str(), Some("public" | "public_metadata_only"));
+        if !public(field(&resolved.record, "visibility")?)
+            || !public(field(
+                field(&resolved.provenance, "catalog")?,
+                "visibility",
+            )?)
+        {
+            return Err(SourceCommandError::Denied(
+                "Chronology member current or historical visibility is not public",
+            ));
+        }
+        Ok((
+            resolved.record,
+            resolved.provenance,
+            resolved.version_status,
+        ))
+    }
+    pub(crate) fn recheck(
+        &self,
+        filesystem: &CreationFilesystem,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        filesystem.current_context(&self.context, deadline, cancelled)?;
+        self.catalog
+            .borrow()
+            .verify_current(filesystem, deadline, cancelled)
+    }
 }
 
 fn validate_member_order(claim: &JsonValue) -> SourceCommandResult<()> {
@@ -11209,6 +11316,17 @@ mod retained_history_reader_regression {
         assert_eq!(
             field(transition, "source").unwrap(),
             field(&receipts[0], "source").unwrap()
+        );
+        for key in ["command_id", "recorded_at", "reason", "request_digest"] {
+            assert_eq!(
+                field(transition, key).unwrap(),
+                field(&receipts[0], key).unwrap()
+            );
+        }
+        assert!(nonblank(text(transition, "reason").unwrap()));
+        assert_eq!(
+            text(transition, "receipt_digest").unwrap(),
+            record_digest(&receipts[0]).unwrap().to_prefixed()
         );
         assert!(transition.object_get("request").is_none());
 

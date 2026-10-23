@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.position",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Position",
+    "ru": "Позиция",
+    "en": "Position"
+  },
+  "definition": "An identified stance within an inquiry, described through commitments, limits and relations to theses or problems. Attribution to a person or source is a separate grounded Claim.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "position"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "position"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "record_type": "position",
+    "id_prefix": "tos.position.",
+    "source_basename": "position.json",
+    "catalog_filename": "positions.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_thought_topic_record_v1",
+        "schema_ref": "ToS/contracts/thought-topic-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

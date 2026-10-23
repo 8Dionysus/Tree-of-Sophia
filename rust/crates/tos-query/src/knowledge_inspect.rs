@@ -43,7 +43,90 @@ fn sql_error(reason: rusqlite::Error) -> SearchV2Error {
         corrupt("selected inspect query failed")
     }
 }
+// Borrow only the authority field for this transient error notification. The
+// original SQLite error is moved unchanged into the existing error mapping.
+fn sql_error_observed<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    authority: &A,
+    reason: rusqlite::Error,
+) -> SearchV2Error {
+    if matches!(&reason, rusqlite::Error::SqliteFailure(failure, _) if failure.code == ErrorCode::OperationInterrupted)
+    {
+        authority.observe_inspect_budget(
+            "sql_interrupt_observed",
+            "sql_interrupt_unclassified",
+            [None; 4],
+        );
+    }
+    sql_error(reason)
+}
 pub use crate::inspect_plan::InspectBudget;
+fn report_plan_fault<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    authority: &A,
+    fault: Option<crate::inspect_plan::InspectBudgetFault>,
+) {
+    if let Some((site, counts)) = fault {
+        authority.observe_inspect_budget("fault", site, counts);
+    }
+}
+fn report_json_fault<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    authority: &A,
+    reason: &FoundationError,
+    response: bool,
+    limits: JsonLimits,
+) {
+    if reason.code != FoundationErrorCode::BudgetExceeded {
+        return;
+    }
+    let site = match (response, reason.detail.as_str()) {
+        (true, "JSON output byte budget exceeded") => "response_bytes",
+        (false, "JSON output byte budget exceeded") => "internal_json_bytes",
+        (true, "JSON output structural budget exceeded" | "JSON structural budget exceeded") => {
+            "response_structure"
+        }
+        (false, "JSON output structural budget exceeded" | "JSON structural budget exceeded") => {
+            "internal_json_structure"
+        }
+        (true, "integer digit budget exceeded") => "response_number",
+        (false, "integer digit budget exceeded") => "internal_json_number",
+        (
+            true,
+            "JSON member ordering work budget"
+            | "canonical writer state/visit budget"
+            | "JSON visit counter overflow",
+        ) => "response_work",
+        (
+            false,
+            "JSON member ordering work budget"
+            | "canonical writer state/visit budget"
+            | "JSON visit counter overflow",
+        ) => "internal_json_work",
+        _ => "unclassified_foundation_budget",
+    };
+    // [usedA, limitA, usedB, limitB]; never put a limit in a used slot.
+    // Structural errors expose visits/depth limits, not the hidden counters.
+    let counts = match site {
+        "response_bytes" | "internal_json_bytes" => {
+            [None, u64::try_from(limits.max_bytes).ok(), None, None]
+        }
+        "response_structure" | "internal_json_structure" => [
+            None,
+            u64::try_from(limits.max_visits).ok(),
+            None,
+            u64::try_from(limits.max_depth).ok(),
+        ],
+        "response_number" | "internal_json_number" => [
+            None,
+            u64::try_from(limits.max_integer_digits).ok(),
+            None,
+            None,
+        ],
+        "response_work" | "internal_json_work" => {
+            [None, u64::try_from(limits.max_visits).ok(), None, None]
+        }
+        _ => [None; 4],
+    };
+    authority.observe_inspect_budget("fault", site, counts);
+}
 
 /// Optional cumulative JSON work meter for a bounded composite read. Ordinary
 /// readers pass no meter and retain their existing per-document limits.
@@ -164,6 +247,16 @@ pub trait InspectDisclosureLease: Send {
 /// Owned providers may support 'static; a scoped managed provider supports
 /// only its actual held-read lifetime, including final transport delivery.
 pub trait InspectCurrentAuthority<'hold> {
+    /// Optional static/numeric diagnostic only. No authority, result or quota is
+    /// derived from this notification; legacy owners retain the no-op default.
+    fn observe_inspect_budget(
+        &self,
+        _phase: &'static str,
+        _site: &'static str,
+        _counts: [Option<u64>; 4],
+    ) {
+    }
+
     /// Forecast owned policy/scope clone metadata from the already-held source,
     /// before the state-aware carrier path calls either owned-return method.
     fn disclosure_metadata_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
@@ -415,6 +508,11 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     visit_meter: Option<&'a mut InspectVisitMeter>,
 }
 impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
+    fn observed_budget(&self, site: &'static str, counts: [Option<u64>; 4]) -> SearchV2Error {
+        self.authority.observe_inspect_budget("fault", site, counts);
+        budget_error()
+    }
+
     fn parse_document(
         visit_meter: Option<&mut InspectVisitMeter>,
         raw: &[u8],
@@ -977,7 +1075,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                     params![source, self.budget.max_payload_bytes as i64],
                     |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
                 )
-                .map_err(sql_error)?;
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
             if count < 0
                 || count as u64 != expected
                 || invalid != 0
@@ -1051,12 +1149,19 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             .model
             .connection()
             .prepare_cached(&sql)
-            .map_err(sql_error)?;
-        let mut rows = statement.query([encoded]).map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
+        let mut rows = statement
+            .query([encoded])
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut total = 0u64;
         let mut count = 0;
-        while let Some(row) = rows.next().map_err(sql_error)? {
-            let n = row.get::<_, i64>(0).map_err(sql_error)?;
+        while let Some(row) = rows
+            .next()
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+        {
+            let n = row
+                .get::<_, i64>(0)
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
             if n < 0 {
                 return Err(corrupt("selected source scope count invalid"));
             }
@@ -1079,15 +1184,17 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     /// Digest-bound selected graph metadata, including exact property grammar.
     pub(crate) fn header(&mut self) -> Result<JsonValue, SearchV2Error> {
         self.authority.check_selected()?;
-        let mut statement=self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?1 AND length(packet)=packet_len THEN packet END FROM graph_header WHERE singleton=1").map_err(sql_error)?;
+        let mut statement=self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?1 AND length(packet)=packet_len THEN packet END FROM graph_header WHERE singleton=1").map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut rows = statement
             .query([self.budget.max_payload_bytes as i64])
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let row = rows
             .next()
-            .map_err(sql_error)?
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
             .ok_or_else(|| corrupt("selected header absent"))?;
-        let length = row.get::<_, i64>(0).map_err(sql_error)?;
+        let length = row
+            .get::<_, i64>(0)
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         if length < 0 || length as usize > self.budget.max_payload_bytes {
             return Err(budget_error());
         }
@@ -1102,11 +1209,11 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         // Aggregate admission precedes copying the header BLOB out of SQLite.
         let sha = row
             .get::<_, Option<Vec<u8>>>(1)
-            .map_err(sql_error)?
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
             .ok_or_else(|| corrupt("selected header digest width invalid"))?;
         let payload = row
             .get::<_, Option<Vec<u8>>>(2)
-            .map_err(sql_error)?
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
             .ok_or_else(|| corrupt("selected header length/type invalid"))?;
         if Digest256::of_bytes(&payload).as_bytes() != sha.as_slice() {
             return Err(corrupt("selected header digest differs"));
@@ -1129,18 +1236,20 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         self.authority.check_selected()?;
         self.authority
             .authorize_catalog_current(bound.selection().catalog_packet_sha256)?;
-        let mut statement = self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?2 AND length(packet)=packet_len THEN packet END FROM catalog_index_meta WHERE descriptor_sha256=?1").map_err(sql_error)?;
+        let mut statement = self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?2 AND length(packet)=packet_len THEN packet END FROM catalog_index_meta WHERE descriptor_sha256=?1").map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut rows = statement
             .query(params![
                 bound.selection().vocabulary.descriptor_sha256.to_hex(),
                 self.budget.max_payload_bytes as i64
             ])
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let row = rows
             .next()
-            .map_err(sql_error)?
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
             .ok_or_else(|| corrupt("selected catalog absent"))?;
-        let length = row.get::<_, i64>(0).map_err(sql_error)?;
+        let length = row
+            .get::<_, i64>(0)
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         if length < 0 || length as usize > self.budget.max_payload_bytes {
             return Err(budget_error());
         }
@@ -1154,11 +1263,11 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         }
         let sha = row
             .get::<_, Option<Vec<u8>>>(1)
-            .map_err(sql_error)?
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
             .ok_or_else(|| corrupt("selected catalog digest width invalid"))?;
         let payload = row
             .get::<_, Option<Vec<u8>>>(2)
-            .map_err(sql_error)?
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
             .ok_or_else(|| corrupt("selected catalog length/type invalid"))?;
         if sha.as_slice() != bound.selection().catalog_packet_sha256.as_bytes()
             || Digest256::of_bytes(&payload) != bound.selection().catalog_packet_sha256
@@ -1193,7 +1302,15 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         limit: usize,
     ) -> Result<Vec<(String, i64, String)>, SearchV2Error> {
         if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
-            return Err(budget_error());
+            return Err(self.observed_budget(
+                "rows",
+                [
+                    u64::try_from(limit).ok(),
+                    Some(self.budget.max_rows),
+                    None,
+                    None,
+                ],
+            ));
         }
         self.authority.check_selected()?;
         let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
@@ -1203,7 +1320,10 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 CanonicalProfile::SourceRecordDigestV1,
                 self.budget.json,
             )
-            .map_err(|_| budget_error())?;
+            .map_err(|reason| {
+                report_json_fault(&*self.authority, &reason, false, self.budget.json);
+                budget_error()
+            })?;
         let encoded =
             std::str::from_utf8(&encoded).map_err(|_| corrupt("candidate sources invalid"))?;
         let (table, index) = source_order_table(kind);
@@ -1215,7 +1335,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             .model
             .connection()
             .prepare_cached(&sql)
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut rows = statement
             .query(params![
                 encoded,
@@ -1224,29 +1344,69 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 limit as i64,
                 self.budget.max_field_bytes as i64
             ])
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut result = vec![];
-        while let Some(row) = rows.next().map_err(sql_error)? {
+        while let Some(row) = rows
+            .next()
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+        {
             let source = row
                 .get::<_, Option<String>>(0)
-                .map_err(sql_error)?
-                .ok_or_else(budget_error)?;
-            let position = row.get::<_, i64>(1).map_err(sql_error)?;
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+                .ok_or_else(|| {
+                    self.observed_budget(
+                        "field_bytes",
+                        [
+                            None,
+                            u64::try_from(self.budget.max_field_bytes).ok(),
+                            None,
+                            None,
+                        ],
+                    )
+                })?;
+            let position = row
+                .get::<_, i64>(1)
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
             if position < 0 {
                 return Err(corrupt("candidate source order invalid"));
             }
             let id = row
                 .get::<_, Option<String>>(2)
-                .map_err(sql_error)?
-                .ok_or_else(budget_error)?;
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+                .ok_or_else(|| {
+                    self.observed_budget(
+                        "field_bytes",
+                        [
+                            None,
+                            u64::try_from(self.budget.max_field_bytes).ok(),
+                            None,
+                            None,
+                        ],
+                    )
+                })?;
             // Disjoint field borrows permit charging before storing the row.
-            self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+            self.rows = self
+                .rows
+                .checked_add(1)
+                .ok_or_else(|| self.observed_budget("arithmetic_overflow", [None; 4]))?;
             self.decoded = self
                 .decoded
                 .checked_add((source.len() + id.len() + 8) as u64)
-                .ok_or_else(budget_error)?;
+                .ok_or_else(|| self.observed_budget("arithmetic_overflow", [None; 4]))?;
             if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
-                return Err(budget_error());
+                return Err(self.observed_budget(
+                    if self.rows > self.budget.max_rows {
+                        "rows"
+                    } else {
+                        "decoded_bytes"
+                    },
+                    [
+                        Some(self.rows),
+                        Some(self.budget.max_rows),
+                        Some(self.decoded),
+                        Some(self.budget.max_decoded_bytes),
+                    ],
+                ));
             }
             result.push((source, position, id));
         }
@@ -1269,7 +1429,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             .model
             .connection()
             .prepare_cached(sql)
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut rows = statement
             .query(params![
                 node,
@@ -1277,12 +1437,15 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 limit as i64,
                 self.budget.max_field_bytes as i64
             ])
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut result = vec![];
-        while let Some(row) = rows.next().map_err(sql_error)? {
+        while let Some(row) = rows
+            .next()
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+        {
             let id = row
                 .get::<_, Option<String>>(0)
-                .map_err(sql_error)?
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
                 .ok_or_else(budget_error)?;
             self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
             self.decoded = self
@@ -1322,7 +1485,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             .model
             .connection()
             .prepare_cached(sql)
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut rows = statement
             .query(params![
                 entity,
@@ -1331,12 +1494,15 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 limit as i64,
                 self.budget.max_field_bytes as i64
             ])
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut result = vec![];
-        while let Some(row) = rows.next().map_err(sql_error)? {
+        while let Some(row) = rows
+            .next()
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+        {
             let id = row
                 .get::<_, Option<String>>(0)
-                .map_err(sql_error)?
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
                 .ok_or_else(budget_error)?;
             self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
             self.decoded = self
@@ -1405,7 +1571,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             .model
             .connection()
             .prepare_cached(&sql)
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut rows = statement
             .query(params![
                 id,
@@ -1413,35 +1579,82 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 self.budget.max_payload_bytes as i64,
                 limit as i64
             ])
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut values = vec![];
-        while let Some(row) = rows.next().map_err(sql_error)? {
-            self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+        while let Some(row) = rows
+            .next()
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+        {
+            self.rows = self
+                .rows
+                .checked_add(1)
+                .ok_or_else(|| self.observed_budget("arithmetic_overflow", [None; 4]))?;
             if self.rows > self.budget.max_rows {
-                return Err(budget_error());
+                return Err(self.observed_budget(
+                    "rows",
+                    [Some(self.rows), Some(self.budget.max_rows), None, None],
+                ));
             }
-            let Some(row_id) = row.get::<_, Option<String>>(0).map_err(sql_error)? else {
-                return Err(budget_error());
+            let Some(row_id) = row
+                .get::<_, Option<String>>(0)
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+            else {
+                return Err(self.observed_budget(
+                    "field_bytes",
+                    [
+                        None,
+                        u64::try_from(self.budget.max_field_bytes).ok(),
+                        None,
+                        None,
+                    ],
+                ));
             };
-            let position = row.get::<_, i64>(1).map_err(sql_error)?;
+            let position = row
+                .get::<_, i64>(1)
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
             if position < 0 {
                 return Err(corrupt("inspect source order invalid"));
             }
-            let Some(length) = row.get::<_, Option<i64>>(2).map_err(sql_error)? else {
-                return Err(budget_error());
+            let Some(length) = row
+                .get::<_, Option<i64>>(2)
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+            else {
+                return Err(self.observed_budget(
+                    "payload_bytes",
+                    [
+                        None,
+                        u64::try_from(self.budget.max_payload_bytes).ok(),
+                        None,
+                        None,
+                    ],
+                ));
             };
-            let Some(sha) = row.get::<_, Option<Vec<u8>>>(3).map_err(sql_error)? else {
+            let Some(sha) = row
+                .get::<_, Option<Vec<u8>>>(3)
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+            else {
                 return Err(corrupt("inspect carrier digest width invalid"));
             };
             // Prevent aggregate transfer allocation, not merely post-read cap.
             self.decoded = self
                 .decoded
                 .checked_add(row_id.len() as u64 + 48 + length as u64)
-                .ok_or_else(budget_error)?;
+                .ok_or_else(|| self.observed_budget("arithmetic_overflow", [None; 4]))?;
             if self.decoded > self.budget.max_decoded_bytes {
-                return Err(budget_error());
+                return Err(self.observed_budget(
+                    "decoded_bytes",
+                    [
+                        Some(self.decoded),
+                        Some(self.budget.max_decoded_bytes),
+                        None,
+                        None,
+                    ],
+                ));
             }
-            let Some(payload) = row.get::<_, Option<Vec<u8>>>(4).map_err(sql_error)? else {
+            let Some(payload) = row
+                .get::<_, Option<Vec<u8>>>(4)
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
+            else {
                 return Err(corrupt("inspect carrier length/type differs"));
             };
             let payload_sha = Digest256::of_bytes(&payload);
@@ -1497,7 +1710,10 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 CanonicalProfile::SourceRecordDigestV1,
                 self.budget.json,
             )
-            .map_err(|_| budget_error())?;
+            .map_err(|reason| {
+                report_json_fault(&*self.authority, &reason, false, self.budget.json);
+                budget_error()
+            })?;
         let encoded = std::str::from_utf8(&encoded).map_err(|_| corrupt("inspect IDs invalid"))?;
         let union = "SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from WHERE from_id IN (SELECT value FROM json_each(?1)) UNION SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_to WHERE to_id IN (SELECT value FROM json_each(?1))";
         let total: i64 = self
@@ -1508,24 +1724,34 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 [encoded],
                 |row| row.get(0),
             )
-            .map_err(sql_error)?;
+            .map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         if total < 0 {
             return Err(corrupt("inspect incident count invalid"));
         }
         let selected = {
-            let mut statement=self.model.connection().prepare_cached(&format!("SELECT CASE WHEN length(CAST(id AS BLOB))<=?3 THEN id END FROM ({union}) ORDER BY id LIMIT ?2")).map_err(sql_error)?;
+            let mut statement=self.model.connection().prepare_cached(&format!("SELECT CASE WHEN length(CAST(id AS BLOB))<=?3 THEN id END FROM ({union}) ORDER BY id LIMIT ?2")).map_err(|reason| sql_error_observed(&*self.authority, reason))?;
             statement
                 .query_map(
                     params![encoded, limit as i64, self.budget.max_field_bytes as i64],
                     |row| row.get::<_, Option<String>>(0),
                 )
-                .map_err(sql_error)?
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
                 .collect::<Result<Vec<_>, _>>()
-                .map_err(sql_error)?
+                .map_err(|reason| sql_error_observed(&*self.authority, reason))?
         };
         let mut related = vec![];
         for id in selected {
-            let id = id.ok_or_else(budget_error)?;
+            let id = id.ok_or_else(|| {
+                self.observed_budget(
+                    "field_bytes",
+                    [
+                        None,
+                        u64::try_from(self.budget.max_field_bytes).ok(),
+                        None,
+                        None,
+                    ],
+                )
+            })?;
             let rows = self.items(SearchKind::Relations, "id", &id, 1, true)?;
             if rows.len() != 1 {
                 return Err(corrupt("inspect incident carrier missing"));
@@ -1547,7 +1773,11 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
     relation_limit: usize,
     budget: InspectBudget,
 ) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
-    let request = crate::InspectRequest::new(kind, identifier, relation_limit, budget)?;
+    let mut fault = None;
+    let request =
+        crate::InspectRequest::new_observed(kind, identifier, relation_limit, budget, &mut fault);
+    report_plan_fault(&*authority, fault);
+    let request = request?;
     let operation = if kind == SearchKind::Nodes {
         NODE_INSPECT_OPERATION
     } else {
@@ -1569,7 +1799,16 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
                 )
                 .map_err(|_| corrupt("inspect authority boundary invalid"))?
                 .into_root();
-                crate::InspectPlan::new(request, revision.to_owned(), authority_boundary, budget)?
+                let mut fault = None;
+                let plan = crate::InspectPlan::new_observed(
+                    request,
+                    revision.to_owned(),
+                    authority_boundary,
+                    budget,
+                    &mut fault,
+                );
+                report_plan_fault(&*read.authority, fault);
+                plan?
             } else {
                 // Only this adapter supplies the digest-bound selected header.
                 let header = read.header()?;
@@ -1599,21 +1838,46 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
                             limit.checked_add(1).ok_or_else(budget_error)?,
                             false,
                         )?;
-                        plan.resume_lookup(rows, read.decoded - before, probe.as_deref())?;
+                        let mut fault = None;
+                        let resumed = plan.resume_lookup_observed(
+                            rows,
+                            read.decoded - before,
+                            probe.as_deref(),
+                            &mut fault,
+                        );
+                        report_plan_fault(&*read.authority, fault);
+                        resumed?;
                     }
                     crate::InspectNeed::NodeIncident {
                         ids,
                         relation_limit,
                     } => {
                         let (total, rows) = read.incident(&ids, relation_limit)?;
-                        plan.resume_incident(total, rows, read.decoded - before, probe.as_deref())?;
+                        let mut fault = None;
+                        let resumed = plan.resume_incident_observed(
+                            total,
+                            rows,
+                            read.decoded - before,
+                            probe.as_deref(),
+                            &mut fault,
+                        );
+                        report_plan_fault(&*read.authority, fault);
+                        resumed?;
                     }
                     crate::InspectNeed::RelationEndpoints { ids } => {
                         let mut rows = Vec::new();
                         for id in ids {
                             rows.extend(read.items(SearchKind::Nodes, "id", &id, 1, true)?);
                         }
-                        plan.resume_endpoints(rows, read.decoded - before, probe.as_deref())?;
+                        let mut fault = None;
+                        let resumed = plan.resume_endpoints_observed(
+                            rows,
+                            read.decoded - before,
+                            probe.as_deref(),
+                            &mut fault,
+                        );
+                        report_plan_fault(&*read.authority, fault);
+                        resumed?;
                     }
                 }
             }
@@ -1784,6 +2048,20 @@ where
         || budget.max_response_bytes == 0
         || budget.max_decoded_bytes == 0
     {
+        authority.observe_inspect_budget(
+            "fault",
+            if budget.max_open_vm_steps == 0 || model.open_vm_steps() > budget.max_open_vm_steps {
+                "initial_open"
+            } else {
+                "initial_scalar"
+            },
+            [
+                Some(model.open_vm_steps()),
+                Some(budget.max_open_vm_steps),
+                None,
+                None,
+            ],
+        );
         return Err(budget_error());
     }
     bound.check_model(model)?;
@@ -1851,7 +2129,7 @@ where
                 || observed.fetch_add(1, Ordering::Relaxed) >= cap
         }),
     );
-    let result = (|| {
+    let result: Result<DisclosableInspect<'hold>, SearchV2Error> = (|| {
         let mut read = Reader {
             model,
             authority,
@@ -1880,6 +2158,7 @@ where
             )
             .map_err(|reason| {
                 if reason.code == FoundationErrorCode::BudgetExceeded {
+                    report_json_fault(&*read.authority, &reason, true, state_limits);
                     budget_error()
                 } else {
                     corrupt("selected knowledge response cannot be emitted")
@@ -1891,6 +2170,7 @@ where
             read.canonical_bytes(&value, CanonicalProfile::SourceRecordDigestV1, limits)
                 .map_err(|reason| {
                     if reason.code == FoundationErrorCode::BudgetExceeded {
+                        report_json_fault(&*read.authority, &reason, true, limits);
                         budget_error()
                     } else {
                         corrupt("selected knowledge response cannot be emitted")
@@ -1915,7 +2195,22 @@ where
     model.connection().progress_handler(0, None::<fn() -> bool>);
     check_abort()?;
     if steps.load(Ordering::Relaxed) > budget.max_read_vm_steps {
+        authority.observe_inspect_budget(
+            "fault",
+            "read_vm",
+            [
+                Some(steps.load(Ordering::Relaxed)),
+                Some(budget.max_read_vm_steps),
+                None,
+                None,
+            ],
+        );
         return Err(budget_error());
+    }
+    if matches!(&result, Err(reason) if reason.code == SearchV2ErrorCode::BudgetExceeded) {
+        // Do not infer VM exhaustion when the existing counter did not exceed
+        // its limit. The owner recorder preserves any earlier specific fault.
+        authority.observe_inspect_budget("fallback", "unclassified_native_budget", [None; 4]);
     }
     result
 }

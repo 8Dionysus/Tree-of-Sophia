@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.philosophical-category-category-account",
+  "field": "attributes.source_record.semantic_content.category_account",
+  "labels": {
+    "default": "Category account",
+    "ru": "Содержание категории",
+    "en": "Category account"
+  },
+  "definition": "What is organized or distinguished by this category, within the declared philosophical scope.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.philosophical-category"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

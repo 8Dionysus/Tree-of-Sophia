@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-environment-scientific-technological-account",
+  "field": "attributes.source_record.semantic_content.scientific_technological_account",
+  "labels": {
+    "default": "Scientific and technological conditions",
+    "ru": "Научно-техническая среда",
+    "en": "Scientific and technological conditions"
+  },
+  "definition": "Source-described scientific practices, knowledge or technologies; availability does not prove use or influence.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-environment"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

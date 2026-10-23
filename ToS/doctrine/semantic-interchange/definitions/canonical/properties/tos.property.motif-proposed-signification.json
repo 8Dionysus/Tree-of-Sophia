@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.motif-proposed-signification",
+  "field": "attributes.value.proposed_signification",
+  "labels": {
+    "default": "Proposed signification",
+    "ru": "Предлагаемое значение",
+    "en": "Proposed signification"
+  },
+  "definition": "The researcher's proposed meaning for this comparison set; not an accepted Sign definition.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.motif-proposal"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

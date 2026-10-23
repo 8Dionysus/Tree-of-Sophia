@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-environment-educational-account",
+  "field": "attributes.source_record.semantic_content.educational_account",
+  "labels": {
+    "default": "Educational conditions",
+    "ru": "Образовательная среда",
+    "en": "Educational conditions"
+  },
+  "definition": "Source-described education and teaching arrangements, not automatic individual participation.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-environment"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

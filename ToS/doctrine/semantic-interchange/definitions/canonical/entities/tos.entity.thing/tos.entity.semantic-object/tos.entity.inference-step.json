@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.inference-step",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Inference step",
+    "ru": "Шаг вывода",
+    "en": "Inference step"
+  },
+  "definition": "An identified transition in an account of reasoning, with premises and conclusions assigned contextual roles through Claims. Its premises, rule and result are open to examination; reconstruction order and historical chronology have separate evidence.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "inference-step"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "inference-step"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "record_type": "inference-step",
+    "id_prefix": "tos.inference-step.",
+    "source_basename": "inference-step.json",
+    "catalog_filename": "inference-steps.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_thought_description_record_v1",
+        "schema_ref": "ToS/contracts/thought-description-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

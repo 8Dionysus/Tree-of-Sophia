@@ -1,0 +1,24 @@
+{
+  "property_id": "tos.property.social-identity-criterion",
+  "field": "attributes.source_record.semantic_scope.identity_criterion",
+  "labels": {
+    "default": "Collective continuity criterion",
+    "ru": "Критерий преемственности коллектива",
+    "en": "Collective continuity criterion"
+  },
+  "definition": "The contestable criterion for retaining this collective's identity through description changes; names alone are insufficient.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.social-group",
+    "tos.entity.institutional-body"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

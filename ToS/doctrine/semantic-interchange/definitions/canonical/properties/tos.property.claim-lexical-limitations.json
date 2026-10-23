@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-lexical-limitations",
+  "field": "attributes.source_claim.qualifiers.limitations",
+  "labels": {
+    "default": "Lexical comparison limitations",
+    "ru": "Ограничения лексического сопоставления",
+    "en": "Lexical comparison limitations"
+  },
+  "definition": "Source-declared limitations, losses and unresolved alternatives of the proposed lexical correspondence.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.controversy",
+  "parent_type_ids": [
+    "tos.entity.philosophy-object"
+  ],
+  "abstract": false,
+  "object_role": "navigation",
+  "labels": {
+    "default": "Controversy candidate",
+    "ru": "Кандидат полемики",
+    "en": "Controversy candidate"
+  },
+  "definition": "A pre-canon controversy or contested-reading category.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/philosophy/AGENTS.md",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "controversy"
+    }
+  ],
+  "supersedes_type_id": null
+}

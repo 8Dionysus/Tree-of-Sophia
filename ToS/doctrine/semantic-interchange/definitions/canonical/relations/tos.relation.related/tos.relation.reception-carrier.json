@@ -1,0 +1,63 @@
+{
+  "relation_type_id": "tos.relation.reception-carrier",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "is conveyed through",
+    "ru": "передаётся посредством",
+    "en": "is conveyed through"
+  },
+  "inverse_labels": {
+    "default": "carries a reception history",
+    "ru": "служит носителем истории рецепции",
+    "en": "carries a reception history"
+  },
+  "definition": "Identifies a work, document, realization, aggregate or physical witness conveying the studied reception, with separately recorded reception targets and supporting evidence.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.reception-history"
+  ],
+  "range_type_ids": [
+    "tos.entity.intellectual-object",
+    "tos.entity.artifact"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "reception_carrier",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_historical_context_claim_v1",
+        "schema_ref": "ToS/contracts/historical-context-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

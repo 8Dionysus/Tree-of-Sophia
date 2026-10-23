@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.textual-survival-status",
+  "field": "attributes.value.status",
+  "labels": {
+    "default": "Reported textual survival",
+    "ru": "Сообщаемая сохранность текста",
+    "en": "Reported textual survival"
+  },
+  "definition": "Complete, fragmentary, not extant or unknown as attributed by this Claim; not certainty, admission, physical custody or access permission.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.textual-survival"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

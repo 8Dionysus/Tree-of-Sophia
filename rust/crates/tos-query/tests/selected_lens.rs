@@ -1,7 +1,7 @@
 #![cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 //! Native selected packets against frozen outputs from the maintained historical Python engine.
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     io::Read,
     path::{Component, Path, PathBuf},
     process::Command,
@@ -323,8 +323,9 @@ fn replace_exact_string(value: &mut JsonValue, historical: &str, native: &str) {
 }
 
 fn adapt_historical_corpus_search_packet_schemas(oracle: &mut JsonValue) {
-    // The transport contract now names the v2 projection search and packet
-    // schemas. Preserve every other field in each frozen Python response.
+    // Explicit version derivative, not a live query-operations schema lookup:
+    // exactly these four named v1 tags become the declared v2 tags. Preserve
+    // every other field in each frozen Python response.
     let cases = field_mut(oracle, "cases");
     let mut adapted = 0;
     for (case, historical, native) in [
@@ -359,356 +360,690 @@ fn adapt_historical_corpus_search_packet_schemas(oracle: &mut JsonValue) {
     );
 }
 
-fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
-    // The pinned Python oracle predates native route and source-text gateway
-    // wording. Apply only those pinned contract deltas and the separate
-    // registry-v46 adjustment below; all other fields remain compared.
-    let api_source_bytes = tos_query::knowledge_contracts::KNOWLEDGE_PROGRAM_CONTRACTS
+// These are authored test INPUT declarations, independent of the response and
+// the production bundle table/transform. A contract change transports its whole
+// declared document, rather than another manual version/count migration.
+const DECLARED_PROGRAM_CONTRACTS: &[(&str, &str, &[u8])] = &[
+    (
+        "api",
+        "access/contracts/knowledge-api.v1.json",
+        include_bytes!("../../../../access/contracts/knowledge-api.v1.json"),
+    ),
+    (
+        "knowledge_graph",
+        "access/contracts/knowledge-graph.v1.schema.json",
+        include_bytes!("../../../../access/contracts/knowledge-graph.v1.schema.json"),
+    ),
+    (
+        "knowledge_search_indexed",
+        "access/contracts/knowledge-search-indexed.v2.schema.json",
+        include_bytes!("../../../../access/contracts/knowledge-search-indexed.v2.schema.json"),
+    ),
+    (
+        "readable_context",
+        "access/contracts/readable-context.v1.schema.json",
+        include_bytes!("../../../../access/contracts/readable-context.v1.schema.json"),
+    ),
+    (
+        "lens_spec",
+        "access/contracts/lens-spec.v1.schema.json",
+        include_bytes!("../../../../access/contracts/lens-spec.v1.schema.json"),
+    ),
+    (
+        "lens_result",
+        "access/contracts/lens-result.v1.schema.json",
+        include_bytes!("../../../../access/contracts/lens-result.v1.schema.json"),
+    ),
+    (
+        "temporal_comparison_request",
+        "access/contracts/temporal-comparison-request.v1.schema.json",
+        include_bytes!("../../../../access/contracts/temporal-comparison-request.v1.schema.json"),
+    ),
+    (
+        "temporal_comparison_result",
+        "access/contracts/temporal-comparison-result.v1.schema.json",
+        include_bytes!("../../../../access/contracts/temporal-comparison-result.v1.schema.json"),
+    ),
+    (
+        "source_read",
+        "access/contracts/source-read.v1.schema.json",
+        include_bytes!("../../../../access/contracts/source-read.v1.schema.json"),
+    ),
+    (
+        "entity_type_registry_schema",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        include_bytes!("../../../../ToS/contracts/semantic-entity-type-registry.schema.json"),
+    ),
+    (
+        "relation_type_registry_schema",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        include_bytes!("../../../../ToS/contracts/semantic-relation-type-registry.schema.json"),
+    ),
+];
+const DECLARED_REGISTRIES: &[(&str, &str, &[u8])] = &[
+    (
+        "entity_type_registry",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json"),
+    ),
+    (
+        "relation_type_registry",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        include_bytes!("../../../../ToS/doctrine/semantic-interchange/relation-types.v1.json"),
+    ),
+];
+fn reference_text(s: &str) -> JsonValue {
+    JsonValue::String(tos_foundation::JsonString::from_utf8(s))
+}
+fn reference_object(entries: Vec<(&str, JsonValue)>) -> JsonValue {
+    JsonValue::Object(
+        entries
+            .into_iter()
+            .map(|(k, v)| (tos_foundation::JsonString::from_utf8(k), v))
+            .collect(),
+    )
+}
+fn declared_contract_expectation(registry_inputs: [&[u8]; 2], visits: &mut usize) -> JsonValue {
+    let registries = [
+        (
+            DECLARED_REGISTRIES[0].0,
+            DECLARED_REGISTRIES[0].1,
+            registry_inputs[0],
+        ),
+        (
+            DECLARED_REGISTRIES[1].0,
+            DECLARED_REGISTRIES[1].1,
+            registry_inputs[1],
+        ),
+    ];
+    let mut bytes = 0usize;
+    let mut names = BTreeSet::new();
+    let mut paths = BTreeSet::new();
+    let mut contracts = Vec::new();
+    let mut refs = Vec::new();
+    for (id, path, raw) in DECLARED_PROGRAM_CONTRACTS.iter().chain(&registries) {
+        bytes = bytes.checked_add(raw.len()).unwrap();
+        assert!(bytes <= 4_000_000, "declared contract aggregate input");
+        if DECLARED_REGISTRIES.iter().any(|(key, _, _)| key == id) {
+            assert!(raw.len() <= 1_000_000, "declared registry input");
+        }
+        assert!(
+            names.insert(*id) && paths.insert(*path),
+            "duplicate declared contract"
+        );
+        let doc = parse_json(
+            raw,
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_visits: *visits,
+                ..JsonLimits::default()
+            },
+        )
+        .unwrap();
+        *visits = visits.checked_sub(doc.visits()).unwrap();
+        contracts.push((*id, doc.into_root()));
+        refs.push(reference_text(path));
+    }
+    let expected = reference_object(vec![
+        ("schema", reference_text("tos_knowledge_contract_bundle_v1")),
+        ("contracts", reference_object(contracts)),
+        ("source_refs", JsonValue::Array(refs)),
+        (
+            "authority_boundary",
+            reference_object(vec![
+                ("is_source", JsonValue::Bool(false)),
+                ("writes_to_tree", JsonValue::Bool(false)),
+                (
+                    "source_owner",
+                    reference_text("Tree-of-Sophia/access/contracts"),
+                ),
+                (
+                    "note",
+                    reference_text(
+                        "This packet transports versioned access contracts; it does not author ToS meaning.",
+                    ),
+                ),
+            ]),
+        ),
+    ]);
+    assert!(
+        canonical_bytes_v1(
+            &expected,
+            CanonicalProfile::SourceRecordDigestV1,
+            JsonLimits {
+                max_bytes: 4_000_000,
+                max_visits: *visits,
+                ..JsonLimits::default()
+            }
+        )
+        .is_ok()
+    );
+    expected
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OracleMode {
+    HistoricalExact,
+    CurrentDeclared,
+    HistoricalWithDeclaredDerivative,
+}
+#[derive(Clone, Copy)]
+struct OracleInputLaw {
+    name: &'static str,
+    mode: OracleMode,
+    semantic_input: &'static str,
+    scaffold: &'static str,
+    derivative: &'static str,
+}
+// All fourteen captures have explicit input roles, not name-based pin claims.
+const ORACLE_INPUT_LAWS: &[OracleInputLaw] = &[
+    OracleInputLaw {
+        name: "lenses",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "exact Claim seed + query vocabulary",
+        scaffold: "checked historical registry semantics/current publication",
+        derivative: "17-field publication;18 typed cursor fields",
+    },
+    OracleInputLaw {
+        name: "legacy-search",
+        mode: OracleMode::HistoricalExact,
+        semantic_input: "exact Claim seed + query vocabulary",
+        scaffold: "current registries with checked historical semantic projection",
+        derivative: "none; whole semantic packet",
+    },
+    OracleInputLaw {
+        name: "contracts",
+        mode: OracleMode::CurrentDeclared,
+        semantic_input: "13 independently declared raw documents",
+        scaffold: "selected registry custody",
+        derivative: "none; historical packet separately authenticated",
+    },
+    OracleInputLaw {
+        name: "dossiers",
+        mode: OracleMode::HistoricalExact,
+        semantic_input: "packet header/nodes/edges/rights raw",
+        scaffold: "current admission; successful semantics use root-checked original payloads",
+        derivative: "none",
+    },
+    OracleInputLaw {
+        name: "shared-file-rights",
+        mode: OracleMode::HistoricalExact,
+        semantic_input: "packet groups raw header/nodes/edges/rights",
+        scaffold: "current admission; successful semantics use root-checked original payloads",
+        derivative: "none",
+    },
+    OracleInputLaw {
+        name: "remaining-navigation",
+        mode: OracleMode::HistoricalExact,
+        semantic_input: "packet groups raw header/nodes/edges/rights",
+        scaffold: "current admission; successful semantics use root-checked original payloads",
+        derivative: "none",
+    },
+    OracleInputLaw {
+        name: "philosophy-01",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "declared ReferencesV2 originals",
+        scaffold: "current registries",
+        derivative: "search schema v1->v2",
+    },
+    OracleInputLaw {
+        name: "philosophy-02",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "declared InlineBothV1 originals",
+        scaffold: "current registries",
+        derivative: "search schema v1->v2",
+    },
+    OracleInputLaw {
+        name: "philosophy-03",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "declared InlineNodesV1 originals",
+        scaffold: "current registries",
+        derivative: "search schema v1->v2",
+    },
+    OracleInputLaw {
+        name: "philosophy-04",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "declared InlineEdgesV1 originals",
+        scaffold: "current registries",
+        derivative: "search schema v1->v2",
+    },
+    OracleInputLaw {
+        name: "philosophy-05",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "declared DuplicateInlineV1 originals",
+        scaffold: "current registries",
+        derivative: "search schema + guarded first occurrence",
+    },
+    OracleInputLaw {
+        name: "philosophy-06",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "declared DuplicateDanglingReferencesV1 originals",
+        scaffold: "current registries",
+        derivative: "search schema v1->v2",
+    },
+    OracleInputLaw {
+        name: "source-gap",
+        mode: OracleMode::HistoricalExact,
+        semantic_input: "exact owner-declared source paths/raw records",
+        scaffold: "current allowlist compared before compute",
+        derivative: "none",
+    },
+    OracleInputLaw {
+        name: "corpus-reads",
+        mode: OracleMode::HistoricalWithDeclaredDerivative,
+        semantic_input: "exact manifest membership + raw source SHA",
+        scaffold: "current software/registry validation",
+        derivative: "explicit relocation/receipt fields +4 schema tags",
+    },
+];
+fn oracle_input_law(name: &str, mode: OracleMode) -> &'static OracleInputLaw {
+    let mut names = BTreeSet::new();
+    assert_eq!(ORACLE_INPUT_LAWS.len(), 14);
+    for law in ORACLE_INPUT_LAWS {
+        assert!(names.insert(law.name));
+        assert!(
+            !law.semantic_input.is_empty()
+                && !law.scaffold.is_empty()
+                && !law.derivative.is_empty()
+        );
+    }
+    let law = ORACLE_INPUT_LAWS
         .iter()
-        .find(|(_, path, _)| *path == "access/contracts/knowledge-api.v1.json")
-        .map(|(_, _, bytes)| *bytes)
-        .expect("maintained knowledge API source contract");
-    let api_source = parse_json(
-        api_source_bytes,
+        .find(|law| law.name == name)
+        .unwrap();
+    assert_eq!(law.mode, mode, "undeclared historical derivative: {name}");
+    law
+}
+// These two semantic INPUT files are byte-identical to capture_source_commit;
+// live registries are explicitly scaffolding, never silently labelled pinned.
+fn verify_historical_semantic_seed() {
+    for (raw, sha) in [
+        (
+            include_bytes!(
+                "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+            )
+            .as_slice(),
+            "a8629324b2a98d76909b803207ee2e9b569e98926a3d39aba30ab36c0c568bbf",
+        ),
+        (
+            include_bytes!("../../tos-compiler/tests/fixtures/query-vocabulary.v1.json").as_slice(),
+            "60353a59a4dad50c3f711d7e8f08e9400866841ea4d169f43824be7dec1864ea",
+        ),
+    ] {
+        assert!(raw.len() <= 1_000_000);
+        assert_eq!(
+            tos_foundation::Digest256::of_bytes(raw).to_hex(),
+            sha,
+            "historical semantic input changed; update mode/input proof, not expected output"
+        );
+    }
+}
+
+// Original AUTHORED registry INPUT commitments, not semantic answers mined
+// from the archived contract response. Source Git object is capture_source_commit.
+// raw SHA names the pretty input file; tree SHA names its compact sorted JSON
+// (SourceRecordDigestV1 for these integer-only/BMP-key source documents).
+const HISTORICAL_REGISTRY_INPUTS: [(&str, &str, &str, &str); 2] = [
+    (
+        "entity_type_registry",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "cad0331eea790d8d63ab25c5263b81da3dcb4366f5416a94d88b7b9fbbbce465",
+        "815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942",
+    ),
+    (
+        "relation_type_registry",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "462d75fe3a22567e88c6c0f14b40fae5a83db244333c66acd406e9dca9c5ab4c",
+        "0670c8aca65a713f277f50ceaf782da65f06fa88c614320b9d2d2e4ba5ca138a",
+    ),
+];
+fn reference_unit(work: &mut usize) {
+    *work = work
+        .checked_sub(1)
+        .expect("semantic registry reference work");
+}
+// Object key order is not semantic; array order, missing keys, labels, parents,
+// profile data and EVERY nested field remain exact. No response-normalization
+// helper or normalized product row participates in this comparison.
+fn reference_equal(a: &JsonValue, b: &JsonValue, work: &mut usize, depth: usize) -> bool {
+    reference_unit(work);
+    assert!(depth <= 96);
+    match (a, b) {
+        (JsonValue::Object(a), JsonValue::Object(b)) => {
+            if a.len() != b.len() {
+                return false;
+            }
+            a.iter().all(|(key, v)| {
+                let other = b.iter().find(|(k, _)| {
+                    reference_unit(work);
+                    k == key
+                });
+                other.is_some_and(|(_, other)| reference_equal(v, other, work, depth + 1))
+            })
+        }
+        (JsonValue::Array(a), JsonValue::Array(b)) => {
+            a.len() == b.len()
+                && a.iter()
+                    .zip(b)
+                    .all(|(a, b)| reference_equal(a, b, work, depth + 1))
+        }
+        _ => a == b,
+    }
+}
+fn reference_fields_equal(a: &JsonValue, b: &JsonValue, skip: &[&str], work: &mut usize) -> bool {
+    let a = a.as_object().unwrap();
+    let b = b.as_object().unwrap();
+    fn retained(key: &tos_foundation::JsonString, skip: &[&str], work: &mut usize) -> bool {
+        reference_unit(work);
+        !skip.iter().any(|s| key.as_str() == Some(*s))
+    }
+    let mut na = 0usize;
+    let mut nb = 0usize;
+    for (k, _) in a {
+        if retained(k, skip, work) {
+            na += 1;
+        }
+    }
+    for (k, _) in b {
+        if retained(k, skip, work) {
+            nb += 1;
+        }
+    }
+    if na != nb {
+        return false;
+    }
+    for (key, v) in a {
+        if !retained(key, skip, work) {
+            continue;
+        }
+        let other = b.iter().find(|(k, _)| {
+            reference_unit(work);
+            k == key
+        });
+        if !other.is_some_and(|(_, b)| reference_equal(v, b, work, 0)) {
+            return false;
+        }
+    }
+    true
+}
+fn added_mapping_is_unrelated(
+    source: &str,
+    native: &str,
+    used: &BTreeSet<&str>,
+    work: &mut usize,
+) -> bool {
+    reference_unit(work);
+    !matches!(source, "source-claims" | "source-navigation") || !used.contains(native)
+}
+
+fn verify_historical_registry_semantics() {
+    let historical = historical_oracle("contracts", OracleMode::CurrentDeclared);
+    let mut work = JsonLimits::default().max_visits;
+    let seed_document = parse_json(
+        include_bytes!(
+            "../../../../access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"
+        ),
         JsonMode::PublishedStrict,
-        JsonLimits::default(),
+        JsonLimits {
+            max_visits: work,
+            ..JsonLimits::default()
+        },
     )
-    .unwrap()
-    .into_root();
-    let gateway_schema_ref = field(
-        field(&api_source, "data_contracts"),
-        "source_text_gateway_capability",
-    )
-    .as_str()
     .unwrap();
-    let source_capability = field(&api_source, "operations")
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|operation| {
-            field(operation, "operation_id").as_str() == Some("tos.source.read.capabilities")
-        })
-        .expect("maintained source capability operation");
-    let gateway_result = field(source_capability, "result").as_str().unwrap();
-    let gateway_availability = field(source_capability, "available_on").as_str().unwrap();
-    assert_eq!(
-        gateway_schema_ref,
-        "source-text-gateway-capability.v1.schema.json"
-    );
-    assert_eq!(
-        gateway_result,
-        "selected exact-source owner epoch, supported metadata families and limits, explicit D1 unavailability, and the separately selected native source-text gateway capability"
-    );
-    assert_eq!(
-        gateway_availability,
-        "native local HTTP, CLI and MCP; source owner is opt-in. Cloudflare/D1 remains unavailable as a source reader; its capability packet may report a source-text gateway only when the native HTTPS origin, outbound Access service token, inbound Access issuer and application audience are configured, without probing runtime readiness"
-    );
-    let contracts = field_mut(oracle, "contracts");
-    let api = field_mut(contracts, "api");
-    let operations = field_mut(api, "operations");
-    let JsonValue::Array(operations) = operations else {
-        panic!("knowledge API operations must be an array");
-    };
-    let mut adapted = 0;
-    for operation in operations {
-        let operation_id = field(operation, "operation_id")
-            .as_str()
-            .unwrap()
-            .to_owned();
-        match operation_id.as_str() {
-            "tos.source.read.capabilities" => {
-                replace_exact_string(
-                    field_mut(operation, "available_on"),
-                    "Python local HTTP, CLI and native MCP; source owner is opt-in. Cloudflare/D1 advertises explicit unavailability, not a source-read capability",
-                    gateway_availability,
-                );
-                replace_exact_string(
-                    field_mut(operation, "result"),
-                    "selected exact-source owner epoch, supported metadata families and limits, or explicit unavailability",
-                    gateway_result,
-                );
-                adapted += 2;
+    work = work.checked_sub(seed_document.visits()).unwrap();
+    let seed = seed_document.into_root();
+    let mut used = BTreeSet::<&str>::new();
+    fn source_strings<'a>(
+        v: &'a JsonValue,
+        out: &mut BTreeSet<&'a str>,
+        work: &mut usize,
+        depth: usize,
+    ) {
+        reference_unit(work);
+        assert!(depth <= 96);
+        match v {
+            JsonValue::String(s) => {
+                if let Some(s) = s.as_str() {
+                    out.insert(s);
+                }
             }
-            "tos.source.read.contracts" => {
-                replace_exact_string(
-                    field_mut(operation, "available_on"),
-                    "Python local HTTP, CLI and native MCP",
-                    "native local HTTP, CLI and MCP",
-                );
-                adapted += 1;
+            JsonValue::Array(a) => {
+                for v in a {
+                    source_strings(v, out, work, depth + 1);
+                }
             }
-            "tos.source.handle.discover" | "tos.source.record.read" => {
-                replace_exact_string(
-                    field_mut(operation, "available_on"),
-                    "explicitly selected Python source-owner service; no source mutation or rights grant",
-                    "explicitly selected native source-owner route; no source mutation or rights grant",
-                );
-                adapted += 1;
-            }
-            "tos.knowledge.search" => {
-                let modes = field_mut(operation, "modes");
-                let compressed = field_mut(modes, "compressed");
-                replace_exact_string(
-                    field_mut(compressed, "available_on"),
-                    "explicitly selected tos_local_prepared_read_model_v1 in Python",
-                    "explicitly selected tos_local_prepared_read_model_v1 in the native Rust owner",
-                );
-                adapted += 1;
-            }
-            "tos.knowledge.search.capabilities" => {
-                replace_exact_string(
-                    field_mut(operation, "available_on"),
-                    "Python local HTTP, CLI and native MCP; Cloudflare/D1 HTTP advertises its validated indexed-search engine",
-                    "native local HTTP, CLI and MCP; Cloudflare/D1 HTTP advertises its validated indexed-search engine",
-                );
-                adapted += 1;
-            }
-            "tos.knowledge.node.inspect" | "tos.knowledge.relation.inspect" => {
-                let targets = field_mut(operation, "source_read_targets");
-                replace_exact_string(
-                    field_mut(targets, "availability"),
-                    "target projection only; the owner-bound SourceReadService must revalidate it before issuing a handle",
-                    "target projection only; the native owner-bound source-read route must revalidate it before issuing a handle",
-                );
-                adapted += 1;
+            JsonValue::Object(o) => {
+                for (_, v) in o {
+                    source_strings(v, out, work, depth + 1);
+                }
             }
             _ => {}
         }
     }
-    let data_contracts = field_mut(api, "data_contracts");
-    let JsonValue::Object(data_contracts) = data_contracts else {
-        panic!("knowledge API data contracts must be an object");
-    };
-    assert!(
-        data_contracts
-            .iter()
-            .all(|(name, _)| name.as_str() != Some("source_text_gateway_capability"))
-    );
-    data_contracts.push((
-        tos_foundation::JsonString::from_utf8("source_text_gateway_capability"),
-        JsonValue::String(tos_foundation::JsonString::from_utf8(gateway_schema_ref)),
-    ));
-    adapted += 1;
-    assert_eq!(
-        adapted, 10,
-        "only the known route statements and source-text gateway contract may adapt"
-    );
-    // Registry v46 retires Python owner handles; the historical output remains
-    // independently authenticated before applying these authored route changes.
-    let registry = field_mut(contracts, "relation_type_registry");
-    assert_eq!(field(registry, "registry_version").as_u64(), Some(45));
-    *field_mut(registry, "registry_version") =
-        parse_json(b"46", JsonMode::PublishedStrict, JsonLimits::default())
-            .unwrap()
-            .into_root();
-    let JsonValue::Array(relations) = field_mut(registry, "relations") else {
-        panic!("registry relations");
-    };
-    let mut moved = 0;
-    for relation in relations {
-        let id = field(relation, "relation_type_id").as_str().unwrap();
-        let (old, new) = match id {
-            "tos.relation.philosophy-historical" | "tos.relation.philosophy-evidential" => (
-                "scripts/philosophy_graph_projection_common.py",
-                "ToS/philosophy/trunk/relation-kinds/README.md",
-            ),
-            "tos.relation.projection-pressure" => (
-                "scripts/philosophy_atlas_projection_common.py",
-                "ToS/philosophy/atlas/README.md",
-            ),
-            "tos.relation.projection-structure" => (
-                "scripts/philosophy_atlas_projection_common.py",
-                "ToS/philosophy/graph-workbench/README.md",
-            ),
-            _ => continue,
-        };
-        replace_exact_string(field_mut(relation, "owner_ref"), old, new);
-        moved += 1;
-    }
-    assert_eq!(moved, 4);
-    let JsonValue::Array(refs) = field_mut(registry, "source_refs") else {
-        panic!("registry source refs");
-    };
-    assert_eq!(refs.len(), 9);
-    refs.retain(|v| v.as_str() != Some("scripts/philosophy_graph_projection_common.py"));
-    assert_eq!(refs.len(), 8);
-    // The frozen v39 entity registry is retained in full. Only the three
-    // explicitly authored C4 profile rows and version40 are added below;
-    // expected rows are literal source-reviewed data, never query output.
-    let registry = field_mut(contracts, "entity_type_registry");
-    assert_eq!(field(registry, "registry_version").as_u64(), Some(39));
-    *field_mut(registry, "registry_version") =
-        parse_json(b"40", JsonMode::PublishedStrict, JsonLimits::default())
-            .unwrap()
-            .into_root();
-    let authored_profiles = r###"[
-  {
-    "type_id": "tos.entity.ts-native-definition",
-    "parent_type_ids": [
-      "tos.entity.semantic-object"
-    ],
-    "abstract": false,
-    "object_role": "semantic",
-    "labels": {
-      "default": "TS native definition",
-      "ru": "Нативное определение времени или пространства",
-      "en": "Native time or space definition"
-    },
-    "definition": "A source-owned explicit definition of a named time/space domain or rule with its stated premises; it does not establish historical applicability.",
-    "lifecycle": "candidate",
-    "owner_ref": "ToS/contracts/ts-native-definition.schema.json",
-    "source_mappings": [
-      {
-        "source_graph": "source-claims",
-        "source_kind_id": "ts-native-definition"
-      },
-      {
-        "source_graph": "source-navigation",
-        "source_kind_id": "ts-native-definition"
-      }
-    ],
-    "source_record_profile": {
-      "profile_version": 1,
-      "reader": "semantic-metadata-v1",
-      "record_type": "ts-native-definition",
-      "id_prefix": "tos.ts-native-definition.",
-      "source_basename": "ts-native-definition.json",
-      "catalog_filename": "ts-native-definitions.jsonl",
-      "graph_layer": "source-profile",
-      "schemas": [
-        {
-          "schema_version": "tos_ts_native_definition_record_v1",
-          "schema_ref": "ToS/contracts/ts-native-definition.schema.json",
-          "schema_dependencies": [
-            "ToS/contracts/corpus-record.schema.json",
-            "ToS/contracts/source-metadata-record.schema.json",
-            "ToS/contracts/semantic-description-record.schema.json"
-          ]
-        }
-      ]
-    },
-    "supersedes_type_id": null
-  },
-  {
-    "type_id": "tos.entity.ts-native-value-profile",
-    "parent_type_ids": [
-      "tos.entity.semantic-object"
-    ],
-    "abstract": false,
-    "object_role": "semantic",
-    "labels": {
-      "default": "TS native value-profile",
-      "ru": "Нативный профиль значения времени или пространства",
-      "en": "Native time or space value profile"
-    },
-    "definition": "A source-owned TS value interpretation profile naming its typed codomain and DirectDomainValueV1 projection after native Record body decoding.",
-    "lifecycle": "candidate",
-    "owner_ref": "ToS/contracts/ts-native-value-profile.schema.json",
-    "source_mappings": [
-      {
-        "source_graph": "source-claims",
-        "source_kind_id": "ts-native-value-profile"
-      },
-      {
-        "source_graph": "source-navigation",
-        "source_kind_id": "ts-native-value-profile"
-      }
-    ],
-    "source_record_profile": {
-      "profile_version": 1,
-      "reader": "semantic-metadata-v1",
-      "record_type": "ts-native-value-profile",
-      "id_prefix": "tos.ts-native-value-profile.",
-      "source_basename": "ts-native-value-profile.json",
-      "catalog_filename": "ts-native-value-profiles.jsonl",
-      "graph_layer": "source-profile",
-      "schemas": [
-        {
-          "schema_version": "tos_ts_native_value_profile_record_v1",
-          "schema_ref": "ToS/contracts/ts-native-value-profile.schema.json",
-          "schema_dependencies": [
-            "ToS/contracts/corpus-record.schema.json",
-            "ToS/contracts/source-metadata-record.schema.json",
-            "ToS/contracts/semantic-description-record.schema.json"
-          ]
-        }
-      ]
-    },
-    "supersedes_type_id": null
-  },
-  {
-    "type_id": "tos.entity.ts-native-operation-result",
-    "parent_type_ids": [
-      "tos.entity.semantic-object"
-    ],
-    "abstract": false,
-    "object_role": "semantic",
-    "labels": {
-      "default": "TS native operation-result",
-      "ru": "Нативный результат операции времени или пространства",
-      "en": "Native time or space operation result"
-    },
-    "definition": "An addressable TS domain computation result whose exact profile and inputs govern interpretation; a computed result alone is not a source-level entailment or coverage assessment.",
-    "lifecycle": "candidate",
-    "owner_ref": "ToS/contracts/ts-native-operation-result.schema.json",
-    "source_mappings": [
-      {
-        "source_graph": "source-claims",
-        "source_kind_id": "ts-native-operation-result"
-      },
-      {
-        "source_graph": "source-navigation",
-        "source_kind_id": "ts-native-operation-result"
-      }
-    ],
-    "source_record_profile": {
-      "profile_version": 1,
-      "reader": "semantic-metadata-v1",
-      "record_type": "ts-native-operation-result",
-      "id_prefix": "tos.ts-native-operation-result.",
-      "source_basename": "ts-native-operation-result.json",
-      "catalog_filename": "ts-native-operation-results.jsonl",
-      "graph_layer": "source-profile",
-      "schemas": [
-        {
-          "schema_version": "tos_ts_native_operation_result_record_v1",
-          "schema_ref": "ToS/contracts/ts-native-operation-result.schema.json",
-          "schema_dependencies": [
-            "ToS/contracts/corpus-record.schema.json",
-            "ToS/contracts/source-metadata-record.schema.json",
-            "ToS/contracts/semantic-description-record.schema.json"
-          ]
-        }
-      ]
-    },
-    "supersedes_type_id": null
-  }
-]"###;
-    let additions = parse_json(
-        authored_profiles.as_bytes(),
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
+    // Conservative supersets of held raw kinds/predicates: all literal source
+    // strings, plus the finite generated navigation/literal kind vocabulary.
+    // This avoids copying Claim classification/normalization as a test oracle.
+    source_strings(&seed, &mut used, &mut work, 0);
+    used.extend([
+        "identity",
+        "declared-claim-navigation",
+        "has_claim",
+        "temporal-assertion",
+        "provision-activity",
+        "literal",
+    ]);
+    for row in field(
+        field(field(&historical, "contracts"), "relation_type_registry"),
+        "relations",
     )
+    .as_array()
     .unwrap()
-    .into_root();
-    let JsonValue::Array(additions) = additions else {
-        panic!("three authored C4 profiles");
-    };
-    assert_eq!(additions.len(), 3);
-    let JsonValue::Array(types) = field_mut(registry, "types") else {
-        panic!("entity registry types");
-    };
-    assert_eq!(types.len(), 160);
-    for addition in additions {
-        let id = field(&addition, "type_id").as_str().unwrap();
-        assert!(
-            !types
-                .iter()
-                .any(|row| field(row, "type_id").as_str() == Some(id))
-        );
-        types.push(addition);
+    {
+        reference_unit(&mut work);
+        if let Some(kind) = row
+            .object_get("source_claim_profile")
+            .and_then(|p| p.object_get("value_kind"))
+            .and_then(JsonValue::as_str)
+        {
+            used.insert(kind);
+        }
     }
-    assert_eq!(types.len(), 163);
+    for (i, (id, path, raw_sha, tree_sha)) in HISTORICAL_REGISTRY_INPUTS.iter().enumerate() {
+        assert_eq!(*path, DECLARED_REGISTRIES[i].1);
+        assert_eq!(raw_sha.len(), 64); // raw INPUT identity remains a distinct domain.
+        let original = field(field(&historical, "contracts"), id);
+        assert_eq!(
+            tos_foundation::Digest256::of_bytes(&canonical(original)).to_hex(),
+            *tree_sha,
+            "transported historical registry must match original authored input commitment"
+        );
+        let current = parse_json(
+            DECLARED_REGISTRIES[i].2,
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_visits: work,
+                ..JsonLimits::default()
+            },
+        )
+        .unwrap();
+        work = work.checked_sub(current.visits()).unwrap();
+        let current = current.into_root();
+        let (rows, key) = if i == 0 {
+            ("types", "type_id")
+        } else {
+            ("relations", "relation_type_id")
+        };
+        // Preserve root fallback/id/schema and ALL property definitions. Only
+        // publication version/source refs and row membership may differ here.
+        assert!(
+            reference_fields_equal(
+                original,
+                &current,
+                &["registry_version", "source_refs", rows],
+                &mut work
+            ),
+            "historical semantic registry root changed"
+        );
+        let before = field(original, rows).as_array().unwrap();
+        let after = field(&current, rows).as_array().unwrap();
+        assert!(before.len() <= 4096 && after.len() <= 4096);
+        fn index<'a>(
+            rows: &'a [JsonValue],
+            entity: bool,
+            key: &str,
+            work: &mut usize,
+        ) -> (
+            BTreeMap<&'a str, &'a JsonValue>,
+            BTreeMap<(&'a str, &'a str, &'a str), (&'a str, &'a JsonValue)>,
+        ) {
+            let mut types = BTreeMap::new();
+            let mut mappings = BTreeMap::new();
+            for row in rows {
+                reference_unit(work);
+                let id = field(row, key).as_str().unwrap();
+                assert!(types.insert(id, row).is_none(), "duplicate registry type");
+                for mapping in row
+                    .object_get("source_mappings")
+                    .and_then(JsonValue::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    reference_unit(work);
+                    assert!(mappings.len() < 16_384, "existing registry mapping ceiling");
+                    let source = field(mapping, "source_graph").as_str().unwrap();
+                    let native = field(
+                        mapping,
+                        if entity {
+                            "source_kind_id"
+                        } else {
+                            "source_predicate_id"
+                        },
+                    )
+                    .as_str()
+                    .unwrap();
+                    let scope = if entity {
+                        ""
+                    } else {
+                        field(mapping, "scope").as_str().unwrap()
+                    };
+                    assert!(
+                        mappings
+                            .insert((source, native, scope), (id, mapping))
+                            .is_none(),
+                        "new conflicting source mapping"
+                    );
+                }
+            }
+            (types, mappings)
+        }
+        let (old_types, old_maps) = index(before, i == 0, key, &mut work);
+        let (new_types, new_maps) = index(after, i == 0, key, &mut work);
+        let fallback = field(
+            original,
+            if i == 0 {
+                "fallback_type_id"
+            } else {
+                "fallback_relation_type_id"
+            },
+        )
+        .as_str()
+        .unwrap();
+        let mut relevant = BTreeSet::new();
+        relevant.insert(fallback);
+        // Resolve the held INPUT kind/predicate superset independently. BOTH
+        // selected source graphs and every normalizer lookup scope are closed
+        // here; new fallback-to-mapped and conflicting mappings cannot pass.
+        for source in ["source-claims", "source-navigation"] {
+            for native in &used {
+                for scope in if i == 0 {
+                    &[""][..]
+                } else {
+                    &["edge", "claim-predicate"][..]
+                } {
+                    reference_unit(&mut work);
+                    let old = old_maps.get(&(source, *native, *scope));
+                    let new = new_maps.get(&(source, *native, *scope));
+                    match (old, new) {
+                        (None, None) => {}
+                        (Some((old_id, a)), Some((new_id, b))) => {
+                            assert_eq!(old_id, new_id, "historical source mapping changed");
+                            assert!(
+                                reference_equal(a, b, &mut work, 0),
+                                "historical mapping labels/profile changed"
+                            );
+                            relevant.insert(*old_id);
+                        }
+                        _ => panic!(
+                            "held source mapping/fallback changed: {source}/{native}/{scope}"
+                        ),
+                    }
+                }
+            }
+        }
+        // The index borrows the complete source documents. Only resolved type
+        // entries and their ancestor closure are compared, so unrelated new or
+        // edited types need no latest-count/whole-registry golden migration.
+        let parents = if i == 0 {
+            "parent_type_ids"
+        } else {
+            "parent_relation_type_ids"
+        };
+        assert!(relevant.len() <= 4096, "existing relevant type ceiling");
+        let mut pending = relevant.iter().copied().collect::<Vec<_>>();
+        let mut queued = relevant.clone();
+        let mut seen = BTreeSet::new();
+        while let Some(id) = pending.pop() {
+            reference_unit(&mut work);
+            if !seen.insert(id) {
+                continue;
+            }
+            assert!(seen.len() <= 4096);
+            let row = old_types.get(id).expect("historical ancestor absent");
+            let now = new_types.get(id).expect("current relevant type absent");
+            // owner_ref is provenance metadata, not consumed by these pinned
+            // row normalizers. Selected mapping records were compared ABOVE;
+            // all other type fields (labels,role,profile,definition,parents) stay
+            // exact while unrelated mappings on the same type remain legal.
+            assert!(
+                reference_fields_equal(row, now, &["owner_ref", "source_mappings"], &mut work),
+                "historical relevant type changed: {id}"
+            );
+            for parent in field(row, parents).as_array().unwrap() {
+                reference_unit(&mut work);
+                let parent = parent.as_str().unwrap();
+                if !queued.contains(parent) {
+                    assert!(queued.len() < 4096, "existing ancestor/type ceiling");
+                    assert!(pending.len() < 4096, "existing ancestor frontier ceiling");
+                    assert!(queued.insert(parent));
+                    pending.push(parent);
+                }
+            }
+        }
+        if i == 0 {
+            let id = *relevant.iter().next().unwrap();
+            let row = *old_types.get(id).unwrap();
+            let mut changed = row.clone();
+            *field_mut(&mut changed, "labels") = reference_text("different source labels");
+            assert!(!reference_fields_equal(
+                row,
+                &changed,
+                &["owner_ref", "source_mappings"],
+                &mut work
+            ));
+            assert!(!added_mapping_is_unrelated(
+                "source-claims",
+                "identity",
+                &used,
+                &mut work
+            ));
+            assert!(added_mapping_is_unrelated(
+                "source-claims",
+                "unused-reference-only-kind",
+                &used,
+                &mut work
+            ));
+        }
+    }
 }
 
 fn adapt_duplicate_inline_philosophy_oracle(oracle: &mut JsonValue) {
@@ -816,7 +1151,9 @@ const HISTORICAL_ORACLE_TREE: &str = "553287212eca7f29c0aec8089ebfd2d7f9b3692a";
 const HISTORICAL_ORACLE_PRODUCT: &str =
     "4392830f969983432e821449eb193eec13797bc6169923915a52b663c822118e";
 
-fn historical_oracle(name: &str) -> JsonValue {
+fn historical_oracle(name: &str, mode: OracleMode) -> JsonValue {
+    oracle_input_law(name, mode);
+    verify_historical_semantic_seed();
     let manifest_raw = include_bytes!("fixtures/selected_lens_oracles/manifest.json");
     assert_eq!(
         tos_foundation::Digest256::of_bytes(manifest_raw).to_hex(),
@@ -987,6 +1324,29 @@ fn verify_corpus_fixture_files(root: &Path) {
         );
     }
     assert_eq!(seen.len(), 65, "all R4 corpus fixture inputs are pinned");
+    // The manifest authenticates a SET, not just a list of present files.
+    // copy_fixture_tree must never introduce an unlisted selected-part member.
+    fn collect(root: &Path, current: &Path, actual: &mut BTreeSet<PathBuf>) {
+        for entry in std::fs::read_dir(current).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            let kind = entry.file_type().unwrap();
+            if kind.is_dir() {
+                collect(root, &path, actual);
+            } else {
+                assert!(kind.is_file(), "no symlink/special fixture input");
+                assert!(actual.len() < 512, "existing source membership cap");
+                assert!(actual.insert(path.strip_prefix(root).unwrap().to_path_buf()));
+            }
+        }
+    }
+    let mut actual = BTreeSet::new();
+    collect(root, root, &mut actual);
+    assert!(actual.remove(Path::new("fixture-files.sha256")));
+    assert_eq!(
+        actual, seen,
+        "no extra selected source file outside frozen manifest"
+    );
 }
 
 static TEMP_FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -1174,9 +1534,106 @@ fn focus_request(value: &JsonValue) -> KnowledgeFocusRequest {
     }
     request
 }
+// Reference declaration from selected INPUTS and explicit caller policy. Do
+// not use the production binding constructor to generate its own expected value.
+fn expected_lens_publication(
+    bound: &BoundCmpKnowledge<'_>,
+    scope: &IndexedDisclosureScope,
+) -> JsonValue {
+    let selection = bound.selection();
+    assert_eq!(scope.selected_model_receipt_id, bound.owner_receipt_id());
+    assert_eq!(scope.source_cut, selection.source_cut);
+    assert_eq!(scope.through_commit_seq, selection.through_commit_seq);
+    assert_eq!(
+        scope.source_membership_root,
+        selection.source_membership_root
+    );
+    assert_eq!(
+        scope.descriptor_sha256,
+        selection.vocabulary.descriptor_sha256
+    );
+    assert_eq!(scope.selected_index_sha256, selection.index_root_sha256);
+    reference_object(vec![
+        (
+            "schema",
+            reference_text("tos_selected_lens_continuation_v1"),
+        ),
+        ("operation_id", reference_text(&scope.operation_id)),
+        ("carrier_layer", reference_text(&scope.carrier_layer)),
+        ("intended_use", reference_text(&scope.intended_use)),
+        (
+            "selected_model_receipt_id",
+            reference_text(bound.owner_receipt_id()),
+        ),
+        ("source_cut", reference_text(&selection.source_cut)),
+        (
+            "through_commit_seq",
+            reference_text(&selection.through_commit_seq.to_string()),
+        ),
+        (
+            "source_membership_root",
+            reference_text(&selection.source_membership_root.to_hex()),
+        ),
+        (
+            "descriptor_sha256",
+            reference_text(&selection.vocabulary.descriptor_sha256.to_hex()),
+        ),
+        (
+            "selected_index_sha256",
+            reference_text(&selection.index_root_sha256.to_hex()),
+        ),
+        (
+            "catalog_packet_sha256",
+            reference_text(&selection.catalog_packet_sha256.to_hex()),
+        ),
+        (
+            "catalog_index_root_sha256",
+            reference_text(&selection.catalog_index_root_sha256.to_hex()),
+        ),
+        (
+            "policy_issuer_ref",
+            reference_text(&scope.policy_issuer_ref),
+        ),
+        (
+            "policy_receipt_id",
+            reference_text(&scope.policy_receipt_id),
+        ),
+        ("policy_scope", reference_text(&scope.policy_scope)),
+        ("policy_epoch", reference_text(&scope.policy_epoch)),
+        (
+            "withdrawal_generation",
+            reference_text(&scope.withdrawal_generation),
+        ),
+    ])
+}
+fn reference_cursor(fingerprint: &str, position: usize) -> String {
+    const DIGITS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let raw =
+        format!("{{\"v\":1,\"fingerprint\":\"{fingerprint}\",\"n\":{position},\"r\":{position}}}");
+    let mut bits = 0_u32;
+    let mut available = 0;
+    let mut encoded = String::new();
+    for byte in raw.bytes() {
+        bits = (bits << 8) | u32::from(byte);
+        available += 8;
+        while available >= 6 {
+            available -= 6;
+            encoded.push(DIGITS[((bits >> available) & 63) as usize] as char);
+        }
+    }
+    if available > 0 {
+        encoded.push(DIGITS[((bits << (6 - available)) & 63) as usize] as char);
+    }
+    encoded
+}
+
 // The historical oracle's page positions and content remain frozen. Only
 // publication identity changes when the selected registry revision changes.
-fn rebind_historical_lens_cursors(oracle: JsonValue, publication: &JsonValue) -> JsonValue {
+fn rebind_historical_lens_cursors(
+    mut oracle: JsonValue,
+    publication: &JsonValue,
+    remaining: &mut usize,
+) -> JsonValue {
     fn digest(value: &serde_json::Value, bytes: &mut Vec<u8>) {
         use serde_json::Value;
         match value {
@@ -1209,27 +1666,6 @@ fn rebind_historical_lens_cursors(oracle: JsonValue, publication: &JsonValue) ->
             }
         }
     }
-    fn cursor(fingerprint: &str, position: usize) -> String {
-        const DIGITS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-        let raw = format!(
-            "{{\"v\":1,\"fingerprint\":\"{fingerprint}\",\"n\":{position},\"r\":{position}}}"
-        );
-        let mut bits = 0_u32;
-        let mut available = 0;
-        let mut encoded = String::new();
-        for byte in raw.bytes() {
-            bits = (bits << 8) | u32::from(byte);
-            available += 8;
-            while available >= 6 {
-                available -= 6;
-                encoded.push(DIGITS[((bits >> available) & 63) as usize] as char);
-            }
-        }
-        if available > 0 {
-            encoded.push(DIGITS[((bits << (6 - available)) & 63) as usize] as char);
-        }
-        encoded
-    }
     let cases = field(&oracle, "cases").as_array().unwrap();
     let first = cases
         .iter()
@@ -1249,41 +1685,219 @@ fn rebind_historical_lens_cursors(oracle: JsonValue, publication: &JsonValue) ->
         &mut bytes,
     );
     let current = tos_foundation::Digest256::of_bytes(&bytes).to_hex();
-    let mut encoded = String::from_utf8(
-        canonical_bytes_v1(
-            &oracle,
-            CanonicalProfile::SourceRecordDigestV1,
-            JsonLimits::new(32 * 1024 * 1024, 96, 2_000_000, 4096).unwrap(),
-        )
-        .unwrap(),
-    )
-    .unwrap();
-    for position in 1..=6 {
-        let old = cursor(
-            "f5e77c4e6a6cb49ce73d13682a95cfe8cdbc47c31c6939036541dd256fc18d70",
-            position,
-        );
-        // One emitted page token, the subsequent request and its published
-        // compiled spec. Stale and malformed-input tokens remain unchanged.
-        assert_eq!(encoded.matches(&old).count(), 3);
-        encoded = encoded.replace(&old, &cursor(&current, position));
+    // Inventory all matching scalar tokens ONCE under the existing reference
+    // JSON visit/depth ceiling. An unexpected fourth occurrence is an error,
+    // never a candidate for blind whole-document string replacement.
+    let old = (1..=6)
+        .map(|p| {
+            reference_cursor(
+                "f5e77c4e6a6cb49ce73d13682a95cfe8cdbc47c31c6939036541dd256fc18d70",
+                p,
+            )
+        })
+        .collect::<Vec<_>>();
+    let tokens: BTreeMap<&str, usize> = old
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.as_str(), i))
+        .collect();
+    assert_eq!(tokens.len(), 6);
+    let mut counts = [0usize; 6];
+    fn count_tokens(
+        value: &JsonValue,
+        tokens: &BTreeMap<&str, usize>,
+        counts: &mut [usize; 6],
+        remaining: &mut usize,
+        depth: usize,
+    ) {
+        assert!(depth <= 96);
+        *remaining = remaining.checked_sub(1).expect("cursor reference visits");
+        match value {
+            JsonValue::String(s) => {
+                *remaining = remaining.checked_sub(1).expect("cursor lookup visits");
+                if let Some(i) = s.as_str().and_then(|s| tokens.get(s)) {
+                    counts[*i] += 1;
+                }
+            }
+            JsonValue::Array(a) => {
+                for v in a {
+                    count_tokens(v, tokens, counts, remaining, depth + 1);
+                }
+            }
+            JsonValue::Object(o) => {
+                for (k, v) in o {
+                    *remaining = remaining.checked_sub(1).expect("cursor key lookup visits");
+                    assert!(
+                        !k.as_str().is_some_and(|k| tokens.contains_key(k)),
+                        "cursor in undeclared key"
+                    );
+                    count_tokens(v, tokens, counts, remaining, depth + 1);
+                }
+            }
+            _ => {}
+        }
     }
-    parse_json(
-        encoded.as_bytes(),
-        JsonMode::PublishedStrict,
-        JsonLimits::new(32 * 1024 * 1024, 96, 2_000_000, 4096).unwrap(),
-    )
-    .unwrap()
-    .into_root()
+    count_tokens(&oracle, &tokens, &mut counts, remaining, 0);
+    assert_eq!(counts, [3; 6]);
+    let JsonValue::Array(cases) = field_mut(&mut oracle, "cases") else {
+        panic!("lens cases")
+    };
+    let mut edited = 0;
+    for position in 1..=6 {
+        let previous = if position == 1 {
+            "paged-context".to_owned()
+        } else {
+            format!("continuation-{}", position - 1)
+        };
+        let next = format!("continuation-{position}");
+        let replacement = reference_cursor(&current, position);
+        let mut previous_count = 0;
+        let mut next_count = 0;
+        for case in cases.iter_mut() {
+            *remaining = remaining.checked_sub(1).expect("typed cursor case visits");
+            let name = field(case, "name").as_str().unwrap();
+            if name == previous {
+                let token = field_mut(field_mut(field_mut(case, "packet"), "page"), "next_cursor");
+                replace_exact_string(token, &old[position - 1], &replacement);
+                previous_count += 1;
+                edited += 1;
+            } else if name == next {
+                replace_exact_string(
+                    field_mut(field_mut(field_mut(case, "spec"), "pagination"), "cursor"),
+                    &old[position - 1],
+                    &replacement,
+                );
+                replace_exact_string(
+                    field_mut(
+                        field_mut(field_mut(field_mut(case, "packet"), "lens"), "pagination"),
+                        "cursor",
+                    ),
+                    &old[position - 1],
+                    &replacement,
+                );
+                next_count += 1;
+                edited += 2;
+            }
+        }
+        assert_eq!((previous_count, next_count), (1, 1));
+    }
+    assert_eq!(edited, 18);
+    oracle
+}
+
+fn check_cursor_reference_input_variant(publication: &JsonValue, remaining: &mut usize) {
+    *remaining = remaining
+        .checked_sub(4096)
+        .expect("fixed tiny cursor source construction/comparison");
+    let historical = "f5e77c4e6a6cb49ce73d13682a95cfe8cdbc47c31c6939036541dd256fc18d70";
+    let mut cases = Vec::new();
+    for page in 0..=6 {
+        let name = if page == 0 {
+            "paged-context".to_owned()
+        } else {
+            format!("continuation-{page}")
+        };
+        let mut packet = vec![("fingerprint", reference_text("second-semantic-input"))];
+        let mut case = vec![("name", reference_text(&name))];
+        if page < 6 {
+            packet.push((
+                "page",
+                reference_object(vec![(
+                    "next_cursor",
+                    reference_text(&reference_cursor(historical, page + 1)),
+                )]),
+            ));
+        }
+        if page > 0 {
+            let incoming = reference_cursor(historical, page);
+            case.push((
+                "spec",
+                reference_object(vec![(
+                    "pagination",
+                    reference_object(vec![("cursor", reference_text(&incoming))]),
+                )]),
+            ));
+            packet.push((
+                "lens",
+                reference_object(vec![(
+                    "pagination",
+                    reference_object(vec![("cursor", reference_text(&incoming))]),
+                )]),
+            ));
+        }
+        case.push(("packet", reference_object(packet)));
+        cases.push(reference_object(case));
+    }
+    cases.push(reference_object(vec![
+        ("name", reference_text("stale-cursor")),
+        (
+            "spec",
+            reference_object(vec![(
+                "pagination",
+                reference_object(vec![("cursor", reference_text("malformed-or-stale-input"))]),
+            )]),
+        ),
+    ]));
+    let mini = reference_object(vec![("cases", JsonValue::Array(cases))]);
+    let changed = rebind_historical_lens_cursors(mini, publication, remaining);
+    let cases = field(&changed, "cases").as_array().unwrap();
+    assert_eq!(
+        field(field(&cases[0], "packet"), "fingerprint").as_str(),
+        Some("second-semantic-input")
+    );
+    assert_ne!(
+        field(field(field(&cases[0], "packet"), "page"), "next_cursor").as_str(),
+        Some(reference_cursor(historical, 1).as_str())
+    );
+    assert_eq!(
+        field(field(field(&cases[7], "spec"), "pagination"), "cursor").as_str(),
+        Some("malformed-or-stale-input")
+    );
+    // Every typed continuation consumes the preceding page's exact new token.
+    for i in 1..=6 {
+        assert_eq!(
+            field(field(field(&cases[i - 1], "packet"), "page"), "next_cursor"),
+            field(field(field(&cases[i], "spec"), "pagination"), "cursor")
+        );
+    }
 }
 
 #[test]
 fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_disclosure() {
+    verify_historical_semantic_seed();
+    verify_historical_registry_semantics();
     let fixture = build_native_fixture();
     let cold = fixture.open().unwrap();
     let bound =
         bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
-    let publication = lens_continuation_binding(&bound, &Authority::new(&bound).scope);
+    let scope = Authority::new(&bound).scope;
+    let publication = expected_lens_publication(&bound, &scope);
+    assert_eq!(
+        canonical(&lens_continuation_binding(&bound, &scope)),
+        canonical(&publication)
+    );
+    assert_eq!(publication.as_object().unwrap().len(), 17);
+    // Policy changes are real independent INPUT variants of the binding; no
+    // query/owner/model call is needed to show its continuation identity moves.
+    for index in 0..5 {
+        let mut changed = Authority::new(&bound).scope;
+        match index {
+            0 => changed.policy_issuer_ref.push_str("-other"),
+            1 => changed.policy_receipt_id.push_str("-other"),
+            2 => changed.policy_scope.push_str("-other"),
+            3 => changed.policy_epoch.push_str("-other"),
+            4 => changed.withdrawal_generation.push_str("-other"),
+            _ => unreachable!(),
+        }
+        let expected = expected_lens_publication(&bound, &changed);
+        assert_ne!(canonical(&expected), canonical(&publication));
+        assert_eq!(
+            canonical(&lens_continuation_binding(&bound, &changed)),
+            canonical(&expected)
+        );
+    }
+    let mut reference_visits = 2_000_000;
+    check_cursor_reference_input_variant(&publication, &mut reference_visits);
     let catalog: Vec<u8> = cold
         .connection()
         .query_row("SELECT packet FROM catalog_index_meta", [], |row| {
@@ -1294,7 +1908,11 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
         tos_foundation::Digest256::of_bytes(&catalog),
         bound.selection().catalog_packet_sha256
     );
-    let oracle = rebind_historical_lens_cursors(historical_oracle("lenses"), &publication);
+    let oracle = rebind_historical_lens_cursors(
+        historical_oracle("lenses", OracleMode::HistoricalWithDeclaredDerivative),
+        &publication,
+        &mut reference_visits,
+    );
     let mut model = cold
         .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
         .unwrap();
@@ -1512,6 +2130,8 @@ fn normalized_selected_legacy_search_matches_frozen_packets_and_exact_counts() {
         LegacySearchRequest, SEARCH_CAPABILITIES_INTENDED_USE, SEARCH_CAPABILITIES_OPERATION,
         execute_selected_legacy_search, execute_selected_search_capabilities,
     };
+    verify_historical_semantic_seed();
+    verify_historical_registry_semantics();
     let fixture = build_native_fixture();
     let cold = fixture.open().unwrap();
     let bound =
@@ -1531,7 +2151,7 @@ fn normalized_selected_legacy_search_matches_frozen_packets_and_exact_counts() {
         max_retained_bytes: 8_000_000,
         block_size: 16,
     };
-    let oracle = historical_oracle("legacy-search");
+    let oracle = historical_oracle("legacy-search", OracleMode::HistoricalExact);
     let mut model = cold
         .fork_reader_with_vm_budget(caps.inspect.max_read_vm_steps)
         .unwrap();
@@ -1656,6 +2276,7 @@ fn normalized_selected_contracts_require_exact_registry_carriers_and_current_hol
         KNOWLEDGE_CONTRACTS_INTENDED_USE, KNOWLEDGE_CONTRACTS_OPERATION, KnowledgeContractBudget,
         execute_selected_knowledge_contracts,
     };
+    verify_historical_semantic_seed();
     let fixture = build_native_fixture();
     let raw = fixture.registry_originals();
     let cold = fixture.open().unwrap();
@@ -1669,8 +2290,65 @@ fn normalized_selected_contracts_require_exact_registry_carriers_and_current_hol
         tos_foundation::Digest256::of_bytes(raw[1]),
         bound.selection().relation_registry_sha256
     );
-    let mut oracle = historical_oracle("contracts");
-    adapt_historical_contract_availability(&mut oracle);
+    let historical = historical_oracle("contracts", OracleMode::CurrentDeclared);
+    assert_eq!(
+        field(&historical, "schema").as_str(),
+        Some("tos_knowledge_contract_bundle_v1")
+    );
+    let mut reference_visits = JsonLimits::default().max_visits;
+    let oracle = declared_contract_expectation(
+        [DECLARED_REGISTRIES[0].2, DECLARED_REGISTRIES[1].2],
+        &mut reference_visits,
+    );
+    for (selected, (_, _, declared)) in raw.iter().zip(DECLARED_REGISTRIES) {
+        assert_eq!(
+            *selected, *declared,
+            "selected registry input differs from declared source"
+        );
+    }
+    // Meaningful second source INPUT: a registry with a new declaration must
+    // appear whole in the expected bundle, regardless of its version/count.
+    // This is a pure transport/reference control, not a second native model.
+    let entity = field(field(&oracle, "contracts"), "entity_type_registry");
+    let mut other = entity.clone();
+    let JsonValue::Array(types) = field_mut(&mut other, "types") else {
+        panic!("entity types")
+    };
+    let original_count = types.len();
+    let mut added = types.first().expect("declared registry nonempty").clone();
+    *field_mut(&mut added, "type_id") = reference_text("tos.entity.reference-input-variant");
+    types.push(added);
+    assert_eq!(types.len(), original_count + 1);
+    let other_raw = canonical(&other);
+    let variant = declared_contract_expectation(
+        [&other_raw, DECLARED_REGISTRIES[1].2],
+        &mut reference_visits,
+    );
+    assert_eq!(
+        canonical(field(field(&variant, "contracts"), "entity_type_registry")),
+        canonical(&other)
+    );
+    assert_eq!(
+        field(&variant, "source_refs"),
+        field(&oracle, "source_refs")
+    );
+    assert_ne!(canonical(&variant), canonical(&oracle));
+    drop(variant);
+    drop(other_raw);
+    drop(other);
+    // Full registry payload and endpoint schema fields are compared, not only
+    // a count/selected property. No expected is derived from query output.
+    for key in ["registry_version", "types"] {
+        let mut corrupted = oracle.clone();
+        *field_mut(
+            field_mut(
+                field_mut(&mut corrupted, "contracts"),
+                "entity_type_registry",
+            ),
+            key,
+        ) = JsonValue::Null;
+        assert_ne!(canonical(&corrupted), canonical(&oracle));
+    }
     let mut model = cold
         .fork_reader_with_vm_budget(budget().inspect.max_read_vm_steps)
         .unwrap();
@@ -1733,7 +2411,7 @@ fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights(
     };
     // Existing frozen full navigation fixture. No shortened PR252 nodes
     // are padded to fit the real producer; original strings remain unchanged.
-    let oracle = historical_oracle("dossiers");
+    let oracle = historical_oracle("dossiers", OracleMode::HistoricalExact);
     let raw_rows = |name| {
         field(&oracle, name)
             .as_array()
@@ -1882,7 +2560,7 @@ fn normalized_selected_dossiers_preserve_shared_file_membership_rights_controls(
     // Reuse the frozen synthetic rights fixtures and their unique assertions.
     // Emit full published test rows explicitly: the abbreviated pure-query rows
     // themselves are not claimed to satisfy the compiler input contract.
-    let groups = historical_oracle("shared-file-rights");
+    let groups = historical_oracle("shared-file-rights", OracleMode::HistoricalExact);
     let caps = DossierBudget {
         inspect: budget().inspect,
         max_candidates: budget().max_candidates,
@@ -1957,7 +2635,7 @@ fn normalized_selected_dossiers_preserve_remaining_source_navigation_boundaries(
     // Reuse the frozen synthetic rights fixtures and their unique assertions.
     // Emit full published test rows explicitly: the abbreviated pure-query rows
     // themselves are not claimed to satisfy the compiler input contract.
-    let groups = historical_oracle("remaining-navigation");
+    let groups = historical_oracle("remaining-navigation", OracleMode::HistoricalExact);
     let caps = DossierBudget {
         inspect: budget().inspect,
         max_candidates: budget().max_candidates,
@@ -2036,6 +2714,53 @@ fn normalized_selected_philosophy_reads_match_frozen_historical_packets_and_hold
     }
 }
 
+// Archived synthetic SOURCE inputs, not expected rows extracted from the
+// maintained producer. These exact three records also occur at capture_source.
+const HISTORICAL_PHILOSOPHY_ROWS: [&str; 3] = [
+    r#"{"node_id":"n:a","label":"Alpha","multilingual":{"schema_version":"tos_multilingual_label_v1","label":{"ru":"Альфа","en":"Alpha"},"source_ref":"ToS/philosophy/a.md"},"node_type":"concept","graph_layers":["philosophy"],"view_ids":["atlas"],"source_ref":"ToS/philosophy/a.md","properties":{"original_node_type":" concept "}}"#,
+    r#"{"node_id":"n:b","label":"Beta","multilingual":{"schema_version":"tos_multilingual_label_v1","label":{"ru":"Бета","en":"Beta"},"source_ref":"ToS/philosophy/b.md"},"node_type":"concept","graph_layers":["philosophy"],"view_ids":[],"source_ref":"ToS/philosophy/b.md","properties":{}}"#,
+    r#"{"edge_id":"e:ab","from_id":"n:a","to_id":"n:b","predicate_id":"relates","graph_layers":["philosophy"],"view_ids":["atlas","atlas","route"],"source_ref":"ToS/philosophy/relations.md","properties":{}}"#,
+];
+fn declared_philosophy_header(
+    variant: tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant,
+) -> serde_json::Value {
+    use serde_json::json;
+    use tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant as V;
+    let a: serde_json::Value = serde_json::from_str(HISTORICAL_PHILOSOPHY_ROWS[0]).unwrap();
+    let b: serde_json::Value = serde_json::from_str(HISTORICAL_PHILOSOPHY_ROWS[1]).unwrap();
+    let edge: serde_json::Value = serde_json::from_str(HISTORICAL_PHILOSOPHY_ROWS[2]).unwrap();
+    let views=["atlas","route"].into_iter().map(|id| {
+        let mut view=json!({"view_id":id,"title":id,"graph_layers":["philosophy"],"node_ids":["n:a","n:b"],"edge_ids":["e:ab"],"source_refs":["ToS/philosophy/a.md","ToS/philosophy/b.md","ToS/philosophy/relations.md"],"source_ref":"ToS/philosophy/relations.md"});
+        match variant {
+            V::ReferencesV2=>{},
+            V::InlineBothV1=>{
+                let mut node=a.clone(); node["node_id"]=json!("fixture-inline-only");
+                let mut e=edge.clone(); e["edge_id"]=json!("fixture-inline-edge");e["from_id"]=json!("fixture-inline-only");
+                view["nodes"]=json!([node,b]);view["edges"]=json!([e]);
+                view["node_ids"]=json!(["n:a"]);view["edge_ids"]=json!(["e:ab"]);
+            },
+            V::InlineNodesV1=>{view["nodes"]=json!([b]);view["edges"]=json!([]);},
+            V::InlineEdgesV1=>{view["nodes"]=json!([]);view["edges"]=json!([edge]);},
+            V::DuplicateInlineV1=>{view["nodes"]=json!([b,a,b]);view["edges"]=json!([edge,edge]);},
+            V::DuplicateDanglingReferencesV1=>{view["node_ids"]=json!(["n:b","n:b","missing-node"]);view["edge_ids"]=json!(["e:ab","e:ab","missing-edge"]);},
+        }
+        view
+    }).collect::<Vec<_>>();
+    json!({
+        "schema_version":if matches!(variant,V::ReferencesV2) {"tos_philosophy_graph_projection_v2"} else {"tos_philosophy_graph_projection_v1"},
+        "counts":{"nodes":2,"edges":1,"views":2,"clusters":1},
+        "graph_layers":[{"layer_id":"philosophy","label":"Philosophy"}],
+        "layer_counts":[{"layer_id":"philosophy","nodes":2,"edges":1}],
+        "visibility_model":{},
+        "runtime_projection_boundary":{"is_source_authority":false,"writes_to_tree":false,"scope":"synthetic-native-philosophy-fixture"},
+        "views":views,
+        "clusters":[{"cluster_id":"fixture-phi-pair","cluster_kind":"pair","label":"Pair","view_ids":["atlas","route"],"member_node_ids":["n:a","n:b"],"member_edge_ids":["e:ab"],"source_ref":"ToS/philosophy/relations.md","properties":{"member_count":2,"edge_count":1}}],
+        "review_packets":[{"view_id":"atlas","unresolved_diagnostics":[]},{"view_id":"route","unresolved_diagnostics":[]}],
+        "snapshot_review":{"snapshot_schema_version":"tos_philosophy_graph_projection_snapshot_v1"},
+        "unresolved_review_surfaces":[],"source_refs":{}
+    })
+}
+
 fn selected_philosophy_variant_parity(
     variant: tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant,
 ) {
@@ -2050,6 +2775,16 @@ fn selected_philosophy_variant_parity(
     // One finite software fixture goes through the normal producer, seal and
     // cold open. Check original carrier pages, then compare reads with the
     // independently frozen historical reader packets.
+    verify_historical_semantic_seed();
+    let expected_header = serde_json::to_vec(&declared_philosophy_header(variant)).unwrap();
+    assert!(expected_header.len() <= budget().inspect.max_payload_bytes);
+    let expected_header = parse_json(
+        &expected_header,
+        JsonMode::PublishedStrict,
+        budget().inspect.json,
+    )
+    .unwrap()
+    .into_root();
     let fixture = build_native_fixture_with_philosophy_view_variant(variant);
     let mut cold = fixture.open().unwrap();
     let receipt = cold.philosophy_original_receipt().unwrap().clone();
@@ -2072,7 +2807,23 @@ fn selected_philosophy_variant_parity(
                 .unwrap()
                 .into_root();
             if matches!(collection, PhilosophyOriginalCollection::Header) {
-                value.as_object().unwrap();
+                assert_eq!(
+                    canonical(&value),
+                    canonical(&expected_header),
+                    "complete declared philosophy header INPUT"
+                );
+            } else {
+                let index = if matches!(collection, PhilosophyOriginalCollection::Nodes) {
+                    usize::try_from(ordinal).unwrap()
+                } else {
+                    assert_eq!(ordinal, 0);
+                    2
+                };
+                assert_eq!(
+                    row.raw,
+                    HISTORICAL_PHILOSOPHY_ROWS[index].as_bytes(),
+                    "exact archived raw philosophy INPUT"
+                );
             }
             after = Some(ordinal);
         }
@@ -2087,7 +2838,7 @@ fn selected_philosophy_variant_parity(
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::InlineEdgesV1 => "philosophy-04",
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateInlineV1 => "philosophy-05",
         tos_compiler::knowledge_full_fixture::PhilosophyFixtureViewVariant::DuplicateDanglingReferencesV1 => "philosophy-06",
-    });
+    }, OracleMode::HistoricalWithDeclaredDerivative);
     let search = field_mut(field_mut(&mut oracle, "cases"), "search");
     replace_exact_string(
         field_mut(search, "schema"),
@@ -2308,7 +3059,7 @@ fn released_public_source_gap_packets_match_frozen_historical_outputs_without_so
     }
     // The existing declaration selects public records. No test/provider IDs or
     // source payload paths are substituted for the owner's current allowlist.
-    let oracle = historical_oracle("source-gap");
+    let oracle = historical_oracle("source-gap", OracleMode::HistoricalExact);
     let repository = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     let declaration_raw =
         std::fs::read(repository.join("access/contracts/runtime-data.v1.json")).unwrap();
@@ -2494,7 +3245,8 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
     // capture/restore. Its independent capture identity is not an authored cut.
     // Duplicates and nonobjects protect original ordinal custody; the indexed
     // addressed read must fit below the complete component's row count.
-    let oracle_values = historical_oracle("corpus-reads");
+    let oracle_values =
+        historical_oracle("corpus-reads", OracleMode::HistoricalWithDeclaredDerivative);
     let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/selected-corpus");
     verify_corpus_fixture_files(&fixture_root);
     for archived_oracle in oracle_values.as_array().unwrap() {
