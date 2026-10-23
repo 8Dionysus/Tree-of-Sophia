@@ -91,6 +91,9 @@ fn local_inventory_bridge_tei_prepared_snapshot_consumer() {
     let file_id = format!("tos.file.sha256.{}", Digest256::of_bytes(TEI).to_hex());
     f.config["file_id"] = json!(file_id);
     f.context.configuration_raw = serde_json::to_vec(&f.config).unwrap();
+    let mut proposal: Value = serde_json::from_slice(&f.context.request_raw).unwrap();
+    proposal["rights"]["scope_refs"] = json!([f.config["item_id"], file_id]);
+    f.context.request_raw = serde_json::to_vec(&proposal).unwrap();
     let owner_path = f.root().join("item-owner.json");
     fs::write(&owner_path, &f.context.configuration_raw).unwrap();
     f.filesystem =
@@ -420,6 +423,21 @@ fn local_inventory_bridge_tei_prepared_snapshot_consumer() {
         "application/tei+xml"
     );
     assert!(!String::from_utf8(file_raw).unwrap().contains(PRIVATE_TEXT));
+    let mut stale = receipt["binding"].clone();
+    stale["publication_epoch"] = json!(stale["publication_epoch"].as_u64().unwrap() + 1);
+    let stale = cmd::parse(&serde_json::to_vec(&stale).unwrap()).unwrap();
+    assert_eq!(
+        consumer
+            .inspect(
+                &stale,
+                tos_query::search_v2::SearchKind::Nodes,
+                &format!("source-navigation:{file_id}"),
+                16
+            )
+            .unwrap_err()
+            .code,
+        tos_query::search_v2::SearchV2ErrorCode::StaleSelection
+    );
     consumer.recheck_binding(&selected).unwrap();
     drop(consumer);
     db.execute_batch("COMMIT; BEGIN").unwrap();
