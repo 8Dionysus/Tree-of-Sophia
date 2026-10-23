@@ -11,11 +11,15 @@ mod source;
 #[cfg(test)]
 mod tests;
 
-pub use basis::{Error, Limits, PweRef, Session,Result};
-pub use identity::{AccountObservation,AttributionAnswer,AttributionObservation,AttributionQuestion,Conflict,ConsumerOwner,EdgeDisposition,IdentityInput,IdentityView,JointCarrier,JointCarrierOwner,JointWorld,Query,SameEdge,ViewBasis,ViewLayer};
+pub use basis::{Error, Limits, PweRef, Result, Session};
+pub use identity::{
+    AccountObservation, AttributionAnswer, AttributionObservation, AttributionQuestion, Conflict,
+    ConsumerOwner, EdgeDisposition, IdentityInput, IdentityView, JointCarrier, JointCarrierOwner,
+    JointWorld, Query, SameEdge, ViewBasis, ViewLayer,
+};
 pub use producer::CheckedPreservedCandidate;
-pub use qualification::{BasisSlot,DispatchRow,Kind,PreparedAccount,QualifiedAccount};
-pub use source::{CheckedMetadata, RegistryDescriptor, ResolvedBasis,ResolvedSlot,SuppliedExact};
+pub use qualification::{BasisSlot, DispatchRow, Kind, PreparedAccount, QualifiedAccount};
+pub use source::{CheckedMetadata, RegistryDescriptor, ResolvedBasis, ResolvedSlot, SuppliedExact};
 
 pub const SINGLE_VALUE_SCHEMA: &str = "urn:tos:pwe:application:values:1.1.0";
 pub const CONTAINER_SCHEMA: &str = "urn:tos:pwe:application:preserved-candidate:1.0.0";

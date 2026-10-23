@@ -40,8 +40,6 @@ mod d1_public_sql;
 mod d1_public_static;
 #[cfg(feature = "source-tools")]
 pub mod epistemic_evidence;
-#[cfg(feature = "source-tools")]
-pub mod pwe_native;
 pub mod local_prepared;
 pub mod local_prepared_aux;
 #[cfg(feature = "source-tools")]
@@ -64,6 +62,8 @@ mod prepared_semantic_kernel;
 pub mod prepared_source_binding;
 #[cfg(feature = "source-tools")]
 pub mod private_tmpfs_stage;
+#[cfg(feature = "source-tools")]
+pub mod pwe_native;
 #[cfg(feature = "source-tools")]
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
