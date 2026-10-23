@@ -197,8 +197,12 @@ fn sources() -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, Vec<u8>>) {
 fn append_current_contract_resources(resources: &mut Vec<Value>) {
     for path in [
         "ToS/contracts/native-pg-private-text-read.schema.json",
+        "ToS/contracts/native-role-bindings.schema.json",
         "ToS/contracts/operation-binding-v1.schema.json",
         "ToS/contracts/retained-corpus-binding.schema.json",
+        "ToS/contracts/ts-native-definition.schema.json",
+        "ToS/contracts/ts-native-operation-result.schema.json",
+        "ToS/contracts/ts-native-value-profile.schema.json",
     ] {
         assert!(
             !resources.iter().any(|row| row["path"] == path),
@@ -1772,9 +1776,9 @@ fn native_corpus_composition_case(installed: bool) {
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     reconcile_source_home_inputs(&mut query_oracle, &files);
-    // The selected native cut adds the vocabulary and three current contracts.
+    // The selected native cut adds the vocabulary and seven current contracts.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.
-    assert_eq!(expected["counts"]["resources"], serde_json::json!(341));
+    assert_eq!(expected["counts"]["resources"], serde_json::json!(345));
     for pointer in [
         "/cases/status/counts/resources",
         "/cases/summary/counts/resources",
