@@ -532,6 +532,179 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
     assert_eq!(refs.len(), 9);
     refs.retain(|v| v.as_str() != Some("scripts/philosophy_graph_projection_common.py"));
     assert_eq!(refs.len(), 8);
+    // The frozen v39 entity registry is retained in full. Only the three
+    // explicitly authored C4 profile rows and version40 are added below;
+    // expected rows are literal source-reviewed data, never query output.
+    let registry = field_mut(contracts, "entity_type_registry");
+    assert_eq!(field(registry, "registry_version").as_u64(), Some(39));
+    *field_mut(registry, "registry_version") =
+        parse_json(b"40", JsonMode::PublishedStrict, JsonLimits::default())
+            .unwrap()
+            .into_root();
+    let authored_profiles = r###"[
+  {
+    "type_id": "tos.entity.ts-native-definition",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "TS native definition",
+      "ru": "Нативное определение времени или пространства",
+      "en": "Native time or space definition"
+    },
+    "definition": "A source-owned explicit definition of a named time/space domain or rule with its stated premises; it does not establish historical applicability.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/ts-native-definition.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "ts-native-definition"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "ts-native-definition"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "ts-native-definition",
+      "id_prefix": "tos.ts-native-definition.",
+      "source_basename": "ts-native-definition.json",
+      "catalog_filename": "ts-native-definitions.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_ts_native_definition_record_v1",
+          "schema_ref": "ToS/contracts/ts-native-definition.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/semantic-description-record.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.ts-native-value-profile",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "TS native value-profile",
+      "ru": "Нативный профиль значения времени или пространства",
+      "en": "Native time or space value profile"
+    },
+    "definition": "A source-owned TS value interpretation profile naming its typed codomain and DirectDomainValueV1 projection after native Record body decoding.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/ts-native-value-profile.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "ts-native-value-profile"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "ts-native-value-profile"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "ts-native-value-profile",
+      "id_prefix": "tos.ts-native-value-profile.",
+      "source_basename": "ts-native-value-profile.json",
+      "catalog_filename": "ts-native-value-profiles.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_ts_native_value_profile_record_v1",
+          "schema_ref": "ToS/contracts/ts-native-value-profile.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/semantic-description-record.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  },
+  {
+    "type_id": "tos.entity.ts-native-operation-result",
+    "parent_type_ids": [
+      "tos.entity.semantic-object"
+    ],
+    "abstract": false,
+    "object_role": "semantic",
+    "labels": {
+      "default": "TS native operation-result",
+      "ru": "Нативный результат операции времени или пространства",
+      "en": "Native time or space operation result"
+    },
+    "definition": "An addressable TS domain computation result whose exact profile and inputs govern interpretation; a computed result alone is not a source-level entailment or coverage assessment.",
+    "lifecycle": "candidate",
+    "owner_ref": "ToS/contracts/ts-native-operation-result.schema.json",
+    "source_mappings": [
+      {
+        "source_graph": "source-claims",
+        "source_kind_id": "ts-native-operation-result"
+      },
+      {
+        "source_graph": "source-navigation",
+        "source_kind_id": "ts-native-operation-result"
+      }
+    ],
+    "source_record_profile": {
+      "profile_version": 1,
+      "reader": "semantic-metadata-v1",
+      "record_type": "ts-native-operation-result",
+      "id_prefix": "tos.ts-native-operation-result.",
+      "source_basename": "ts-native-operation-result.json",
+      "catalog_filename": "ts-native-operation-results.jsonl",
+      "graph_layer": "source-profile",
+      "schemas": [
+        {
+          "schema_version": "tos_ts_native_operation_result_record_v1",
+          "schema_ref": "ToS/contracts/ts-native-operation-result.schema.json",
+          "schema_dependencies": [
+            "ToS/contracts/corpus-record.schema.json",
+            "ToS/contracts/source-metadata-record.schema.json",
+            "ToS/contracts/semantic-description-record.schema.json"
+          ]
+        }
+      ]
+    },
+    "supersedes_type_id": null
+  }
+]"###;
+    let additions = parse_json(
+        authored_profiles.as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let JsonValue::Array(additions) = additions else {
+        panic!("three authored C4 profiles");
+    };
+    assert_eq!(additions.len(), 3);
+    let JsonValue::Array(types) = field_mut(registry, "types") else {
+        panic!("entity registry types");
+    };
+    assert_eq!(types.len(), 160);
+    for addition in additions {
+        let id = field(&addition, "type_id").as_str().unwrap();
+        assert!(!types.iter().any(|row| field(row, "type_id").as_str() == Some(id)));
+        types.push(addition);
+    }
+    assert_eq!(types.len(), 163);
 }
 
 fn adapt_duplicate_inline_philosophy_oracle(oracle: &mut JsonValue) {
