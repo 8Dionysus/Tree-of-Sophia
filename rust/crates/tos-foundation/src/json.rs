@@ -2148,9 +2148,21 @@ fn write_value(
                 }
                 for pair in ordered.windows(2) {
                     let duplicate = if checked_scalar_keys {
+                        let left = &pair[0].1.0.units;
+                        let right = &pair[1].1.0.units;
+                        output.poll.admit_work(1, 0)?;
+                        if left.len() == right.len() {
+                            let bytes = left
+                                .len()
+                                .checked_mul(2 * std::mem::size_of::<u16>())
+                                .ok_or_else(state_error)?;
+                            // Prepay both source key buffers before equality;
+                            // parser admission retains its separate contract.
+                            output.poll.admit_work(bytes, 0)?;
+                        }
                         checked_units_equal(
-                            &pair[0].1.0.units,
-                            &pair[1].1.0.units,
+                            left,
+                            right,
                             &mut output.poll,
                         )?
                     } else {
@@ -2773,14 +2785,11 @@ fn checked_units_digest(units: &[u16], poll: &mut JsonCheck<'_>) -> Result<Diges
 }
 
 fn checked_units_equal(a: &[u16], b: &[u16], poll: &mut JsonCheck<'_>) -> Result<bool> {
-    poll.admit_work(1, 0)?;
     if a.len() != b.len() {
         return Ok(false);
     }
     for (a, b) in a.chunks(CHECK_BYTES / 2).zip(b.chunks(CHECK_BYTES / 2)) {
         poll.now()?;
-        // Each pair contains at most CHECK_BYTES UTF-16 units in total.
-        poll.admit_work((a.len() + b.len()) * std::mem::size_of::<u16>(), 0)?;
         if a != b {
             return Ok(false);
         }
