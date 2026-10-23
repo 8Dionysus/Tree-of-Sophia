@@ -2711,7 +2711,7 @@ fn write_value(
                                 .then(left_index.cmp(right_index))
                         },
                     );
-                } else {
+                } else if !stateful {
                     if output.poll.check.is_some() {
                         checked_key_sort(&mut ordered, &mut output.poll)?;
                     } else {
@@ -2720,6 +2720,10 @@ fn write_value(
                         });
                     }
                 }
+                // A checked stateful object was already sorted by this exact
+                // scalar/ordinal comparator for duplicate checking above. The
+                // duplicate scan leaves that order unchanged; emit it directly.
+                // This removes work, without skipping admission for any compare.
                 for (index, (_, (key, item))) in ordered.iter().copied().enumerate() {
                     if index != 0 {
                         emit(
