@@ -369,7 +369,10 @@ fn structured_network_axes_ignore_object_order_and_keep_complete_content() {
         (r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"}}"#, true),
         (r#"{"origin":"zero","unit":"day","trs":{"version":"v2","id":"opaque"}}"#, false),
         (r#"{"origin":"zero","unit":"hour","trs":{"version":"v1","id":"opaque"}}"#, false),
-        (r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"},"extra":null}"#, false),
+        (
+            r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"},"extra":null}"#,
+            false,
+        ),
     ] {
         for node_declaration in [true, false] {
             let declared = parse(declared);
