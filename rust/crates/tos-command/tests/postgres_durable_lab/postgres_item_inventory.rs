@@ -462,14 +462,208 @@ impl tos_compiler::knowledge_stage::StageOwner for ExportOwner<'_> {
     }
 }
 
+// Only the compiler enters the issuer's ordinary single-map/network namespace.
+// PG and its protected native owner retain their host UID/network authority.
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StageRequest {
+    source_root: PathBuf,
+    persistent_store: PathBuf,
+    binding: tos_compiler::SourceBinding,
+    expected_inventory: Value,
+    file_id: String,
+    worker_path: PathBuf,
+    worker_sha256: String,
+    work_deadline_ns: u64,
+}
+const STAGE_RESULT: &str = "TOS_PG_ITEM_PREPARED_STAGE ";
+
+fn monotonic_ns() -> u64 {
+    let mut time = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    assert_eq!(
+        unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut time) },
+        0
+    );
+    u64::try_from(time.tv_sec)
+        .unwrap()
+        .checked_mul(1_000_000_000)
+        .unwrap()
+        .checked_add(u64::try_from(time.tv_nsec).unwrap())
+        .unwrap()
+}
+
+fn launch_prepared_stage(request: &StageRequest, scratch: &Path, deadline: Instant) -> Value {
+    let launcher = PathBuf::from(
+        std::env::var_os("TOS_PG_ITEM_STAGE_LAUNCHER")
+            .expect("existing admitted stage delegator must be explicitly selected"),
+    );
+    let native = PathBuf::from(
+        std::env::var_os("TOS_PG_ITEM_STAGE_NATIVE")
+            .expect("matching tos-access genuine issuer image must be explicitly selected"),
+    );
+    assert!(launcher.is_absolute() && launcher.is_file());
+    assert!(native.is_absolute() && native.is_file());
+    let now = monotonic_ns();
+    let remaining = deadline
+        .saturating_duration_since(Instant::now())
+        .min(Duration::from_secs(45));
+    assert!(remaining > Duration::from_secs(5));
+    // Reading the monotonic clock before the remaining interval makes this
+    // no later than the original caller deadline; reserve five seconds cleanup.
+    let original_ns = now
+        .checked_add(u64::try_from(remaining.as_nanos()).unwrap())
+        .unwrap();
+    let mut request = request.clone();
+    request.work_deadline_ns = original_ns.checked_sub(5_000_000_000).unwrap();
+    let encoded = serde_json::to_vec(&request).unwrap();
+    assert!(encoded.len() <= 1_048_576);
+    let digest = Digest256::of_bytes(&encoded).to_hex();
+    let path = scratch
+        .canonicalize()
+        .unwrap()
+        .join("prepared-stage-request.json");
+    fs::write(&path, &encoded).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    let stage_scratch = request.persistent_store.parent().unwrap().join(format!(
+        "pg-item-stage-{}-{}",
+        std::process::id(),
+        monotonic_ns()
+    ));
+    fs::create_dir(&stage_scratch).unwrap();
+    fs::set_permissions(&stage_scratch, fs::Permissions::from_mode(0o700)).unwrap();
+    let output = Command::new("/usr/bin/bash")
+        .arg(launcher).arg(native).arg(&stage_scratch).arg(&request.persistent_store)
+        .arg(original_ns.to_string()).arg("5000").arg("--")
+        // Preserve the existing PG fixture's hard process limits across systemd.
+        .args(["/usr/bin/prlimit", "--as=1073741824:1073741824",
+            "--fsize=67108864:67108864", "--", "/usr/bin/env"])
+        .arg(format!("TOS_PG_ITEM_STAGE_REQUEST={}", path.display()))
+        .arg(format!("TOS_PG_ITEM_STAGE_REQUEST_SHA256={digest}"))
+        .arg(format!("TOS_SCHEMA_WORKER_PATH={}", request.worker_path.display()))
+        .arg(std::env::current_exe().unwrap())
+        .args(["postgres_real_revision::postgres_item_inventory::real_pg_item_inventory_prepared_stage_child",
+            "--ignored", "--exact", "--nocapture", "--test-threads=1"])
+        .output().expect("existing delegator executes the real isolated producer");
+    fs::remove_dir_all(&stage_scratch).unwrap();
+    assert!(
+        output.status.success(),
+        "stage status {:?}\n{}\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let receipts = stdout
+        .lines()
+        .filter_map(|line| line.split_once(STAGE_RESULT).map(|(_, v)| v))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        receipts.len(),
+        1,
+        "one real isolated producer receipt required"
+    );
+    let receipt: Value = serde_json::from_str(receipts[0]).unwrap();
+    assert_eq!(receipt["request_sha256"], digest);
+    let mut prepared = receipt["prepared"].clone();
+    prepared["stage_limits"] = receipt["stage_limits"].clone();
+    prepared["stage_work_deadline_ns"] = receipt["work_deadline_ns"].clone();
+    prepared
+}
+
+#[test]
+#[ignore = "child phase only: requires the genuine kernel stage ticket and exact parent export request"]
+fn real_pg_item_inventory_prepared_stage_child() {
+    let isolation = tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::select_issued_from_environment()
+        .expect("real issuer kernel ticket required before any compiler or request read");
+    let path = PathBuf::from(std::env::var_os("TOS_PG_ITEM_STAGE_REQUEST").unwrap());
+    assert!(path.is_absolute());
+    let persistent = isolation
+        .persistent_store()
+        .expect("issuer-selected persistent export store");
+    assert!(path.canonicalize().unwrap().starts_with(persistent));
+    let mut file = tos_fd_open::open_absolute_regular(&path, 1_048_576).unwrap();
+    let metadata = file.metadata().unwrap();
+    assert_eq!(metadata.uid(), unsafe { libc::geteuid() });
+    assert_eq!(metadata.mode() & 0o7777, 0o600);
+    let mut raw = Vec::new();
+    file.by_ref().take(1_048_577).read_to_end(&mut raw).unwrap();
+    assert!(raw.len() <= 1_048_576);
+    let digest = Digest256::of_bytes(&raw).to_hex();
+    assert_eq!(
+        std::env::var("TOS_PG_ITEM_STAGE_REQUEST_SHA256").unwrap(),
+        digest
+    );
+    let request: StageRequest = serde_json::from_slice(&raw).unwrap();
+    let worker = worker_identity();
+    assert_eq!(worker.absolute_path, request.worker_path);
+    assert_eq!(worker.sha256.to_hex(), request.worker_sha256);
+    isolation
+        .verify_persistent_store(&request.persistent_store)
+        .unwrap();
+    assert!(
+        request
+            .source_root
+            .canonicalize()
+            .unwrap()
+            .starts_with(persistent)
+    );
+    let selected_at = Instant::now();
+    let remaining = request
+        .work_deadline_ns
+        .checked_sub(monotonic_ns())
+        .unwrap();
+    assert!(remaining > 0 && remaining <= 45_000_000_000);
+    let deadline = selected_at + Duration::from_nanos(remaining);
+    let cancel = AtomicBool::new(false);
+    let cut = CorpusReader::open_existing(
+        &request.source_root,
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 2048,
+            max_selected_object_bytes: 8_388_608,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap()
+    .open_source_cut(
+        SourceRevision(Digest256::from_hex(&request.binding.source_cut).unwrap()),
+        CutReadLimits {
+            max_revisions: 4,
+            max_members: 2048,
+            max_total_bytes: 33_554_432,
+            max_member_bytes: 8_388_608,
+        },
+        deadline,
+        &cancel,
+    )
+    .expect("reopen the exact complete PG export and retained history, without a new manifest");
+    let prepared = compile_prepared_consumer(
+        &cut,
+        &request.binding,
+        &request.expected_inventory,
+        &request.file_id,
+        isolation.root(),
+        &isolation,
+        deadline,
+        &cancel,
+    );
+    println!(
+        "{STAGE_RESULT}{}",
+        json!({"request_sha256":digest, "stage_limits":isolation.resource_limits(), "work_deadline_ns":request.work_deadline_ns, "prepared":prepared})
+    );
+}
+
 fn prepared_consumer(
     item: &mut ItemCase,
     software_fixture: &SoftwareFixture,
     expected_inventory: &Value,
-    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Value {
+    let file_id = item.config["file_id"].as_str().unwrap().to_owned();
     let case = &mut item.case;
     let (software, components) = software_reader(software_fixture, deadline, cancel);
     // A complete authenticated current export, produced from PG/STO, is the
@@ -524,6 +718,46 @@ fn prepared_consumer(
         projection_root_sha256: export.generation().digest().to_hex(),
         complete: true,
     };
+    let worker = worker_identity();
+    let prepared = launch_prepared_stage(
+        &StageRequest {
+            source_root: isolated.path().join(".managed-source-cut"),
+            persistent_store: PathBuf::from(std::env::var_os("TOS_CMD2_LAB_ROOT").unwrap())
+                .canonicalize()
+                .unwrap(),
+            binding,
+            expected_inventory: expected_inventory.clone(),
+            file_id,
+            worker_path: worker.absolute_path,
+            worker_sha256: worker.sha256.to_hex(),
+            work_deadline_ns: 0, // Selected below from the original remaining deadline.
+        },
+        &case._owner_scratch.0,
+        deadline,
+    );
+    // The parent retains and reauthenticates the actual PG export after the
+    // isolated compiler has consumed it. No replacement fixture manifest.
+    let mut stream = cut.stream(revision).unwrap();
+    while stream.next_member(deadline, cancel).unwrap().is_some() {}
+    assert_eq!(stream.coverage(), Some(membership));
+    assert_eq!(case.lab.head_seq(), export.generation().commit_seq());
+    prepared
+}
+
+fn compile_prepared_consumer(
+    cut: &CorpusCutReader,
+    binding: &tos_compiler::SourceBinding,
+    expected_inventory: &Value,
+    file_id: &str,
+    scratch: &Path,
+    isolation: &tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Value {
+    let revision = cut.current().revision();
+    let membership = cut.stream(revision).unwrap().expectation();
+    assert_eq!(binding.source_cut, revision.0.to_hex());
+    assert_eq!(binding.membership_root, membership.digest.to_hex());
     let l = BibliographicLimits {
         catalog: SourceCatalogLimits {
             max_files: 512,
@@ -543,7 +777,7 @@ fn prepared_consumer(
         cut,
         revision,
         membership,
-        &binding,
+        binding,
         tos_compiler::SourceCatalogInputLimits {
             max_manifest_members: 2048,
             max_selected_members: 512,
@@ -561,7 +795,7 @@ fn prepared_consumer(
         membership,
     };
     let mut stage = tos_compiler::knowledge_stage::KnowledgeStage::create(
-        &case._owner_scratch.0.join("item-catalog.sqlite"),
+        &scratch.join("item-catalog.sqlite"),
         tos_compiler::knowledge_stage::StageLimits {
             sqlite: tos_compiler::Limits {
                 max_rows: 8192,
@@ -646,7 +880,6 @@ fn prepared_consumer(
         .iter()
         .find(|n| n["node_id"] == ITEM_ID)
         .expect("native compiler projects the committed Item");
-    let file_id = item.config["file_id"].as_str().unwrap();
     let nav_file = navigation.value()["nodes"]
         .as_array()
         .unwrap()
@@ -682,7 +915,7 @@ fn prepared_consumer(
     .unwrap();
     // The standard five-carrier native prepare input is generated from this
     // exact compiler result. No hand-authored prepared row or SQLite insert.
-    let root = case._owner_scratch.0.join("prepared-source");
+    let root = scratch.join("prepared-source");
     fs::create_dir(&root).unwrap();
     let write = |path: &str, value: &Value| {
         let path = root.join(path);
@@ -708,7 +941,7 @@ fn prepared_consumer(
         fs::create_dir_all(target.parent().unwrap()).unwrap();
         fs::write(target, read(path)).unwrap();
     }
-    let output = case._owner_scratch.0.join("prepared-publication");
+    let output = scratch.join("prepared-publication");
     let receipt =
         tos_compiler::native_prepare::prepare(tos_compiler::native_prepare::PrepareRequest {
             source_root: &root,
@@ -789,28 +1022,27 @@ fn prepared_consumer(
         Some(membership),
         "complete export bytes still match at final consumer disclosure"
     );
-    json!({"export_commit_seq":export.generation().commit_seq(),"export_source_revision":revision.0.to_prefixed(),"inventory_sha256":Digest256::of_bytes(&read(&format!("{item_home}/resource-inventory.json"))).to_hex(),"native_prepared_receipt":receipt,"consumer":packets[0]})
+    json!({"export_commit_seq":binding.through_commit_seq,"export_source_revision":revision.0.to_prefixed(),"inventory_sha256":Digest256::of_bytes(&read(&format!("{item_home}/resource-inventory.json"))).to_hex(),"native_prepared_receipt":receipt,"consumer":packets[0]})
 }
 
 #[test]
-#[ignore = "requires selected PG16, matching native owner/schema worker and existing kernel resource ticket"]
+#[ignore = "requires selected PG16, matching native images and an admitted genuine compiler-stage launcher"]
 fn real_pg_item_inventory_commit_replay_ready_recovery_and_prepared_consumer() {
     let deadline = Instant::now() + Duration::from_secs(300);
     let cancel = AtomicBool::new(false);
-    // The existing kernel-verified ticket, not a fixture no-op, owns compiler
-    // spill/RAM confinement. This test never creates or relabels an admission.
-    let isolation = tos_compiler::private_tmpfs_stage::PrivateTmpfsStageIsolation::select_issued_from_environment()
-        .expect("existing admitted PG/build window must supply the real private stage ticket");
+    // Host PG/native owner operations retain their existing process contract.
+    // Only the compiler phase enters a genuine, separately delegated stage.
+    for variable in ["TOS_PG_ITEM_STAGE_LAUNCHER", "TOS_PG_ITEM_STAGE_NATIVE"] {
+        let selected =
+            PathBuf::from(std::env::var_os(variable).expect("explicit admitted stage selection"));
+        assert!(selected.is_absolute() && selected.is_file());
+    }
     let lab_root = PathBuf::from(
         std::env::var_os("TOS_CMD2_LAB_ROOT").expect("explicit admitted PG fixture storage"),
     );
-    assert!(
-        lab_root.is_absolute()
-            && lab_root
-                .canonicalize()
-                .unwrap()
-                .starts_with(isolation.root())
-    );
+    assert!(lab_root.is_absolute());
+    let lab_root = lab_root.canonicalize().unwrap();
+    assert_eq!(fs::metadata(&lab_root).unwrap().mode() & 0o7777, 0o700);
     let repository = repository_root();
     let software = item_software(&repository, deadline, &cancel);
     let mut item = item_case(&repository, &software, deadline, &cancel);
@@ -981,14 +1213,7 @@ fn real_pg_item_inventory_commit_replay_ready_recovery_and_prepared_consumer() {
             .unwrap(),
         item.case.original_record
     );
-    let prepared = prepared_consumer(
-        &mut item,
-        &software,
-        &expected_inventory,
-        &isolation,
-        deadline,
-        &cancel,
-    );
+    let prepared = prepared_consumer(&mut item, &software, &expected_inventory, deadline, &cancel);
     assert_eq!(
         item.case.lab.head_seq(),
         head,

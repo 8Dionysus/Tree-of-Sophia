@@ -472,6 +472,7 @@ jobs:
             /tests/support/selected_metadata_authority.rs
             /tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json
             /.github/workflows/repo-validation.yml
+            /.github/scripts/delegate-native-stage-systemd.sh
             /.github/workflows/cloudflare-edge.yml
             /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
@@ -812,6 +813,20 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
+      - name: Preflight the genuine private-stage issuer in the existing CI delegation
+        env:
+          CARGO_HOME: ${{ runner.temp }}/cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          cargo build --locked -p tos-access --bin tos-access
+          root="$RUNNER_TEMP/tos-pg-item-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -m 700 "$root" "$root/lab" "$root/stage"
+          cutoff=$(node -e 'console.log((process.hrtime.bigint()+45000000000n).toString())')
+          /usr/bin/bash "$GITHUB_WORKSPACE/.github/scripts/delegate-native-stage-systemd.sh" \
+            "$CARGO_TARGET_DIR/debug/tos-access" "$root/stage" "$root/lab" "$cutoff" 5000 \
+            -- /usr/bin/prlimit --as=1073741824:1073741824 --fsize=67108864:67108864 -- /usr/bin/true
+          printf 'TOS_CMD2_LAB_ROOT=%s\n' "$root/lab" >> "$GITHUB_ENV"
       - name: Prepare retained source-cut fixture
         run: |
           source_ref="$(cat tests/conformance/rust/retained-opening-source.txt)"
@@ -876,6 +891,10 @@ jobs:
           CARGO_BUILD_JOBS: "2"
           # Apply the native fixture process contract to test executables only.
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "prlimit --as=1073741824:1073741824 --fsize=67108864:67108864 --"
+          TOS_CMD2_LAB_SOURCE_ROOT: ${{ github.workspace }}
+          TOS_CMD2_NATIVE_OWNER_COMMAND: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
+          TOS_PG_ITEM_STAGE_NATIVE: ${{ runner.temp }}/cargo-target/debug/tos-access
+          TOS_PG_ITEM_STAGE_LAUNCHER: ${{ github.workspace }}/.github/scripts/delegate-native-stage-systemd.sh
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
           TOS_CMD_POSTGRES_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_lab
           TOS_CMD2_V2_RESTORE_DATABASE: tos_cmd_restore_current_${{ github.run_id }}_${{ github.run_attempt }}
@@ -900,6 +919,12 @@ jobs:
           export TOS_CMD2_PG_DUMP_SHA256="$(sha256sum "$TOS_CMD2_PG_DUMP_PATH" | cut -d ' ' -f 1)"
           export TOS_CMD2_PG_RESTORE_SHA256="$(sha256sum "$TOS_CMD2_PG_RESTORE_PATH" | cut -d ' ' -f 1)"
           cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture --test-threads=1
+          cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked \
+            postgres_real_revision::postgres_item_inventory::real_pg_item_inventory_commit_replay_ready_recovery_and_prepared_consumer \
+            -- --exact --ignored --nocapture --test-threads=1 \
+            | tee "$RUNNER_TEMP/tos-pg-item-acceptance.log"
+          grep -Fq 'TOS_PG_ITEM_INVENTORY_ACCEPTANCE ' "$RUNNER_TEMP/tos-pg-item-acceptance.log"
+          grep -Fq 'test result: ok. 1 passed; 0 failed; 0 ignored;' "$RUNNER_TEMP/tos-pg-item-acceptance.log"
           # Run the maintained opt-in regressions on this already isolated PG
           # service after the durable integration suite has finished.
           cargo test -p tos-command --features postgres-lab --lib --locked \
