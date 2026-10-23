@@ -4,7 +4,7 @@ use crate::{
     source_command::{
         self as cmd, CommandContext, SourceCommandError as Error, SourceCommandResult as Result,
     },
-    source_native_private_assessment_cli::OperationBudget,
+    source_native_cli::private_assessment::OperationBudget,
     source_private_assessment_sources::PrivateAssessmentSources,
     source_revisions::{self, ResolvedRecordVersion},
     source_text_owner::OwnerTextContext,
@@ -15,8 +15,9 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{
-    CanonicalProfile, ExactRecordRef, JsonLimits, JsonValue, RelativePath, SourceRevision,
-    canonical_digest_v1,
+    CanonicalProfile, Digest256, ExactRecordRef, FoundationError, FoundationErrorCode, JsonLimits,
+    JsonValue, RelativePath, SourceRevision,
+    canonical_bytes_v1_with_state_budget_and_visits_and_admission,
 };
 use tos_source_store::CorpusCutReader;
 use tos_validation::{item_rules::ItemLimits, source_cut::CutWorkerSchemaExecutor};
@@ -110,6 +111,7 @@ pub(crate) struct NativeRoleResolver<'a> {
     worker: &'a mut CutWorkerSchemaExecutor,
     budget: &'a mut OperationBudget,
     entities: JsonValue,
+    entity_digest: Option<Digest256>,
     bindings: JsonValue,
     role_registry: ExactRecordRef,
     role_registry_path: String,
@@ -129,6 +131,7 @@ impl<'a> NativeRoleResolver<'a> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Result<Self> {
+        budget.limits()?;
         ctx.check()?;
         sources.verify_current(owner, ctx, cut, deadline, cancelled)?;
         if worker.source_revision() != ctx.base_revision
@@ -186,7 +189,15 @@ impl<'a> NativeRoleResolver<'a> {
         budget.charge_bytes(raw.len())?;
         budget.charge_work(raw.len())?;
         let bindings = cmd::parse(raw)?;
-        check_pin(&bindings, registry.exact, "registry_id", "registry_version")?;
+        check_pin(
+            &bindings,
+            registry.exact,
+            "registry_id",
+            "registry_version",
+            budget,
+            deadline,
+            cancelled,
+        )?;
         source_revisions::schema_for_source_path_worker(
             worker,
             deadline,
@@ -204,6 +215,7 @@ impl<'a> NativeRoleResolver<'a> {
         budget.charge_work(row_work)?;
         check_role_rows(&bindings, &entities)?;
         sources.verify_current(owner, ctx, cut, deadline, cancelled)?;
+        reserve_reference_copies(budget, &[registry.exact], registry.path)?;
         Ok(Self {
             ctx,
             cut,
@@ -212,6 +224,7 @@ impl<'a> NativeRoleResolver<'a> {
             worker,
             budget,
             entities,
+            entity_digest: None,
             bindings,
             role_registry: registry.exact.clone(),
             role_registry_path: registry.path.to_owned(),
@@ -221,6 +234,7 @@ impl<'a> NativeRoleResolver<'a> {
     }
 
     pub(crate) fn check_current(&self) -> Result<()> {
+        self.budget.limits()?;
         if self.cancelled.load(Ordering::Relaxed) || Instant::now() >= self.deadline {
             return Err(Error::Denied("native role operation cancelled or expired"));
         }
@@ -240,11 +254,28 @@ impl<'a> NativeRoleResolver<'a> {
         exact: &ExactRecordRef,
     ) -> Result<NativeRoleRecord> {
         self.check_current()?;
-        check_pin(
+        // This private source value is immutable for this resolver's lifetime.
+        // Reuse only its admitted content digest, never a current-use grant.
+        let entity_digest = match self.entity_digest {
+            Some(digest) => digest,
+            None => {
+                let digest = admitted_digest(
+                    &self.entities,
+                    self.budget,
+                    self.deadline,
+                    self.cancelled,
+                )?;
+                self.entity_digest = Some(digest);
+                digest
+            }
+        };
+        check_pin_fields(
             &self.entities,
             kind_binding,
             "registry_id",
             "registry_version",
+            entity_digest,
+            self.budget,
         )?;
         let scan_work = self
             .ctx
@@ -271,6 +302,14 @@ impl<'a> NativeRoleResolver<'a> {
             max_issues: 256,
             deadline: allowance.deadline.min(self.deadline),
         };
+        let wire_cost = exact
+            .id
+            .as_str()
+            .len()
+            .checked_add(256)
+            .ok_or(Error::Unsupported("native role wire pin size overflow"))?;
+        self.budget.charge_work(wire_cost)?;
+        self.budget.charge_bytes(wire_cost)?;
         let pin = wire_pin(exact);
         let mut resolved = source_revisions::resolve_role_record_version_from_cut(
             self.ctx,
@@ -293,13 +332,41 @@ impl<'a> NativeRoleResolver<'a> {
         self.budget.charge_bytes(resolved.returned_state_bytes)?;
         // The maintained reader verifies exact current/retained versions, source
         // schema and history. Recheck exact content and role after that read.
-        check_pin(&resolved.record, exact, "record_id", "record_version")?;
+        check_pin(
+            &resolved.record,
+            exact,
+            "record_id",
+            "record_version",
+            self.budget,
+            self.deadline,
+            self.cancelled,
+        )?;
+        let descriptor_work = cmd::array(&self.entities, "types")?
+            .len()
+            .checked_add(cmd::array(&self.bindings, "role_bindings")?.len())
+            .ok_or(Error::Unsupported("native role descriptor work overflow"))?;
+        self.budget.charge_work(descriptor_work)?;
         let descriptor = resolved.readonly_descriptor(&self.entities)?;
         check_resolved_role(&self.bindings, role, &resolved.record, &descriptor)?;
-        self.budget
-            .charge_bytes(cmd::canonical(&resolved.record)?.len())?;
-        self.budget
-            .charge_bytes(cmd::canonical(&descriptor)?.len())?;
+        // Counting and emitting are both prospectively admitted by the same
+        // owner before traversal/serialization; no serialize-then-charge pass.
+        drop(admitted_canonical(
+            &resolved.record,
+            self.budget,
+            self.deadline,
+            self.cancelled,
+        )?);
+        drop(admitted_canonical(
+            &descriptor,
+            self.budget,
+            self.deadline,
+            self.cancelled,
+        )?);
+        reserve_reference_copies(
+            self.budget,
+            &[exact, kind_binding, &self.role_registry],
+            &self.role_registry_path,
+        )?;
         resolved.descriptor = Some(descriptor);
         self.check_current()?;
         Ok(NativeRoleRecord {
@@ -314,18 +381,113 @@ impl<'a> NativeRoleResolver<'a> {
     }
 }
 
-fn check_pin(value: &JsonValue, expected: &ExactRecordRef, id: &str, version: &str) -> Result<()> {
-    let actual = canonical_digest_v1(
-        value,
-        CanonicalProfile::SourceRecordDigestV1,
-        JsonLimits {
-            max_bytes: 8_388_608,
-            ..JsonLimits::default()
-        },
-    )
-    .map_err(|_| Error::Invalid("native role canonical source record"))?;
+fn admitted_canonical(
+    value: &JsonValue,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<u8>> {
+    // Check the original remaining owner allowance BEFORE inspecting value.
+    let remaining = budget.limits()?;
+    let defaults = JsonLimits::default();
+    let limits = JsonLimits {
+        max_bytes: remaining.max_input_bytes,
+        max_visits: defaults.max_visits.min(remaining.max_work),
+        ..defaults
+    };
+    let mut admission_error = None;
+    let encoded = {
+        let mut check = || {
+            if cancelled.load(Ordering::Relaxed)
+                || Instant::now() >= deadline.min(remaining.deadline)
+            {
+                Err(FoundationError::new(
+                    FoundationErrorCode::BudgetExceeded,
+                    "native role canonical cutoff",
+                ))
+            } else {
+                Ok(())
+            }
+        };
+        let mut admit = |bytes: usize, visits: usize| {
+            let failure = || {
+                FoundationError::new(
+                    FoundationErrorCode::BudgetExceeded,
+                    "native role canonical admission",
+                )
+            };
+            let work = bytes.checked_add(visits).ok_or_else(failure)?;
+            // Retain every admitted prefix on later refusal. Count-pass bytes
+            // reserve output before its allocation; emit prefixes are charged
+            // too. The same owner budget is never cloned, reset or enlarged.
+            if let Err(error) = budget
+                .charge_work(work)
+                .and_then(|_| budget.charge_bytes(bytes))
+            {
+                admission_error = Some(error);
+                return Err(failure());
+            }
+            Ok(())
+        };
+        canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+            value,
+            CanonicalProfile::SourceRecordDigestV1,
+            limits,
+            remaining.max_input_bytes,
+            &mut check,
+            &mut admit,
+        )
+    };
+    encoded.map(|(bytes, _)| bytes).map_err(|_| {
+        admission_error.unwrap_or(Error::Invalid("native role canonical source record"))
+    })
+}
+fn admitted_digest(
+    value: &JsonValue,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Digest256> {
+    let encoded = admitted_canonical(value, budget, deadline, cancelled)?;
+    budget.charge_work(encoded.len())?;
+    Ok(Digest256::of_bytes(&encoded))
+}
+fn check_pin(
+    value: &JsonValue,
+    expected: &ExactRecordRef,
+    id: &str,
+    version: &str,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    let actual = admitted_digest(value, budget, deadline, cancelled)?;
+    check_pin_fields(value, expected, id, version, actual, budget)
+}
+fn check_pin_fields(
+    value: &JsonValue,
+    expected: &ExactRecordRef,
+    id: &str,
+    version: &str,
+    actual: Digest256,
+    budget: &mut OperationBudget,
+) -> Result<()> {
+    let fields = value
+        .as_object()
+        .ok_or(Error::Invalid("native role pinned object"))?;
+    budget.charge_work(
+        fields
+            .len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(expected.id.as_str().len()))
+            .ok_or(Error::Unsupported("native role pin comparison work overflow"))?,
+    )?;
+    let version_value = cmd::field(value, version)?;
+    if let JsonValue::Number(number) = version_value {
+        budget.charge_work(number.lexeme.len())?;
+    }
     if cmd::text(value, id)? != expected.id.as_str()
-        || cmd::field(value, version)?.as_u64() != Some(expected.version.get())
+        || version_value.as_u64() != Some(expected.version.get())
         || actual != expected.digest
     {
         return Err(Error::Conflict(
@@ -333,6 +495,18 @@ fn check_pin(value: &JsonValue, expected: &ExactRecordRef, id: &str, version: &s
         ));
     }
     Ok(())
+}
+fn reserve_reference_copies(
+    budget: &mut OperationBudget,
+    refs: &[&ExactRecordRef],
+    path: &str,
+) -> Result<()> {
+    let bytes = refs
+        .iter()
+        .try_fold(path.len(), |n, r| n.checked_add(r.id.as_str().len()))
+        .ok_or(Error::Unsupported("native role reference-copy size overflow"))?;
+    budget.charge_work(bytes)?;
+    budget.charge_bytes(bytes)
 }
 fn wire_pin(exact: &ExactRecordRef) -> JsonValue {
     cmd::object(vec![
@@ -410,6 +584,35 @@ fn check_resolved_role(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn canonical_work_is_admitted_before_output_and_retains_spent_prefix() {
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let invocation = serde_json::json!({"budgets": {
+            "worker_cpu_seconds": 1,
+            "worker_address_space_bytes": 1_073_741_824u64
+        }});
+        // A numerical budget fixture is not a source/authority frame factory.
+        let mut budget = OperationBudget::new(&invocation, deadline).unwrap();
+        let cancelled = AtomicBool::new(false);
+        let value = cmd::parse(br#"{"a":1}"#).unwrap();
+        let expected = tos_foundation::canonical_bytes_v1(
+            &value,
+            CanonicalProfile::SourceRecordDigestV1,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            admitted_canonical(&value, &mut budget, deadline, &cancelled).unwrap(),
+            expected
+        );
+        let remaining = budget.limits().unwrap().max_work;
+        budget.charge_work(remaining - 1).unwrap();
+        assert!(admitted_canonical(&value, &mut budget, deadline, &cancelled).is_err());
+        // One root visit was admitted; later refusal neither refunds it nor
+        // resets the original owner allowance for another canonical attempt.
+        assert!(budget.limits().is_err());
+        assert!(admitted_digest(&value, &mut budget, deadline, &cancelled).is_err());
+    }
     #[test]
     fn native_role_requires_actual_declared_profile_and_requested_role() {
         // Actual source registry. The existing canon Context type is not a
