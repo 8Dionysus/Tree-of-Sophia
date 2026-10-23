@@ -52,6 +52,18 @@ fn corrupt() -> SearchV2Error {
 fn budget_error() -> SearchV2Error {
     error(SearchV2ErrorCode::BudgetExceeded, "inspect budget exceeded")
 }
+// Optional caller-owned fault slot; no plan fields or owned diagnostic buffers.
+pub(crate) type InspectBudgetFault = (&'static str, [Option<u64>; 4]);
+fn observed_budget(
+    fault: &mut Option<InspectBudgetFault>,
+    site: &'static str,
+    counts: [Option<u64>; 4],
+) -> SearchV2Error {
+    if fault.is_none() {
+        *fault = Some((site, counts));
+    }
+    budget_error()
+}
 fn check(probe: Option<&dyn AbortProbe>) -> Result<(), SearchV2Error> {
     match probe.and_then(AbortProbe::reason) {
         Some(AbortReason::Cancelled) => {
@@ -83,8 +95,26 @@ impl InspectRequest {
         relation_limit: usize,
         budget: InspectBudget,
     ) -> Result<Self, SearchV2Error> {
+        Self::new_observed(kind, identifier, relation_limit, budget, &mut None)
+    }
+    pub(crate) fn new_observed(
+        kind: SearchKind,
+        identifier: &str,
+        relation_limit: usize,
+        budget: InspectBudget,
+        fault: &mut Option<InspectBudgetFault>,
+    ) -> Result<Self, SearchV2Error> {
         if identifier.len() as u64 > budget.max_decoded_bytes {
-            return Err(budget_error());
+            return Err(observed_budget(
+                fault,
+                "request_identifier",
+                [
+                    Some(identifier.len() as u64),
+                    Some(budget.max_decoded_bytes),
+                    None,
+                    None,
+                ],
+            ));
         }
         let input_cap = usize::try_from(budget.max_decoded_bytes).unwrap_or(usize::MAX);
         let identifier = python_strip_unicode16_v1(identifier, input_cap).map_err(|_| {
@@ -218,6 +248,21 @@ impl InspectPlan {
             budget,
         )
     }
+    pub(crate) fn new_observed(
+        request: InspectRequest,
+        revision: String,
+        authority_boundary: JsonValue,
+        budget: InspectBudget,
+        fault: &mut Option<InspectBudgetFault>,
+    ) -> Result<Self, SearchV2Error> {
+        Self::with_identity_observed(
+            request,
+            InspectIdentity::Cut(revision),
+            authority_boundary,
+            budget,
+            fault,
+        )
+    }
     /// Native-only identity construction from the actual selected header.
     /// The adapter verifies its digest before this call; bound comparison here
     /// rejects a different proof. Current authority and custody remain outside
@@ -306,6 +351,15 @@ impl InspectPlan {
         authority_boundary: JsonValue,
         budget: InspectBudget,
     ) -> Result<Self, SearchV2Error> {
+        Self::with_identity_observed(request, identity, authority_boundary, budget, &mut None)
+    }
+    fn with_identity_observed(
+        request: InspectRequest,
+        identity: InspectIdentity,
+        authority_boundary: JsonValue,
+        budget: InspectBudget,
+        fault: &mut Option<InspectBudgetFault>,
+    ) -> Result<Self, SearchV2Error> {
         if budget.max_matches == 0
             || budget.max_rows == 0
             || budget.max_read_vm_steps == 0
@@ -313,13 +367,14 @@ impl InspectPlan {
             || budget.max_decoded_bytes == 0
             || budget.max_response_bytes == 0
         {
-            return Err(budget_error());
+            return Err(observed_budget(fault, "initial_scalar", [None; 4]));
         }
-        let request = InspectRequest::new(
+        let request = InspectRequest::new_observed(
             request.kind,
             &request.identifier,
             request.relation_limit,
             budget,
+            fault,
         )?;
         let need = Some(InspectNeed::Lookup {
             kind: request.kind,
@@ -345,26 +400,55 @@ impl InspectPlan {
     pub fn need(&self) -> Option<&InspectNeed> {
         self.need.as_ref()
     }
-    fn charge(
+    fn charge_observed(
         &mut self,
         values: &[JsonValue],
         bytes: u64,
         probe: Option<&dyn AbortProbe>,
+        fault: &mut Option<InspectBudgetFault>,
     ) -> Result<(), SearchV2Error> {
         check(probe)?;
         self.rows = self
             .rows
             .checked_add(values.len() as u64)
-            .ok_or_else(budget_error)?;
-        self.decoded = self.decoded.checked_add(bytes).ok_or_else(budget_error)?;
+            .ok_or_else(|| observed_budget(fault, "arithmetic_overflow", [None; 4]))?;
+        self.decoded = self
+            .decoded
+            .checked_add(bytes)
+            .ok_or_else(|| observed_budget(fault, "arithmetic_overflow", [None; 4]))?;
         if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
-            return Err(budget_error());
+            return Err(observed_budget(
+                fault,
+                if self.rows > self.budget.max_rows {
+                    "plan_rows"
+                } else {
+                    "plan_decoded"
+                },
+                [
+                    Some(self.rows),
+                    Some(self.budget.max_rows),
+                    Some(self.decoded),
+                    Some(self.budget.max_decoded_bytes),
+                ],
+            ));
         }
         let mut pending: Vec<&JsonValue> = values.iter().collect();
         while let Some(value) = pending.pop() {
-            self.work = self.work.checked_add(1).ok_or_else(budget_error)?;
+            self.work = self
+                .work
+                .checked_add(1)
+                .ok_or_else(|| observed_budget(fault, "arithmetic_overflow", [None; 4]))?;
             if self.work > self.budget.max_read_vm_steps {
-                return Err(budget_error());
+                return Err(observed_budget(
+                    fault,
+                    "plan_work",
+                    [
+                        Some(self.work),
+                        Some(self.budget.max_read_vm_steps),
+                        None,
+                        None,
+                    ],
+                ));
             }
             check(probe)?;
             match value {
@@ -398,6 +482,15 @@ impl InspectPlan {
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
     ) -> Result<(), SearchV2Error> {
+        self.resume_lookup_observed(rows, decoded_bytes, probe, &mut None)
+    }
+    pub(crate) fn resume_lookup_observed(
+        &mut self,
+        rows: Vec<JsonValue>,
+        decoded_bytes: u64,
+        probe: Option<&dyn AbortProbe>,
+        fault: &mut Option<InspectBudgetFault>,
+    ) -> Result<(), SearchV2Error> {
         let Some(InspectNeed::Lookup {
             kind,
             selector,
@@ -411,10 +504,19 @@ impl InspectPlan {
             return Err(if selector == "id" {
                 corrupt()
             } else {
-                budget_error()
+                observed_budget(
+                    fault,
+                    "alias_count",
+                    [
+                        u64::try_from(rows.len()).ok(),
+                        u64::try_from(limit).ok(),
+                        None,
+                        None,
+                    ],
+                )
             });
         }
-        self.charge(&rows, decoded_bytes, probe)?;
+        self.charge_observed(&rows, decoded_bytes, probe, fault)?;
         Self::ids(&rows)?;
         if rows.iter().any(|v| {
             v.object_get(selector).and_then(JsonValue::as_str) != Some(identifier.as_str())
@@ -473,6 +575,16 @@ impl InspectPlan {
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
     ) -> Result<(), SearchV2Error> {
+        self.resume_incident_observed(total, rows, decoded_bytes, probe, &mut None)
+    }
+    pub(crate) fn resume_incident_observed(
+        &mut self,
+        total: u64,
+        rows: Vec<JsonValue>,
+        decoded_bytes: u64,
+        probe: Option<&dyn AbortProbe>,
+        fault: &mut Option<InspectBudgetFault>,
+    ) -> Result<(), SearchV2Error> {
         let Some(InspectNeed::NodeIncident {
             ids,
             relation_limit,
@@ -496,7 +608,7 @@ impl InspectPlan {
         {
             return Err(corrupt());
         }
-        self.charge(&rows, decoded_bytes, probe)?;
+        self.charge_observed(&rows, decoded_bytes, probe, fault)?;
         self.total = total;
         self.context = rows;
         self.need = None;
@@ -508,13 +620,22 @@ impl InspectPlan {
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
     ) -> Result<(), SearchV2Error> {
+        self.resume_endpoints_observed(rows, decoded_bytes, probe, &mut None)
+    }
+    pub(crate) fn resume_endpoints_observed(
+        &mut self,
+        rows: Vec<JsonValue>,
+        decoded_bytes: u64,
+        probe: Option<&dyn AbortProbe>,
+        fault: &mut Option<InspectBudgetFault>,
+    ) -> Result<(), SearchV2Error> {
         let Some(InspectNeed::RelationEndpoints { ids }) = &self.need else {
             return Err(corrupt());
         };
         if Self::ids(&rows)? != *ids {
             return Err(corrupt());
         }
-        self.charge(&rows, decoded_bytes, probe)?;
+        self.charge_observed(&rows, decoded_bytes, probe, fault)?;
         self.total = rows.len() as u64;
         self.context = rows;
         self.need = None;

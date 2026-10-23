@@ -1,0 +1,72 @@
+{
+  "relation_type_id": "tos.relation.canon-node-relation",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "authored canon-node relation",
+    "ru": "авторская связь canon-узла",
+    "en": "authored canon-node relation"
+  },
+  "inverse_labels": null,
+  "definition": "Stable interchange family for the bounded relation vocabulary embedded directly in authored ToS node contracts; predicate_id preserves the exact subtype.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/tos-node-contract.schema.json",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "direct",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "canon",
+      "source_predicate_id": "commentary-on",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "canon",
+      "source_predicate_id": "contextualized-by",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "canon",
+      "source_predicate_id": "descendant",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "canon",
+      "source_predicate_id": "mutation",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "canon",
+      "source_predicate_id": "parallel",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "canon",
+      "source_predicate_id": "predecessor",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "canon",
+      "source_predicate_id": "tension",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

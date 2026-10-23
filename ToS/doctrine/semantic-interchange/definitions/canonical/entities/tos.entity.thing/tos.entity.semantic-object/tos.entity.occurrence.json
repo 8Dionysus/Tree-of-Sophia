@@ -1,0 +1,50 @@
+{
+  "type_id": "tos.entity.occurrence",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Occurrence",
+    "ru": "Употребление",
+    "en": "Occurrence"
+  },
+  "definition": "A particular source-bound use with a correctable research description and immutable native TextUnit binding. Its lexical form, Lexeme and sense have separately grounded relations. The unit retains its stated granularity and boundary status.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "occurrence"
+    },
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "occurrence"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "native_binding_adapter": "source-text-unit-v1",
+    "record_type": "occurrence",
+    "id_prefix": "tos.occurrence.",
+    "source_basename": "occurrence.json",
+    "catalog_filename": "occurrences.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_occurrence_description_record_v1",
+        "schema_ref": "ToS/contracts/occurrence-description-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json",
+          "ToS/contracts/native-text-unit-binding.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

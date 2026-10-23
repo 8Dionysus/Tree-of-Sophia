@@ -1,0 +1,18 @@
+{
+  "type_id": "tos.entity.historical-situation",
+  "parent_type_ids": [
+    "tos.entity.identity"
+  ],
+  "abstract": true,
+  "object_role": "root",
+  "labels": {
+    "default": "Historical situation",
+    "ru": "Историческая ситуация",
+    "en": "Historical situation"
+  },
+  "definition": "The family of source-described happenings, developments and persisting conditions in the historical world.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [],
+  "supersedes_type_id": null
+}

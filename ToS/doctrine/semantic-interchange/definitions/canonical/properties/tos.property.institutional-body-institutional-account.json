@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.institutional-body-institutional-account",
+  "field": "attributes.source_record.semantic_content.institutional_account",
+  "labels": {
+    "default": "Institutional account",
+    "ru": "Описание учреждения",
+    "en": "Institutional account"
+  },
+  "definition": "The organized roles and continuity by which this particular institutional body is described.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.institutional-body"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

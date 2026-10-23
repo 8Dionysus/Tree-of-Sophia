@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.value-value-account",
+  "field": "attributes.source_record.semantic_content.value_account",
+  "labels": {
+    "default": "Value account",
+    "ru": "Содержание ценности",
+    "en": "Value account"
+  },
+  "definition": "What is valued or used as a criterion of valuation, and in what sense.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.value"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

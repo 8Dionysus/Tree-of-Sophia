@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.motif-proposal",
+  "parent_type_ids": [
+    "tos.entity.literal"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Qualified motif proposal",
+    "ru": "Гипотеза о мотиве с оговорками",
+    "en": "Qualified motif proposal"
+  },
+  "definition": "A Claim-scoped proposal comparing the complete declared set of exact Occurrences. The Claim owns the candidate's identity and assessment; a Sign has its own issuance record.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/source-occurrence-motif-claim.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "motif-proposal"
+    }
+  ],
+  "supersedes_type_id": null
+}

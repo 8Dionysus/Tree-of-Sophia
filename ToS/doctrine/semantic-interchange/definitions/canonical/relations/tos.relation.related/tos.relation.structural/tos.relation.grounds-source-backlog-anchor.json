@@ -1,0 +1,49 @@
+{
+  "relation_type_id": "tos.relation.grounds-source-backlog-anchor",
+  "parent_relation_type_ids": [
+    "tos.relation.structural"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "grounds source backlog anchor",
+    "ru": "обосновывает якорь очереди источников",
+    "en": "grounds source backlog anchor"
+  },
+  "inverse_labels": {
+    "default": "is grounded by source planting",
+    "ru": "обосновано посадкой источника",
+    "en": "is grounded by source planting"
+  },
+  "definition": "Connects a source planting to its declared witness backlog anchor and source status.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/philosophy-source-planting.schema.json",
+  "domain_type_ids": [
+    "tos.entity.source-planting"
+  ],
+  "range_type_ids": [
+    "tos.entity.source-witness",
+    "tos.entity.intellectual-object",
+    "tos.entity.item",
+    "tos.entity.artifact"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "structural",
+  "evidence_required": false,
+  "review_requirement": "none",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_predicate_id": "grounds_source_backlog_anchor",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

@@ -1,0 +1,53 @@
+{
+  "property_id": "tos.property.semantic-identity-criterion",
+  "field": "attributes.source_record.semantic_scope.identity_criterion",
+  "labels": {
+    "default": "Referent continuity criterion",
+    "ru": "Критерий преемственности предмета",
+    "en": "Referent continuity criterion"
+  },
+  "definition": "The explicit research criterion for retaining this semantic subject through corrected descriptions; shared names or equal record versions are not identity evidence.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.crosscutting-concept",
+    "tos.entity.conception",
+    "tos.entity.thesis",
+    "tos.entity.argument",
+    "tos.entity.inference-step",
+    "tos.entity.objection",
+    "tos.entity.aspect",
+    "tos.entity.philosophical-category",
+    "tos.entity.problem",
+    "tos.entity.problem-family",
+    "tos.entity.question",
+    "tos.entity.position",
+    "tos.entity.distinction",
+    "tos.entity.opposition",
+    "tos.entity.thought-method",
+    "tos.entity.thought-operation",
+    "tos.entity.thought-move",
+    "tos.entity.thought-experiment",
+    "tos.entity.thought-image",
+    "tos.entity.rhetorical-figure",
+    "tos.entity.metaphor",
+    "tos.entity.value",
+    "tos.entity.ideal",
+    "tos.entity.ontological-commitment",
+    "tos.entity.linguistic-system",
+    "tos.entity.script",
+    "tos.entity.transliteration-scheme",
+    "tos.entity.lexeme",
+    "tos.entity.lexical-sense",
+    "tos.entity.lexical-form",
+    "tos.entity.occurrence"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

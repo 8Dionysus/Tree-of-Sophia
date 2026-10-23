@@ -1,0 +1,46 @@
+{
+  "type_id": "tos.entity.document",
+  "parent_type_ids": [
+    "tos.entity.intellectual-object"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Document",
+    "ru": "Документ",
+    "en": "Document"
+  },
+  "definition": "A persistent communicative or documentary intellectual object, with separately identified realizations, carriers and descriptive records. Corrections preserve its identity; shared content and identity attributions require their own Claims.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "document"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "document"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "document",
+    "id_prefix": "tos.document.",
+    "source_basename": "document.json",
+    "catalog_filename": "documents.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_document_record_v1",
+        "schema_ref": "ToS/contracts/document-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.research-corpus-membership",
+  "parent_type_ids": [
+    "tos.entity.literal"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Scoped corpus membership",
+    "ru": "Состав корпуса в заданной области",
+    "en": "Scoped corpus membership"
+  },
+  "definition": "A qualified selection of members of a research corpus, with partial, exhaustive-in-scope or undetermined coverage and independently declared order.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/scoped-member-structure.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "research-corpus-membership"
+    }
+  ],
+  "supersedes_type_id": null
+}

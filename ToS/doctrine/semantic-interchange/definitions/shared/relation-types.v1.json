@@ -1,0 +1,165 @@
+{
+  "schema_version": "tos_semantic_relation_type_registry_v1",
+  "registry_id": "tos.semantic.relation-types",
+  "registry_version": 47,
+  "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+  "source_refs": [
+    "ToS/doctrine/semantic-interchange/README.md",
+    "ToS/doctrine/KNOWLEDGE_MODEL.md",
+    "ToS/doctrine/CORPUS_FOUNDATION.md",
+    "ToS/contracts/claim-packet.schema.json",
+    "ToS/contracts/first-publication-chronology.schema.json",
+    "ToS/contracts/provision-activity.schema.json",
+    "ToS/canon/registries/predicates.csv",
+    "ToS/philosophy/trunk/relation-kinds/README.md"
+  ],
+  "fallback_relation_type_id": "tos.relation.unmapped",
+  "claim_navigation_template": {
+    "template_id": "tos.navigation-template.claim-reference",
+    "template_version": 3,
+    "reader": "claim-navigation-v1",
+    "purpose": "claim-navigation-only",
+    "owner_ref": "ToS/doctrine/HUMAN_FORMS.md",
+    "default_language": "ru",
+    "max_output_bytes": 8192,
+    "object_label_adapters": [
+      "historical-time-source-wording-v1",
+      "document-catalogue-time-source-wording-v1"
+    ],
+    "marker": {
+      "ru": "Запись утверждения",
+      "en": "Claim record"
+    },
+    "status_labels": {
+      "epistemic_status": {
+        "observed": {
+          "ru": "обозначено как наблюдение",
+          "en": "declared observation"
+        },
+        "inferred": {
+          "ru": "обозначено как вывод",
+          "en": "declared inference"
+        },
+        "reported": {
+          "ru": "сообщено источником",
+          "en": "source-reported"
+        },
+        "interpreted": {
+          "ru": "обозначено как интерпретация",
+          "en": "declared interpretation"
+        },
+        "uncertain": {
+          "ru": "неопределённо",
+          "en": "uncertain"
+        },
+        "disputed": {
+          "ru": "оспаривается",
+          "en": "disputed"
+        }
+      },
+      "review_status": {
+        "unreviewed": {
+          "ru": "исходная запись не оценена",
+          "en": "source record unreviewed"
+        },
+        "accepted": {
+          "ru": "в исходной записи принято",
+          "en": "accepted in source record"
+        },
+        "accepted_with_limits": {
+          "ru": "в исходной записи принято с ограничениями",
+          "en": "accepted with limits in source record"
+        },
+        "rejected": {
+          "ru": "в исходной записи отклонено",
+          "en": "rejected in source record"
+        },
+        "ambiguous": {
+          "ru": "в исходной записи неоднозначно",
+          "en": "ambiguous in source record"
+        },
+        "deferred": {
+          "ru": "в исходной записи отложено",
+          "en": "deferred in source record"
+        },
+        "superseded": {
+          "ru": "исходная запись замещена",
+          "en": "source record superseded"
+        }
+      }
+    },
+    "renderings": {
+      "ru": [
+        {
+          "slot": "claim-marker"
+        },
+        {
+          "literal": " · связь: "
+        },
+        {
+          "slot": "predicate-label"
+        },
+        {
+          "literal": " ["
+        },
+        {
+          "slot": "declared-epistemic-status"
+        },
+        {
+          "literal": "; "
+        },
+        {
+          "slot": "declared-review-status"
+        },
+        {
+          "literal": "] · субъект: "
+        },
+        {
+          "slot": "subject-label"
+        },
+        {
+          "literal": " · объект: "
+        },
+        {
+          "slot": "object-label"
+        }
+      ],
+      "en": [
+        {
+          "slot": "claim-marker"
+        },
+        {
+          "literal": " · relation: "
+        },
+        {
+          "slot": "predicate-label"
+        },
+        {
+          "literal": " ["
+        },
+        {
+          "slot": "declared-epistemic-status"
+        },
+        {
+          "literal": "; "
+        },
+        {
+          "slot": "declared-review-status"
+        },
+        {
+          "literal": "] · subject: "
+        },
+        {
+          "slot": "subject-label"
+        },
+        {
+          "literal": " · object: "
+        },
+        {
+          "slot": "object-label"
+        }
+      ]
+    }
+  },
+  "relations": []
+}

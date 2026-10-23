@@ -1,0 +1,73 @@
+{
+  "relation_type_id": "tos.relation.occurrence-motif-proposal",
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "structured-reference-value-v1",
+    "value_kind": "motif-proposal",
+    "object_reference_set": {
+      "member_type_ids": [
+        "tos.entity.occurrence"
+      ],
+      "min_items": 2,
+      "max_items": 8,
+      "subject_is_member": true
+    },
+    "assertion_layers": [
+      "semantic_interpretation",
+      "scholarly_report"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_source_occurrence_motif_claim_v1",
+        "schema_ref": "ToS/contracts/source-occurrence-motif-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/source-structured-value.schema.json",
+          "ToS/contracts/corpus-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has a qualified motif proposal",
+    "ru": "имеет гипотезу о мотиве с оговорками",
+    "en": "has a qualified motif proposal"
+  },
+  "inverse_labels": {
+    "default": "proposes a motif around",
+    "ru": "предлагает мотив вокруг",
+    "en": "proposes a motif around"
+  },
+  "definition": "Links the focal exact Occurrence to a qualified proposal over the complete declared set of occurrences, including the focal member. The Claim carries the whole hypothesis and its assessment.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.occurrence"
+  ],
+  "range_type_ids": [
+    "tos.entity.motif-proposal"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "occurrence_motif_proposal",
+      "scope": "claim-predicate"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

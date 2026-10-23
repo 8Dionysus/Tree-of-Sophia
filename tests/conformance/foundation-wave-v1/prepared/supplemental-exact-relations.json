@@ -1,0 +1,327 @@
+[
+  {
+    "id": "RT3-allen-before",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 1
+      },
+      "right": {
+        "start": 2,
+        "end": 3
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "before"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-after",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 2,
+        "end": 3
+      },
+      "right": {
+        "start": 0,
+        "end": 1
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "after"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-meets",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 1
+      },
+      "right": {
+        "start": 1,
+        "end": 2
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "meets"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-metBy",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 1,
+        "end": 2
+      },
+      "right": {
+        "start": 0,
+        "end": 1
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "metBy"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-overlaps",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 2
+      },
+      "right": {
+        "start": 1,
+        "end": 3
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "overlaps"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-overlappedBy",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 1,
+        "end": 3
+      },
+      "right": {
+        "start": 0,
+        "end": 2
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "overlappedBy"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-starts",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 1
+      },
+      "right": {
+        "start": 0,
+        "end": 2
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "starts"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-startedBy",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 2
+      },
+      "right": {
+        "start": 0,
+        "end": 1
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "startedBy"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-during",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 1,
+        "end": 2
+      },
+      "right": {
+        "start": 0,
+        "end": 3
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "during"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-contains",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 3
+      },
+      "right": {
+        "start": 1,
+        "end": 2
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "contains"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-finishes",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 1,
+        "end": 2
+      },
+      "right": {
+        "start": 0,
+        "end": 2
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "finishes"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-finishedBy",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 2
+      },
+      "right": {
+        "start": 1,
+        "end": 2
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "finishedBy"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  },
+  {
+    "id": "RT3-allen-equals",
+    "operation": "relate_extents",
+    "input": {
+      "left": {
+        "start": 0,
+        "end": 1
+      },
+      "right": {
+        "start": 0,
+        "end": 1
+      },
+      "axis": {
+        "id": "acceptance-axis-X",
+        "version": "candidate-7",
+        "ordering": "Total"
+      }
+    },
+    "expected": {
+      "status": "Entailed",
+      "relation": "equals"
+    },
+    "status": "PreparedNotExecuted",
+    "mapping": "Pending accepted T1 API; no implicit calendar"
+  }
+]

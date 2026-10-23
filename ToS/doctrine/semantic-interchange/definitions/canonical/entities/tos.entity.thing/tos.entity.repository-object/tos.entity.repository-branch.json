@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.repository-branch",
+  "parent_type_ids": [
+    "tos.entity.repository-object"
+  ],
+  "abstract": false,
+  "object_role": "projection",
+  "labels": {
+    "default": "Repository branch",
+    "ru": "Ветвь репозитория",
+    "en": "Repository branch"
+  },
+  "definition": "A branch representation from the ToS source-home manifest.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/source_home.manifest.json",
+  "source_mappings": [
+    {
+      "source_graph": "repository",
+      "source_kind_id": "repository-branch"
+    }
+  ],
+  "supersedes_type_id": null
+}

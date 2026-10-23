@@ -1,0 +1,46 @@
+{
+  "relation_type_id": "tos.relation.first-publication-chronology",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has first-publication chronology",
+    "ru": "имеет хронологию первой публикации",
+    "en": "has first-publication chronology"
+  },
+  "inverse_labels": {
+    "default": "is first-publication chronology of",
+    "ru": "является хронологией первой публикации",
+    "en": "is first-publication chronology of"
+  },
+  "definition": "Relates a Work to a claim-scoped chronology with explicit interval, stages, precision and ordering warning.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/first-publication-chronology.schema.json",
+  "domain_type_ids": [
+    "tos.entity.work"
+  ],
+  "range_type_ids": [
+    "tos.entity.temporal-assertion"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": 1,
+    "per_object_min": null,
+    "per_object_max": 1
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "first_publication_chronology",
+      "scope": "claim-predicate"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

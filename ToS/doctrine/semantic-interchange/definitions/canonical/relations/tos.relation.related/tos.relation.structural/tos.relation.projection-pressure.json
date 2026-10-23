@@ -1,0 +1,47 @@
+{
+  "relation_type_id": "tos.relation.projection-pressure",
+  "parent_relation_type_ids": [
+    "tos.relation.structural"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "records projection pressure",
+    "ru": "фиксирует давление проекции",
+    "en": "records projection pressure"
+  },
+  "inverse_labels": null,
+  "definition": "A derived workbench relation counting requested node or relation vocabulary for planning.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/philosophy/atlas/README.md",
+  "domain_type_ids": [
+    "tos.entity.philosophy-meta"
+  ],
+  "range_type_ids": [
+    "tos.entity.philosophy-meta"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "derived-projection",
+  "evidence_required": false,
+  "review_requirement": "none",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "has_node_type_pressure",
+      "scope": "edge"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_predicate_id": "has_relation_pressure",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

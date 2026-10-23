@@ -1,0 +1,65 @@
+{
+  "relation_type_id": "tos.relation.method-guided-by-value",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "is guided by valuation",
+    "ru": "направляется ценностным требованием",
+    "en": "is guided by valuation"
+  },
+  "inverse_labels": {
+    "default": "guides method in scope",
+    "ru": "направляет метод в заданной области",
+    "en": "guides method in scope"
+  },
+  "definition": "Interprets a method as guided by a specified valuation, such as explanatory economy, within the inquiry's source context.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.thought-method"
+  ],
+  "range_type_ids": [
+    "tos.entity.value"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "method_guided_by_value",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "semantic-relation-v1",
+    "assertion_layers": [
+      "scholarly_report",
+      "semantic_interpretation"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_semantic_relation_claim_v1",
+        "schema_ref": "ToS/contracts/semantic-relation-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

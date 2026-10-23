@@ -1,0 +1,64 @@
+{
+  "relation_type_id": "tos.relation.studied-at",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "studied at",
+    "ru": "учился в",
+    "en": "studied at"
+  },
+  "inverse_labels": {
+    "default": "had student",
+    "ru": "было местом обучения",
+    "en": "had student"
+  },
+  "definition": "Attributes study at an institution within the source-described activity and span. Qualifications and completion have their own evidence.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.agent"
+  ],
+  "range_type_ids": [
+    "tos.entity.institutional-body"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "studied_at",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_social_relation_claim_v1",
+        "schema_ref": "ToS/contracts/social-relation-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

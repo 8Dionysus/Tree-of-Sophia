@@ -1,0 +1,68 @@
+{
+  "relation_type_id": "tos.relation.lexical-translation-correspondence",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has a proposed lexical rendering in",
+    "ru": "имеет предложенное лексическое соответствие",
+    "en": "has a proposed lexical rendering in"
+  },
+  "inverse_labels": {
+    "default": "is a proposed lexical rendering of",
+    "ru": "предложено как лексическое соответствие для",
+    "en": "is a proposed lexical rendering of"
+  },
+  "definition": "Reports a directed, source-qualified translation correspondence between situated lexical readings. The Claim preserves its scope, transferred aspects, limitations and assessment; competing or missing correspondences retain their stated uncertainty.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.lexical-sense"
+  ],
+  "range_type_ids": [
+    "tos.entity.lexical-sense"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "lexical_translation_correspondence",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "semantic-relation-v1",
+    "assertion_layers": [
+      "scholarly_report",
+      "linguistic_analysis",
+      "semantic_interpretation"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_semantic_relation_claim_v1",
+        "schema_ref": "ToS/contracts/lexical-comparison-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json",
+          "ToS/contracts/semantic-relation-claim.schema.json",
+          "ToS/contracts/linguistic-relation-claim.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

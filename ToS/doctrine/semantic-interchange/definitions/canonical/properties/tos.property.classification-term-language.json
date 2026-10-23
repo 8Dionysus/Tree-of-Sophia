@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.classification-term-language",
+  "field": "attributes.value.term_language",
+  "labels": {
+    "default": "Classification term language",
+    "ru": "Язык термина классификации",
+    "en": "Classification term language"
+  },
+  "definition": "The declared language of the classification term, including und when unknown; not the language of the classified work, source quotation or interface.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.classification-value"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

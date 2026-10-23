@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.historical-environment-economic-account",
+  "field": "attributes.source_record.semantic_content.economic_account",
+  "labels": {
+    "default": "Economic conditions",
+    "ru": "Экономическая среда",
+    "en": "Economic conditions"
+  },
+  "definition": "Source-described economic arrangements or constraints, not inferred personal wealth.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.historical-environment"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

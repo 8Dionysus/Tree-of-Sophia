@@ -14,19 +14,128 @@ use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWork
 use tos_validation::operation::OperationLimits;
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
+// Exact historical INPUT packet identity, not current-corpus expected totals.
+fn form_packet_commitment(profile: &str) -> Option<&'static str> {
+    Some(match profile {
+        "" => "57f222edf6d5108181db6dd444c229b038c0aa93ba0667904dcacbea015c943f",
+        "artifact-v1" => "1c391ec1aebfc6502267624969991947a6646b9ba9dff4c44613ae88d9e51880",
+        "artifact-v2" => "173e7ba04edacdb3ebd9bfcb28541357406c530f466399e489dec1bd4752abe8",
+        "composite-v1" => "96a2c7edc3e76c54a5ac7ec4ebd21a64d290e3c8c35b58f5830e4ef6ad9dbe63",
+        "de_constantia" => "5563f951e41db0e82614d15890263ff0fd7c78792adc5266603b210f51a7a43c",
+        "claim_v1" => "5568717a9607afb7551bd3d8284dcd49a5a6c4c3bb8c8ff54727af951d7d9907",
+        "claim_v2" => "3774a35125b852caa1db4bb3fcbcff93360a0e9bfbea96b81762162e543fb877",
+        _ => return None,
+    })
+}
+
+fn form_packet_frame(
+    files: &BTreeMap<String, Vec<u8>>,
+    budget: &mut super::validation_cut_cases::FixtureReferenceBudget,
+) -> Result<Vec<u8>, &'static str> {
+    let mut frame = Vec::new();
+    for (name, raw) in files {
+        budget.step()?;
+        let length = raw.len().to_string();
+        let size = name
+            .len()
+            .checked_add(length.len())
+            .and_then(|n| n.checked_add(67))
+            .ok_or("form packet frame overflow")?;
+        budget.pay(size)?;
+        frame.extend_from_slice(name.as_bytes());
+        frame.push(0);
+        frame.extend_from_slice(length.as_bytes());
+        frame.push(0);
+        frame.extend_from_slice(Digest256::of_bytes(raw).to_hex().as_bytes());
+        frame.push(b'\n');
+    }
+    Ok(frame)
+}
+
+fn authenticated_form_packet(
+    packet: &Path,
+    profile: &str,
+    budget: &mut super::validation_cut_cases::FixtureReferenceBudget,
+) -> Result<BTreeMap<String, Vec<u8>>, &'static str> {
+    let commitment = form_packet_commitment(profile).ok_or("unknown form profile")?;
+    let mut files = BTreeMap::new();
+    for entry in fs::read_dir(packet).map_err(|_| "form packet directory")? {
+        budget.step()?;
+        let entry = entry.map_err(|_| "form packet entry")?;
+        let name = entry
+            .file_name()
+            .into_string()
+            .map_err(|_| "form packet name")?;
+        let metadata = fs::symlink_metadata(entry.path()).map_err(|_| "form packet metadata")?;
+        if metadata.is_dir()
+            && profile.is_empty()
+            && !name.is_empty()
+            && form_packet_commitment(&name).is_some()
+        {
+            continue;
+        }
+        if !metadata.is_file() || files.len() >= budget.max_members {
+            return Err("form packet regular member");
+        }
+        let len = usize::try_from(metadata.len()).map_err(|_| "form packet length")?;
+        if len > budget.max_member_bytes {
+            return Err("form packet member bytes");
+        }
+        let cost = len
+            .checked_mul(3)
+            .and_then(|n| n.checked_add(name.len().checked_mul(4)?))
+            .and_then(|n| n.checked_add(1024))
+            .ok_or("form packet overflow")?;
+        budget.pay(cost)?;
+        let mut raw = Vec::new();
+        fs::File::open(entry.path())
+            .map_err(|_| "form packet open")?
+            .take(
+                u64::try_from(len)
+                    .map_err(|_| "form packet length")?
+                    .checked_add(1)
+                    .ok_or("form packet length")?,
+            )
+            .read_to_end(&mut raw)
+            .map_err(|_| "form packet read")?;
+        if raw.len() != len || files.insert(name, raw).is_some() {
+            return Err("form packet changed member");
+        }
+    }
+    let frame = form_packet_frame(&files, budget)?;
+    if Digest256::of_bytes(&frame).to_hex() != commitment {
+        return Err("historical form packet commitment");
+    }
+    Ok(files)
+}
+
 pub(super) fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8>, String) {
     let repository = super::validation_cut_cases::repository();
     let packet = repository
         .join("rust/crates/tos-command/tests/fixtures/source_forms_shadow")
         .join(profile);
+    let mut reference =
+        super::validation_cut_cases::FixtureReferenceBudget::new(2048, 33_554_432, 8_388_608);
+    let packet_files = authenticated_form_packet(&packet, profile, &mut reference).unwrap();
+    if profile.is_empty() {
+        reference.pay(4096).unwrap();
+        let mut tiny = BTreeMap::from([("source.json".to_owned(), vec![0])]);
+        let original = Digest256::of_bytes(&form_packet_frame(&tiny, &mut reference).unwrap());
+        tiny.get_mut("source.json").unwrap().push(1);
+        assert_ne!(
+            Digest256::of_bytes(&form_packet_frame(&tiny, &mut reference).unwrap()),
+            original
+        );
+        assert!(form_packet_commitment("unknown-profile").is_none());
+    }
     let independent_work = profile == "de_constantia";
     let claim_profile = matches!(profile, "claim_v1" | "claim_v2");
-    let config = fs::read(packet.join(if independent_work || claim_profile {
+    let config = packet_files[if independent_work || claim_profile {
         "owner.json"
     } else {
         "owner.synthetic.json"
-    }))
-    .unwrap();
+    }]
+    .clone();
     let owner: Value = serde_json::from_slice(&config).unwrap();
     let path = owner["source_path"].as_str().unwrap().to_owned();
     let target = if claim_profile {
@@ -53,8 +162,7 @@ pub(super) fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8
     // Native oracle pins its exact source schema, independently of current
     // schema evolution. The fixture worker receives these selected bytes.
     if !profile.is_empty() && !independent_work && !claim_profile {
-        let source: Value =
-            serde_json::from_slice(&fs::read(packet.join("source.initial.json")).unwrap()).unwrap();
+        let source: Value = serde_json::from_slice(&packet_files["source.initial.json"]).unwrap();
         let schema = match source["schema_version"].as_str().unwrap() {
             "tos_artifact_source_witness_v1" => "artifact-source-witness.schema.json",
             "tos_artifact_source_witness_v2" => "artifact-source-witness-v2.schema.json",
@@ -63,39 +171,41 @@ pub(super) fn fixture_files(profile: &str) -> (BTreeMap<String, Vec<u8>>, Vec<u8
         };
         files.insert(
             format!("ToS/contracts/{schema}"),
-            fs::read(packet.join("source-schema.initial.json")).unwrap(),
+            packet_files["source-schema.initial.json"].clone(),
         );
     }
     files.insert(
         path,
-        fs::read(packet.join(if independent_work || claim_profile {
+        packet_files[if independent_work || claim_profile {
             "source.json"
         } else {
             "source.initial.json"
-        }))
-        .unwrap(),
+        }]
+        .clone(),
     );
     files.insert(
         target.clone(),
-        fs::read(packet.join(if independent_work || claim_profile {
+        packet_files[if independent_work || claim_profile {
             "initial.json"
         } else {
             "form-set.initial.json"
-        }))
-        .unwrap(),
+        }]
+        .clone(),
     );
     if claim_profile {
         let expected: BTreeMap<String, String> =
-            serde_json::from_slice(&fs::read(packet.join("source_contracts.json")).unwrap())
-                .unwrap();
+            serde_json::from_slice(&packet_files["source_contracts.json"]).unwrap();
         let historical = crate::frozen_legacy_python_oracle("compound-source-family");
+        let provenance = crate::frozen_legacy_python_oracle_provenance("compound-source-family");
+        let historical = super::validation_cut_cases::historical_fixture_inputs(
+            &historical,
+            &provenance["input_witness"]["python_fixture_source_map"],
+            &mut reference,
+        )
+        .unwrap();
         for (path, digest) in expected {
-            let raw = if let Some(hex) = historical.get(&path).and_then(Value::as_str) {
-                assert_eq!(hex.len() % 2, 0);
-                (0..hex.len())
-                    .step_by(2)
-                    .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-                    .collect()
+            let raw = if let Some(raw) = historical.get(&path) {
+                raw.clone()
             } else {
                 fs::read(repository.join(&path)).unwrap()
             };

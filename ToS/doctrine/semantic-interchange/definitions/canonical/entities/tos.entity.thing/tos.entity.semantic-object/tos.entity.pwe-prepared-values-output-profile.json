@@ -1,0 +1,49 @@
+{
+  "type_id": "tos.entity.pwe-prepared-values-output-profile",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "pwe-prepared-values-output-profile",
+    "en": "pwe-prepared-values-output-profile",
+    "ru": null
+  },
+  "definition": "Native PWE preservation pwe-prepared-values-output-profile with separately checked wrapper/body/item schema bindings. Completed producer output does not execute semantic resolution or grant source authority.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/pwe-prepared-values-output-profile.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "pwe-prepared-values-output-profile"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "pwe-prepared-values-output-profile"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "semantic-metadata-v1",
+    "record_type": "pwe-prepared-values-output-profile",
+    "id_prefix": "tos.pwe-prepared-values-output-profile.",
+    "source_basename": "pwe-prepared-values-output-profile.json",
+    "catalog_filename": "pwe-prepared-values-output-profiles.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_pwe_prepared_values_output_profile_v1",
+        "schema_ref": "ToS/contracts/pwe-prepared-values-output-profile.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/pwe-preserved-candidate.schema.json",
+          "ToS/contracts/pwe-values.schema.json",
+          "ToS/contracts/operation-binding-v1.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

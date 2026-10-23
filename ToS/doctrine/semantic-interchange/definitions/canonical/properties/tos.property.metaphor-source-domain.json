@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.metaphor-source-domain",
+  "field": "attributes.source_record.semantic_content.source_domain",
+  "labels": {
+    "default": "Source domain",
+    "ru": "Область образа",
+    "en": "Source domain"
+  },
+  "definition": "The domain supplying the figurative presentation, not a bibliographic source locator.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.metaphor"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

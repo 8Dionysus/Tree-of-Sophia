@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.institutional-body",
+  "parent_type_ids": [
+    "tos.entity.organization"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Institutional body",
+    "ru": "Учреждение",
+    "en": "Institutional body"
+  },
+  "definition": "A historically identified institution with organized roles and continuity. Its locations, buildings and intellectual affiliations have their own relations.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "institutional-body"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "institutional-body"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "institutional-body",
+    "id_prefix": "tos.institutional-body.",
+    "source_basename": "institutional-body.json",
+    "catalog_filename": "institutional-bodies.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_social_body_record_v1",
+        "schema_ref": "ToS/contracts/social-body-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

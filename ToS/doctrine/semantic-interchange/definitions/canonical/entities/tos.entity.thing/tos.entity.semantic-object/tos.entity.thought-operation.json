@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.thought-operation",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Operation of thought",
+    "ru": "Операция мышления",
+    "en": "Operation of thought"
+  },
+  "definition": "A specified intellectual action within an inquiry, with its source-described prerequisites and purpose.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "thought-operation"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "thought-operation"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 2,
+    "reader": "semantic-metadata-v1",
+    "identity_proposal_adapter": "exact-semantic-metadata-v1",
+    "record_type": "thought-operation",
+    "id_prefix": "tos.thought-operation.",
+    "source_basename": "thought-operation.json",
+    "catalog_filename": "thought-operations.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_thought_practice_record_v1",
+        "schema_ref": "ToS/contracts/thought-practice-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

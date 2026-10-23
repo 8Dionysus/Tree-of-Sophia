@@ -2984,6 +2984,49 @@ fn assert_bounded_committed_member_rows(work: &Value, scope: &str) {
     );
 }
 
+fn assert_initial_creation_receipt_rows(case: &RevisionCase, work: &Value) {
+    // Independent creation-schema contract; not taken from reported work.
+    const REQUIRED: &[&str] = &[
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/knowledge-assessment.schema.json",
+        "ToS/contracts/human-form-template.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+    ];
+    // The fixture's exact ordered snapshot has no dependency edges. Bootstrap
+    // commits it in protocol batches of at most 64 members. Each selected read
+    // authenticates that entire receipt plus its one selected member row.
+    let expected = REQUIRED.iter().fold(0u64, |sum, path| {
+        let ordinal = case
+            .all_source
+            .keys()
+            .position(|candidate| candidate == path)
+            .expect("required creation schema belongs to the independent fixture");
+        let batch_start = (ordinal / 64) * 64;
+        let members = case
+            .all_source
+            .len()
+            .checked_sub(batch_start)
+            .unwrap()
+            .min(64);
+        sum.checked_add(u64::try_from(members).unwrap().checked_add(1).unwrap())
+            .unwrap()
+    });
+    assert_eq!(
+        work["exact_source_members_read"].as_u64(),
+        Some(u64::try_from(REQUIRED.len()).unwrap()),
+        "initial Agent creation reads exactly its independent schema inputs"
+    );
+    assert_eq!(
+        work["committed_member_rows_examined"].as_u64(),
+        Some(expected),
+        "initial creation authenticates the selected bootstrap receipt batches"
+    );
+}
+
 fn history_source_paths(case: &RevisionCase, seq: u64) -> Vec<String> {
     let mut db = Client::connect(&case.lab.url, NoTls).unwrap();
     db.query(
@@ -4279,6 +4322,10 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
             &projection["initial_agent_creation"]["initial_source_read_work"],
             &format!("{records}-record native initial Agent creation"),
         );
+        assert_initial_creation_receipt_rows(
+            if records == 1 { &one } else { &three },
+            &projection["initial_agent_creation"]["initial_source_read_work"],
+        );
         assert_eq!(
             projection["projection_work"]["addition"]["exact_source_bytes_read"],
             projection["initial_agent_creation"]["created_source_bytes"],
@@ -4337,7 +4384,6 @@ fn real_parmenides_revision_retries_projects_and_preserves_growth_unaffected_pat
         "exact_source_members_read",
         "exact_source_bytes_read",
         "segment_bytes_read",
-        "committed_member_rows_examined",
         "metadata_member_lookups",
         "directory_index_rows_examined",
         "unique_index_lookups",

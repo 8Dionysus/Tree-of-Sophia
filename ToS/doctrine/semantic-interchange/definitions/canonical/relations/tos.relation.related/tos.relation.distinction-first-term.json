@@ -1,0 +1,70 @@
+{
+  "relation_type_id": "tos.relation.distinction-first-term",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has first term",
+    "ru": "имеет первый член",
+    "en": "has first term"
+  },
+  "inverse_labels": {
+    "default": "is first term in",
+    "ru": "является первым членом",
+    "en": "is first term in"
+  },
+  "definition": "Assigns the first contextual term role within a distinction, whose source criterion explains the differentiation.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "domain_type_ids": [
+    "tos.entity.distinction"
+  ],
+  "range_type_ids": [
+    "tos.entity.crosscutting-concept",
+    "tos.entity.conception",
+    "tos.entity.philosophical-category",
+    "tos.entity.thesis",
+    "tos.entity.position",
+    "tos.entity.aspect"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "distinction_first_term",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "semantic-relation-v1",
+    "assertion_layers": [
+      "scholarly_report",
+      "semantic_interpretation"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_semantic_relation_claim_v1",
+        "schema_ref": "ToS/contracts/semantic-relation-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

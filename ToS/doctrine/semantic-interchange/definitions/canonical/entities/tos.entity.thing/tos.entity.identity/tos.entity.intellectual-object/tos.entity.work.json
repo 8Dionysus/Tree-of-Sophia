@@ -1,0 +1,31 @@
+{
+  "type_id": "tos.entity.work",
+  "parent_type_ids": [
+    "tos.entity.intellectual-object"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Work",
+    "ru": "Произведение",
+    "en": "Work"
+  },
+  "definition": "An abstract intellectual or artistic creation with separately identified realizations, editions, acquired items and files.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "work"
+    },
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "work"
+    },
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "work"
+    }
+  ],
+  "supersedes_type_id": null
+}

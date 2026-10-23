@@ -1,0 +1,27 @@
+{
+  "property_id": "tos.property.composition-membership-basis",
+  "field": "attributes.value.membership_basis",
+  "labels": {
+    "default": "Membership basis",
+    "ru": "Основание включения",
+    "en": "Membership basis"
+  },
+  "definition": "The source-attributed membership basis of this exact Claim; not a global fact, completeness proof, historical chronology or admission.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.intellectual-part-composition",
+    "tos.entity.research-corpus-membership",
+    "tos.entity.physical-part-composition",
+    "tos.entity.collection-member-order"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "in",
+    "exists",
+    "contains"
+  ]
+}

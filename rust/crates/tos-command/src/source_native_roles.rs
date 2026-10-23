@@ -283,6 +283,15 @@ impl<'a> NativeRoleResolver<'a> {
                 "native role owner-discovery work overflow",
             ))?;
         self.budget.charge_work(scan_work)?;
+        let wire_cost = exact
+            .id
+            .as_str()
+            .len()
+            .checked_add(256)
+            .ok_or(Error::Unsupported("native role wire pin size overflow"))?;
+        self.budget.charge_work(wire_cost)?;
+        self.budget.charge_bytes(wire_cost)?;
+        // Derive the reader allowance AFTER every preceding local debit.
         let allowance = self.budget.limits()?;
         let read_cap = allowance
             .batch
@@ -298,14 +307,6 @@ impl<'a> NativeRoleResolver<'a> {
             max_issues: 256,
             deadline: allowance.deadline.min(self.deadline),
         };
-        let wire_cost = exact
-            .id
-            .as_str()
-            .len()
-            .checked_add(256)
-            .ok_or(Error::Unsupported("native role wire pin size overflow"))?;
-        self.budget.charge_work(wire_cost)?;
-        self.budget.charge_bytes(wire_cost)?;
         let pin = wire_pin(exact);
         let mut resolved = source_revisions::resolve_role_record_version_from_cut(
             self.ctx,

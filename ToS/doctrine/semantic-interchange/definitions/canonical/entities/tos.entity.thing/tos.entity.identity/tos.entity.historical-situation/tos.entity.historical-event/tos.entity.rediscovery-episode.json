@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.rediscovery-episode",
+  "parent_type_ids": [
+    "tos.entity.historical-event",
+    "tos.entity.reception-history"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Rediscovery episode",
+    "ru": "Эпизод переоткрытия",
+    "en": "Rediscovery episode"
+  },
+  "definition": "A bounded episode of renewed access or attention for a specified receiving context.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "rediscovery-episode"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "rediscovery-episode"
+    }
+  ],
+  "supersedes_type_id": null,
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "rediscovery-episode",
+    "id_prefix": "tos.rediscovery-episode.",
+    "source_basename": "rediscovery-episode.json",
+    "catalog_filename": "rediscovery-episodes.jsonl",
+    "graph_layer": "historical",
+    "schemas": [
+      {
+        "schema_version": "tos_reception_record_v1",
+        "schema_ref": "ToS/contracts/reception-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  }
+}

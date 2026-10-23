@@ -1,0 +1,45 @@
+{
+  "type_id": "tos.entity.historical-process",
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "historical-process",
+    "id_prefix": "tos.historical-process.",
+    "source_basename": "historical-process.json",
+    "catalog_filename": "historical-processes.jsonl",
+    "graph_layer": "historical",
+    "schemas": [
+      {
+        "schema_version": "tos_historical_record_v1",
+        "schema_ref": "ToS/contracts/historical-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "parent_type_ids": [
+    "tos.entity.historical-situation"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Historical process",
+    "ru": "Исторический процесс",
+    "en": "Historical process"
+  },
+  "definition": "A source-described temporal development whose phases, participants and relations to events are identified through grounded Claims.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "historical-process"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "historical-process"
+    }
+  ],
+  "supersedes_type_id": null
+}

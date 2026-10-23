@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.transmission-channel",
+  "parent_type_ids": [
+    "tos.entity.philosophy-object"
+  ],
+  "abstract": false,
+  "object_role": "navigation",
+  "labels": {
+    "default": "Transmission channel candidate",
+    "ru": "Кандидат канала передачи",
+    "en": "Transmission channel candidate"
+  },
+  "definition": "A pre-canon transmission channel category.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/philosophy/AGENTS.md",
+  "source_mappings": [
+    {
+      "source_graph": "philosophy",
+      "source_kind_id": "transmission_channel"
+    }
+  ],
+  "supersedes_type_id": null
+}

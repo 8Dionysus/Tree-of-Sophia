@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.rediscovery-episode-prior-access-boundary",
+  "field": "attributes.source_record.semantic_content.prior_access_boundary",
+  "labels": {
+    "default": "Prior access boundary",
+    "ru": "Граница прежней доступности",
+    "en": "Prior access boundary"
+  },
+  "definition": "For whom access or attention was renewed and what remained known or transmitted elsewhere; not the first discovery by anyone.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.rediscovery-episode"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

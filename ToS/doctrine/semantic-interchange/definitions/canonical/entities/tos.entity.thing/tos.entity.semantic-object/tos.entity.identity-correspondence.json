@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.identity-correspondence",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "identity-correspondence",
+    "en": "identity-correspondence",
+    "ru": null
+  },
+  "definition": "Claim-scoped PWE account value retaining its source, exact basis and qualification; it is not an endpoint identity or an admitted proposition.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/pwe-values.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "identity-correspondence"
+    }
+  ],
+  "supersedes_type_id": null
+}
