@@ -174,3 +174,47 @@ fn direct_codecs_difference_and_context_preserve_bounded_semantics() {
         assert_eq!((input, context), before);
     }
 }
+
+#[test]
+fn direct_query_context_requires_object_roots_before_admission() {
+    let [_, _, resolve, chronology] = routes();
+    for (operation, direct, input, _) in [resolve, chronology] {
+        let context = parse("{}");
+        for bad in [
+            JsonValue::Null,
+            JsonValue::Array(vec![]),
+            JsonValue::Bool(false),
+            parse("1"),
+            parse(r#""context""#),
+        ] {
+            for bad_input in [false, true] {
+                let (i, c) = if bad_input {
+                    (&bad, &context)
+                } else {
+                    (&input, &bad)
+                };
+                for budget in [
+                    TemporalBudget::default(),
+                    TemporalBudget {
+                        max_expression_bytes: 0,
+                        max_members: 0,
+                        max_pairings: 0,
+                    },
+                ] {
+                    assert!(matches!(
+                        direct(i, c, budget),
+                        Err(TemporalError::MalformedRequest(
+                            "input and context must be objects"
+                        ))
+                    ));
+                    assert!(matches!(
+                        execute_temporal_operation(operation, i, c, budget),
+                        Err(TemporalError::MalformedRequest(
+                            "input and context must be objects"
+                        ))
+                    ));
+                }
+            }
+        }
+    }
+}

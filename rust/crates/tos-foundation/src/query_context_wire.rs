@@ -80,6 +80,11 @@ pub fn resolve_context_json(
     context: &JsonValue,
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
+    if input.as_object().is_none() || context.as_object().is_none() {
+        return Err(TemporalError::MalformedRequest(
+            "input and context must be objects",
+        ));
+    }
     crate::temporal::admit_transport(input, context, budget)?;
     resolve_context_json_admitted(input, context, budget)
 }
@@ -208,6 +213,11 @@ pub fn create_chronology_json(
     context: &JsonValue,
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
+    if input.as_object().is_none() || context.as_object().is_none() {
+        return Err(TemporalError::MalformedRequest(
+            "input and context must be objects",
+        ));
+    }
     crate::temporal::admit_transport(input, context, budget)?;
     create_chronology_json_admitted(input, context, budget)
 }
