@@ -70,6 +70,8 @@ pub(crate) struct NativeRoleRecord {
     role: NativeRole,
     exact: ExactRecordRef,
     kind_binding: ExactRecordRef,
+    role_registry: ExactRecordRef,
+    role_registry_path: String,
     source_revision: SourceRevision,
     resolved: ResolvedRecordVersion,
 }
@@ -82,6 +84,12 @@ impl NativeRoleRecord {
     }
     pub(crate) fn kind_binding(&self) -> &ExactRecordRef {
         &self.kind_binding
+    }
+    pub(crate) fn role_registry(&self) -> &ExactRecordRef {
+        &self.role_registry
+    }
+    pub(crate) fn role_registry_path(&self) -> &str {
+        &self.role_registry_path
     }
     pub(crate) fn source_revision(&self) -> SourceRevision {
         self.source_revision
@@ -103,6 +111,8 @@ pub(crate) struct NativeRoleResolver<'a> {
     budget: &'a mut OperationBudget,
     entities: JsonValue,
     bindings: JsonValue,
+    role_registry: ExactRecordRef,
+    role_registry_path: String,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
@@ -203,6 +213,8 @@ impl<'a> NativeRoleResolver<'a> {
             budget,
             entities,
             bindings,
+            role_registry: registry.exact.clone(),
+            role_registry_path: registry.path.to_owned(),
             deadline,
             cancelled,
         })
@@ -294,6 +306,8 @@ impl<'a> NativeRoleResolver<'a> {
             role,
             exact: exact.clone(),
             kind_binding: kind_binding.clone(),
+            role_registry: self.role_registry.clone(),
+            role_registry_path: self.role_registry_path.clone(),
             source_revision: self.ctx.base_revision,
             resolved,
         })
