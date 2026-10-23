@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.biographical-episode",
+  "parent_type_ids": [
+    "tos.entity.historical-event"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Biographical episode",
+    "ru": "Биографический эпизод",
+    "en": "Biographical episode"
+  },
+  "definition": "A bounded occurrence described through its documented place in a person's life.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "biographical-episode"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "biographical-episode"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "biographical-episode",
+    "id_prefix": "tos.biographical-episode.",
+    "source_basename": "biographical-episode.json",
+    "catalog_filename": "biographical-episodes.jsonl",
+    "graph_layer": "historical",
+    "schemas": [
+      {
+        "schema_version": "tos_historical_context_record_v1",
+        "schema_ref": "ToS/contracts/historical-context-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-lexical-source-language",
+  "field": "attributes.source_claim.qualifiers.source_language",
+  "labels": {
+    "default": "Compared source language",
+    "ru": "Язык исходной стороны сравнения",
+    "en": "Compared source language"
+  },
+  "definition": "The declared source-endpoint language for a lexical comparison, not its statement language or an automatically attested Language identity.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-lexical-chronology-basis",
+  "field": "attributes.source_claim.qualifiers.chronology_basis",
+  "labels": {
+    "default": "Lexical chronology basis",
+    "ru": "Основание лексической хронологии",
+    "en": "Lexical chronology basis"
+  },
+  "definition": "The source-described grounds and uncertainty of historical lexical ordering; not capture time or a normalized chronological key.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

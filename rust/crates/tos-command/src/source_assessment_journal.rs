@@ -7,7 +7,9 @@ use crate::durable_private_packages::{
     PrivateOwnerScopeV1, capability_seal,
 };
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};
-use crate::source_creation_store::{active, inode, protected_configuration_parents, raw};
+use crate::source_creation_store::{
+    ReadLength, active, inode, protected_configuration_parents, raw, raw_with_length_limit,
+};
 use crate::{DurableError, DurablePgCoordinator, DurableResult};
 use rustix::fs::{FlockOperation, Mode, OFlags};
 use rustix::io::Errno;
@@ -28,6 +30,80 @@ use crate::source_assessment_capacity::{
     CapacityRefusal, HistoryCapacity, Limits, MAX_BATCH_BYTES, MAX_EVENTS, MAX_HISTORY_BYTES,
     StorageEnvelope,
 };
+
+/// Lower-only delegated IO limits. These do not certify returned-owned capacity.
+pub(crate) struct C01OwnerReadLimits {
+    pub(crate) config_bytes: usize,
+    pub(crate) batch_bytes: usize,
+    pub(crate) history_bytes: usize,
+    pub(crate) batches: usize,
+    pub(crate) events: usize,
+}
+impl C01OwnerReadLimits {
+    fn validate(&self) -> SourceCommandResult<()> {
+        if self.config_bytes == 0
+            || self.config_bytes > 8_388_608
+            || self.batch_bytes == 0
+            || self.batch_bytes > MAX_BATCH_BYTES
+            || self.history_bytes == 0
+            || self.history_bytes > MAX_HISTORY_BYTES
+            || self.batches == 0
+            || self.batches > MAX_EVENTS
+            || self.events == 0
+            || self.events > MAX_EVENTS
+        {
+            return Err(SourceCommandError::Invalid("assessment lower read limits"));
+        }
+        Ok(())
+    }
+}
+#[derive(Clone, Copy)]
+enum AssessmentReadPolicy<'a> {
+    Legacy,
+    Limited(&'a C01OwnerReadLimits),
+}
+impl AssessmentReadPolicy<'_> {
+    fn validate(self) -> SourceCommandResult<()> {
+        match self {
+            Self::Legacy => Ok(()),
+            Self::Limited(read) => read.validate(),
+        }
+    }
+    fn config_cap(self) -> usize {
+        match self {
+            Self::Legacy => 8_388_608,
+            Self::Limited(read) => read.config_bytes,
+        }
+    }
+}
+#[derive(Clone, Copy)]
+pub(crate) enum ExactJournalHead<'a> {
+    None,
+    Some(&'a str),
+}
+impl ExactJournalHead<'_> {
+    fn validate(self) -> SourceCommandResult<()> {
+        if let Self::Some(value) = self {
+            if !digest(value) {
+                return Err(SourceCommandError::Invalid(
+                    "assessment expected head digest",
+                ));
+            }
+        }
+        Ok(())
+    }
+    fn matches(self, head: Option<&str>) -> bool {
+        match self {
+            Self::None => head.is_none(),
+            Self::Some(value) => head == Some(value),
+        }
+    }
+}
+#[derive(Clone, Copy)]
+enum AssessmentHeadSelection<'a> {
+    LegacyUnpinned,
+    Exact(ExactJournalHead<'a>),
+}
 
 fn capacity_refusal(error: CapacityRefusal) -> SourceCommandError {
     SourceCommandError::Invalid(match error {
@@ -414,6 +490,42 @@ impl ProtectedAssessmentJournal {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
+        Self::select_public_with_policy(
+            configuration_path,
+            source_root,
+            allow_inline,
+            AssessmentReadPolicy::Legacy,
+            deadline,
+            cancelled,
+        )
+    }
+
+    pub(crate) fn select_public_command_with_read_limits(
+        configuration_path: &Path,
+        source_root: &Path,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        read.validate()?;
+        Self::select_public_with_policy(
+            configuration_path,
+            source_root,
+            true,
+            AssessmentReadPolicy::Limited(read),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn select_public_with_policy(
+        configuration_path: &Path,
+        source_root: &Path,
+        allow_inline: bool,
+        policy: AssessmentReadPolicy<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
         active(deadline, cancelled)?;
         let uid = rustix::process::getuid().as_raw();
         if uid != rustix::process::geteuid().as_raw() {
@@ -422,10 +534,22 @@ impl ProtectedAssessmentJournal {
             ));
         }
         protected_configuration_parents(configuration_path, uid)?;
-        let mut file = tos_fd_open::open_absolute_regular(configuration_path, 8_388_608)
-            .map_err(|_| SourceCommandError::Denied("assessment protected configuration open"))?;
+        let mut file = tos_fd_open::open_absolute_regular(
+            configuration_path,
+            u64::try_from(policy.config_cap())
+                .map_err(|_| SourceCommandError::Invalid("assessment lower read limits"))?,
+        )
+        .map_err(|_| SourceCommandError::Denied("assessment protected configuration open"))?;
         protected(&file, uid, false)?;
-        let configuration_raw = raw(&mut file, 8_388_608, deadline, cancelled)?;
+        let configuration_raw = match policy {
+            AssessmentReadPolicy::Legacy => raw(&mut file, 8_388_608, deadline, cancelled)?,
+            AssessmentReadPolicy::Limited(read) => raw_with_length_limit(
+                &mut file,
+                ReadLength::AtMost(read.config_bytes),
+                deadline,
+                cancelled,
+            )?,
+        };
         let configuration = cmd::parse(&configuration_raw)?;
         let (source_bound, native) = match cmd::text(&configuration, "schema_version")? {
             "tos_local_assessment_owner_v1" if allow_inline => (false, false),
@@ -534,7 +658,7 @@ impl ProtectedAssessmentJournal {
             private_root_file: None,
             private_root_identity: None,
         };
-        selected.verify_current(deadline, cancelled)?;
+        selected.verify_current_with_policy(policy, deadline, cancelled)?;
         Ok(selected)
     }
 
@@ -705,6 +829,33 @@ impl ProtectedAssessmentJournal {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
+        self.verify_current_with_policy(AssessmentReadPolicy::Legacy, deadline, cancelled)
+    }
+
+    pub(crate) fn verify_current_with_read_limits(
+        &self,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        read.validate()?;
+        self.verify_current_with_policy(AssessmentReadPolicy::Limited(read), deadline, cancelled)
+    }
+
+    fn verify_current_with_policy(
+        &self,
+        policy: AssessmentReadPolicy<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if let AssessmentReadPolicy::Limited(read) = policy {
+            read.validate()?;
+            if self.configuration_raw.len() > read.config_bytes {
+                return Err(SourceCommandError::Invalid(
+                    "assessment retained configuration read limit",
+                ));
+            }
+        }
         active(deadline, cancelled)?;
         if rustix::process::getuid().as_raw() != self.uid
             || rustix::process::geteuid().as_raw() != self.uid
@@ -712,8 +863,12 @@ impl ProtectedAssessmentJournal {
             return Err(SourceCommandError::Denied("assessment account changed"));
         }
         protected_configuration_parents(&self.configuration_path, self.uid)?;
-        let mut file = tos_fd_open::open_absolute_regular(&self.configuration_path, 8_388_608)
-            .map_err(|_| SourceCommandError::Conflict("assessment configuration unavailable"))?;
+        let mut file = tos_fd_open::open_absolute_regular(
+            &self.configuration_path,
+            u64::try_from(policy.config_cap())
+                .map_err(|_| SourceCommandError::Invalid("assessment lower read limits"))?,
+        )
+        .map_err(|_| SourceCommandError::Conflict("assessment configuration unavailable"))?;
         if self.private_root.is_some() {
             protected_private(&file, self.uid, false)?;
             protected_private(&self.configuration_file, self.uid, false)?;
@@ -721,7 +876,16 @@ impl ProtectedAssessmentJournal {
             protected(&file, self.uid, false)?;
             protected(&self.configuration_file, self.uid, false)?;
         }
-        if raw(&mut file, 8_388_608, deadline, cancelled)? != self.configuration_raw {
+        if match policy {
+            AssessmentReadPolicy::Legacy => raw(&mut file, 8_388_608, deadline, cancelled)?,
+            AssessmentReadPolicy::Limited(_) => raw_with_length_limit(
+                &mut file,
+                ReadLength::Exact(self.configuration_raw.len()),
+                deadline,
+                cancelled,
+            )?,
+        } != self.configuration_raw
+        {
             return Err(SourceCommandError::Conflict(
                 "assessment protected configuration changed",
             ));
@@ -895,7 +1059,38 @@ impl ProtectedAssessmentJournal {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<AssessmentJournalFence<'a>> {
-        self.verify_current(deadline, cancelled)?;
+        self.lock_subjects_with_policy(
+            subject_ids,
+            AssessmentReadPolicy::Legacy,
+            deadline,
+            cancelled,
+        )
+    }
+
+    pub(crate) fn lock_subjects_with_read_limits<'a>(
+        &'a self,
+        subject_ids: &[String],
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentJournalFence<'a>> {
+        read.validate()?;
+        self.lock_subjects_with_policy(
+            subject_ids,
+            AssessmentReadPolicy::Limited(read),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn lock_subjects_with_policy<'a>(
+        &'a self,
+        subject_ids: &[String],
+        policy: AssessmentReadPolicy<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentJournalFence<'a>> {
+        self.verify_current_with_policy(policy, deadline, cancelled)?;
         if subject_ids.is_empty() || subject_ids.len() > 65 {
             return Err(SourceCommandError::Invalid("assessment lock scope count"));
         }
@@ -1002,7 +1197,7 @@ impl ProtectedAssessmentJournal {
                 },
             );
         }
-        self.verify_current(deadline, cancelled)?;
+        self.verify_current_with_policy(policy, deadline, cancelled)?;
         Ok(AssessmentJournalFence { owner: self, held })
     }
 
@@ -1013,6 +1208,37 @@ impl ProtectedAssessmentJournal {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<AssessmentJournalReadBatch<'a>> {
+        self.read_only_subjects_with_policy(
+            subject_ids,
+            AssessmentReadPolicy::Legacy,
+            deadline,
+            cancelled,
+        )
+    }
+
+    pub(crate) fn read_only_subjects_with_read_limits<'a>(
+        &'a self,
+        subject_ids: &[String],
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentJournalReadBatch<'a>> {
+        read.validate()?;
+        self.read_only_subjects_with_policy(
+            subject_ids,
+            AssessmentReadPolicy::Limited(read),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn read_only_subjects_with_policy<'a>(
+        &'a self,
+        subject_ids: &[String],
+        policy: AssessmentReadPolicy<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentJournalReadBatch<'a>> {
         if self.private_root.is_some()
             || cmd::text(&self.configuration, "schema_version")? != "tos_local_assessment_owner_v2"
         {
@@ -1020,7 +1246,7 @@ impl ProtectedAssessmentJournal {
                 "assessment read batch requires public owner v2",
             ));
         }
-        self.verify_current(deadline, cancelled)?;
+        self.verify_current_with_policy(policy, deadline, cancelled)?;
         if subject_ids.is_empty() || subject_ids.len() > 256 {
             return Err(SourceCommandError::Invalid(
                 "assessment read batch scope count",
@@ -1090,7 +1316,7 @@ impl ProtectedAssessmentJournal {
             owner: self,
             subjects,
         };
-        selected.verify_current(deadline, cancelled)?;
+        selected.verify_current_with_policy(policy, deadline, cancelled)?;
         Ok(selected)
     }
 }
@@ -1123,6 +1349,12 @@ pub(crate) trait AssessmentJournalReadView {
     fn home(&self, subject: &str) -> SourceCommandResult<AssessmentReadHome<'_>>;
     fn home_named(&self, name: &str) -> SourceCommandResult<AssessmentReadHome<'_>>;
     fn verify_current(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()>;
+    fn verify_current_with_read_limits(
+        &self,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()>;
 }
 impl AssessmentJournalReadBatch<'_> {
     pub(crate) fn verify_current(
@@ -1130,7 +1362,27 @@ impl AssessmentJournalReadBatch<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        self.owner.verify_current(deadline, cancelled)?;
+        self.verify_current_with_policy(AssessmentReadPolicy::Legacy, deadline, cancelled)
+    }
+
+    pub(crate) fn verify_current_with_read_limits(
+        &self,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        read.validate()?;
+        self.verify_current_with_policy(AssessmentReadPolicy::Limited(read), deadline, cancelled)
+    }
+
+    fn verify_current_with_policy(
+        &self,
+        policy: AssessmentReadPolicy<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.owner
+            .verify_current_with_policy(policy, deadline, cancelled)?;
         for home in self.subjects.values() {
             active(deadline, cancelled)?;
             match (&home.directory, home.identity) {
@@ -1182,7 +1434,8 @@ impl AssessmentJournalReadBatch<'_> {
                 }
             }
         }
-        self.owner.verify_current(deadline, cancelled)
+        self.owner
+            .verify_current_with_policy(policy, deadline, cancelled)
     }
 
     pub(crate) fn read(
@@ -1194,6 +1447,27 @@ impl AssessmentJournalReadBatch<'_> {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<AssessmentHistory> {
         read_assessment_history(self, subject, ctx, worker, deadline, cancelled)
+    }
+    pub(crate) fn read_with_read_limits(
+        &self,
+        subject: &str,
+        ctx: &CommandContext,
+        worker: &mut CutWorkerSchemaExecutor,
+        expected: ExactJournalHead<'_>,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentHistory> {
+        read_assessment_history_with_policy(
+            self,
+            subject,
+            ctx,
+            worker,
+            AssessmentReadPolicy::Limited(read),
+            AssessmentHeadSelection::Exact(expected),
+            deadline,
+            cancelled,
+        )
     }
 }
 impl AssessmentJournalReadView for AssessmentJournalFence<'_> {
@@ -1229,6 +1503,14 @@ impl AssessmentJournalReadView for AssessmentJournalFence<'_> {
 
     fn verify_current(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
         AssessmentJournalFence::verify_current(self, deadline, cancelled)
+    }
+    fn verify_current_with_read_limits(
+        &self,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        AssessmentJournalFence::verify_current_with_read_limits(self, read, deadline, cancelled)
     }
 }
 impl AssessmentJournalReadView for AssessmentJournalReadBatch<'_> {
@@ -1267,6 +1549,14 @@ impl AssessmentJournalReadView for AssessmentJournalReadBatch<'_> {
 
     fn verify_current(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
         AssessmentJournalReadBatch::verify_current(self, deadline, cancelled)
+    }
+    fn verify_current_with_read_limits(
+        &self,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        AssessmentJournalReadBatch::verify_current_with_read_limits(self, read, deadline, cancelled)
     }
 }
 pub(crate) struct AssessmentHistory {
@@ -1975,25 +2265,60 @@ impl AssessmentHistory {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        fence.verify_current(deadline, cancelled)?;
+        self.verify_members_with_policy(
+            fence,
+            include_head,
+            AssessmentReadPolicy::Legacy,
+            deadline,
+            cancelled,
+        )
+    }
+
+    pub(crate) fn verify_current_with_read_limits<V: AssessmentJournalReadView>(
+        &self,
+        view: &V,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        read.validate()?;
+        self.verify_members_with_policy(
+            view,
+            true,
+            AssessmentReadPolicy::Limited(read),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn verify_members_with_policy<V: AssessmentJournalReadView>(
+        &self,
+        fence: &V,
+        include_head: bool,
+        policy: AssessmentReadPolicy<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        verify_view_current(fence, policy, deadline, cancelled)?;
         for member in &self.members {
             if !include_head && member.name == "head" {
                 continue;
             }
             active(deadline, cancelled)?;
-            verify_member_current(fence, member, deadline, cancelled)?;
+            verify_member_current_with_policy(fence, member, policy, deadline, cancelled)?;
         }
         if include_head && self.head.is_none() {
-            verify_head_absent(fence, &self.subject_id, deadline, cancelled)?;
+            verify_head_absent_with_policy(fence, &self.subject_id, policy, deadline, cancelled)?;
         }
-        fence.verify_current(deadline, cancelled)?;
+        verify_view_current(fence, policy, deadline, cancelled)?;
         Ok(())
     }
 }
 
-fn verify_head_absent<V: AssessmentJournalReadView>(
+fn verify_head_absent_with_policy<V: AssessmentJournalReadView>(
     view: &V,
     subject: &str,
+    _policy: AssessmentReadPolicy<'_>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -2035,6 +2360,22 @@ fn verify_member_current<V: AssessmentJournalReadView>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
+    verify_member_current_with_policy(
+        fence,
+        member,
+        AssessmentReadPolicy::Legacy,
+        deadline,
+        cancelled,
+    )
+}
+
+fn verify_member_current_with_policy<V: AssessmentJournalReadView>(
+    fence: &V,
+    member: &HeldJournalMember,
+    policy: AssessmentReadPolicy<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
     let home = fence.home_named(&member.home_name)?;
     let directory = home.directory.ok_or(SourceCommandError::Denied(
@@ -2068,7 +2409,29 @@ fn verify_member_current<V: AssessmentJournalReadView>(
             "assessment journal member path identity changed",
         ));
     }
-    let bytes = raw(&mut current, MAX_BATCH_BYTES.max(65), deadline, cancelled)?;
+    let bytes = match policy {
+        AssessmentReadPolicy::Legacy => {
+            raw(&mut current, MAX_BATCH_BYTES.max(65), deadline, cancelled)?
+        }
+        AssessmentReadPolicy::Limited(read) => {
+            let cap = if member.name == "head" {
+                65
+            } else {
+                read.batch_bytes
+            };
+            if member.size > cap {
+                return Err(SourceCommandError::Invalid(
+                    "assessment retained member read limit",
+                ));
+            }
+            raw_with_length_limit(
+                &mut current,
+                ReadLength::Exact(member.size),
+                deadline,
+                cancelled,
+            )?
+        }
+    };
     if bytes.len() != member.size || Digest256::of_bytes(&bytes) != member.digest {
         return Err(SourceCommandError::Conflict(
             "assessment journal member bytes changed",
@@ -2082,7 +2445,27 @@ impl AssessmentJournalFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        self.owner.verify_current(deadline, cancelled)?;
+        self.verify_current_with_policy(AssessmentReadPolicy::Legacy, deadline, cancelled)
+    }
+
+    pub(crate) fn verify_current_with_read_limits(
+        &self,
+        read: &C01OwnerReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        read.validate()?;
+        self.verify_current_with_policy(AssessmentReadPolicy::Limited(read), deadline, cancelled)
+    }
+
+    fn verify_current_with_policy(
+        &self,
+        policy: AssessmentReadPolicy<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.owner
+            .verify_current_with_policy(policy, deadline, cancelled)?;
         for held in self.held.values() {
             active(deadline, cancelled)?;
             let directory =
@@ -2508,17 +2891,47 @@ fn validate_assessment_history_batches(
     Ok((submissions, batch_bytes_total))
 }
 
+fn verify_view_current<V: AssessmentJournalReadView>(
+    view: &V,
+    policy: AssessmentReadPolicy<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    match policy {
+        AssessmentReadPolicy::Legacy => view.verify_current(deadline, cancelled),
+        AssessmentReadPolicy::Limited(read) => {
+            view.verify_current_with_read_limits(read, deadline, cancelled)
+        }
+    }
+}
+
 fn read_head<V: AssessmentJournalReadView>(
     view: &V,
     subject: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(Option<String>, Option<HeldJournalMember>)> {
-    view.verify_current(deadline, cancelled)?;
+    read_head_with_policy(
+        view,
+        subject,
+        AssessmentReadPolicy::Legacy,
+        deadline,
+        cancelled,
+    )
+}
+
+fn read_head_with_policy<V: AssessmentJournalReadView>(
+    view: &V,
+    subject: &str,
+    policy: AssessmentReadPolicy<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(Option<String>, Option<HeldJournalMember>)> {
+    verify_view_current(view, policy, deadline, cancelled)?;
     let home = view.home(subject)?;
     let owner = view.owner();
     let Some(directory) = home.directory else {
-        view.verify_current(deadline, cancelled)?;
+        verify_view_current(view, policy, deadline, cancelled)?;
         return Ok((None, None));
     };
     let expected_identity = home.identity.ok_or(SourceCommandError::Invalid(
@@ -2568,7 +2981,12 @@ fn read_head<V: AssessmentJournalReadView>(
                 .metadata()
                 .map_err(|_| SourceCommandError::Invalid("assessment head identity"))?,
         );
-        let raw = raw(&mut file, 65, deadline, cancelled)?;
+        let raw = match policy {
+            AssessmentReadPolicy::Legacy => raw(&mut file, 65, deadline, cancelled)?,
+            AssessmentReadPolicy::Limited(_) => {
+                raw_with_length_limit(&mut file, ReadLength::AtMost(65), deadline, cancelled)?
+            }
+        };
         if !raw.is_ascii() {
             return Err(SourceCommandError::Invalid("assessment head ASCII"));
         }
@@ -2592,7 +3010,7 @@ fn read_head<V: AssessmentJournalReadView>(
     } else {
         (None, None)
     };
-    view.verify_current(deadline, cancelled)?;
+    verify_view_current(view, policy, deadline, cancelled)?;
     Ok((head, member))
 }
 
@@ -2604,7 +3022,40 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<AssessmentHistory> {
-    let (head, head_member) = read_head(view, subject, deadline, cancelled)?;
+    read_assessment_history_with_policy(
+        view,
+        subject,
+        ctx,
+        worker,
+        AssessmentReadPolicy::Legacy,
+        AssessmentHeadSelection::LegacyUnpinned,
+        deadline,
+        cancelled,
+    )
+}
+
+fn read_assessment_history_with_policy<V: AssessmentJournalReadView>(
+    view: &V,
+    subject: &str,
+    ctx: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    policy: AssessmentReadPolicy<'_>,
+    expected: AssessmentHeadSelection<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentHistory> {
+    policy.validate()?;
+    if let AssessmentHeadSelection::Exact(head) = expected {
+        head.validate()?;
+    }
+    let (head, head_member) = read_head_with_policy(view, subject, policy, deadline, cancelled)?;
+    if let AssessmentHeadSelection::Exact(expected) = expected {
+        if !expected.matches(head.as_deref()) {
+            return Err(SourceCommandError::Conflict(
+                "assessment selected history head changed",
+            ));
+        }
+    }
     let home = view.home(subject)?;
     let owner = view.owner();
     let mut members = head_member.into_iter().collect::<Vec<_>>();
@@ -2618,6 +3069,13 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
             return Err(SourceCommandError::Invalid(
                 "assessment cyclic/oversized history",
             ));
+        }
+        if let AssessmentReadPolicy::Limited(read) = policy {
+            if chain.len() >= read.batches {
+                return Err(SourceCommandError::Invalid(
+                    "assessment complete history budget",
+                ));
+            }
         }
         let directory = home.directory.ok_or(SourceCommandError::Invalid(
             "assessment history home absent",
@@ -2635,7 +3093,24 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
                 .metadata()
                 .map_err(|_| SourceCommandError::Invalid("assessment batch identity"))?,
         );
-        let bytes = raw(&mut file, MAX_BATCH_BYTES, deadline, cancelled)?;
+        let bytes = match policy {
+            AssessmentReadPolicy::Legacy => raw(&mut file, MAX_BATCH_BYTES, deadline, cancelled)?,
+            AssessmentReadPolicy::Limited(read) => {
+                let remaining = read
+                    .history_bytes
+                    .checked_sub(byte_count)
+                    .filter(|remaining| *remaining != 0)
+                    .ok_or(SourceCommandError::Invalid(
+                        "assessment complete history byte budget",
+                    ))?;
+                raw_with_length_limit(
+                    &mut file,
+                    ReadLength::AtMost(read.batch_bytes.min(remaining)),
+                    deadline,
+                    cancelled,
+                )?
+            }
+        };
         byte_count = byte_count
             .checked_add(bytes.len())
             .filter(|n| *n <= MAX_HISTORY_BYTES)
@@ -2685,7 +3160,19 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
         deadline,
         cancelled,
     )?;
-    view.verify_current(deadline, cancelled)?;
+    if let AssessmentReadPolicy::Limited(read) = policy {
+        if canonical_bytes > read.history_bytes {
+            return Err(SourceCommandError::Invalid(
+                "assessment complete history byte budget",
+            ));
+        }
+        if submissions.len() > read.events {
+            return Err(SourceCommandError::Invalid(
+                "assessment complete history event budget",
+            ));
+        }
+    }
+    verify_view_current(view, policy, deadline, cancelled)?;
     let input_bytes = members.iter().try_fold(0usize, |total, member| {
         total
             .checked_add(member.size)
@@ -2711,7 +3198,7 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
         capacity,
         storage_envelope: StorageEnvelope::Local,
     };
-    history.verify_current(view, deadline, cancelled)?;
+    history.verify_members_with_policy(view, true, policy, deadline, cancelled)?;
     Ok(history)
 }
 
@@ -2719,4 +3206,241 @@ fn read_assessment_history<V: AssessmentJournalReadView>(
 #[cfg(test)]
 pub(crate) fn capacity_limits_for_test() -> (usize, usize, usize) {
     (MAX_EVENTS, MAX_BATCH_BYTES, MAX_HISTORY_BYTES)
+}
+
+use crate::temporal_research_crosswalk::c01_each;
+
+// Opt-in C01 transfer boundaries. Ordinary selectors/readers remain untouched.
+impl C01OwnerReadLimits {
+    fn c01_profile(
+        &self,
+        a: &mut crate::temporal_research_crosswalk::C01Admission<'_>,
+    ) -> SourceCommandResult<()> {
+        a.visit(64)?;
+        self.validate()?;
+        if self.config_bytes > 32768
+            || self.batch_bytes > 8192
+            || self.history_bytes > 16384
+            || self.batches > 2
+            || self.events > 2
+        {
+            return Err(SourceCommandError::Invalid("C01 lower read profile"));
+        }
+        Ok(())
+    }
+}
+impl ProtectedAssessmentJournal {
+    pub(crate) fn select_c01_owner_with_return_limit(
+        configuration_path: &Path,
+        source_root: &Path,
+        read: &C01OwnerReadLimits,
+        adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        use crate::temporal_research_crosswalk::{C01Counter, C01Row};
+        let mut a = adapter.reserve(C01Row::Owner)?;
+        read.c01_profile(&mut a)?;
+        let owner = match Self::select_public_command_with_read_limits(
+            configuration_path,
+            source_root,
+            read,
+            deadline,
+            cancelled,
+        ) {
+            Ok(owner) => owner,
+            Err(error) => return a.error(error),
+        };
+        a.public_v2(&owner.configuration)?;
+        {
+            let mut c = C01Counter::new(&mut a)?;
+            owner.c01_count(&mut c)?;
+        }
+        Ok(owner)
+    }
+    fn c01_count<'v>(
+        &'v self,
+        c: &mut crate::temporal_research_crosswalk::C01Counter<'v, '_, '_>,
+    ) -> SourceCommandResult<()> {
+        let Self {
+            configuration_path,
+            configuration_raw,
+            configuration,
+            configuration_file,
+            configuration_identity,
+            configuration_parent_path,
+            configuration_parent,
+            configuration_parent_identity,
+            directory_path,
+            directory,
+            identity,
+            directory_parent_path,
+            directory_parent,
+            directory_parent_identity,
+            uid,
+            private_root,
+            private_root_file,
+            private_root_identity,
+        } = self;
+        c.root::<SourceCommandResult<Self>>()?;
+        c.path(configuration_path)?;
+        c.bytes(configuration_raw)?;
+        c.json(configuration)?;
+        c.path(configuration_parent_path)?;
+        c.path(directory_path)?;
+        c.path(directory_parent_path)?;
+        c.visit(64)?;
+        if let Some(path) = private_root {
+            c.path(path)?;
+        }
+        // Each remaining field is inline fd/identity/account/Option state.
+        c.visit(11)?;
+        let _ = (
+            configuration_file,
+            configuration_identity,
+            configuration_parent,
+            configuration_parent_identity,
+            directory,
+            identity,
+            directory_parent,
+            directory_parent_identity,
+            uid,
+            private_root_file,
+            private_root_identity,
+        );
+        Ok(())
+    }
+    pub(crate) fn read_only_subjects_c01_with_return_limit<'a>(
+        &'a self,
+        subject_ids: &[String],
+        read: &C01OwnerReadLimits,
+        adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentJournalReadBatch<'a>> {
+        use crate::temporal_research_crosswalk::{C01Counter, C01Row};
+        let mut a = adapter.reserve(C01Row::ReadBatch)?;
+        read.c01_profile(&mut a)?;
+        a.visit(64)?;
+        if subject_ids.len() != 1 {
+            return Err(SourceCommandError::Unsupported(
+                "C01 one-subject read scope",
+            ));
+        }
+        let batch = match self.read_only_subjects_with_read_limits(
+            subject_ids,
+            read,
+            deadline,
+            cancelled,
+        ) {
+            Ok(batch) => batch,
+            Err(error) => return a.error(error),
+        };
+        {
+            let mut c = C01Counter::new(&mut a)?;
+            c.root::<SourceCommandResult<AssessmentJournalReadBatch<'_>>>()?;
+            let AssessmentJournalReadBatch { owner, subjects } = &batch;
+            c.visit(1)?;
+            let _ = owner; // borrowed owner, no duplicate charge
+            c.visit(1)?;
+            c.btree::<String, ReadOnlySubjectHome>(subjects.len())?;
+            c01_each!(c, subjects, (subject, home), {
+                c.visit(1)?;
+                c.string(subject)?;
+                let ReadOnlySubjectHome {
+                    name,
+                    directory,
+                    identity,
+                } = home;
+                c.string(name)?;
+                c.visit(2)?;
+                let _ = (directory, identity);
+            });
+            c.visit(1)?;
+        }
+        Ok(batch)
+    }
+}
+impl AssessmentJournalReadBatch<'_> {
+    pub(crate) fn read_c01_history_with_return_limit(
+        &self,
+        subject: &str,
+        ctx: &CommandContext,
+        worker: &mut CutWorkerSchemaExecutor,
+        expected: ExactJournalHead<'_>,
+        read: &C01OwnerReadLimits,
+        adapter: &mut crate::temporal_research_crosswalk::C01AdapterPayer<'_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<AssessmentHistory> {
+        use crate::temporal_research_crosswalk::{C01Counter, C01Row};
+        let mut a = adapter.reserve(C01Row::History)?;
+        read.c01_profile(&mut a)?;
+        let history = match self
+            .read_with_read_limits(subject, ctx, worker, expected, read, deadline, cancelled)
+        {
+            Ok(history) => history,
+            Err(error) => return a.error(error),
+        };
+        {
+            let mut c = C01Counter::new(&mut a)?;
+            let AssessmentHistory {
+                subject_id,
+                head,
+                batches,
+                submissions,
+                members,
+                input_bytes,
+                capacity,
+                storage_envelope,
+            } = &history;
+            c.root::<SourceCommandResult<AssessmentHistory>>()?;
+            c.string(subject_id)?;
+            c.visit(64)?;
+            if let Some(head) = head {
+                c.string(head)?;
+            }
+            c.json_vec(batches)?;
+            c.slots::<tos_validation::assessment::AssessmentSubmissionInput>(
+                submissions.capacity(),
+            )?;
+            c01_each!(c, submissions, submission, {
+                c.visit(1)?;
+                let tos_validation::assessment::AssessmentSubmissionInput {
+                    assessment,
+                    principal_id,
+                    execution_profile,
+                    committed_scope,
+                } = submission;
+                c.bytes(assessment)?;
+                c.string(principal_id)?;
+                c.bytes(execution_profile)?;
+                c.visit(64)?;
+                if let Some(scope) = committed_scope {
+                    c.bytes(scope)?;
+                }
+            });
+            c.visit(1)?;
+            c.visit(1)?;
+            c.slots::<HeldJournalMember>(members.capacity())?;
+            c01_each!(c, members, member, {
+                c.visit(1)?;
+                let HeldJournalMember {
+                    home_name,
+                    name,
+                    file,
+                    identity,
+                    digest,
+                    size,
+                } = member;
+                c.string(home_name)?;
+                c.string(name)?;
+                c.visit(4)?;
+                let _ = (file, identity, digest, size);
+            });
+            c.visit(4)?;
+            let _ = (input_bytes, capacity, storage_envelope);
+        }
+        Ok(history)
+    }
 }

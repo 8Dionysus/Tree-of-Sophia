@@ -1,0 +1,36 @@
+{
+  "relation_type_id": "tos.relation.structural",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": true,
+  "labels": {
+    "default": "structurally related to",
+    "ru": "структурно связано с",
+    "en": "structurally related to"
+  },
+  "inverse_labels": null,
+  "definition": "The family of source-tree and repository topology relations.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/source_home.manifest.json",
+  "domain_type_ids": [
+    "tos.entity.thing"
+  ],
+  "range_type_ids": [
+    "tos.entity.thing"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "structural",
+  "evidence_required": false,
+  "review_requirement": "none",
+  "source_mappings": [],
+  "supersedes_relation_type_id": null
+}

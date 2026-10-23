@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.translatability-search-method",
+  "field": "attributes.value.search_report.method_note",
+  "labels": {
+    "default": "Reported search method",
+    "ru": "Сообщаемый метод поиска",
+    "en": "Reported search method"
+  },
+  "definition": "A reported procedure, if supplied; null stays unknown and this wording cannot execute tools.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-translatability"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

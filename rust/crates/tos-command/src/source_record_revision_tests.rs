@@ -9,7 +9,7 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, SourceRevision, canonical_bytes_v1,
-    parse_json,
+    canonical_raw_bytes_v1, parse_json,
 };
 use tos_source_store::{
     CaptureGitRequest, CaptureRestoreLimits, CorpusReader, CutReadLimits, GitCaptureLimits,
@@ -715,6 +715,17 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         let owner_raw = fs::read(&owner).unwrap();
         let config: serde_json::Value = serde_json::from_slice(&owner_raw).unwrap();
+        // Bind the relocated configuration from its selected input bytes before
+        // invoking describe or preview, independently of either native result.
+        let expected_configuration = Digest256::of_bytes(
+            &canonical_raw_bytes_v1(
+                &owner_raw,
+                CanonicalProfile::SourceCommandInputV1,
+                JsonLimits::default(),
+            )
+            .unwrap(),
+        )
+        .to_prefixed();
         let schema_index = if scenario == 9 {
             0
         } else if scenario >= 7 {
@@ -809,21 +820,16 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             }
         );
         let preview = invoke(&fixture["proposal"]);
-        assert_eq!(
-            preview["owner_configuration"],
-            described["owner_configuration"]
-        );
+        assert_eq!(preview["owner_configuration"], expected_configuration);
+        assert_eq!(described["owner_configuration"], expected_configuration);
         // Source fields and history remain the independent frozen oracle.
-        // Root-bound configuration and current native implementation bindings
-        // come from the actual native describe/preview operation.
+        // The configuration is independently bound above. The issued dependency
+        // value below is a prepare-to-commit protocol fence, not an independent
+        // oracle for dependency-set completeness or fingerprint correctness.
         let mut oracle = fixture["request"].clone();
-        oracle["expected_configuration"] = described["owner_configuration"].clone();
-        oracle["expected_dependencies"] = preview["expected_dependencies"].clone();
         for (field, prepared) in [
-            ("expected_configuration", "owner_configuration"),
             ("expected_source", "source"),
             ("expected_revision", "revision"),
-            ("expected_dependencies", "expected_dependencies"),
             ("expected_publication", "expected_publication"),
         ] {
             assert_eq!(
@@ -831,6 +837,8 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
                 "scenario {scenario} {field}"
             );
         }
+        oracle["expected_configuration"] = serde_json::json!(expected_configuration);
+        oracle["expected_dependencies"] = preview["expected_dependencies"].clone();
         let mut request = oracle.clone();
         request["command_id"] = serde_json::json!(format!("native:revision-{scenario}"));
         let source_path = fixture["source_path"].as_str().unwrap();

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.motif-source-scope",
+  "field": "attributes.value.source_scope",
+  "labels": {
+    "default": "Motif source scope",
+    "ru": "Область источников гипотезы",
+    "en": "Motif source scope"
+  },
+  "definition": "The declared source extent of the proposal, not an exhaustive corpus claim.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.motif-proposal"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

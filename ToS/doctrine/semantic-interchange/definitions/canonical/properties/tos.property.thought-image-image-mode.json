@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.thought-image-image-mode",
+  "field": "attributes.source_record.semantic_content.image_mode",
+  "labels": {
+    "default": "Declared image mode",
+    "ru": "Характер образа",
+    "en": "Declared image mode"
+  },
+  "definition": "The source account's characterization of the image, without imposing one aesthetic taxonomy.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.thought-image"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

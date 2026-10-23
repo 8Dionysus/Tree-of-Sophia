@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.quotation-passage",
+  "parent_type_ids": [
+    "tos.entity.intellectual-object"
+  ],
+  "abstract": false,
+  "object_role": "identity",
+  "labels": {
+    "default": "Quotation passage",
+    "ru": "Цитирующее место",
+    "en": "Quotation passage"
+  },
+  "definition": "A particular passage described as quoting another text, identified by its containing context and position. Each quoting context identifies its own passage, with references to the quoted material and textual evidence.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/semantic-interchange/README.md",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "quotation-passage"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "quotation-passage"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "corpus-metadata-v1",
+    "record_type": "quotation-passage",
+    "id_prefix": "tos.quotation-passage.",
+    "source_basename": "quotation-passage.json",
+    "catalog_filename": "quotation-passages.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_textual_passage_record_v1",
+        "schema_ref": "ToS/contracts/textual-passage-record.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

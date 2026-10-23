@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.claim-lexical-target-language",
+  "field": "attributes.source_claim.qualifiers.target_language",
+  "labels": {
+    "default": "Compared target language",
+    "ru": "Язык целевой стороны сравнения",
+    "en": "Compared target language"
+  },
+  "definition": "The declared target-endpoint language for a lexical comparison, not permission to translate or a Language identity reference.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.claim"
+  ],
+  "required": false,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

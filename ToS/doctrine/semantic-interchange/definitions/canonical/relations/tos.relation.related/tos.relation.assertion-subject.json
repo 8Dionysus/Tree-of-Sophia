@@ -1,0 +1,42 @@
+{
+  "relation_type_id": "tos.relation.assertion-subject",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has assertion subject",
+    "ru": "имеет субъект утверждения",
+    "en": "has assertion subject"
+  },
+  "inverse_labels": null,
+  "definition": "An explicit source-packet link identifying the subject of an assertion.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/semantic-annotation-packet-v2.schema.json",
+  "domain_type_ids": [
+    "tos.entity.assertion"
+  ],
+  "range_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "derived-projection",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_predicate_id": "assertion_subject",
+      "scope": "edge"
+    }
+  ],
+  "supersedes_relation_type_id": null
+}

@@ -294,6 +294,13 @@ default availability and the final cohort switch.
 
 ## Registry source-contract changes
 
+Semantic definition edits start in `ToS/doctrine/semantic-interchange/definitions/`.
+Assemble and replace the complete flat compatibility registry pair, then run
+`tos-definition-tree check-compatibility ToS/doctrine/semantic-interchange/definitions ToS/doctrine/semantic-interchange`.
+The software workflow enforces this deterministic generated-pair check; it does
+not accept new semantic meaning. Historical raw bytes remain in the pinned
+migration baseline; parsed equality does not imply historical byte equality.
+
 An authored semantic-registry change uses the independent
 `semantic_registry_transition` source lane. Select the full pre-change commit
 and run `tos-ops-mechanics-plan --repo-root ABS --semantic-registry-transition

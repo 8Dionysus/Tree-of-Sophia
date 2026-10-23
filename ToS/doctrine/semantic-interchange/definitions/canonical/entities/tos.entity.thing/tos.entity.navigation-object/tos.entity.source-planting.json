@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.source-planting",
+  "parent_type_ids": [
+    "tos.entity.navigation-object"
+  ],
+  "abstract": false,
+  "object_role": "navigation",
+  "labels": {
+    "default": "Source planting",
+    "ru": "Посадка источника",
+    "en": "Source planting"
+  },
+  "definition": "A source-owned link between a philosophy branch and a source-witness backlog anchor.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/philosophy-source-planting.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "source_planting"
+    }
+  ],
+  "supersedes_type_id": null
+}

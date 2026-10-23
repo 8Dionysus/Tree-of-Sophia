@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.support",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Support",
+    "ru": "Опора",
+    "en": "Support"
+  },
+  "definition": "An authored support or contextual grounding node.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/tos-node-contract.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "canon",
+      "source_kind_id": "support"
+    }
+  ],
+  "supersedes_type_id": null
+}

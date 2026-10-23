@@ -85,6 +85,10 @@ mod source_read_projection;
 pub mod source_text_search;
 pub mod source_value_search;
 mod temporal_comparison;
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
+mod temporal_integer_wire;
+#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
+pub use temporal_integer_wire::execute_selected_claim_integer_wire;
 pub mod worker_search_controls;
 pub use inspect_plan::{
     AbortProbe, AbortReason, InspectBudget, InspectNeed, InspectPlan, InspectRequest,
@@ -127,7 +131,9 @@ pub use knowledge_packet::{
     execute_scoped_indexed_search_page,
 };
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-pub use knowledge_temporal::execute_selected_temporal;
+pub use knowledge_temporal::{
+    execute_selected_claim_list, execute_selected_claim_projection, execute_selected_temporal,
+};
 pub use search_document::{
     SearchDocumentBudget, VerifiedSearchDocument, verify_indexed_search_document,
 };

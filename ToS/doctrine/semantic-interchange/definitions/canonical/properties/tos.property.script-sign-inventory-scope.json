@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.script-sign-inventory-scope",
+  "field": "attributes.source_record.semantic_content.sign_inventory_scope",
+  "labels": {
+    "default": "Sign-inventory scope",
+    "ru": "Область знакового состава",
+    "en": "Sign-inventory scope"
+  },
+  "definition": "Whether the referent covers a particular sign repertoire or broader tradition; no timeless universal sign reading is implied.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.script"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "type_id": "tos.entity.physical-part-composition",
+  "parent_type_ids": [
+    "tos.entity.literal"
+  ],
+  "abstract": false,
+  "object_role": "literal",
+  "labels": {
+    "default": "Attributed physical parts",
+    "ru": "Приписанный состав физических частей",
+    "en": "Attributed physical parts"
+  },
+  "definition": "A Claim-scoped account of the proper material parts of a physical artifact or fragmentary physical ensemble. Physical attachment, custody and restoration have separately evidenced relations and stated coverage.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/scoped-member-structure.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "physical-part-composition"
+    }
+  ],
+  "supersedes_type_id": null
+}

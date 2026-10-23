@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.intellectual-school-inquiry-lineage",
+  "field": "attributes.source_record.semantic_content.inquiry_lineage",
+  "labels": {
+    "default": "Teaching and inquiry lineage",
+    "ru": "Преемственность учения и исследования",
+    "en": "Teaching and inquiry lineage"
+  },
+  "definition": "The teaching or inquiry continuity distinguishing this school from an institution, a name or a general similarity class.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.intellectual-school"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

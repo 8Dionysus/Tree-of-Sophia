@@ -402,6 +402,60 @@ fn native_private_profile_lifecycle(use_http: bool) {
     let invocation_path = temporary.path().join("profile-invocation.json");
     fs::write(&invocation_path, canonical(&invocation)).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    // Freeze independent INPUT bindings before any native process/call. The
+    // restored authored tree is historical; current selected rule software is
+    // captured separately and is not a live corpus-registry overlay.
+    let context_path = Path::new(selected["context"].as_str().unwrap());
+    let context_raw = fs::read(context_path).unwrap();
+    let context: Value = serde_json::from_slice(&context_raw).unwrap();
+    let root_identity = |path: &Path| {
+        let m = fs::metadata(path).unwrap();
+        serde_json::json!([m.dev(), m.ino(), m.uid(), m.mode() & 0o7777])
+    };
+    let context_contract = "ToS/contracts/owner-local-source-context.schema.json";
+    let context_binding = serde_json::json!({
+        "schema_version":"tos_owner_local_source_context_v1",
+        "configuration_path":context_path,
+        "configuration_sha256":Digest256::of_bytes(&context_raw).to_hex(),
+        "schema_sha256":Digest256::of_bytes(&fs::read(public.join(context_contract)).unwrap()).to_hex(),
+        "roots":{"source-contract-root":root_identity(&public),"owner-local-root":root_identity(&private)},
+        "routing":{"private_prefix":context["private_prefix"],"public_root":public,"private_root":private}
+    });
+    let profile_inputs = [
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        context_contract,
+    ]
+    .into_iter()
+    .map(|name| {
+        (
+            name,
+            Digest256::of_bytes(&fs::read(public.join(name)).unwrap()).to_hex(),
+        )
+    })
+    .collect::<BTreeMap<_, _>>();
+    let owner_raw = fs::read(&owner).unwrap();
+    let configuration_binding = serde_json::json!({
+        "configuration_bytes":Digest256::of_bytes(&owner_raw).to_prefixed(),
+        "context":Digest256::of_bytes(&command_binding_bytes(&context_binding)).to_prefixed(),
+        "profile_inputs":profile_inputs
+    });
+    let owner_document = tos_foundation::parse_json(
+        &owner_raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let published_owner = tos_foundation::emit_json_profile(
+        owner_document.root(),
+        tos_foundation::JsonEmissionProfile::SourceFormSetPublishedV1,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .bytes;
+    let configuration_file = serde_json::json!({"bytes":published_owner.len(),
+        "sha256":Digest256::of_bytes(&published_owner).to_prefixed()});
+    // Native issued dependency fields below remain custody protocol only.
     let http = use_http.then(|| {
         NativeProfileHttp::start(
             &native,
@@ -440,63 +494,10 @@ fn native_private_profile_lifecycle(use_http: bool) {
         "record":selected["record"],"forms":selected["forms"]});
     let preview = call(&preview_request);
     assert_eq!(call(&preview_request), preview);
-    // Relocation changes the protected context and configuration bindings.
-    // Check those against the live fixture, then retain the complete frozen
-    // comparison for the source, forms, permissions and materializations.
-    let context_path = Path::new(selected["context"].as_str().unwrap());
-    let context_raw = fs::read(context_path).unwrap();
-    let context: Value = serde_json::from_slice(&context_raw).unwrap();
-    let root_identity = |path: &Path| {
-        let m = fs::metadata(path).unwrap();
-        serde_json::json!([m.dev(), m.ino(), m.uid(), m.mode() & 0o7777])
-    };
-    let context_contract = "ToS/contracts/owner-local-source-context.schema.json";
-    let context_binding = serde_json::json!({
-        "schema_version":"tos_owner_local_source_context_v1",
-        "configuration_path":context_path,
-        "configuration_sha256":Digest256::of_bytes(&context_raw).to_hex(),
-        "schema_sha256":Digest256::of_bytes(&fs::read(public.join(context_contract)).unwrap()).to_hex(),
-        "roots":{"source-contract-root":root_identity(&public),"owner-local-root":root_identity(&private)},
-        "routing":{"private_prefix":context["private_prefix"],"public_root":public,"private_root":private}
-    });
-    let profile_inputs = [
-        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-        "ToS/contracts/semantic-entity-type-registry.schema.json",
-        context_contract,
-    ]
-    .into_iter()
-    .map(|name| {
-        (
-            name,
-            Digest256::of_bytes(&fs::read(public.join(name)).unwrap()).to_hex(),
-        )
-    })
-    .collect::<BTreeMap<_, _>>();
-    let owner_raw = fs::read(&owner).unwrap();
-    let configuration_binding = serde_json::json!({
-        "configuration_bytes":Digest256::of_bytes(&owner_raw).to_prefixed(),
-        "context":Digest256::of_bytes(&command_binding_bytes(&context_binding)).to_prefixed(),
-        "profile_inputs":profile_inputs
-    });
     assert_eq!(
         preview["owner_configuration"],
         Digest256::of_bytes(&command_binding_bytes(&configuration_binding)).to_prefixed()
     );
-    let owner_document = tos_foundation::parse_json(
-        &owner_raw,
-        tos_foundation::JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap();
-    let published_owner = tos_foundation::emit_json_profile(
-        owner_document.root(),
-        tos_foundation::JsonEmissionProfile::SourceFormSetPublishedV1,
-        JsonLimits::default(),
-    )
-    .unwrap()
-    .bytes;
-    let configuration_file = serde_json::json!({"bytes":published_owner.len(),
-        "sha256":Digest256::of_bytes(&published_owner).to_prefixed()});
     assert_eq!(
         preview["prepared_files"]["source-create-owner-configuration.json"],
         configuration_file

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.fragment-boundary-basis",
+  "field": "attributes.source_record.semantic_content.boundary_basis",
+  "labels": {
+    "default": "Fragment boundary basis",
+    "ru": "Основание границ фрагмента",
+    "en": "Fragment boundary basis"
+  },
+  "definition": "How this research distinguishes the textual portion; an editorial number does not settle original boundaries.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.textual-fragment"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

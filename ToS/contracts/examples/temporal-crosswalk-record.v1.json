@@ -1,0 +1,42 @@
+{
+  "schema_version": "tos_temporal_crosswalk_record_v1",
+  "record_type": "temporal-crosswalk",
+  "record_id": "tos.temporal-crosswalk.synthetic-a",
+  "preferred_label": "Synthetic finite coordinate mapping",
+  "identity_status": "provisional",
+  "source_refs": [
+    "synthetic:crosswalk-fixture-v1"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "record_version": 1,
+  "visibility": "public_metadata_only",
+  "semantic_content": {
+    "profile": "tos_stored_finite_crosswalk_v1",
+    "source_trs": {
+      "id": "synthetic-axis-a",
+      "version": "r1"
+    },
+    "target_trs": {
+      "id": "synthetic-axis-b",
+      "version": "r2"
+    },
+    "rule_profile": "finite-mapping-v1",
+    "rules_version": "synthetic-rule-r1",
+    "applicability": {
+      "min": 10,
+      "max": 12,
+      "unit": "step",
+      "origin": "explicit-zero"
+    },
+    "rows": {
+      "10": 100,
+      "12": 120
+    },
+    "predecessor_source_record_ref": null,
+    "provenance": {
+      "fixture_kind": "synthetic",
+      "evidence_ref": "synthetic:mapping-source-r1"
+    }
+  }
+}

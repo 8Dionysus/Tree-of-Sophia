@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.translatability-rendering-judgment",
+  "field": "attributes.value.rendering_judgment",
+  "labels": {
+    "default": "Attributed rendering adequacy",
+    "ru": "Приписанная достаточность передачи",
+    "en": "Attributed rendering adequacy"
+  },
+  "definition": "Adequate, inadequate or undetermined in the declared scope; independent of search, confidence and admission.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-translatability"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": null,
+  "operators": [
+    "eq",
+    "in",
+    "exists"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.title",
+  "field": "display.title.default",
+  "labels": {
+    "default": "Title",
+    "ru": "Название",
+    "en": "Title"
+  },
+  "definition": "Readable projected title; never an identity key.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.thing"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "prefix"
+  ]
+}

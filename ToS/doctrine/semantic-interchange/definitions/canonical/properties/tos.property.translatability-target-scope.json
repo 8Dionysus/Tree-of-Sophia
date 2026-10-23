@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.translatability-target-scope",
+  "field": "attributes.value.target_scope",
+  "labels": {
+    "default": "Rendering task scope",
+    "ru": "Область задачи перевода",
+    "en": "Rendering task scope"
+  },
+  "definition": "The intended receiving context, task and limits of the rendering judgment.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexical-translatability"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

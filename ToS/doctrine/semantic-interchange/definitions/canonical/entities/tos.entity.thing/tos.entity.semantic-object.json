@@ -1,0 +1,18 @@
+{
+  "type_id": "tos.entity.semantic-object",
+  "parent_type_ids": [
+    "tos.entity.thing"
+  ],
+  "abstract": true,
+  "object_role": "semantic",
+  "labels": {
+    "default": "Authored semantic object",
+    "ru": "Авторский смысловой объект",
+    "en": "Authored semantic object"
+  },
+  "definition": "The family of authored ToS node classes, with each instance retaining its declared candidate or canonical status.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/KNOWLEDGE_MODEL.md",
+  "source_mappings": [],
+  "supersedes_type_id": null
+}

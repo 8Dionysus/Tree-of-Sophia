@@ -1,0 +1,65 @@
+{
+  "relation_type_id": "tos.relation.document-carried-by",
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "labels": {
+    "default": "has attested physical carrier",
+    "ru": "имеет засвидетельствованный физический носитель",
+    "en": "has attested physical carrier"
+  },
+  "inverse_labels": {
+    "default": "carries the document",
+    "ru": "служит носителем документа",
+    "en": "carries the document"
+  },
+  "definition": "Attributes a document to a persistent physical carrier through evidence with explicit coverage. Different copies retain their carrier identities; autograph status, textual comparison, custody and reuse have their own Claims or permissions.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/doctrine/CORPUS_FOUNDATION.md",
+  "domain_type_ids": [
+    "tos.entity.document"
+  ],
+  "range_type_ids": [
+    "tos.entity.artifact"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "document_carried_by",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "identity-relation-v1",
+    "assertion_layers": [
+      "scholarly_report",
+      "bibliographic_assertion"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_source_relation_claim_v1",
+        "schema_ref": "ToS/contracts/source-relation-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/source-claim-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_relation_type_id": null
+}

@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.linguistic-variety-distinguishing-basis",
+  "field": "attributes.source_record.semantic_content.distinguishing_basis",
+  "labels": {
+    "default": "Variety distinction",
+    "ru": "Основание различения разновидности",
+    "en": "Variety distinction"
+  },
+  "definition": "The linguistic, social or historical criterion and its limits, not a universal test separating languages and dialects.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.linguistic-variety"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}

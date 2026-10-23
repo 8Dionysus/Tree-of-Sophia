@@ -1,0 +1,24 @@
+{
+  "type_id": "tos.entity.temporal-assertion",
+  "parent_type_ids": [
+    "tos.entity.assertion",
+    "tos.entity.temporal-object"
+  ],
+  "abstract": false,
+  "object_role": "assertion",
+  "labels": {
+    "default": "Temporal assertion",
+    "ru": "Временное утверждение",
+    "en": "Temporal assertion"
+  },
+  "definition": "A claim-scoped temporal value with an explicit calendar, facet, precision and uncertainty posture where available.",
+  "lifecycle": "stable",
+  "owner_ref": "ToS/contracts/first-publication-chronology.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "temporal-assertion"
+    }
+  ],
+  "supersedes_type_id": null
+}

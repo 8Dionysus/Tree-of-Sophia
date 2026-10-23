@@ -1,0 +1,23 @@
+{
+  "property_id": "tos.property.lexeme-lexical-account",
+  "field": "attributes.source_record.semantic_content.lexical_account",
+  "labels": {
+    "default": "Lexical account",
+    "ru": "Описание лексемы",
+    "en": "Lexical account"
+  },
+  "definition": "A source-described lexical grouping and its limits, not a particular spelling or accepted normalization.",
+  "value_type": "string",
+  "applies_to": [
+    "tos.entity.lexeme"
+  ],
+  "required": true,
+  "inherited": true,
+  "unit": null,
+  "language": "source",
+  "operators": [
+    "eq",
+    "contains",
+    "exists"
+  ]
+}
