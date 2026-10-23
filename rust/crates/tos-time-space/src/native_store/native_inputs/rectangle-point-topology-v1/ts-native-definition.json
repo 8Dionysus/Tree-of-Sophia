@@ -1,0 +1,44 @@
+{
+  "schema_version": "tos_ts_native_definition_record_v1",
+  "record_type": "ts-native-definition",
+  "record_id": "tos.ts-native-definition.rectangle-point-topology-v1",
+  "record_version": 1,
+  "preferred_label": "Bounded TS rule: rectangle-point-topology",
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "https://github.com/8Dionysus/Tree-of-Sophia/blob/6d2e9d001e73f3c79d0183861a4bd834f872fabe/rust/crates/tos-time-space/CONTRACTS.md",
+    "https://github.com/8Dionysus/Tree-of-Sophia/blob/6d2e9d001e73f3c79d0183861a4bd834f872fabe/rust/crates/tos-time-space/src/binding.rs"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "notes": "This source describes the existing accepted bounded TS rule and its explicit mathematical premises. It preserves the distinction between exact computation, source applicability and native admission. Premise prose is not executable code or a trusted proof certificate. Unknown frame/calendar/domain bindings remain explicit refusals. No physical metric, arbitrary geometry or historical entailment is introduced.",
+  "semantic_scope": {
+    "scope_note": "The particular bounded TS domain/rule in body.specification; no universal time/space or historical truth claim.",
+    "identity_criterion": "This subject is the named bounded rule with these interpretation and domain limits. A changed mathematical meaning/domain requires a successor definition rather than repurposing this ID.",
+    "language": "en",
+    "script": "Latn"
+  },
+  "visibility": "public_metadata_only",
+  "body": {
+    "definition_kind": "bounded-ts-rule-v1",
+    "specification": {
+      "domain": "rational-cartesian-2d",
+      "rule": "rectangle-point-topology",
+      "premises": [
+        "One exact physical Cartesian rational2d frame/CRS/rules/axes-units profile and actual extent role.",
+        "Nondegenerate closed rectangles and points only; no metric, arbitrary polygon, geodetic or administrative inference."
+      ]
+    }
+  }
+}
