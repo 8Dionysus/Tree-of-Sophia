@@ -609,6 +609,21 @@
         ]
       },
       {
+        "label": "test bounded local Item inventories and prepared consumer",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--locked",
+          "--lib",
+          "source_creation_store::item_adoption::tests::inventory_bridge::",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ]
+      },
+      {
         "label": "test Rust conformance root and source families",
         "command_timeout_ms": 900000,
         "command": [
@@ -751,6 +766,8 @@
           "--",
           "--nocapture",
           "@tos-native-growth-exclusions",
+          "--skip",
+          "source_creation_store::item_adoption::tests::inventory_bridge::",
           "--skip",
           "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
         ]

@@ -60,6 +60,7 @@ print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementatio
 const NATIVE_OWNER_PATHS: &[&str] = &[
     "rust/crates/tos-command/src/source_item_adoption.rs",
     "rust/crates/tos-command/src/source_item_deposit.rs",
+    "rust/crates/tos-command/src/source_text_owner_ocr.rs",
     "rust/crates/tos-command/src/source_item_inventory.rs",
     "rust/crates/tos-command/src/source_item_inventory_extended.rs",
     "rust/crates/tos-command/src/source_native_cli.rs",

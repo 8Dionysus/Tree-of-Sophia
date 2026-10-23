@@ -22,6 +22,7 @@ const STAGE_SCHEMA: &str = "tos_item_deposit_stage_v1";
 const MAX_BYTES: u64 = 512 * 1024 * 1024;
 const CHUNK: usize = 1024 * 1024;
 const MAX_STAGE: usize = 2 * 1024 * 1024;
+const MAX_INVENTORY: usize = 256 * 1024;
 
 fn denied() -> SourceCommandError {
     SourceCommandError::Denied("Item protected payload custody")
@@ -210,6 +211,129 @@ fn current_file(
     }
     Ok(())
 }
+
+/// The provider receives the exact granted descriptor and only its File
+/// description. Custody paths, principal grants and recovery state stay here.
+fn inventory_descriptor(config: &Value) -> SourceCommandResult<Value> {
+    let mut descriptor = payload_entry(config)?;
+    descriptor["payload_basename"] = json!(text(config, "payload_basename")?);
+    Ok(descriptor)
+}
+
+fn inventory_outcome(
+    descriptor: &Value,
+    result: SourceCommandResult<Value>,
+) -> SourceCommandResult<(Value, Value)> {
+    let result = result.and_then(|inventory| {
+        for (observed, selected) in [
+            ("file_id", "file_id"),
+            ("file_sha256", "sha256"),
+            ("media_type", "media_type"),
+        ] {
+            if text(&inventory, observed)? != text(descriptor, selected)? {
+                return Err(conflict());
+            }
+        }
+        if canonical(&inventory)?.len() > MAX_INVENTORY {
+            return Err(SourceCommandError::Unsupported(
+                "bounded Item inventory output",
+            ));
+        }
+        Ok(inventory)
+    });
+    match result {
+        Ok(inventory) => Ok((inventory, Value::Null)),
+        Err(SourceCommandError::Unsupported(_))
+        | Err(SourceCommandError::Invalid(_))
+        | Err(SourceCommandError::Conflict(_)) => Ok((
+            Value::Null,
+            json!("inventory-unavailable:InventoryBuildError"),
+        )),
+        Err(error) => Err(error),
+    }
+}
+
+fn observe_inventory(
+    file: &mut File,
+    config: &Value,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<(Value, Value)> {
+    active(deadline, cancelled)?;
+    authorize()?;
+    let descriptor = inventory_descriptor(config)?;
+    let mut authority_error: Option<SourceCommandError> = None;
+    let result = crate::source_item_inventory::observe_with_pdf(
+        file,
+        &descriptor,
+        deadline,
+        cancelled,
+        &mut || {
+            if let Some(error) = &authority_error {
+                return Err(error.clone());
+            }
+            active(deadline, cancelled)
+                .and_then(|()| authorize())
+                .map_err(|error| {
+                    authority_error = Some(error.clone());
+                    error
+                })
+        },
+        &mut |probe, raw, limit, check| pdf_probe(probe, raw, limit, deadline, cancelled, check),
+    );
+    // A provider refusal can be a limitation; a lost grant or expired budget
+    // cannot. Retain the original failure even if a parser maps its error.
+    if let Some(error) = authority_error {
+        return Err(error);
+    }
+    active(deadline, cancelled)?;
+    authorize()?;
+    inventory_outcome(&descriptor, result)
+}
+
+fn pdf_probe(
+    probe: crate::source_item_inventory::PdfInventoryProbe,
+    raw: &[u8],
+    limit: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<u8>> {
+    use crate::source_item_inventory::PdfInventoryProbe;
+    let page_count;
+    let (program, args): (&str, &[&str]) = match probe {
+        PdfInventoryProbe::PageCount => ("/usr/bin/pdfinfo", &["-"]),
+        PdfInventoryProbe::PageBoxes { page_count: count } => {
+            page_count = count.to_string();
+            (
+                "/usr/bin/pdfinfo",
+                &["-f", "1", "-l", &page_count, "-box", "-"],
+            )
+        }
+        PdfInventoryProbe::Images => ("/usr/bin/pdfimages", &["-list", "-"]),
+    };
+    crate::source_text_owner_ocr::bounded_process_with_stdin_guarded(
+        program,
+        args,
+        Some(Path::new("/")),
+        Some(raw),
+        limit,
+        deadline,
+        cancelled,
+        check,
+    )
+    .map_err(|error| match error {
+        SourceCommandError::Denied("native owner verifier unavailable") => {
+            SourceCommandError::Unsupported("Item PDF inventory provider unavailable")
+        }
+        SourceCommandError::Denied("native owner OCR verification refused") => {
+            SourceCommandError::Invalid("Item PDF inventory probe refused")
+        }
+        error => error,
+    })
+}
+
 pub(crate) fn observe(
     config: &Value,
     uid: u32,
@@ -227,29 +351,8 @@ pub(crate) fn observe(
         return Err(conflict());
     }
     exact_bytes(&mut file, config, deadline, cancelled, authorize)?;
-    authorize()?;
-    let mut authority_error = None;
-    let inventory_result =
-        crate::source_item_inventory::observe(&mut file, config, deadline, cancelled, &mut || {
-            authorize().map_err(|error| {
-                authority_error = Some(error.clone());
-                error
-            })
-        });
-    if let Some(error) = authority_error {
-        return Err(error);
-    }
-    let (inventory, limitation) = match inventory_result {
-        Ok(v) if canonical(&v)?.len() <= 256 * 1024 => (v, Value::Null),
-        Ok(_)
-        | Err(SourceCommandError::Unsupported(_))
-        | Err(SourceCommandError::Invalid(_))
-        | Err(SourceCommandError::Conflict(_)) => (
-            Value::Null,
-            json!("inventory-unavailable:InventoryBuildError"),
-        ),
-        Err(error) => return Err(error),
-    };
+    let (inventory, limitation) =
+        observe_inventory(&mut file, config, deadline, cancelled, authorize)?;
     current_file(
         input,
         &file,
@@ -755,4 +858,182 @@ pub(crate) fn rollback_retained(
         "file":payload_entry(&stage["binding"]["configuration"])? ,"inventory_limitation":stage["observation"]["limitation"],
         "original_preserved":true,"metadata_committed":false,"grants_admission":false}),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering;
+    use std::time::Duration;
+
+    fn config(raw: &[u8]) -> Value {
+        json!({"file_id":"tos:file:inventory-provider-fixture",
+            "sha256":Digest256::of_bytes(raw).to_hex(),"byte_size":raw.len(),
+            "media_type":"text/plain","payload_basename":"selected.txt",
+            "original_basename":"original.txt","input_path":"/private/input",
+            "source_root":"/private/source","recovery_root":"/private/recovery",
+            "payload_authority_ref":"private-grant"})
+    }
+
+    #[test]
+    fn inventory_provider_uses_selected_descriptor_and_source_safe_description() {
+        let raw = b"private source phrase\r\n";
+        let config = config(raw);
+        let descriptor = inventory_descriptor(&config).unwrap();
+        assert_eq!(descriptor.as_object().unwrap().len(), 7);
+        assert_eq!(descriptor["relative_path"], "payload/selected.txt");
+        for field in [
+            "input_path",
+            "source_root",
+            "recovery_root",
+            "payload_authority_ref",
+        ] {
+            assert!(descriptor.get(field).is_none());
+        }
+        let mut file = tempfile::tempfile().unwrap();
+        file.write_all(raw).unwrap();
+        // The provider must seek its selected descriptor, even at EOF. No
+        // configured input path exists, so a path reopen cannot satisfy this.
+        let (inventory, limitation) = observe_inventory(
+            &mut file,
+            &config,
+            Instant::now() + Duration::from_secs(5),
+            &AtomicBool::new(false),
+            &mut || Ok(()),
+        )
+        .unwrap();
+        assert!(limitation.is_null());
+        assert_eq!(inventory["profile"], "plain_utf8_file_v1");
+        assert_eq!(inventory["file_sha256"], config["sha256"]);
+        assert_eq!(inventory["resources"][0]["locator"]["byte_end"], raw.len());
+        assert!(
+            !serde_json::to_string(&inventory)
+                .unwrap()
+                .contains("private source phrase")
+        );
+        file.rewind().unwrap();
+        let mut retained = Vec::new();
+        file.read_to_end(&mut retained).unwrap();
+        assert_eq!(retained, raw);
+    }
+
+    #[test]
+    fn inventory_provider_rejects_rebound_file_identity_and_oversized_output() {
+        let descriptor = inventory_descriptor(&config(b"selected")).unwrap();
+        let inventory = json!({"file_id":descriptor["file_id"],
+            "file_sha256":descriptor["sha256"],"media_type":descriptor["media_type"]});
+        for field in ["file_id", "file_sha256", "media_type"] {
+            let mut rebound = inventory.clone();
+            rebound[field] = json!("other");
+            let (value, limitation) = inventory_outcome(&descriptor, Ok(rebound)).unwrap();
+            assert!(value.is_null(), "rebound {field}");
+            assert_eq!(limitation, "inventory-unavailable:InventoryBuildError");
+        }
+        let mut bounded = inventory;
+        bounded["padding"] = json!("");
+        let overhead = canonical(&bounded).unwrap().len();
+        bounded["padding"] = json!("x".repeat(MAX_INVENTORY - overhead));
+        assert_eq!(canonical(&bounded).unwrap().len(), MAX_INVENTORY);
+        assert!(
+            inventory_outcome(&descriptor, Ok(bounded.clone()))
+                .unwrap()
+                .1
+                .is_null()
+        );
+        bounded["padding"] = json!("x".repeat(MAX_INVENTORY - overhead + 1));
+        let (value, limitation) = inventory_outcome(&descriptor, Ok(bounded)).unwrap();
+        assert!(value.is_null());
+        assert_eq!(limitation, "inventory-unavailable:InventoryBuildError");
+    }
+
+    #[test]
+    fn inventory_provider_preserves_authority_refusal_before_limitation_mapping() {
+        for error in [
+            SourceCommandError::Unsupported("fixture authority withdrawn"),
+            SourceCommandError::Invalid("fixture authority expired"),
+            SourceCommandError::Conflict("fixture authority changed"),
+        ] {
+            let mut calls = 0;
+            let mut file = tempfile::tempfile().unwrap();
+            file.write_all(b"selected").unwrap();
+            let result = observe_inventory(
+                &mut file,
+                &config(b"selected"),
+                Instant::now() + Duration::from_secs(5),
+                &AtomicBool::new(false),
+                &mut || {
+                    calls += 1;
+                    if calls == 2 {
+                        Err(error.clone())
+                    } else {
+                        Ok(())
+                    }
+                },
+            );
+            assert_eq!(result, Err(error));
+            assert_eq!(calls, 2);
+        }
+    }
+
+    #[test]
+    fn inventory_provider_does_not_publish_after_cancellation_or_deadline() {
+        let cancelled = AtomicBool::new(false);
+        let mut calls = 0;
+        let mut file = tempfile::tempfile().unwrap();
+        file.write_all(b"selected").unwrap();
+        let result = observe_inventory(
+            &mut file,
+            &config(b"selected"),
+            Instant::now() + Duration::from_secs(5),
+            &cancelled,
+            &mut || {
+                calls += 1;
+                if calls == 2 {
+                    cancelled.store(true, Ordering::Relaxed);
+                }
+                Ok(())
+            },
+        );
+        assert!(matches!(result, Err(SourceCommandError::Denied(_))));
+        let mut calls = 0;
+        let result = observe_inventory(
+            &mut file,
+            &config(b"selected"),
+            Instant::now(),
+            &AtomicBool::new(false),
+            &mut || {
+                calls += 1;
+                Ok(())
+            },
+        );
+        assert!(matches!(result, Err(SourceCommandError::Denied(_))));
+        assert_eq!(calls, 0);
+    }
+
+    #[test]
+    fn inventory_provider_current_owner_failure_stops_the_owned_process() {
+        let expected = SourceCommandError::Conflict("fixture provider owner withdrawn");
+        let mut checks = 0;
+        let started = Instant::now();
+        let result = crate::source_text_owner_ocr::bounded_process_with_stdin_guarded(
+            "/usr/bin/sleep",
+            &["30"],
+            Some(Path::new("/")),
+            None,
+            1,
+            started + Duration::from_secs(10),
+            &AtomicBool::new(false),
+            &mut || {
+                checks += 1;
+                if checks == 2 {
+                    Err(expected.clone())
+                } else {
+                    Ok(())
+                }
+            },
+        );
+        assert_eq!(result, Err(expected));
+        assert_eq!(checks, 2);
+        assert!(started.elapsed() < Duration::from_secs(10));
+    }
 }

@@ -1550,6 +1550,7 @@ const IMPLEMENTATIONS: &[&str] = &[
     "rust/crates/tos-command/src/source_item_inventory.rs",
     "rust/crates/tos-command/src/source_item_inventory_extended.rs",
     "rust/crates/tos-command/src/source_item_deposit.rs",
+    "rust/crates/tos-command/src/source_text_owner_ocr.rs",
 ];
 
 fn dependency_bindings(

@@ -322,6 +322,112 @@ fn kernel(path: &Path, cap: usize, rows: usize, line: usize) -> Result<String, S
         line,
     )
 }
+// Optional CI evidence only. It neither selects authority nor issues a ticket.
+const CI_DIAGNOSTIC_ONLY_EXIT: i32 = 79;
+#[derive(Clone, Copy)]
+enum CiDiagnosticOutcome {
+    Continue,
+    SnapshotOnly,
+}
+fn ci_diagnostic_state(role: &str, end: Cutoff) -> Result<CiDiagnosticOutcome, String> {
+    let mode = std::env::var("TOS_NATIVE_STAGE_DIAGNOSTICS").unwrap_or_default();
+    if mode.is_empty() {
+        return Ok(CiDiagnosticOutcome::Continue);
+    }
+    if !matches!(mode.as_str(), "snapshot-only" | "trace") {
+        return Err("unknown CI diagnostic selection".into());
+    }
+    end.check()?;
+    let read = |path: &str, cap, rows, line| {
+        kernel(Path::new(path), cap, rows, line)
+            .map(serde_json::Value::String)
+            .unwrap_or_else(|error| serde_json::json!({"unavailable": error}))
+    };
+    let status = kernel(Path::new("/proc/self/status"), 8192, 128, 1024)?;
+    let selected: Vec<_> = status
+        .lines()
+        .filter(|row| {
+            matches!(
+                row.split(':').next().unwrap_or_default(),
+                "Pid"
+                    | "PPid"
+                    | "NSpid"
+                    | "Uid"
+                    | "Gid"
+                    | "CapInh"
+                    | "CapPrm"
+                    | "CapEff"
+                    | "CapBnd"
+                    | "CapAmb"
+                    | "NoNewPrivs"
+                    | "Seccomp"
+                    | "Seccomp_filters"
+            )
+        })
+        .collect();
+    let apparmor = read("/proc/self/attr/current", 512, 2, 512);
+    let (label_matches, expected_profile_status) =
+        match std::env::var("TOS_NATIVE_STAGE_EXPECTED_PROFILE") {
+            Ok(expected) => (
+                !expected.is_empty()
+                    && expected.len() <= 96
+                    && expected
+                        .bytes()
+                        .all(|c| c.is_ascii_alphanumeric() || c == b'-')
+                    && apparmor.as_str().map(|v| v.trim().split(" (").next())
+                        == Some(Some(expected.as_str())),
+                "selected",
+            ),
+            Err(std::env::VarError::NotPresent) => (mode == "snapshot-only", "missing"),
+            Err(std::env::VarError::NotUnicode(_)) => (false, "non-unicode"),
+        };
+    let namespaces: Vec<_> = ["user", "mnt", "net", "pid"]
+        .into_iter()
+        .map(|name| {
+            let inode = fs::metadata(format!("/proc/self/ns/{name}"))
+                .map(|m| serde_json::json!(m.ino()))
+                .unwrap_or_else(|e| serde_json::json!({"unavailable": e.to_string()}));
+            serde_json::json!({"kind": name, "inode": inode})
+        })
+        .collect();
+    let mut wire = serde_json::to_vec(&serde_json::json!({
+        "schema": "tos_ci_stage_diagnostic_v1", "role": role, "mode": mode,
+        "outcome": if mode == "snapshot-only" { "diagnostic-only" } else { "trace" },
+        "diagnostic_exit_code": if mode == "snapshot-only" { Some(CI_DIAGNOSTIC_ONLY_EXIT) } else { None },
+        "expected_profile_status": expected_profile_status,
+        "status": selected, "apparmor": apparmor, "namespaces": namespaces,
+        "uid_map": read("/proc/self/uid_map", 512, 16, 128),
+        "gid_map": read("/proc/self/gid_map", 512, 16, 128),
+        "dumpable": unsafe { libc::prctl(libc::PR_GET_DUMPABLE, 0, 0, 0, 0) },
+        "ticket_issued_by_diagnostic": false
+    }))
+    .map_err(|e| e.to_string())?;
+    wire.push(b'\n');
+    if wire.len() > 4096 {
+        return Err("CI diagnostic output exceeds one bounded record".into());
+    }
+    // A distinct nonblocking open description: do not change the caller's stderr.
+    let output = OpenOptions::new()
+        .write(true)
+        .custom_flags(libc::O_NONBLOCK | libc::O_CLOEXEC)
+        .open("/proc/self/fd/2")
+        .map_err(|e| e.to_string())?;
+    end.check()?;
+    let written = unsafe { libc::write(output.as_raw_fd(), wire.as_ptr().cast(), wire.len()) };
+    if written != wire.len() as isize {
+        return Err("CI diagnostic record could not be written atomically".into());
+    }
+    end.check()?;
+    if !label_matches {
+        return Err("actual CI issuer AppArmor label differs".into());
+    }
+    Ok(if mode == "snapshot-only" {
+        CiDiagnosticOutcome::SnapshotOnly
+    } else {
+        CiDiagnosticOutcome::Continue
+    })
+}
+
 fn scalar(root: &File, name: &str) -> Result<u64, String> {
     let raw = read_file(member(root, name, false)?, 64, 1, 64)?;
     raw.trim()
@@ -1799,6 +1905,9 @@ fn outer(o: &Options) -> Result<i32, String> {
         return Err("delegated consumer must initially be empty".into());
     }
     drop(member(&held, "cgroup.kill", true)?); // fail before launch if cleanup not delegated
+    if let CiDiagnosticOutcome::SnapshotOnly = ci_diagnostic_state("outer-before-unshare", end)? {
+        return Ok(CI_DIAGNOSTIC_ONLY_EXIT); // Nonzero: no namespace, ticket or consumer.
+    }
     let parent_mnt = fs::metadata("/proc/self/ns/mnt")
         .map_err(|e| e.to_string())?
         .ino();
@@ -2412,6 +2521,9 @@ fn inner(o: &Options, i: &Inner) -> Result<i32, String> {
     limits(o)?;
     let end = Cutoff::select(o.original, o.shutdown_ms)?;
     end.check()?;
+    if let CiDiagnosticOutcome::SnapshotOnly = ci_diagnostic_state("inner-after-mapping", end)? {
+        return Err("snapshot-only selection is outer-only".into());
+    }
     let mut consumer_image = pinned_consumer_image(o, i, end)?;
     match (o.control_fd, i.control_auth.as_ref()) {
         (None, None) => (),

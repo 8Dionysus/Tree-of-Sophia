@@ -1363,16 +1363,33 @@ fn exact_record_digest(capture: &PublicCapture, value: &Value) -> Result<String>
         return Err(Error::Budget("public D1 exact record bytes"));
     }
     capture.charge_work(raw.len() as u64)?;
-    Ok(Digest256::of_bytes(&raw).to_hex())
+    let document = strict_json(&raw, MAX_ROW_BYTES)?;
+    let canonical = tos_foundation::canonical_bytes_v1(
+        &document,
+        tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+        tos_foundation::JsonLimits::new(MAX_ROW_BYTES, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("public D1 exact record JSON limits"))?,
+    )
+    .map_err(|error| Error::Source(error.to_string()))?;
+    capture.charge_work(canonical.len() as u64)?;
+    Ok(Digest256::of_bytes(&canonical).to_hex())
 }
-fn exact_record_digest_owned(
+fn exact_record_digest_owned<T: Serialize + ?Sized>(
     capture: &PublicCapture,
     state: &CreationState<'_>,
-    value: &Value,
+    value: &T,
 ) -> Result<Digest256> {
+    // Source references use SourceRecordDigestV1, independently of serde's
+    // preserve_order feature and the transport's object insertion order.
     state.with_json_encoded(value, MAX_ROW_BYTES, |raw| {
-        capture.charge_work(raw.len() as u64)?;
-        Ok(Digest256::of_bytes(raw))
+        let limits = tos_foundation::JsonLimits::new(MAX_ROW_BYTES, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("public D1 exact record JSON limits"))?;
+        state.with_foundation_owned_with_limits(raw, limits, |document| {
+            state.with_foundation_canonical_bytes(document, limits, |canonical| {
+                capture.charge_work(canonical.len() as u64)?;
+                Ok(Digest256::of_bytes(canonical))
+            })
+        })
     })
 }
 fn exact_record_matches(
@@ -1417,10 +1434,7 @@ fn current_ref_digest_owned(
         id,
         version,
     };
-    let digest = state.with_json_encoded(&value, MAX_ROW_BYTES, |raw| {
-        capture.charge_work(raw.len() as u64)?;
-        Ok(Digest256::of_bytes(raw))
-    })?;
+    let digest = exact_record_digest_owned(capture, state, &value)?;
     Ok((digest_text, digest))
 }
 fn metadata_history_refs<'a>(

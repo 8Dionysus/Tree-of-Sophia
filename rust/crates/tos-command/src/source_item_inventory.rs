@@ -336,6 +336,55 @@ pub(crate) fn observe(
     cancelled: &AtomicBool,
     authorize: &mut impl FnMut() -> SourceCommandResult<()>,
 ) -> SourceCommandResult<Value> {
+    observe_with_pdf(
+        file,
+        config,
+        deadline,
+        cancelled,
+        authorize,
+        &mut |_, _, _, _| {
+            Err(SourceCommandError::Unsupported(
+                "Item PDF inventory provider unavailable",
+            ))
+        },
+    )
+}
+
+/// Fixed PDF probes for the custody owner's admitted provider. No path, command
+/// name or caller authority is taken from the input document.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PdfInventoryProbe {
+    PageCount,
+    PageBoxes { page_count: usize },
+    Images,
+}
+
+/// Observe every maintained profile from the descriptor already held by the
+/// custody owner. The owner supplies its safe PDF provider; this module only
+/// supplies verified bytes and fixed probes, and never reopens a source path.
+pub(crate) fn observe_with_pdf(
+    file: &mut File,
+    config: &Value,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+    pdf: &mut impl FnMut(
+        PdfInventoryProbe,
+        &[u8],
+        usize,
+        &mut dyn FnMut() -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<Vec<u8>>,
+) -> SourceCommandResult<Value> {
+    extended::observe_held(file, config, deadline, cancelled, authorize, pdf)
+}
+
+fn observe_basic(
+    file: &mut File,
+    config: &Value,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Value> {
     authorize()?;
     match config["media_type"].as_str() {
         Some("application/epub+zip") => epub(file, config, deadline, cancelled, authorize),
@@ -482,10 +531,14 @@ impl InventoryJsonCounts {
     }
 }
 
-fn count_json_values(root: &FoundationJsonValue) -> SourceCommandResult<InventoryJsonCounts> {
+fn count_json_values(
+    root: &FoundationJsonValue,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<InventoryJsonCounts> {
     let mut counts = InventoryJsonCounts::default();
     let mut pending = vec![root];
     while let Some(value) = pending.pop() {
+        check()?;
         match value {
             FoundationJsonValue::Object(entries) => {
                 counts.object_count += 1;
@@ -520,7 +573,9 @@ fn json_inventory(
     file_id: &str,
     file_sha256: &str,
     media_type: &str,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
 ) -> SourceCommandResult<Value> {
+    check()?;
     if raw.len() > MAX_INVENTORY_JSON_BYTES {
         return Err(SourceCommandError::Unsupported(
             "bounded JSON inventory profile",
@@ -552,13 +607,13 @@ fn json_inventory(
         FoundationJsonValue::Array(items) => items.iter().map(|item| (None, item)).collect(),
         _ => return Err(SourceCommandError::Invalid("JSON member profile root")),
     };
-    let root_counts = count_json_values(&root)?;
+    let root_counts = count_json_values(&root, check)?;
     let mut resources = vec![
         json!({"resource_id":"json-root","resource_kind":"json_container",
         "structural_role":"container_metadata","locator":{"json_value_type":json_value_type(&root)}}),
     ];
     for (index, (key, item)) in members.iter().enumerate() {
-        let member_counts = count_json_values(item)?;
+        let member_counts = count_json_values(item, check)?;
         let mut resource = json!({"resource_id":format!("json-member-{:05}",index+1),
             "resource_kind":"json_member","structural_role":"member",
             "locator":{"json_member_index":index+1,"json_value_type":json_value_type(item),
@@ -593,7 +648,10 @@ struct InventoryXmlNode {
     children: Vec<InventoryXmlNode>,
 }
 
-fn inventory_xml_tree(raw: &[u8]) -> SourceCommandResult<InventoryXmlNode> {
+fn inventory_xml_tree_checked(
+    raw: &[u8],
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<InventoryXmlNode> {
     let config = ParserConfig::new()
         .max_name_length(65536)
         .max_attributes(128)
@@ -605,7 +663,13 @@ fn inventory_xml_tree(raw: &[u8]) -> SourceCommandResult<InventoryXmlNode> {
     let mut stack: Vec<InventoryXmlNode> = Vec::new();
     let mut root = None;
     let mut count = 0usize;
-    for event in config.create_reader(raw) {
+    let mut retained_text_bytes = 0usize;
+    let mut events = config.create_reader(raw).into_iter();
+    loop {
+        check()?;
+        let Some(event) = events.next() else {
+            break;
+        };
         count += 1;
         if count > 262_144 || stack.len() > 128 {
             return Err(SourceCommandError::Unsupported(
@@ -647,6 +711,13 @@ fn inventory_xml_tree(raw: &[u8]) -> SourceCommandResult<InventoryXmlNode> {
                     return Err(SourceCommandError::Invalid("XML payload is not balanced"));
                 }
                 if let Some(parent) = stack.last_mut() {
+                    retained_text_bytes =
+                        retained_text_bytes.saturating_add(node.text_content.len());
+                    if retained_text_bytes > extended::MAX_PROFILE_BYTES as usize {
+                        return Err(SourceCommandError::Unsupported(
+                            "bounded XML inventory text",
+                        ));
+                    }
                     parent.text_content.push_str(&node.text_content);
                     parent.children.push(node);
                 } else if root.replace(node).is_some() {
@@ -657,6 +728,12 @@ fn inventory_xml_tree(raw: &[u8]) -> SourceCommandResult<InventoryXmlNode> {
             }
             XmlEvent::Characters(text) | XmlEvent::Whitespace(text) | XmlEvent::CData(text) => {
                 if let Some(node) = stack.last_mut() {
+                    retained_text_bytes = retained_text_bytes.saturating_add(text.len());
+                    if retained_text_bytes > extended::MAX_PROFILE_BYTES as usize {
+                        return Err(SourceCommandError::Unsupported(
+                            "bounded XML inventory text",
+                        ));
+                    }
                     node.text_content.push_str(&text);
                 }
             }
@@ -697,9 +774,11 @@ fn inventory_tei_walk(
     page_break_count: &mut usize,
     division_count: &mut usize,
     max_division_depth: &mut usize,
-) {
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<()> {
     let mut sibling_counts = BTreeMap::<&str, usize>::new();
     for child in &element.children {
+        check()?;
         let index = sibling_counts.entry(child.local_name.as_str()).or_default();
         *index += 1;
         let child_path = inventory_element_path(path, child, *index);
@@ -736,7 +815,8 @@ fn inventory_tei_walk(
                     page_break_count,
                     division_count,
                     max_division_depth,
-                );
+                    check,
+                )?;
             }
             "div" => {
                 *division_count += 1;
@@ -780,7 +860,8 @@ fn inventory_tei_walk(
                     page_break_count,
                     division_count,
                     max_division_depth,
-                );
+                    check,
+                )?;
             }
             _ => inventory_tei_walk(
                 child,
@@ -792,9 +873,11 @@ fn inventory_tei_walk(
                 page_break_count,
                 division_count,
                 max_division_depth,
-            ),
+                check,
+            )?,
         }
     }
+    Ok(())
 }
 
 fn tei_inventory(
@@ -802,8 +885,10 @@ fn tei_inventory(
     file_id: &str,
     file_sha256: &str,
     media_type: &str,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
 ) -> SourceCommandResult<Value> {
-    let root = inventory_xml_tree(raw)?;
+    check()?;
+    let root = inventory_xml_tree_checked(raw, check)?;
     let text = inventory_find_tei_text(&root).ok_or(SourceCommandError::Invalid(
         "TEI payload has no text element",
     ))?;
@@ -821,7 +906,8 @@ fn tei_inventory(
         &mut page_break_count,
         &mut division_count,
         &mut max_division_depth,
-    );
+        check,
+    )?;
     if resources.is_empty() {
         return Err(SourceCommandError::Invalid(
             "TEI payload yielded no structural resources",
@@ -867,16 +953,20 @@ fn osis_id_is_valid(identifier: &str, verse: bool) -> bool {
         && suffix.bytes().all(|byte| byte.is_ascii_lowercase())
 }
 
-fn inventory_xml_word_count(node: &InventoryXmlNode) -> usize {
+fn inventory_xml_word_count(
+    node: &InventoryXmlNode,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<usize> {
     let mut count = 0;
     let mut pending = vec![node];
     while let Some(current) = pending.pop() {
+        check()?;
         if current.namespace.as_deref() == Some(OSIS_NAMESPACE) && current.local_name == "w" {
             count += 1;
         }
         pending.extend(&current.children);
     }
-    count
+    Ok(count)
 }
 
 fn inventory_osis_walk(
@@ -889,7 +979,9 @@ fn inventory_osis_walk(
     word_count: &mut usize,
     seen_ids: &mut BTreeSet<String>,
     chapter_counts: &mut BTreeMap<String, (usize, usize)>,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
 ) -> SourceCommandResult<()> {
+    check()?;
     if element.namespace.as_deref() == Some(OSIS_NAMESPACE)
         && matches!(element.local_name.as_str(), "chapter" | "verse")
     {
@@ -936,6 +1028,7 @@ fn inventory_osis_walk(
                     word_count,
                     seen_ids,
                     chapter_counts,
+                    check,
                 )?;
             }
             let (chapter_verses, chapter_words) = chapter_counts
@@ -963,7 +1056,7 @@ fn inventory_osis_walk(
             ));
         }
         *verse_count += 1;
-        let words = inventory_xml_word_count(element);
+        let words = inventory_xml_word_count(element, check)?;
         *word_count += words;
         let chapter_summary = chapter_counts
             .get_mut(chapter_resource_id)
@@ -987,6 +1080,7 @@ fn inventory_osis_walk(
                 word_count,
                 seen_ids,
                 chapter_counts,
+                check,
             )?;
         }
         return Ok(());
@@ -1002,6 +1096,7 @@ fn inventory_osis_walk(
             word_count,
             seen_ids,
             chapter_counts,
+            check,
         )?;
     }
     Ok(())
@@ -1012,8 +1107,10 @@ fn osis_inventory(
     file_id: &str,
     file_sha256: &str,
     media_type: &str,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
 ) -> SourceCommandResult<Value> {
-    let root = inventory_xml_tree(raw)?;
+    check()?;
+    let root = inventory_xml_tree_checked(raw, check)?;
     if root.namespace.as_deref() != Some(OSIS_NAMESPACE)
         || root.local_name != "osis"
         || root
@@ -1050,6 +1147,7 @@ fn osis_inventory(
         &mut word_count,
         &mut seen_ids,
         &mut chapter_counts,
+        check,
     )?;
     if chapter_count == 0 || verse_count == 0 {
         return Err(SourceCommandError::Invalid(
@@ -1065,19 +1163,28 @@ fn osis_inventory(
 }
 
 fn inventory_file(raw: &[u8], entry: &Value) -> SourceCommandResult<Value> {
+    inventory_file_checked(raw, entry, &mut || Ok(()))
+}
+
+fn inventory_file_checked(
+    raw: &[u8],
+    entry: &Value,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Value> {
+    check()?;
     let file_id = inventory_json_text(entry, "file_id")?;
     let file_sha256 = inventory_json_text(entry, "sha256")?;
     let media_type = inventory_json_text(entry, "media_type")?;
     match media_type {
-        "application/json" => json_inventory(raw, file_id, file_sha256, media_type),
-        "application/osis+xml" => osis_inventory(raw, file_id, file_sha256, media_type),
-        "application/tei+xml" => tei_inventory(raw, file_id, file_sha256, media_type),
+        "application/json" => json_inventory(raw, file_id, file_sha256, media_type, check),
+        "application/osis+xml" => osis_inventory(raw, file_id, file_sha256, media_type, check),
+        "application/tei+xml" => tei_inventory(raw, file_id, file_sha256, media_type, check),
         "application/xml" | "text/xml" => {
-            let root = inventory_xml_tree(raw)?;
+            let root = inventory_xml_tree_checked(raw, check)?;
             if root.namespace.as_deref() == Some(OSIS_NAMESPACE) && root.local_name == "osis" {
-                osis_inventory(raw, file_id, file_sha256, media_type)
+                osis_inventory(raw, file_id, file_sha256, media_type, check)
             } else if inventory_find_tei_text(&root).is_some() {
-                tei_inventory(raw, file_id, file_sha256, media_type)
+                tei_inventory(raw, file_id, file_sha256, media_type, check)
             } else {
                 Err(SourceCommandError::Unsupported(
                     "generic XML inventory profile",

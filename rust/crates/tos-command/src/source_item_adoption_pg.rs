@@ -96,6 +96,74 @@ pub(crate) fn pg_item_adoption_transaction_id_from_request(
     super::item_adoption_transaction_id(request)
 }
 
+// A provider supplies one text-free File inventory, retained by the existing
+// deposit owner. Bind it to the exact prepared request at fresh and recovered
+// publication edges without rerunning a possibly newer provider on recovery.
+fn retained_inventory_binding(
+    request: &JsonValue,
+    stage: &serde_json::Value,
+) -> SourceCommandResult<()> {
+    let request = super::serde_value(request)?;
+    let inventory = request.get("inventory").ok_or(SourceCommandError::Invalid(
+        "PG Item prepared inventory absent",
+    ))?;
+    let limitation = request
+        .get("inventory_limitation")
+        .ok_or(SourceCommandError::Invalid(
+            "PG Item inventory limitation absent",
+        ))?;
+    if stage.pointer("/binding/request") != Some(&request)
+        || stage.pointer("/observation/inventory") != Some(inventory)
+        || stage.pointer("/observation/limitation") != Some(limitation)
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG Item retained inventory differs from prepared request",
+        ));
+    }
+    Ok(())
+}
+
+// The compound builder owns schema and provenance construction. This check
+// keeps its published consumer inventory, rights and request tied to the
+// protected deposit even when replay reconstructs only the durable package.
+fn published_inventory_binding(
+    configuration: &JsonValue,
+    request: &JsonValue,
+    child: &BTreeMap<String, Vec<u8>>,
+    stage: &serde_json::Value,
+) -> SourceCommandResult<()> {
+    retained_inventory_binding(request, stage)?;
+    let member = |name: &str| {
+        cmd::parse(child.get(name).ok_or(SourceCommandError::Conflict(
+            "PG Item inventory custody member absent",
+        ))?)
+    };
+    let inventory = member("resource-inventory.json")?;
+    let observed = cmd::field(request, "inventory")?;
+    let files = cmd::array(&inventory, "files")?;
+    if observed == &JsonValue::Null
+        || cmd::field(request, "inventory_limitation")? != &JsonValue::Null
+        || files.len() != 1
+        || !cmd::same(&files[0], observed)?
+        || cmd::text(&inventory, "item_id")? != cmd::text(configuration, "item_id")?
+        || cmd::text(&inventory, "provenance_event_ref")?
+            != cmd::text(configuration, "inventory_event_id")?
+        || cmd::text(&inventory, "inventory_authority")? != "mechanical_metadata_only"
+        || cmd::field(&inventory, "source_text_included")? != &JsonValue::Bool(false)
+        || !cmd::same(&member("source-create-request.json")?, request)?
+        || !cmd::same(&member("rights.json")?, cmd::field(request, "rights")?)?
+        || !cmd::same(
+            &member("item-deposit-receipt.json")?,
+            &super::foundation_value(&crate::source_item_deposit::public_receipt(stage)?)?,
+        )?
+    {
+        return Err(SourceCommandError::Conflict(
+            "PG Item published inventory differs from retained custody",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn pg_item_adoption_response_from_attempt(
     fs: &CreationFilesystem,
     context: &CommandContext,
@@ -658,6 +726,7 @@ pub(crate) fn pg_item_adoption_response_from_attempt(
             "PG Item recovery archive differs from predecessor package",
         ));
     }
+    published_inventory_binding(&owner.configuration, &owner.request, &child, stage)?;
     let materializations = super::compound_views(&parent, &child, &owner.claim_id)?;
     let mut deposit = crate::source_item_deposit::public_state(stage)?;
     deposit["metadata_committed"] = serde_json::Value::Bool(true);
@@ -1974,6 +2043,7 @@ pub(crate) fn verify_pg_item_adoption_owner(
 ) -> SourceCommandResult<()> {
     let configuration = cmd::parse(&context.configuration_raw)?;
     super::current_grant(fs, context, &configuration, deadline, cancelled)?;
+    retained_inventory_binding(&cmd::parse(&context.request_raw)?, stage)?;
     selected_software_current(
         context,
         software,
@@ -2215,6 +2285,7 @@ pub(crate) fn prepare_pg_item_adoption(
             snapshot.verify_from_input(input.source_input(), limits.deadline, cancelled)
         },
     )?;
+    retained_inventory_binding(&owner.request, &stage)?;
     let payload_identity = crate::source_item_deposit::deposited_identity(
         &configuration,
         &stage,
@@ -2345,6 +2416,12 @@ pub(crate) fn prepare_pg_item_adoption(
             "PG Item finished native byte identity differs",
         ));
     }
+    published_inventory_binding(
+        &owner.configuration,
+        &owner.request,
+        &finished.child,
+        &stage,
+    )?;
     let receipt = super::finished_receipt(&finished.child)?;
     let materializations =
         super::compound_views(&finished.parent, &finished.child, &owner.claim_id)?;
@@ -3351,3 +3428,7 @@ fn json_lines(raw: &[u8]) -> SourceCommandResult<Vec<JsonValue>> {
         .map(cmd::parse)
         .collect()
 }
+
+#[cfg(test)]
+#[path = "source_item_adoption_pg_tests.rs"]
+mod inventory_custody_tests;
