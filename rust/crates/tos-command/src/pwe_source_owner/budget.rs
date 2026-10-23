@@ -67,7 +67,11 @@ impl<'a> CanonicalLedger<'a> {
     }
     /// Preserve cmd::same's existing input profile and ceilings, now with both
     /// held ledgers and simultaneous canonical holders admitted prospectively.
-    pub(super) fn same(&mut self, left: &JsonValue, right: &JsonValue) -> SourceCommandResult<bool> {
+    pub(super) fn same(
+        &mut self,
+        left: &JsonValue,
+        right: &JsonValue,
+    ) -> SourceCommandResult<bool> {
         let limits = JsonLimits {
             max_bytes: 8_388_608,
             ..JsonLimits::default()
@@ -82,7 +86,9 @@ impl<'a> CanonicalLedger<'a> {
         self.whole
             .try_borrow_mut()
             .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .read(u64::try_from(work).map_err(|_| unsupported("PWE comparison byte conversion"))?)?;
+            .read(
+                u64::try_from(work).map_err(|_| unsupported("PWE comparison byte conversion"))?,
+            )?;
         Ok(left == right)
     }
     fn encode(
@@ -105,23 +111,17 @@ impl<'a> CanonicalLedger<'a> {
             let budget = &mut *self.budget;
             let whole = self.whole;
             let mut admit = |bytes, visits| {
-                admit_prefix(budget, whole, deadline, cancelled, bytes, visits)
-                    .map_err(|error| {
-                        admission_error = Some(error);
-                        codec_refusal()
-                    })
+                admit_prefix(budget, whole, deadline, cancelled, bytes, visits).map_err(|error| {
+                    admission_error = Some(error);
+                    codec_refusal()
+                })
             };
             canonical_bytes_v1_with_state_budget_and_visits_and_admission(
-                value,
-                profile,
-                limits,
-                available,
-                &mut check,
-                &mut admit,
+                value, profile, limits, available, &mut check, &mut admit,
             )
         };
-        let (bytes, _) = encoded
-            .map_err(|error| codec_error(error, admission_error, deadline, cancelled))?;
+        let (bytes, _) =
+            encoded.map_err(|error| codec_error(error, admission_error, deadline, cancelled))?;
         // The same allowance was checked prospectively by the visitor. No
         // other allocation/owner callback can interleave with this synchronous
         // count/emit call. Account its actual retained capacity before use.
@@ -146,10 +146,7 @@ impl<'a> CanonicalLedger<'a> {
         let bytes = self.canonical(value)?;
         self.decode_domain(&bytes)
     }
-    pub(super) fn decode_domain(
-        &mut self,
-        bytes: &[u8],
-    ) -> SourceCommandResult<serde_json::Value> {
+    pub(super) fn decode_domain(&mut self, bytes: &[u8]) -> SourceCommandResult<serde_json::Value> {
         self.inspect_bytes(bytes.len())?;
         // Original logical conversion-holder fee, paid BEFORE deserialization.
         // Canonical input allocation is already held by the same whole ledger.
@@ -172,11 +169,10 @@ impl<'a> CanonicalLedger<'a> {
             let budget = &mut *self.budget;
             let whole = self.whole;
             let mut admit = |bytes, visits| {
-                admit_prefix(budget, whole, deadline, cancelled, bytes, visits)
-                    .map_err(|error| {
-                        admission_error = Some(error);
-                        codec_refusal()
-                    })
+                admit_prefix(budget, whole, deadline, cancelled, bytes, visits).map_err(|error| {
+                    admission_error = Some(error);
+                    codec_refusal()
+                })
             };
             parse_json_with_state_budget_and_admission(
                 bytes,
@@ -194,16 +190,14 @@ impl<'a> CanonicalLedger<'a> {
     /// Preserve the existing serde compact-size measure. Its full borrowed
     /// value walk, strings, keys and numeric lexemes are admitted BEFORE the
     /// serializer counts them; the counter retains no output body.
-    pub(super) fn encoded_len(
-        &mut self,
-        value: &serde_json::Value,
-    ) -> SourceCommandResult<usize> {
+    pub(super) fn encoded_len(&mut self, value: &serde_json::Value) -> SourceCommandResult<usize> {
         let mut visits = 0;
         self.admit_serde(value, 0, &mut visits)?;
         struct Counter(usize);
         impl std::io::Write for Counter {
             fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-                self.0 = self.0
+                self.0 = self
+                    .0
                     .checked_add(bytes.len())
                     .filter(|n| *n <= MAX_BYTES)
                     .ok_or_else(|| std::io::Error::other("PWE encoded byte cap"))?;
@@ -238,7 +232,10 @@ impl<'a> CanonicalLedger<'a> {
             serde_json::Value::String(text) => self.admit_text(text.len())?,
             serde_json::Value::Array(values) => {
                 self.admit_text(
-                    values.len().checked_add(2).ok_or(unsupported("PWE size array overflow"))?,
+                    values
+                        .len()
+                        .checked_add(2)
+                        .ok_or(unsupported("PWE size array overflow"))?,
                 )?;
                 for value in values {
                     self.admit_serde(value, depth + 1, visits)?;
@@ -270,7 +267,12 @@ impl<'a> CanonicalLedger<'a> {
             .and_then(|n| n.checked_add(2))
             .ok_or(unsupported("PWE size work overflow"))?;
         admit_prefix(
-            self.budget, self.whole, self.deadline, self.cancelled, bytes, work,
+            self.budget,
+            self.whole,
+            self.deadline,
+            self.cancelled,
+            bytes,
+            work,
         )
     }
     fn inspect_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
@@ -319,10 +321,7 @@ fn admit_prefix(
         .read(u64::try_from(bytes).map_err(|_| unsupported("PWE codec byte conversion"))?)
 }
 fn codec_refusal() -> FoundationError {
-    FoundationError::new(
-        FoundationErrorCode::BudgetExceeded,
-        "PWE codec admission",
-    )
+    FoundationError::new(FoundationErrorCode::BudgetExceeded, "PWE codec admission")
 }
 fn cutoff(deadline: Instant, cancelled: &AtomicBool) -> tos_foundation::Result<()> {
     active(deadline, cancelled).map_err(|_| codec_refusal())

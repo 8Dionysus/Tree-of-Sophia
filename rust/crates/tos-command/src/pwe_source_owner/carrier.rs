@@ -108,16 +108,22 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
             return Err(unsupported("PWE carrier scenario count cap"));
         }
         let mut groups = Vec::new();
-        let slots = scenario_refs.len()
+        let slots = scenario_refs
+            .len()
             .checked_mul(std::mem::size_of::<SelectedGroup>())
             .ok_or(unsupported("PWE group reservation overflow"))?;
-        let available = host.frames.whole.try_borrow()
+        let available = host
+            .frames
+            .whole
+            .try_borrow()
             .map_err(|_| invalid("PWE whole-call budget in use"))?
             .remaining_live()?;
         host.frames.retain(slots)?;
-        groups.try_reserve_exact(scenario_refs.len())
+        groups
+            .try_reserve_exact(scenario_refs.len())
             .map_err(|_| unsupported("PWE group reservation"))?;
-        let actual = groups.capacity()
+        let actual = groups
+            .capacity()
             .checked_mul(std::mem::size_of::<SelectedGroup>())
             .ok_or(unsupported("PWE group capacity overflow"))?;
         if actual > available {

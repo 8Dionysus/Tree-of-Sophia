@@ -128,7 +128,8 @@ impl RoleCache {
                 "PWE formal kind registry pin differs",
             ));
         }
-        let work = frames.encoded_len(wire)?
+        let work = frames
+            .encoded_len(wire)?
             .checked_add(256)
             .and_then(|n| n.checked_mul(self.records.len().checked_add(1)?))
             .ok_or(unsupported("PWE role cache comparison work overflow"))?;

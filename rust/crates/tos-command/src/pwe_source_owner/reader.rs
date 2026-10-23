@@ -136,9 +136,7 @@ pub(crate) fn check_description_revision(
     crate::source_creation_store::active(deadline, cancelled)?;
     let mut values = Vec::new();
     for value in [old, old_ref, new, new_ref] {
-        values.push(
-            CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(value)?,
-        );
+        values.push(CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(value)?);
     }
     session.description_revision(&values[0],&values[1],&values[2],&values[3])
         .map_err(|_|invalid("PWE description-only revision changed protected source/proposition/evidence/lineage"))?;
@@ -162,9 +160,7 @@ pub(crate) fn check_independent_correction(
     crate::source_creation_store::active(deadline, cancelled)?;
     let mut values = Vec::new();
     for value in [old, old_ref, new, new_ref, lineage] {
-        values.push(
-            CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(value)?,
-        );
+        values.push(CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(value)?);
     }
     session
         .independent_correction(&values[0], &values[1], &values[2], &values[3], &values[4])

@@ -155,7 +155,8 @@ impl NativeBasis {
         metadata: &[tos_compiler::pwe_native::CheckedMetadata<'_>],
     ) -> SourceCommandResult<()> {
         for item in metadata {
-            let work = frames.encoded_len(item.value())?
+            let work = frames
+                .encoded_len(item.value())?
                 .checked_add(256)
                 .and_then(|n| n.checked_mul(self.contents.len().checked_add(1)?))
                 .ok_or(unsupported("PWE metadata comparison work overflow"))?;

@@ -1,7 +1,7 @@
 //! Reuses actual protected frames and the maintained evaluator. No bool grant,
 //! report factory, per-callback budget reset or journal writer is introduced.
-use super::{MAX_BYTES, invalid, unsupported};
 use super::budget::CanonicalLedger;
+use super::{MAX_BYTES, invalid, unsupported};
 use crate::{
     source_assessment_journal::{
         AssessmentHistory, AssessmentJournalFence, ProtectedAssessmentJournal,
@@ -184,7 +184,8 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         let version = cmd::field(row, "version")?
             .as_u64()
             .ok_or(invalid("PWE selected Claim envelope version"))?;
-        let mut ledger = CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
+        let mut ledger =
+            CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
         let digest = ledger.digest(cmd::field(row, "payload")?)?;
         self.budget.charge_work(id.len())?;
         self.retain(
@@ -195,10 +196,7 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         )?;
         Ok(serde_json::json!({"id":id,"version":version,"digest":digest.to_prefixed()}))
     }
-    pub(super) fn encoded_len(
-        &mut self,
-        value: &serde_json::Value,
-    ) -> SourceCommandResult<usize> {
+    pub(super) fn encoded_len(&mut self, value: &serde_json::Value) -> SourceCommandResult<usize> {
         CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
             .encoded_len(value)
     }
@@ -209,7 +207,9 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         let bytes = self.encoded_len(value)?;
         self.budget.charge_work(bytes)?;
         self.retain(
-            bytes.checked_mul(64).and_then(|n| n.checked_add(256))
+            bytes
+                .checked_mul(64)
+                .and_then(|n| n.checked_add(256))
                 .ok_or(unsupported("PWE retained value copy overflow"))?,
         )
     }
@@ -233,7 +233,10 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
     }
     pub(crate) fn verify(&mut self) -> SourceCommandResult<()> {
         active(self.deadline, self.cancelled)?;
-        let summaries = self.private.retained_raw.len()
+        let summaries = self
+            .private
+            .retained_raw
+            .len()
             .checked_add(self.context.files.len())
             .and_then(|n| n.checked_add(self.histories.len()))
             .and_then(|n| n.checked_add(1))
@@ -247,7 +250,10 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             .input_bytes()?
             .checked_add(self.public.input_bytes()?)
             .and_then(|n| {
-                self.grant.configuration_raw().len().checked_mul(2)
+                self.grant
+                    .configuration_raw()
+                    .len()
+                    .checked_mul(2)
                     .and_then(|twice| n.checked_add(twice))
             })
             .ok_or(unsupported("PWE fence byte overflow"))?;
@@ -395,10 +401,7 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         let raw = self.canonical(value)?;
         self.decode_domain(&raw)
     }
-    pub(super) fn decode_domain(
-        &mut self,
-        raw: &[u8],
-    ) -> SourceCommandResult<serde_json::Value> {
+    pub(super) fn decode_domain(&mut self, raw: &[u8]) -> SourceCommandResult<serde_json::Value> {
         CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled)
             .decode_domain(raw)
     }
