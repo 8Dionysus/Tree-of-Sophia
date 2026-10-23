@@ -7754,7 +7754,10 @@ pub struct ResolvedRecordVersion {
 }
 
 impl ResolvedRecordVersion {
-    fn readonly_descriptor(&self, registry: &JsonValue) -> SourceCommandResult<JsonValue> {
+    pub(crate) fn readonly_descriptor(
+        &self,
+        registry: &JsonValue,
+    ) -> SourceCommandResult<JsonValue> {
         let kind = cmd::text(&self.route_profile, "record_type")?;
         let schema_version = cmd::text(&self.record, "schema_version")?;
         let native_witness = matches!(
@@ -7942,6 +7945,34 @@ pub(crate) fn resolve_record_version_evidence_from_cut(
         exact,
         worker,
         deadline,
+        cancelled,
+    )
+}
+
+/// Bounded exact-version read for source-owned formal-role consumers. Reuses
+/// the existing owner discovery, profile worker and retained history verifier;
+/// the caller owns the aggregate invocation budget and live owner fences.
+pub(crate) fn resolve_role_record_version_from_cut(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    exact: &JsonValue,
+    limits: ItemLimits,
+    worker: &mut CutWorkerSchemaExecutor,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedRecordVersion> {
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "role record selected cut differs",
+        ));
+    }
+    resolve_record_version_selected(
+        ctx,
+        Some(cut),
+        None,
+        Some(limits),
+        exact,
+        worker,
+        limits.deadline,
         cancelled,
     )
 }

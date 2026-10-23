@@ -1,0 +1,47 @@
+{
+  "type_id": "tos.entity.ts-native-definition",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "TS native definition",
+    "ru": "Нативное определение времени или пространства",
+    "en": "Native time or space definition"
+  },
+  "definition": "A source-owned explicit definition of a named time/space domain or rule with its stated premises; it does not establish historical applicability.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/ts-native-definition.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "ts-native-definition"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "ts-native-definition"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "semantic-metadata-v1",
+    "record_type": "ts-native-definition",
+    "id_prefix": "tos.ts-native-definition.",
+    "source_basename": "ts-native-definition.json",
+    "catalog_filename": "ts-native-definitions.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_ts_native_definition_record_v1",
+        "schema_ref": "ToS/contracts/ts-native-definition.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}
