@@ -299,11 +299,12 @@ fn local_inventory_bridge_tei_prepared_snapshot_consumer() {
     )
     .unwrap();
     assert!(
-        !navigation.value()["diagnostics"]
-            .as_array()
-            .unwrap()
+        !navigation
+            .diagnostics()
             .iter()
-            .any(|r| r["level"] == "error")
+            .any(|r| r["level"] == "error"),
+        "native SourceNavigation diagnostics: {:?}",
+        navigation.diagnostics()
     );
     assert!(
         navigation.value()["nodes"]

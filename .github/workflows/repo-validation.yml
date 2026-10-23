@@ -798,6 +798,12 @@ jobs:
         run: |
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
           rustup default 1.98.1
+      - name: Prepare bounded PDF inventory parser tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends poppler-utils
+          test -x /usr/bin/pdfinfo
+          test -x /usr/bin/pdfimages
       - name: Setup Node for generated WebAssembly host
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
