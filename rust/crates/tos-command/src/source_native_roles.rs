@@ -565,13 +565,27 @@ fn admitted_document(
         max_visits: defaults.max_visits.min(remaining.max_work),
         ..defaults
     };
-    // Same conservative native conversion-holder fee as the PWE codec owner.
-    // Reserve it BEFORE the parser allocates; the parser's state cap is the
-    // reservation itself. No original byte/state ceiling is enlarged.
+    // Foundation prices fixed recursive slots independently of raw length.
+    // Include its exact ABI-dependent stack formula as well as the existing
+    // conservative native conversion-holder fee. Pay both BEFORE parsing;
+    // the parser enforces this same reservation, within the original budget.
+    let stack = limits
+        .max_depth
+        .checked_add(1)
+        .and_then(|n| {
+            n.checked_mul(
+                std::mem::size_of::<JsonValue>()
+                    + std::mem::size_of::<tos_foundation::JsonString>()
+                    + std::mem::size_of::<std::collections::HashMap<Vec<u16>, usize>>()
+                    + 2 * std::mem::size_of::<Vec<JsonValue>>(),
+            )
+        })
+        .ok_or(Error::Unsupported("native parser fixed state overflow"))?;
     let reserved = raw
         .len()
         .checked_mul(64)
         .and_then(|n| n.checked_add(1024))
+        .and_then(|n| n.checked_add(stack))
         .ok_or(Error::Unsupported(
             "native document state reservation overflow",
         ))?;
@@ -615,8 +629,18 @@ fn admitted_document(
             &mut admit,
         )
     };
-    parsed.map_err(|_| {
-        admission_error.unwrap_or(Error::Invalid("native role strict source document"))
+    parsed.map_err(|error| {
+        if let Some(error) = admission_error {
+            error
+        } else if cancelled.load(Ordering::Relaxed)
+            || Instant::now() >= deadline.min(remaining.deadline)
+        {
+            Error::Denied("native role document cancelled or expired")
+        } else if error.code == FoundationErrorCode::BudgetExceeded {
+            Error::Unsupported("native role document parser allowance")
+        } else {
+            Error::Invalid("native role strict source document")
+        }
     })
 }
 
