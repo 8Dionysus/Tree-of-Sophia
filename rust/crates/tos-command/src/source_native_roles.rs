@@ -106,6 +106,9 @@ impl<'a> NativeRoleResolver<'a> {
                 return Err(Error::Conflict("native role selected source bytes differ"));
             }
         }
+        let entity_path = RelativePath::parse(ENTITIES).map_err(|_| Error::Invalid("native entity registry path"))?;
+        let entity_raw = ctx.file(&entity_path)?.ok_or(Error::Unsupported("native entity registry is not selected"))?;
+        budget.charge_work(entity_raw.len())?;
         let entities = source_revisions::validate_source_profile_registry(worker, deadline, cancelled, ctx)?;
         let path = RelativePath::parse(registry.path).map_err(|_| Error::Invalid("native role registry path"))?;
         if !registry.path.starts_with("ToS/doctrine/semantic-interchange/") || !registry.path.ends_with(".json") {

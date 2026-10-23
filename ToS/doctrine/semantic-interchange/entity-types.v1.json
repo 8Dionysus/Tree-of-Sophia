@@ -2330,7 +2330,9 @@
       "abstract": false,
       "object_role": "semantic",
       "labels": {
-        "default": "TS native definition"
+        "default": "TS native definition",
+        "ru": "Нативное определение времени или пространства",
+        "en": "Native time or space definition"
       },
       "definition": "A source-owned explicit definition of a named time/space domain or rule with its stated premises; it does not establish historical applicability.",
       "lifecycle": "candidate",
@@ -2375,7 +2377,9 @@
       "abstract": false,
       "object_role": "semantic",
       "labels": {
-        "default": "TS native value-profile"
+        "default": "TS native value-profile",
+        "ru": "Нативный профиль значения времени или пространства",
+        "en": "Native time or space value profile"
       },
       "definition": "A source-owned TS value interpretation profile naming its typed codomain and DirectDomainValueV1 projection after native Record body decoding.",
       "lifecycle": "candidate",
@@ -2420,7 +2424,9 @@
       "abstract": false,
       "object_role": "semantic",
       "labels": {
-        "default": "TS native operation-result"
+        "default": "TS native operation-result",
+        "ru": "Нативный результат операции времени или пространства",
+        "en": "Native time or space operation result"
       },
       "definition": "An addressable TS domain computation result whose exact profile and inputs govern interpretation; a computed result alone is not a source-level entailment or coverage assessment.",
       "lifecycle": "candidate",
