@@ -1404,12 +1404,12 @@ fn structured_calendar_refs_ignore_object_order_but_preserve_values() {
         set(&mut projection, "source_extent", extent);
         set(&mut projection, "sidecar", sidecar);
         for (operation, input, mismatch) in [
-            ("derive_named_extent", named, "CalendarRuleTrsMismatch"),
-            ("project_postgres_range", projection, "SidecarTrsMismatch"),
+            ("derive_extent", named, "CalendarRuleTrsMismatch"),
+            ("project_to_postgres_range", projection, "SidecarTrsMismatch"),
         ] {
             let before = input.clone();
             let context = parse("{}");
-            let direct = if operation == "derive_named_extent" {
+            let direct = if operation == "derive_extent" {
                 derive_named_extent(&input, &context, TemporalBudget::default())
             } else {
                 project_postgres_range(&input, &context, TemporalBudget::default())
@@ -1421,7 +1421,7 @@ fn structured_calendar_refs_ignore_object_order_but_preserve_values() {
             for result in [&direct, &parent] {
                 if matches {
                     assert_ne!(s(result, "reason"), Some(mismatch));
-                    let expected = if operation == "derive_named_extent" {
+                    let expected = if operation == "derive_extent" {
                         "Resolved"
                     } else {
                         "Projected"
