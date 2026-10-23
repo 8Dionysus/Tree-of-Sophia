@@ -1,6 +1,7 @@
 //! Native Claim reader data, invoked only after actual profile/schema/grant
 //! selection by the maintained source_claims owner. This pure extraction is
 //! neither grounding evidence nor a source/assessment authorization token.
+use super::access::BorrowedAccess;
 use super::budget::CanonicalLedger;
 use super::{MAX_RECORDS, invalid, unsupported};
 use crate::source_claims::ClaimCallBudget;
@@ -38,8 +39,7 @@ pub(crate) fn extract_claim_dependencies(
 ) -> SourceCommandResult<ClaimDependencies> {
     crate::source_creation_store::active(deadline, cancelled)?;
     let claim = CanonicalLedger::new(budget, whole, deadline, cancelled).domain_value(claim)?;
-    let object = claim
-        .get("object")
+    let object = CanonicalLedger::new(budget, whole, deadline, cancelled).get(&claim, "object")?
         .ok_or(invalid("PWE Claim object absent"))?;
     let prepared = session
         .prepare(object)

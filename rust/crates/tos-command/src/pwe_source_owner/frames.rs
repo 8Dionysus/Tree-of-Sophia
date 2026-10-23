@@ -1,5 +1,6 @@
 //! Reuses actual protected frames and the maintained evaluator. No bool grant,
 //! report factory, per-callback budget reset or journal writer is introduced.
+use super::access::BorrowedAccess;
 use super::budget::CanonicalLedger;
 use super::{MAX_BYTES, invalid, unsupported};
 use crate::{
@@ -7,7 +8,7 @@ use crate::{
         AssessmentHistory, AssessmentJournalFence, ProtectedAssessmentJournal,
     },
     source_claims::ClaimCallBudget,
-    source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult},
+    source_command::{CommandContext, SourceCommandError, SourceCommandResult},
     source_creation_store::active,
     source_native_cli::private_assessment::{self, AssessmentEvaluationPlan, OperationBudget},
     source_private_assessment_sources::PrivateAssessmentSources,
@@ -179,14 +180,15 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         &mut self,
         row: &JsonValue,
     ) -> SourceCommandResult<serde_json::Value> {
-        cmd::exact_keys(row, &["id", "version", "payload", "origin_id"])?;
-        let id = cmd::text(row, "id")?;
-        let version = cmd::field(row, "version")?
-            .as_u64()
-            .ok_or(invalid("PWE selected Claim envelope version"))?;
-        let mut ledger =
-            CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
-        let digest = ledger.digest(cmd::field(row, "payload")?)?;
+        let mut ledger = CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
+        ledger.inspect_access(0, 1)?;
+        if row.as_object().map(|o| o.len()) != Some(4) { return Err(invalid("PWE selected Claim envelope fields")); }
+        let id = ledger.native_text(row, "id")?;
+        let version = ledger.native_field(row, "version")?.as_u64().ok_or(invalid("PWE selected Claim envelope version"))?;
+        let payload = ledger.native_field(row, "payload")?;
+        ledger.native_field(row, "origin_id")?;
+        let digest = ledger.digest(payload)?;
+        drop(ledger);
         self.budget.charge_work(id.len())?;
         self.retain(
             id.len()
@@ -213,21 +215,140 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
                 .ok_or(unsupported("PWE retained value copy overflow"))?,
         )
     }
+    pub(super) fn get<'v>(&mut self, value: &'v serde_json::Value, key: &str) -> SourceCommandResult<Option<&'v serde_json::Value>> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).get(value, key)
+    }
+    pub(super) fn field<'v>(&mut self, value: &'v serde_json::Value, key: &str) -> SourceCommandResult<&'v serde_json::Value> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).field(value, key)
+    }
+    pub(super) fn pointer<'v>(&mut self, value: &'v serde_json::Value, pointer: &str) -> SourceCommandResult<Option<&'v serde_json::Value>> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).pointer(value, pointer)
+    }
+    pub(super) fn native_get<'v>(&mut self, value: &'v JsonValue, key: &str) -> SourceCommandResult<Option<&'v JsonValue>> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).native_get(value, key)
+    }
+    pub(super) fn native_field<'v>(&mut self, value: &'v JsonValue, key: &str) -> SourceCommandResult<&'v JsonValue> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).native_field(value, key)
+    }
+    pub(super) fn native_text<'v>(&mut self, value: &'v JsonValue, key: &str) -> SourceCommandResult<&'v str> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).native_text(value, key)
+    }
+    pub(super) fn native_array<'v>(&mut self, value: &'v JsonValue, key: &str) -> SourceCommandResult<&'v [JsonValue]> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).native_array(value, key)
+    }
+    pub(super) fn equal(&mut self, left: &serde_json::Value, right: &serde_json::Value) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).equal(left, right)
+    }
+    pub(super) fn optional_equal(&mut self, left: Option<&serde_json::Value>, right: Option<&serde_json::Value>) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).optional_equal(left, right)
+    }
+    pub(super) fn contains(&mut self, values: &[serde_json::Value], target: &serde_json::Value) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).contains(values, target)
+    }
+    pub(super) fn text_equal(&mut self, left: &str, right: &str) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).text_equal(left, right)
+    }
+    pub(super) fn text_is(&mut self, value: &serde_json::Value, key: &str, expected: &str) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).text_is(value, key, expected)
+    }
+    pub(super) fn inspect_access(&mut self, bytes: usize, visits: usize) -> SourceCommandResult<()> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).inspect_access(bytes, visits)
+    }
+    pub(super) fn string_map_get<'v, T>(&mut self, map: &'v BTreeMap<String, T>, key: &str) -> SourceCommandResult<Option<&'v T>> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).string_map_get(map, key)
+    }
+    pub(super) fn exact(&mut self, value: &serde_json::Value) -> SourceCommandResult<tos_foundation::ExactRecordRef> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).exact(value)
+    }
+    pub(super) fn exact_equal(&mut self, left: &tos_foundation::ExactRecordRef, right: &tos_foundation::ExactRecordRef) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).exact_equal(left, right)
+    }
+    pub(super) fn reference_matches(&mut self, value: &serde_json::Value, reference: tos_compiler::pwe_native::PweRef<'_>) -> SourceCommandResult<bool> {
+        CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled).reference_matches(value, reference)
+    }
+    pub(super) fn field_equal(&mut self, value: &serde_json::Value, key: &str, target: &serde_json::Value) -> SourceCommandResult<bool> {
+        let found = self.get(value, key)?;
+        self.optional_equal(found, Some(target))
+    }
+    pub(super) fn pointer_equal(&mut self, value: &serde_json::Value, pointer: &str, target: &serde_json::Value) -> SourceCommandResult<bool> {
+        let found = self.pointer(value, pointer)?;
+        self.optional_equal(found, Some(target))
+    }
+    pub(super) fn fields_equal(&mut self, left: &serde_json::Value, right: &serde_json::Value, key: &str) -> SourceCommandResult<bool> {
+        let left = self.get(left, key)?;
+        let right = self.get(right, key)?;
+        self.optional_equal(left, right)
+    }
+    pub(super) fn pointers_equal(&mut self, left: &serde_json::Value, lpath: &str, right: &serde_json::Value, rpath: &str) -> SourceCommandResult<bool> {
+        let left = self.pointer(left, lpath)?;
+        let right = self.pointer(right, rpath)?;
+        self.optional_equal(left, right)
+    }
+    pub(super) fn pointer_contains(&mut self, value: &serde_json::Value, pointer: &str, target: &serde_json::Value) -> SourceCommandResult<bool> {
+        match self.pointer(value, pointer)?.and_then(serde_json::Value::as_array) {
+            Some(values) => self.contains(values, target),
+            None => Ok(false),
+        }
+    }
+    pub(super) fn string_arguments(&mut self, values: &serde_json::Value, arguments: &[String]) -> SourceCommandResult<bool> {
+        let Some(values) = values.as_array() else { return Ok(false); };
+        let mut index = 0;
+        for value in values {
+            self.inspect_access(0, 1)?;
+            if let Some(value) = value.as_str() {
+                let Some(expected) = arguments.get(index) else { return Ok(false); };
+                if !self.text_equal(value, expected)? { return Ok(false); }
+                index += 1;
+            }
+        }
+        Ok(index == arguments.len())
+    }
+    pub(super) fn pointer_text_is(&mut self, value: &serde_json::Value, pointer: &str, expected: &str) -> SourceCommandResult<bool> {
+        match self.pointer(value, pointer)?.and_then(serde_json::Value::as_str) {
+            Some(actual) => self.text_equal(actual, expected),
+            None => Ok(false),
+        }
+    }
+    /// Requires the common-owned admitted lookup on the actual held worker.
+    /// No guessed resource count or descriptor supplies this cost boundary.
+    pub(super) fn contract_digest(&mut self, contract: &str) -> SourceCommandResult<Option<Digest256>> {
+        let mut ledger = CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
+        let mut admission_error = None;
+        let result = self.worker.contract_digest_with_admission(contract, &mut |bytes, visits| {
+            ledger.inspect_access(bytes, visits).map_err(|error| {
+                admission_error = Some(error);
+                tos_foundation::FoundationError::new(tos_foundation::FoundationErrorCode::BudgetExceeded, "PWE schema lookup admission")
+            })
+        });
+        result.map_err(|_| admission_error.unwrap_or(unsupported("PWE held schema lookup incomplete")))
+    }
     pub(crate) fn revision(&self) -> SourceRevision {
         self.context.base_revision
     }
     pub(crate) fn source_identity(&self) -> Digest256 {
         self.revision().0
     }
-    pub(crate) fn source_path(&self, id: &str) -> SourceCommandResult<&str> {
-        match (
-            self.public.record_paths.get(id),
-            self.private.source_paths.get(id),
-        ) {
-            (Some(a), Some(b)) if a != b => Err(SourceCommandError::Conflict(
-                "PWE selected owner source path collision",
-            )),
-            (Some(path), _) | (_, Some(path)) => Ok(path.as_str()),
+    pub(crate) fn source_path(&mut self, id: &str) -> SourceCommandResult<String> {
+        let public = self.public.record_paths.iter();
+        let private = &self.private.source_paths;
+        let mut ledger = CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
+        let mut selected_public = None;
+        for (candidate, path) in public {
+            if ledger.text_equal(candidate, id)? { selected_public = Some(path.as_str()); break; }
+        }
+        let selected_private = ledger.string_map_get(private, id)?.map(String::as_str);
+        match (selected_public, selected_private) {
+            (Some(a), Some(b)) => {
+                if !ledger.text_equal(a, b)? { return Err(SourceCommandError::Conflict("PWE selected owner source path collision")); }
+                ledger.inspect_access(a.len(), 1)?;
+                ledger.reserve_access(a.len())?;
+                Ok(a.to_owned())
+            }
+            (Some(path), _) | (_, Some(path)) => {
+                ledger.inspect_access(path.len(), 1)?;
+                ledger.reserve_access(path.len())?;
+                Ok(path.to_owned())
+            },
             _ => Err(unsupported("PWE actual source Claim path not selected")),
         }
     }
@@ -312,22 +433,34 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
     /// Only bytes already selected by the protected owner. The C4 resolver may
     /// not turn an arbitrary locator into a filesystem read through this host.
     pub(crate) fn selected_bytes(&mut self, path: &str) -> SourceCommandResult<Vec<u8>> {
-        // Outer native operations guard their whole use before/after. Repeating
-        // a whole-history scan for each dependency would be quadratic I/O.
+        // Pay path validation/copy, each actual path comparison, collision
+        // bytes and final source copying before the corresponding operation.
         active(self.deadline, self.cancelled)?;
-        let relative =
-            RelativePath::parse(path).map_err(|_| invalid("PWE selected source path"))?;
-        let public = self.context.file(&relative)?;
-        let private = self.private.retained_raw.get(path).map(Vec::as_slice);
+        let context = self.context;
+        let private = self.private;
+        let mut ledger = CanonicalLedger::new(self.budget, self.whole, self.deadline, self.cancelled);
+        ledger.inspect_access(path.len().checked_mul(16).ok_or(unsupported("PWE path work overflow"))?, 1)?;
+        ledger.reserve_access(path.len().checked_add(std::mem::size_of::<RelativePath>()).ok_or(unsupported("PWE path holder overflow"))?)?;
+        let relative = RelativePath::parse(path).map_err(|_| invalid("PWE selected source path"))?;
+        let mut public = None;
+        for file in &context.files {
+            if ledger.text_equal(file.path.as_str(), relative.as_str())? {
+                if public.is_some() { return Err(invalid("duplicate selected source path")); }
+                public = Some(file.raw.as_slice());
+            }
+        }
+        let private = ledger.string_map_get(&private.retained_raw, path)?.map(Vec::as_slice);
         let raw = match (public, private) {
-            (Some(a), Some(b)) if a != b => {
-                return Err(SourceCommandError::Conflict(
-                    "PWE selected source collision",
-                ));
+            (Some(a), Some(b)) => {
+                if a.len() > MAX_BYTES || b.len() > MAX_BYTES { return Err(unsupported("PWE source member byte cap")); }
+                if !ledger.bytes_equal(a, b)? { return Err(SourceCommandError::Conflict("PWE selected source collision")); }
+                a
             }
             (Some(a), _) | (_, Some(a)) => a,
             _ => return Err(unsupported("PWE exact source path was not selected")),
         };
+        ledger.inspect_access(raw.len(), 1)?;
+        drop(ledger);
         if raw.len() > MAX_BYTES {
             return Err(unsupported("PWE source member byte cap"));
         }
@@ -359,9 +492,10 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         record: &JsonValue,
         schema: &str,
     ) -> SourceCommandResult<()> {
+        self.inspect_access(schema.len(), 1)?;
         if !schema.starts_with("ToS/contracts/")
             || !schema.ends_with(".schema.json")
-            || self.worker.selected_contract_digest(schema).is_none()
+            || self.contract_digest(schema)?.is_none()
         {
             return Err(unsupported("PWE actual schema is not in selected worker"));
         }
@@ -433,7 +567,8 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             ));
         }
         for subject in &plan.lock_subjects {
-            if !self.histories.contains_key(subject) {
+            let histories = self.histories;
+            if self.string_map_get(histories, subject)?.is_none() {
                 return Err(invalid("PWE complete held assessment history absent"));
             }
         }

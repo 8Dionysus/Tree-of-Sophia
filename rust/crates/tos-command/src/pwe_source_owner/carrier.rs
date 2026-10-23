@@ -60,48 +60,40 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
     ) -> SourceCommandResult<SelectedCarrier> {
         host.admitted_account(account)?;
         let claim = account.claim();
-        let object = account.object();
-        if claim.get("polarity").and_then(Value::as_str) != Some("positive")
-            || object.get("kind").and_then(Value::as_str) != Some("responsibility-account")
-            || object.get("attribution_mode").and_then(Value::as_str) != Some("source-attribution")
-            || object
-                .pointer("/qualification/modality")
-                .and_then(Value::as_str)
-                != Some("source-reported")
+        let object = account.object(&mut host.frames)?;
+        if !host.frames.text_is(claim, "polarity", "positive")?
+            || !host.frames.text_is(object, "kind", "responsibility-account")?
+            || !host.frames.text_is(object, "attribution_mode", "source-attribution")?
+            || !host.frames.pointer_text_is(object, "/qualification/modality", "source-reported")?
         {
             return Err(unsupported(
                 "PWE positive source-account carrier needs explicit source attribution/sign",
             ));
         }
         let carrier = host.role_value(carrier_ref, Role::JointCarrier)?;
-        if carrier.get("schema_version").and_then(Value::as_str)
-            != Some("tos_pwe_source_account_carrier_v1")
+        if !host.frames.text_is(&carrier, "schema_version", "tos_pwe_source_account_carrier_v1")?
         {
             return Err(unsupported("PWE carrier actual profile differs"));
         }
-        let body = carrier
-            .get("body")
+        let body = host.frames.get(&carrier, "body")?
             .ok_or(invalid("PWE native carrier body"))?;
-        if body.get("interpretation").and_then(Value::as_str) != Some(INTERPRETATION)
-            || body.get("claim_ref") != Some(account.reference())
+        if !host.frames.text_is(body, "interpretation", INTERPRETATION)?
+            || !host.frames.field_equal(body, "claim_ref", account.reference())?
         {
             return Err(SourceCommandError::Conflict(
                 "PWE carrier selected Claim/interpretation differs",
             ));
         }
-        let context = object
-            .pointer("/qualification/context_ref/value")
+        let context = host.frames.pointer(object, "/qualification/context_ref/value")?
             .ok_or(unsupported("PWE source-account context unresolved"))?;
-        let scope = object
-            .pointer("/qualification/scope_ref/value")
+        let scope = host.frames.pointer(object, "/qualification/scope_ref/value")?
             .ok_or(unsupported("PWE source-account scope unresolved"))?;
-        if body.get("context_ref") != Some(context) || body.get("scope_ref") != Some(scope) {
+        if !host.frames.field_equal(body, "context_ref", context)? || !host.frames.field_equal(body, "scope_ref", scope)? {
             return Err(SourceCommandError::Conflict(
                 "PWE carrier content scope/context differs",
             ));
         }
-        let declared = body
-            .get("scenario_refs")
+        let declared = host.frames.get(body, "scenario_refs")?
             .and_then(Value::as_array)
             .ok_or(invalid("PWE actual carrier scenarios"))?;
         if scenario_refs.len() > MAX_RECORDS || declared.len() > MAX_RECORDS {
@@ -131,46 +123,41 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
         }
         host.frames.retain(actual.saturating_sub(slots))?;
         for (i, reference) in scenario_refs.iter().enumerate() {
-            if scenario_refs[..i].contains(reference) || !declared.contains(reference) {
+            if host.frames.contains(&scenario_refs[..i], reference)? || !host.frames.contains(declared, reference)? {
                 return Err(SourceCommandError::Conflict(
                     "PWE scenario not uniquely selected from actual carrier",
                 ));
             }
             let scenario = host.role_value(reference, Role::Scenario)?;
-            if scenario.get("schema_version").and_then(Value::as_str)
-                != Some("tos_pwe_source_account_scenario_v1")
+            if !host.frames.text_is(&scenario, "schema_version", "tos_pwe_source_account_scenario_v1")?
             {
                 return Err(unsupported("PWE group scenario actual profile differs"));
             }
-            let scenario = scenario
-                .get("body")
+            let scenario = host.frames.get(&scenario, "body")?
                 .ok_or(invalid("PWE native scenario body"))?;
-            if scenario.get("interpretation").and_then(Value::as_str) != Some(INTERPRETATION)
-                || scenario.get("carrier_ref") != Some(carrier_ref)
-                || scenario.get("claim_ref") != Some(account.reference())
-                || scenario.get("context_ref") != Some(context)
-                || scenario.get("scope_ref") != Some(scope)
+            if !host.frames.text_is(scenario, "interpretation", INTERPRETATION)?
+                || !host.frames.field_equal(scenario, "carrier_ref", carrier_ref)?
+                || !host.frames.field_equal(scenario, "claim_ref", account.reference())?
+                || !host.frames.field_equal(scenario, "context_ref", context)?
+                || !host.frames.field_equal(scenario, "scope_ref", scope)?
             {
                 return Err(SourceCommandError::Conflict(
                     "PWE scenario source/carrier/scope/context differs",
                 ));
             }
-            let pointer = scenario
-                .pointer("/group_selector/pointer")
+            let pointer = host.frames.pointer(scenario, "/group_selector/pointer")?
                 .and_then(Value::as_str)
                 .ok_or(invalid("PWE explicit source group selector"))?;
-            if scenario
-                .pointer("/group_selector/syntax")
-                .and_then(Value::as_str)
-                != Some("json-pointer")
+            if !host.frames.pointer_text_is(scenario, "/group_selector/syntax", "json-pointer")?
             {
                 return Err(invalid("PWE source group selector syntax"));
             }
-            let mode = object.pointer("/assignees/mode").and_then(Value::as_str);
-            let permitted = if pointer == "/object/assignees/bearers" {
-                mode == Some("joint")
+            let mode = host.frames.pointer(object, "/assignees/mode")?.and_then(Value::as_str);
+            host.frames.inspect_access(pointer.len().checked_mul(3).ok_or(unsupported("PWE group pointer work"))?, 1)?;
+            let permitted = if host.frames.text_equal(pointer, "/object/assignees/bearers")? {
+                match mode { Some(mode) => host.frames.text_equal(mode, "joint")?, None => false }
             } else if let Some(index) = pointer.strip_prefix("/object/assignees/groups/") {
-                mode == Some("alternatives")
+                matches_mode(&mut host.frames, mode, "alternatives")?
                     && !index.is_empty()
                     && (index == "0" || !index.starts_with('0'))
                     && index.bytes().all(|b| b.is_ascii_digit())
@@ -183,14 +170,13 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
                     "PWE source contract does not declare this explicit joint group",
                 ));
             }
-            let positive = claim
-                .pointer(pointer)
+            let positive = host.frames.pointer(claim, pointer)?
                 .and_then(Value::as_array)
                 .ok_or(invalid("PWE actual source group absent"))?;
             if positive.is_empty() || positive.len() > 128 {
                 return Err(invalid("PWE source group cardinality"));
             }
-            let group_value = claim.pointer(pointer).ok_or(invalid("PWE group absent"))?;
+            let group_value = host.frames.pointer(claim, pointer)?.ok_or(invalid("PWE group absent"))?;
             host.frames.reserve_domain_copy(reference)?;
             host.frames.reserve_domain_copy(group_value)?;
             groups.push(SelectedGroup {
@@ -235,9 +221,9 @@ impl<R: ExactDependencyReader> JointCarrierOwner for PositiveCarrier<'_, '_, '_,
         carrier: &JointCarrier<'_>,
     ) -> tos_compiler::pwe_native::Result<()> {
         self.host.frames.verify().map_err(refuse)?;
-        if carrier.reference != &self.selection.reference
-            || carrier.context != &self.selection.context
-            || carrier.scope != &self.selection.scope
+        if !self.host.frames.equal(carrier.reference, &self.selection.reference).map_err(refuse)?
+            || !self.host.frames.equal(carrier.context, &self.selection.context).map_err(refuse)?
+            || !self.host.frames.equal(carrier.scope, &self.selection.scope).map_err(refuse)?
             || self.host.frames.revision() != self.selection.revision
             || self.host.frames.worker.prepared_execution_binding() != self.selection.worker
         {
@@ -251,19 +237,24 @@ impl<R: ExactDependencyReader> JointCarrierOwner for PositiveCarrier<'_, '_, '_,
         world: &JointWorld<'_>,
     ) -> tos_compiler::pwe_native::Result<()> {
         self.current_fence(carrier)?;
-        let group = self
-            .selection
-            .groups
-            .iter()
-            .find(|g| &g.reference == world.world_ref)
-            .ok_or(tos_compiler::pwe_native::Error::NeedsBinding(
-                "actual source-account scenario not selected",
-            ))?;
-        if !world.negative.is_empty() || world.positive != group.positive.as_slice() {
+        let mut selected = None;
+        for group in &self.selection.groups {
+            if self.host.frames.equal(&group.reference, world.world_ref).map_err(refuse)? { selected = Some(group); break; }
+        }
+        let group = selected.ok_or(tos_compiler::pwe_native::Error::NeedsBinding("actual source-account scenario not selected"))?;
+        let mut positives_match = world.positive.len() == group.positive.len();
+        for (left, right) in world.positive.iter().zip(&group.positive) {
+            if !self.host.frames.equal(left, right).map_err(refuse)? { positives_match = false; break; }
+        }
+        if !world.negative.is_empty() || !positives_match {
             return Err(tos_compiler::pwe_native::Error::QualificationMismatch(
                 "explicit positive source group",
             ));
         }
         Ok(())
     }
+}
+
+fn matches_mode(frames: &mut super::HeldFrames<'_, '_>, actual: Option<&str>, expected: &str) -> SourceCommandResult<bool> {
+    match actual { Some(actual) => frames.text_equal(actual, expected), None => Ok(false) }
 }

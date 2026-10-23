@@ -1,5 +1,6 @@
 //! Native, held-source PWE host. Module/export/call-site registration is owned
 //! by the common integrator. These types are crate-private, never request data.
+mod access;
 mod basis;
 mod budget;
 mod carrier;
@@ -23,10 +24,11 @@ pub(crate) use registry::{BindingRegistry, DispatchSpec};
 pub(crate) use roles::{ExactDependencyReader, ResolvedDependency, RoleCache};
 
 use crate::source_command::{SourceCommandError, SourceCommandResult};
+use access::BorrowedAccess;
 use budget::CanonicalLedger;
 use serde_json::Value;
 use tos_compiler::pwe_native::Error;
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::JsonValue;
 
 const MAX_BYTES: usize = 1_048_576;
 const MAX_RECORDS: usize = 4096;
@@ -55,32 +57,12 @@ fn exact_match(
     ledger: &mut CanonicalLedger<'_>,
 ) -> SourceCommandResult<()> {
     let actual_digest = ledger.digest(actual)?;
-    let reference = value
-        .as_object()
-        .filter(|m| m.len() == 3)
-        .ok_or(invalid("PWE exact ref shape"))?;
-    let id = reference
-        .get("id")
-        .and_then(Value::as_str)
-        .filter(|id| !id.is_empty() && !id.chars().any(char::is_control))
-        .ok_or(invalid("PWE exact ID"))?;
-    let version = reference
-        .get("version")
-        .and_then(Value::as_u64)
-        .filter(|v| *v > 0)
-        .ok_or(invalid("PWE exact version"))?;
-    let digest = reference
-        .get("digest")
-        .and_then(Value::as_str)
-        .and_then(|v| Digest256::from_prefixed(v).ok())
-        .ok_or(invalid("PWE exact digest"))?;
-    if actual.object_get(id_field).and_then(JsonValue::as_str) != Some(id)
-        || actual.object_get(version_field).and_then(JsonValue::as_u64) != Some(version)
-        || actual_digest != digest
-    {
-        return Err(SourceCommandError::Conflict(
-            "PWE selected exact record differs",
-        ));
+    let reference = ledger.exact(value)?;
+    let actual_id = ledger.native_get(actual, id_field)?.and_then(JsonValue::as_str);
+    let names = match actual_id { Some(id) => ledger.text_equal(id, reference.id.as_str())?, None => false };
+    let version = ledger.native_get(actual, version_field)?.and_then(JsonValue::as_u64);
+    if !names || version != Some(reference.version.get()) || actual_digest != reference.digest {
+        return Err(SourceCommandError::Conflict("PWE selected exact record differs"));
     }
     Ok(())
 }

@@ -60,6 +60,9 @@ impl NativeBasis {
             // Formal record slots use only C4's private-constructed result.
             // Kind-registry slots and other dependencies retain the maintained
             // source reader port. Role/order/multiplicity are never discarded.
+            // Extractor role names are fixed static tags; pay their bounded
+            // literal dispatch and predecessor-tag checks before matching.
+            frames.inspect_access(slot.role.len().checked_mul(16).ok_or(unsupported("PWE role tag work"))?, 1)?;
             let formal = if slot.inner % 2 == 1 {
                 match slot.role {
                     "scope" | "scope_ref" => Some(crate::source_native_roles::NativeRole::Scope),
@@ -78,7 +81,7 @@ impl NativeBasis {
                 None
             };
             if formal.is_none() {
-                if let Some(index) = out.contents.iter().position(|c| c.reference == reference) {
+                if let Some(index) = out.find(&reference, frames)? {
                     // One authenticated exact source body may serve repeated
                     // logical occurrences. The occurrence itself is retained;
                     // Session::resolve_basis checks every occurrence again.
@@ -112,12 +115,12 @@ impl NativeBasis {
             };
             // Exact identity includes version+digest. Same-ID other versions are
             // retained separately; none is rejected or replaced by latest.
-            let index = out.contents.iter().position(|c| c.reference == reference);
+            let index = out.find(&reference, frames)?;
             previous = Some((slot.role, slot.outer, slot.inner, reference.clone()));
             let index = match index {
                 Some(index) => {
                     let old = &out.contents[index];
-                    if old.value != value || old.identity != identity || old.version != version {
+                    if !frames.equal(&old.value, &value)? || !frames.text_equal(old.identity, identity)? || !frames.text_equal(old.version, version)? {
                         return Err(invalid(
                             "PWE repeated exact dependency content/route differs",
                         ));
@@ -155,39 +158,23 @@ impl NativeBasis {
         metadata: &[tos_compiler::pwe_native::CheckedMetadata<'_>],
     ) -> SourceCommandResult<()> {
         for item in metadata {
-            let work = frames
-                .encoded_len(item.value())?
-                .checked_add(256)
-                .and_then(|n| n.checked_mul(self.contents.len().checked_add(1)?))
-                .ok_or(unsupported("PWE metadata comparison work overflow"))?;
-            frames.budget.charge_work(work)?;
-            let r = item.reference();
-            let registry = item.registry();
-            let matches = |c: &Content, r: tos_compiler::pwe_native::PweRef<'_>| {
-                c.reference.get("id").and_then(Value::as_str) == Some(r.id())
-                    && c.reference.get("version").and_then(Value::as_u64) == Some(r.version())
-                    && c.reference
-                        .get("digest")
-                        .and_then(Value::as_str)
-                        .and_then(|d| tos_foundation::Digest256::from_prefixed(d).ok())
-                        == Some(r.digest())
-            };
-            if !self
-                .contents
-                .iter()
-                .any(|c| matches(c, r) && c.value == *item.value())
-                || !self.contents.iter().any(|c| {
-                    matches(c, registry)
-                        && c.identity == "registry_id"
-                        && c.version == "registry_version"
-                })
-            {
-                return Err(unsupported(
-                    "PWE metadata/registry is not in native exact dependency closure",
-                ));
+            let mut record_found = false;
+            let mut registry_found = false;
+            for content in &self.contents {
+                if frames.reference_matches(&content.reference, item.reference())? && frames.equal(&content.value, item.value())? { record_found = true; }
+                if frames.reference_matches(&content.reference, item.registry())?
+                    && frames.text_equal(content.identity, "registry_id")?
+                    && frames.text_equal(content.version, "registry_version")? { registry_found = true; }
             }
+            if !record_found || !registry_found { return Err(unsupported("PWE metadata/registry is not in native exact dependency closure")); }
         }
         Ok(())
+    }
+    fn find(&self, reference: &Value, frames: &mut HeldFrames<'_, '_>) -> SourceCommandResult<Option<usize>> {
+        for (index, content) in self.contents.iter().enumerate() {
+            if frames.equal(&content.reference, reference)? { return Ok(Some(index)); }
+        }
+        Ok(None)
     }
     pub(super) fn pins(&self, frames: &mut HeldFrames<'_, '_>) -> SourceCommandResult<Vec<Value>> {
         frames.retain(
@@ -211,24 +198,11 @@ impl NativeBasis {
         basis: &ResolvedBasis<'_>,
         frames: &mut HeldFrames<'_, '_>,
     ) -> SourceCommandResult<bool> {
-        for reference in pins {
-            let bytes = frames.encoded_len(reference)?;
-            frames.budget.charge_work(bytes)?;
+        if basis.slots().len() != pins.len() { return Ok(false); }
+        for (slot, reference) in basis.slots().iter().zip(pins) {
+            if !frames.reference_matches(reference, slot.slot.reference)? { return Ok(false); }
         }
-        // ResolvedBasis has private construction. Its native digest checker has
-        // already checked each full supplied value against this exact pin. We
-        // compare ordered pins, not cloned bodies or a bare-ID map.
-        Ok(basis.slots().len() == pins.len()
-            && basis.slots().iter().zip(pins).all(|(slot, reference)| {
-                reference.get("id").and_then(Value::as_str) == Some(slot.slot.reference.id())
-                    && reference.get("version").and_then(Value::as_u64)
-                        == Some(slot.slot.reference.version())
-                    && reference
-                        .get("digest")
-                        .and_then(Value::as_str)
-                        .and_then(|d| tos_foundation::Digest256::from_prefixed(d).ok())
-                        == Some(slot.slot.reference.digest())
-            }))
+        Ok(true)
     }
     /// Session::resolve_basis performs its existing exact record check again.
     /// Cache order must equal extractor order; no bare-ID map is substituted.
@@ -236,6 +210,7 @@ impl NativeBasis {
         &'v self,
         session: &mut Session<'_>,
         account: &PreparedAccount<'v>,
+        frames: &mut HeldFrames<'_, '_>,
     ) -> tos_compiler::pwe_native::Result<ResolvedBasis<'v>> {
         let mut index = 0;
         let result = session.resolve_basis(account, |requested| {
@@ -248,16 +223,7 @@ impl NativeBasis {
                 .contents
                 .get(slot)
                 .ok_or_else(|| refuse(invalid("PWE basis content absent")))?;
-            if content.reference.get("id").and_then(Value::as_str) != Some(requested.id())
-                || content.reference.get("version").and_then(Value::as_u64)
-                    != Some(requested.version())
-                || content
-                    .reference
-                    .get("digest")
-                    .and_then(Value::as_str)
-                    .and_then(|d| tos_foundation::Digest256::from_prefixed(d).ok())
-                    != Some(requested.digest())
-            {
+            if !frames.reference_matches(&content.reference, requested).map_err(refuse)? {
                 return Err(tos_compiler::pwe_native::Error::ExactMismatch);
             }
             Ok(SuppliedExact {

@@ -2,7 +2,7 @@ use super::{
     BindingRegistry, ExactDependencyReader, HeldFrames, MAX_RECORDS, NativeBasis, RoleCache,
     invalid, refuse, unsupported,
 };
-use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::source_command::{SourceCommandError, SourceCommandResult};
 use crate::source_native_cli::private_assessment::AssessmentEvaluationPlan;
 use crate::source_native_roles::{NativeRole as Role, RoleRegistrySelection};
 use serde_json::Value;
@@ -32,8 +32,8 @@ impl NativeAccount {
     pub(crate) fn report(&self) -> &AssessmentMechanicsReport {
         &self.report
     }
-    pub(crate) fn object(&self) -> &Value {
-        &self.claim["object"]
+    pub(crate) fn object<'v>(&'v self, frames: &mut HeldFrames<'_, '_>) -> SourceCommandResult<&'v Value> {
+        frames.field(&self.claim, "object")
     }
     pub(crate) fn basis(&self) -> &NativeBasis {
         &self.basis
@@ -66,7 +66,7 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
         kind_binding: &ExactRecordRef,
     ) -> SourceCommandResult<Self> {
         let registry = BindingRegistry::load(&mut frames)?;
-        let roles = RoleCache::new(role_registry, kind_binding)?;
+        let roles = RoleCache::new(role_registry, kind_binding, &mut frames)?;
         Ok(Self {
             frames,
             dependencies,
@@ -84,33 +84,32 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
     }
     pub(super) fn admitted_account(&mut self, account: &NativeAccount) -> SourceCommandResult<()> {
         self.frames.verify()?;
-        let selected = self
-            .approved
-            .iter()
-            .find(|a| a.reference == account.reference && a.claim == account.claim)
-            .ok_or(SourceCommandError::Denied(
-                "PWE account not selected by this held native host",
-            ))?;
+        let mut index = None;
+        for (i, candidate) in self.approved.iter().enumerate() {
+            if self.frames.equal(&candidate.reference, &account.reference)? && self.frames.equal(&candidate.claim, &account.claim)? { index = Some(i); break; }
+        }
+        let selected = &self.approved[index.ok_or(SourceCommandError::Denied("PWE account not selected by this held native host"))?];
         let report = &account.report;
         let binding = AssessmentSchemaBindingV1::SourceCut {
             source_revision: self.frames.revision(),
             worker: self.frames.worker.prepared_execution_binding(),
         };
+        let recorded_at = self.frames.context.recorded_at.as_str();
         if report.source_revision() != Some(self.frames.revision())
             || report.source_input_identity() != self.frames.source_identity()
             || report.schema_binding() != binding
-            || report.observed_now() != self.frames.context.recorded_at
-            || report.scope() != &selected.assessment_scope
+            || !self.frames.text_equal(report.observed_now(), recorded_at)?
+            || !self.frames.equal(report.scope(), &selected.assessment_scope)?
         {
             return Err(SourceCommandError::Conflict(
                 "PWE source-account current native report differs",
             ));
         }
         let admission = report.current_admission();
-        if admission.get("subject") != Some(&account.reference)
-            || admission.get("policy") != Some(&selected.assessment_policy)
-            || admission.get("can_use").and_then(Value::as_bool) != Some(true)
-            || admission.get("status").and_then(Value::as_str) != Some("admitted")
+        if !self.frames.field_equal(admission, "subject", &account.reference)?
+            || !self.frames.field_equal(admission, "policy", &selected.assessment_policy)?
+            || self.frames.get(admission, "can_use")?.and_then(Value::as_bool) != Some(true)
+            || !self.frames.text_is(admission, "status", "admitted")?
             || report.source_read_required() && !report.source_read_ready()
         {
             return Err(unsupported(
@@ -131,8 +130,8 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
         if self.approved.len() >= MAX_RECORDS {
             return Err(unsupported("PWE selected account count cap"));
         }
-        let id = cmd::text(&plan.current, "id")?;
-        let index = *plan.resolved.source_index.get(id).ok_or(unsupported(
+        let id = self.frames.native_text(&plan.current, "id")?;
+        let index = *self.frames.string_map_get(&plan.resolved.source_index, id)?.ok_or(unsupported(
             "PWE target is not an actual selected source Claim",
         ))?;
         let source = plan
@@ -145,15 +144,16 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
                 "PWE selected source Claim shadowed",
             ));
         }
-        let document = cmd::field(source, "payload")?;
-        let path = self.frames.source_path(id)?.to_owned();
+        let document = self.frames.native_field(source, "payload")?;
+        let path = self.frames.source_path(id)?;
         let reference = self.frames.claim_reference(source)?;
         self.frames
             .exact_match(&reference, document, "claim_id", "claim_version")?;
         let raw = self.frames.canonical(document)?;
         let claim = self.frames.decode_domain(&raw)?;
+        let object = self.frames.field(&claim, "object")?;
         let prepared = session
-            .prepare(&claim["object"])
+            .prepare(object)
             .map_err(|_| invalid("PWE selected account value shape"))?;
         session
             .check_claim_content(&prepared, &claim)
@@ -162,9 +162,12 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             .check_endpoints(&prepared)
             .map_err(|_| invalid("PWE account endpoints/member closure"))?;
         let spec = self.registry.select(prepared.kind())?;
-        if cmd::text(document, "schema_version")? != spec.schema_version
-            || cmd::text(document, "predicate")? != spec.predicate
-            || cmd::text(document, "assertion_layer")? != spec.assertion_layer
+        let schema_version = self.frames.native_text(document, "schema_version")?;
+        let predicate = self.frames.native_text(document, "predicate")?;
+        let assertion_layer = self.frames.native_text(document, "assertion_layer")?;
+        if !self.frames.text_equal(schema_version, &spec.schema_version)?
+            || !self.frames.text_equal(predicate, &spec.predicate)?
+            || !self.frames.text_equal(assertion_layer, &spec.assertion_layer)?
         {
             return Err(SourceCommandError::Conflict(
                 "PWE source Claim/registered profile mismatch",
@@ -173,6 +176,10 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
         self.frames
             .check_schema(&path, document, &spec.schema_path)?;
         let kind = prepared.kind();
+        let argument_bytes = spec.arguments.iter().try_fold(0usize, |n, s| n.checked_add(s.len()).and_then(|n| n.checked_add(std::mem::size_of::<String>())))
+            .ok_or(unsupported("PWE dispatch argument holder"))?;
+        self.frames.inspect_access(argument_bytes, spec.arguments.len())?;
+        self.frames.retain(argument_bytes)?;
         let arguments = spec.arguments.clone();
         let basis = NativeBasis::capture(
             &mut self.frames,
@@ -198,8 +205,7 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             self.role_value(reference, role)?;
         }
         if kind == Kind::Identity {
-            let criterion = claim
-                .pointer("/object/criterion/value")
+            let criterion = self.frames.pointer(&claim, "/object/criterion/value")?
                 .ok_or(unsupported("PWE criterion binding absent"))?;
             self.role_value(criterion, Role::CriterionPolicy)?;
         }
@@ -207,9 +213,7 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
         // These retained exact fields came from native source selection and
         // C4 application verification, not from a caller-created DispatchRow.
         let scope = self.frames.domain_value(&plan.scope)?;
-        let policy = report
-            .current_admission()
-            .get("policy")
+        let policy = self.frames.get(report.current_admission(), "policy")?
             .ok_or(invalid("PWE native policy ref absent"))?;
         self.frames.reserve_domain_copy(policy)?;
         let policy = policy.clone();
@@ -254,28 +258,19 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
         let predicate = self.role_value(account.predicate(), Role::Predicate)?;
         let profile =
             self.role_value(account.qualification_profile(), Role::QualificationProfile)?;
-        if signature.get("schema_version").and_then(Value::as_str) != Some("tos_pwe_signature_v1")
-            || predicate.get("schema_version").and_then(Value::as_str)
-                != Some("tos_pwe_predicate_v1")
-            || profile.get("schema_version").and_then(Value::as_str)
-                != Some("tos_pwe_qualification_profile_v1")
-            || !signature
-                .pointer("/body/predicates")
-                .and_then(Value::as_array)
-                .is_some_and(|p| p.contains(account.predicate()))
-            || predicate.pointer("/body/value_kind") != account.value().get("kind")
-            || !predicate
-                .pointer("/body/arguments")
-                .and_then(Value::as_array)
-                .is_some_and(|p| {
-                    p.iter()
-                        .filter_map(Value::as_str)
-                        .eq(arguments.iter().map(String::as_str))
-                })
-            || profile.pointer("/body/signature_ref") != Some(account.signature())
-            || profile.pointer("/body/predicate_ref") != Some(account.predicate())
-            || profile.pointer("/body/modality")
-                != account.value().pointer("/qualification/modality")
+        let actual_args = self.frames.pointer(&predicate, "/body/arguments")?;
+        let args_match = match actual_args { Some(args) => self.frames.string_arguments(args, arguments)?, None => false };
+        let value_kind = self.frames.get(account.value(), "kind")?;
+        let predicate_kind = self.frames.pointer(&predicate, "/body/value_kind")?;
+        if !self.frames.text_is(&signature, "schema_version", "tos_pwe_signature_v1")?
+            || !self.frames.text_is(&predicate, "schema_version", "tos_pwe_predicate_v1")?
+            || !self.frames.text_is(&profile, "schema_version", "tos_pwe_qualification_profile_v1")?
+            || !self.frames.pointer_contains(&signature, "/body/predicates", account.predicate())?
+            || !self.frames.optional_equal(predicate_kind, value_kind)?
+            || !args_match
+            || !self.frames.pointer_equal(&profile, "/body/signature_ref", account.signature())?
+            || !self.frames.pointer_equal(&profile, "/body/predicate_ref", account.predicate())?
+            || !self.frames.pointers_equal(&profile, "/body/modality", account.value(), "/qualification/modality")?
         {
             return Err(SourceCommandError::Conflict(
                 "PWE source-owned signature/predicate/qualification application differs",
@@ -291,10 +286,11 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             source_revision: self.frames.revision(),
             worker,
         };
+        let recorded_at = self.frames.context.recorded_at.as_str();
         if view.source_revision != self.frames.revision()
             || view.source_input_identity != self.frames.source_identity()
             || view.assessment_schema_binding != binding
-            || view.observed_now != self.frames.context.recorded_at
+            || !self.frames.text_equal(view.observed_now, recorded_at)?
         {
             return Err(SourceCommandError::Conflict(
                 "PWE view source/worker/time selector differs",
@@ -310,24 +306,21 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             self.role_value(reference, role)?;
         }
         let carrier = self.role_value(view.joint_carrier, Role::JointCarrier)?;
-        if carrier.get("schema_version").and_then(Value::as_str)
-            != Some("tos_pwe_identity_carrier_v1")
-            || carrier.pointer("/body/context_ref") != Some(view.context)
-            || carrier.pointer("/body/scope_ref") != Some(view.scope)
-            || carrier.pointer("/body/criterion_ref") != Some(view.criterion)
-            || !carrier
-                .pointer("/body/scenario_refs")
-                .and_then(Value::as_array)
-                .is_some_and(|rows| rows.contains(view.scenario_ref))
+        if !self.frames.text_is(&carrier, "schema_version", "tos_pwe_identity_carrier_v1")?
+            || !self.frames.pointer_equal(&carrier, "/body/context_ref", view.context)?
+            || !self.frames.pointer_equal(&carrier, "/body/scope_ref", view.scope)?
+            || !self.frames.pointer_equal(&carrier, "/body/criterion_ref", view.criterion)?
+            || !self.frames.pointer_contains(&carrier, "/body/scenario_refs", view.scenario_ref)?
         {
             return Err(SourceCommandError::Conflict(
                 "PWE identity carrier selected scenario/context/scope/criterion differs",
             ));
         }
-        if !self.approved.iter().any(|a| {
-            a.assessment_scope == *view.assessment_scope
-                && a.assessment_policy == *view.assessment_policy
-        }) {
+        let mut protected = false;
+        for approved in &self.approved {
+            if self.frames.equal(&approved.assessment_scope, view.assessment_scope)? && self.frames.equal(&approved.assessment_policy, view.assessment_policy)? { protected = true; break; }
+        }
+        if !protected {
             return Err(SourceCommandError::Denied(
                 "PWE query access scope/policy has no held protected selection",
             ));
@@ -345,16 +338,15 @@ impl<R: ExactDependencyReader> ConsumerOwner for NativeConsumerOwner<'_, '_, R> 
         claim_ref: &Value,
     ) -> tos_compiler::pwe_native::Result<&'o Value> {
         self.verify_view(view).map_err(refuse)?;
-        let selected = self
-            .approved
-            .iter()
-            .find(|a| a.reference == *claim_ref)
-            .ok_or(tos_compiler::pwe_native::Error::Denied)?;
+        let mut index = None;
+        for (i, approved) in self.approved.iter().enumerate() {
+            if self.frames.equal(&approved.reference, claim_ref).map_err(refuse)? { index = Some(i); break; }
+        }
+        let selected = &self.approved[index.ok_or(tos_compiler::pwe_native::Error::Denied)?];
         // requested_use is shared by the query. Record/layer/language/maker and
         // the rest remain each Claim's actual protected native scope.
-        if selected.assessment_policy != *view.assessment_policy
-            || selected.assessment_scope.get("requested_use")
-                != view.assessment_scope.get("requested_use")
+        if !self.frames.equal(&selected.assessment_policy, view.assessment_policy).map_err(refuse)?
+            || !self.frames.fields_equal(&selected.assessment_scope, view.assessment_scope, "requested_use").map_err(refuse)?
         {
             return Err(tos_compiler::pwe_native::Error::Denied);
         }
@@ -368,31 +360,27 @@ impl<R: ExactDependencyReader> ConsumerOwner for NativeConsumerOwner<'_, '_, R> 
         basis: &ResolvedBasis<'_>,
     ) -> tos_compiler::pwe_native::Result<DispatchRow<'o>> {
         self.verify_view(view).map_err(refuse)?;
-        let index = self
-            .approved
-            .iter()
-            .position(|a| a.claim == *claim && a.kind == account_kind(account))
-            .ok_or(tos_compiler::pwe_native::Error::NeedsBinding(
-                "Claim was not prepared by this held native owner",
-            ))?;
+        let kind = if self.frames.text_is(account.value(), "kind", "name-assignment").map_err(refuse)? { Kind::Name }
+            else if self.frames.text_is(account.value(), "kind", "responsibility-account").map_err(refuse)? { Kind::Responsibility }
+            else { Kind::Identity };
+        let mut index = None;
+        for (i, approved) in self.approved.iter().enumerate() {
+            if approved.kind == kind && self.frames.equal(&approved.claim, claim).map_err(refuse)? { index = Some(i); break; }
+        }
+        let index = index.ok_or(tos_compiler::pwe_native::Error::NeedsBinding("Claim was not prepared by this held native owner"))?;
         let scenario = self
             .role_value(view.scenario_ref, Role::Scenario)
             .map_err(refuse)?;
-        let body = &scenario["body"];
-        if scenario.get("schema_version").and_then(Value::as_str)
-            != Some("tos_pwe_identity_scenario_v1")
-            || body.get("interpretation").and_then(Value::as_str)
-                != Some("co-selected-account-assertions-v1")
-            || body.get("carrier_ref") != Some(view.joint_carrier)
-            || body.get("context_ref") != Some(view.context)
-            || body.get("scope_ref") != Some(view.scope)
-            || body.get("criterion_ref") != Some(view.criterion)
-            || !body
-                .get("claim_refs")
-                .and_then(Value::as_array)
-                .is_some_and(|rows| {
-                    rows.len() <= MAX_RECORDS && rows.contains(&self.approved[index].reference)
-                })
+        let body = self.frames.field(&scenario, "body").map_err(refuse)?;
+        let refs = self.frames.get(body, "claim_refs").map_err(refuse)?.and_then(Value::as_array);
+        let contains = match refs { Some(rows) if rows.len() <= MAX_RECORDS => self.frames.contains(rows, &self.approved[index].reference).map_err(refuse)?, _ => false };
+        if !self.frames.text_is(&scenario, "schema_version", "tos_pwe_identity_scenario_v1").map_err(refuse)?
+            || !self.frames.text_is(body, "interpretation", "co-selected-account-assertions-v1").map_err(refuse)?
+            || !self.frames.field_equal(body, "carrier_ref", view.joint_carrier).map_err(refuse)?
+            || !self.frames.field_equal(body, "context_ref", view.context).map_err(refuse)?
+            || !self.frames.field_equal(body, "scope_ref", view.scope).map_err(refuse)?
+            || !self.frames.field_equal(body, "criterion_ref", view.criterion).map_err(refuse)?
+            || !contains
         {
             return Err(tos_compiler::pwe_native::Error::NeedsBinding(
                 "account is not co-selected in this actual scenario",
@@ -404,9 +392,8 @@ impl<R: ExactDependencyReader> ConsumerOwner for NativeConsumerOwner<'_, '_, R> 
         {
             return Err(tos_compiler::pwe_native::Error::ExactMismatch);
         }
-        if selected.assessment_policy != *view.assessment_policy
-            || selected.assessment_scope.get("requested_use")
-                != view.assessment_scope.get("requested_use")
+        if !self.frames.equal(&selected.assessment_policy, view.assessment_policy).map_err(refuse)?
+            || !self.frames.fields_equal(&selected.assessment_scope, view.assessment_scope, "requested_use").map_err(refuse)?
         {
             return Err(tos_compiler::pwe_native::Error::QualificationMismatch(
                 "protected access scope/policy",
@@ -438,11 +425,11 @@ impl<R: ExactDependencyReader> ConsumerOwner for NativeConsumerOwner<'_, '_, R> 
                 "asserted_outcome",
             ][..],
         };
-        if !selected
-            .arguments
-            .iter()
-            .map(String::as_str)
-            .eq(arguments.iter().copied())
+        let mut argument_match = selected.arguments.len() == arguments.len();
+        for (actual, expected) in selected.arguments.iter().zip(arguments) {
+            if !self.frames.text_equal(actual, expected).map_err(refuse)? { argument_match = false; break; }
+        }
+        if !argument_match
         {
             return Err(tos_compiler::pwe_native::Error::QualificationMismatch(
                 "native dispatch arguments",
@@ -456,12 +443,5 @@ impl<R: ExactDependencyReader> ConsumerOwner for NativeConsumerOwner<'_, '_, R> 
             qualification_profile: &selected.profile,
             arguments,
         })
-    }
-}
-fn account_kind(account: &QualifiedAccount<'_>) -> Kind {
-    match account.value().get("kind").and_then(Value::as_str) {
-        Some("name-assignment") => Kind::Name,
-        Some("responsibility-account") => Kind::Responsibility,
-        _ => Kind::Identity,
     }
 }
