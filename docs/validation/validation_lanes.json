@@ -614,9 +614,8 @@
         "command": [
           "cargo",
           "test",
+          "--workspace",
           "--locked",
-          "-p",
-          "tos-command",
           "--lib",
           "source_creation_store::item_adoption::tests::inventory_bridge::",
           "--",
