@@ -15,8 +15,13 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
-const MAX_PROFILE_BYTES: u64 = 300 * 1024 * 1024;
+#[cfg(test)]
+#[path = "source_item_inventory_bridge_tests.rs"]
+mod bridge_tests;
+
+pub(super) const MAX_PROFILE_BYTES: u64 = 300 * 1024 * 1024;
 const MAX_EXTERNAL_STDOUT: usize = 16 * 1024 * 1024;
+const MAX_PDF_PAGES: usize = 262_144;
 const MAX_XML_EVENTS: usize = 262_144;
 const MAX_XML_DEPTH: usize = 128;
 const MAX_PLAIN_UTF8_BYTES: usize = 131_072;
@@ -41,11 +46,17 @@ fn profile_value(entry: &Value, profile: &str, summary: Value, resources: Vec<Va
         "resources":resources})
 }
 
-fn descendants<'a>(root: &'a InventoryXmlNode, out: &mut Vec<&'a InventoryXmlNode>) {
+fn descendants<'a>(
+    root: &'a InventoryXmlNode,
+    out: &mut Vec<&'a InventoryXmlNode>,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<()> {
     for child in &root.children {
+        check()?;
         out.push(child);
-        descendants(child, out);
+        descendants(child, out, check)?;
     }
+    Ok(())
 }
 
 fn direct_child<'a>(node: &'a InventoryXmlNode, name: &str) -> Option<&'a InventoryXmlNode> {
@@ -80,7 +91,16 @@ fn distinct_geometry_count(resources: &[Value]) -> usize {
 }
 
 fn scandata_inventory(raw: &[u8], entry: &Value) -> SourceCommandResult<Value> {
-    let root = super::inventory_xml_tree(raw)?;
+    scandata_inventory_checked(raw, entry, &mut || Ok(()))
+}
+
+fn scandata_inventory_checked(
+    raw: &[u8],
+    entry: &Value,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Value> {
+    check()?;
+    let root = super::inventory_xml_tree_checked(raw, check)?;
     if root.local_name != "book" {
         return Err(SourceCommandError::Invalid("scandata XML root"));
     }
@@ -103,6 +123,7 @@ fn scandata_inventory(raw: &[u8], entry: &Value) -> SourceCommandResult<Value> {
         .iter()
         .filter(|page| page.namespace.is_none() && page.local_name == "page")
     {
+        check()?;
         let page_index = resources.len() + 1;
         let leaf_number = page
             .attributes
@@ -146,17 +167,27 @@ fn scandata_inventory(raw: &[u8], entry: &Value) -> SourceCommandResult<Value> {
 }
 
 fn djvu_xml_inventory(raw: &[u8], entry: &Value) -> SourceCommandResult<Value> {
-    let root = super::inventory_xml_tree(raw)?;
+    djvu_xml_inventory_checked(raw, entry, &mut || Ok(()))
+}
+
+fn djvu_xml_inventory_checked(
+    raw: &[u8],
+    entry: &Value,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Value> {
+    check()?;
+    let root = super::inventory_xml_tree_checked(raw, check)?;
     if root.local_name != "DjVuXML" {
         return Err(SourceCommandError::Invalid("DjVu XML root"));
     }
     let mut nodes = Vec::new();
-    descendants(&root, &mut nodes);
+    descendants(&root, &mut nodes, check)?;
     let mut resources = Vec::new();
     for object in nodes
         .into_iter()
         .filter(|node| node.namespace.is_none() && node.local_name == "OBJECT")
     {
+        check()?;
         let page_index = resources.len() + 1;
         let width = object
             .attributes
@@ -186,7 +217,7 @@ fn djvu_xml_inventory(raw: &[u8], entry: &Value) -> SourceCommandResult<Value> {
             .parse::<u32>()
             .map_err(|_| SourceCommandError::Invalid("DjVu page DPI invalid"))?;
         let mut page_nodes = Vec::new();
-        descendants(object, &mut page_nodes);
+        descendants(object, &mut page_nodes, check)?;
         let paragraphs = page_nodes
             .iter()
             .filter(|node| node.namespace.is_none() && node.local_name == "PARAGRAPH")
@@ -262,7 +293,11 @@ fn chunk_bounds(
     Ok((start, end))
 }
 
-fn djvu_page_info(data: &[u8], form_offset: usize) -> SourceCommandResult<(u32, u32, u32)> {
+fn djvu_page_info(
+    data: &[u8],
+    form_offset: usize,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<(u32, u32, u32)> {
     if data.get(form_offset..form_offset + 4) != Some(b"FORM") {
         return Err(SourceCommandError::Invalid("DjVu page FORM missing"));
     }
@@ -277,6 +312,7 @@ fn djvu_page_info(data: &[u8], form_offset: usize) -> SourceCommandResult<(u32, 
     }
     let mut cursor = form_offset + 12;
     while cursor + 8 <= form_end {
+        check()?;
         let kind = &data[cursor..cursor + 4];
         let (start, end) = chunk_bounds(data, cursor, form_end)?;
         if kind == b"INFO" {
@@ -296,7 +332,10 @@ fn djvu_page_info(data: &[u8], form_offset: usize) -> SourceCommandResult<(u32, 
     Err(SourceCommandError::Invalid("DjVu page INFO chunk missing"))
 }
 
-fn djvu_page_offsets(data: &[u8]) -> SourceCommandResult<Vec<usize>> {
+fn djvu_page_offsets(
+    data: &[u8],
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<usize>> {
     if !data.starts_with(b"AT&TFORM") || data.len() < 16 {
         return Err(SourceCommandError::Invalid("DjVu root FORM missing"));
     }
@@ -313,6 +352,7 @@ fn djvu_page_offsets(data: &[u8]) -> SourceCommandResult<Vec<usize>> {
             let mut cursor = 16;
             let mut directory = None;
             while cursor + 8 <= root_end {
+                check()?;
                 let kind = &data[cursor..cursor + 4];
                 let (start, end) = chunk_bounds(data, cursor, root_end)?;
                 if kind == b"DIRM" {
@@ -353,6 +393,7 @@ fn djvu_page_offsets(data: &[u8]) -> SourceCommandResult<Vec<usize>> {
             }
             let mut pages = Vec::new();
             for offset in component_offsets {
+                check()?;
                 if data.get(offset..offset + 4) != Some(b"FORM") {
                     return Err(SourceCommandError::Invalid("DjVu DIRM target is not FORM"));
                 }
@@ -378,10 +419,20 @@ fn djvu_page_offsets(data: &[u8]) -> SourceCommandResult<Vec<usize>> {
 }
 
 fn djvu_inventory(raw: &[u8], entry: &Value) -> SourceCommandResult<Value> {
+    djvu_inventory_checked(raw, entry, &mut || Ok(()))
+}
+
+fn djvu_inventory_checked(
+    raw: &[u8],
+    entry: &Value,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Value> {
+    check()?;
     let mut resources = Vec::new();
-    for (index, offset) in djvu_page_offsets(raw)?.into_iter().enumerate() {
+    for (index, offset) in djvu_page_offsets(raw, check)?.into_iter().enumerate() {
         let page_index = index + 1;
-        let (width, height, dpi) = djvu_page_info(raw, offset)?;
+        check()?;
+        let (width, height, dpi) = djvu_page_info(raw, offset, check)?;
         resources.push(json!({"resource_id":format!("djvu-page-{page_index:04}"),
             "resource_kind":"djvu_page","locator":{"page_index":page_index,
                 "width_pixels":width,"height_pixels":height,"resolution_dpi":dpi},
@@ -403,7 +454,42 @@ fn abbyy_inventory(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
-    let decoder = MultiGzDecoder::new(Cursor::new(raw));
+    abbyy_inventory_checked(raw, entry, &mut || active(deadline, cancelled))
+}
+
+struct BoundedProfileReader<R> {
+    inner: R,
+    observed: u64,
+}
+
+impl<R: Read> Read for BoundedProfileReader<R> {
+    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+        let take = buffer
+            .len()
+            .min(65_536)
+            .min((MAX_PROFILE_BYTES + 1).saturating_sub(self.observed) as usize);
+        if take == 0 && !buffer.is_empty() {
+            return Err(std::io::Error::other("bounded expanded inventory profile"));
+        }
+        let count = self.inner.read(&mut buffer[..take])?;
+        self.observed += count as u64;
+        if self.observed > MAX_PROFILE_BYTES {
+            return Err(std::io::Error::other("bounded expanded inventory profile"));
+        }
+        Ok(count)
+    }
+}
+
+fn abbyy_inventory_checked(
+    raw: &[u8],
+    entry: &Value,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Value> {
+    check()?;
+    let decoder = BoundedProfileReader {
+        inner: MultiGzDecoder::new(Cursor::new(raw)),
+        observed: 0,
+    };
     let parser = ParserConfig::new()
         .max_name_length(65536)
         .max_attributes(128)
@@ -427,8 +513,12 @@ fn abbyy_inventory(
     let mut char_params_text = String::new();
     let mut resources = Vec::new();
     let mut event_count = 0usize;
-    for event in parser {
-        active(deadline, cancelled)?;
+    let mut events = parser.into_iter();
+    loop {
+        check()?;
+        let Some(event) = events.next() else {
+            break;
+        };
         event_count += 1;
         if event_count > MAX_XML_EVENTS || stack.len() > MAX_XML_DEPTH {
             return Err(profile_error("bounded ABBYY XML profile"));
@@ -562,17 +652,28 @@ fn jp2_zip_inventory(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
+    jp2_zip_inventory_checked(file, entry, deadline, cancelled, &mut || {
+        active(deadline, cancelled)
+    })
+}
+
+fn jp2_zip_inventory_checked(
+    file: &mut File,
+    entry: &Value,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Value> {
     let size = entry["byte_size"]
         .as_u64()
         .ok_or(SourceCommandError::Invalid("JP2 ZIP byte_size"))?;
     let mut resources = Vec::new();
-    let mut authorize = || active(deadline, cancelled);
     super::visit_members(
         file,
         size,
         deadline,
         cancelled,
-        &mut authorize,
+        authorize,
         |name, member| {
             let basename = name.rsplit('/').next().unwrap_or(name);
             let stem = basename
@@ -650,10 +751,12 @@ fn pdf_page_count(info: &str) -> SourceCommandResult<usize> {
 fn pdf_page_geometry(
     output: &str,
     page_count: usize,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
 ) -> SourceCommandResult<(BTreeMap<usize, (f64, f64)>, BTreeMap<usize, i32>)> {
     let mut sizes = BTreeMap::new();
     let mut rotations = BTreeMap::new();
     for line in output.lines() {
+        check()?;
         let line = line.trim();
         if let Some(rest) = line.strip_prefix("Page ") {
             if let Some((index, value)) = rest.split_once(" size:") {
@@ -722,20 +825,52 @@ fn pdf_inventory(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
-    let base = pdf_run("pdfinfo", &["-"], raw, deadline, cancelled)?;
+    pdf_inventory_with(
+        entry,
+        &mut || active(deadline, cancelled),
+        &mut |probe, check| {
+            check()?;
+            let output = match probe {
+                super::PdfInventoryProbe::PageCount => {
+                    pdf_run("pdfinfo", &["-"], raw, deadline, cancelled)
+                }
+                super::PdfInventoryProbe::PageBoxes { page_count } => pdf_run(
+                    "pdfinfo",
+                    &["-f", "1", "-l", &page_count.to_string(), "-box", "-"],
+                    raw,
+                    deadline,
+                    cancelled,
+                ),
+                super::PdfInventoryProbe::Images => {
+                    pdf_run("pdfimages", &["-list", "-"], raw, deadline, cancelled)
+                }
+            }?;
+            check()?;
+            Ok(output)
+        },
+    )
+}
+
+fn pdf_inventory_with(
+    entry: &Value,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+    run: &mut impl FnMut(
+        super::PdfInventoryProbe,
+        &mut dyn FnMut() -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<String>,
+) -> SourceCommandResult<Value> {
+    check()?;
+    let base = run(super::PdfInventoryProbe::PageCount, check)?;
     let page_count = pdf_page_count(&base)?;
-    let page_count_text = page_count.to_string();
-    let boxes = pdf_run(
-        "pdfinfo",
-        &["-f", "1", "-l", &page_count_text, "-box", "-"],
-        raw,
-        deadline,
-        cancelled,
-    )?;
-    let (sizes, rotations) = pdf_page_geometry(&boxes, page_count)?;
-    let image_output = pdf_run("pdfimages", &["-list", "-"], raw, deadline, cancelled)?;
+    if page_count > MAX_PDF_PAGES {
+        return Err(profile_error("bounded PDF page count"));
+    }
+    let boxes = run(super::PdfInventoryProbe::PageBoxes { page_count }, check)?;
+    let (sizes, rotations) = pdf_page_geometry(&boxes, page_count, check)?;
+    let image_output = run(super::PdfInventoryProbe::Images, check)?;
     let mut image_counts = BTreeMap::<usize, usize>::new();
     for line in image_output.lines() {
+        check()?;
         let fields = line.split_whitespace().collect::<Vec<_>>();
         if fields.len() >= 3 {
             if let (Ok(page), Some(kind)) = (fields[0].parse::<usize>(), fields.get(2).copied()) {
@@ -755,6 +890,7 @@ fn pdf_inventory(
     }
     let mut resources = Vec::with_capacity(page_count);
     for page_index in 1..=page_count {
+        check()?;
         let (width, height) = sizes[&page_index];
         resources.push(json!({"resource_id":format!("pdf-page-{page_index:04}"),
             "resource_kind":"pdf_page","locator":{"page_index":page_index,
@@ -954,6 +1090,170 @@ fn observation_config(
         "payload_basename": payload_basename,
         "original_basename": original_basename
     }))
+}
+
+/// Verify exact bytes on the held descriptor. No source path is consulted.
+fn read_held_payload(
+    file: &mut File,
+    size: u64,
+    sha256: &str,
+    retain: bool,
+    check: &mut dyn FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<u8>> {
+    check()?;
+    file.seek(SeekFrom::Start(0)).map_err(|_| unsupported())?;
+    let mut raw = Vec::new();
+    if retain {
+        raw.try_reserve_exact(size as usize)
+            .map_err(|_| profile_error("bounded Item inventory allocation"))?;
+    }
+    let mut total = 0u64;
+    let mut hasher = tos_foundation::Digest256Hasher::new();
+    let mut block = [0u8; 65_536];
+    loop {
+        check()?;
+        let take = ((size + 1).saturating_sub(total)).min(block.len() as u64) as usize;
+        if take == 0 {
+            return Err(SourceCommandError::Conflict(
+                "Item inventory payload size differs",
+            ));
+        }
+        let count = match file.read(&mut block[..take]) {
+            Ok(0) => break,
+            Ok(count) => count,
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => return Err(unsupported()),
+        };
+        total += count as u64;
+        if total > size {
+            return Err(SourceCommandError::Conflict(
+                "Item inventory payload size differs",
+            ));
+        }
+        hasher.update(&block[..count]);
+        if retain {
+            raw.extend_from_slice(&block[..count]);
+        }
+    }
+    check()?;
+    if total != size || hasher.finalize().to_hex() != sha256 {
+        return Err(SourceCommandError::Conflict(
+            "Item inventory payload fixity differs",
+        ));
+    }
+    Ok(raw)
+}
+
+pub(super) fn observe_held(
+    file: &mut File,
+    config: &Value,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+    pdf: &mut impl FnMut(
+        super::PdfInventoryProbe,
+        &[u8],
+        usize,
+        &mut dyn FnMut() -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<Vec<u8>>,
+) -> SourceCommandResult<Value> {
+    let mut check = || {
+        active(deadline, cancelled)?;
+        authorize()
+    };
+    check()?;
+    let entry = payload_entry(config)?;
+    let size = entry["byte_size"].as_u64().ok_or_else(unsupported)?;
+    let media = file_field(&entry, "media_type")?;
+    let relative = file_field(&entry, "relative_path")?;
+    match media {
+        "application/epub+zip"
+        | "text/plain"
+        | "text/markdown"
+        | "application/pdf"
+        | "image/vnd.djvu"
+        | "application/vnd.djvu+xml"
+        | "application/json"
+        | "application/tei+xml"
+        | "application/osis+xml"
+        | "application/xml"
+        | "text/xml" => (),
+        "application/gzip" if relative.ends_with(".abbyy.xml.gz") => (),
+        "application/zip" if relative.ends_with("_jp2.zip") => (),
+        _ => return Err(unsupported()),
+    }
+    let limit = match media {
+        "text/plain" | "text/markdown" => MAX_PLAIN_UTF8_BYTES as u64,
+        "application/json" => super::MAX_INVENTORY_JSON_BYTES as u64,
+        _ => MAX_PROFILE_BYTES,
+    };
+    if size == 0 || size > limit {
+        return Err(profile_error(
+            "Item payload exceeds native inventory byte bound",
+        ));
+    }
+    let before = OpenPayloadMetadata::read(file)?;
+    if before.size != size {
+        return Err(SourceCommandError::Conflict(
+            "Item inventory payload size differs",
+        ));
+    }
+    let zip = media == "application/epub+zip"
+        || (media == "application/zip" && relative.ends_with("_jp2.zip"));
+    let sha256 = file_field(&entry, "sha256")?;
+    let raw = read_held_payload(file, size, sha256, !zip, &mut check)?;
+    let result = match media {
+        "application/epub+zip" | "text/plain" | "text/markdown" => {
+            super::observe_basic(file, config, deadline, cancelled, &mut check)
+        }
+        "application/pdf" => pdf_inventory_with(&entry, &mut check, &mut |probe, check| {
+            check()?;
+            let output = pdf(probe, &raw, MAX_EXTERNAL_STDOUT, check)?;
+            check()?;
+            if output.len() > MAX_EXTERNAL_STDOUT {
+                return Err(profile_error("bounded PDF inventory provider output"));
+            }
+            Ok(String::from_utf8_lossy(&output).into_owned())
+        }),
+        "image/vnd.djvu" => djvu_inventory_checked(&raw, &entry, &mut check),
+        "application/vnd.djvu+xml" => djvu_xml_inventory_checked(&raw, &entry, &mut check),
+        "application/gzip" if relative.ends_with(".abbyy.xml.gz") => {
+            abbyy_inventory_checked(&raw, &entry, &mut check)
+        }
+        "application/zip" if relative.ends_with("_jp2.zip") => {
+            jp2_zip_inventory_checked(file, &entry, deadline, cancelled, &mut check)
+        }
+        "application/xml" | "text/xml" if relative.ends_with("_scandata.xml") => {
+            scandata_inventory_checked(&raw, &entry, &mut check)
+        }
+        _ => super::inventory_file_checked(&raw, &entry, &mut check),
+    };
+    if let Err(error) = &result {
+        if !matches!(
+            error,
+            SourceCommandError::Unsupported(_)
+                | SourceCommandError::Invalid(_)
+                | SourceCommandError::Conflict(_)
+        ) {
+            return Err(error.clone());
+        }
+    }
+    // Re-read even after parser refusal. Authorization/cancellation/fixity must
+    // retain their own errors instead of being hidden by a profile limitation.
+    check()?;
+    if OpenPayloadMetadata::read(file)? != before {
+        return Err(SourceCommandError::Conflict(
+            "Item inventory payload changed during observation",
+        ));
+    }
+    read_held_payload(file, size, sha256, false, &mut check)?;
+    if OpenPayloadMetadata::read(file)? != before {
+        return Err(SourceCommandError::Conflict(
+            "Item inventory payload changed during verification",
+        ));
+    }
+    check()?;
+    result
 }
 
 fn legacy_file_inventory(
@@ -2028,7 +2328,7 @@ mod tests {
         inventory
     }
 
-    fn djvu_page(width: u16, height: u16, dpi: u16) -> Vec<u8> {
+    pub(super) fn djvu_page(width: u16, height: u16, dpi: u16) -> Vec<u8> {
         let mut info = Vec::from(width.to_be_bytes());
         info.extend_from_slice(&height.to_be_bytes());
         info.extend_from_slice(&[0, 0]);
@@ -2056,7 +2356,7 @@ mod tests {
         output.extend_from_slice(&value.to_le_bytes());
     }
 
-    fn stored_zip_archive(entries: &[(&str, &[u8])]) -> Vec<u8> {
+    pub(super) fn stored_zip_archive(entries: &[(&str, &[u8])]) -> Vec<u8> {
         let mut body = Vec::new();
         let mut directory = Vec::new();
         for (name, payload) in entries {
@@ -2502,11 +2802,12 @@ mod tests {
     #[test]
     fn pdfinfo_geometry_parser_requires_every_page_and_preserves_rotation() {
         let output = "Page    1 size: 612 x 792 pts (letter)\nPage   1 rot: 90\nPage 2 size: 612.5 x 792 pts\n";
-        let (sizes, rotations) = pdf_page_geometry(output, 2).expect("page geometries");
+        let (sizes, rotations) =
+            pdf_page_geometry(output, 2, &mut || Ok(())).expect("page geometries");
         assert_eq!(sizes[&1], (612.0, 792.0));
         assert_eq!(sizes[&2], (612.5, 792.0));
         assert_eq!(rotations[&1], 90);
-        assert!(pdf_page_geometry("Page 1 size: 612 x 792 pts\n", 2).is_err());
+        assert!(pdf_page_geometry("Page 1 size: 612 x 792 pts\n", 2, &mut || Ok(())).is_err());
     }
 
     #[test]
