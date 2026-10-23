@@ -701,7 +701,11 @@ fn adapt_historical_contract_availability(oracle: &mut JsonValue) {
     assert_eq!(types.len(), 160);
     for addition in additions {
         let id = field(&addition, "type_id").as_str().unwrap();
-        assert!(!types.iter().any(|row| field(row, "type_id").as_str() == Some(id)));
+        assert!(
+            !types
+                .iter()
+                .any(|row| field(row, "type_id").as_str() == Some(id))
+        );
         types.push(addition);
     }
     assert_eq!(types.len(), 163);
