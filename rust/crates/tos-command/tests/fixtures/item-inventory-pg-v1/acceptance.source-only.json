@@ -1,0 +1,76 @@
+{
+  "schema_version": "tos_item_inventory_pg_acceptance_source_only_v1",
+  "status": "source_and_testspec_only_not_executed",
+  "base_commit": "6d2e9d001e73f3c79d0183861a4bd834f872fabe",
+  "owner": "C PG Item adoption; root transfers to sole integrator A",
+  "unit_tests": {
+    "command": ["cargo", "+1.98.1", "test", "--locked", "--offline", "-p", "tos-command", "--lib", "source_creation_store::item_adoption::pg::inventory_custody_tests::", "--", "--test-threads=1"],
+    "requires_postgres": false,
+    "proves": "PG owner retained-observation and consumer-package binding helpers only",
+    "does_not_prove": ["provider parser behavior", "native schema worker behavior", "PG runtime", "durable commit", "replay", "cold recovery", "real corpus acceptance"]
+  },
+  "integration_preconditions": [
+    "A provides the readable shared provider/deposit contract and exact source baseline.",
+    "The selected software capture, executable, schema worker and implementation dependency pins match the integrated source. The current source_assessment_journal.rs pin must agree with PR267; never rewrite an expected digest to pretend an old request is compatible.",
+    "Use only the separately admitted PG16 environment, resource window and finite storage budget. This testspec itself grants no runtime, installation, credentials, service or corpus permission.",
+    "Use deterministic synthetic file payloads with exact byte size and SHA-256. Keep source, candidate and testspec evidence separate from actual execution receipts.",
+    "Run through tos_local_pg_item_adoption_invocation_v1 prepare-create and item.adopt, using the existing durable PG/STO owner. Read consumer bytes through the selected PG source revision, with no authored-source local mirror fallback."
+  ],
+  "required_execution_evidence": [
+    "source commit/tree and every changed source SHA-256",
+    "integrated executable, schema worker and selected software capture identities",
+    "admitted environment/window and actual resource receipt",
+    "exact synthetic payload, request and protected owner configuration digests; exclude private paths and credentials from public evidence",
+    "raw stdout/stderr and exact exit/result classification",
+    "PG source revision/head, rights/rule epochs, publication token/generation, attempt/pin/commit receipt identities before and after",
+    "consumer resource-inventory.json, rights.json, provenance.jsonl and deposit receipt exact byte digests",
+    "cold reopen/replay result and cleanup/retention outcome"
+  ],
+  "cases": [
+    {
+      "id": "pg-pdf-prepared-publication-consumer",
+      "input": "bounded synthetic one-page PDF via A's admitted provider",
+      "expected_profile": "pdf_pages_v1",
+      "assert": ["prepare returns an exact non-null file inventory", "item.adopt commits through the durable owner", "cold PG consumer files[0] equals the prepared observation", "local_only unreviewed rights and provenance references remain exact", "source_text_included=false and grants_admission=false", "original input bytes preserved"]
+    },
+    {
+      "id": "pg-djvu-prepared-publication-consumer",
+      "input": "bounded synthetic one-page DjVu INFO container",
+      "expected_profile": "djvu_pages_v1",
+      "assert": ["same durable path and custody assertions as PDF", "page geometry survives the consumer read"]
+    },
+    {
+      "id": "pg-unavailable-no-metadata",
+      "input": "synthetic unsupported media profile or provider-unavailable outcome selected by A's contract",
+      "assert": ["exact explicit inventory limitation retained", "metadata_committed=false", "no Item, Claim, projection or PG publication-head advance", "retained payload recovery remains available under its owner"]
+    },
+    {
+      "id": "pg-repeat-exact-command",
+      "assert": ["same command/request reuses the original durable commit sequence and transaction", "no duplicate Item, Claim, event or projection", "consumer inventory and receipt bytes remain exact"]
+    },
+    {
+      "id": "pg-command-collision",
+      "assert": ["same command with changed prepared inventory/request refuses with an exact conflict", "PG authored sources, projections and publication head remain unchanged"]
+    },
+    {
+      "id": "pg-cold-recover-sealed-and-committed",
+      "assert": ["recover the existing attempt after process loss at each admitted durable cut", "bind the original retained observation and original selected publication package", "do not rerun a newer provider to replace recovery inventory", "cold consumer inventory/rights/provenance match the prepared package", "report any earlier resource or currentness refusal separately"]
+    },
+    {
+      "id": "pg-stale-input-or-deposit",
+      "assert": ["changed input identity, payload bytes or retained stage refuses at the existing custody guard", "no PG source/projection/publication advance", "retain only explicitly owned recovery evidence"]
+    },
+    {
+      "id": "pg-currentness-and-rights",
+      "assert": ["source epoch, publication token, grant, rights or rule changes between prepare and commit refuse at the corresponding existing fence", "cancellation and deadline retain their exact refusal class", "no partial PG source or projection commit"]
+    },
+    {
+      "id": "pg-consumer-custody-mutations",
+      "assert": ["different inventory file, profile or cardinality refuses", "different Item or inventory event identity refuses", "rights escalation, source text inclusion, request substitution or deposit receipt substitution refuses"]
+    },
+    {
+      "id": "pg-edition-closure-budget-regression",
+      "assert": ["unrelated Editions do not become a global 96-Item constraint", "the selected Edition target cap remains 96", "the 512-member, 32-MiB and dependency budgets remain independent and may refuse earlier", "do not label an earlier refusal as evidence that the 96 boundary was exercised", "do not change local Item policy in the PG patch"]
+    }
+  ]
+}
