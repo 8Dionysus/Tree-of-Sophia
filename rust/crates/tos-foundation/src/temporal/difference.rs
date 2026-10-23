@@ -264,6 +264,16 @@ pub fn execute_difference(
             "difference input/context must be objects",
         ));
     }
+    super::admit_transport(input, context, budget)?;
+    execute_difference_admitted(input, context, budget)
+}
+
+// Both public direct wrapper and parent dispatch checked object shape/admission.
+pub(super) fn execute_difference_admitted(
+    input: &JsonValue,
+    _context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let finish = |o| {
         let mut r = envelope(o);
         put(&mut r, "rule_version", text(RULE));

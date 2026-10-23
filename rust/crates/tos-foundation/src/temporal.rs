@@ -485,7 +485,7 @@ fn preflight_transport(
     Ok(())
 }
 
-fn admit_transport(
+pub(crate) fn admit_transport(
     input: &JsonValue,
     context: &JsonValue,
     budget: TemporalBudget,
@@ -543,14 +543,14 @@ pub fn execute_temporal_operation(
     admit_transport(input, context, budget)?;
     let mut result = match operation {
         "resolve_temporal_query_context" => {
-            crate::query_context_wire::resolve_context_json(input, context, budget)?
+            crate::query_context_wire::resolve_context_json_admitted(input, context, budget)?
         }
         "create_chronology_version" => {
-            crate::query_context_wire::create_chronology_json(input, context, budget)?
+            crate::query_context_wire::create_chronology_json_admitted(input, context, budget)?
         }
         "capture_expression" => {
             if string(input, "xml_fragment").is_some() {
-                codecs::capture_tei(input, context, budget)?
+                codecs::capture_tei_admitted(input, context, budget)?
             } else {
                 let raw =
                     string(input, "raw").ok_or(TemporalError::MalformedRequest("raw required"))?;
@@ -592,7 +592,7 @@ pub fn execute_temporal_operation(
         "project_to_postgres_range" => {
             calendar_adapters::project_postgres_range_admitted(input, context, budget)?
         }
-        "difference" => difference::execute_difference(input, context, budget)?,
+        "difference" => difference::execute_difference_admitted(input, context, budget)?,
         "prepare_crosswalk_version" => {
             crosswalk_records::prepare_crosswalk_version_admitted(input, context, budget)?
         }

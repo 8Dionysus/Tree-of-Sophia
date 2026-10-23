@@ -77,6 +77,16 @@ fn same_state(a: &JsonValue, b: &JsonValue) -> bool {
 /// Pure selector resolution. The caller must verify source descriptor provenance.
 pub fn resolve_context_json(
     input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
+    crate::temporal::admit_transport(input, context, budget)?;
+    resolve_context_json_admitted(input, context, budget)
+}
+
+// Accessible only inside the crate after the parent transport admission.
+pub(crate) fn resolve_context_json_admitted(
+    input: &JsonValue,
     _context: &JsonValue,
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
@@ -194,6 +204,16 @@ pub fn resolve_context_json(
 }
 /// Construct a frozen manifest; does not claim a committed source transaction.
 pub fn create_chronology_json(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
+    crate::temporal::admit_transport(input, context, budget)?;
+    create_chronology_json_admitted(input, context, budget)
+}
+
+// Accessible only inside the crate after the parent transport admission.
+pub(crate) fn create_chronology_json_admitted(
     input: &JsonValue,
     _context: &JsonValue,
     budget: TemporalBudget,

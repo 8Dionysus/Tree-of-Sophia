@@ -274,6 +274,16 @@ pub fn capture_tei(
     context: &JsonValue,
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
+    super::admit_transport(input, context, budget)?;
+    capture_tei_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both complete roots.
+pub(super) fn capture_tei_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let raw = string(input, "xml_fragment")
         .ok_or(TemporalError::MalformedRequest("xml_fragment required"))?;
     if raw.len() > budget.max_expression_bytes {
