@@ -345,7 +345,7 @@ fn typed_cutoff_duplicate_members_match_one_to_one() {
     let changed = object(&[("x", "one"), ("x", "two")]);
     for (selected, requested, matches) in [
         (repeated.clone(), repeated.clone(), true),
-        (repeated.clone(), changed.clone(), false),
+        (changed.clone(), repeated.clone(), false),
         (
             object(&[("x", "one"), ("y", "two")]),
             object(&[("y", "two"), ("x", "one")]),
