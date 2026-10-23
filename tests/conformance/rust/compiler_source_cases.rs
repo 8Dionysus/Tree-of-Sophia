@@ -658,7 +658,6 @@ impl CurrentReference {
         repository: &Path,
         path: &str,
     ) -> Result<Vec<u8>, &'static str> {
-        RelativePath::parse(path).map_err(|_| "reference path")?;
         let spec = format!("{}:{path}", self.commit);
         let size = self.git_read(repository, &["cat-file", "-s", &spec], 64)?;
         let size: usize = std::str::from_utf8(&size)
