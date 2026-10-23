@@ -56,6 +56,28 @@ fn canonical(v: &JsonValue) -> Vec<u8> {
     )
     .unwrap()
 }
+// Packets sort object keys; source-field equality still preserves every scalar
+// (including numeric kind and lexeme), array position, and unique object member.
+fn same_json_fields(left: &JsonValue, right: &JsonValue) -> bool {
+    match (left, right) {
+        (JsonValue::Object(left), JsonValue::Object(right)) => {
+            left.len() == right.len()
+                && left.iter().all(|(key, value)| {
+                    left.iter().filter(|(other, _)| other == key).count() == 1
+                        && right.iter().filter(|(other, _)| other == key).count() == 1
+                        && right
+                            .iter()
+                            .find(|(other, _)| other == key)
+                            .is_some_and(|(_, other)| same_json_fields(value, other))
+                })
+        }
+        (JsonValue::Array(left), JsonValue::Array(right)) => {
+            left.len() == right.len()
+                && left.iter().zip(right).all(|(a, b)| same_json_fields(a, b))
+        }
+        _ => left == right,
+    }
+}
 fn err(code: SearchV2ErrorCode) -> SearchV2Error {
     SearchV2Error {
         code,
@@ -1380,7 +1402,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                 "every contradictory source dating must survive separately"
             );
             for (row, claim) in rows.iter().zip(&claims) {
-                assert_eq!(get(get(row, "operand"), "claim"), *claim);
+                assert!(same_json_fields(get(get(row, "operand"), "claim"), claim));
                 assert_eq!(get(row, "derived_coordinate"), &JsonValue::Null);
                 assert_eq!(
                     get(row, "derived_coordinate_status").as_str(),
@@ -1390,19 +1412,21 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     get(get(get(row, "operand"), "claim"), "attributes"),
                     "source_claim",
                 );
-                assert_eq!(
+                assert!(same_json_fields(
                     get(returned, "subject_ref"),
                     &parse(&serde_json::to_vec(&original_claim["subject_ref"]).unwrap())
-                );
+                ));
                 let source_object = get(returned, "object");
                 let expected = objects
                     .iter()
-                    .find(|v| parse(&serde_json::to_vec(v).unwrap()) == *source_object)
+                    .find(|v| {
+                        same_json_fields(&parse(&serde_json::to_vec(v).unwrap()), source_object)
+                    })
                     .unwrap();
-                assert_eq!(
+                assert!(same_json_fields(
                     source_object,
                     &parse(&serde_json::to_vec(expected).unwrap())
-                );
+                ));
                 if case == "unknown-calendar" {
                     assert_eq!(get(source_object, "calendar"), &JsonValue::Null);
                 }
