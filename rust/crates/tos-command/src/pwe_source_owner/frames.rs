@@ -552,10 +552,14 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
                 "PWE assessment protected configuration differs",
             ));
         }
-        let (current, scope) = private_assessment::select_current_scope(
+        let (current, scope) = private_assessment::select_current_scope_with_admission(
             self.grant.configuration(),
             plan.request,
             &plan.all_by_id,
+            self.budget,
+            self.whole,
+            self.deadline,
+            self.cancelled,
         )?;
         if !self.same(&current, &plan.current)?
             || !self.same(&scope, &plan.scope)?
