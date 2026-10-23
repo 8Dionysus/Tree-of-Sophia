@@ -1,0 +1,436 @@
+{
+  "record_id": "pwe.local.prepared-pwe-values",
+  "record_version": 2,
+  "status": "local-source-only-draft",
+  "body": {
+    "kind": "PreservedCandidate",
+    "values": [
+      {
+        "kind": "name-assignment",
+        "subject": {
+          "kind_binding": {
+            "id": "tos.semantic.entity-types",
+            "version": 39,
+            "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+          },
+          "record": {
+            "id": "tos.agent.yuri-antonovsky",
+            "version": 4,
+            "digest": "sha256:6925dd96e84a25fd810f0da998fd183b7d767c0730babff27dd7d7e095169c0d"
+          }
+        },
+        "source_wording": {
+          "text": "Source metadata account; actual source read is bounded as recorded in evidence.",
+          "language": "en",
+          "script": "Latn"
+        },
+        "scope": {
+          "state": "unresolved",
+          "source_wording": "Exact local source-description scope; not a universal assertion.",
+          "missing_binding": "Selected source-owned Scope profile binding; CCI-1 role is supplied."
+        },
+        "world": {
+          "state": "unresolved",
+          "source_wording": "Source-reported bibliographic account.",
+          "missing_binding": "Selected source-owned World/branch profile binding; CCI-1 role is supplied."
+        },
+        "members": [
+          "tos.agent.yuri-antonovsky"
+        ],
+        "basis": [
+          {
+            "role": "source-record",
+            "input": {
+              "state": "bound",
+              "value": {
+                "kind_binding": {
+                  "id": "tos.semantic.entity-types",
+                  "version": 39,
+                  "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+                },
+                "record": {
+                  "id": "tos.agent.yuri-antonovsky",
+                  "version": 4,
+                  "digest": "sha256:6925dd96e84a25fd810f0da998fd183b7d767c0730babff27dd7d7e095169c0d"
+                }
+              }
+            },
+            "inspection": "metadata-read"
+          }
+        ],
+        "limitations": "Local draft value, metadata-description only. CCI-1 roles bound structurally; missing actual qualification/scope/criterion instances prevent semantic identity resolution. No native Claim, grant or historical admission.",
+        "supersedes_proposition": null,
+        "subject_role": "named-referent",
+        "name": {
+          "text": "Yuri M. Antonovsky",
+          "language": "en",
+          "script": "Latn"
+        },
+        "name_function": "rejected-normalization",
+        "assignment": "name-used-by",
+        "named_bearer": {
+          "state": "bound",
+          "value": {
+            "kind_binding": {
+              "id": "tos.semantic.entity-types",
+              "version": 39,
+              "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+            },
+            "record": {
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 4,
+              "digest": "sha256:6925dd96e84a25fd810f0da998fd183b7d767c0730babff27dd7d7e095169c0d"
+            }
+          }
+        },
+        "account": "The exact Agent v4 retains this English form with status rejected; recording a rejected assignment does not license it as the accepted name.",
+        "endpoints": [
+          {
+            "kind_binding": {
+              "id": "tos.semantic.entity-types",
+              "version": 39,
+              "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+            },
+            "record": {
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 4,
+              "digest": "sha256:6925dd96e84a25fd810f0da998fd183b7d767c0730babff27dd7d7e095169c0d"
+            }
+          }
+        ],
+        "qualification": {
+          "signature_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE name-assignment candidate account.",
+            "missing_binding": "Root selects source-owned signature_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "predicate_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE name-assignment candidate account.",
+            "missing_binding": "Root selects source-owned predicate_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "context_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE name-assignment candidate account.",
+            "missing_binding": "Root selects source-owned context_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "scope_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE name-assignment candidate account.",
+            "missing_binding": "Root selects source-owned scope_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "qualification_profile_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE name-assignment candidate account.",
+            "missing_binding": "Root selects source-owned qualification_profile_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "modality": "metadata-description"
+        },
+        "source_locations": [
+          {
+            "source_version": {
+              "id": "tos.agent.yuri-antonovsky",
+              "version": 4,
+              "digest": "sha256:6925dd96e84a25fd810f0da998fd183b7d767c0730babff27dd7d7e095169c0d"
+            },
+            "locator_scheme_version": {
+              "id": "pwe.local.locator-json-pointer-value-v1",
+              "version": 1,
+              "digest": "sha256:c90704687f616f7432ff72d88d9a8307f69062a47af3a30787cdc7f0748be055"
+            },
+            "locator": "/variant_labels/3",
+            "namespace_ref": null
+          }
+        ]
+      },
+      {
+        "kind": "responsibility-account",
+        "subject": {
+          "kind_binding": {
+            "id": "tos.semantic.entity-types",
+            "version": 39,
+            "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+          },
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+            "version": 2,
+            "digest": "sha256:85421254f9f82be4e6411d96501760f592acfed9b2a7ceb499c415301ba8fd92"
+          }
+        },
+        "source_wording": {
+          "text": "Source metadata account; actual source read is bounded as recorded in evidence.",
+          "language": "en",
+          "script": "Latn"
+        },
+        "scope": {
+          "state": "unresolved",
+          "source_wording": "Exact local source-description scope; not a universal assertion.",
+          "missing_binding": "Selected source-owned Scope profile binding; CCI-1 role is supplied."
+        },
+        "world": {
+          "state": "unresolved",
+          "source_wording": "Source-reported bibliographic account.",
+          "missing_binding": "Selected source-owned World/branch profile binding; CCI-1 role is supplied."
+        },
+        "members": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited"
+        ],
+        "basis": [
+          {
+            "role": "source-record",
+            "input": {
+              "state": "bound",
+              "value": {
+                "kind_binding": {
+                  "id": "tos.semantic.entity-types",
+                  "version": 39,
+                  "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+                },
+                "record": {
+                  "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+                  "version": 2,
+                  "digest": "sha256:85421254f9f82be4e6411d96501760f592acfed9b2a7ceb499c415301ba8fd92"
+                }
+              }
+            },
+            "inspection": "metadata-read"
+          }
+        ],
+        "limitations": "Local draft value, metadata-description only. CCI-1 roles bound structurally; missing actual qualification/scope/criterion instances prevent semantic identity resolution. No native Claim, grant or historical admission.",
+        "supersedes_proposition": null,
+        "role": "translator",
+        "attribution_mode": "source-attribution",
+        "assignees": {
+          "mode": "unestablished",
+          "account": "Title page leaves translator unnamed. The 1901 association is not an established endpoint attribution."
+        },
+        "responsibility_scope": "Russian expression published by Reader, 1899; no global anonymous Agent.",
+        "role_basis": "Exact existing Expression metadata and its source-returnable notes.",
+        "endpoints": [
+          {
+            "kind_binding": {
+              "id": "tos.semantic.entity-types",
+              "version": 39,
+              "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+            },
+            "record": {
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+              "version": 2,
+              "digest": "sha256:85421254f9f82be4e6411d96501760f592acfed9b2a7ceb499c415301ba8fd92"
+            }
+          }
+        ],
+        "qualification": {
+          "signature_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE responsibility-account candidate account.",
+            "missing_binding": "Root selects source-owned signature_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "predicate_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE responsibility-account candidate account.",
+            "missing_binding": "Root selects source-owned predicate_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "context_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE responsibility-account candidate account.",
+            "missing_binding": "Root selects source-owned context_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "scope_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE responsibility-account candidate account.",
+            "missing_binding": "Root selects source-owned scope_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "qualification_profile_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE responsibility-account candidate account.",
+            "missing_binding": "Root selects source-owned qualification_profile_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "modality": "metadata-description"
+        },
+        "source_locations": [
+          {
+            "source_version": {
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited",
+              "version": 2,
+              "digest": "sha256:85421254f9f82be4e6411d96501760f592acfed9b2a7ceb499c415301ba8fd92"
+            },
+            "locator_scheme_version": {
+              "id": "pwe.local.locator-json-pointer-value-v1",
+              "version": 1,
+              "digest": "sha256:c90704687f616f7432ff72d88d9a8307f69062a47af3a30787cdc7f0748be055"
+            },
+            "locator": "/notes",
+            "namespace_ref": null
+          }
+        ]
+      },
+      {
+        "kind": "identity-correspondence",
+        "subject": {
+          "kind_binding": {
+            "id": "tos.semantic.entity-types",
+            "version": 39,
+            "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+          },
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+            "version": 2,
+            "digest": "sha256:2a214514869281156099f9feeadf16aee2553ed8c15391ddb377cbc011551071"
+          }
+        },
+        "source_wording": {
+          "text": "Source metadata account; actual source read is bounded as recorded in evidence.",
+          "language": "en",
+          "script": "Latn"
+        },
+        "scope": {
+          "state": "unresolved",
+          "source_wording": "Exact local source-description scope; not a universal assertion.",
+          "missing_binding": "Selected source-owned Scope profile binding; CCI-1 role is supplied."
+        },
+        "world": {
+          "state": "unresolved",
+          "source_wording": "Source-reported bibliographic account.",
+          "missing_binding": "Selected source-owned World/branch profile binding; CCI-1 role is supplied."
+        },
+        "members": [
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+          "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913"
+        ],
+        "basis": [
+          {
+            "role": "source-record",
+            "input": {
+              "state": "bound",
+              "value": {
+                "kind_binding": {
+                  "id": "tos.semantic.entity-types",
+                  "version": 39,
+                  "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+                },
+                "record": {
+                  "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+                  "version": 2,
+                  "digest": "sha256:2a214514869281156099f9feeadf16aee2553ed8c15391ddb377cbc011551071"
+                }
+              }
+            },
+            "inspection": "metadata-read"
+          }
+        ],
+        "limitations": "Local draft value, metadata-description only. CCI-1 roles bound structurally; missing actual qualification/scope/criterion instances prevent semantic identity resolution. No native Claim, grant or historical admission.",
+        "supersedes_proposition": null,
+        "left": {
+          "kind_binding": {
+            "id": "tos.semantic.entity-types",
+            "version": 39,
+            "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+          },
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+            "version": 2,
+            "digest": "sha256:2a214514869281156099f9feeadf16aee2553ed8c15391ddb377cbc011551071"
+          }
+        },
+        "right": {
+          "kind_binding": {
+            "id": "tos.semantic.entity-types",
+            "version": 39,
+            "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+          },
+          "record": {
+            "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913",
+            "version": 4,
+            "digest": "sha256:e1b845d03c5e9d98429ddf125cc759d01ef3945d9b183a695db3e445a84babab"
+          }
+        },
+        "identity_level": "expression",
+        "criterion": {
+          "state": "unresolved",
+          "source_wording": "Same textual responsibility state, not same Work or translator.",
+          "missing_binding": "Root versioned identity criterion profile binding; CCI-1 role is supplied."
+        },
+        "asserted_outcome": "undetermined",
+        "grounds": "1911 and 1913 have separately materialized Expression identities; title and translator do not determine textual identity.",
+        "counterreading": "Collation or specific historical statement could establish or reject a proposed correspondence; none is fabricated here.",
+        "similarity_method": {
+          "state": "unresolved",
+          "source_wording": "No similarity computation performed.",
+          "missing_binding": "Not required unless a candidate was generated by an explicit method."
+        },
+        "endpoints": [
+          {
+            "kind_binding": {
+              "id": "tos.semantic.entity-types",
+              "version": 39,
+              "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+            },
+            "record": {
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+              "version": 2,
+              "digest": "sha256:2a214514869281156099f9feeadf16aee2553ed8c15391ddb377cbc011551071"
+            }
+          },
+          {
+            "kind_binding": {
+              "id": "tos.semantic.entity-types",
+              "version": 39,
+              "digest": "sha256:815fe9bfe960d12eb6ef7eec4cc9eb0676f388438635f85225818ee856735942"
+            },
+            "record": {
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913",
+              "version": 4,
+              "digest": "sha256:e1b845d03c5e9d98429ddf125cc759d01ef3945d9b183a695db3e445a84babab"
+            }
+          }
+        ],
+        "qualification": {
+          "signature_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE identity-correspondence candidate account.",
+            "missing_binding": "Root selects source-owned signature_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "predicate_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE identity-correspondence candidate account.",
+            "missing_binding": "Root selects source-owned predicate_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "context_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE identity-correspondence candidate account.",
+            "missing_binding": "Root selects source-owned context_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "scope_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE identity-correspondence candidate account.",
+            "missing_binding": "Root selects source-owned scope_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "qualification_profile_ref": {
+            "state": "unresolved",
+            "source_wording": "PWE identity-correspondence candidate account.",
+            "missing_binding": "Root selects source-owned qualification_profile_ref instance under CCI-1; no production instance is fabricated."
+          },
+          "modality": "metadata-description"
+        },
+        "source_locations": [
+          {
+            "source_version": {
+              "id": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911",
+              "version": 2,
+              "digest": "sha256:2a214514869281156099f9feeadf16aee2553ed8c15391ddb377cbc011551071"
+            },
+            "locator_scheme_version": {
+              "id": "pwe.local.locator-json-pointer-value-v1",
+              "version": 1,
+              "digest": "sha256:c90704687f616f7432ff72d88d9a8307f69062a47af3a30787cdc7f0748be055"
+            },
+            "locator": "/notes",
+            "namespace_ref": null
+          }
+        ]
+      }
+    ],
+    "semantic_resolution_executed": false
+  }
+}

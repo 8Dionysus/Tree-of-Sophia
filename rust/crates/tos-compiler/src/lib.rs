@@ -40,6 +40,8 @@ mod d1_public_sql;
 mod d1_public_static;
 #[cfg(feature = "source-tools")]
 pub mod epistemic_evidence;
+#[cfg(feature = "source-tools")]
+pub mod pwe_native;
 pub mod local_prepared;
 pub mod local_prepared_aux;
 #[cfg(feature = "source-tools")]

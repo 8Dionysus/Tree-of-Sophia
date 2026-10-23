@@ -1,0 +1,37 @@
+{
+  "record_id": "pwe.local.preserved-candidate-schema-specification",
+  "record_version": 1,
+  "status": "local-source-only-draft",
+  "body": {
+    "kind": "schema-specification",
+    "schema_id": "urn:tos:pwe:application:preserved-candidate:1.0.0",
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "urn:tos:pwe:application:preserved-candidate:1.0.0",
+      "title": "PWE producer codomain: preserved candidate container, not a single PWE value",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "values",
+        "semantic_resolution_executed"
+      ],
+      "properties": {
+        "kind": {
+          "const": "PreservedCandidate"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:tos:pwe:application:values:1.1.0"
+          }
+        },
+        "semantic_resolution_executed": {
+          "const": false
+        }
+      },
+      "$comment": "Selected at /body from the exact local record. Items use the unchanged single-value schema. Array completeness is only the local prepared payload; no historical completeness/admission."
+    },
+    "native_registration": "not-registered"
+  }
+}
