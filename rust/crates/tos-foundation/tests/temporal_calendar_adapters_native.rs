@@ -1235,3 +1235,146 @@ fn malformed_named_calendar_declarations_are_not_missing_or_matching_strings() {
         }
     }
 }
+
+fn crosswalk_direct_routes() -> [(&'static str, DirectAdapter); 2] {
+    use tos_foundation::temporal::crosswalk_records::{
+        convert_crosswalk_record, prepare_crosswalk_version,
+    };
+    [
+        ("prepare_crosswalk_version", prepare_crosswalk_version),
+        ("convert_crosswalk_record", convert_crosswalk_record),
+    ]
+}
+
+#[test]
+fn direct_crosswalk_record_envelopes_share_aggregate_limits_and_bounded_results() {
+    let env = crosswalk_record("crosswalk-A", 1, r#"{"4":9}"#, 10, None);
+    let original = record_request(&env);
+    for (name, direct) in crosswalk_direct_routes() {
+        let context = parse("{}");
+        let bounded = TemporalBudget {
+            max_expression_bytes: 4096,
+            max_members: 128,
+            ..TemporalBudget::default()
+        };
+        let result = direct(&original, &context, bounded).unwrap();
+        assert_eq!(
+            without_dispatch_envelope(
+                execute_temporal_operation(name, &original, &context, bounded).unwrap()
+            ),
+            result
+        );
+        assert_eq!(
+            s(&result, "status"),
+            Some(if name == "prepare_crosswalk_version" {
+                "PreparedCrosswalkVersionCandidate"
+            } else {
+                "Unique"
+            })
+        );
+        assert_eq!(f(&result, "preserved_input"), &original);
+        assert_eq!(f(&result, "preserved_context"), &context);
+        for in_context in [false, true] {
+            let mut input = original.clone();
+            let mut context = parse("{}");
+            set(
+                if in_context { &mut context } else { &mut input },
+                "unused",
+                txt(&"x".repeat(8192)),
+            );
+            let before = (input.clone(), context.clone());
+            let error = Err(TemporalError::ResourceExhausted(
+                "temporal input/context byte/member/depth limit",
+            ));
+            assert_eq!(direct(&input, &context, bounded), error);
+            assert_eq!(
+                execute_temporal_operation(name, &input, &context, bounded),
+                error
+            );
+            assert_eq!((input, context), before);
+        }
+        for in_context in [false, true] {
+            let mut input = original.clone();
+            let mut context = parse("{}");
+            set(
+                if in_context { &mut context } else { &mut input },
+                "unused",
+                JsonValue::Array(vec![JsonValue::Null; 128]),
+            );
+            let error = Err(TemporalError::ResourceExhausted(
+                "temporal input/context byte/member/depth limit",
+            ));
+            assert_eq!(direct(&input, &context, bounded), error);
+            assert_eq!(
+                execute_temporal_operation(name, &input, &context, bounded),
+                error
+            );
+        }
+        for (arrays, accepted) in [(63, true), (64, false)] {
+            for in_context in [false, true] {
+                let mut nested = JsonValue::Null;
+                for _ in 0..arrays {
+                    nested = JsonValue::Array(vec![nested]);
+                }
+                let mut input = original.clone();
+                let mut context = parse("{}");
+                set(
+                    if in_context { &mut context } else { &mut input },
+                    "unused",
+                    nested,
+                );
+                let result = direct(&input, &context, TemporalBudget::default());
+                let dispatched =
+                    execute_temporal_operation(name, &input, &context, TemporalBudget::default());
+                if accepted {
+                    assert_eq!(
+                        without_dispatch_envelope(dispatched.unwrap()),
+                        result.unwrap()
+                    );
+                } else {
+                    let error = Err(TemporalError::ResourceExhausted(
+                        "temporal input/context byte/member/depth limit",
+                    ));
+                    assert_eq!(result, error);
+                    assert_eq!(dispatched, error);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn native_nested_duplicates_are_refused_by_direct_crosswalk_record_entrypoints() {
+    let env = crosswalk_record("crosswalk-A", 1, r#"{"4":9}"#, 10, None);
+    let original = record_request(&env);
+    for (name, direct) in crosswalk_direct_routes() {
+        for key in [
+            tos_foundation::JsonString::from_utf8("duplicate"),
+            tos_foundation::JsonString::from_utf16(&[0xd800]),
+        ] {
+            for in_context in [false, true] {
+                let mut input = original.clone();
+                let mut context = parse("{}");
+                let duplicate = JsonValue::Object(vec![
+                    (key.clone(), JsonValue::Null),
+                    (key.clone(), JsonValue::Bool(true)),
+                ]);
+                set(
+                    if in_context { &mut context } else { &mut input },
+                    "unused",
+                    JsonValue::Array(vec![duplicate]),
+                );
+                let before = (input.clone(), context.clone());
+                let error = Err(TemporalError::MalformedRequest(
+                    "invalid temporal input/context JSON",
+                ));
+                assert_eq!(direct(&input, &context, TemporalBudget::default()), error);
+                assert_eq!(
+                    execute_temporal_operation(name, &input, &context, TemporalBudget::default()),
+                    error
+                );
+                assert_eq!((input, context), before);
+            }
+        }
+    }
+}

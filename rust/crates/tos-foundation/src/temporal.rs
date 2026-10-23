@@ -594,10 +594,10 @@ pub fn execute_temporal_operation(
         }
         "difference" => difference::execute_difference(input, context, budget)?,
         "prepare_crosswalk_version" => {
-            crosswalk_records::prepare_crosswalk_version(input, context, budget)?
+            crosswalk_records::prepare_crosswalk_version_admitted(input, context, budget)?
         }
         "convert_crosswalk_record" => {
-            crosswalk_records::convert_crosswalk_record(input, context, budget)?
+            crosswalk_records::convert_crosswalk_record_admitted(input, context, budget)?
         }
         "add_crosswalk_version" => reason("Unsupported", "PendingOwnerBinding"),
         "add_duration" => calendar_adapters::add_duration_admitted(input, context, budget)?,

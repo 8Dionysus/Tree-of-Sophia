@@ -183,6 +183,16 @@ pub fn prepare_crosswalk_version(
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
     check_shapes(input, context)?;
+    super::admit_transport(input, context, budget)?;
+    prepare_crosswalk_version_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both complete roots.
+pub(super) fn prepare_crosswalk_version_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let env = field(input, "record");
     let expected = field(input, "expected_source_revision");
     let v = load(env, field(input, "requested_ref"), expected, budget)?;
@@ -244,6 +254,16 @@ pub fn convert_crosswalk_record(
     budget: TemporalBudget,
 ) -> Result<JsonValue, TemporalError> {
     check_shapes(input, context)?;
+    super::admit_transport(input, context, budget)?;
+    convert_crosswalk_record_admitted(input, context, budget)
+}
+
+// Parent dispatch has already admitted both complete roots.
+pub(super) fn convert_crosswalk_record_admitted(
+    input: &JsonValue,
+    context: &JsonValue,
+    budget: TemporalBudget,
+) -> Result<JsonValue, TemporalError> {
     let env = field(input, "record");
     let v = load(
         env,
