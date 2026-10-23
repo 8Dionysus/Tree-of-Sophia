@@ -366,9 +366,18 @@ fn network_parent_keeps_its_explicit_transport_budget() {
 fn structured_network_axes_ignore_object_order_and_keep_complete_content() {
     let axis = parse(r#"{"trs":{"id":"opaque","version":"v1"},"unit":"day","origin":"zero"}"#);
     for (declared, matches) in [
-        (r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"}}"#, true),
-        (r#"{"origin":"zero","unit":"day","trs":{"version":"v2","id":"opaque"}}"#, false),
-        (r#"{"origin":"zero","unit":"hour","trs":{"version":"v1","id":"opaque"}}"#, false),
+        (
+            r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"}}"#,
+            true,
+        ),
+        (
+            r#"{"origin":"zero","unit":"day","trs":{"version":"v2","id":"opaque"}}"#,
+            false,
+        ),
+        (
+            r#"{"origin":"zero","unit":"hour","trs":{"version":"v1","id":"opaque"}}"#,
+            false,
+        ),
         (
             r#"{"origin":"zero","unit":"day","trs":{"version":"v1","id":"opaque"},"extra":null}"#,
             false,

@@ -1405,7 +1405,11 @@ fn structured_calendar_refs_ignore_object_order_but_preserve_values() {
         set(&mut projection, "sidecar", sidecar);
         for (operation, input, mismatch) in [
             ("derive_extent", named, "CalendarRuleTrsMismatch"),
-            ("project_to_postgres_range", projection, "SidecarTrsMismatch"),
+            (
+                "project_to_postgres_range",
+                projection,
+                "SidecarTrsMismatch",
+            ),
         ] {
             let before = input.clone();
             let context = parse("{}");
