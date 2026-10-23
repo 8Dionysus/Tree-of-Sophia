@@ -1370,8 +1370,8 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
     ] {
         files.insert(name.into(), fs::read(repository.join(name)).unwrap());
     }
-    // The prior 59-schema closure plus the three declared TS native profile schemas.
-    assert_eq!(selected_schema_files.len(), 62);
+    // Prior 59 schemas + three TS profiles + 18 PWE profile/dependency schemas.
+    assert_eq!(selected_schema_files.len(), 80);
     assert!(files.len() <= 512 && files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
 
     let (captured, software, components) = captured_components(&files, deadline, &cancellation);
@@ -5078,7 +5078,7 @@ process.stdout.write(output);"#;
                         fs::write(&target, &raw).unwrap();
                         fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
                     }
-                    assert_eq!(selected_schema_files.len(), 62);
+                    assert_eq!(selected_schema_files.len(), 80);
                     let c01_authored = current_authored();
                     assert!(c01_authored.len() <= 512);
                     assert!(
@@ -5635,7 +5635,7 @@ process.stdout.write(output);"#;
                     assert_eq!(fs::read(&c01_context_path).unwrap(), c01_context_raw);
                     assert_eq!(fs::read(isolated.path().join(relative)).unwrap(), v2_raw);
                     assert_eq!(fs::read(isolated.path().join(c01_archive)).unwrap(), v1_raw);
-                    assert_eq!(selected_schema_files.len(), 62); // later G10 closure unchanged
+                    assert_eq!(selected_schema_files.len(), 80); // later G10 closure unchanged
                     eprintln!(
                         "C01 source=actual-R2 phase=complete native_calls=3 contexts=2 pure_calls=6 current=J1 pinned=R1 out_of_coverage=13 withdrawal=J2"
                     );
