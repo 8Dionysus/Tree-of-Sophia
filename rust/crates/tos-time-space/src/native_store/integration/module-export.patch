@@ -1,0 +1,8 @@
+--- a/rust/crates/tos-time-space/src/lib.rs
++++ b/rust/crates/tos-time-space/src/lib.rs
+@@ -16,3 +16,5 @@
+ pub use rational::Rational;
+ pub use spatial::*;
+ pub use temporal_paths::*;
++
++pub mod native_store;

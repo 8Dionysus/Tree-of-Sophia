@@ -1,0 +1,26 @@
+--- a/.github/workflows/repo-validation.yml
++++ b/.github/workflows/repo-validation.yml
+@@ -99,6 +99,7 @@
+             /Cargo.lock
+             /rust-toolchain.toml
+             /rust/
++            /ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-production/historical-process.json
+             /tests/conformance/rust/
+             /ToS/contracts/
+             /ToS/doctrine/semantic-interchange/entity-types.v1.json
+@@ -362,6 +363,7 @@
+             /Cargo.lock
+             /rust-toolchain.toml
+             /rust/
++            /ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-production/historical-process.json
+             /tests/conformance/rust/
+             /access/
+             !/access/web/dist/
+@@ -451,6 +453,7 @@
+             /Cargo.lock
+             /rust-toolchain.toml
+             /rust/
++            /ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-production/historical-process.json
+             /tests/conformance/rust/
+             /.github/workflows/repo-validation.yml
+             /.github/workflows/cloudflare-edge.yml

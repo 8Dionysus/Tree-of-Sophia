@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_ts_native_value_profile_record_v1",
+  "record_type": "ts-native-value-profile",
+  "record_id": "tos.ts-native-value-profile.relationimage-direct-v1",
+  "record_version": 1,
+  "preferred_label": "TS direct typed value profile: RelationImage",
+  "variant_labels": [],
+  "identity_status": "provisional",
+  "source_refs": [
+    "https://github.com/8Dionysus/Tree-of-Sophia/blob/6d2e9d001e73f3c79d0183861a4bd834f872fabe/rust/crates/tos-time-space/CONTRACTS.md",
+    "https://github.com/8Dionysus/Tree-of-Sophia/blob/6d2e9d001e73f3c79d0183861a4bd834f872fabe/rust/crates/tos-time-space/src/binding.rs"
+  ],
+  "external_identifiers": [],
+  "same_as_posture": "no_equivalence_claim",
+  "field_languages": {
+    "preferred_label": {
+      "language": "en",
+      "script": "Latn"
+    },
+    "notes": {
+      "language": "en",
+      "script": "Latn"
+    }
+  },
+  "notes": "This profile names DirectDomainValueV1 on the existing typed RelationImage value. Native whole-Record validation and /body decoding occur first, separately. The exact closed payload codec is ts-native-domain-payload-v1 as specified by the native_store implementation. Exact source pin, requested codomain and domain shape must all agree. A source record or codec result grants no source authority, historical interpretation or universal coverage.",
+  "semantic_scope": {
+    "scope_note": "Only the named bounded TS codomain and typed identity projection; K0 Partial/Undefined/NoCompleteValue/execution and source assessment remain separate.",
+    "identity_criterion": "Identity is this precise codomain/projection/payload interpretation. A compatible description may be revised; changing those semantics requires a successor profile, preserving old versions.",
+    "language": "en",
+    "script": "Latn"
+  },
+  "visibility": "public_metadata_only",
+  "body": {
+    "projection": "DirectDomainValueV1",
+    "codomain": "RelationImage"
+  }
+}
