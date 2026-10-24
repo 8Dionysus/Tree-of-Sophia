@@ -1863,10 +1863,10 @@ where
     // source presence and a general review must never stand in for mandatory
     // PWE role/dependency/application dispatch. Actual PWE hosts assess only
     // through their private NativeConsumerOwner after those checks.
-    if requires_held_pwe_dispatch(&plan.current, budget, cancelled)? {
-        return Err(SourceCommandError::Unsupported(
-            "PWE source Claim requires its held exact-basis consumer dispatch",
-        ));
+    for subject in std::iter::once(&plan.current)
+        .chain(plan.parent_context.as_ref().map(|parent| &parent.record))
+    {
+        refuse_generic_pwe_subject(subject, budget, cancelled)?;
     }
     let config = plan.config;
     let request = plan.request;
@@ -3161,6 +3161,35 @@ fn evaluation_limits(budget: &OperationBudget) -> SourceCommandResult<Assessment
     budget.limits()
 }
 
+/// Borrowed dispatch lookup, paid before field and string comparisons.
+fn pwe_dispatch_field<'v>(
+    value: &'v JsonValue,
+    key: &str,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<&'v JsonValue>> {
+    active(budget.deadline, cancelled)?;
+    budget.charge_work(1)?;
+    let Some(fields) = value.as_object() else {
+        return Ok(None);
+    };
+    budget.charge_work(fields.len().checked_add(1).ok_or(
+        SourceCommandError::Unsupported("PWE dispatch field iteration overflow"),
+    )?)?;
+    for (name, value) in fields {
+        active(budget.deadline, cancelled)?;
+        if let Some(name) = name.as_str() {
+            budget.charge_work(name.len().checked_add(key.len()).ok_or(
+                SourceCommandError::Unsupported("PWE dispatch field comparison overflow"),
+            )?)?;
+            if name == key {
+                return Ok(Some(value));
+            }
+        }
+    }
+    Ok(None)
+}
+
 /// Exact registered PWE account families cannot fall through to the generic
 /// assessment engine while the protected native consumer is not installed.
 /// This is a refusal gate, never a report/authority/completeness constructor.
@@ -3169,34 +3198,7 @@ fn requires_held_pwe_dispatch(
     budget: &mut OperationBudget,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<bool> {
-    fn get<'v>(
-        value: &'v JsonValue,
-        key: &str,
-        budget: &mut OperationBudget,
-        cancelled: &AtomicBool,
-    ) -> SourceCommandResult<Option<&'v JsonValue>> {
-        active(budget.deadline, cancelled)?;
-        budget.charge_work(1)?;
-        let Some(fields) = value.as_object() else {
-            return Ok(None);
-        };
-        budget.charge_work(fields.len().checked_add(1).ok_or(
-            SourceCommandError::Unsupported("PWE dispatch field iteration overflow"),
-        )?)?;
-        for (name, value) in fields {
-            active(budget.deadline, cancelled)?;
-            if let Some(name) = name.as_str() {
-                budget.charge_work(name.len().checked_add(key.len()).ok_or(
-                    SourceCommandError::Unsupported("PWE dispatch field comparison overflow"),
-                )?)?;
-                if name == key {
-                    return Ok(Some(value));
-                }
-            }
-        }
-        Ok(None)
-    }
-    let payload = get(current, "payload", budget, cancelled)?.unwrap_or(current);
+    let payload = pwe_dispatch_field(current, "payload", budget, cancelled)?.unwrap_or(current);
     // These exact constants are the three declared source families in the
     // maintained pwe-bindings.v1.json, not inferred from a similar object body.
     for (field, expected) in [
@@ -3207,7 +3209,8 @@ fn requires_held_pwe_dispatch(
         ("predicate", "pwe_responsibility_account"),
         ("predicate", "pwe_identity_correspondence"),
     ] {
-        if let Some(actual) = get(payload, field, budget, cancelled)?.and_then(JsonValue::as_str) {
+        let actual = pwe_dispatch_field(payload, field, budget, cancelled)?;
+        if let Some(actual) = actual.and_then(JsonValue::as_str) {
             budget.charge_work(actual.len().checked_add(expected.len()).ok_or(
                 SourceCommandError::Unsupported("PWE dispatch family comparison overflow"),
             )?)?;
@@ -3217,6 +3220,49 @@ fn requires_held_pwe_dispatch(
         }
     }
     Ok(false)
+}
+
+/// The same boundary protects direct, form-parent and quality-dependency
+/// evaluation. Only the actual selected subject is checked; an unrelated PWE
+/// record in the shared source set must not infect another subject's result.
+fn refuse_generic_pwe_subject(
+    subject: &JsonValue,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if requires_held_pwe_dispatch(subject, budget, cancelled)? {
+        return Err(SourceCommandError::Unsupported(
+            "PWE source Claim requires its held exact-basis consumer dispatch",
+        ));
+    }
+    Ok(())
+}
+
+fn refuse_generic_pwe_subject_id(
+    subject_id: &str,
+    sources: [&[JsonValue]; 3],
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(budget.deadline, cancelled)?;
+    for records in sources {
+        budget.charge_work(records.len().checked_add(1).ok_or(
+            SourceCommandError::Unsupported("PWE subject dispatch iteration overflow"),
+        )?)?;
+        for record in records {
+            if let Some(id) = pwe_dispatch_field(record, "id", budget, cancelled)?
+                .and_then(JsonValue::as_str)
+            {
+                budget.charge_work(id.len().checked_add(subject_id.len()).ok_or(
+                    SourceCommandError::Unsupported("PWE subject identity comparison overflow"),
+                )?)?;
+                if id == subject_id {
+                    refuse_generic_pwe_subject(record, budget, cancelled)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn evaluate_selected_subject_with_executor<W, F>(
@@ -3248,6 +3294,12 @@ where
         &AtomicBool,
     ) -> SourceCommandResult<AssessmentMechanicsReport>,
 {
+    refuse_generic_pwe_subject_id(
+        subject_id,
+        [source_records, native_records, record_rows],
+        budget,
+        cancelled,
+    )?;
     let input = selected_assessment_input(
         config,
         subject_id,
