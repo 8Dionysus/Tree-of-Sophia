@@ -1847,6 +1847,24 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
     .map_err(crate::durable_private_packages::PrivateOwnerReadFailure::legacy_error)
 }
 
+/// Finalize the actual worker after the WHOLE worker-using history body,
+/// including restoration/head/source-collection errors before user callback.
+/// Ordinary Result exits only: a panic is not a successful/fenced result.
+fn with_private_history_worker_exit<W: CutSchemaExecutor, T>(
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    body: impl FnOnce(&mut W) -> DurableResult<T>,
+) -> DurableResult<T> {
+    let result = body(worker);
+    let fenced = crate::source_sign::finish_worker(worker, deadline, cancelled)
+        .map_err(DurableError::Source);
+    match (result, fenced) {
+        (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+        (Ok(value), Ok(())) => Ok(value),
+    }
+}
+
 /// The actual selected-schema Assessment history guard with a lexical reader
 /// for only its selected private targets, on the SAME owner RR transaction.
 /// It adds no writer grant, source admission, or fabricated history snapshot.
@@ -1937,68 +1955,67 @@ pub(crate) fn with_private_assessment_and_source_histories_and_read_session_guar
         deadline,
         cancelled,
         |package_histories, selected_reader, held_deadline, held_cancelled| {
-            let mut histories = BTreeMap::new();
-            let mut packages_by_subject = BTreeMap::new();
-            for (subject_id, target_ref) in subject_targets {
-                active(held_deadline, held_cancelled).map_err(DurableError::Source)?;
-                let package = package_histories
-                    .get(target_ref)
-                    .ok_or(DurableError::Corrupt(
-                        "assessment private history target absent",
-                    ))?;
-                let history = AssessmentHistory::from_private_package_history_selected_schema(
-                    package,
-                    scope,
-                    target_ref,
-                    subject_id,
-                    batch_schema,
-                    input_identity,
-                    worker,
-                    held_deadline,
-                    held_cancelled,
-                )
-                .map_err(DurableError::Source)?;
-                if history.head.as_deref()
-                    != expected_heads
-                        .get(subject_id)
-                        .and_then(|expected| expected.as_deref())
-                {
-                    return Err(DurableError::Source(SourceCommandError::Conflict(
-                        "assessment private history head changed",
-                    )));
-                }
-                histories.insert(subject_id.clone(), history);
-                packages_by_subject.insert(subject_id.clone(), package.clone());
-            }
-            let source_packages = source_target_refs
-                .iter()
-                .map(|target_ref| {
-                    let package =
-                        package_histories
-                            .get(target_ref)
-                            .ok_or(DurableError::Corrupt(
-                                "assessment private source package absent",
-                            ))?;
-                    Ok((target_ref.clone(), package.clone()))
-                })
-                .collect::<DurableResult<BTreeMap<_, _>>>()?;
-            let result = callback(
-                &histories,
-                &packages_by_subject,
-                &source_packages,
-                selected_reader,
+            with_private_history_worker_exit(
                 worker,
                 held_deadline,
                 held_cancelled,
-            );
-            // The real worker exit is attempted on Err too. The original body
-            // error wins; successful values cannot escape a failed worker exit.
-            let fenced = crate::source_sign::finish_worker(worker, held_deadline, held_cancelled)
-                .map_err(DurableError::Source);
-            match (result, fenced) {
-                (Err(error), _) | (Ok(_), Err(error)) => Err(error),
-                (Ok(value), Ok(())) => Ok(value),
-            }
+                |worker| {
+                    let mut histories = BTreeMap::new();
+                    let mut packages_by_subject = BTreeMap::new();
+                    for (subject_id, target_ref) in subject_targets {
+                        active(held_deadline, held_cancelled).map_err(DurableError::Source)?;
+                        let package = package_histories
+                            .get(target_ref)
+                            .ok_or(DurableError::Corrupt(
+                                "assessment private history target absent",
+                            ))?;
+                        let history = AssessmentHistory::from_private_package_history_selected_schema(
+                            package,
+                            scope,
+                            target_ref,
+                            subject_id,
+                            batch_schema,
+                            input_identity,
+                            worker,
+                            held_deadline,
+                            held_cancelled,
+                        )
+                        .map_err(DurableError::Source)?;
+                        if history.head.as_deref()
+                            != expected_heads
+                                .get(subject_id)
+                                .and_then(|expected| expected.as_deref())
+                        {
+                            return Err(DurableError::Source(SourceCommandError::Conflict(
+                                "assessment private history head changed",
+                            )));
+                        }
+                        histories.insert(subject_id.clone(), history);
+                        packages_by_subject.insert(subject_id.clone(), package.clone());
+                    }
+                    let source_packages = source_target_refs
+                        .iter()
+                        .map(|target_ref| {
+                            let package =
+                                package_histories
+                                    .get(target_ref)
+                                    .ok_or(DurableError::Corrupt(
+                                        "assessment private source package absent",
+                                    ))?;
+                            Ok((target_ref.clone(), package.clone()))
+                        })
+                        .collect::<DurableResult<BTreeMap<_, _>>>()?;
+                    callback(
+                        &histories,
+                        &packages_by_subject,
+                        &source_packages,
+                        selected_reader,
+                        worker,
+                        held_deadline,
+                        held_cancelled,
+                    )
+                },
+            )
         },
     )
 }
@@ -3492,5 +3509,97 @@ impl AssessmentJournalReadBatch<'_> {
             let _ = (input_bytes, capacity, storage_envelope);
         }
         Ok(history)
+    }
+}
+
+#[cfg(test)]
+mod private_history_worker_exit_tests {
+    use super::*;
+    use std::{cell::Cell, time::Duration};
+    use tos_validation::item_rules::ItemRefusal;
+
+    // Negative control-flow probe only. It cannot accept a schema or issue an
+    // execution binding, source permission, native receipt or successful Claim.
+    struct RefusingWorker {
+        schema: Digest256,
+        checks: usize,
+        exits: usize,
+        exit_fails: bool,
+    }
+    impl CutSchemaExecutor for RefusingWorker {
+        fn selected_contract_digest(&self, contract: &str) -> Option<Digest256> {
+            (contract == BATCH_SCHEMA).then_some(self.schema)
+        }
+        fn check(
+            &mut self,
+            _path: &str,
+            _raw: &[u8],
+            _contract: &str,
+            _deadline: Instant,
+            _cancelled: &AtomicBool,
+        ) -> Result<bool, ItemRefusal> {
+            self.checks += 1;
+            Ok(false)
+        }
+        fn finish(&mut self, _deadline: Instant, _cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+            self.exits += 1;
+            if self.exit_fails { Err(ItemRefusal::Deadline) } else { Ok(()) }
+        }
+    }
+
+    #[test]
+    fn history_schema_refusal_attempts_exit_before_user_callback() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let schema = b"{}";
+        for exit_fails in [false, true] {
+            let mut worker = RefusingWorker {
+                schema: Digest256::of_bytes(schema), checks: 0, exits: 0, exit_fails,
+            };
+            let callback_reached = Cell::new(false);
+            let result = with_private_history_worker_exit(&mut worker, deadline, &cancelled, |worker| {
+                // Actual restoration validator used by
+                // from_private_package_history_selected_schema. A negative
+                // schema execution exits before head/collection/user callback.
+                validate_assessment_history_batches(
+                    "tos.claim.test", None, &[cmd::object(vec![])], 2, schema,
+                    worker, None, deadline, &cancelled,
+                ).map_err(DurableError::Source)?;
+                callback_reached.set(true);
+                Ok(())
+            });
+            assert!(matches!(result, Err(DurableError::Source(
+                SourceCommandError::Invalid("assessment batch schema")
+            ))));
+            assert_eq!(worker.checks, 1);
+            assert_eq!(worker.exits, 1);
+            assert!(!callback_reached.get());
+        }
+    }
+
+    #[test]
+    fn callback_refusal_attempts_exit_and_failed_exit_cannot_release_success() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut worker = RefusingWorker {
+            schema: Digest256::of_bytes(b"{}"), checks: 0, exits: 0, exit_fails: true,
+        };
+        let original = SourceCommandError::Denied("original callback refusal");
+        let result: DurableResult<()> = with_private_history_worker_exit(
+            &mut worker, deadline, &cancelled,
+            |_| Err(DurableError::Source(original.clone())),
+        );
+        match result {
+            Err(DurableError::Source(actual)) => assert_eq!(actual, original),
+            _ => panic!("worker exit must not replace the original body error"),
+        }
+        assert_eq!(worker.exits, 1);
+        let success = with_private_history_worker_exit(
+            &mut worker, deadline, &cancelled, |_| Ok(7),
+        );
+        assert!(matches!(success, Err(DurableError::Source(
+            SourceCommandError::Denied("Sign schema operation expired")
+        ))));
+        assert_eq!(worker.exits, 2);
     }
 }
