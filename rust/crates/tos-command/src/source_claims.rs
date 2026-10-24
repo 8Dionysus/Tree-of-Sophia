@@ -11756,7 +11756,11 @@ mod retained_history_reader_regression {
             )
             .is_err()
         );
-        assert_eq!(operation.limits().unwrap().max_work, 1); // paid64 before refusing lookup
+        assert_eq!(operation.test_work_remaining(), 1); // paid64 before refusing lookup
+        assert!(matches!(
+            operation.limits(),
+            Err(SourceCommandError::Denied("assessment operation budget expired"))
+        ));
         assert!(
             assessment::select_current_scope_with_admission(
                 &config,
@@ -11769,6 +11773,10 @@ mod retained_history_reader_regression {
             )
             .is_err()
         );
-        assert_eq!(operation.limits().unwrap().max_work, 1); // same payer cannot refill
+        assert_eq!(operation.test_work_remaining(), 1); // same payer cannot refill
+        assert!(matches!(
+            operation.limits(),
+            Err(SourceCommandError::Denied("assessment operation budget expired"))
+        ));
     }
 }

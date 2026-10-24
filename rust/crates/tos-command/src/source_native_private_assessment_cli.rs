@@ -510,6 +510,13 @@ impl OperationBudget {
         Ok(())
     }
 
+    /// Observe a spent prefix in regressions without asking a refused
+    /// operation for a new usable allowance. No production reset or loan.
+    #[cfg(test)]
+    pub(crate) fn test_work_remaining(&self) -> usize {
+        self.work_remaining
+    }
+
     pub(crate) fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> {
         self.work_remaining = self.work_remaining.checked_sub(work).ok_or_else(|| {
             self.resource_refused.set(true);
