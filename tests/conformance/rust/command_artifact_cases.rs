@@ -186,8 +186,6 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         "source-link",
         "claim-display-fields",
         "tos-corpus-index",
-        "tos-source-home",
-        "tos-node-contract",
     ]
     .into_iter()
     .map(|name| format!("ToS/contracts/{name}.schema.json"))
@@ -199,9 +197,19 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
             || !path.ends_with(".schema.json")
             || schemas.contains_key(path)
     });
+    // Preserve full producer inputs after metadata closure selection, as in
+    // the Record fixture. NODE retains its raw GitHub $id; it is not a
+    // metadata-dispatch root and must not be rewritten into that namespace.
+    for path in [
+        "ToS/contracts/tos-source-home.schema.json",
+        "ToS/contracts/tos-node-contract.schema.json",
+    ] {
+        files.insert(path.into(), fs::read(repository.join(path)).unwrap());
+    }
     eprintln!(
         "Artifact selected schemas={} bytes={} all registered routes and refs retained",
-        schemas.len(), schema_bytes,
+        schemas.len(),
+        schema_bytes,
     );
     let fixture_bytes = files
         .values()
