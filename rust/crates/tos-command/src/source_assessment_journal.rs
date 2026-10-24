@@ -1844,6 +1844,7 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
             callback(histories, packages, sources, worker, deadline, cancelled)
         },
     )
+    .map_err(crate::durable_private_packages::PrivateOwnerReadFailure::legacy_error)
 }
 
 /// The actual selected-schema Assessment history guard with a lexical reader
@@ -1874,7 +1875,7 @@ pub(crate) fn with_private_assessment_and_source_histories_and_read_session_guar
         Instant,
         &AtomicBool,
     ) -> DurableResult<T>,
-) -> DurableResult<T> {
+) -> crate::durable_private_packages::PrivateOwnerReadResult<T> {
     if subject_targets.is_empty()
         || subject_targets.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
         || expected_heads.len() != subject_targets.len()
@@ -1885,7 +1886,8 @@ pub(crate) fn with_private_assessment_and_source_histories_and_read_session_guar
     {
         return Err(DurableError::Invalid(
             "assessment private history closure count or budget",
-        ));
+        )
+        .into());
     }
     let mut subject_ids = BTreeSet::new();
     let mut subject_homes = BTreeSet::new();
@@ -1901,7 +1903,8 @@ pub(crate) fn with_private_assessment_and_source_histories_and_read_session_guar
         {
             return Err(DurableError::Invalid(
                 "assessment distinct private history subjects",
-            ));
+            )
+            .into());
         }
         target_refs.push(target_ref.clone());
     }
@@ -1911,7 +1914,8 @@ pub(crate) fn with_private_assessment_and_source_histories_and_read_session_guar
     {
         return Err(DurableError::Invalid(
             "assessment private history expected-head set",
-        ));
+        )
+        .into());
     }
     let mut all_targets = target_refs.iter().cloned().collect::<BTreeSet<_>>();
     for target_ref in source_target_refs {
@@ -1920,7 +1924,8 @@ pub(crate) fn with_private_assessment_and_source_histories_and_read_session_guar
         {
             return Err(DurableError::Invalid(
                 "assessment private source target closure",
-            ));
+            )
+            .into());
         }
         target_refs.push(target_ref.clone());
     }

@@ -306,6 +306,69 @@ impl Drop for PrivateOwnerSharedReadLock<'_> {
     }
 }
 
+/// Exit of the joint read lane, retaining BOTH faults without converting the
+/// original owner/payer error into a cleanup error. No successful value escapes
+/// a failed release. This private type is not a new public error protocol.
+#[derive(Debug)]
+pub(crate) enum PrivateOwnerReadFailure {
+    Operation(DurableError),
+    Release(DurableError),
+    OperationAndRelease {
+        operation: DurableError,
+        release: DurableError,
+    },
+}
+
+pub(crate) type PrivateOwnerReadResult<T> = Result<T, PrivateOwnerReadFailure>;
+
+impl From<DurableError> for PrivateOwnerReadFailure {
+    fn from(error: DurableError) -> Self {
+        Self::Operation(error)
+    }
+}
+
+impl PrivateOwnerReadFailure {
+    /// Compatibility projection for pre-existing callers only: historically
+    /// release failure takes precedence. The new held reader keeps this type
+    /// intact and must not use this lossy projection for original-payer errors.
+    pub(crate) fn legacy_error(self) -> DurableError {
+        match self {
+            Self::Operation(error) | Self::Release(error) => error,
+            Self::OperationAndRelease { release, .. } => release,
+        }
+    }
+}
+
+fn complete_private_owner_read<T>(
+    operation: DurableResult<T>,
+    release: DurableResult<()>,
+) -> PrivateOwnerReadResult<T> {
+    match (operation, release) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(operation), Ok(())) => Err(PrivateOwnerReadFailure::Operation(operation)),
+        (Ok(_), Err(release)) => Err(PrivateOwnerReadFailure::Release(release)),
+        (Err(operation), Err(release)) => {
+            Err(PrivateOwnerReadFailure::OperationAndRelease { operation, release })
+        }
+    }
+}
+
+fn with_private_owner_shared_read_lock_complete<T>(
+    client: &mut Client,
+    scope: &PrivateOwnerScopeV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    operation: impl FnOnce(&mut Client) -> DurableResult<T>,
+) -> PrivateOwnerReadResult<T> {
+    let lock = PrivateOwnerSharedReadLock::acquire(client, scope, deadline, cancelled)?;
+    let result = check_private_history_deadline(deadline, cancelled)
+        .and_then(|()| operation(&mut *lock.client));
+    // release still runs exactly once on every ordinary body Result. Its own
+    // existing Drop retry on query error is unchanged; both error facts survive.
+    let released = lock.release();
+    complete_private_owner_read(result, released)
+}
+
 fn with_private_owner_shared_read_lock<T>(
     client: &mut Client,
     scope: &PrivateOwnerScopeV1,
@@ -313,14 +376,8 @@ fn with_private_owner_shared_read_lock<T>(
     cancelled: &AtomicBool,
     operation: impl FnOnce(&mut Client) -> DurableResult<T>,
 ) -> DurableResult<T> {
-    let lock = PrivateOwnerSharedReadLock::acquire(client, scope, deadline, cancelled)?;
-    let result = check_private_history_deadline(deadline, cancelled)
-        .and_then(|()| operation(&mut *lock.client));
-    let released = lock.release();
-    match released {
-        Ok(()) => result,
-        Err(error) => Err(error),
-    }
+    with_private_owner_shared_read_lock_complete(client, scope, deadline, cancelled, operation)
+        .map_err(PrivateOwnerReadFailure::legacy_error)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2706,6 +2763,7 @@ impl DurablePgCoordinator {
             scope, target_refs, max_total_rows, max_total_bytes, deadline, cancelled,
             |histories, _session, deadline, cancelled| callback(histories, deadline, cancelled),
         )
+        .map_err(PrivateOwnerReadFailure::legacy_error)
     }
 
     /// Selected histories and their genuine archive reader share ONE owner
@@ -2727,12 +2785,13 @@ impl DurablePgCoordinator {
             Instant,
             &AtomicBool,
         ) -> DurableResult<T>,
-    ) -> DurableResult<T> {
+    ) -> PrivateOwnerReadResult<T> {
         validate_scope(scope)?;
         if target_refs.is_empty() || target_refs.len() > MAX_PACKAGE_HISTORY_TARGETS {
             return Err(DurableError::Invalid(
                 "private package history target count",
-            ));
+            )
+            .into());
         }
         let mut ordered_targets = BTreeSet::new();
         for target_ref in target_refs {
@@ -2740,7 +2799,8 @@ impl DurablePgCoordinator {
             if !ordered_targets.insert(target_ref.as_str()) {
                 return Err(DurableError::Invalid(
                     "duplicate private package history target",
-                ));
+                )
+                .into());
             }
         }
         if max_total_rows == 0
@@ -2750,11 +2810,12 @@ impl DurablePgCoordinator {
         {
             return Err(DurableError::Invalid(
                 "private package aggregate history budget",
-            ));
+            )
+            .into());
         }
         check_private_history_deadline(deadline, cancelled)?;
         require_private_schema(&mut self.client)?;
-        with_private_owner_shared_read_lock(
+        with_private_owner_shared_read_lock_complete(
             &mut self.client,
             scope,
             deadline,
@@ -3641,4 +3702,35 @@ fn validate_write(write: &PrivateOwnerPackageWriteV1) -> DurableResult<()> {
         return Err(DurableError::Invalid("private source binding identity"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod read_completion_tests {
+    use super::*;
+    use crate::source_command::SourceCommandError;
+
+    #[test]
+    fn original_operation_and_release_faults_remain_distinct() {
+        let original = SourceCommandError::Denied("original payer cancellation");
+        let dual = complete_private_owner_read::<()>(
+            Err(DurableError::Source(original.clone())),
+            Err(DurableError::Corrupt("release failed")),
+        );
+        match dual {
+            Err(PrivateOwnerReadFailure::OperationAndRelease {
+                operation: DurableError::Source(error),
+                release: DurableError::Corrupt("release failed"),
+            }) => assert_eq!(error, original),
+            _ => panic!("both original operation and cleanup faults must survive"),
+        }
+        assert!(matches!(
+            complete_private_owner_read(Ok(7), Err(DurableError::Refused("release failed"))),
+            Err(PrivateOwnerReadFailure::Release(DurableError::Refused("release failed")))
+        ));
+        assert!(matches!(
+            complete_private_owner_read::<()>(Err(DurableError::Conflict("body")), Ok(())),
+            Err(PrivateOwnerReadFailure::Operation(DurableError::Conflict("body")))
+        ));
+        assert_eq!(complete_private_owner_read(Ok(7), Ok(())).unwrap(), 7);
+    }
 }
