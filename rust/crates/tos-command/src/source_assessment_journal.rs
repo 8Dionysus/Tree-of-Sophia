@@ -1836,6 +1836,45 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
         &AtomicBool,
     ) -> DurableResult<T>,
 ) -> DurableResult<T> {
+    with_private_assessment_and_source_histories_and_read_session_guard_selected_schema(
+        coordinator, scope, subject_targets, source_target_refs, expected_heads,
+        batch_schema, input_identity, worker, max_total_rows, max_total_bytes,
+        deadline, cancelled,
+        |histories, packages, sources, _reader, worker, deadline, cancelled| {
+            callback(histories, packages, sources, worker, deadline, cancelled)
+        },
+    )
+}
+
+/// The actual selected-schema Assessment history guard with a lexical reader
+/// for only its selected private targets, on the SAME owner RR transaction.
+/// It adds no writer grant, source admission, or fabricated history snapshot.
+pub(crate) fn with_private_assessment_and_source_histories_and_read_session_guard_selected_schema<
+    I: Copy + Eq,
+    T,
+>(
+    coordinator: &mut DurablePgCoordinator,
+    scope: &PrivateOwnerScopeV1,
+    subject_targets: &[(String, String)],
+    source_target_refs: &[String],
+    expected_heads: &BTreeMap<String, Option<String>>,
+    batch_schema: &[u8],
+    input_identity: &I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    max_total_rows: usize,
+    max_total_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    callback: impl FnOnce(
+        &BTreeMap<String, AssessmentHistory>,
+        &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+        &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+        &mut crate::durable_private_packages::PrivateOwnerSelectedHistoryRead<'_, '_, '_>,
+        &mut CandidateCutWorkerSchemaExecutor<I>,
+        Instant,
+        &AtomicBool,
+    ) -> DurableResult<T>,
+) -> DurableResult<T> {
     if subject_targets.is_empty()
         || subject_targets.len() > crate::durable_private_packages::MAX_PACKAGE_HISTORY_TARGETS
         || expected_heads.len() != subject_targets.len()
@@ -1885,14 +1924,14 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
         }
         target_refs.push(target_ref.clone());
     }
-    coordinator.with_private_owner_package_histories_guard(
+    coordinator.with_private_owner_package_histories_and_read_session_guard(
         scope,
         &target_refs,
         max_total_rows,
         max_total_bytes,
         deadline,
         cancelled,
-        |package_histories, held_deadline, held_cancelled| {
+        |package_histories, selected_reader, held_deadline, held_cancelled| {
             let mut histories = BTreeMap::new();
             let mut packages_by_subject = BTreeMap::new();
             for (subject_id, target_ref) in subject_targets {
@@ -1938,17 +1977,23 @@ pub(crate) fn with_private_assessment_and_source_histories_guard_selected_schema
                     Ok((target_ref.clone(), package.clone()))
                 })
                 .collect::<DurableResult<BTreeMap<_, _>>>()?;
-            let value = callback(
+            let result = callback(
                 &histories,
                 &packages_by_subject,
                 &source_packages,
+                selected_reader,
                 worker,
                 held_deadline,
                 held_cancelled,
-            )?;
-            crate::source_sign::finish_worker(worker, held_deadline, held_cancelled)
-                .map_err(DurableError::Source)?;
-            Ok(value)
+            );
+            // The real worker exit is attempted on Err too. The original body
+            // error wins; successful values cannot escape a failed worker exit.
+            let fenced = crate::source_sign::finish_worker(worker, held_deadline, held_cancelled)
+                .map_err(DurableError::Source);
+            match (result, fenced) {
+                (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+                (Ok(value), Ok(())) => Ok(value),
+            }
         },
     )
 }

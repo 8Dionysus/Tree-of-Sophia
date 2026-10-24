@@ -3529,6 +3529,60 @@ impl SourceRevisionReadSession<'_> {
             cancelled,
             |row| cohort_matches(row, &self.selection.cohort, true),
         )?;
+        self.record_selected_current_member(path, row, raw, placement, work)
+    }
+
+    /// The same actual source epoch and required readset observations, with
+    /// the original-admission STO leg. SQL, metadata/record clones and full
+    /// native caller enclosure are NOT certified by this lower-only port.
+    /// Admission E remains distinct from the existing PG/store/source error.
+    /// The enclosing held epoch still owns its Ok/Err exit freshness check.
+    pub(crate) fn read_current_member_with_sto_admission<E, A>(
+        &mut self,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut A,
+    ) -> std::result::Result<DurableResult<ManagedCurrentMember>, E>
+    where
+        A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+    {
+        if let Err(error) = active(deadline, cancelled) {
+            return Ok(Err(error));
+        }
+        if !path.as_str().starts_with("ToS/") {
+            return Ok(Err(DurableError::Refused(
+                "bounded source revision path outside authored namespace",
+            )));
+        }
+        match self.coordinator.read_committed_source_selected_with_sto_admission(
+            self.store,
+            &self.selection.cohort.domain,
+            path.as_str(),
+            None,
+            max_bytes,
+            deadline,
+            cancelled,
+            |row| cohort_matches(row, &self.selection.cohort, true),
+            admission,
+        ) {
+            Err(original) => Err(original),
+            Ok(Err(source)) => Ok(Err(source)),
+            Ok(Ok((row, raw, placement, work))) => {
+                Ok(self.record_selected_current_member(path, row, raw, placement, work))
+            },
+        }
+    }
+
+    fn record_selected_current_member(
+        &mut self,
+        path: &RelativePath,
+        row: postgres::Row,
+        raw: Vec<u8>,
+        placement: PlacementV1,
+        work: crate::durable_adapter::CommittedSourceReadWork,
+    ) -> DurableResult<ManagedCurrentMember> {
         let (metadata, dependency_claims) = expose_metadata(&row, path)?;
         let locator = metadata_locator_digest(&row);
         let member = ManagedCurrentMember {

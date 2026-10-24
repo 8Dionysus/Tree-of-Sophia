@@ -187,6 +187,49 @@ pub(crate) struct PrivateOwnerReadSession<'connection> {
     current_headers: BTreeMap<String, Option<PrivateOwnerPackageCurrentHeaderV1>>,
 }
 
+/// Lexical archive lane of the exact history targets selected by the owner.
+/// It lends neither the raw transaction nor a wider owner-scope reader.
+/// Only the joint history guard constructs it; it issues no read permission.
+pub(crate) struct PrivateOwnerSelectedHistoryRead<'loan, 'connection, 'targets> {
+    session: &'loan mut PrivateOwnerReadSession<'connection>,
+    targets: &'loan BTreeSet<&'targets str>,
+}
+
+impl PrivateOwnerSelectedHistoryRead<'_, '_, '_> {
+    pub(crate) fn scope(&self) -> &PrivateOwnerScopeV1 {
+        self.session.scope()
+    }
+
+    pub(crate) fn private_audit_generation(&self) -> u64 {
+        self.session.private_audit_generation()
+    }
+
+    pub(crate) fn read_claim_archive_with_query_data_admission(
+        &mut self,
+        target_ref: &str,
+        archive_ref: &str,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+        check_private_history_deadline(deadline, cancelled)?;
+        // Pay both operands' possible common prefix before the selected-set
+        // lookup. This bounds every entry, never a top-N subset or scan of the
+        // corpus. Other callback/native holders are still a separate enclosure.
+        let work = target_ref.len().checked_add(1)
+            .and_then(|n| n.checked_mul(2))
+            .and_then(|n| n.checked_mul(self.targets.len()))
+            .ok_or(DurableError::Refused("selected archive target lookup overflow"))?;
+        budget.charge_work(work).map_err(DurableError::Source)?;
+        if !self.targets.contains(target_ref) {
+            return Err(DurableError::Refused("archive target outside selected histories"));
+        }
+        self.session.read_claim_archive_with_query_data_admission(
+            target_ref, archive_ref, budget, deadline, cancelled,
+        )
+    }
+}
+
 /// Session-scoped shared advisory lock acquired before the RR transaction.
 /// Taking an xact advisory lock as the first statement of an RR transaction
 /// can establish the MVCC snapshot before a lock wait completes. This guard
@@ -2657,6 +2700,34 @@ impl DurablePgCoordinator {
             &AtomicBool,
         ) -> DurableResult<T>,
     ) -> DurableResult<T> {
+        // Legacy consumers retain their exact map-only interface. Only the
+        // closed joint counterpart lends the actual RR session for archives.
+        self.with_private_owner_package_histories_and_read_session_guard(
+            scope, target_refs, max_total_rows, max_total_bytes, deadline, cancelled,
+            |histories, _session, deadline, cancelled| callback(histories, deadline, cancelled),
+        )
+    }
+
+    /// Selected histories and their genuine archive reader share ONE owner
+    /// lock, context binding, audit generation and RR transaction. The lexical
+    /// callback cannot replace this with a historical byte map or a new owner.
+    /// No writer capability is selected or issued. Query/worker/native funding
+    /// remains caller-owned; this is not a completeness or resource receipt.
+    pub(crate) fn with_private_owner_package_histories_and_read_session_guard<T>(
+        &mut self,
+        scope: &PrivateOwnerScopeV1,
+        target_refs: &[String],
+        max_total_rows: usize,
+        max_total_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: impl FnOnce(
+            &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+            &mut PrivateOwnerSelectedHistoryRead<'_, '_, '_>,
+            Instant,
+            &AtomicBool,
+        ) -> DurableResult<T>,
+    ) -> DurableResult<T> {
         validate_scope(scope)?;
         if target_refs.is_empty() || target_refs.len() > MAX_PACKAGE_HISTORY_TARGETS {
             return Err(DurableError::Invalid(
@@ -2700,7 +2771,7 @@ impl DurablePgCoordinator {
                 let mut histories = BTreeMap::new();
                 let mut total_rows = 0usize;
                 let mut total_bytes = 0usize;
-                for target_ref in ordered_targets {
+                for &target_ref in &ordered_targets {
                     check_private_history_deadline(deadline, cancelled)?;
                     let remaining_rows = max_total_rows.saturating_sub(total_rows);
                     let remaining_bytes = max_total_bytes.saturating_sub(total_bytes);
@@ -2745,10 +2816,31 @@ impl DurablePgCoordinator {
                     histories.insert(target_ref.to_owned(), history);
                 }
                 check_private_history_deadline(deadline, cancelled)?;
-                let result = callback(&histories, deadline, cancelled)?;
-                check_private_history_deadline(deadline, cancelled)?;
+                let mut session = PrivateOwnerReadSession {
+                    transaction: Some(tx),
+                    scope: scope.clone(),
+                    private_audit_generation: generation,
+                    current_headers: BTreeMap::new(),
+                };
+                let result = {
+                    let mut selected = PrivateOwnerSelectedHistoryRead {
+                        session: &mut session,
+                        targets: &ordered_targets,
+                    };
+                    callback(&histories, &mut selected, deadline, cancelled)
+                };
+                // Attempt cutoff on Err too. Preserve the body's first error;
+                // a failed body/fence drops its readonly transaction and lock.
+                let fenced = check_private_history_deadline(deadline, cancelled);
+                let value = match (result, fenced) {
+                    (Err(error), _) | (Ok(_), Err(error)) => return Err(error),
+                    (Ok(value), Ok(())) => value,
+                };
+                let tx = session.transaction.take().ok_or(DurableError::Corrupt(
+                    "private owner read session is closed",
+                ))?;
                 tx.commit()?;
-                Ok(result)
+                Ok(value)
             },
         )
     }
