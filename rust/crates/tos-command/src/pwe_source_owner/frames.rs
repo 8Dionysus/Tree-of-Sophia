@@ -327,10 +327,12 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
     /// RefCell loan. This supports the Common original immutable read session.
     pub(crate) fn with_assessment_source_dependency<T>(
         &mut self,
+        session: &mut tos_compiler::pwe_native::Session<'_>,
         read: impl FnOnce(
             &CommandContext,
             &CorpusCutReader,
             &mut CutWorkerSchemaExecutor,
+            &mut tos_compiler::pwe_native::Session<'_>,
             &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
                 '_,
                 '_,
@@ -347,9 +349,11 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             self.deadline,
             self.cancelled,
         );
-        let result = self
-            .budget
-            .with_assessment_payer(|payer| read(context, cut, worker, payer, deadline, cancelled));
+        let result = self.budget.with_assessment_payer(|payer| {
+            super::source_budget::with_assessment_source_session(session, payer, |session| {
+                read(context, cut, worker, session, payer, deadline, cancelled)
+            })
+        });
         let fenced = self.verify();
         match (result, fenced) {
             (Err(error), _) | (Ok(_), Err(error)) => Err(error),

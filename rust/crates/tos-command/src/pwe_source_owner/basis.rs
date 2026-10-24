@@ -116,8 +116,8 @@ impl NativeBasis {
                     "record_version",
                 )
             } else {
-                let record = resolver.basis(&slot, frames)?;
-                resolver.verify_closure(&record, frames)?;
+                let record = resolver.basis(&slot, frames, session)?;
+                resolver.verify_closure(&record, frames, session)?;
                 record.verify_contents(&reference, frames)?;
                 let identity = record.identity_field;
                 let version = record.version_field;
