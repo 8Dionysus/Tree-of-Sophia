@@ -24,6 +24,7 @@ p256 = { version = "=0.14.0", default-features = false, features = ["ecdsa", "pe
 crc32fast = "=1.5.2"
 flate2 = "=1.1.10"
 tos-foundation = { path = "../tos-foundation" }
+tos-time-space = { path = "../tos-time-space" }
 tos-segment-store = { path = "../tos-segment-store" }
 tos-source-store = { path = "../tos-source-store", features = ["capture"] }
 tos-validation = { path = "../tos-validation" }

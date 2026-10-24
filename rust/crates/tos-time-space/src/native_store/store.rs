@@ -340,14 +340,28 @@ impl<'a> NativeTsStore<'a> {
         expected: TsCodomain,
         limits: OutputCheckLimits,
     ) -> Result<CheckedTsOutput<'s>> {
-        self.fence()?;
-        self.budget
-            .try_borrow_mut()
-            .map_err(|_| DomainError::ResourceLimit)?
-            .reserve_checker(limits.local)?;
-        let out = check_ts_output(run, Some(self), expected, limits)?;
-        self.fence()?;
-        Ok(out)
+        let result = (|| {
+            self.fence()?;
+            {
+                let mut budget = self.budget.try_borrow_mut()
+                    .map_err(|_| DomainError::ResourceLimit)?;
+                let declared = wire(field(run.as_json(), "selection_ref", &mut budget)?, &mut budget)?;
+                budget.exact(&self.selection.selection_ref)?;
+                if declared.id != self.selection.selection_ref.id.as_str()
+                    || declared.version != self.selection.selection_ref.version.get()
+                    || declared.digest != self.selection.selection_ref.digest {
+                    return Err(DomainError::Incompatible("K0 run and native TS source selection differ"));
+                }
+                budget.reserve_checker(limits.local)?;
+            }
+            check_ts_output(run, Some(self), expected, limits)
+        })();
+        // Keep the first failure, but still invoke the actual native fence.
+        let after = self.fence();
+        match (result, after) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(out), Ok(())) => Ok(out),
+        }
     }
     pub fn native_record(
         &self,

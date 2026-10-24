@@ -78,6 +78,10 @@ impl<'a> NativeTsSession<'a> {
         }
         Ok(())
     }
+    /// Borrow the original cancellation identity for the protected native host.
+    pub fn cancellation_flag(&self) -> &AtomicBool {
+        self.cancelled
+    }
     pub fn usage(&self) -> NativeTsUsage {
         NativeTsUsage {
             work: self.used.work,
@@ -86,6 +90,27 @@ impl<'a> NativeTsSession<'a> {
             source_files: self.source_files,
             source_bytes: self.source_bytes,
         }
+    }
+    /// Remaining part of this SAME nonresettable allowance. A native parent can
+    /// reserve it prospectively before lending work to the TS adapter. This is
+    /// neither a new session nor a refund of already spent prefixes.
+    pub fn remaining_allowance(&self) -> Result<NativeTsLimits, DomainError> {
+        self.check()?;
+        if self.call.is_some() {
+            return Err(DomainError::Invalid("nested TS parent reservation"));
+        }
+        let mut out = self.limits;
+        out.domain.max_work -= self.used.work;
+        out.domain.max_requested_bytes -= self.used.bytes;
+        out.domain.max_items -= self.used.items;
+        out.max_source_files -= self.source_files;
+        out.max_source_bytes -= self.source_bytes;
+        if out.domain.max_work == 0 || out.domain.max_requested_bytes == 0
+            || out.domain.max_items == 0 || out.max_source_files == 0
+            || out.max_source_bytes == 0 {
+            return Err(DomainError::ResourceLimit);
+        }
+        Ok(out)
     }
     pub fn work(&mut self, n: usize) -> Result<(), DomainError> {
         self.check()?;

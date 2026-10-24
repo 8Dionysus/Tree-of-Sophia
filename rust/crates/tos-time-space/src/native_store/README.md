@@ -1,4 +1,15 @@
-# Native TS Record codecs and output store v1.1.0
+# Native TS Record codecs and output store
+
+Current continuation: [source-held adapter v1.2.0](integration/SOURCE-HELD-v1.2.0.md),
+based on integrated PR274 head6b38212419aaa5b585530ce15731d99498ca5ec7 and the
+actual Common65814871262375f5716d68bdda95597019dd5828 document port. Common Library
+platform34 is the current dependency; the v18 pins/TS-C4-URI-1 refusal below are
+historical v1.1 evidence. The three URI references are corrected in Common658.
+The complete full-file registry schema and concrete command adapter are supplied
+in TS-owned paths with guarded common integration hunks. They are not yet installed
+native call sites, issued instances, a compiled result or completed production use.
+
+## Historical v1.1.0 input contract and evidence
 
 Owned-path/interface ACK: common Library libfile_eaebcf9c8f78819182cf892ae222be98
 platform17,3791979B,SHA256

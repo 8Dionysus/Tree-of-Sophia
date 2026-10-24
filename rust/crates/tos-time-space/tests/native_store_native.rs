@@ -136,6 +136,29 @@ fn q(n: i128) -> Rational {
 }
 
 #[test]
+fn remaining_parent_reservation_keeps_original_spent_prefix() {
+    // Numerical ledger only: no native source/authority/profile fixture.
+    let cancelled = AtomicBool::new(false);
+    let mut original = session(&cancelled);
+    let first = original.remaining_allowance().unwrap();
+    original.work(7).unwrap();
+    original.requested_bytes(11).unwrap();
+    original.item().unwrap();
+    original.source_read(1, 13).unwrap();
+    let next = original.remaining_allowance().unwrap();
+    assert_eq!(next.domain.max_work, first.domain.max_work - 20);
+    assert_eq!(next.domain.max_requested_bytes, first.domain.max_requested_bytes - 11);
+    assert_eq!(next.domain.max_items, first.domain.max_items - 1);
+    assert_eq!(next.max_source_files, first.max_source_files - 1);
+    assert_eq!(next.max_source_bytes, first.max_source_bytes - 13);
+    assert_eq!(next.deadline, first.deadline);
+    assert!(matches!(original.work(usize::MAX), Err(DomainError::ResourceLimit)));
+    let after_failure = original.remaining_allowance().unwrap();
+    assert_eq!(after_failure.domain.max_work, next.domain.max_work);
+    assert_eq!(original.usage().work, 20);
+}
+
+#[test]
 fn native_five_payload_codecs_and_projection_are_distinct() {
     // Pure domain payloads; none is presented as a registered native profile,
     // selected source, source authority or complete historical world carrier.
