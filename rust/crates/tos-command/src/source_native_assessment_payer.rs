@@ -6,13 +6,21 @@ use crate::source_command::{SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::active;
 use std::{cell::RefCell, mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_compiler::pwe_native::{Error, Limits, Session, SourceAdmission};
-use tos_validation::assessment::AssessmentLimits;
 
 pub(crate) struct OriginalAssessmentPayer<'budget, 'cancel> {
     operation: RefCell<&'budget mut OperationBudget>,
     deadline: Instant,
     cancelled: &'cancel AtomicBool,
     refusal: RefCell<Option<SourceCommandError>>,
+}
+
+/// Facts from the cumulative operation, NOT the smaller per-report input
+/// ceiling returned by OperationBudget::limits for the assessment engine.
+#[derive(Clone, Copy)]
+pub(crate) struct AssessmentRemainder {
+    pub(crate) bytes: usize,
+    pub(crate) work: usize,
+    pub(crate) deadline: Instant,
 }
 
 /// Called once by the actual protected operation, with a source-owned lower
@@ -27,11 +35,11 @@ pub(crate) fn with_original_pwe_session<T>(
     run: impl FnOnce(&OriginalAssessmentPayer<'_, '_>, &mut Session<'_>) -> SourceCommandResult<T>,
 ) -> SourceCommandResult<T> {
     active(operation.deadline, cancelled)?;
-    let remaining = operation.limits()?;
+    operation.limits()?;
     if limits.deadline > operation.deadline
-        || limits.max_input_bytes > remaining.max_input_bytes
-        || limits.max_state_bytes > remaining.max_input_bytes
-        || limits.max_work > remaining.max_work
+        || limits.max_input_bytes > operation.bytes_remaining
+        || limits.max_state_bytes > operation.bytes_remaining
+        || limits.max_work > operation.work_remaining
     {
         return Err(SourceCommandError::Invalid(
             "PWE Session exceeds original Assessment remainder",
@@ -82,8 +90,15 @@ impl OriginalAssessmentPayer<'_, '_> {
         self.with_operation(|operation| operation.charge_bytes(bytes))
     }
 
-    pub(crate) fn remaining(&self) -> SourceCommandResult<AssessmentLimits> {
-        self.with_operation(|operation| operation.limits())
+    pub(crate) fn remaining(&self) -> SourceCommandResult<AssessmentRemainder> {
+        self.with_operation(|operation| {
+            operation.limits()?;
+            Ok(AssessmentRemainder {
+                bytes: operation.bytes_remaining,
+                work: operation.work_remaining,
+                deadline: operation.deadline,
+            })
+        })
     }
 
     /// Short exclusive loan of the same original operation, for the maintained
@@ -161,8 +176,11 @@ mod tests {
         .unwrap();
         let before_work = original.work_remaining;
         let before_bytes = original.bytes_remaining;
+        let report_input_ceiling = original.limits().unwrap().max_input_bytes;
         let limits = Limits {
-            max_input_bytes: 128,
+            // The cumulative source Session is not one engine report packet.
+            // No large input is read/allocated by this resource regression.
+            max_input_bytes: report_input_ceiling + 1,
             max_nodes: 32,
             max_work: 64,
             max_refs: 8,
@@ -174,6 +192,9 @@ mod tests {
         let result: SourceCommandResult<()> =
             with_original_pwe_session(&mut original, limits, &cancel, |payer, session| {
                 assert!(session.has_source_payer(payer));
+                assert!(payer.remaining()?.bytes > report_input_ceiling);
+                payer.inspect(3, 2)?;
+                payer.reserve(5)?;
                 session
                     .admit_source_prefix(7, 2)
                     .map_err(|e| payer.error(e))?;
@@ -186,8 +207,8 @@ mod tests {
             result,
             Err(SourceCommandError::Denied("body refused"))
         ));
-        assert_eq!(original.work_remaining, before_work - limits.max_work);
-        assert!(original.bytes_remaining < before_bytes - 18);
+        assert_eq!(original.work_remaining, before_work - limits.max_work - 2);
+        assert!(original.bytes_remaining < before_bytes - 26);
         // An impossible profile refuses against the ACTUAL remainder; it does
         // not construct another budget or reset the already consumed prefix.
         let spent_work = original.work_remaining;
