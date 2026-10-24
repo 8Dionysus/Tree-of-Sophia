@@ -120,6 +120,43 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
         }
     }
 
+    /// Lend a nested selected-input view of the ACTUAL held session. Calling
+    /// the parent input's read methods from its session callback would try to
+    /// borrow the same RefCell twice. This view borrows the existing session
+    /// instead; it owns no readset, transaction, source identity or ledger.
+    /// The callback cannot retain this view after the loan. Both freshness
+    /// checks still belong to the parent epoch, including the Err exit.
+    ///
+    /// The same original payer admits this view's inline carrier before its
+    /// construction. Query DATA admission is the existing bounded contract;
+    /// actual member I/O and semantic-verifier work still need their own
+    /// prospective ports. This method does not certify that work as funded.
+    pub(crate) fn with_selected_input_with_query_data_admission<T>(
+        &self,
+        payer: &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        run: impl FnOnce(&PgGrowthCurrentInput<'_, 'store>) -> crate::DurableResult<T>,
+    ) -> crate::DurableResult<T> {
+        self.with_selected_read_epoch_with_query_data_admission(
+            payer,
+            deadline,
+            cancelled,
+            |session| {
+                payer
+                    .reserve(std::mem::size_of::<PgGrowthCurrentInput<'_, '_>>())
+                    .map_err(crate::DurableError::Source)?;
+                let selected = PgGrowthCurrentInput {
+                    session: RefCell::new(session),
+                    identity: self.identity,
+                    max_prefix_members: self.max_prefix_members,
+                    max_member_bytes: self.max_member_bytes,
+                };
+                run(&selected)
+            },
+        )
+    }
+
     /// Resolve annotation owner IDs through the selected PG index while this
     /// input still owns the borrowed read session. Exact packet/member
     /// validation remains the caller's responsibility.
