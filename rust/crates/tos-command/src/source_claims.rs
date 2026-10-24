@@ -5588,12 +5588,15 @@ impl RetainedProfileRead {
         ))
     }
 
-    fn into_inventory(
-        mut self,
+    /// Recheck the already captured exact readset without consuming its
+    /// inventory or creating another allowance. Native retained consumers may
+    /// use this same state repeatedly under their original owner/catalog fence.
+    fn recheck_selected_reads(
+        &mut self,
         ctx: &CommandContext,
         cut: Option<&CorpusCutReader>,
         complete_members: Option<&[SourceFile]>,
-    ) -> SourceCommandResult<RetainedGroundingInput> {
+    ) -> SourceCommandResult<()> {
         if let Some(cut) = cut {
             if cut.current().revision() != ctx.base_revision {
                 return Err(SourceCommandError::Conflict(
@@ -5623,37 +5626,47 @@ impl RetainedProfileRead {
                 ));
             }
         }
-        let mut recheck_bytes = 0u64;
-        for read in &self.observed_reads {
-            match read {
-                PredicateRead::ExactPath {
-                    path: location,
-                    digest,
-                } => {
-                    let raw = selected(ctx, location)?;
-                    if raw.len() as u64 > self.remaining_read_bytes()?.saturating_sub(recheck_bytes)
-                    {
-                        return Err(SourceCommandError::Unsupported(
-                            "retained Claim read recheck budget",
-                        ));
-                    }
-                    if Digest256::of_bytes(raw).to_prefixed() != *digest {
-                        return Err(SourceCommandError::Conflict(
+        for index in 0..self.observed_reads.len() {
+            let (raw, expected) = match &self.observed_reads[index] {
+                PredicateRead::ExactPath { path, digest } => {
+                    let raw = selected(ctx, path)?;
+                    let expected = Digest256::from_prefixed(digest).map_err(|_| {
+                        SourceCommandError::Conflict(
                             "retained Claim exact path read differs from complete cut",
-                        ));
-                    }
-                    recheck_bytes = recheck_bytes.checked_add(raw.len() as u64).ok_or(
-                        SourceCommandError::Unsupported("retained Claim read recheck overflow"),
-                    )?;
+                        )
+                    })?;
+                    (raw, expected)
                 }
                 _ => {
                     return Err(SourceCommandError::Unsupported(
                         "retained Claim predicate read outside selected path closure",
                     ));
                 }
+            };
+            if raw.len() as u64 > self.remaining_read_bytes()? {
+                return Err(SourceCommandError::Unsupported(
+                    "retained Claim read recheck budget",
+                ));
+            }
+            // Debit the original invocation ledger before hashing, including
+            // a conflicting read. Successful prefixes are never refunded.
+            self.debit(raw.len() as u64, 0)?;
+            if Digest256::of_bytes(raw) != expected {
+                return Err(SourceCommandError::Conflict(
+                    "retained Claim exact path read differs from complete cut",
+                ));
             }
         }
-        self.debit(recheck_bytes, 0)?;
+        Ok(())
+    }
+
+    fn into_inventory(
+        mut self,
+        ctx: &CommandContext,
+        cut: Option<&CorpusCutReader>,
+        complete_members: Option<&[SourceFile]>,
+    ) -> SourceCommandResult<RetainedGroundingInput> {
+        self.recheck_selected_reads(ctx, cut, complete_members)?;
         let inventory = self.inventory.take().ok_or(SourceCommandError::Conflict(
             "Claim retained inventory released",
         ))?;
