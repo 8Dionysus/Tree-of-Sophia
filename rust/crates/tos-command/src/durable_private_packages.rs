@@ -216,16 +216,26 @@ impl PrivateOwnerSelectedHistoryRead<'_, '_, '_> {
         // Pay both operands' possible common prefix before the selected-set
         // lookup. This bounds every entry, never a top-N subset or scan of the
         // corpus. Other callback/native holders are still a separate enclosure.
-        let work = target_ref.len().checked_add(1)
+        let work = target_ref
+            .len()
+            .checked_add(1)
             .and_then(|n| n.checked_mul(2))
             .and_then(|n| n.checked_mul(self.targets.len()))
-            .ok_or(DurableError::Refused("selected archive target lookup overflow"))?;
+            .ok_or(DurableError::Refused(
+                "selected archive target lookup overflow",
+            ))?;
         budget.charge_work(work).map_err(DurableError::Source)?;
         if !self.targets.contains(target_ref) {
-            return Err(DurableError::Refused("archive target outside selected histories"));
+            return Err(DurableError::Refused(
+                "archive target outside selected histories",
+            ));
         }
         self.session.read_claim_archive_with_query_data_admission(
-            target_ref, archive_ref, budget, deadline, cancelled,
+            target_ref,
+            archive_ref,
+            budget,
+            deadline,
+            cancelled,
         )
     }
 }
@@ -1980,7 +1990,12 @@ fn read_archive_snapshot(
 ) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
     // Explicit legacy route: no original-payer funding claim is made here.
     read_archive_snapshot_before_queries(
-        client, scope, target_ref, archive_ref, private_generation, &mut |_| Ok(()),
+        client,
+        scope,
+        target_ref,
+        archive_ref,
+        private_generation,
+        &mut |_| Ok(()),
     )
 }
 
@@ -2081,10 +2096,17 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
         }
         let path_work = claim_archive_data::add(target_ref.len(), archive_ref.len())
             .map_err(DurableError::Source)?;
-        budget.charge_work(path_work).map_err(DurableError::Source)?;
+        budget
+            .charge_work(path_work)
+            .map_err(DurableError::Source)?;
         validate_target_ref(target_ref)?;
         validate_target_ref(archive_ref)?;
-        let Self { transaction, scope, private_audit_generation, .. } = self;
+        let Self {
+            transaction,
+            scope,
+            private_audit_generation,
+            ..
+        } = self;
         let tx = transaction.as_mut().ok_or(DurableError::Corrupt(
             "private owner read session is closed",
         ))?;
@@ -2092,22 +2114,34 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
             claim_archive_data::add(scope.domain.len(), scope.owner_scope.len())
                 .map_err(DurableError::Source)?,
             path_work,
-        ).map_err(DurableError::Source)?;
+        )
+        .map_err(DurableError::Source)?;
         // bool1, three int4 header lengths, count int4, total int8,
         // four aggregate bigint8 counters and two int4 maxima: 65 bytes.
         claim_archive_data::reserve_query(
-            budget, claim_archive_data::ENVELOPE_SQL, parameter_bytes,
-            12, 1, 65, 0, 0, 0,
-        ).map_err(DurableError::Source)?;
+            budget,
+            claim_archive_data::ENVELOPE_SQL,
+            parameter_bytes,
+            12,
+            1,
+            65,
+            0,
+            0,
+            0,
+        )
+        .map_err(DurableError::Source)?;
         let Some(envelope) = tx.query_opt(
             claim_archive_data::ENVELOPE_SQL,
             &[&scope.domain, &scope.owner_scope, &target_ref, &archive_ref],
-        )? else {
+        )?
+        else {
             return Ok(None);
         };
         check_private_history_deadline(deadline, cancelled)?;
         if !envelope.get::<_, bool>(0) {
-            return Err(DurableError::Refused("selected archive is not a Claim package"));
+            return Err(DurableError::Refused(
+                "selected archive is not a Claim package",
+            ));
         }
         let count = envelope.get::<_, i32>(1);
         let declared_total = as_u64(envelope.get(2))?;
@@ -2122,9 +2156,11 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
         let max_digest_bytes = envelope.get::<_, i32>(11);
         // Includes the real archive manifest (MAX_MEMBERS+1). Never filter or
         // truncate a payload set to fit: the complete aggregate must fit first.
-        if count <= 0 || count as usize > MAX_MEMBERS + 1
+        if count <= 0
+            || count as usize > MAX_MEMBERS + 1
             || observed_count != count as u64
-            || raw_bytes != declared_total || raw_bytes > MAX_ARCHIVE_BYTES as u64
+            || raw_bytes != declared_total
+            || raw_bytes > MAX_ARCHIVE_BYTES as u64
             || !(0..=10).contains(&family_bytes)
             || !(0..=64).contains(&source_digest_bytes)
             || !(0..=64).contains(&package_digest_bytes)
@@ -2137,27 +2173,49 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
         }
         let count = count as usize;
         // All conversions follow the finite complete-envelope checks above.
-        let header_payload = family_bytes as usize + source_digest_bytes as usize
-            + package_digest_bytes as usize + 4 + 8;
+        let header_payload = family_bytes as usize
+            + source_digest_bytes as usize
+            + package_digest_bytes as usize
+            + 4
+            + 8;
         let header_decoded = header_payload - 4 - 8;
         let payload = (raw_bytes + name_bytes + digest_bytes) as usize;
         // Reuse the unchanged semantic checks on the SAME RR snapshot: member
         // count, hashes, bounded identity/size and complete package digest.
         // These metadata values cannot drift between envelope and payload.
         read_archive_snapshot_before_queries(
-            tx, scope, target_ref, archive_ref, *private_audit_generation,
+            tx,
+            scope,
+            target_ref,
+            archive_ref,
+            *private_audit_generation,
             &mut |query| {
                 check_private_history_deadline(deadline, cancelled)?;
                 match query {
                     claim_archive_data::ArchiveQuery::Header => claim_archive_data::reserve_query(
-                        budget, claim_archive_data::HEADER_SQL, parameter_bytes,
-                        5, 1, header_payload, header_decoded, 3, 0,
+                        budget,
+                        claim_archive_data::HEADER_SQL,
+                        parameter_bytes,
+                        5,
+                        1,
+                        header_payload,
+                        header_decoded,
+                        3,
+                        0,
                     ),
                     claim_archive_data::ArchiveQuery::Members => claim_archive_data::reserve_query(
-                        budget, claim_archive_data::MEMBERS_SQL, parameter_bytes,
-                        3, count, payload, payload, 2 * count, count,
+                        budget,
+                        claim_archive_data::MEMBERS_SQL,
+                        parameter_bytes,
+                        3,
+                        count,
+                        payload,
+                        payload,
+                        2 * count,
+                        count,
                     ),
-                }.map_err(DurableError::Source)?;
+                }
+                .map_err(DurableError::Source)?;
                 check_private_history_deadline(deadline, cancelled)
             },
         )
@@ -2760,7 +2818,12 @@ impl DurablePgCoordinator {
         // Legacy consumers retain their exact map-only interface. Only the
         // closed joint counterpart lends the actual RR session for archives.
         self.with_private_owner_package_histories_and_read_session_guard(
-            scope, target_refs, max_total_rows, max_total_bytes, deadline, cancelled,
+            scope,
+            target_refs,
+            max_total_rows,
+            max_total_bytes,
+            deadline,
+            cancelled,
             |histories, _session, deadline, cancelled| callback(histories, deadline, cancelled),
         )
         .map_err(PrivateOwnerReadFailure::legacy_error)
@@ -2788,19 +2851,15 @@ impl DurablePgCoordinator {
     ) -> PrivateOwnerReadResult<T> {
         validate_scope(scope)?;
         if target_refs.is_empty() || target_refs.len() > MAX_PACKAGE_HISTORY_TARGETS {
-            return Err(DurableError::Invalid(
-                "private package history target count",
-            )
-            .into());
+            return Err(DurableError::Invalid("private package history target count").into());
         }
         let mut ordered_targets = BTreeSet::new();
         for target_ref in target_refs {
             validate_target_ref(target_ref)?;
             if !ordered_targets.insert(target_ref.as_str()) {
-                return Err(DurableError::Invalid(
-                    "duplicate private package history target",
-                )
-                .into());
+                return Err(
+                    DurableError::Invalid("duplicate private package history target").into(),
+                );
             }
         }
         if max_total_rows == 0
@@ -2808,10 +2867,7 @@ impl DurablePgCoordinator {
             || max_total_bytes == 0
             || max_total_bytes > MAX_PACKAGE_HISTORY_BYTES
         {
-            return Err(DurableError::Invalid(
-                "private package aggregate history budget",
-            )
-            .into());
+            return Err(DurableError::Invalid("private package aggregate history budget").into());
         }
         check_private_history_deadline(deadline, cancelled)?;
         require_private_schema(&mut self.client)?;
@@ -3725,11 +3781,15 @@ mod read_completion_tests {
         }
         assert!(matches!(
             complete_private_owner_read(Ok(7), Err(DurableError::Refused("release failed"))),
-            Err(PrivateOwnerReadFailure::Release(DurableError::Refused("release failed")))
+            Err(PrivateOwnerReadFailure::Release(DurableError::Refused(
+                "release failed"
+            )))
         ));
         assert!(matches!(
             complete_private_owner_read::<()>(Err(DurableError::Conflict("body")), Ok(())),
-            Err(PrivateOwnerReadFailure::Operation(DurableError::Conflict("body")))
+            Err(PrivateOwnerReadFailure::Operation(DurableError::Conflict(
+                "body"
+            )))
         ));
         assert_eq!(complete_private_owner_read(Ok(7), Ok(())).unwrap(), 7);
     }

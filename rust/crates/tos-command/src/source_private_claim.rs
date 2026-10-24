@@ -7035,8 +7035,9 @@ fn package_state_using_read_policy(
             ));
         }
         crate::source_command::validate_instant(cmd::text(receipt, "recorded_at")?)?;
-        let (package, _) =
-            read_archive_using_read_policy(policy, context, archives, receipt, deadline, cancelled)?;
+        let (package, _) = read_archive_using_read_policy(
+            policy, context, archives, receipt, deadline, cancelled,
+        )?;
         for name in [
             CONFIG_FILE,
             CREATE_REQUEST,

@@ -3556,22 +3556,24 @@ impl SourceRevisionReadSession<'_> {
                 "bounded source revision path outside authored namespace",
             )));
         }
-        match self.coordinator.read_committed_source_selected_with_sto_admission(
-            self.store,
-            &self.selection.cohort.domain,
-            path.as_str(),
-            None,
-            max_bytes,
-            deadline,
-            cancelled,
-            |row| cohort_matches(row, &self.selection.cohort, true),
-            admission,
-        ) {
+        match self
+            .coordinator
+            .read_committed_source_selected_with_sto_admission(
+                self.store,
+                &self.selection.cohort.domain,
+                path.as_str(),
+                None,
+                max_bytes,
+                deadline,
+                cancelled,
+                |row| cohort_matches(row, &self.selection.cohort, true),
+                admission,
+            ) {
             Err(original) => Err(original),
             Ok(Err(source)) => Ok(Err(source)),
             Ok(Ok((row, raw, placement, work))) => {
                 Ok(self.record_selected_current_member(path, row, raw, placement, work))
-            },
+            }
         }
     }
 

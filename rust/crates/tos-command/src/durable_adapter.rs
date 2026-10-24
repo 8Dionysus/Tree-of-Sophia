@@ -3499,7 +3499,13 @@ impl DurablePgCoordinator {
         verify_selection: impl FnOnce(&postgres::Row) -> DurableResult<()>,
     ) -> DurableResult<(postgres::Row, Vec<u8>, PlacementV1, CommittedSourceReadWork)> {
         match self.read_committed_source_selected_enclosed::<std::convert::Infallible>(
-            store, domain, subject, revision, max_bytes, deadline, cancelled,
+            store,
+            domain,
+            subject,
+            revision,
+            max_bytes,
+            deadline,
+            cancelled,
             verify_selection,
             |store, prepare, fence, receipt, binding, max_bytes, deadline, cancelled| {
                 // Explicit legacy route; no original-payer funding is claimed.
@@ -3542,7 +3548,13 @@ impl DurablePgCoordinator {
         A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
     {
         match self.read_committed_source_selected_enclosed(
-            store, domain, subject, revision, max_bytes, deadline, cancelled,
+            store,
+            domain,
+            subject,
+            revision,
+            max_bytes,
+            deadline,
+            cancelled,
             verify_selection,
             |store, prepare, fence, receipt, binding, max_bytes, deadline, cancelled| {
                 store.read_selected_fenced_admitted(
@@ -3571,14 +3583,25 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
         verify_selection: impl FnOnce(&postgres::Row) -> DurableResult<()>,
         load: impl FnOnce(
-            &SegmentStore, &[u8], u64, Digest256, &OwnerBinding, u64, Instant, &AtomicBool,
+            &SegmentStore,
+            &[u8],
+            u64,
+            Digest256,
+            &OwnerBinding,
+            u64,
+            Instant,
+            &AtomicBool,
         ) -> std::result::Result<
-            tos_segment_store::Result<(Vec<u8>, PlacementV1, tos_segment_store::SelectedFrameReadWorkV1)>,
+            tos_segment_store::Result<(
+                Vec<u8>,
+                PlacementV1,
+                tos_segment_store::SelectedFrameReadWorkV1,
+            )>,
             E,
         >,
-    ) -> DurableResult<std::ops::ControlFlow<
-        E, (postgres::Row, Vec<u8>, PlacementV1, CommittedSourceReadWork),
-    >> {
+    ) -> DurableResult<
+        std::ops::ControlFlow<E, (postgres::Row, Vec<u8>, PlacementV1, CommittedSourceReadWork)>,
+    > {
         if store.custody_domain() != domain.as_bytes()
             || max_bytes == 0
             || cancelled.load(Ordering::Relaxed)

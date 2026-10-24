@@ -6,7 +6,8 @@ use crate::source_command::{SourceCommandError, SourceCommandResult};
 use crate::source_native_cli::private_assessment::OperationBudget;
 use std::{mem::size_of, ops::Range};
 
-pub(super) const HEADER_SQL: &str = "SELECT family,source_revision,package_digest,member_count,total_bytes
+pub(super) const HEADER_SQL: &str =
+    "SELECT family,source_revision,package_digest,member_count,total_bytes
          FROM cmd2_private_package_archive
          WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND archive_ref=$4";
 pub(super) const MEMBERS_SQL: &str = "SELECT member_name,member_bytes,member_digest
@@ -76,6 +77,12 @@ pub(super) fn reserve_query(
             mul(decoded_vectors, size_of::<Vec<u8>>())?,
         )?,
     )?;
-    budget.charge_work(add(add(input, data)?, add(decoded_bytes, mul(rows, fields)?)?)?)?;
-    budget.charge_bytes(add(add(input, data)?, add(ranges, add(decoded_bytes, inline)?)?)?)
+    budget.charge_work(add(
+        add(input, data)?,
+        add(decoded_bytes, mul(rows, fields)?)?,
+    )?)?;
+    budget.charge_bytes(add(
+        add(input, data)?,
+        add(ranges, add(decoded_bytes, inline)?)?,
+    )?)
 }
