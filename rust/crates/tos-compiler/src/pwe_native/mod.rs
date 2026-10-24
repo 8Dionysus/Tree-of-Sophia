@@ -11,7 +11,7 @@ mod source;
 #[cfg(test)]
 mod tests;
 
-pub use basis::{Error, Limits, PweRef, Result, Session};
+pub use basis::{Error, Limits, PweRef, Result, Session, SourceAdmission, SourceAllowance};
 pub use identity::{
     AccountObservation, AttributionAnswer, AttributionObservation, AttributionQuestion, Conflict,
     ConsumerOwner, EdgeDisposition, IdentityInput, IdentityView, JointCarrier, JointCarrierOwner,

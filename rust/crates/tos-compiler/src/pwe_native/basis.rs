@@ -34,6 +34,20 @@ pub struct Limits {
     pub max_state_bytes: usize,
     pub deadline: Instant,
 }
+/// Caller-owned source inspection/holder accounting. This is a resource port,
+/// not evidence, selection, source authority or a successful closure verifier.
+pub trait SourceAdmission {
+    fn inspect(&self, bytes: usize) -> Result<()>;
+    fn retain(&self, bytes: usize) -> Result<()>;
+}
+#[derive(Clone, Copy, Debug)]
+pub struct SourceAllowance {
+    pub input_bytes: usize,
+    pub nodes: usize,
+    pub work: usize,
+    pub state_bytes: usize,
+    pub depth: usize,
+}
 pub struct Session<'a> {
     pub(super) limits: Limits,
     cancelled: &'a AtomicBool,
@@ -42,6 +56,7 @@ pub struct Session<'a> {
     work: usize,
     refs: usize,
     state: usize,
+    source_admission: Option<&'a dyn SourceAdmission>,
 }
 fn add(n: &mut usize, d: usize, cap: usize) -> Result<()> {
     let next = n.checked_add(d).ok_or(Error::ResourceLimit)?;
@@ -75,9 +90,48 @@ impl<'a> Session<'a> {
             work: 0,
             refs: 0,
             state: 0,
+            source_admission: None,
         };
         s.check()?;
         Ok(s)
+    }
+    /// Construct ONCE at the real source-operation boundary. All later reader,
+    /// revision and dependency calls borrow this same cumulative session.
+    pub fn new_source(
+        limits: Limits,
+        cancelled: &'a AtomicBool,
+        payer: &'a dyn SourceAdmission,
+    ) -> Result<Self> {
+        let mut session = Self::new(limits, cancelled)?;
+        session.source_admission = Some(payer);
+        Ok(session)
+    }
+    pub fn has_source_payer(&self, payer: &dyn SourceAdmission) -> bool {
+        self.source_admission.is_some_and(|actual| std::ptr::addr_eq(actual, payer))
+    }
+    /// Only the current remainder is exposed; no setter, reset or new payer.
+    pub fn source_allowance(&self) -> Result<SourceAllowance> {
+        self.check()?;
+        if self.source_admission.is_none() {
+            return Err(Error::NeedsBinding("original source payer"));
+        }
+        Ok(SourceAllowance {
+            input_bytes: self.limits.max_input_bytes.checked_sub(self.bytes).ok_or(Error::ResourceLimit)?,
+            nodes: self.limits.max_nodes.checked_sub(self.nodes).ok_or(Error::ResourceLimit)?,
+            work: self.limits.max_work.checked_sub(self.work).ok_or(Error::ResourceLimit)?,
+            state_bytes: self.limits.max_state_bytes.checked_sub(self.state).ok_or(Error::ResourceLimit)?,
+            depth: self.limits.max_depth,
+        })
+    }
+    pub fn admit_source_prefix(&mut self, bytes: usize, visits: usize) -> Result<()> {
+        self.source_allowance()?;
+        self.tick(bytes.checked_add(visits).ok_or(Error::ResourceLimit)?)?;
+        self.input(bytes)?;
+        add(&mut self.nodes, visits, self.limits.max_nodes)
+    }
+    pub fn retain_source_state(&mut self, bytes: usize) -> Result<()> {
+        self.source_allowance()?;
+        self.state(bytes)
     }
     pub fn charges(&self) -> (usize, usize, usize, usize, usize) {
         (self.bytes, self.nodes, self.work, self.refs, self.state)
@@ -97,15 +151,22 @@ impl<'a> Session<'a> {
     }
     pub(super) fn state(&mut self, n: usize) -> Result<()> {
         self.check()?;
-        add(&mut self.state, n, self.limits.max_state_bytes)
+        add(&mut self.state, n, self.limits.max_state_bytes)?;
+        if let Some(payer) = self.source_admission { payer.retain(n)?; }
+        Ok(())
+    }
+    fn source_read(&self, n: usize) -> Result<()> {
+        self.check()?;
+        if let Some(payer) = self.source_admission { payer.inspect(n)?; }
+        Ok(())
+    }
+    fn input(&mut self, n: usize) -> Result<()> {
+        self.source_read(n)?;
+        add(&mut self.bytes, n, self.limits.max_input_bytes)
     }
     pub(super) fn prepay_k0(&mut self, l: tos_foundation::OperationBindingLimits) -> Result<()> {
         self.tick(l.max_nodes)?;
-        add(
-            &mut self.bytes,
-            l.max_envelope_bytes,
-            self.limits.max_input_bytes,
-        )?;
+        self.input(l.max_envelope_bytes)?;
         add(&mut self.nodes, l.max_nodes, self.limits.max_nodes)?;
         add(&mut self.refs, l.max_refs, self.limits.max_refs)?;
         if l.max_depth > self.limits.max_depth {
@@ -161,6 +222,7 @@ impl<'a> Session<'a> {
                 }
                 for (k, v) in a {
                     self.tick(k.len().checked_mul(b.len()).ok_or(Error::ResourceLimit)?)?;
+                    self.source_read(k.len().checked_mul(b.len()).and_then(|n| n.checked_mul(2)).ok_or(Error::ResourceLimit)?)?;
                     let Some(w) = b.get(k) else { return Ok(false) };
                     if !self.equal(v, w)? {
                         return Ok(false);
@@ -170,6 +232,9 @@ impl<'a> Session<'a> {
             }
             (Value::Number(_), Value::Number(_)) => {
                 for x in [a, b] {
+                    if let Value::Number(number) = x {
+                        self.source_read(number.as_str().len())?;
+                    }
                     self.tick(
                         self.limits
                             .max_input_bytes
@@ -201,9 +266,10 @@ impl<'a> Session<'a> {
         self.tick(1)?;
         add(&mut self.nodes, 1, self.limits.max_nodes)?;
         match v {
-            Value::Null => add(&mut self.bytes, 4, self.limits.max_input_bytes)?,
-            Value::Bool(_) => add(&mut self.bytes, 5, self.limits.max_input_bytes)?,
-            Value::Number(_) => {
+            Value::Null => self.input(4)?,
+            Value::Bool(_) => self.input(5)?,
+            Value::Number(number) => {
+                self.source_read(number.as_str().len())?;
                 self.tick(
                     self.limits
                         .max_input_bytes
@@ -216,7 +282,7 @@ impl<'a> Session<'a> {
                 )
                 .map_err(|_| Error::ResourceLimit)?;
                 self.tick(n)?;
-                add(&mut self.bytes, n, self.limits.max_input_bytes)?;
+                self.input(n)?;
             }
             Value::String(s) => {
                 self.tick(s.len())?;
@@ -225,20 +291,16 @@ impl<'a> Session<'a> {
                     .checked_mul(6)
                     .and_then(|n| n.checked_add(2))
                     .ok_or(Error::ResourceLimit)?;
-                add(&mut self.bytes, n, self.limits.max_input_bytes)?;
+                self.input(n)?;
             }
             Value::Array(xs) => {
-                add(
-                    &mut self.bytes,
-                    xs.len().checked_add(2).ok_or(Error::ResourceLimit)?,
-                    self.limits.max_input_bytes,
-                )?;
+                self.input(xs.len().checked_add(2).ok_or(Error::ResourceLimit)?)?;
                 for x in xs {
                     self.walk(x, depth + 1)?;
                 }
             }
             Value::Object(xs) => {
-                add(&mut self.bytes, 2, self.limits.max_input_bytes)?;
+                self.input(2)?;
                 for (k, x) in xs {
                     self.tick(k.len())?;
                     let n = k
@@ -246,7 +308,7 @@ impl<'a> Session<'a> {
                         .checked_mul(6)
                         .and_then(|n| n.checked_add(4))
                         .ok_or(Error::ResourceLimit)?;
-                    add(&mut self.bytes, n, self.limits.max_input_bytes)?;
+                    self.input(n)?;
                     self.walk(x, depth + 1)?;
                 }
             }
@@ -262,12 +324,14 @@ impl<'a> Session<'a> {
                     .checked_add(k.len() + 1)
                     .ok_or(Error::ResourceLimit)?,
             )?;
+            self.source_read(key.len().checked_add(k.len() + 1).ok_or(Error::ResourceLimit)?)?;
         }
         obj.get(k).ok_or(Error::Malformed("missing field"))
     }
     pub(super) fn text<'v>(&mut self, v: &'v Value) -> Result<&'v str> {
         let s = v.as_str().ok_or(Error::Malformed("UTF-8 string"))?;
         self.tick(s.len())?;
+        self.source_read(s.len())?;
         if s.is_empty() {
             return Err(Error::Malformed("empty string"));
         }
@@ -287,6 +351,7 @@ impl<'a> Session<'a> {
     }
     pub(super) fn same_text(&mut self, a: &str, b: &str) -> Result<bool> {
         self.tick(a.len().checked_add(b.len()).ok_or(Error::ResourceLimit)?)?;
+        self.source_read(a.len().checked_add(b.len()).ok_or(Error::ResourceLimit)?)?;
         Ok(a == b)
     }
     pub(super) fn exact<'v>(&mut self, v: &'v Value) -> Result<PweRef<'v>> {
@@ -337,6 +402,7 @@ impl<'a> Session<'a> {
         // not an allocator/RSS claim, and it does not include the retained input.
         let cap = self.limits.max_input_bytes;
         self.tick(cap.checked_mul(8).ok_or(Error::ResourceLimit)?)?;
+        self.source_read(cap)?;
         let n = crate::source_bibliographic_render::encoded_size(v, cap)
             .map_err(|_| Error::ResourceLimit)?;
         let slots = size_of::<tos_foundation::JsonValue>()
@@ -353,6 +419,7 @@ impl<'a> Session<'a> {
                 .and_then(|x| x.checked_add(4_000_000))
                 .ok_or(Error::ResourceLimit)?,
         )?;
+        self.source_read(n.checked_mul(2).ok_or(Error::ResourceLimit)?)?;
         let raw = crate::source_bibliographic_render::encode(v, cap)
             .map_err(|_| Error::Upstream("canonical owner codec"))?;
         self.check()?;

@@ -10,6 +10,7 @@ mod producer;
 mod reader;
 mod registry;
 mod roles;
+mod source_budget;
 
 pub(crate) use basis::NativeBasis;
 pub(crate) use carrier::{PositiveCarrier, SelectedCarrier, SelectedGroup};
@@ -19,7 +20,10 @@ pub(crate) use producer::NativePreservedCandidate;
 pub(crate) use reader::{
     ClaimDependencies, NativeExactSlot, NativeUnresolvedSlot, check_description_revision,
     check_independent_correction, extract_claim_dependencies,
+    check_description_revision_source, check_independent_correction_source,
+    extract_claim_dependencies_source,
 };
+pub(crate) use source_budget::SourcePayer;
 pub(crate) use registry::{BindingRegistry, DispatchSpec};
 pub(crate) use roles::{ExactDependencyReader, ResolvedDependency, RoleCache};
 

@@ -25,6 +25,42 @@ fn session(cancel: &AtomicBool) -> Session<'_> {
     )
     .unwrap()
 }
+#[test]
+fn source_session_keeps_original_admission_and_spent_prefixes() {
+    use std::cell::Cell;
+    // Numerical accounting only: no source/owner/frame/assessment fixture.
+    struct NumericSource { read: Cell<usize>, live: Cell<usize> }
+    impl SourceAdmission for NumericSource {
+        fn inspect(&self, bytes: usize) -> Result<()> {
+            self.read.set(self.read.get().checked_sub(bytes).ok_or(Error::ResourceLimit)?);
+            Ok(())
+        }
+        fn retain(&self, bytes: usize) -> Result<()> {
+            self.live.set(self.live.get().checked_sub(bytes).ok_or(Error::ResourceLimit)?);
+            Ok(())
+        }
+    }
+    let cancel = AtomicBool::new(false);
+    let payer = NumericSource { read: Cell::new(5), live: Cell::new(2) };
+    let other = NumericSource { read: Cell::new(5), live: Cell::new(2) };
+    let limits = Limits { max_input_bytes: 100, max_nodes: 100, max_work: 100, max_refs: 10, max_depth: 4, max_items: 10, max_state_bytes: 100, deadline: Instant::now() + Duration::from_secs(30) };
+    let mut source = Session::new_source(limits, &cancel, &payer).unwrap();
+    assert!(source.has_source_payer(&payer));
+    assert!(!source.has_source_payer(&other));
+    source.admit_source_prefix(3, 1).unwrap();
+    assert_eq!(payer.read.get(), 2);
+    assert!(source.admit_source_prefix(3, 1).is_err());
+    assert_eq!(source.charges(), (3, 1, 8, 0, 0));
+    assert_eq!(payer.read.get(), 2); // failure cannot refill prior spend
+    source.retain_source_state(2).unwrap();
+    assert!(source.retain_source_state(1).is_err());
+    assert_eq!(source.charges().4, 3); // local prefix survives payer refusal
+    assert_eq!(payer.live.get(), 0);
+    assert_eq!(source.source_allowance().unwrap().work, 92);
+    let mut supplied = Session::new(limits, &cancel).unwrap();
+    assert!(supplied.admit_source_prefix(1, 1).is_err());
+    assert_eq!(supplied.charges(), (0, 0, 0, 0, 0));
+}
 fn k0() -> OperationBindingLimits {
     OperationBindingLimits {
         max_envelope_bytes: 100_000,

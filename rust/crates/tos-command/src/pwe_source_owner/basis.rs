@@ -114,7 +114,8 @@ impl NativeBasis {
                 )
             } else {
                 let record = resolver.basis(&slot, frames)?;
-                record.verify(&reference, frames)?;
+                resolver.verify_closure(&record, frames)?;
+                record.verify_contents(&reference, frames)?;
                 let identity = record.identity_field;
                 let version = record.version_field;
                 (record.into_serde(frames)?, identity, version)

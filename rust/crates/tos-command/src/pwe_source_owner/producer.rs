@@ -1,6 +1,6 @@
 //! Native output-profile adapter. Whole Record -> /body container -> each item
 //! are separate checks. Completed production never executes semantic resolution.
-use super::{HeldFrames, ResolvedDependency, invalid, unsupported};
+use super::{ExactDependencyReader, HeldFrames, ResolvedDependency, invalid, unsupported};
 use crate::source_command::SourceCommandResult;
 use serde_json::Value;
 use tos_compiler::pwe_native::{PreparedAccount, Session};
@@ -59,7 +59,8 @@ impl NativePreservedCandidate {
     }
     /// Inputs are exact records returned by the maintained owner. Their source
     /// closure/schema/currentness is rechecked here; transport is not authority.
-    pub(crate) fn check(
+    pub(crate) fn check<R: ExactDependencyReader>(
+        resolver: &mut R,
         frames: &mut HeldFrames<'_, '_>,
         session: &mut Session<'_>,
         envelope: &JsonValue,
@@ -105,8 +106,10 @@ impl NativePreservedCandidate {
                 .output_ref()
                 .ok_or(invalid("PWE output ref absent"))?,
         )?;
-        profile.verify(&pr, frames)?;
-        output.verify(&or, frames)?;
+        resolver.verify_closure(profile, frames)?;
+        resolver.verify_closure(output, frames)?;
+        profile.verify_contents(&pr, frames)?;
+        output.verify_contents(&or, frames)?;
         frames.exact_match(&pr, &profile.document, "record_id", "record_version")?;
         frames.exact_match(&or, &output.document, "record_id", "record_version")?;
         frames.check_schema(&profile.source_path, &profile.document, PROFILE)?;

@@ -3,6 +3,7 @@
 //! neither grounding evidence nor a source/assessment authorization token.
 use super::access::BorrowedAccess;
 use super::budget::CanonicalLedger;
+use super::source_budget::{SourceLedger, SourcePayer};
 use super::{MAX_RECORDS, invalid, unsupported};
 use crate::source_claims::ClaimCallBudget;
 use crate::source_command::{self as cmd, SourceCommandResult};
@@ -167,4 +168,91 @@ pub(crate) fn check_independent_correction(
         .independent_correction(&values[0], &values[1], &values[2], &values[3], &values[4])
         .map_err(|_| invalid("PWE independent correction identity/version/lineage differs"))?;
     crate::source_creation_store::active(deadline, cancelled)
+}
+
+/// SOURCE lane. The real caller constructs SourcePayer and Session::new_source
+/// once per operation and borrows them across extraction, all exact dependency
+/// reads and correction guards. This function issues no selection or admission.
+pub(crate) fn extract_claim_dependencies_source(
+    claim: &JsonValue,
+    session: &mut Session<'_>,
+    payer: &SourcePayer<'_>,
+) -> SourceCommandResult<ClaimDependencies> {
+    let mut ledger = SourceLedger::new(session, payer)?;
+    let claim = ledger.domain_value(claim)?;
+    let object = ledger.get(&claim, "object")?.ok_or(invalid("PWE Claim object absent"))?;
+    drop(ledger);
+    let prepared = session.prepare(object).map_err(|e| payer.error(e, "PWE source account shape"))?;
+    session.check_claim_content(&prepared, &claim).map_err(|e| payer.error(e, "PWE source wrapper/endpoint disagreement"))?;
+    // Source-bound Session::state pays the original payer BEFORE every pure
+    // extractor Vec allocation/push; no post-return holder fee stands for it.
+    let extracted = session.preserved_basis(&prepared).map_err(|e| payer.error(e, "PWE source exact-basis grammar"))?;
+    if extracted.slots.len().checked_add(extracted.unresolved.len()).is_none_or(|n| n > MAX_RECORDS) {
+        return Err(unsupported("PWE native dependency slot cap"));
+    }
+    let mut ledger = SourceLedger::new(session, payer)?;
+    let holders = extracted.slots.len().checked_mul(std::mem::size_of::<NativeExactSlot>()).and_then(|n| n.checked_add(extracted.unresolved.len().checked_mul(std::mem::size_of::<NativeUnresolvedSlot>())?)).and_then(|n| n.checked_mul(2)).and_then(|n| n.checked_add(std::mem::size_of::<Vec<NativeExactSlot>>() + std::mem::size_of::<Vec<NativeUnresolvedSlot>>())).ok_or(unsupported("PWE source dependency holder"))?;
+    ledger.reserve(holders)?;
+    let mut bound = Vec::new();
+    let mut unresolved = Vec::new();
+    bound.try_reserve_exact(extracted.slots.len()).map_err(|_| unsupported("PWE source dependency reservation"))?;
+    unresolved.try_reserve_exact(extracted.unresolved.len()).map_err(|_| unsupported("PWE source dependency reservation"))?;
+    let actual = bound.capacity().checked_mul(std::mem::size_of::<NativeExactSlot>()).and_then(|n| n.checked_add(unresolved.capacity().checked_mul(std::mem::size_of::<NativeUnresolvedSlot>())?)).and_then(|n| n.checked_add(std::mem::size_of::<Vec<NativeExactSlot>>() + std::mem::size_of::<Vec<NativeUnresolvedSlot>>())).ok_or(unsupported("PWE source dependency capacity"))?;
+    if actual > holders { return Err(unsupported("PWE source dependency admitted capacity")); }
+    for slot in extracted.slots {
+        let bytes = slot.reference.id().len().checked_mul(4).and_then(|n| n.checked_add(1024)).ok_or(unsupported("PWE source exact slot holder"))?;
+        ledger.inspect(bytes, 1)?;
+        ledger.reserve(bytes)?;
+        bound.push(NativeExactSlot {
+            role: slot.role, outer: slot.outer, inner: slot.inner,
+            reference: cmd::object(vec![
+                ("id", cmd::string(slot.reference.id())),
+                ("version", cmd::number(slot.reference.version())),
+                ("digest", cmd::string(&slot.reference.digest().to_prefixed())),
+            ]),
+        });
+    }
+    for slot in extracted.unresolved {
+        ledger.inspect(0, 1)?;
+        unresolved.push(NativeUnresolvedSlot { role: slot.role, outer: slot.outer, inner: slot.inner });
+    }
+    drop(ledger);
+    session.source_allowance().map_err(|e| payer.error(e, "PWE source Session currentness"))?;
+    payer.current()?;
+    Ok(ClaimDependencies { bound, unresolved })
+}
+
+pub(crate) fn check_description_revision_source(
+    session: &mut Session<'_>,
+    old: &JsonValue,
+    old_ref: &JsonValue,
+    new: &JsonValue,
+    new_ref: &JsonValue,
+    payer: &SourcePayer<'_>,
+) -> SourceCommandResult<()> {
+    let mut ledger = SourceLedger::new(session, payer)?;
+    ledger.reserve(std::mem::size_of::<[serde_json::Value; 4]>())?;
+    let values = [ledger.domain_value(old)?, ledger.domain_value(old_ref)?, ledger.domain_value(new)?, ledger.domain_value(new_ref)?];
+    drop(ledger);
+    session.description_revision(&values[0], &values[1], &values[2], &values[3]).map_err(|e| payer.error(e, "PWE description-only revision changed protected source/proposition/evidence/lineage"))?;
+    session.source_allowance().map_err(|e| payer.error(e, "PWE source Session currentness"))?;
+    payer.current()
+}
+
+pub(crate) fn check_independent_correction_source(
+    session: &mut Session<'_>,
+    old: &JsonValue,
+    old_ref: &JsonValue,
+    new: &JsonValue,
+    new_ref: &JsonValue,
+    lineage: &JsonValue,
+    payer: &SourcePayer<'_>,
+) -> SourceCommandResult<()> {
+    let mut ledger = SourceLedger::new(session, payer)?;
+    ledger.reserve(std::mem::size_of::<[serde_json::Value; 5]>())?;
+    let values = [ledger.domain_value(old)?, ledger.domain_value(old_ref)?, ledger.domain_value(new)?, ledger.domain_value(new_ref)?, ledger.domain_value(lineage)?];
+    drop(ledger);
+    session.independent_correction(&values[0], &values[1], &values[2], &values[3], &values[4]).map_err(|e| payer.error(e, "PWE independent correction identity/version/lineage differs"))?;
+    session.source_allowance().map_err(|e| payer.error(e, "PWE source Session currentness"))?;
+    payer.current()
 }

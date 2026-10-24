@@ -18,6 +18,13 @@ pub(crate) struct ResolvedDependency {
 /// registries and SVB occurrences. The common source owner supplies this port.
 /// Formal roles MUST pass through source_native_roles, not through this port.
 pub(crate) trait ExactDependencyReader {
+    /// Recheck the ACTUAL retained source/history/catalogue/publication
+    /// closure through its native owner. No successful default or caller bool.
+    fn verify_closure(
+        &mut self,
+        resolved: &ResolvedDependency,
+        frames: &mut HeldFrames<'_, '_>,
+    ) -> SourceCommandResult<()>;
     fn basis(
         &mut self,
         slot: &BasisSlot<'_>,
@@ -25,7 +32,9 @@ pub(crate) trait ExactDependencyReader {
     ) -> SourceCommandResult<ResolvedDependency>;
 }
 impl ResolvedDependency {
-    pub(super) fn verify(
+    /// Content/schema checks only. Native entry points must first call the
+    /// required owner verify_closure; the observed list is not completeness.
+    pub(super) fn verify_contents(
         &self,
         reference: &Value,
         frames: &mut HeldFrames<'_, '_>,
@@ -35,12 +44,6 @@ impl ResolvedDependency {
         }
         let mut origin_present = false;
         for dependency in &self.dependencies {
-            let raw = frames.selected_bytes(dependency.path.as_str())?;
-            if frames.hash_bytes(&raw)? != dependency.raw_sha256 {
-                return Err(crate::source_command::SourceCommandError::Conflict(
-                    "PWE exact derivation source bytes changed",
-                ));
-            }
             origin_present |= frames.text_equal(dependency.path.as_str(), &self.source_path)?;
         }
         if !origin_present {
