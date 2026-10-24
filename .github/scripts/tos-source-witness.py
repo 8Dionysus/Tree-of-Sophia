@@ -4,6 +4,7 @@ No imports perform host IO. No compiler, subprocess, policy write, namespace or 
 Source bodies are hashed only. Raw policy endpoints are NEVER opened.
 """
 import ctypes
+import errno
 import hashlib
 import json
 import os
@@ -126,6 +127,10 @@ EARLY = {
     16: ('collector-call','untyped-failure','unknown'),
     17: ('driver','untyped-failure','unknown'),
 }
+REFUSAL_CODES.update({'policy-entry-not-directory': 101, 'policy-entry-link-loop': 102, 'policy-entry-access-denied': 103, 'policy-entry-not-permitted': 104, 'policy-entry-not-found': 105, 'policy-entry-other-io': 106, 'revision-read-not-ready': 107, 'revision-read-access-denied': 108, 'revision-read-other-io': 109})
+EARLY.update({101: ('policy-entry', 'not-directory', 'outer-ok'), 102: ('policy-entry', 'link-loop', 'outer-ok'), 103: ('policy-entry', 'access-denied', 'outer-ok'), 104: ('policy-entry', 'not-permitted', 'outer-ok'), 105: ('policy-entry', 'not-found', 'outer-ok'), 106: ('policy-entry', 'other-io', 'outer-ok'), 107: ('revision-read', 'not-ready', 'outer-ok'), 108: ('revision-read', 'access-denied', 'outer-ok'), 109: ('revision-read', 'other-io', 'outer-ok')})
+REFUSAL_CODES.update({'kernel-policy-parent-fs': 18, 'kernel-policy-link-kind': 19, 'kernel-policy-link-custody': 117, 'kernel-policy-link-drift': 118, 'kernel-policy-target-fs': 119, 'kernel-policy-root-binding': 120, 'kernel-policy-root-state': 121, 'kernel-statfs-abi': 122, 'kernel-statfs-io': 123, 'kernel-policy-parent-drift': 124})
+EARLY.update({18: ('kernel-entry', 'parent-filesystem', 'outer-ok'), 19: ('kernel-entry', 'link-kind', 'outer-ok'), 117: ('kernel-entry', 'link-custody', 'outer-ok'), 118: ('kernel-entry', 'link-drift', 'outer-ok'), 119: ('kernel-entry', 'target-filesystem', 'outer-ok'), 120: ('kernel-entry', 'root-binding', 'outer-ok'), 121: ('kernel-entry', 'root-state', 'outer-ok'), 122: ('kernel-entry', 'statfs-abi', 'outer-ok'), 123: ('kernel-entry', 'statfs-io', 'outer-ok'), 124: ('kernel-entry', 'parent-drift', 'outer-ok')})
 PAYLOAD_CODES = {'packed-bound':4,'payload-bound':5,'payload-hash':6,'payload-shape':7,'payload-type':8}
 BINDING_CODES = {'source-identity':10,'platform-binding':11,'image-version-metadata':12,'sudo-environment-drift':13}
 
@@ -298,6 +303,30 @@ class Ledger:
         return value
 
 
+def revision_frame(budget, reader):
+    """One complete bounded numeric kernel record; never read-until-EOF or retry."""
+    budget.reserve(65)  #Original ledger, prospective BEFORE the single read.
+    require(budget.ops < OP_CAP, 'operation-budget')
+    budget.ops += 1
+    try:
+        data=reader(65)
+    except OSError as exc:
+        budget.check()
+        code=exc.errno if type(exc.errno) is int else None
+        reason=('revision-read-not-ready' if code in (errno.EAGAIN,errno.EWOULDBLOCK)
+                else 'revision-read-access-denied' if code in (errno.EACCES,errno.EPERM)
+                else 'revision-read-other-io')
+        raise Refusal(reason) from None
+    except BaseException:
+        budget.check()
+        raise
+    require(type(data) is bytes and len(data)<=65, 'reader-contract')
+    budget.used += len(data)  #Debit even if a later field/deadline check refuses.
+    budget.check()
+    require(len(data)<=64, 'field-budget')
+    return data
+
+
 def components(path):
     require(type(path) is str and path.startswith('/') and len(path) <= 4096,
             'path-shape')
@@ -333,6 +362,30 @@ def identity(s):
                   'st_mtime_ns', 'st_ctime_ns'))
 
 
+
+
+class KernelStatFS(ctypes.Structure):
+    _fields_=[('kind',ctypes.c_long),('block_size',ctypes.c_long),
+              ('blocks',ctypes.c_ulong),('free_blocks',ctypes.c_ulong),
+              ('available_blocks',ctypes.c_ulong),('files',ctypes.c_ulong),
+              ('free_files',ctypes.c_ulong),('fsid',ctypes.c_int*2),
+              ('name_length',ctypes.c_long),('fragment_size',ctypes.c_long),
+              ('flags',ctypes.c_long),('spare',ctypes.c_long*4)]
+
+
+def kernel_fs_kind(native,fd):
+    #Fixed LinuxX64/glibc statfs ABI. No raw syscall number or path selector.
+    require(ctypes.sizeof(KernelStatFS)==120 and ctypes.alignment(KernelStatFS)==8,
+            'kernel-statfs-abi')
+    result=KernelStatFS()
+    call=native.lib.fstatfs
+    call.argtypes=[ctypes.c_int,ctypes.POINTER(KernelStatFS)]
+    call.restype=ctypes.c_int
+    if call(fd,ctypes.byref(result))!=0:
+        raise Refusal('kernel-statfs-io')
+    return (int(result.kind)&0xffffffff,tuple(int(x) for x in result.fsid))
+
+
 class NativeDirectoryIO:
     """Fixed libc read interfaces, no libc readdir prefetch and no syscall selector.
 
@@ -344,6 +397,7 @@ class NativeDirectoryIO:
     def __init__(self):
         require(sys.byteorder == 'little' and struct.calcsize('P') == 8, 'native-abi')
         lib = ctypes.CDLL(None, use_errno=True)
+        self.lib = lib
         self.getdents = lib.getdents64
         self.getdents.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_size_t]
         self.getdents.restype = ctypes.c_ssize_t
@@ -406,6 +460,7 @@ class RealFS:
     def __init__(self, ledger, root):
         self.b = ledger
         self.held_executables = {}
+        self.policy_entry = None
         self.native = ledger.call(NativeDirectoryIO)
         self.fd = ledger.acquire(os.open, root, os.O_RDONLY | os.O_DIRECTORY |
                               os.O_NOFOLLOW | os.O_CLOEXEC)
@@ -421,6 +476,88 @@ class RealFS:
         self.b.charge(STAT_DEBIT)
         return self.b.call(os.fstat, fd)
 
+    def _close_kernel_owned(self,fd):
+        #Cleanup must run even after the deadline; never retry a numeric FD.
+        try:
+            os.close(fd)
+        except OSError:
+            raise Refusal('descriptor-cleanup') from None
+
+    def _kernel_kind(self,fd):
+        self.b.charge(STAT_DEBIT)  #256B BEFORE fixed120B metadata syscall, including Err.
+        return self.b.call(kernel_fs_kind,self.native,fd)
+
+    def _policy_link_info(self,parent):
+        self.b.charge(STAT_DEBIT)
+        return self.b.call(os.stat,'policy',dir_fd=parent,follow_symlinks=False)
+
+    def _follow_fixed_policy(self,parent):
+        #The ONLY proposed follow: literal policy under an already verified held
+        #SECURITYFS parent. This is an explicit typed guard delta, not O_NOFOLLOW.
+        try:
+            return os.open('policy',os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC,dir_fd=parent)
+        except OSError as exc:
+            code=exc.errno if type(exc.errno) is int else None
+            reason={errno.ENOTDIR:'policy-entry-not-directory',errno.ELOOP:'policy-entry-link-loop',
+                    errno.EACCES:'policy-entry-access-denied',errno.EPERM:'policy-entry-not-permitted',
+                    errno.ENOENT:'policy-entry-not-found'}.get(code,'policy-entry-other-io')
+            raise Refusal(reason) from None
+
+    def _acquire_policy_root(self,parent):
+        parent_path=POLICY.rsplit('/',1)[0]
+        require(parent_path in self.directories
+                and self.directories[parent_path][0]==parent,'kernel-policy-root-state')
+        before_parent=self._stat(parent)
+        custody(before_parent,True)
+        require(identity(before_parent)==self.directories[parent_path][1],
+                'kernel-policy-parent-drift')
+        parent_kind=self._kernel_kind(parent)
+        require(parent_kind[0]==0x73636673,'kernel-policy-parent-fs')
+        before_link=self._policy_link_info(parent)
+        require(stat.S_ISLNK(before_link.st_mode),'kernel-policy-link-kind')
+        #Symlink mode bits do not grant content mutation in this kernel filesystem;
+        #custody comes from the held parent/filesystem/type and actual root owner.
+        require(before_link.st_uid==0 and before_link.st_gid==0
+                and before_link.st_dev==before_parent.st_dev,'kernel-policy-link-custody')
+        fd=None
+        retained=False
+        try:
+            fd=self.b.acquire(self._follow_fixed_policy,parent)
+            target=self._stat(fd)
+            custody(target,True)
+            target_kind=self._kernel_kind(fd)
+            require(target_kind[0]==0x5a3c69f0,'kernel-policy-target-fs')
+            require(identity(self._policy_link_info(parent))==identity(before_link),
+                    'kernel-policy-link-drift')
+            require(identity(self._stat(parent))==identity(before_parent)
+                    and self._kernel_kind(parent)==parent_kind,'kernel-policy-parent-drift')
+            marker={'parent':parent,'link':identity(before_link),
+                    'parent_identity':identity(before_parent),'parent_kind':parent_kind,
+                    'target':identity(target),'target_kind':target_kind}
+            result=(fd,marker)  #Allocate handoff before relinquishing FD cleanup.
+            retained=True
+            return result
+        finally:
+            if fd is not None and not retained:
+                self._close_kernel_owned(fd)
+
+    def _verify_policy_root(self,fd,before):
+        marker=self.policy_entry
+        require(type(marker) is dict and marker.get('target')==before,'kernel-policy-root-state')
+        parent_path=POLICY.rsplit('/',1)[0]
+        require(parent_path in self.directories
+                and self.directories[parent_path][0]==marker['parent'],'kernel-policy-root-state')
+        require(identity(self._stat(fd))==before
+                and self._kernel_kind(fd)==marker['target_kind'],'kernel-policy-root-binding')
+        check=None
+        try:
+            check,fresh=self._acquire_policy_root(marker['parent'])
+            require(fresh==marker,'kernel-policy-root-binding')
+            require(identity(self._stat(check))==before,'kernel-policy-root-binding')
+        finally:
+            if check is not None:
+                self._close_kernel_owned(check)
+
     def _parent(self, path):
         parts = components(path)
         if len(parts) > 1:
@@ -430,11 +567,18 @@ class RealFS:
             prefix += '/' + part
             if prefix not in self.directories:
                 require(len(self.directories) < 512, 'directory-descriptor-cap')
-                child = self.b.acquire(os.open, part, os.O_RDONLY | os.O_DIRECTORY |
-                                       os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=current)
+                marker=None
+                if prefix==POLICY:
+                    child,marker=self._acquire_policy_root(current)
+                else:
+                    child = self.b.acquire(os.open, part, os.O_RDONLY | os.O_DIRECTORY |
+                                           os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=current)
                 try:
                     s = self._stat(child)
                     custody(s, True)
+                    if marker is not None:
+                        require(identity(s)==marker['target'],'kernel-policy-root-binding')
+                        self.policy_entry=marker
                     self.directories[prefix] = (child, identity(s))
                 except BaseException:
                     os.close(child)
@@ -452,8 +596,10 @@ class RealFS:
         self.b.charge(STAT_DEBIT)
         return self.b.call(os.stat, name, dir_fd=parent, follow_symlinks=False)
 
-    def read(self, path, cap, hold=False):
+    def read(self, path, cap, hold=False, one_frame=False):
         require(path.rsplit('/', 1)[-1] != 'raw_data', 'raw-open-forbidden')
+        if one_frame:
+            require(path==POLICY+'/revision' and cap==64 and not hold, 'revision')
         parent, name = self._parent(path)
         fd = None
         retained = False
@@ -464,7 +610,8 @@ class RealFS:
             custody(before)
             # Files such as securityfs/procfs can report st_size=0 with content.
             require(before.st_size <= cap, 'declared-size')
-            data = self.b.read(lambda count: os.read(fd, count), cap)
+            reader=lambda count:os.read(fd,count)
+            data = revision_frame(self.b,reader) if one_frame else self.b.read(reader,cap)
             after = self._stat(fd)
             custody(after)
             require(identity(before) == identity(after), 'held-file-drift')
@@ -527,6 +674,7 @@ class RealFS:
                 failed = True
         self.directories.clear()
         self.held_executables.clear()
+        self.policy_entry=None
         require(not failed, 'descriptor-cleanup')
 
     def validate(self):
@@ -537,7 +685,9 @@ class RealFS:
             held = self._stat(fd)
             custody(held, True)
             require(identity(held) == before, 'directory-cache-drift')
-            if path != '/':
+            if path==POLICY:
+                self._verify_policy_root(fd,before)
+            elif path != '/':
                 parent, name = path.rsplit('/', 1)
                 parent_fd = self.directories[parent or '/'][0]
                 self.b.charge(STAT_DEBIT)
@@ -719,7 +869,10 @@ def features(fs, spec):
 
 
 def revision(fs):
-    value = text(fs, POLICY + '/revision', 64)
+    try:
+        value=fs.read(POLICY+'/revision',64,one_frame=True).decode('utf-8','strict')
+    except UnicodeError:
+        raise Refusal('encoding') from None
     require(re.fullmatch(r'[0-9]+\n', value), 'revision')
     return value
 
