@@ -1542,10 +1542,20 @@ fn selected_command_context(
         "ToS/contracts/corpus-record.schema.json",
         "ToS/contracts/semantic-relation-type-registry.schema.json",
         "ToS/contracts/semantic-entity-type-registry.schema.json",
+        // Source-cut schema resources for the actual held TS/C4 consumer.
+        // Presence selects bytes only; the caller still needs exact native
+        // selection/profile/registry pins and its protected owner frames.
+        "ToS/contracts/native-role-bindings.schema.json",
+        "ToS/contracts/ts-native-bindings.schema.json",
+        "ToS/contracts/ts-native-definition.schema.json",
+        "ToS/contracts/ts-native-value-profile.schema.json",
+        "ToS/contracts/ts-native-operation-result.schema.json",
+        "ToS/contracts/semantic-description-record.schema.json",
         "ToS/contracts/provenance-event-v2.schema.json",
         "ToS/contracts/source-anchor-v2.schema.json",
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/doctrine/semantic-interchange/ts-bindings.v1.json",
     ];
     let mut total = 0usize;
     for name in required {
