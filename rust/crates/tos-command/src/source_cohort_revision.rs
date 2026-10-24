@@ -1103,6 +1103,54 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
         operation: impl FnOnce(&mut SourceRevisionReadSession<'_>) -> DurableResult<T>,
     ) -> DurableResult<(T, SourceRevisionReadSet)> {
+        self.with_source_revision_session_resources(
+            store, domain, job_id, job_fence, deadline, cancelled, &mut (),
+            |session, _| operation(session),
+            |session, _| session.verify_fresh(deadline, cancelled),
+        )
+    }
+
+    /// The actual Assessment caller lends its ONE original operation through
+    /// body and exit. Only the final freshness query DATA is admitted here;
+    /// opening the epoch, earlier queries/STO and native driver/control fit
+    /// remain separate obligations. No pure PWE Session/payer is constructed.
+    pub(crate) fn with_source_revision_session_with_exit_data_admission<T>(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        operation: impl FnOnce(
+            &mut SourceRevisionReadSession<'_>,
+            &mut crate::source_native_cli::private_assessment::OperationBudget,
+        ) -> DurableResult<T>,
+    ) -> DurableResult<(T, SourceRevisionReadSet)> {
+        self.with_source_revision_session_resources(
+            store, domain, job_id, job_fence, deadline, cancelled, budget, operation,
+            |session, budget| {
+                session.verify_fresh_with_query_data_admission(budget, deadline, cancelled)
+            },
+        )
+    }
+
+    /// One owner construction/finalization path for both existing callers and
+    /// the admitted Assessment counterpart. The body loan ends before finish;
+    /// resources are neither cloned, replenished nor reselected here.
+    fn with_source_revision_session_resources<T, C: ?Sized>(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        resources: &mut C,
+        operation: impl FnOnce(&mut SourceRevisionReadSession<'_>, &mut C) -> DurableResult<T>,
+        finish: impl FnOnce(&mut SourceRevisionReadSession<'_>, &mut C) -> DurableResult<()>,
+    ) -> DurableResult<(T, SourceRevisionReadSet)> {
         active(deadline, cancelled)?;
         let selection = self.open_source_revision_selection(
             store, domain, job_id, job_fence, deadline, cancelled,
@@ -1139,9 +1187,8 @@ impl DurablePgCoordinator {
         // The actual owner must attempt its exit fence even when the borrowed
         // operation refuses. Preserve the first error and every spent prefix;
         // only a successful body AND fence may expose the finalized readset.
-        let result = operation(&mut session);
-        let result =
-            finish_source_revision_epoch(result, || session.verify_fresh(deadline, cancelled))?;
+        let result = operation(&mut session, resources);
+        let result = finish_source_revision_epoch(result, || finish(&mut session, resources))?;
         let readset = SourceRevisionReadSet {
             selection: session.selection.clone(),
             reads: session.reads,
