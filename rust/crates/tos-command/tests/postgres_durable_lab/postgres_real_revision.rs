@@ -1651,7 +1651,11 @@ fn pg_real_source_text_disclosure_guard_child_entry() {
         }
         _ => panic!("the selected source-text projection is current in the child"),
     };
-    fs::write(&ready, b"current page and disclosure lease held").unwrap();
+    // Publish only the complete barrier: exists() must never expose the
+    // create/truncate -> write interval of fs::write to the parent reader.
+    let pending = ready.with_extension("pending");
+    fs::write(&pending, b"current page and disclosure lease held").unwrap();
+    fs::rename(&pending, &ready).unwrap();
     let deadline = Instant::now() + Duration::from_secs(30);
     while !release.exists() {
         assert!(Instant::now() < deadline, "parent releases the held lease");
