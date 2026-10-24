@@ -167,7 +167,18 @@ impl OriginalAssessmentPayer<'_, '_> {
         if remaining.work == 0 || remaining.input_bytes == 0 || remaining.state_bytes == 0 {
             return Err(crate::DurableError::Source(self.error(Error::ResourceLimit)));
         }
-        if source.selection().identity() != *selected {
+        // End this original operation loan before any Session source hook.
+        // The owner identity hashes domain/job bytes; it is not a free copy.
+        let actual = self
+            .with_operation(|budget| {
+                source.selection().identity_with_data_admission(
+                    budget,
+                    self.deadline,
+                    self.cancelled,
+                )
+            })
+            .map_err(crate::DurableError::Source)?;
+        if actual != *selected {
             return Err(crate::DurableError::Conflict(
                 "STO source read epoch differs from protected selection",
             ));

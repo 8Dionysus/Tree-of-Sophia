@@ -613,6 +613,66 @@ impl SourceRevisionSelection {
     pub(crate) fn identity(&self) -> PgRecordRevisionIdentity {
         PgRecordRevisionIdentity::from_selection(self)
     }
+
+    /// The same opaque identity, with its variable hash operands and logical
+    /// carriers paid BEFORE construction on the original operation. This is
+    /// selected-data accounting, not a SQL/driver/native-stack or freshness
+    /// certificate. No source permission or new read epoch is issued here.
+    pub(crate) fn identity_with_data_admission(
+        &self,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<PgRecordRevisionIdentity> {
+        use std::mem::size_of;
+
+        crate::source_creation_store::active(deadline, cancelled)?;
+        if deadline > budget.limits()?.deadline {
+            return Err(SourceCommandError::Conflict(
+                "PG source identity cutoff exceeds original operation",
+            ));
+        }
+        // from_selection has exactly nine length-prefixed cohort parts. Its
+        // other two SHA256 inputs are the domain and job UTF-8 bytes. Keep the
+        // unchanged constructor as the sole source of the identity value.
+        let fixed_hash_data = 9 * size_of::<u64>()
+            + b"tos-pg-record-revision-cohort-identity-v1".len()
+            + 16
+            + 32
+            + 8
+            + 32
+            + 8
+            + 32
+            + 8;
+        let hash_data = self
+            .cohort
+            .domain
+            .len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(self.job_id.len()))
+            .and_then(|n| n.checked_add(fixed_hash_data))
+            .ok_or(SourceCommandError::Unsupported(
+                "PG source identity hash operand overflow",
+            ))?;
+        let holders = (3 * size_of::<Digest256Hasher>())
+            .checked_add(size_of::<PgRecordRevisionIdentity>())
+            .and_then(|n| n.checked_add(size_of::<SourceCommandResult<PgRecordRevisionIdentity>>()))
+            .ok_or(SourceCommandError::Unsupported(
+                "PG source identity result holders overflow",
+            ))?;
+        let work = hash_data
+            .checked_add(2 * size_of::<PgRecordRevisionIdentity>())
+            .ok_or(SourceCommandError::Unsupported(
+                "PG source identity comparison work overflow",
+            ))?;
+        // Includes the complete fixed-size returned identity comparison in
+        // the caller. No successful debit is restored after a later refusal.
+        budget.charge_work(work)?;
+        budget.charge_bytes(holders)?;
+        let identity = self.identity();
+        crate::source_creation_store::active(deadline, cancelled)?;
+        Ok(identity)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -4367,6 +4427,91 @@ fn finish_source_revision_epoch<T>(
 #[cfg(test)]
 mod epoch_exit_tests {
     use super::*;
+
+    // Pure identity/accounting operands. These values issue no PG selection,
+    // owner authority, retained closure, or current-use grant.
+    fn identity_selection(domain: &str, job: &str) -> SourceRevisionSelection {
+        SourceRevisionSelection {
+            cohort: ManagedSourceCohort {
+                domain: domain.to_owned(),
+                store_id: [7; 16],
+                initial_revision: SourceRevision(Digest256::of_bytes(b"hash-test-bootstrap")),
+                initial_membership: SourceMembershipV1 {
+                    count: 7,
+                    digest: Digest256::of_bytes(b"hash-test-membership"),
+                },
+                epoch: 11,
+                definition: Digest256::of_bytes(b"hash-test-definition"),
+                generation: 13,
+            },
+            contract: Digest256::of_bytes(b"hash-test-contract"),
+            epoch: 17,
+            source_generation: 19,
+            head_seq: 23,
+            audit_generation: 29,
+            rights_version: 31,
+            rule_version: 37,
+            job_id: job.to_owned(),
+            job_fence: 41,
+        }
+    }
+
+    fn identity_budget(
+        deadline: Instant,
+    ) -> crate::source_native_cli::private_assessment::OperationBudget {
+        crate::source_native_cli::private_assessment::OperationBudget::new(
+            &serde_json::json!({"budgets": {
+                "worker_cpu_seconds": 1, "worker_address_space_bytes": 1048576
+            }}),
+            deadline,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn admitted_pg_identity_preserves_value_and_prices_utf8_operands_before_construction() {
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut fees = Vec::new();
+        for (domain, job) in [("A", "B"), ("Ж", "猫")] {
+            let selected = identity_selection(domain, job);
+            let mut budget = identity_budget(deadline);
+            let before = budget.test_work_remaining();
+            let actual = selected
+                .identity_with_data_admission(&mut budget, deadline, &cancelled)
+                .unwrap();
+            assert_eq!(actual, selected.identity());
+            fees.push(before - budget.test_work_remaining());
+        }
+        // Domain bytes are hashed twice (cohort and domain digest); job bytes
+        // once. Equal character counts must not conceal UTF-8 byte costs.
+        assert_eq!(
+            fees[1] - fees[0],
+            2 * ("Ж".len() - "A".len()) + "猫".len() - "B".len()
+        );
+    }
+
+    #[test]
+    fn refused_pg_identity_keeps_original_remainder_and_sticky_denial() {
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let selected = identity_selection("A", "B");
+        let mut budget = identity_budget(deadline);
+        budget.lower_remaining(1_048_576, 1).unwrap();
+        assert!(
+            selected
+                .identity_with_data_admission(&mut budget, deadline, &cancelled)
+                .is_err()
+        );
+        assert_eq!(budget.test_work_remaining(), 1);
+        assert!(budget.limits().is_err());
+        assert!(
+            selected
+                .identity_with_data_admission(&mut budget, deadline, &cancelled)
+                .is_err()
+        );
+        assert_eq!(budget.test_work_remaining(), 1);
+    }
 
     #[test]
     fn refused_body_attempts_exit_and_keeps_first_error() {
