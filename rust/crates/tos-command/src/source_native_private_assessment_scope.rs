@@ -95,14 +95,21 @@ impl ScopeAccess<'_> {
         let selected = if self.ledger.is_none() {
             all.get(key)
         } else {
-            let mut selected = None;
-            for (candidate, value) in all {
-                if self.text_equal(candidate, key)? {
-                    selected = Some(value);
-                    break;
-                }
-            }
-            selected
+            // Pinned Rust1.98.1 BTreeMap::get descends one path, with at most
+            // 11 comparisons per node. A nonempty valid tree of L levels
+            // has >= 2^L-1 keys, so bit_width(N) bounds its levels. Each str
+            // comparison reads at most key.len() bytes from EITHER operand
+            // and both length fields. Pay that whole logical bound BEFORE
+            // std lookup, including an absent key; never scan/copy the map.
+            // This quotes comparison input, not machine instruction/RSS time.
+            let levels = (usize::BITS - all.len().leading_zeros()) as usize;
+            let comparisons = all.len().min(levels.checked_mul(11).ok_or_else(exhausted)?);
+            let bytes = key.len().checked_add(size_of::<usize>())
+                .and_then(|n| n.checked_mul(2))
+                .and_then(|n| n.checked_mul(comparisons)).ok_or_else(exhausted)?;
+            self.inspect(bytes, comparisons.checked_add(levels)
+                .and_then(|n| n.checked_add(1)).ok_or_else(exhausted)?)?;
+            all.get(key)
         };
         selected.ok_or(Error::Denied(
             "assessment subject has no exact selected current record",
