@@ -1062,6 +1062,150 @@ fn selected_pg_payload_loan_reads_each_member_once_and_fences_body_and_success_e
     }
 }
 
+// This is the positive simultaneous-borrow gate for the Common splitter,
+// not a PWE role/worker/semantic admission fixture. It requires postgres-lab.
+#[test]
+fn selected_pg_payload_split_keeps_multiple_borrows_and_five_epoch_checks() {
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session_durable;
+    use crate::source_native_cli::PgGrowthCurrentInput;
+    use std::sync::atomic::Ordering;
+    use tos_compiler::pwe_native::Limits;
+
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let paths = std::collections::BTreeSet::from([
+        RelativePath::parse(&fixture.targets[0].source_path).unwrap(),
+        RelativePath::parse(&fixture.targets[1].source_path).unwrap(),
+    ]);
+    // Expected bytes come from the independent original fixture cut. Fixture
+    // setup is outside the measured source invocation, as in the prior test.
+    let expected: Vec<_> = paths.iter().map(|path| {
+        let member = fixture.original_cut
+            .read_member(fixture.initial_revision, path, 8_388_608, deadline, &cancelled)
+            .unwrap();
+        (path, member.raw)
+    }).collect();
+    let inspect = expected.iter().try_fold(0usize, |sum, (path, raw)| {
+        raw.len().checked_add(path.as_str().len())
+            .and_then(|n| n.checked_mul(2))
+            .and_then(|n| sum.checked_add(n))
+    }).unwrap();
+    let database_url = std::env::var("TOS_CMD_POSTGRES_URL").unwrap();
+    let mut conflicting = DurablePgCoordinator::connect(&database_url).unwrap();
+    let domain = fixture.domain.clone();
+    let mut job_fence = 1;
+    // Success; body fault + epoch conflict; successful body + epoch conflict;
+    // swallowed mapped resource refusal; cancellation at callback exit.
+    for lane in 0..5 {
+        let mut budget = OperationBudget::new(&json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}), deadline).unwrap();
+        let limits = Limits {
+            max_input_bytes: 4_194_304,
+            max_nodes: 1024,
+            max_work: 262_144,
+            max_refs: 64,
+            max_depth: 16,
+            max_items: 64,
+            max_state_bytes: 8_388_608,
+            deadline,
+        };
+        let result = fixture.coordinator.with_source_revision_session_with_exit_data_admission(
+            &fixture.store, &domain, JOB_ID, job_fence, deadline, &cancelled,
+            &mut budget, |epoch, original| {
+                let input = PgGrowthCurrentInput::new(epoch, 64, 8_388_608)
+                    .map_err(|_| DurableError::Invalid("split test selected input"))?;
+                with_original_pwe_session_durable(original, limits, &cancelled, |payer, session| {
+                    input.with_current_payload_loan(
+                        payer, session, &paths, 8_388_608, |loan| {
+                            loan.with_selected_payloads(|identity, members, epoch, same_payer, same| {
+                                same_payer.inspect(
+                                    2 * std::mem::size_of::<&crate::source_cohort::ManagedCurrentMember>()
+                                        + std::mem::size_of::<crate::source_cohort::revision::PgRecordRevisionIdentity>(),
+                                    0,
+                                ).map_err(DurableError::Source)?;
+                                assert!(std::ptr::eq(payer, same_payer));
+                                assert!(same.has_source_payer(same_payer));
+                                assert_eq!(members.len(), paths.len());
+                                // Both member references and their raw slices
+                                // stay live across all five mutable epoch and
+                                // sequential SAME Session uses below.
+                                let first = &members[0];
+                                let second = &members[1];
+                                let input_before = same.charges().0;
+                                for _ in 0..5 {
+                                    same.admit_source_work(inspect)
+                                        .map_err(|error| DurableError::Source(same_payer.error(error)))?;
+                                    assert_eq!(&first.path, expected[0].0);
+                                    assert_eq!(&second.path, expected[1].0);
+                                    assert_eq!(first.raw.as_slice(), expected[0].1.as_slice());
+                                    assert_eq!(second.raw.as_slice(), expected[1].1.as_slice());
+                                    assert_eq!(first.current_generation, identity.head_seq);
+                                    assert_eq!(second.current_generation, identity.head_seq);
+                                    // Same genuine epoch and original payer;
+                                    // no whole-loan reentry or second Session.
+                                    same_payer.reserve(
+                                        std::mem::size_of::<Option<DurableError>>()
+                                            + std::mem::size_of::<DurableResult<()>>(),
+                                    ).map_err(DurableError::Source)?;
+                                    let mut foreign = None;
+                                    same_payer.with_operation(|operation| {
+                                        match epoch.verify_fresh_with_query_data_admission(
+                                            operation, deadline, &cancelled,
+                                        ) {
+                                            Ok(()) => Ok(()),
+                                            Err(DurableError::Source(error)) => Err(error),
+                                            Err(error) => { foreign = Some(error); Ok(()) },
+                                        }
+                                    }).map_err(DurableError::Source)?;
+                                    if let Some(error) = foreign { return Err(error); }
+                                }
+                                assert_eq!(same.charges().0, input_before,
+                                    "five epoch checks do not reread retained payloads");
+                                if lane == 1 || lane == 2 {
+                                    conflicting.set_job_epoch(&domain, JOB_ID, job_fence + 1)?;
+                                    if lane == 1 {
+                                        return Err(DurableError::Source(SourceCommandError::Denied(
+                                            "split test original body fault",
+                                        )));
+                                    }
+                                } else if lane == 3 {
+                                    let refused = same.admit_source_work(usize::MAX).unwrap_err();
+                                    // Mapping may consume the original error,
+                                    // but cannot clear its sticky refusal.
+                                    let _mapped = same_payer.error(refused);
+                                } else if lane == 4 {
+                                    cancelled.store(true, Ordering::SeqCst);
+                                }
+                                Ok(())
+                            })
+                        },
+                    )
+                })
+            },
+        );
+        cancelled.store(false, Ordering::SeqCst);
+        match lane {
+            0 => {
+                let ((), readset) = result.unwrap();
+                assert_eq!(readset.work.exact_source_members_read, paths.len() as u64);
+                assert_eq!(readset.observations().len(), paths.len());
+            }
+            1 => assert!(matches!(result, Err(DurableError::Source(
+                SourceCommandError::Denied("split test original body fault")
+            )))),
+            2 => assert!(matches!(result, Err(DurableError::Conflict(
+                "bounded source revision job lease changed"
+            )))),
+            3 | 4 => assert!(matches!(result, Err(DurableError::Source(_)))),
+            _ => unreachable!(),
+        }
+        if lane == 1 || lane == 2 { job_fence += 1; }
+    }
+}
+
 #[test]
 fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_record() {
     let deadline = Instant::now() + Duration::from_secs(900);

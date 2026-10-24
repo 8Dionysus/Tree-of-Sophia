@@ -26,7 +26,7 @@ use tos_foundation::RelativePath;
 
 /// Only `with_current_payload_loan` constructs this type, after the actual
 /// selected read. All fields are private, there is no Clone or mutable payload
-/// accessor, and each byte borrow is confined to `with_bytes`' callback.
+/// accessor, and each byte borrow is confined to a scoped callback.
 /// The real `&mut SourceRevisionReadSession` keeps the issuing epoch alive;
 /// there is no address-only same-host test and no ABA allocation assumption.
 /// The original mutable Session is also borrowed for the entire loan; callers
@@ -158,7 +158,84 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
     }
 }
 
-impl<'pure> PgCurrentPayloadLoan<'_, '_, '_, '_, 'pure> {
+impl<'store, 'budget, 'cancel, 'pure>
+    PgCurrentPayloadLoan<'_, 'store, 'budget, 'cancel, 'pure>
+{
+    /// Split the complete retained set from its mutable epoch and Session.
+    /// All five borrows share this callback's lifetime; T cannot carry any of
+    /// them out. The callback receives no whole mutable loan, so immutable
+    /// registry/schema/context views may coexist with independently borrowed
+    /// epoch checks and sequential uses of the SAME original Session.
+    ///
+    /// This does not copy, reread, parse or rehash payloads, and does not grant
+    /// current read permission or semantic authority. Each consumer still pays
+    /// its actual lookup/parse/worker work and performs its required inner
+    /// freshness checks. Physical FS verification is unchanged.
+    pub(crate) fn with_selected_payloads<T>(
+        &mut self,
+        run: impl for<'view> FnOnce(
+            &'view PgRecordRevisionIdentity,
+            &'view [ManagedCurrentMember],
+            &'view mut SourceRevisionReadSession<'store>,
+            &'view OriginalAssessmentPayer<'budget, 'cancel>,
+            &'view mut Session<'pure>,
+        ) -> DurableResult<T>,
+    ) -> DurableResult<T> {
+        self.payer
+            .charge_sto_source_measures(self.session, 0, 0, 0, 0, 0)
+            .map_err(DurableError::Source)?;
+        // Actual callback storage, split arguments, result and both exit
+        // Result carriers are paid BEFORE the view is constructed. This is a
+        // logical holder quote, not a driver/activation/native-fit claim.
+        let carriers = size_of::<(
+            &PgRecordRevisionIdentity,
+            &[ManagedCurrentMember],
+            &mut SourceRevisionReadSession<'store>,
+            &OriginalAssessmentPayer<'budget, 'cancel>,
+            &mut Session<'pure>,
+        )>()
+            .checked_add(std::mem::size_of_val(&run))
+            .and_then(|n| n.checked_add(size_of::<PgRecordRevisionIdentity>()))
+            .and_then(|n| n.checked_add(size_of::<DurableResult<PgRecordRevisionIdentity>>()))
+            .and_then(|n| n.checked_add(size_of::<(std::time::Instant, &std::sync::atomic::AtomicBool)>()))
+            .and_then(|n| n.checked_add(size_of::<DurableResult<T>>()))
+            .and_then(|n| n.checked_add(2 * size_of::<DurableResult<()>>()))
+            .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+                "PG selected payload split carriers overflow",
+            )))?;
+        self.payer.reserve(carriers).map_err(DurableError::Source)?;
+        let (deadline, cancelled) = self.payer.source_cutoff();
+        let identity = self
+            .payer
+            .with_operation(|budget| {
+                self.epoch
+                    .selection()
+                    .identity_with_data_admission(budget, deadline, cancelled)
+            })
+            .map_err(DurableError::Source)?;
+        if identity != self.selected {
+            return Err(DurableError::Conflict("PG payload issuing epoch changed"));
+        }
+        admitted_freshness_data(self.epoch, self.payer, deadline, cancelled)?;
+        // Disjoint private fields only: no second epoch/Session, mutable
+        // payload reference, pointer stamp or manufactured readset.
+        let result = run(
+            &self.selected,
+            &self.members,
+            &mut *self.epoch,
+            self.payer,
+            &mut *self.session,
+        );
+        let cutoff = self
+            .payer
+            .charge_sto_source_measures(self.session, 0, 0, 0, 0, 0)
+            .map_err(DurableError::Source);
+        // Attempt the real paid source exit on every callback Result. As on
+        // the enclosing owner path, resource refusal may deny physical SQL.
+        let fenced = admitted_freshness_data(self.epoch, self.payer, deadline, cancelled);
+        complete_use(result, complete_use(cutoff, fenced))
+    }
+
     /// Borrow exact bytes without copying/rehashing that already verified
     /// private buffer. Every invocation checks the real original Session and
     /// the actual source epoch before AND after its callback, including Err.
