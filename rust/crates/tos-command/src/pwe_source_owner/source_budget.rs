@@ -59,7 +59,7 @@ impl<'a> SourcePayer<'a> {
             Error::Upstream("original source payer refused")
         })
     }
-    pub(super) fn error(&self, error: Error, reason: &'static str) -> SourceCommandError {
+    pub(crate) fn error(&self, error: Error, reason: &'static str) -> SourceCommandError {
         if let Some(original) = self.refusal.borrow_mut().take() {
             return original;
         }
@@ -300,4 +300,14 @@ impl AccessMeter for SourceLedger<'_, '_, '_> {
             .retain_source_state(bytes)
             .map_err(|e| self.payer.error(e, "PWE source holder admission"))
     }
+}
+
+/// Borrow the existing original SOURCE codec from Common caller integration.
+/// No payer, session, source selection or authority is constructed here.
+pub(crate) fn source_canonical(
+    value: &JsonValue,
+    session: &mut Session<'_>,
+    payer: &SourcePayer<'_>,
+) -> SourceCommandResult<Vec<u8>> {
+    SourceLedger::new(session, payer)?.canonical(value)
 }

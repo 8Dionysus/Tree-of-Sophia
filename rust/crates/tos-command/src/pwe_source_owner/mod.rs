@@ -25,7 +25,7 @@ pub(crate) use reader::{
 };
 pub(crate) use registry::{BindingRegistry, DispatchSpec};
 pub(crate) use roles::{ExactDependencyReader, ResolvedDependency, RoleCache};
-pub(crate) use source_budget::SourcePayer;
+pub(crate) use source_budget::{SourcePayer, source_canonical};
 
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use access::BorrowedAccess;

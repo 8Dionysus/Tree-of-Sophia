@@ -28,6 +28,8 @@ use tos_validation::source_cut::{
 
 #[path = "source_claims_pg_inventory.rs"]
 pub(crate) mod pg_inventory;
+#[path = "source_pwe_call.rs"]
+mod pwe_call;
 
 pub const CLAIM_STREAM: &str = "source-claims.jsonl";
 pub const CLAIM_HISTORY: &str = "claim-revision-history.json";
@@ -1316,15 +1318,12 @@ pub(crate) fn run_claim_command_from_pg_complete_cut(
         None => claim_call_for_selected_context(ctx)?,
     };
     whole_call.borrow_mut().read(cut.total_bytes())?;
-    run_claim_command_inner_with_members(
+    run_pg_claim_members_with_pwe(
         ctx,
-        Some(ctx),
-        None,
         catalog_capture,
-        None,
         Some(whole_call),
         operation == "claims.create",
-        Some(cut.members()),
+        cut.members(),
         executor,
         deadline,
         cancelled,
@@ -1711,78 +1710,84 @@ pub(crate) fn claim_creation_from_pg_complete_cut(
     if let Some(budget) = &whole_call {
         budget.borrow_mut().read(cut.total_bytes())?;
     }
-    let preview = run_claim_command_inner_with_members(
-        ctx,
-        Some(ctx),
-        None,
-        catalog_capture.clone(),
-        None,
-        whole_call.clone(),
-        true,
-        Some(cut.members()),
-        worker,
-        deadline,
-        cancelled,
-    )?;
-    let (config, source_path, _, create, _) = config(ctx)?;
-    if !create {
-        return Err(SourceCommandError::Denied(
-            "PostgreSQL Claim creation owner family",
-        ));
-    }
-    let request = parse(&ctx.request_raw)?;
-    let allowed = claim_creation_allowed_names(&request)?;
-    let home = source_path
-        .as_str()
-        .rsplit_once('/')
-        .ok_or(SourceCommandError::Invalid("Claim creation home"))?
-        .0;
-    let retained = {
-        let direct = ctx
-            .files
-            .iter()
-            .filter_map(|file| {
-                file.path
-                    .as_str()
-                    .strip_prefix(&format!("{home}/"))
-                    .filter(|name| !name.contains('/') && allowed.contains(*name))
-                    .map(|name| (name.to_owned(), file.raw.clone()))
-            })
-            .collect::<BTreeMap<_, _>>();
-        let required = [
-            CLAIM_STREAM,
-            "source-create-request.json",
-            "source-create-environment.json",
-            "source-create-provenance.jsonl",
-            "source-create-receipt.json",
-        ];
-        required
-            .iter()
-            .all(|name| direct.contains_key(*name))
-            .then(|| {
-                retained_claim_creation_files(
-                    ctx,
-                    &config,
-                    &request,
-                    &source_path,
-                    &direct,
-                    whole_call.as_ref(),
-                )
-            })
-            .transpose()?
+    // Keep the one original Session alive through serialization and replay
+    // checks as well as every Claim in the batch; never reopen it in a callback.
+    let original = if pwe_call::request_requires_pwe(ctx)? {
+        Some(whole_call.as_ref().ok_or(SourceCommandError::Unsupported(
+            "PWE complete-PG creation requires its original source payer",
+        ))?.clone())
+    } else { None };
+    let run = |mut pwe: Option<&mut pwe_call::SourceCall<'_, '_, '_>>| {
+        let preview = run_claim_command_inner_with_pwe(
+            ctx, Some(ctx), None, catalog_capture.clone(), None, whole_call.clone(),
+            true, Some(cut.members()), worker, deadline, cancelled, pwe.as_deref_mut(),
+        )?;
+        let (config, source_path, _, create, _) = config(ctx)?;
+        if !create {
+            return Err(SourceCommandError::Denied(
+                "PostgreSQL Claim creation owner family",
+            ));
+        }
+        let request = parse(&ctx.request_raw)?;
+        let allowed = claim_creation_allowed_names(&request)?;
+        let home = source_path
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim creation home"))?
+            .0;
+        let retained = {
+            let direct = ctx
+                .files
+                .iter()
+                .filter_map(|file| {
+                    file.path
+                        .as_str()
+                        .strip_prefix(&format!("{home}/"))
+                        .filter(|name| !name.contains('/') && allowed.contains(*name))
+                        .map(|name| (name.to_owned(), file.raw.clone()))
+                })
+                .collect::<BTreeMap<_, _>>();
+            let required = [
+                CLAIM_STREAM,
+                "source-create-request.json",
+                "source-create-environment.json",
+                "source-create-provenance.jsonl",
+                "source-create-receipt.json",
+            ];
+            required
+                .iter()
+                .all(|name| direct.contains_key(*name))
+                .then(|| {
+                    retained_claim_creation_files(
+                        ctx,
+                        &config,
+                        &request,
+                        &source_path,
+                        &direct,
+                        whole_call.as_ref(),
+                    )
+                })
+                .transpose()?
+        };
+        serialize_claim_creation_preview(
+            ctx.clone(),
+            preview,
+            software,
+            components,
+            worker,
+            retained.as_ref(),
+            catalog_capture,
+            whole_call,
+            deadline,
+            cancelled,
+        )
+
     };
-    serialize_claim_creation_preview(
-        ctx.clone(),
-        preview,
-        software,
-        components,
-        worker,
-        retained.as_ref(),
-        catalog_capture,
-        whole_call,
-        deadline,
-        cancelled,
-    )
+    if let Some(original) = original {
+        pwe_call::with_operation(&original, deadline, cancelled, |call| run(Some(call)))
+    } else {
+        run(None)
+    }
 }
 
 fn serialize_claim_creation_preview(
@@ -2926,6 +2931,38 @@ fn run_claim_command_inner(
     )
 }
 
+/// Only the real complete-PG operation enters this boundary. The same Session
+/// spans its entire create batch or revision/replay path; legacy filesystem
+/// entry points remain fail-closed for PWE until their held owner is connected.
+fn run_pg_claim_members_with_pwe(
+    ctx: &CommandContext,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    serialize_creation: bool,
+    complete_members: &[SourceFile],
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    let needs_pwe = pwe_call::request_requires_pwe(ctx)?;
+    if !needs_pwe {
+        return run_claim_command_inner_with_members(
+            ctx, Some(ctx), None, catalog_capture, None, whole_call,
+            serialize_creation, Some(complete_members), executor, deadline, cancelled,
+        );
+    }
+    let original = whole_call.as_ref().ok_or(SourceCommandError::Unsupported(
+        "PWE complete-PG operation requires its original source payer",
+    ))?.clone();
+    pwe_call::with_operation(&original, deadline, cancelled, |call| {
+        run_claim_command_inner_with_pwe(
+            ctx, Some(ctx), None, catalog_capture, None, whole_call,
+            serialize_creation, Some(complete_members), executor, deadline, cancelled,
+            Some(call),
+        )
+    })
+}
+
 fn run_claim_command_inner_with_members(
     ctx: &CommandContext,
     selected_context: Option<&CommandContext>,
@@ -2938,6 +2975,25 @@ fn run_claim_command_inner_with_members(
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    run_claim_command_inner_with_pwe(ctx, selected_context, cut, catalog_capture,
+        selected_package, whole_call, serialize_creation, complete_members, executor,
+        deadline, cancelled, None)
+}
+
+fn run_claim_command_inner_with_pwe(
+    ctx: &CommandContext,
+    selected_context: Option<&CommandContext>,
+    cut: Option<&CorpusCutReader>,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    selected_package: Option<&BTreeMap<String, Vec<u8>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+    serialize_creation: bool,
+    complete_members: Option<&[SourceFile]>,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut pwe: Option<&mut pwe_call::SourceCall<'_, '_, '_>>,
 ) -> SourceCommandResult<PreparedCommand> {
     if let Some(budget) = &whole_call {
         let temporary = ctx
@@ -3220,7 +3276,7 @@ fn run_claim_command_inner_with_members(
             if !seen.insert(text(claim, "claim_id")?) {
                 return Err(SourceCommandError::Conflict("duplicate initial Claim"));
             }
-            if let Some(binding) = validate_ground(
+            if let Some(binding) = validate_ground_with_pwe(
                 ctx,
                 cut,
                 retained.as_mut(),
@@ -3230,6 +3286,7 @@ fn run_claim_command_inner_with_members(
                 executor,
                 deadline,
                 cancelled,
+                pwe.as_deref_mut(),
             )? {
                 if let Some(read) = retained.as_mut() {
                     read.debit(0, retained_value_bytes(&binding.1)?)?;
@@ -3476,7 +3533,7 @@ fn run_claim_command_inner_with_members(
                     complete_members,
                 )?);
             }
-            validate_ground(
+            validate_ground_with_pwe(
                 ctx,
                 cut,
                 retained.as_mut(),
@@ -3486,6 +3543,7 @@ fn run_claim_command_inner_with_members(
                 executor,
                 deadline,
                 cancelled,
+                pwe.as_deref_mut(),
             )?;
             let archived = if let Some(read) = retained.as_mut() {
                 archive_accounted(ctx, &config, receipt, read, 0)?
@@ -3497,8 +3555,13 @@ fn run_claim_command_inner_with_members(
                 "Claim retry predecessor absent",
             ))?;
             let successor = advance_claim(predecessor, fields, layer)?;
+            if pwe_call::is_pwe(ctx, &successor)? {
+                pwe.as_deref_mut().ok_or(SourceCommandError::Unsupported(
+                    "PWE description revision requires the original operation Session",
+                ))?.description_revision(predecessor, &successor)?;
+            }
             claim_scope(&config, &successor, false, version)?;
-            validate_ground(
+            validate_ground_with_pwe(
                 ctx,
                 cut,
                 retained.as_mut(),
@@ -3508,6 +3571,7 @@ fn run_claim_command_inner_with_members(
                 executor,
                 deadline,
                 cancelled,
+                pwe.as_deref_mut(),
             )?;
             if let Some(read) = retained.take() {
                 // A retained revision replay has no fresh grounding call to
@@ -3526,6 +3590,11 @@ fn run_claim_command_inner_with_members(
         }
     }
     let revised = advance_claim(record, fields, layer)?;
+    if pwe_call::is_pwe(ctx, &revised)? {
+        pwe.as_deref_mut().ok_or(SourceCommandError::Unsupported(
+            "PWE description revision requires the original operation Session",
+        ))?.description_revision(record, &revised)?;
+    }
     claim_scope(&config, &revised, false, version)?;
     if retained.is_none() && retained_profile_required(ctx, &revised)? {
         retained = Some(RetainedProfileRead::new_with_complete_members(
@@ -3538,7 +3607,7 @@ fn run_claim_command_inner_with_members(
             complete_members,
         )?);
     }
-    let retained_profile_binding = validate_ground(
+    let retained_profile_binding = validate_ground_with_pwe(
         ctx,
         cut,
         retained.as_mut(),
@@ -3548,6 +3617,7 @@ fn run_claim_command_inner_with_members(
         executor,
         deadline,
         cancelled,
+        pwe.as_deref_mut(),
     )?;
     if let (Some(read), Some((_, binding))) = (retained.as_mut(), retained_profile_binding.as_ref())
     {
@@ -3881,6 +3951,7 @@ fn run_claim_command_inner_with_members(
 }
 /// Fixed maintained rule-contract inputs, not executed producers or issuers.
 pub const CLAIM_GROUNDING_RULE_INPUTS: &[&str] = &[
+    "rust/crates/tos-command/src/source_pwe_call.rs",
     "rust/crates/tos-command/src/source_claims.rs",
     "rust/crates/tos-command/src/source_native_cli.rs",
     "rust/crates/tos-command/src/source_command.rs",
@@ -3896,6 +3967,20 @@ pub const CLAIM_GROUNDING_RULE_INPUTS: &[&str] = &[
     "rust/crates/tos-command/src/source_corpus_index_projection.rs",
     "rust/crates/tos-compiler/src/source_bibliographic.rs",
     "rust/crates/tos-compiler/src/source_bibliographic_render.rs",
+];
+/// Additional rule bytes required only by an actual source-preserved PWE
+/// account. These do not attest a held consumer or QualifiedAccount.
+const PWE_SOURCE_PRESERVATION_RULE_INPUTS: &[&str] = &[
+    "rust/crates/tos-command/src/pwe_source_owner/mod.rs",
+    "rust/crates/tos-command/src/pwe_source_owner/reader.rs",
+    "rust/crates/tos-command/src/pwe_source_owner/access.rs",
+    "rust/crates/tos-command/src/pwe_source_owner/source_budget.rs",
+    "rust/crates/tos-compiler/src/pwe_native/mod.rs",
+    "rust/crates/tos-compiler/src/pwe_native/basis.rs",
+    "rust/crates/tos-compiler/src/pwe_native/source.rs",
+    "rust/crates/tos-compiler/src/pwe_native/identity.rs",
+    "rust/crates/tos-compiler/src/pwe_native/producer.rs",
+    "rust/crates/tos-compiler/src/pwe_native/qualification.rs",
 ];
 pub const CLAIM_REVISION_RULE_INPUTS: &[&str] = &[
     "rust/crates/tos-command/src/source_claims.rs",
@@ -4477,6 +4562,7 @@ fn retained_profile_required(ctx: &CommandContext, claim: &JsonValue) -> SourceC
     let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
     Ok(
         text(&descriptor, "reader")?.starts_with("identity-transition-")
+            || text(&descriptor, "reader")? == "pwe-exact-basis-v1"
             || descriptor
                 .object_get("object_reference_set")
                 .and_then(|value| value.object_get("basis_adapter"))
@@ -7710,6 +7796,7 @@ fn maintained_grounding(
     ]);
     let mut identity_proposals = object(vec![]);
     let mut collection_orders = object(vec![]);
+    let mut pwe_accounts = object(vec![]);
     let mut bound_objects = object(vec![]);
     let mut bound_evidence = object(vec![]);
     let mut values = object(vec![]);
@@ -7749,6 +7836,8 @@ fn maintained_grounding(
             == Some("collection-membership-versions-v1")
         {
             Some("collection_orders")
+        } else if text(&descriptor, "reader")? == "pwe-exact-basis-v1" {
+            Some("pwe_accounts")
         } else {
             None
         };
@@ -7767,6 +7856,8 @@ fn maintained_grounding(
             set(
                 if kind == "identity_proposals" {
                     &mut identity_proposals
+                } else if kind == "pwe_accounts" {
+                    &mut pwe_accounts
                 } else {
                     &mut collection_orders
                 },
@@ -7899,6 +7990,9 @@ fn maintained_grounding(
     }
     if !collection_orders.as_object().unwrap().is_empty() {
         set(&mut bindings, "collection_orders", collection_orders)?;
+    }
+    if !pwe_accounts.as_object().unwrap().is_empty() {
+        set(&mut bindings, "pwe_accounts", pwe_accounts)?;
     }
     if !values.as_object().unwrap().is_empty() {
         set(&mut bindings, "values", values)?;
@@ -8079,7 +8173,7 @@ fn maintained_grounding(
             })
             .collect::<SourceCommandResult<_>>()?,
     );
-    let grounding = object(vec![
+    let mut grounding = object(vec![
         ("records", relevant_records),
         ("claims", JsonValue::Array(relevant_claims)),
         (
@@ -8119,6 +8213,10 @@ fn maintained_grounding(
             raw_digests(ctx, CLAIM_GROUNDING_RULE_INPUTS, true)?,
         ),
     ]);
+    if bindings.object_get("pwe_accounts").is_some() {
+        set(&mut grounding, "pwe_source_preservation_implementation",
+            raw_digests(ctx, PWE_SOURCE_PRESERVATION_RULE_INPUTS, true)?)?;
+    }
     let mut dependencies = string(&record_digest(&grounding)?.to_prefixed());
     if forms.is_some() {
         dependencies = string(
@@ -8394,6 +8492,22 @@ fn validate_ground(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Option<(&'static str, JsonValue)>> {
+    validate_ground_with_pwe(ctx, cut, retained, config, claim, version, executor,
+        deadline, cancelled, None)
+}
+
+fn validate_ground_with_pwe(
+    ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    mut retained: Option<&mut RetainedProfileRead>,
+    config: &JsonValue,
+    claim: &JsonValue,
+    version: u8,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut pwe: Option<&mut pwe_call::SourceCall<'_, '_, '_>>,
+) -> SourceCommandResult<Option<(&'static str, JsonValue)>> {
     if !["public", "public_metadata_only"].contains(&text(claim, "visibility")?)
         || text(claim, "claim_type")? != "relation"
         || text(claim, "claim_id")? == text(claim, "subject_ref")?
@@ -8415,6 +8529,7 @@ fn validate_ground(
         "structured-reference-value-v1",
         "identity-transition-v1",
         "identity-transition-v2",
+        "pwe-exact-basis-v1",
     ]
     .contains(&reader)
     {
@@ -8430,6 +8545,15 @@ fn validate_ground(
         return Err(SourceCommandError::Denied(
             "Claim reader needs separate value grant",
         ));
+    }
+    if reader == "pwe-exact-basis-v1" {
+        if pwe.is_none() || retained.is_none() {
+            return Err(SourceCommandError::Unsupported("PWE source operation/retained owner not installed"));
+        }
+        if !(2..=6).contains(&version) {
+            return Err(SourceCommandError::Denied("PWE account requires an explicit exact-value source grant"));
+        }
+        grant(config, "allowed_object_values", field(claim, "object")?)?;
     }
     grant(
         &profile,
@@ -8504,6 +8628,7 @@ fn validate_ground(
                     "Claim declared structured value kind",
                 ));
             }
+            if reader != "pwe-exact-basis-v1" {
             schema_check(
                 executor,
                 text(config, "source_path")?,
@@ -8512,6 +8637,7 @@ fn validate_ground(
                 deadline,
                 cancelled,
             )?;
+            }
         }
         if reader == "structured-reference-value-v1" {
             let constraint = field(&profile, "object_reference_set")?;
@@ -8738,6 +8864,13 @@ fn validate_ground(
                 }
             }
         }
+    }
+    if reader == "pwe-exact-basis-v1" {
+        let observed = pwe.as_deref_mut().ok_or(SourceCommandError::Unsupported("PWE source Session absent"))?
+            .preserve(ctx, cut, retained.as_deref_mut().ok_or(
+                SourceCommandError::Unsupported("PWE complete retained owner absent"))?,
+                claim, executor, deadline, cancelled)?;
+        return Ok(Some(("pwe_accounts", observed)));
     }
     Ok(retained_profile_binding)
 }
