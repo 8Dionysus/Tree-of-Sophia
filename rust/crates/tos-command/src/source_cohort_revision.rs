@@ -803,50 +803,62 @@ impl SourceRevisionIdentityClosure {
         // verifier's per-candidate to_hex allocation inside the predicate scan.
         debit(budget, 64 + size_of::<String>(), 32 + 64 + 64, deadline, cancelled)?;
         let definition = session.selection.cohort.definition.to_hex();
-        for (token, owner) in &self.owners {
+        // The ACTUAL session has one producer of unique Generation reads:
+        // record_predicate inserts through its private BTreeSet before push.
+        // Its initial cohort Generation is Range. Thus no selected unique
+        // (scope,token) can be counted twice; scan this operation's reads ONCE,
+        // rather than rescanning them for each of the five predicates/token.
+        let mut matched = 0usize;
+        for read in &session.reads.reads {
             debit(budget, 0, 1, deadline, cancelled)?;
-            for kind in PG_AGENT_INDEX_KINDS {
-                let key_data = add(kind.len(), token.len())?;
-                let key_comparison = mul(
-                    comparisons(self.generations.len())?,
-                    mul(2, add(key_data, 2 * size_of::<usize>())?)?,
-                )?;
-                // Two owned tuple keys are required by this maintained map's
-                // get API. Reserve both actual copies before construction.
-                debit(budget, add(key_data, 2 * size_of::<String>())?,
-                      add(key_data, key_comparison)?, deadline, cancelled)?;
-                let key = (kind.to_owned(), token.clone());
-                let generation = self.generations.get(&key).ok_or(DurableError::Conflict(
-                    "source identity closure generation is absent",
-                ))?;
-                let mut present = false;
-                for read in &session.reads.reads {
-                    debit(budget, 0, 1, deadline, cancelled)?;
-                    if let PredicateRead::Generation { predicate, observed_generation } = read {
-                        let expected = add(add(OWNER.len(), kind.len())?,
-                                           add(token.len(), definition.len())?)?;
-                        let actual = add(add(predicate.owner.len(), predicate.scope.len())?,
-                                         add(predicate.token.len(), predicate.definition_version.len())?)?;
-                        debit(budget, 0, add(add(expected, actual)?, 2 * size_of::<u64>())?,
-                              deadline, cancelled)?;
-                        if predicate.kind == PredicateKind::Unique
-                            && predicate.owner == OWNER
-                            && predicate.scope == kind
-                            && predicate.token == *token
-                            && predicate.definition_version == definition
-                            && observed_generation == generation
-                        {
-                            present = true;
-                            break;
-                        }
-                    }
-                }
-                if !present {
-                    return Err(DurableError::Conflict(
-                        "source identity closure predicate is absent from readset",
-                    ));
-                }
+            let PredicateRead::Generation { predicate, observed_generation } = read else {
+                continue;
+            };
+            let scope_work = PG_AGENT_INDEX_KINDS.iter().try_fold(0usize, |n, kind| {
+                add(n, add(kind.len(), predicate.scope.len())?)
+            })?;
+            debit(budget, 0, add(add(OWNER.len(), predicate.owner.len())?, scope_work)?,
+                  deadline, cancelled)?;
+            if predicate.kind != PredicateKind::Unique
+                || predicate.owner != OWNER
+                || !PG_AGENT_INDEX_KINDS.contains(&predicate.scope.as_str())
+            {
+                continue;
             }
+            let token_work = mul(comparisons(self.owners.len())?,
+                                 mul(2, add(predicate.token.len(), size_of::<usize>())?)?)?;
+            debit(budget, 0, token_work, deadline, cancelled)?;
+            if !self.owners.contains_key(predicate.token.as_str()) {
+                continue;
+            }
+            let key_data = add(predicate.scope.len(), predicate.token.len())?;
+            let key_comparison = mul(
+                comparisons(self.generations.len())?,
+                mul(2, add(key_data, 2 * size_of::<usize>())?)?,
+            )?;
+            debit(budget, add(key_data, 2 * size_of::<String>())?,
+                  add(key_data, key_comparison)?, deadline, cancelled)?;
+            let key = (predicate.scope.clone(), predicate.token.clone());
+            let generation = self.generations.get(&key).ok_or(DurableError::Conflict(
+                "source identity closure generation is absent",
+            ))?;
+            debit(budget, 0,
+                  add(add(predicate.definition_version.len(), definition.len())?,
+                      2 * size_of::<u64>())?, deadline, cancelled)?;
+            if predicate.definition_version != definition || observed_generation != generation {
+                return Err(DurableError::Conflict(
+                    "source identity closure predicate is absent from readset",
+                ));
+            }
+            matched = add(matched, 1)?;
+        }
+        if matched != self.generations.len() {
+            return Err(DurableError::Conflict(
+                "source identity closure predicate is absent from readset",
+            ));
+        }
+        for owner in self.owners.values() {
+            debit(budget, 0, 1, deadline, cancelled)?;
             if let Some((_, path)) = owner {
                 let point_work = mul(
                     comparisons(session.observations.len())?,
