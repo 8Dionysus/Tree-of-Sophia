@@ -8,7 +8,7 @@ use tos_compiler::pwe_native::{Error, Session};
 use tos_foundation::{RelativePath, SourceRevision};
 use tos_source_store::{
     CorpusCutReader, CorpusDescriptor, OriginalReadAdmission, OriginalReadResult,
-    OriginalReadStage, RetiredSourceMemberV1, SourceMemberV1, StoreError,
+    OriginalReadKind, OriginalReadStage, RetiredSourceMemberV1, SourceMemberV1, StoreError,
 };
 
 /// The caller retains its actual selected cut and original payer throughout.
@@ -146,12 +146,44 @@ impl<'loan, 'session, 'budget, 'cancel> OriginalImmutableReads<'loan, 'session, 
         self.prefix(0, 32, 0)?;
         match stage {
             Bootstrap {
-                entries, key_bytes, ..
-            }
-            | Lookup { entries, key_bytes } => {
-                // At most entries comparisons; a differing path comparison
-                // inspects at most this query's bytes plus one boundary.
-                self.prefix(times(entries, plus(key_bytes, 1)?)?, 1, 0)
+                kind,
+                entries,
+                key_bytes,
+            } => match kind {
+                OriginalReadKind::Member | OriginalReadKind::Retirement => {
+                    // The outer cut search compares actual revision digests,
+                    // including retirement's key_bytes=0, before any path lookup.
+                    self.prefix(
+                        times(entries, 2 * size_of::<SourceRevision>())?,
+                        entries,
+                        0,
+                    )
+                }
+                OriginalReadKind::SelectedObject => {
+                    // check_snapshot's Arc identity, member lookup and complete
+                    // descriptor revision/digest/size/mode comparisons.
+                    let scalar = 2 * size_of::<usize>()
+                        + 4 * size_of::<SourceRevision>()
+                        + 2 * size_of::<u64>()
+                        + 2 * size_of::<u32>();
+                    let keys = times(entries, times(2, plus(key_bytes, 1)?)?)?;
+                    self.prefix(plus(scalar, keys)?, plus(entries, 5)?, 0)
+                }
+                OriginalReadKind::RetirementObject => {
+                    // This inner route only checks the held snapshot's Arc;
+                    // it does not inspect every selected member or path.
+                    self.prefix(2 * size_of::<usize>(), 1, 0)
+                }
+            },
+            Lookup { entries, key_bytes } => {
+                // Both operands can contribute the query-length common prefix
+                // and the first mismatching boundary. This is a complete upper
+                // count, not a selected top-N subset of the member map.
+                self.prefix(
+                    times(entries, times(2, plus(key_bytes, 1)?)?)?,
+                    entries,
+                    0,
+                )
             }
             Descriptor { path_bytes } => self.prefix(path_bytes, 1, path_bytes),
             Open { .. } => {
@@ -187,9 +219,18 @@ impl<'loan, 'session, 'budget, 'cancel> OriginalImmutableReads<'loan, 'session, 
                 path_bytes,
                 identity_entries,
             } => self.prefix(
-                plus(times(identity_entries, plus(path_bytes, 1)?)?, path_bytes)?,
+                plus(
+                    times(identity_entries, times(2, plus(path_bytes, 1)?)?)?,
+                    path_bytes,
+                )?,
                 4,
-                plus(path_bytes, size_of::<Vec<String>>())?,
+                plus(
+                    path_bytes,
+                    plus(
+                        size_of::<SourceMemberV1>(),
+                        size_of::<OriginalReadResult<SourceMemberV1, SourceCommandError>>(),
+                    )?,
+                )?,
             ),
             ReturnId {
                 id_bytes,
@@ -205,7 +246,13 @@ impl<'loan, 'session, 'budget, 'cancel> OriginalImmutableReads<'loan, 'session, 
             } => {
                 let bytes = plus(path_bytes, event_ref_bytes)?;
                 // Source and separate event RawVecs remain paid/live here.
-                self.prefix(bytes, 2, bytes)
+                // Pay a result header for EVERY return; the constructor's
+                // fixed call workspace is not credit for arbitrary later calls.
+                let carriers = plus(
+                    size_of::<RetiredSourceMemberV1>(),
+                    size_of::<OriginalReadResult<RetiredSourceMemberV1, SourceCommandError>>(),
+                )?;
+                self.prefix(bytes, 2, plus(bytes, carriers)?)
             }
         }
     }
