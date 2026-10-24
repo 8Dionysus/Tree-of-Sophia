@@ -317,7 +317,9 @@
         },
         "locator": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^json-pointer:/",
+          "description": "Registered v1 adapter: RFC6901 field of the actual exact selected JSON record body. Other source representation locators need an explicit source-owner adapter."
         }
       }
     }

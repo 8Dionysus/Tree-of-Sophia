@@ -2477,6 +2477,15 @@ mod manual_authoring {
         let reference = get(value, "record", work)?;
         let locator = text(get(value, "locator", work)?, work)?;
         let selected = selected(reference, context, work)?;
+        work.tick(locator.len())?;
+        let pointer = locator.strip_prefix("json-pointer:")
+            .filter(|pointer| pointer.starts_with('/'))
+            .ok_or_else(|| super::bad("manual-authoring.locator-adapter-not-installed"))?;
+        // This first registered adapter reads an actual field of the exact
+        // selected JSON record. Matching two submitted free strings is not
+        // evidence that their locator exists. Other representation locators
+        // require their own source-owner adapter; no guessed page/cell fallback.
+        pointer_at(&selected.body, pointer, work)?;
         for evidence in items(get(assessment, "evidence", work)?, false, work)? {
             work.tick(1)?;
             if same_reference(reference, get(evidence, "record", work)?, work)?
@@ -2513,7 +2522,12 @@ mod manual_authoring {
         if pointer != "/object" && !pointer.starts_with("/object/") {
             return invalid("manual-authoring.question-must-be-claim-local");
         }
-        let mut value = claim;
+        pointer_at(claim, pointer, work)
+    }
+    fn pointer_at<'a>(root: &'a Value, pointer: &str, work: &mut Work<'_>) -> Result<&'a Value> {
+        work.tick(pointer.len())?;
+        if !pointer.starts_with('/') { return invalid("manual-authoring.value-pointer-root"); }
+        let mut value = root;
         for segment in pointer.split('/').skip(1) {
             work.tick(1)?;
             value = match value {
@@ -2721,7 +2735,7 @@ mod manual_authoring {
             }, work).unwrap()
         }
         fn cite(record: &Record) -> Value {
-            json!({"record":record.reference,"locator":"fixture:exact-field"})
+            json!({"record":record.reference,"locator":"json-pointer:/evidence"})
         }
         #[test]
         fn reason_specific_basis_refuses_foreign_empty_pending_and_spent_prefixes() {
@@ -2737,13 +2751,13 @@ mod manual_authoring {
                 bytes: 0,
                 work: 0,
             };
-            let metadata = record("fixture:work", json!({"record_type":"work"}), &mut work);
-            let scope = record("fixture:extent", json!({"scope":"bounded source field"}), &mut work);
-            let criterion = record("fixture:criterion", json!({"criterion":"source-owned"}), &mut work);
+            let metadata = record("fixture:work", json!({"record_type":"work","evidence":"Actual source field."}), &mut work);
+            let scope = record("fixture:extent", json!({"scope":"bounded source field","evidence":"Declared extent."}), &mut work);
+            let criterion = record("fixture:criterion", json!({"criterion":"source-owned","evidence":"Comparison criterion."}), &mut work);
             let a = record("fixture:a", json!({"claim_id":"fixture:a","claim_version":1,"subject_ref":"fixture:work",
-                "predicate":"reported_date","object":{"date":"A"}}), &mut work);
+                "predicate":"reported_date","object":{"date":"A"},"evidence":"Source reports A."}), &mut work);
             let b = record("fixture:b", json!({"claim_id":"fixture:b","claim_version":1,"subject_ref":"fixture:work",
-                "predicate":"reported_date","object":{"date":"B"}}), &mut work);
+                "predicate":"reported_date","object":{"date":"B"},"evidence":"Source reports B."}), &mut work);
             let mut body = json!({"claim_id":"fixture:target","claim_version":1,"subject_ref":"fixture:work",
                 "predicate":"reported_date","object":{"date":"source reports no date"},
                 "epistemic_status":"uncertain","qualifiers":{"manual_authoring":{
@@ -2777,10 +2791,12 @@ mod manual_authoring {
             context.subject = record("fixture:target", body.clone(), &mut work);
             assert!(check(&context, &evidence, &mut work).is_err());
             body["qualifiers"]["manual_authoring"]["grounds"]["reason"] = json!("scoped-information-absence");
-            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] = json!("formally nonempty but different field");
+            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] = json!("json-pointer:/absent");
             context.subject = record("fixture:target", body.clone(), &mut work);
-            assert!(check(&context, &evidence, &mut work).is_err());
-            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] = json!("fixture:exact-field");
+            let mut irrelevant = evidence.clone();
+            irrelevant["evidence"][0]["locator"] = json!("json-pointer:/absent");
+            assert!(check(&context, &irrelevant, &mut work).is_err());
+            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] = json!("json-pointer:/evidence");
             let grounds = &mut body["qualifiers"]["manual_authoring"]["grounds"];
             grounds["reason"] = json!("source-contradiction");
             grounds["details"] = json!({"criterion":cite(&context.required[2]),
