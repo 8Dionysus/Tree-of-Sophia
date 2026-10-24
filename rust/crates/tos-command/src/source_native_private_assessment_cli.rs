@@ -1859,6 +1859,15 @@ where
         &AtomicBool,
     ) -> SourceCommandResult<AssessmentMechanicsReport>,
 {
+    // The generic assessment lane has no held PWE exact-basis host. Shape,
+    // source presence and a general review must never stand in for mandatory
+    // PWE role/dependency/application dispatch. Actual PWE hosts assess only
+    // through their private NativeConsumerOwner after those checks.
+    if requires_held_pwe_dispatch(&plan.current, budget)? {
+        return Err(SourceCommandError::Unsupported(
+            "PWE source Claim requires its held exact-basis consumer dispatch",
+        ));
+    }
     let config = plan.config;
     let request = plan.request;
     let version = plan.version;
@@ -3150,6 +3159,60 @@ pub(crate) fn scope_context(scope: &JsonValue) -> SourceCommandResult<JsonValue>
 
 fn evaluation_limits(budget: &OperationBudget) -> SourceCommandResult<AssessmentLimits> {
     budget.limits()
+}
+
+/// Exact registered PWE account families cannot fall through to the generic
+/// assessment engine while the protected native consumer is not installed.
+/// This is a refusal gate, never a report/authority/completeness constructor.
+fn requires_held_pwe_dispatch(
+    current: &JsonValue,
+    budget: &mut OperationBudget,
+) -> SourceCommandResult<bool> {
+    fn get<'v>(
+        value: &'v JsonValue,
+        key: &str,
+        budget: &mut OperationBudget,
+    ) -> SourceCommandResult<Option<&'v JsonValue>> {
+        budget.charge_work(1)?;
+        let Some(fields) = value.as_object() else {
+            return Ok(None);
+        };
+        budget.charge_work(fields.len().checked_add(1).ok_or(
+            SourceCommandError::Unsupported("PWE dispatch field iteration overflow"),
+        )?)?;
+        for (name, value) in fields {
+            if let Some(name) = name.as_str() {
+                budget.charge_work(name.len().checked_add(key.len()).ok_or(
+                    SourceCommandError::Unsupported("PWE dispatch field comparison overflow"),
+                )?)?;
+                if name == key {
+                    return Ok(Some(value));
+                }
+            }
+        }
+        Ok(None)
+    }
+    let payload = get(current, "payload", budget)?.unwrap_or(current);
+    // These exact constants are the three declared source families in the
+    // maintained pwe-bindings.v1.json, not inferred from a similar object body.
+    for (field, expected) in [
+        ("schema_version", "tos_pwe_name_assignment_claim_v1"),
+        ("schema_version", "tos_pwe_responsibility_account_claim_v1"),
+        ("schema_version", "tos_pwe_identity_correspondence_claim_v1"),
+        ("predicate", "pwe_name_assignment"),
+        ("predicate", "pwe_responsibility_account"),
+        ("predicate", "pwe_identity_correspondence"),
+    ] {
+        if let Some(actual) = get(payload, field, budget)?.and_then(JsonValue::as_str) {
+            budget.charge_work(actual.len().checked_add(expected.len()).ok_or(
+                SourceCommandError::Unsupported("PWE dispatch family comparison overflow"),
+            )?)?;
+            if actual == expected {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }
 
 fn evaluate_selected_subject_with_executor<W, F>(
