@@ -540,12 +540,22 @@ mod assessment_payer_tests {
     fn dependency_source_callback_borrows_same_session_and_candidate_sto_mapping() {
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
-        let mut original = OperationBudget::new(&serde_json::json!({"budgets": {
-            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-        }}), deadline).unwrap();
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets": {
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
         let selected = Limits {
-            max_input_bytes:128, max_nodes:16, max_work:64, max_refs:8,
-            max_depth:8, max_items:8, max_state_bytes:128, deadline,
+            max_input_bytes: 128,
+            max_nodes: 16,
+            max_work: 64,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 128,
+            deadline,
         };
         with_original_pwe_session(&mut original, selected, &cancelled, |payer, session| {
             let before = payer.remaining()?;
@@ -561,7 +571,8 @@ mod assessment_payer_tests {
             assert_eq!(after.bytes, before.bytes - 18);
             assert_eq!(after.work, before.work - 2); // fixed pair check, not Session work twice
             Ok(())
-        }).unwrap();
+        })
+        .unwrap();
     }
 
     #[test]
@@ -575,52 +586,87 @@ mod assessment_payer_tests {
             let mut original = OperationBudget::new(&numeric, deadline).unwrap();
             let mut foreign = OperationBudget::new(&numeric, deadline).unwrap();
             let selected = Limits {
-                max_input_bytes:128, max_nodes:16, max_work:64, max_refs:8,
-                max_depth:8, max_items:8, max_state_bytes:128, deadline,
+                max_input_bytes: 128,
+                max_nodes: 16,
+                max_work: 64,
+                max_refs: 8,
+                max_depth: 8,
+                max_items: 8,
+                max_state_bytes: 128,
+                deadline,
             };
-            let result = with_original_pwe_session(&mut original, selected, &cancelled, |payer, session| {
-                if lane == 0 {
-                    // Two independent numeric operations are deliberately mismatched.
-                    return with_original_pwe_session(&mut foreign, selected, &cancelled, |other, _| {
-                        with_assessment_source_session(session, other, |_| {
-                            panic!("foreign Session/payer callback must not run")
-                        })
-                    });
-                }
-                with_assessment_source_session(session, payer, |same| {
-                    payer.charge_sto_source_measures(same, 2, 3, 4, 5, 6)?;
-                    if lane >= 3 {
-                        payer.with_operation(|operation| {
-                            let work = operation.limits()?.max_work;
-                            operation.lower_remaining(1, work)
-                        })?;
-                        let error = payer.charge_sto_source_measures(same, 2, 0, 0, 0, 0)
-                            .unwrap_err();
-                        if lane == 4 { drop(error); return Ok(()); }
-                        return Err(error);
+            let result =
+                with_original_pwe_session(&mut original, selected, &cancelled, |payer, session| {
+                    if lane == 0 {
+                        // Two independent numeric operations are deliberately mismatched.
+                        return with_original_pwe_session(
+                            &mut foreign,
+                            selected,
+                            &cancelled,
+                            |other, _| {
+                                with_assessment_source_session(session, other, |_| {
+                                    panic!("foreign Session/payer callback must not run")
+                                })
+                            },
+                        );
                     }
-                    cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
-                    if lane == 1 { Ok(()) } else {
-                        Err(SourceCommandError::Denied("dependency test original body refusal"))
-                    }
-                })
-            });
+                    with_assessment_source_session(session, payer, |same| {
+                        payer.charge_sto_source_measures(same, 2, 3, 4, 5, 6)?;
+                        if lane >= 3 {
+                            payer.with_operation(|operation| {
+                                let work = operation.limits()?.max_work;
+                                operation.lower_remaining(1, work)
+                            })?;
+                            let error = payer
+                                .charge_sto_source_measures(same, 2, 0, 0, 0, 0)
+                                .unwrap_err();
+                            if lane == 4 {
+                                drop(error);
+                                return Ok(());
+                            }
+                            return Err(error);
+                        }
+                        cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+                        if lane == 1 {
+                            Ok(())
+                        } else {
+                            Err(SourceCommandError::Denied(
+                                "dependency test original body refusal",
+                            ))
+                        }
+                    })
+                });
             match lane {
-                0 => assert!(matches!(result, Err(SourceCommandError::Conflict(
-                    "PWE dependency Session uses another original Assessment payer"
-                )))),
-                1 => assert!(matches!(result, Err(SourceCommandError::Denied(
-                    "PWE Assessment Session cancelled"
-                )))),
-                2 => assert!(matches!(result, Err(SourceCommandError::Denied(
-                    "dependency test original body refusal"
-                )))),
-                3 => assert!(matches!(result, Err(SourceCommandError::Invalid(
-                    "assessment cumulative byte budget"
-                )))),
-                _ => assert!(matches!(result, Err(SourceCommandError::Unsupported(
-                    "original Assessment payer resource refusal persists"
-                )))),
+                0 => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Conflict(
+                        "PWE dependency Session uses another original Assessment payer"
+                    ))
+                )),
+                1 => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Denied(
+                        "PWE Assessment Session cancelled"
+                    ))
+                )),
+                2 => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Denied(
+                        "dependency test original body refusal"
+                    ))
+                )),
+                3 => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Invalid(
+                        "assessment cumulative byte budget"
+                    ))
+                )),
+                _ => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Unsupported(
+                        "original Assessment payer resource refusal persists"
+                    ))
+                )),
             }
         }
     }

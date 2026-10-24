@@ -111,11 +111,9 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
         // operands before construction; it ends before source Session hooks.
         let actual = payer
             .with_operation(|budget| {
-                session.selection().identity_with_data_admission(
-                    budget,
-                    deadline,
-                    cancelled,
-                )
+                session
+                    .selection()
+                    .identity_with_data_admission(budget, deadline, cancelled)
             })
             .map_err(crate::DurableError::Source)?;
         if actual != self.identity {

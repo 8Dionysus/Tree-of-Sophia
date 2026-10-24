@@ -118,8 +118,7 @@ impl OriginalAssessmentPayer<'_, '_> {
         // Also reject an already-sticky original resource refusal, including
         // an event with all zero measures. This short loan ends before hooks.
         self.with_operation(|_| Ok(()))?;
-        let requested = usize::try_from(requested)
-            .map_err(|_| self.error(Error::ResourceLimit))?;
+        let requested = usize::try_from(requested).map_err(|_| self.error(Error::ResourceLimit))?;
         let retained = new_owned
             .checked_add(workspace)
             .ok_or_else(|| self.error(Error::ResourceLimit))?;
@@ -165,7 +164,9 @@ impl OriginalAssessmentPayer<'_, '_> {
             .source_allowance()
             .map_err(|error| crate::DurableError::Source(self.error(error)))?;
         if remaining.work == 0 || remaining.input_bytes == 0 || remaining.state_bytes == 0 {
-            return Err(crate::DurableError::Source(self.error(Error::ResourceLimit)));
+            return Err(crate::DurableError::Source(
+                self.error(Error::ResourceLimit),
+            ));
         }
         // End this original operation loan before any Session source hook.
         // The owner identity hashes domain/job bytes; it is not a free copy.
@@ -490,7 +491,8 @@ mod tests {
                     "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
                 }}),
                 deadline,
-            ).unwrap();
+            )
+            .unwrap();
             let work_before = original.work_remaining;
             let bytes_at_callback = Cell::new(0);
             let limits = Limits {
@@ -503,8 +505,8 @@ mod tests {
                 max_state_bytes: 256,
                 deadline,
             };
-            let result: SourceCommandResult<()> = with_original_pwe_session(
-                &mut original, limits, &cancel, |payer, session| {
+            let result: SourceCommandResult<()> =
+                with_original_pwe_session(&mut original, limits, &cancel, |payer, session| {
                     bytes_at_callback.set(payer.remaining()?.bytes);
                     payer.charge_sto_source_measures(session, 7, 11, 13, 17, 19)?;
                     assert_eq!(session.charges(), (7, 0, 43, 0, 24));
@@ -519,12 +521,17 @@ mod tests {
                         .charge_sto_source_measures(session, 0, 5, 0, 20, 0)
                         .unwrap_err();
                     assert_eq!(session.charges(), (7, 0, 45, 0, 181));
-                    assert!(matches!(error, SourceCommandError::Unsupported(
-                        "PWE Assessment Session exhausted"
-                    )));
-                    if swallow { drop(error); Ok(()) } else { Err(error) }
-                },
-            );
+                    assert!(matches!(
+                        error,
+                        SourceCommandError::Unsupported("PWE Assessment Session exhausted")
+                    ));
+                    if swallow {
+                        drop(error);
+                        Ok(())
+                    } else {
+                        Err(error)
+                    }
+                });
             assert!(matches!(result, Err(SourceCommandError::Unsupported(_))));
             assert_eq!(original.work_remaining, work_before - 64);
             // Same original byte payer, no work proxy, replacement or refill.

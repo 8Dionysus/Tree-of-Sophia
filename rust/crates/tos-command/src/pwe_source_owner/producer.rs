@@ -70,7 +70,9 @@ impl NativePreservedCandidate {
         profile: &ResolvedDependency,
         output: &ResolvedDependency,
     ) -> SourceCommandResult<Self> {
-        Self::check_with_original_payer(resolver, frames, session, payer, envelope, limits, profile, output)
+        Self::check_with_original_payer(
+            resolver, frames, session, payer, envelope, limits, profile, output,
+        )
     }
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn check_claim<R: ExactDependencyReader>(
@@ -83,7 +85,9 @@ impl NativePreservedCandidate {
         profile: &ResolvedDependency,
         output: &ResolvedDependency,
     ) -> SourceCommandResult<Self> {
-        Self::check_with_original_payer(resolver, frames, session, payer, envelope, limits, profile, output)
+        Self::check_with_original_payer(
+            resolver, frames, session, payer, envelope, limits, profile, output,
+        )
     }
     #[allow(clippy::too_many_arguments)]
     fn check_with_original_payer<R: ExactDependencyReader>(
@@ -178,7 +182,9 @@ impl NativePreservedCandidate {
             .ok_or(invalid("PWE projected items"))?;
         for item in projected {
             super::owner::host_session_result(
-                session.prepare(item), payer, invalid("PWE individual preserved value"),
+                session.prepare(item),
+                payer,
+                invalid("PWE individual preserved value"),
             )?;
         }
         frames.verify()?;
