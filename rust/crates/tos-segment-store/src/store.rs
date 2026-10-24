@@ -6747,7 +6747,14 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(actual, expected);
+        drop(admission);
         assert!(!requests.is_empty());
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            if request != 0 {
+                requests.push(request);
+            }
+            Ok(())
+        };
         let wrong = store
             .read_selected_fenced_admitted(
                 prepare,
