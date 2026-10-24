@@ -6,6 +6,7 @@ use crate::source_command::{SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::active;
 use std::{cell::RefCell, mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_compiler::pwe_native::{Error, Limits, Session, SourceAdmission};
+use tos_validation::assessment::AssessmentLimits;
 
 pub(crate) struct OriginalAssessmentPayer<'budget, 'cancel> {
     operation: RefCell<&'budget mut OperationBudget>,
@@ -65,6 +66,26 @@ pub(crate) fn with_original_pwe_session<T>(
 }
 
 impl OriginalAssessmentPayer<'_, '_> {
+    /// Native frame/codec work outside the pure Session has its own
+    /// prospective debit on the same operation. It does not spend a new Claim
+    /// allowance or borrow work back from the prepaid pure Session envelope.
+    pub(crate) fn inspect(&self, bytes: usize, work: usize) -> SourceCommandResult<()> {
+        self.with_operation(|operation| {
+            operation.charge_work(work)?;
+            operation.charge_bytes(bytes)
+        })
+    }
+
+    /// Retained native frame/codec holders consume the original operation's
+    /// cumulative byte currency. This is not a physical allocator/RSS theorem.
+    pub(crate) fn reserve(&self, bytes: usize) -> SourceCommandResult<()> {
+        self.with_operation(|operation| operation.charge_bytes(bytes))
+    }
+
+    pub(crate) fn remaining(&self) -> SourceCommandResult<AssessmentLimits> {
+        self.with_operation(|operation| operation.limits())
+    }
+
     /// Short exclusive loan of the same original operation, for the maintained
     /// evaluator/worker. A Session callback cannot reenter while this loan is
     /// active; borrow refusal is explicit, never a fresh fallback ledger.
