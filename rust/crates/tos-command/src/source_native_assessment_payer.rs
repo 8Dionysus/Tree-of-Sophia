@@ -40,7 +40,9 @@ pub(crate) fn with_original_pwe_session<T>(
         .checked_add(size_of::<Session<'_>>())
         .and_then(|n| n.checked_add(size_of::<SourceCommandResult<T>>()))
         .and_then(|n| n.checked_add(size_of::<Error>()))
-        .ok_or(SourceCommandError::Unsupported("PWE original payer carriers"))?;
+        .ok_or(SourceCommandError::Unsupported(
+            "PWE original payer carriers",
+        ))?;
     operation.charge_bytes(carriers)?;
     operation.charge_work(limits.max_work)?;
     let deadline = operation.deadline;
@@ -50,8 +52,8 @@ pub(crate) fn with_original_pwe_session<T>(
         cancelled,
         refusal: RefCell::new(None),
     };
-    let mut session = Session::new_source(limits, cancelled, &payer)
-        .map_err(|error| payer.error(error))?;
+    let mut session =
+        Session::new_source(limits, cancelled, &payer).map_err(|error| payer.error(error))?;
     let result = run(&payer, &mut session);
     // Check on Err too. This is a resource cutoff, not the PG owner's freshness
     // fence; the actual read epoch must additionally perform its own exit.
@@ -148,18 +150,21 @@ mod tests {
             max_state_bytes: 128,
             deadline,
         };
-        let result: SourceCommandResult<()> = with_original_pwe_session(
-            &mut original,
-            limits,
-            &cancel,
-            |payer, session| {
+        let result: SourceCommandResult<()> =
+            with_original_pwe_session(&mut original, limits, &cancel, |payer, session| {
                 assert!(session.has_source_payer(payer));
-                session.admit_source_prefix(7, 2).map_err(|e| payer.error(e))?;
-                session.retain_source_state(11).map_err(|e| payer.error(e))?;
+                session
+                    .admit_source_prefix(7, 2)
+                    .map_err(|e| payer.error(e))?;
+                session
+                    .retain_source_state(11)
+                    .map_err(|e| payer.error(e))?;
                 Err(SourceCommandError::Denied("body refused"))
-            },
-        );
-        assert!(matches!(result, Err(SourceCommandError::Denied("body refused"))));
+            });
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Denied("body refused"))
+        ));
         assert_eq!(original.work_remaining, before_work - limits.max_work);
         assert!(original.bytes_remaining < before_bytes - 18);
         // An impossible profile refuses against the ACTUAL remainder; it does
@@ -167,7 +172,10 @@ mod tests {
         let spent_work = original.work_remaining;
         let refused: SourceCommandResult<()> = with_original_pwe_session(
             &mut original,
-            Limits { max_work: before_work, ..limits },
+            Limits {
+                max_work: before_work,
+                ..limits
+            },
             &cancel,
             |_, _| panic!("unfunded source Session must not start"),
         );

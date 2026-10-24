@@ -969,9 +969,8 @@ impl DurablePgCoordinator {
         // operation refuses. Preserve the first error and every spent prefix;
         // only a successful body AND fence may expose the finalized readset.
         let result = operation(&mut session);
-        let result = finish_source_revision_epoch(result, || {
-            session.verify_fresh(deadline, cancelled)
-        })?;
+        let result =
+            finish_source_revision_epoch(result, || session.verify_fresh(deadline, cancelled))?;
         let readset = SourceRevisionReadSet {
             selection: session.selection.clone(),
             reads: session.reads,
@@ -3975,13 +3974,11 @@ mod epoch_exit_tests {
     #[test]
     fn refused_body_attempts_exit_and_keeps_first_error() {
         let mut attempts = 0;
-        let result: DurableResult<()> = finish_source_revision_epoch(
-            Err(DurableError::Refused("body refused")),
-            || {
+        let result: DurableResult<()> =
+            finish_source_revision_epoch(Err(DurableError::Refused("body refused")), || {
                 attempts += 1;
                 Err(DurableError::Conflict("epoch changed"))
-            },
-        );
+            });
         assert_eq!(attempts, 1);
         assert!(matches!(result, Err(DurableError::Refused("body refused"))));
 
@@ -3990,7 +3987,10 @@ mod epoch_exit_tests {
             Err(DurableError::Conflict("epoch changed"))
         });
         assert_eq!(attempts, 2);
-        assert!(matches!(result, Err(DurableError::Conflict("epoch changed"))));
+        assert!(matches!(
+            result,
+            Err(DurableError::Conflict("epoch changed"))
+        ));
 
         assert_eq!(finish_source_revision_epoch(Ok(7), || Ok(())).unwrap(), 7);
     }

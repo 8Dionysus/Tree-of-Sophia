@@ -166,8 +166,7 @@ impl<'plan, 'data> AssessmentEvaluationTarget<'plan, 'data> {
     }
 
     pub(crate) fn scope(&self) -> &'plan JsonValue {
-        self.parent
-            .map_or(&self.plan.scope, |parent| &parent.scope)
+        self.parent.map_or(&self.plan.scope, |parent| &parent.scope)
     }
 
     pub(crate) fn required_sources(&self) -> &'plan [JsonValue] {
