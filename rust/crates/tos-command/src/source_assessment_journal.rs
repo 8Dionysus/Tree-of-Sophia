@@ -419,6 +419,29 @@ impl ProtectedAssessmentPgGrant {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
+        self.verify_current_using_read_admission(deadline, cancelled, None)
+    }
+
+    /// Recheck the SAME selected protected grant through the existing
+    /// same-FD prospective reader. This issues no selection or permission and
+    /// never creates a resource allowance. The concrete caller must bootstrap
+    /// its original payer, callback and outer path/metadata/error holders
+    /// before entering; this port alone is not complete native funding.
+    pub(crate) fn verify_current_with_read_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn crate::source_creation_store::CreationReadAdmission,
+    ) -> SourceCommandResult<()> {
+        self.verify_current_using_read_admission(deadline, cancelled, Some(admission))
+    }
+
+    fn verify_current_using_read_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: Option<&mut dyn crate::source_creation_store::CreationReadAdmission>,
+    ) -> SourceCommandResult<()> {
         active(deadline, cancelled)?;
         if rustix::process::getuid().as_raw() != self.uid
             || rustix::process::geteuid().as_raw() != self.uid
@@ -431,7 +454,17 @@ impl ProtectedAssessmentPgGrant {
                 .map_err(|_| SourceCommandError::Conflict("assessment PG grant unavailable"))?;
         protected_private(&current, self.uid, false)?;
         protected_private(&self.configuration_file, self.uid, false)?;
-        if raw(&mut current, 8_388_608, deadline, cancelled)? != self.configuration_raw
+        // The actual already-opened protected descriptor is passed into the
+        // existing reader. Admission precedes each full requested read on
+        // this descriptor, including EOF/Err/short-read prefixes, and each
+        // Begin/Retain event. No pathname-only or cached-length substitute.
+        if crate::source_creation_store::raw_with_length_limit_and_admission(
+            &mut current,
+            ReadLength::Legacy(8_388_608),
+            deadline,
+            cancelled,
+            admission,
+        )? != self.configuration_raw
             || inode(
                 &current.metadata().map_err(|_| {
                     SourceCommandError::Invalid("assessment PG current grant identity")
@@ -3626,5 +3659,125 @@ mod private_history_worker_exit_tests {
             )))
         ));
         assert_eq!(worker.exits, 2);
+    }
+}
+
+
+#[cfg(test)]
+mod protected_pg_grant_read_admission_tests {
+    use super::*;
+    use crate::source_creation_store::{CreationReadAdmission, CreationReadStage};
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    // Actual protected-file identity/forwarding fixture only. These private
+    // test operands cannot issue a production grant or accept an Assessment.
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "tos-pg-grant-admission-{}-{stamp}", std::process::id(),
+            ));
+            std::fs::DirBuilder::new().mode(0o700).create(&path).unwrap();
+            Self(path)
+        }
+        fn selected(&self) -> ProtectedAssessmentPgGrant {
+            use std::io::Write;
+            let path = self.0.join("grant.json");
+            let raw = b"{}";
+            let mut file = std::fs::OpenOptions::new().read(true).write(true)
+                .create_new(true).mode(0o600).open(&path).unwrap();
+            file.write_all(raw).unwrap();
+            let parent = File::open(&self.0).unwrap();
+            ProtectedAssessmentPgGrant {
+                configuration_path: path,
+                configuration_raw: raw.to_vec(),
+                configuration: cmd::parse(raw).unwrap(),
+                configuration_identity: inode(&file.metadata().unwrap()),
+                configuration_file: file,
+                configuration_parent_path: self.0.clone(),
+                configuration_parent_identity: inode(&parent.metadata().unwrap()),
+                configuration_parent: parent,
+                uid: rustix::process::getuid().as_raw(),
+            }
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+    }
+    // Chronological spy/refusal, not a payer, allowance or successful issuer.
+    struct Trace {
+        inode: (u64, u64),
+        events: Vec<&'static str>,
+        requested: usize,
+        refuse_read: bool,
+    }
+    impl CreationReadAdmission for Trace {
+        fn before_creation_read(
+            &mut self, descriptor: &File, stage: CreationReadStage,
+        ) -> SourceCommandResult<()> {
+            assert_eq!(inode(&descriptor.metadata().unwrap()), self.inode);
+            match stage {
+                CreationReadStage::Begin { payload_cap, scratch_bytes } => {
+                    assert_eq!(payload_cap, 8_388_608);
+                    assert_eq!(scratch_bytes, 65_536);
+                    self.events.push("begin");
+                }
+                CreationReadStage::Read { requested_bytes } => {
+                    assert_eq!(requested_bytes, 65_536);
+                    self.events.push("read");
+                    self.requested += requested_bytes;
+                    if self.refuse_read {
+                        return Err(SourceCommandError::Denied("actual grant read fixture refusal"));
+                    }
+                }
+                CreationReadStage::Retain { length, additional, .. } => {
+                    assert_eq!(length, 0);
+                    assert_eq!(additional, 2);
+                    self.events.push("retain");
+                }
+            }
+            Ok(())
+        }
+    }
+    #[test]
+    fn current_pg_grant_forwards_real_descriptor_and_full_eof_request() {
+        let fixture = Fixture::new();
+        let grant = fixture.selected();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut trace = Trace {
+            inode: grant.configuration_identity, events: Vec::new(), requested: 0, refuse_read: false,
+        };
+        grant.verify_current_with_read_admission(deadline, &cancelled, &mut trace).unwrap();
+        assert_eq!(trace.events, ["begin", "read", "retain", "read"]);
+        assert_eq!(trace.requested, 2 * 65_536);
+        // Legacy still applies the same owner/custody/exact raw checks.
+        grant.verify_current(deadline, &cancelled).unwrap();
+    }
+    #[test]
+    fn current_pg_grant_preserves_admission_refusal_and_changed_bytes() {
+        let fixture = Fixture::new();
+        let grant = fixture.selected();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut trace = Trace {
+            inode: grant.configuration_identity, events: Vec::new(), requested: 0, refuse_read: true,
+        };
+        assert!(matches!(grant.verify_current_with_read_admission(
+            deadline, &cancelled, &mut trace,
+        ), Err(SourceCommandError::Denied("actual grant read fixture refusal"))));
+        assert_eq!(trace.events, ["begin", "read"]);
+        assert_eq!(trace.requested, 65_536);
+        // Change this fixture's SAME selected inode, retaining its mode. No
+        // grant renewal, oracle rewrite, path replacement or permission bypass.
+        std::fs::write(&grant.configuration_path, b"[]").unwrap();
+        trace.events.clear(); trace.requested = 0; trace.refuse_read = false;
+        assert!(matches!(grant.verify_current_with_read_admission(
+            deadline, &cancelled, &mut trace,
+        ), Err(SourceCommandError::Conflict("assessment PG grant changed"))));
+        assert_eq!(trace.events, ["begin", "read", "retain", "read"]);
+        assert_eq!(trace.requested, 2 * 65_536);
     }
 }
