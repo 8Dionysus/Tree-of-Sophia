@@ -1,0 +1,12 @@
+name: ToS Read-only Immutable Anchor Caller
+on:
+  push:
+    branches:
+      - 'codex/tos-item-readonly-anchor-*'
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    uses: 8Dionysus/Tree-of-Sophia/.github/workflows/tos-item-readonly-anchor-producer.yml@45b75391a521251e8d101752225e0b6563585d59
+    with:
+      expected_producer_commit: 45b75391a521251e8d101752225e0b6563585d59
