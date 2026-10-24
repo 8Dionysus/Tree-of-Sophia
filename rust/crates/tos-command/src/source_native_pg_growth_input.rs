@@ -61,6 +61,35 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
         ItemRefusal::Source("PG Growth selected source read failed".into())
     }
 
+    /// Lexical loan of the ACTUAL session already owned by this selected input.
+    /// Its observations and predicates stay in that owner; a finalized readset
+    /// cannot be supplied by the caller or synthesized during this callback.
+    /// This is a fenced read epoch, not a continuous database transaction.
+    /// The native caller still owes prospective query/I/O/holder admission; this
+    /// loan alone is not a certificate that the operation is fully funded.
+    pub(crate) fn with_selected_read_epoch<T>(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        run: impl FnOnce(&mut SourceRevisionReadSession<'store>) -> crate::DurableResult<T>,
+    ) -> crate::DurableResult<T> {
+        let mut session = self.session.try_borrow_mut().map_err(|_| {
+            crate::DurableError::Conflict("selected PG source session already borrowed")
+        })?;
+        if session.selection().identity() != self.identity {
+            return Err(crate::DurableError::Conflict(
+                "selected PG source session identity differs",
+            ));
+        }
+        session.verify_fresh(deadline, cancelled)?;
+        let result = run(&mut session);
+        let fenced = session.verify_fresh(deadline, cancelled);
+        match (result, fenced) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+
     /// Resolve annotation owner IDs through the selected PG index while this
     /// input still owns the borrowed read session. Exact packet/member
     /// validation remains the caller's responsibility.

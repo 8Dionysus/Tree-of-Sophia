@@ -38,6 +38,9 @@ use tos_validation::source_cut::{
 mod scope_admission;
 use scope_admission::ScopeAccess;
 
+#[path = "source_native_assessment_payer.rs"]
+pub(crate) mod original_payer;
+
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 const QUALITY_BASIS_SCHEMA: &str = "ToS/contracts/native-text-layer-quality-basis.schema.json";
@@ -124,6 +127,75 @@ pub(crate) struct AssessmentEvaluationPlan<'a> {
     pub(crate) public_claim_dependencies: &'a BTreeMap<String, Vec<JsonValue>>,
     pub(crate) private_required_source_refs: &'a BTreeMap<String, Vec<JsonValue>>,
     pub(crate) layers: Option<&'a crate::source_private_assessment_layers::PrivateAssessmentLayers>,
+}
+
+/// A borrowed position within the original protected plan, not another user
+/// request or an authorization ticket. Native account preparation must still
+/// check its exact application, source, scope, history and held host lease.
+pub(crate) struct AssessmentEvaluationTarget<'plan, 'data> {
+    plan: &'plan AssessmentEvaluationPlan<'data>,
+    parent: Option<&'plan ParentClaimContext>,
+}
+
+impl<'data> AssessmentEvaluationPlan<'data> {
+    pub(crate) fn current_target(&self) -> AssessmentEvaluationTarget<'_, 'data> {
+        AssessmentEvaluationTarget {
+            plan: self,
+            parent: None,
+        }
+    }
+
+    pub(crate) fn parent_target(&self) -> Option<AssessmentEvaluationTarget<'_, 'data>> {
+        self.parent_context
+            .as_ref()
+            .map(|parent| AssessmentEvaluationTarget {
+                plan: self,
+                parent: Some(parent),
+            })
+    }
+}
+
+impl<'plan, 'data> AssessmentEvaluationTarget<'plan, 'data> {
+    pub(crate) fn plan(&self) -> &'plan AssessmentEvaluationPlan<'data> {
+        self.plan
+    }
+
+    pub(crate) fn record(&self) -> &'plan JsonValue {
+        self.parent
+            .map_or(&self.plan.current, |parent| &parent.record)
+    }
+
+    pub(crate) fn scope(&self) -> &'plan JsonValue {
+        self.parent
+            .map_or(&self.plan.scope, |parent| &parent.scope)
+    }
+
+    pub(crate) fn required_sources(&self) -> &'plan [JsonValue] {
+        self.parent
+            .map_or(self.plan.required_sources.as_slice(), |parent| {
+                parent.required_sources.as_slice()
+            })
+    }
+
+    pub(crate) fn quality_requirements(&self) -> &'plan [QualityRequirement] {
+        if self.parent.is_some() {
+            &self.plan.parent_quality_requirements
+        } else {
+            &self.plan.subject_quality_requirements
+        }
+    }
+
+    pub(crate) fn source_route(&self) -> AssessmentSourceRoute {
+        if self.parent.is_some() {
+            AssessmentSourceRoute::SourceBoundClaim
+        } else {
+            self.plan.source_route
+        }
+    }
+
+    pub(crate) fn is_parent(&self) -> bool {
+        self.parent.is_some()
+    }
 }
 
 pub(crate) struct AssessmentEvaluationResult {

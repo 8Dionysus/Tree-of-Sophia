@@ -133,3 +133,9 @@ pub use segment_subtree_memo_v2::{SegmentSubtreeMemoLimitsV2, SegmentSubtreeMemo
 
 #[cfg(target_os = "linux")]
 pub mod native_v2;
+
+// Resource-only original-caller port; not a source/rights or publication grant.
+pub use object::{
+    OriginalReadAdmission, OriginalReadError, OriginalReadKind, OriginalReadResult,
+    OriginalReadStage,
+};

@@ -752,6 +752,11 @@ pub(crate) fn run(
     }
     let _ = super::capped(budgets, "max_schema_receipts", 128)?;
     let _ = super::capped(budgets, "max_schema_receipt_bytes", 262_144)?;
+    // One original operation ledger survives selection, preflight and the
+    // locked evaluation. Repeated source epochs do not mint another allowance.
+    // Transport/bootstrap paths still require their own prospective admission;
+    // moving the ledger does not retrospectively certify those earlier reads.
+    let mut budget = assessment::OperationBudget::new(invocation, deadline)?;
     super::absolute(super::text(invocation, "native_executable")?)?;
     let runtime = crate::source_serialization::observe_executable(deadline, cancelled)?;
     let executable_digest = super::digest(super::text(invocation, "native_executable_sha256")?)?;
@@ -1157,8 +1162,6 @@ pub(crate) fn run(
                         cancelled,
                     )
                     .map_err(DurableError::Source)?;
-                let mut budget = assessment::OperationBudget::new(invocation, deadline)
-                    .map_err(DurableError::Source)?;
                 budget
                     .charge_bytes(
                         private_sources
@@ -1497,8 +1500,6 @@ pub(crate) fn run(
                                 held_cancelled,
                             )
                             .map_err(DurableError::Source)?;
-                            let mut budget = assessment::OperationBudget::new(invocation, held_deadline)
-                                .map_err(DurableError::Source)?;
                             budget
                                 .charge_bytes(
                                     private

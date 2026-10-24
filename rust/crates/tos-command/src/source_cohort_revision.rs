@@ -965,8 +965,13 @@ impl DurablePgCoordinator {
             claim_navigation_as_of_sequence: None,
             claim_navigation_baseline_sequence: None,
         };
-        let result = operation(&mut session)?;
-        session.verify_fresh(deadline, cancelled)?;
+        // The actual owner must attempt its exit fence even when the borrowed
+        // operation refuses. Preserve the first error and every spent prefix;
+        // only a successful body AND fence may expose the finalized readset.
+        let result = operation(&mut session);
+        let result = finish_source_revision_epoch(result, || {
+            session.verify_fresh(deadline, cancelled)
+        })?;
         let readset = SourceRevisionReadSet {
             selection: session.selection.clone(),
             reads: session.reads,
@@ -3097,7 +3102,15 @@ impl SourceRevisionReadSession<'_> {
         Ok(())
     }
 
-    fn verify_fresh(&mut self, deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> {
+    /// Recheck this actual borrowed PG read epoch. It is not a continuous SQL
+    /// transaction or a substitute for the original caller's query admission.
+    /// Native held callers may borrow this primitive; no readset is finalized
+    /// or manufactured here. Cutoff refusal can precede the physical queries.
+    pub(crate) fn verify_fresh(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
         active(deadline, cancelled)?;
         let mut tx = self.coordinator.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
@@ -3107,7 +3120,10 @@ impl SourceRevisionReadSession<'_> {
             &[&self.selection.cohort.domain],
         )?;
         let row = tx.query_one(
-            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            "SELECT source_definition_digest,rights_allowed,source_complete,
+                    rights_version,rule_version,head_seq,source_generation,
+                    source_epoch,contract_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
             &[&self.selection.cohort.domain],
         )?;
         super::require_current_source_definition(parse_hex(
@@ -3935,6 +3951,48 @@ impl ReadonlyRecordFiles for SourceRevisionReadSession<'_> {
 
     fn retained_state_bytes(&self) -> usize {
         self.retained_state_bytes
+    }
+}
+
+/// Run the real owner exit once on both body outcomes, preserving the original
+/// refusal if the exit also fails. The caller retains the actual session until
+/// this returns, and can finalize its readset only on success.
+fn finish_source_revision_epoch<T>(
+    body: DurableResult<T>,
+    fence: impl FnOnce() -> DurableResult<()>,
+) -> DurableResult<T> {
+    let fenced = fence();
+    match (body, fenced) {
+        (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+        (Ok(value), Ok(())) => Ok(value),
+    }
+}
+
+#[cfg(test)]
+mod epoch_exit_tests {
+    use super::*;
+
+    #[test]
+    fn refused_body_attempts_exit_and_keeps_first_error() {
+        let mut attempts = 0;
+        let result: DurableResult<()> = finish_source_revision_epoch(
+            Err(DurableError::Refused("body refused")),
+            || {
+                attempts += 1;
+                Err(DurableError::Conflict("epoch changed"))
+            },
+        );
+        assert_eq!(attempts, 1);
+        assert!(matches!(result, Err(DurableError::Refused("body refused"))));
+
+        let result = finish_source_revision_epoch(Ok(7), || {
+            attempts += 1;
+            Err(DurableError::Conflict("epoch changed"))
+        });
+        assert_eq!(attempts, 2);
+        assert!(matches!(result, Err(DurableError::Conflict("epoch changed"))));
+
+        assert_eq!(finish_source_revision_epoch(Ok(7), || Ok(())).unwrap(), 7);
     }
 }
 

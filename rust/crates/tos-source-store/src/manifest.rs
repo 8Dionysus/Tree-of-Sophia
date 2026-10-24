@@ -524,6 +524,90 @@ impl CorpusReader {
         )
     }
 
+    /// Required original-payer port. Existing Write APIs remain legacy.
+    pub fn read_selected_with_original_admission<
+        A: crate::object::OriginalReadAdmission + ?Sized,
+    >(
+        &self,
+        snapshot: &Snapshot,
+        descriptor: &CorpusDescriptor,
+        max_bytes: u64,
+        admission: &mut A,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> crate::object::OriginalReadResult<Vec<u8>, A::Error> {
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::Bootstrap {
+                kind: crate::object::OriginalReadKind::SelectedObject,
+                entries: snapshot.files.len(),
+                key_bytes: descriptor.path.as_str().len(),
+            },
+            deadline,
+            cancelled,
+        )?;
+        self.check_snapshot(snapshot)?;
+        let member = snapshot.files.get(&descriptor.path).ok_or_else(|| {
+            StoreError::new(Code::MissingMember, "path is absent from exact revision")
+        })?;
+        if descriptor.revision != snapshot.revision
+            || descriptor.sha256 != member.sha256
+            || descriptor.size_bytes != member.size_bytes
+            || descriptor.mode != member.mode
+        {
+            return Err(StoreError::new(
+                Code::DescriptorMismatch,
+                "descriptor differs from exact revision",
+            )
+            .into());
+        }
+        crate::object::read_digest_object_with_original_admission(
+            &self.root,
+            member.sha256,
+            Some(member.size_bytes),
+            max_bytes.min(self.limits.max_selected_object_bytes),
+            admission,
+            deadline,
+            cancelled,
+        )
+    }
+
+    pub(crate) fn read_retirement_object_with_original_admission<
+        A: crate::object::OriginalReadAdmission + ?Sized,
+    >(
+        &self,
+        snapshot: &Snapshot,
+        sha256: Digest256,
+        expected_size: Option<u64>,
+        max_bytes: u64,
+        admission: &mut A,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> crate::object::OriginalReadResult<Vec<u8>, A::Error> {
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::Bootstrap {
+                kind: crate::object::OriginalReadKind::RetirementObject,
+                entries: snapshot.files.len(),
+                key_bytes: 0,
+            },
+            deadline,
+            cancelled,
+        )?;
+        self.check_snapshot(snapshot)?;
+        crate::object::read_digest_object_with_original_admission(
+            &self.root,
+            sha256,
+            expected_size,
+            max_bytes.min(self.limits.max_selected_object_bytes),
+            admission,
+            deadline,
+            cancelled,
+        )
+    }
+
     fn check_snapshot(&self, snapshot: &Snapshot) -> Result<()> {
         if !Arc::ptr_eq(&self.root, &snapshot.root) {
             return Err(StoreError::new(
