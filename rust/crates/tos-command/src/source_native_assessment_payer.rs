@@ -132,7 +132,7 @@ impl OriginalAssessmentPayer<'_, '_> {
             ));
         }
         let result = run(&mut operation);
-        if operation.resource_refused.get() {
+        if self.failed.get() || operation.resource_refused.get() {
             self.failed.set(true);
             return match result {
                 Err(error) => Err(error),
