@@ -13,6 +13,26 @@ pub enum ViewLayer {
     SelectedAccounts,
     Historical,
 }
+/// Pure projection coordinates. Native owners still retain and check the full
+/// actual source identity; a supplied digest cannot construct that proof.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ViewSource {
+    SourceCut { revision: SourceRevision, input_identity: Digest256 },
+    PgEpoch { input_identity: Digest256 },
+}
+impl ViewSource {
+    pub fn source_revision(self) -> Option<SourceRevision> {
+        match self {
+            Self::SourceCut { revision, .. } => Some(revision),
+            Self::PgEpoch { .. } => None,
+        }
+    }
+    pub fn input_identity(self) -> Digest256 {
+        match self {
+            Self::SourceCut { input_identity, .. } | Self::PgEpoch { input_identity } => input_identity,
+        }
+    }
+}
 pub struct Query<'v> {
     pub context: &'v Value,
     pub scope: &'v Value,
@@ -23,8 +43,7 @@ pub struct Query<'v> {
     pub assertion_layer: &'v str,
     pub joint_carrier: &'v Value,
     pub scenario_ref: &'v Value,
-    pub source_revision: SourceRevision,
-    pub source_input_identity: Digest256,
+    pub source: ViewSource,
     pub assessment_schema_binding: AssessmentSchemaBindingV1,
     pub assessment_scope: &'v Value,
     pub assessment_policy: &'v Value,
@@ -38,12 +57,11 @@ pub struct ViewBasis<'v> {
     pub scope: &'v Value,
     pub criterion: &'v Value,
     pub identity_level: &'v str,
-    pub source_revision: SourceRevision,
+    pub source: ViewSource,
     pub account_modality: &'v str,
     pub assertion_layer: &'v str,
     pub joint_carrier: &'v Value,
     pub scenario_ref: &'v Value,
-    pub source_input_identity: Digest256,
     pub assessment_scope: &'v Value,
     pub assessment_policy: &'v Value,
     pub observed_now: &'v str,
@@ -272,8 +290,7 @@ impl Session<'_> {
             assertion_layer: q.assertion_layer,
             joint_carrier: q.joint_carrier,
             scenario_ref: q.scenario_ref,
-            source_revision: q.source_revision,
-            source_input_identity: q.source_input_identity,
+            source: q.source,
             assessment_scope: q.assessment_scope,
             assessment_policy: q.assessment_policy,
             observed_now: q.observed_now,
@@ -431,8 +448,8 @@ impl Session<'_> {
         // Reports are native mechanics results, never authorization tokens.
         // Their own source/schema worker holders remain with ConsumerOwner.
         self.tick(report.work_used())?;
-        if report.source_revision() != Some(q.source_revision)
-            || report.source_input_identity() != q.source_input_identity
+        if report.source_revision() != q.source.source_revision()
+            || report.source_input_identity() != q.source.input_identity()
             || report.schema_binding() != q.assessment_schema_binding
             || !self.same_text(report.observed_now(), q.observed_now)?
         {

@@ -82,11 +82,7 @@ impl NativePreservedCandidate {
         // existing ledgers, rather than introducing a reset callback budget.
         frames.budget.charge_work(limits.max_nodes)?;
         frames.budget.charge_bytes(limits.max_envelope_bytes)?;
-        frames
-            .whole
-            .try_borrow()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .check_live(limits.max_envelope_bytes)?;
+        frames.check_live(limits.max_envelope_bytes)?;
         let checked = check_operation_binding(envelope, limits)
             .map_err(|_| invalid("PWE K0 producer envelope"))?;
         if checked.execution_status() != ExecutionStatus::Completed

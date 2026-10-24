@@ -127,12 +127,7 @@ impl<'h, 'a, 'scope, R: ExactDependencyReader> PositiveCarrier<'h, 'a, 'scope, R
             .len()
             .checked_mul(std::mem::size_of::<SelectedGroup>())
             .ok_or(unsupported("PWE group reservation overflow"))?;
-        let available = host
-            .frames
-            .whole
-            .try_borrow()
-            .map_err(|_| invalid("PWE whole-call budget in use"))?
-            .remaining_live()?;
+        let available = host.frames.remaining_live()?;
         host.frames.retain(slots)?;
         groups
             .try_reserve_exact(scenario_refs.len())

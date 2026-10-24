@@ -7,12 +7,54 @@ use crate::source_native_cli::private_assessment::AssessmentEvaluationPlan;
 use crate::source_native_roles::{NativeRole as Role, RoleRegistrySelection};
 use serde_json::Value;
 use tos_compiler::pwe_native::{
-    CheckedMetadata, ConsumerOwner, DispatchRow, Kind, QualifiedAccount, ResolvedBasis, Session,
-    ViewBasis,
+    CheckedMetadata, ConsumerOwner, DispatchRow, Error, Kind, PreparedAccount, QualifiedAccount,
+    ResolvedBasis, Session, ViewBasis, ViewSource,
 };
 use tos_foundation::ExactRecordRef;
 use tos_validation::assessment::{AssessmentMechanicsReport, AssessmentSchemaBindingV1};
 use tos_validation::source_cut::CutSchemaExecutor;
+use std::rc::Rc;
+use super::source_budget::{SourcePayer, OriginalPayer};
+use crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer;
+use crate::source_native_cli::private_assessment::AssessmentEvaluationTarget;
+
+/// Preserve the original source payer's error before the host's paid Err fence
+/// or Common's finish observes its sticky refusal. Semantic negatives retain
+/// the operation-specific refusal; no error cell or replacement ledger exists.
+pub(super) fn host_session_result<T>(
+    result: tos_compiler::pwe_native::Result<T>,
+    payer: &dyn OriginalPayer,
+    semantic: SourceCommandError,
+) -> SourceCommandResult<T> {
+    result.map_err(|error| match error {
+        Error::Upstream(_) | Error::Cancelled | Error::Deadline | Error::ResourceLimit => {
+            payer.error(error, "PWE held Session upstream operation")
+        }
+        _ => semantic,
+    })
+}
+
+/// The actual prepare_target content stage, separately addressable without
+/// constructing a native owner, ticket, grant or fabricated mechanics report.
+fn prepare_target_content<'value>(
+    session: &mut Session<'_>,
+    payer: &dyn OriginalPayer,
+    object: &'value Value,
+    claim: &Value,
+) -> SourceCommandResult<PreparedAccount<'value>> {
+    let prepared = host_session_result(
+        session.prepare(object), payer, invalid("PWE selected account value shape"),
+    )?;
+    host_session_result(
+        session.check_claim_content(&prepared, claim), payer,
+        invalid("PWE source wrapper/content mismatch"),
+    )?;
+    host_session_result(
+        session.check_endpoints(&prepared), payer,
+        invalid("PWE account endpoints/member closure"),
+    )?;
+    Ok(prepared)
+}
 
 /// Only constructed from the actual protected plan and native evaluator.
 /// It grants no new operation and is not an AssessmentMechanicsReport factory.
@@ -21,6 +63,8 @@ pub(crate) struct NativeAccount {
     reference: Value,
     report: AssessmentMechanicsReport,
     basis: NativeBasis,
+    host_lease: Rc<HostLease>,
+    frame_lease: Rc<super::frames::FrameLease>,
 }
 impl NativeAccount {
     pub(crate) fn claim(&self) -> &Value {
@@ -42,6 +86,33 @@ impl NativeAccount {
         &self.basis
     }
 }
+// A strong handle is retained by every account and parent witness. No raw
+// address survives independently of its allocation. This is not a source ID.
+pub(super) struct HostLease { _private: u8 }
+pub(crate) struct ApplicationCheckedTicket<'checked> {
+    pub(super) target: AssessmentEvaluationTarget<'checked, 'checked>,
+    pub(super) claim: &'checked Value,
+    pub(super) reference: &'checked Value,
+    pub(super) signature: &'checked Value,
+    pub(super) predicate: &'checked Value,
+    pub(super) profile: &'checked Value,
+    pub(super) arguments: &'checked [String],
+    host_lease: Rc<HostLease>,
+    frame_lease: Rc<super::frames::FrameLease>,
+}
+pub(crate) struct CheckedPweParent<'account, 'plan> {
+    parent: &'account NativeAccount,
+    selected_form: &'plan AssessmentEvaluationPlan<'plan>,
+    host_lease: Rc<HostLease>,
+    frame_lease: Rc<super::frames::FrameLease>,
+}
+pub(crate) struct NativeAssessmentHost<'host, 'a, 'scope, 'cancel, R: ExactDependencyReader> {
+    owner: &'host mut NativeConsumerOwner<'a, 'scope, R>,
+    session: &'host mut Session<'cancel>,
+    payer: &'host dyn OriginalPayer,
+    lease: Rc<HostLease>,
+}
+
 struct ApprovedDispatch {
     claim: Value,
     reference: Value,
@@ -78,6 +149,61 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             approved: Vec::new(),
         })
     }
+    fn with_native_session<'host, 'cancel, T>(
+        &'host mut self,
+        session: &'host mut Session<'cancel>,
+        payer: &'host dyn OriginalPayer,
+        run: impl FnOnce(&mut NativeAssessmentHost<'host, 'a, 'scope, 'cancel, R>) -> SourceCommandResult<T>,
+    ) -> SourceCommandResult<T> {
+        self.frames.verify()?;
+        let prepared = (|| {
+            self.frames.inspect_access(0, 2)?;
+            self.frames.check_session_payer(session, payer)?;
+            if !session.has_source_payer(payer.admission()) {
+                return Err(unsupported("PWE scoped host requires its actual original Session payer"));
+            }
+            let holders = std::mem::size_of::<NativeAssessmentHost<'_, '_, '_, '_, R>>()
+                .checked_add(std::mem::size_of::<HostLease>())
+                .and_then(|n| n.checked_add(4 * std::mem::size_of::<usize>()))
+                .ok_or(unsupported("PWE scoped host lease holder"))?;
+            self.frames.reserve_scoped(session, payer, holders)?;
+            Ok(())
+        })();
+        if let Err(error) = prepared {
+            let _ = self.frames.verify();
+            return Err(error);
+        }
+        let mut host = NativeAssessmentHost {
+            owner: self, session, payer, lease: Rc::new(HostLease { _private: 0 }),
+        };
+        let result = run(&mut host);
+        let fenced = host.owner.frames.verify();
+        match (result, fenced) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+    pub(crate) fn with_claim_session<'host, 'cancel, 'payer, T>(
+        &'host mut self, session: &'host mut Session<'cancel>, payer: &'host SourcePayer<'payer>,
+        run: impl FnOnce(&mut NativeAssessmentHost<'host, 'a, 'scope, 'cancel, R>) -> SourceCommandResult<T>,
+    ) -> SourceCommandResult<T> { self.with_native_session(session, payer, run) }
+    pub(crate) fn with_assessment_session<'host, 'cancel, 'budget, 'payer_cancel, T>(
+        &'host mut self, session: &'host mut Session<'cancel>,
+        payer: &'host OriginalAssessmentPayer<'budget, 'payer_cancel>,
+        run: impl FnOnce(&mut NativeAssessmentHost<'host, 'a, 'scope, 'cancel, R>) -> SourceCommandResult<T>,
+    ) -> SourceCommandResult<T> { self.with_native_session(session, payer, run) }
+    pub(crate) fn prepare_account(
+        &mut self, plan: &AssessmentEvaluationPlan<'_>, metadata: &[CheckedMetadata<'_>],
+        session: &mut Session<'_>, payer: &OriginalAssessmentPayer<'_, '_>,
+    ) -> SourceCommandResult<NativeAccount> {
+        self.with_assessment_session(session, payer, |host| host.prepare_account(plan, metadata))
+    }
+    pub(crate) fn prepare_claim_account(
+        &mut self, plan: &AssessmentEvaluationPlan<'_>, metadata: &[CheckedMetadata<'_>],
+        session: &mut Session<'_>, payer: &SourcePayer<'_>,
+    ) -> SourceCommandResult<NativeAccount> {
+        self.with_claim_session(session, payer, |host| host.prepare_account(plan, metadata))
+    }
     pub(super) fn role_value(
         &mut self,
         reference: &Value,
@@ -87,6 +213,10 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
     }
     pub(super) fn admitted_account(&mut self, account: &NativeAccount) -> SourceCommandResult<()> {
         self.frames.verify()?;
+        self.frames.inspect_access(0, 1)?;
+        if !Rc::ptr_eq(&self.frames.lease, &account.frame_lease) {
+            return Err(SourceCommandError::Conflict("PWE account protected frame differs"));
+        }
         let mut index = None;
         for (i, candidate) in self.approved.iter().enumerate() {
             if self
@@ -142,17 +272,23 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
     }
     /// Actual plan/config/source selection precedes this operation; no path or
     /// record body is taken from an unauthenticated query to construct an owner.
-    pub(crate) fn prepare_account(
+    fn prepare_target(
         &mut self,
-        plan: &AssessmentEvaluationPlan<'_>,
+        target: AssessmentEvaluationTarget<'_, '_>,
         metadata: &[CheckedMetadata<'_>],
         session: &mut Session<'_>,
+        payer: &dyn OriginalPayer,
+        host_lease: &Rc<HostLease>,
+        parent: Option<CheckedPweParent<'_, '_>>,
     ) -> SourceCommandResult<NativeAccount> {
         self.frames.verify()?;
+        self.frames.inspect_access(0, 4)?;
+        let plan = target.plan();
+        let target_is_parent = target.is_parent();
         if self.approved.len() >= MAX_RECORDS {
             return Err(unsupported("PWE selected account count cap"));
         }
-        let id = self.frames.native_text(&plan.current, "id")?;
+        let id = self.frames.native_text(target.record(), "id")?;
         let index = *self
             .frames
             .string_map_get(&plan.resolved.source_index, id)?
@@ -164,7 +300,7 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             .source_records
             .get(index)
             .ok_or(invalid("PWE selected source index"))?;
-        if !self.frames.same(source, &plan.current)? {
+        if !self.frames.same(source, target.record())? {
             return Err(SourceCommandError::Conflict(
                 "PWE selected source Claim shadowed",
             ));
@@ -177,15 +313,7 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
         let raw = self.frames.canonical(document)?;
         let claim = self.frames.decode_domain(&raw)?;
         let object = self.frames.field(&claim, "object")?;
-        let prepared = session
-            .prepare(object)
-            .map_err(|_| invalid("PWE selected account value shape"))?;
-        session
-            .check_claim_content(&prepared, &claim)
-            .map_err(|_| invalid("PWE source wrapper/content mismatch"))?;
-        session
-            .check_endpoints(&prepared)
-            .map_err(|_| invalid("PWE account endpoints/member closure"))?;
+        let prepared = prepare_target_content(session, payer, object, &claim)?;
         let spec = self.registry.select(prepared.kind())?;
         let schema_version = self.frames.native_text(document, "schema_version")?;
         let predicate = self.frames.native_text(document, "predicate")?;
@@ -223,16 +351,17 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             &mut self.roles,
             session,
             &prepared,
+            payer,
         )?;
         basis.check_metadata(&mut self.frames, metadata)?;
-        session
-            .check_role_matrix(&prepared, metadata)
-            .map_err(|_| {
-                unsupported("PWE actual metadata responsibility/identity role binding differs")
-            })?;
-        let qualified = session
-            .qualify(prepared)
-            .map_err(|_| unsupported("PWE account qualification is unresolved"))?;
+        host_session_result(
+            session.check_role_matrix(&prepared, metadata), payer,
+            unsupported("PWE actual metadata responsibility/identity role binding differs"),
+        )?;
+        let qualified = host_session_result(
+            session.qualify(prepared), payer,
+            unsupported("PWE account qualification is unresolved"),
+        )?;
         self.check_application(&qualified, &arguments)?;
         for (reference, role) in [
             (qualified.context(), Role::Context),
@@ -247,10 +376,29 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
                 .ok_or(unsupported("PWE criterion binding absent"))?;
             self.role_value(criterion, Role::CriterionPolicy)?;
         }
-        let report = self.frames.assess(plan)?;
+        // Fixed ticket and retained lease handles are paid before cloning.
+        self.frames.reserve_scoped(session, payer,
+            std::mem::size_of::<ApplicationCheckedTicket<'_>>()
+                + std::mem::size_of::<super::frames::HeldPweEvaluation<'_>>()
+                + 4 * std::mem::size_of::<Rc<HostLease>>())?;
+        let frame_lease = Rc::clone(&self.frames.lease);
+        let ticket = ApplicationCheckedTicket {
+            target,
+            claim: &claim,
+            reference: &reference,
+            signature: qualified.signature(),
+            predicate: qualified.predicate(),
+            profile: qualified.qualification_profile(),
+            arguments: &arguments,
+            host_lease: Rc::clone(host_lease),
+            frame_lease: Rc::clone(&frame_lease),
+        };
+        let report = self.frames.assess_checked(ticket, parent)?;
         // These retained exact fields came from native source selection and
         // C4 application verification, not from a caller-created DispatchRow.
-        let scope = self.frames.domain_value(&plan.scope)?;
+        let scope = self.frames.domain_value(if target_is_parent {
+            &plan.parent_context.as_ref().ok_or(invalid("PWE parent context absent"))?.scope
+        } else { &plan.scope })?;
         let policy = self
             .frames
             .get(report.current_admission(), "policy")?
@@ -287,6 +435,8 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             reference,
             report,
             basis,
+            host_lease: Rc::clone(host_lease),
+            frame_lease,
         })
     }
     fn check_application(
@@ -349,8 +499,10 @@ impl<'a, 'scope, R: ExactDependencyReader> NativeConsumerOwner<'a, 'scope, R> {
             worker,
         };
         let recorded_at = self.frames.context.recorded_at.as_str();
-        if view.source_revision != self.frames.revision()
-            || view.source_input_identity != self.frames.source_identity()
+        if view.source != (ViewSource::SourceCut {
+                revision: self.frames.revision(),
+                input_identity: self.frames.source_identity(),
+            })
             || view.assessment_schema_binding != binding
             || !self.frames.text_equal(view.observed_now, recorded_at)?
         {
@@ -598,5 +750,275 @@ impl<R: ExactDependencyReader> ConsumerOwner for NativeConsumerOwner<'_, '_, R> 
             qualification_profile: &selected.profile,
             arguments,
         })
+    }
+}
+
+impl<R: ExactDependencyReader> NativeAssessmentHost<'_, '_, '_, '_, R> {
+    fn reserve_target(&mut self) -> SourceCommandResult<()> {
+        self.owner.frames.reserve_scoped(self.session, self.payer,
+            std::mem::size_of::<AssessmentEvaluationTarget<'_, '_>>())
+    }
+    pub(crate) fn prepare_account(
+        &mut self,
+        plan: &AssessmentEvaluationPlan<'_>,
+        metadata: &[CheckedMetadata<'_>],
+    ) -> SourceCommandResult<NativeAccount> {
+        self.reserve_target()?;
+        self.owner.prepare_target(plan.current_target(), metadata, self.session, self.payer, &self.lease, None)
+    }
+    pub(crate) fn prepare_parent(
+        &mut self,
+        selected_form: &AssessmentEvaluationPlan<'_>,
+        metadata: &[CheckedMetadata<'_>],
+    ) -> SourceCommandResult<NativeAccount> {
+        self.reserve_target()?;
+        let target = selected_form.parent_target().ok_or(invalid("PWE actual parent target absent"))?;
+        self.owner.prepare_target(target, metadata, self.session, self.payer, &self.lease, None)
+    }
+    pub(crate) fn checked_parent<'account, 'plan>(
+        &mut self,
+        parent: &'account NativeAccount,
+        selected_form: &'plan AssessmentEvaluationPlan<'plan>,
+    ) -> SourceCommandResult<CheckedPweParent<'account, 'plan>> {
+        self.owner.frames.inspect_access(0, 2)?;
+        if !Rc::ptr_eq(&self.lease, &parent.host_lease)
+            || !Rc::ptr_eq(&self.owner.frames.lease, &parent.frame_lease)
+        {
+            return Err(SourceCommandError::Conflict("PWE parent belongs to another host/frame"));
+        }
+        self.owner.admitted_account(parent)?;
+        self.reserve_target()?;
+        let target = selected_form.parent_target().ok_or(invalid("PWE selected form has no parent"))?;
+        let reference = self.owner.frames.claim_reference(target.record())?;
+        let document = self.owner.frames.native_field(target.record(), "payload")?;
+        let claim = self.owner.frames.domain_value(document)?;
+        let scope = self.owner.frames.domain_value(target.scope())?;
+        if !self.owner.frames.equal(&reference, &parent.reference)?
+            || !self.owner.frames.equal(&claim, &parent.claim)?
+            || !self.owner.frames.equal(&scope, parent.report.scope())?
+        {
+            return Err(SourceCommandError::Conflict("PWE exact selected parent record/scope differs"));
+        }
+        self.owner.frames.reserve_scoped(self.session, self.payer,
+            std::mem::size_of::<CheckedPweParent<'_, '_>>() + 2 * std::mem::size_of::<Rc<HostLease>>())?;
+        Ok(CheckedPweParent { parent, selected_form,
+            host_lease: Rc::clone(&self.lease), frame_lease: Rc::clone(&self.owner.frames.lease) })
+    }
+    pub(crate) fn prepare_account_with_parent(
+        &mut self,
+        plan: &AssessmentEvaluationPlan<'_>,
+        metadata: &[CheckedMetadata<'_>],
+        parent: CheckedPweParent<'_, '_>,
+    ) -> SourceCommandResult<NativeAccount> {
+        self.owner.frames.inspect_access(0, 1)?;
+        if !Rc::ptr_eq(&self.lease, &parent.host_lease) {
+            return Err(SourceCommandError::Conflict("PWE checked parent belongs to another scoped host"));
+        }
+        self.reserve_target()?;
+        self.owner.prepare_target(plan.current_target(), metadata, self.session, self.payer, &self.lease, Some(parent))
+    }
+    pub(crate) fn assess_form_with_parent(
+        &mut self,
+        plan: &AssessmentEvaluationPlan<'_>,
+        parent: CheckedPweParent<'_, '_>,
+    ) -> SourceCommandResult<AssessmentMechanicsReport> {
+        self.owner.frames.inspect_access(0, 1)?;
+        if !Rc::ptr_eq(&self.lease, &parent.host_lease) {
+            return Err(SourceCommandError::Conflict("PWE form parent belongs to another scoped host"));
+        }
+        self.owner.frames.reserve_scoped(self.session, self.payer,
+            std::mem::size_of::<super::frames::HeldPweEvaluation<'_>>()
+                + std::mem::size_of::<AssessmentEvaluationTarget<'_, '_>>())?;
+        self.owner.frames.assess_form_with_parent(plan, parent, &self.lease)
+    }
+}
+impl ApplicationCheckedTicket<'_> {
+    pub(crate) fn target(&self) -> &AssessmentEvaluationTarget<'_, '_> { &self.target }
+    pub(crate) fn claim(&self) -> &Value { self.claim }
+    pub(crate) fn reference(&self) -> &Value { self.reference }
+    pub(crate) fn signature(&self) -> &Value { self.signature }
+    pub(crate) fn predicate(&self) -> &Value { self.predicate }
+    pub(crate) fn profile(&self) -> &Value { self.profile }
+    pub(crate) fn arguments(&self) -> &[String] { self.arguments }
+    pub(super) fn check_frame(&self, frames: &mut HeldFrames<'_, '_>) -> SourceCommandResult<()> {
+        frames.inspect_access(0, 1)?;
+        if !Rc::ptr_eq(&self.frame_lease, &frames.lease) {
+            return Err(SourceCommandError::Conflict("PWE ticket protected frame differs"));
+        }
+        let native = frames.native_field(self.target.record(), "payload")?;
+        frames.exact_match(self.reference, native, "claim_id", "claim_version")?;
+        let claimed = frames.domain_value(native)?;
+        if !frames.equal(&claimed, self.claim)? {
+            return Err(SourceCommandError::Conflict("PWE ticket exact account content differs"));
+        }
+        Ok(())
+    }
+    pub(super) fn check_parent(&self, parent: &CheckedPweParent<'_, '_>, frames: &mut HeldFrames<'_, '_>) -> SourceCommandResult<()> {
+        frames.inspect_access(0, 1)?;
+        if !Rc::ptr_eq(&self.host_lease, &parent.host_lease) {
+            return Err(SourceCommandError::Conflict("PWE current and parent scoped hosts differ"));
+        }
+        parent.check_frame(frames, self.target.plan())
+    }
+}
+impl CheckedPweParent<'_, '_> {
+    pub(crate) fn report(&self) -> &AssessmentMechanicsReport { &self.parent.report }
+    pub(super) fn check_host(&self, frames: &mut HeldFrames<'_, '_>, lease: &Rc<HostLease>) -> SourceCommandResult<()> {
+        frames.inspect_access(0, 1)?;
+        if !Rc::ptr_eq(&self.host_lease, lease) {
+            return Err(SourceCommandError::Conflict("PWE parent inactive/foreign host lease"));
+        }
+        Ok(())
+    }
+    pub(super) fn check_frame(&self, frames: &mut HeldFrames<'_, '_>, plan: &AssessmentEvaluationPlan<'_>) -> SourceCommandResult<()> {
+        frames.inspect_access(0, 2)?;
+        if !Rc::ptr_eq(&self.frame_lease, &frames.lease) || !std::ptr::eq(self.selected_form, plan) {
+            return Err(SourceCommandError::Conflict("PWE checked parent frame/selected plan differs"));
+        }
+        let target_holder = std::mem::size_of::<AssessmentEvaluationTarget<'_, '_>>();
+        frames.budget.charge_work(target_holder)?;
+        frames.budget.charge_bytes(target_holder)?;
+        frames.retain(target_holder)?;
+        let target = plan.parent_target().ok_or(invalid("PWE checked parent target absent"))?;
+        let reference = frames.claim_reference(target.record())?;
+        let payload = frames.native_field(target.record(), "payload")?;
+        frames.exact_match(&reference, payload, "claim_id", "claim_version")?;
+        if !frames.equal(&reference, &self.parent.reference)?
+            || { let claim = frames.domain_value(payload)?; !frames.equal(&claim, &self.parent.claim)? }
+            || { let scope = frames.domain_value(target.scope())?; !frames.equal(&scope, self.parent.report.scope())? }
+        {
+            return Err(SourceCommandError::Conflict("PWE checked parent exact target differs"));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod original_error_regression {
+    use super::*;
+    use crate::source_native_cli::private_assessment::{
+        OperationBudget, original_payer::with_original_pwe_session,
+    };
+    use std::{sync::atomic::{AtomicBool, Ordering}, time::{Duration, Instant}};
+    use tos_compiler::pwe_native::Limits;
+
+    fn limits(deadline: Instant) -> Limits {
+        Limits {
+            max_input_bytes: 1_048_576, max_nodes: 65_536, max_work: 262_144,
+            max_refs: 4096, max_depth: 96, max_items: 4096,
+            max_state_bytes: 1_048_576, deadline,
+        }
+    }
+
+    #[test]
+    fn prepare_target_content_preserves_original_payer_and_cancellation_errors() {
+        for lane in 0..4 {
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let cancelled = AtomicBool::new(false);
+            let mut original = OperationBudget::new(&serde_json::json!({"budgets": {
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}), deadline).unwrap();
+            let mut selected = limits(deadline);
+            if lane == 3 { selected.max_work = 1; }
+            let object = if lane == 3 { Value::String("x".into()) } else { Value::Null };
+            let result = with_original_pwe_session(&mut original, selected, &cancelled, |payer, session| {
+                if lane == 0 {
+                    payer.with_operation(|operation| {
+                        let work = operation.limits()?.max_work;
+                        operation.lower_remaining(1, work)
+                    })?;
+                }
+                if lane == 1 { cancelled.store(true, Ordering::Relaxed); }
+                let before = session.charges();
+                // This is the production prepare_target content-stage call,
+                // not a codec or a fabricated native issuer/assessment.
+                let body = prepare_target_content(session, payer, &object, &Value::Null)
+                    .map(|_| ());
+                if lane == 0 {
+                    assert!(matches!(&body, Err(SourceCommandError::Invalid(
+                        "assessment cumulative byte budget"
+                    ))));
+                    assert!(session.charges().2 > before.2);
+                }
+                body // actual Common finish must preserve this original Err
+            });
+            match lane {
+                0 => assert!(matches!(result, Err(SourceCommandError::Invalid(
+                    "assessment cumulative byte budget"
+                )))),
+                1 => assert!(matches!(result, Err(SourceCommandError::Denied(
+                    "PWE Assessment Session cancelled"
+                )))),
+                2 => {
+                    assert!(matches!(result, Err(SourceCommandError::Invalid(
+                        "PWE selected account value shape"
+                    ))));
+                    assert!(original.limits().is_ok()); // genuine malformed, no resource refusal
+                }
+                _ => assert!(matches!(result, Err(SourceCommandError::Unsupported(
+                    "PWE Assessment Session exhausted"
+                )))),
+            }
+        }
+    }
+
+    #[test]
+    fn prepare_target_later_session_boundaries_keep_original_and_semantic_errors() {
+        // Existing unbound construction value: no registration, source grant,
+        // historical fact, native account or successful evaluator is invented.
+        let candidate: Value = serde_json::from_str(include_str!(
+            "../../../tos-compiler/src/pwe_native/fixtures/prepared-pwe-values.json"
+        )).unwrap();
+        let object = &candidate["body"]["values"][0];
+        for stage in 0..8 {
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let cancelled = AtomicBool::new(false);
+            let mut original = OperationBudget::new(&serde_json::json!({"budgets": {
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}), deadline).unwrap();
+            let result = with_original_pwe_session(&mut original, limits(deadline), &cancelled, |payer, session| {
+                let prepared = host_session_result(session.prepare(object), payer,
+                    invalid("PWE selected account value shape"))?;
+                if stage < 5 {
+                    payer.with_operation(|operation| {
+                        let work = operation.limits()?.max_work;
+                        operation.lower_remaining(1, work)
+                    })?;
+                }
+                let before = session.charges();
+                let body = match stage {
+                    0 => host_session_result(session.check_claim_content(&prepared, &Value::Null),
+                        payer, invalid("PWE source wrapper/content mismatch")),
+                    1 => host_session_result(session.check_endpoints(&prepared),
+                        payer, invalid("PWE account endpoints/member closure")),
+                    2 | 6 => host_session_result(session.exact_basis(&prepared), payer,
+                        unsupported("PWE exact basis requires all declared bindings")).map(|_| ()),
+                    3 | 7 => host_session_result(session.check_role_matrix(&prepared, &[]), payer,
+                        unsupported("PWE actual metadata responsibility/identity role binding differs")),
+                    _ => host_session_result(session.qualify(prepared), payer,
+                        unsupported("PWE account qualification is unresolved")).map(|_| ()),
+                };
+                if stage < 5 {
+                    assert!(matches!(&body, Err(SourceCommandError::Invalid(
+                        "assessment cumulative byte budget"
+                    ))));
+                    assert!(session.charges().2 > before.2);
+                }
+                body
+            });
+            if stage < 5 {
+                assert!(matches!(result, Err(SourceCommandError::Invalid(
+                    "assessment cumulative byte budget"
+                ))));
+            } else {
+                let expected = match stage {
+                    5 => "PWE account qualification is unresolved",
+                    6 => "PWE exact basis requires all declared bindings",
+                    _ => "PWE actual metadata responsibility/identity role binding differs",
+                };
+                assert!(matches!(result, Err(SourceCommandError::Unsupported(reason)) if reason == expected));
+                assert!(original.limits().is_ok());
+            }
+        }
     }
 }

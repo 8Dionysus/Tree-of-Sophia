@@ -25,11 +25,13 @@ impl NativeBasis {
         roles: &mut RoleCache,
         session: &mut Session<'_>,
         account: &PreparedAccount<'_>,
+        payer: &dyn super::source_budget::OriginalPayer,
     ) -> SourceCommandResult<Self> {
         frames.verify()?;
-        let slots = session
-            .exact_basis(account)
-            .map_err(|_| unsupported("PWE exact basis requires all declared bindings"))?;
+        let slots = super::owner::host_session_result(
+            session.exact_basis(account), payer,
+            unsupported("PWE exact basis requires all declared bindings"),
+        )?;
         if slots.len() > MAX_RECORDS {
             return Err(unsupported("PWE ordered exact basis slot cap"));
         }

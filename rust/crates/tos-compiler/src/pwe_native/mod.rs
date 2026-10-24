@@ -15,7 +15,7 @@ pub use basis::{Error, Limits, PweRef, Result, Session, SourceAdmission, SourceA
 pub use identity::{
     AccountObservation, AttributionAnswer, AttributionObservation, AttributionQuestion, Conflict,
     ConsumerOwner, EdgeDisposition, IdentityInput, IdentityView, JointCarrier, JointCarrierOwner,
-    JointWorld, Query, SameEdge, ViewBasis, ViewLayer,
+    JointWorld, Query, SameEdge, ViewBasis, ViewLayer, ViewSource,
 };
 pub use producer::CheckedPreservedCandidate;
 pub use qualification::{
