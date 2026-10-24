@@ -801,7 +801,7 @@ impl SourceRevisionIdentityClosure {
         }
         // One genuine definition hex carrier for this check. Avoid the legacy
         // verifier's per-candidate to_hex allocation inside the predicate scan.
-        debit(budget, 64, 32 + 64 + 64, deadline, cancelled)?;
+        debit(budget, 64 + size_of::<String>(), 32 + 64 + 64, deadline, cancelled)?;
         let definition = session.selection.cohort.definition.to_hex();
         for (token, owner) in &self.owners {
             debit(budget, 0, 1, deadline, cancelled)?;
