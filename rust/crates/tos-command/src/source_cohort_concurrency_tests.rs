@@ -13,6 +13,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_segment_store::{SegmentLimits, SegmentStore};
 
+use crate::source_command::SourceCommandError;
 use crate::source_creation_store::native_owner_test_support as fixture;
 
 const CONTRACT: &[u8] = b"cmd2.private.shadow.contract.v1";
