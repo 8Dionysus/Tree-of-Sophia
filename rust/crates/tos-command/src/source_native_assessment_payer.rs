@@ -43,26 +43,49 @@ pub(crate) fn with_original_pwe_session<T>(
     cancelled: &AtomicBool,
     run: impl FnOnce(&OriginalAssessmentPayer<'_, '_>, &mut Session<'_>) -> SourceCommandResult<T>,
 ) -> SourceCommandResult<T> {
-    active(operation.deadline, cancelled)?;
-    operation.limits()?;
+    with_original_session_result(operation, limits, cancelled, |error| error, run)
+}
+
+/// The same ONE resource Session for a PG/owner body with real Durable errors.
+/// The control mapper is only an error constructor, never a payer or retry.
+/// Body Err retains its original owned cause even if the resource exit also
+/// refuses; successful bodies cannot escape a failed original cutoff.
+pub(crate) fn with_original_pwe_session_durable<T>(
+    operation: &mut OperationBudget,
+    limits: Limits,
+    cancelled: &AtomicBool,
+    run: impl FnOnce(&OriginalAssessmentPayer<'_, '_>, &mut Session<'_>) -> crate::DurableResult<T>,
+) -> crate::DurableResult<T> {
+    with_original_session_result(operation, limits, cancelled, crate::DurableError::Source, run)
+}
+
+fn with_original_session_result<T, E>(
+    operation: &mut OperationBudget,
+    limits: Limits,
+    cancelled: &AtomicBool,
+    control: fn(SourceCommandError) -> E,
+    run: impl FnOnce(&OriginalAssessmentPayer<'_, '_>, &mut Session<'_>) -> std::result::Result<T, E>,
+) -> std::result::Result<T, E> {
+    active(operation.deadline, cancelled).map_err(control)?;
+    operation.limits().map_err(control)?;
     if limits.deadline > operation.deadline
         || limits.max_input_bytes > operation.bytes_remaining
         || limits.max_state_bytes > operation.bytes_remaining
         || limits.max_work > operation.work_remaining
     {
-        return Err(SourceCommandError::Invalid(
+        return Err(control(SourceCommandError::Invalid(
             "PWE Session exceeds original Assessment remainder",
-        ));
+        )));
     }
     let carriers = size_of::<OriginalAssessmentPayer<'_, '_>>()
         .checked_add(size_of::<Session<'_>>())
-        .and_then(|n| n.checked_add(size_of::<SourceCommandResult<T>>()))
+        .and_then(|n| n.checked_add(size_of::<std::result::Result<T, E>>()))
         .and_then(|n| n.checked_add(size_of::<Error>()))
         .ok_or(SourceCommandError::Unsupported(
             "PWE original payer carriers",
-        ))?;
-    operation.charge_bytes(carriers)?;
-    operation.charge_work(limits.max_work)?;
+        )).map_err(control)?;
+    operation.charge_bytes(carriers).map_err(control)?;
+    operation.charge_work(limits.max_work).map_err(control)?;
     let deadline = operation.deadline;
     let payer = OriginalAssessmentPayer {
         operation: RefCell::new(operation),
@@ -72,11 +95,11 @@ pub(crate) fn with_original_pwe_session<T>(
         failed: Cell::new(false),
     };
     let mut session =
-        Session::new_source(limits, cancelled, &payer).map_err(|error| payer.error(error))?;
+        Session::new_source(limits, cancelled, &payer).map_err(|error| control(payer.error(error)))?;
     let result = run(&payer, &mut session);
     // Check on Err too. This is a resource cutoff, not the PG owner's freshness
     // fence; the actual read epoch must additionally perform its own exit.
-    let cutoff = payer.finish();
+    let cutoff = payer.finish().map_err(control);
     match (result, cutoff) {
         (Err(error), _) | (Ok(_), Err(error)) => Err(error),
         (Ok(value), Ok(())) => Ok(value),
@@ -542,6 +565,56 @@ mod tests {
             assert_eq!(original.work_remaining, work_before - 64);
             // Same original byte payer, no work proxy, replacement or refill.
             assert_eq!(original.bytes_remaining, bytes_at_callback.get() - 188);
+        }
+    }
+
+    #[test]
+    fn durable_session_keeps_body_fault_and_denies_failed_resource_exit() {
+        use crate::DurableError;
+        for lane in 0..3 {
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let cancelled = AtomicBool::new(false);
+            let mut original = OperationBudget::new(
+                &serde_json::json!({"budgets": {
+                    "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+                }}), deadline,
+            ).unwrap();
+            let work_before = original.work_remaining;
+            let limits = Limits {
+                max_input_bytes: 128,
+                max_nodes: 16,
+                max_work: 64,
+                max_refs: 8,
+                max_depth: 8,
+                max_items: 8,
+                max_state_bytes: 128,
+                deadline,
+            };
+            let result: crate::DurableResult<()> = with_original_pwe_session_durable(
+                &mut original, limits, &cancelled, |payer, _same| {
+                    if lane == 2 {
+                        return payer.reserve(usize::MAX).map_err(DurableError::Source);
+                    }
+                    cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+                    if lane == 0 {
+                        Err(DurableError::Conflict("durable original body fault"))
+                    } else {
+                        Ok(())
+                    }
+                },
+            );
+            match lane {
+                0 => assert!(matches!(result,
+                    Err(DurableError::Conflict("durable original body fault")))),
+                1 => assert!(matches!(result, Err(DurableError::Source(
+                    SourceCommandError::Denied(_)
+                )))),
+                _ => assert!(matches!(result, Err(DurableError::Source(
+                    SourceCommandError::Invalid("assessment cumulative byte budget")
+                )))),
+            }
+            assert_eq!(original.work_remaining, work_before - 64,
+                "one Session work reservation; no replacement or refund");
         }
     }
 }

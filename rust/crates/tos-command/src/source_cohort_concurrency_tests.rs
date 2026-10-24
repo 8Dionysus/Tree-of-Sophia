@@ -952,6 +952,117 @@ fn lab_fixture(deadline: Instant, cancelled: &AtomicBool) -> Fixture {
 }
 
 #[test]
+fn selected_pg_payload_loan_reads_each_member_once_and_fences_body_and_success_exits() {
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session_durable;
+    use crate::source_native_cli::PgGrowthCurrentInput;
+    use tos_compiler::pwe_native::Limits;
+
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    // Existing real source/cohort/STO fixture setup is outside this selected
+    // invocation. No new issuer, profile, security grant or production data.
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let path = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
+    let paths = std::collections::BTreeSet::from([
+        path.clone(), RelativePath::parse(&fixture.targets[1].source_path).unwrap(),
+    ]);
+    let expected = fixture.original_cut
+        .read_member(fixture.initial_revision, &path, 8_388_608, deadline, &cancelled)
+        .unwrap().raw;
+    let expected_digest = Digest256::of_bytes(&expected);
+    let inspection = expected.len().checked_mul(2)
+        .and_then(|n| path.as_str().len().checked_mul(2).and_then(|p| n.checked_add(p)))
+        .and_then(|n| n.checked_add(2 * std::mem::size_of::<Digest256>() + 2 * std::mem::size_of::<u64>()))
+        .unwrap();
+    let database_url = std::env::var("TOS_CMD_POSTGRES_URL").unwrap();
+    let mut conflicting = DurablePgCoordinator::connect(&database_url).unwrap();
+    let domain = fixture.domain.clone();
+    let mut job_fence = 1;
+    for lane in 0..3 {
+        let mut budget = OperationBudget::new(&json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}), deadline).unwrap();
+        let limits = Limits {
+            max_input_bytes: 4_194_304,
+            max_nodes: 1024,
+            max_work: 262_144,
+            max_refs: 64,
+            max_depth: 16,
+            max_items: 64,
+            max_state_bytes: 8_388_608,
+            deadline,
+        };
+        let result = fixture.coordinator.with_source_revision_session_with_exit_data_admission(
+            &fixture.store, &domain, JOB_ID, job_fence, deadline, &cancelled,
+            &mut budget, |epoch, original| {
+                let input = PgGrowthCurrentInput::new(epoch, 64, 8_388_608)
+                    .map_err(|_| DurableError::Invalid("payload test selected input"))?;
+                with_original_pwe_session_durable(original, limits, &cancelled, |payer, session| {
+                    input.with_current_payload_loan(
+                        payer, session, &paths, 8_388_608, |loan| {
+                            if lane == 0 {
+                                let unselected = RelativePath::parse(
+                                    "ToS/contracts/semantic-entity-type-registry.schema.json"
+                                ).unwrap();
+                                assert!(matches!(loan.with_bytes(&unselected, |_, _| {
+                                    panic!("existing but unselected payload must not be exposed")
+                                }), Err(DurableError::Refused(
+                                    "PG payload path outside selected loan"
+                                ))));
+                            }
+                            let mut first_input_charge = None;
+                            for round in 0..2 {
+                                loan.with_bytes(&path, |payload, same| {
+                                    // Assertions inspect the actual borrowed
+                                    // bytes; pay that work on this SAME Session.
+                                    same.admit_source_work(inspection)
+                                        .map_err(|error| DurableError::Source(payer.error(error)))?;
+                                    assert_eq!(payload.member().raw, expected);
+                                    assert_eq!(payload.member().path, path);
+                                    assert_eq!(payload.member().current_generation, payload.selected().head_seq);
+                                    assert_eq!(payload.member().metadata.sha256, expected_digest);
+                                    if let Some(before) = first_input_charge {
+                                        assert_eq!(same.charges().0, before,
+                                            "repeat borrowing is not another payload read");
+                                    } else {
+                                        first_input_charge = Some(same.charges().0);
+                                    }
+                                    if lane != 0 && round == 0 {
+                                        conflicting.set_job_epoch(&domain, JOB_ID, job_fence + 1)?;
+                                        if lane == 1 {
+                                            return Err(DurableError::Source(
+                                                SourceCommandError::Denied("payload test original body fault")
+                                            ));
+                                        }
+                                    }
+                                    Ok(())
+                                })?;
+                            }
+                            Ok(())
+                        },
+                    )
+                })
+            },
+        );
+        match lane {
+            0 => {
+                let ((), readset) = result.unwrap();
+                assert_eq!(readset.work.exact_source_members_read, paths.len() as u64);
+                assert_eq!(readset.observations().len(), paths.len());
+            }
+            1 => assert!(matches!(result, Err(DurableError::Source(
+                SourceCommandError::Denied("payload test original body fault")
+            )))),
+            _ => assert!(matches!(result, Err(DurableError::Conflict(
+                "bounded source revision job lease changed"
+            )))),
+        }
+        if lane != 0 { job_fence += 1; }
+    }
+}
+
+#[test]
 fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_record() {
     let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);

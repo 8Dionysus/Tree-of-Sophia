@@ -20,7 +20,7 @@ use crate::source_cohort::revision::{PgRecordRevisionIdentity, SourceRevisionRea
 use crate::source_command::SourceCommandError;
 use crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer;
 use crate::{DurableError, DurableResult};
-use std::mem::size_of;
+use std::{collections::BTreeSet, mem::size_of};
 use tos_compiler::pwe_native::Session;
 use tos_foundation::RelativePath;
 
@@ -35,7 +35,7 @@ pub(crate) struct PgCurrentPayloadLoan<'host, 'store, 'budget, 'cancel, 'pure> {
     epoch: &'host mut SourceRevisionReadSession<'store>,
     payer: &'host OriginalAssessmentPayer<'budget, 'cancel>,
     selected: PgRecordRevisionIdentity,
-    member: ManagedCurrentMember,
+    members: Vec<ManagedCurrentMember>,
     session: &'host mut Session<'pure>,
 }
 
@@ -59,7 +59,9 @@ impl PgCurrentPayloadRef<'_> {
 }
 
 impl<'store> PgGrowthCurrentInput<'_, 'store> {
-    /// Enter an actual selected PG epoch and read one physical CURRENT member.
+    /// Enter an actual selected PG epoch and read the ENTIRE explicit path set.
+    /// The selected set is bounded by this input profile, not by corpus size.
+    /// No prefix walk, top-N subset or silent truncation supplies completeness.
     /// The existing callback pays every STO request on the original Session,
     /// including EOF/Err prefixes. Freshness-query DATA uses the same payer.
     /// This does not fund the existing committed-read SQL, metadata clones,
@@ -70,7 +72,7 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
         &self,
         payer: &OriginalAssessmentPayer<'budget, 'cancel>,
         session: &mut Session<'pure>,
-        path: &RelativePath,
+        paths: &BTreeSet<RelativePath>,
         max_bytes: u64,
         run: impl FnOnce(
             &mut PgCurrentPayloadLoan<'_, 'store, 'budget, 'cancel, 'pure>,
@@ -80,8 +82,8 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
         payer
             .charge_sto_source_measures(session, 0, 0, 0, 0, 0)
             .map_err(DurableError::Source)?;
-        if max_bytes == 0 {
-            return Err(DurableError::Refused("PG payload loan empty read cap"));
+        if max_bytes == 0 || paths.is_empty() || paths.len() > self.max_prefix_members {
+            return Err(DurableError::Refused("PG payload loan selected set or read cap"));
         }
         let max_bytes = max_bytes.min(self.max_member_bytes as u64);
         let (deadline, cancelled) = payer.source_cutoff();
@@ -91,11 +93,17 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
             .ok_or(DurableError::Source(SourceCommandError::Unsupported(
                 "PG payload loan logical carriers overflow",
             )))?;
-        let comparisons = path.as_str().len().checked_mul(4).ok_or(
-            DurableError::Source(SourceCommandError::Unsupported(
-                "PG payload loan path comparison overflow",
-            )),
-        )?;
+        let comparisons = paths.iter().try_fold(0usize, |sum, path| {
+            path.as_str().len().checked_mul(4)
+                .and_then(|work| sum.checked_add(work))
+                .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+                    "PG payload loan path comparison overflow",
+                )))
+        })?;
+        let backing = paths.len().checked_mul(size_of::<ManagedCurrentMember>())
+            .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+                "PG payload loan selected carrier backing overflow",
+            )))?;
         // Logical incoming/result holders and both path comparisons, before
         // construction. This is not a complete activation/driver/RSS quote.
         payer
@@ -107,17 +115,29 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
             deadline,
             cancelled,
             |epoch| {
-                let member = payer.read_current_member_sto_source(
-                    session, epoch, &selected, path, max_bytes,
-                )?;
-                if member.path != *path
-                    || member.metadata.path != *path
-                    || member.current_generation != selected.head_seq
-                    || member.metadata.size_bytes != member.raw.len() as u64
-                {
-                    return Err(DurableError::Conflict(
-                        "PG payload loan differs from its actual current observation",
-                    ));
+                // Pay the whole requested Vec backing before allocation. Old
+                // observation/raw clones still belong to the explicit lower
+                // metadata/native funding debt; this is not a fake full quote.
+                session.retain_source_state(backing)
+                    .map_err(|error| DurableError::Source(payer.error(error)))?;
+                let mut members = Vec::new();
+                members.try_reserve_exact(paths.len()).map_err(|_| {
+                    DurableError::Source(payer.error(tos_compiler::pwe_native::Error::ResourceLimit))
+                })?;
+                for path in paths {
+                    let member = payer.read_current_member_sto_source(
+                        session, epoch, &selected, path, max_bytes,
+                    )?;
+                    if member.path != *path
+                        || member.metadata.path != *path
+                        || member.current_generation != selected.head_seq
+                        || member.metadata.size_bytes != member.raw.len() as u64
+                    {
+                        return Err(DurableError::Conflict(
+                            "PG payload loan differs from its actual current observation",
+                        ));
+                    }
+                    members.push(member);
                 }
                 // The returned buffer came only from the verified physical
                 // current read above; no reconstructed JSON or caller Vec.
@@ -125,7 +145,7 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
                     epoch,
                     payer,
                     selected,
-                    member,
+                    members,
                     session,
                 };
                 let result = run(&mut loan);
@@ -146,6 +166,7 @@ impl<'pure> PgCurrentPayloadLoan<'_, '_, '_, '_, 'pure> {
     /// merely borrowing a slice does not debit their size a second time.
     pub(crate) fn with_bytes<T>(
         &mut self,
+        path: &RelativePath,
         run: impl FnOnce(PgCurrentPayloadRef<'_>, &mut Session<'pure>) -> DurableResult<T>,
     ) -> DurableResult<T> {
         self.payer
@@ -174,13 +195,29 @@ impl<'pure> PgCurrentPayloadLoan<'_, '_, '_, '_, 'pure> {
             return Err(DurableError::Conflict("PG payload issuing epoch changed"));
         }
         admitted_freshness_data(self.epoch, self.payer, deadline, cancelled)?;
-        let result = run(
-            PgCurrentPayloadRef {
-                selected: &self.selected,
-                member: &self.member,
-            },
-            self.session,
-        );
+        let result = (|| {
+            // Each comparison can inspect both common prefixes plus its first
+            // boundary. Bounding by every SELECTED member is conservative even
+            // for the binary search; it never depends on the whole corpus size.
+            let lookup_work = path.as_str().len().checked_add(1)
+                .and_then(|n| n.checked_mul(2))
+                .and_then(|n| n.checked_mul(self.members.len()))
+                .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+                    "PG payload selected lookup work overflow",
+                )))?;
+            self.payer.inspect(0, lookup_work).map_err(DurableError::Source)?;
+            let index = self.members.binary_search_by(|member| member.path.cmp(path));
+            match index {
+                Err(_) => Err(DurableError::Refused("PG payload path outside selected loan")),
+                Ok(index) => run(
+                    PgCurrentPayloadRef {
+                        selected: &self.selected,
+                        member: &self.members[index],
+                    },
+                    self.session,
+                ),
+            }
+        })();
         let cutoff = self
             .payer
             .charge_sto_source_measures(self.session, 0, 0, 0, 0, 0)
