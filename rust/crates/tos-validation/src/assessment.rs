@@ -29,7 +29,6 @@ use crate::source_cut::{
     CutSchemaExecutor, CutWorkerSchemaExecutor,
 };
 
-
 pub const MAX_ASSESSMENTS: usize = 1024;
 pub const MAX_RECORD_BYTES: usize = 1_048_576;
 pub const MAX_REQUIRED_ADMISSIONS: usize = 64;
@@ -2342,11 +2341,16 @@ mod manual_authoring {
     // New comparisons must be admitted BEFORE reading key/string contents. Values
     // are borrowed from the original bounded owner snapshot; no cloned source tree.
     fn equal(a: &str, b: &str, work: &mut Work<'_>) -> Result<bool> {
-        work.tick(a.len().checked_add(b.len()).ok_or(AssessmentRefusal::Budget)?)?;
+        work.tick(
+            a.len()
+                .checked_add(b.len())
+                .ok_or(AssessmentRefusal::Budget)?,
+        )?;
         Ok(a == b)
     }
     fn get<'a>(value: &'a Value, key: &str, work: &mut Work<'_>) -> Result<&'a Value> {
-        optional(value, key, work)?.ok_or_else(|| super::bad("manual-authoring.required-field-missing"))
+        optional(value, key, work)?
+            .ok_or_else(|| super::bad("manual-authoring.required-field-missing"))
     }
     fn optional<'a>(value: &'a Value, key: &str, work: &mut Work<'_>) -> Result<Option<&'a Value>> {
         work.tick(1)?;
@@ -2403,7 +2407,10 @@ mod manual_authoring {
         };
         let a_raw = a_number.as_str();
         let b_raw = b_number.as_str();
-        let bytes = a_raw.len().checked_add(b_raw.len()).ok_or(AssessmentRefusal::Budget)?;
+        let bytes = a_raw
+            .len()
+            .checked_add(b_raw.len())
+            .ok_or(AssessmentRefusal::Budget)?;
         work.tick(bytes.checked_mul(8).ok_or(AssessmentRefusal::Budget)?)?;
         let a_int = !a_raw.bytes().any(|b| matches!(b, b'.' | b'e' | b'E'));
         let b_int = !b_raw.bytes().any(|b| matches!(b, b'.' | b'e' | b'E'));
@@ -2419,7 +2426,9 @@ mod manual_authoring {
         // maximum-size reservation. Token parse/copy passes were paid above.
         for (number, integer) in [(a_number, a_int), (b_number, b_int)] {
             if !integer {
-                let value = number.as_f64().ok_or_else(|| super::unsupported("manual-authoring.numeric-representation"))?;
+                let value = number
+                    .as_f64()
+                    .ok_or_else(|| super::unsupported("manual-authoring.numeric-representation"))?;
                 if !value.is_finite() {
                     return Err(super::unsupported("manual-authoring.nonfinite-number"));
                 }
@@ -2438,20 +2447,29 @@ mod manual_authoring {
             return invalid("manual-authoring.exact-reference-version");
         };
         let lexeme = number.as_str();
-        work.tick(lexeme.len().checked_mul(4).ok_or(AssessmentRefusal::Budget)?)?;
+        work.tick(
+            lexeme
+                .len()
+                .checked_mul(4)
+                .ok_or(AssessmentRefusal::Budget)?,
+        )?;
         let integral = if lexeme.bytes().all(|b| b.is_ascii_digit()) {
             lexeme != "0"
         } else {
             // ExactRef uses the maintained schema/Python numeric interpretation.
             // The actual selected owner record still supplies a positive Int.
-            number.as_f64().is_some_and(|n| n.is_finite() && n > 0.0 && n.fract() == 0.0)
+            number
+                .as_f64()
+                .is_some_and(|n| n.is_finite() && n > 0.0 && n.fract() == 0.0)
         };
         let digest = text(get(value, "digest", work)?, work)?;
         work.tick(digest.len())?;
         if !integral
             || digest.len() != 71
             || !digest.starts_with("sha256:")
-            || !digest.as_bytes()[7..].iter().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))
+            || !digest.as_bytes()[7..]
+                .iter()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))
         {
             return invalid("manual-authoring.exact-reference");
         }
@@ -2462,7 +2480,11 @@ mod manual_authoring {
         let b = exact(b, work)?;
         Ok(equal(a.0, b.0, work)? && numeric_equal(a.1, b.1, work)? && equal(a.2, b.2, work)?)
     }
-    fn selected<'a>(reference: &Value, context: &'a Context, work: &mut Work<'_>) -> Result<&'a Record> {
+    fn selected<'a>(
+        reference: &Value,
+        context: &'a Context,
+        work: &mut Work<'_>,
+    ) -> Result<&'a Record> {
         exact(reference, work)?;
         for record in &context.required {
             work.tick(1)?;
@@ -2472,13 +2494,19 @@ mod manual_authoring {
         }
         invalid("manual-authoring.evidence-outside-owner-required-closure")
     }
-    fn citation<'a>(value: &Value, context: &'a Context, assessment: &Value, work: &mut Work<'_>) -> Result<&'a Record> {
+    fn citation<'a>(
+        value: &Value,
+        context: &'a Context,
+        assessment: &Value,
+        work: &mut Work<'_>,
+    ) -> Result<&'a Record> {
         closed(value, &["record", "locator"], work)?;
         let reference = get(value, "record", work)?;
         let locator = text(get(value, "locator", work)?, work)?;
         let selected = selected(reference, context, work)?;
         work.tick(locator.len())?;
-        let pointer = locator.strip_prefix("json-pointer:")
+        let pointer = locator
+            .strip_prefix("json-pointer:")
             .filter(|pointer| pointer.starts_with('/'))
             .ok_or_else(|| super::bad("manual-authoring.locator-adapter-not-installed"))?;
         // This first registered adapter reads an actual field of the exact
@@ -2498,7 +2526,11 @@ mod manual_authoring {
     }
 
     fn segment_equal(key: &str, encoded: &str, work: &mut Work<'_>) -> Result<bool> {
-        work.tick(key.len().checked_add(encoded.len()).ok_or(AssessmentRefusal::Budget)?)?;
+        work.tick(
+            key.len()
+                .checked_add(encoded.len())
+                .ok_or(AssessmentRefusal::Budget)?,
+        )?;
         let mut key = key.bytes();
         let mut encoded = encoded.bytes();
         while let Some(byte) = encoded.next() {
@@ -2526,7 +2558,9 @@ mod manual_authoring {
     }
     fn pointer_at<'a>(root: &'a Value, pointer: &str, work: &mut Work<'_>) -> Result<&'a Value> {
         work.tick(pointer.len())?;
-        if !pointer.starts_with('/') { return invalid("manual-authoring.value-pointer-root"); }
+        if !pointer.starts_with('/') {
+            return invalid("manual-authoring.value-pointer-root");
+        }
         let mut value = root;
         for segment in pointer.split('/').skip(1) {
             work.tick(1)?;
@@ -2550,8 +2584,12 @@ mod manual_authoring {
                     {
                         return invalid("manual-authoring.value-pointer-index");
                     }
-                    let index = segment.parse::<usize>().map_err(|_| AssessmentRefusal::Budget)?;
-                    array.get(index).ok_or_else(|| super::bad("manual-authoring.value-pointer-missing"))?
+                    let index = segment
+                        .parse::<usize>()
+                        .map_err(|_| AssessmentRefusal::Budget)?;
+                    array
+                        .get(index)
+                        .ok_or_else(|| super::bad("manual-authoring.value-pointer-missing"))?
                 }
                 _ => return invalid("manual-authoring.value-pointer-missing"),
             };
@@ -2562,28 +2600,39 @@ mod manual_authoring {
         work.tick(1)?;
         match (a, b) {
             (Value::String(a), Value::String(b)) => equal(a, b, work),
-            (Value::Number(_), Value::Number(_)) => {
-                numeric_equal(a, b, work)
-            }
+            (Value::Number(_), Value::Number(_)) => numeric_equal(a, b, work),
             (Value::Bool(a), Value::Bool(b)) => Ok(a == b),
             (Value::Null, Value::Null) => Ok(true),
             (Value::Array(a), Value::Array(b)) => {
-                if a.len() != b.len() { return Ok(false); }
+                if a.len() != b.len() {
+                    return Ok(false);
+                }
                 for (a, b) in a.iter().zip(b) {
-                    if !values_equal(a, b, work)? { return Ok(false); }
+                    if !values_equal(a, b, work)? {
+                        return Ok(false);
+                    }
                 }
                 Ok(true)
             }
             (Value::Object(a), Value::Object(b)) => {
-                if a.len() != b.len() { return Ok(false); }
+                if a.len() != b.len() {
+                    return Ok(false);
+                }
                 for (key, a) in a {
                     let mut found = None;
                     for (other, b) in b {
                         work.tick(1)?;
-                        if equal(key, other, work)? { found = Some(b); break; }
+                        if equal(key, other, work)? {
+                            found = Some(b);
+                            break;
+                        }
                     }
-                    let Some(b) = found else { return Ok(false); };
-                    if !values_equal(a, b, work)? { return Ok(false); }
+                    let Some(b) = found else {
+                        return Ok(false);
+                    };
+                    if !values_equal(a, b, work)? {
+                        return Ok(false);
+                    }
                 }
                 Ok(true)
             }
@@ -2591,74 +2640,157 @@ mod manual_authoring {
         }
     }
 
-    fn record_envelope(record: &Record, kind: &str, schema: &str, work: &mut Work<'_>) -> Result<()> {
-        if !equal(text(get(&record.body, "record_type", work)?, work)?, kind, work)?
-            || !equal(text(get(&record.body, "schema_version", work)?, work)?, schema, work)?
-            || !equal(text(get(&record.body, "record_id", work)?, work)?, &record.id, work)?
-            || !numeric_equal(get(&record.body, "record_version", work)?, &record.version, work)?
-        { return invalid("manual-authoring.source-record-envelope"); }
+    fn record_envelope(
+        record: &Record,
+        kind: &str,
+        schema: &str,
+        work: &mut Work<'_>,
+    ) -> Result<()> {
+        if !equal(
+            text(get(&record.body, "record_type", work)?, work)?,
+            kind,
+            work,
+        )? || !equal(
+            text(get(&record.body, "schema_version", work)?, work)?,
+            schema,
+            work,
+        )? || !equal(
+            text(get(&record.body, "record_id", work)?, work)?,
+            &record.id,
+            work,
+        )? || !numeric_equal(
+            get(&record.body, "record_version", work)?,
+            &record.version,
+            work,
+        )? {
+            return invalid("manual-authoring.source-record-envelope");
+        }
         Ok(())
     }
-    fn selected_basis<'a>(context: &'a Context, assessment: &Value, work: &mut Work<'_>) -> Result<&'a Value> {
+    fn selected_basis<'a>(
+        context: &'a Context,
+        assessment: &Value,
+        work: &mut Work<'_>,
+    ) -> Result<&'a Value> {
         // Only actual owner-required source records may supply this artifact.
         // An inline Claim qualifier, reviewer body or caller complete flag cannot.
         let mut selected_record = None;
         for record in &context.required {
             work.tick(1)?;
-            let Some(kind) = optional(&record.body, "record_type", work)? else { continue; };
-            if !equal(text(kind, work)?, "manual-authoring-basis", work)? { continue; }
-            record_envelope(record, "manual-authoring-basis", "tos_manual_authoring_basis_record_v1", work)?;
+            let Some(kind) = optional(&record.body, "record_type", work)? else {
+                continue;
+            };
+            if !equal(text(kind, work)?, "manual-authoring-basis", work)? {
+                continue;
+            }
+            record_envelope(
+                record,
+                "manual-authoring-basis",
+                "tos_manual_authoring_basis_record_v1",
+                work,
+            )?;
             let body = get(&record.body, "body", work)?;
             closed(body, &["target", "procedure", "basis"], work)?;
-            if !same_reference(get(body, "target", work)?, &context.subject.reference, work)? { continue; }
+            if !same_reference(get(body, "target", work)?, &context.subject.reference, work)? {
+                continue;
+            }
             if selected_record.replace(record).is_some() {
                 return invalid("manual-authoring.multiple-current-bases-for-exact-claim");
             }
         }
-        let record = selected_record.ok_or_else(|| super::bad("manual-authoring.exact-source-basis-not-selected"))?;
+        let record = selected_record
+            .ok_or_else(|| super::bad("manual-authoring.exact-source-basis-not-selected"))?;
         let body = get(&record.body, "body", work)?;
         let procedure_ref = get(body, "procedure", work)?;
         let procedure = selected(procedure_ref, context, work)?;
-        record_envelope(procedure, "manual-authoring-procedure", "tos_manual_authoring_procedure_record_v1", work)?;
-        if !same_reference(procedure_ref, get(get(assessment, "method", work)?, "procedure_ref", work)?, work)? {
+        record_envelope(
+            procedure,
+            "manual-authoring-procedure",
+            "tos_manual_authoring_procedure_record_v1",
+            work,
+        )?;
+        if !same_reference(
+            procedure_ref,
+            get(get(assessment, "method", work)?, "procedure_ref", work)?,
+            work,
+        )? {
             return invalid("manual-authoring.qualified-procedure-differs");
         }
         let protocol = get(&procedure.body, "body", work)?;
-        closed(protocol, &["requested_use", "basis_schema_version", "locator_adapter", "reasons"], work)?;
-        for (key, expected) in [("requested_use", USE), ("basis_schema_version", VERSION), ("locator_adapter", "json-pointer-record-body-v1")] {
+        closed(
+            protocol,
+            &[
+                "requested_use",
+                "basis_schema_version",
+                "locator_adapter",
+                "reasons",
+            ],
+            work,
+        )?;
+        for (key, expected) in [
+            ("requested_use", USE),
+            ("basis_schema_version", VERSION),
+            ("locator_adapter", "json-pointer-record-body-v1"),
+        ] {
             if !equal(text(get(protocol, key, work)?, work)?, expected, work)? {
                 return invalid("manual-authoring.procedure-protocol-differs");
             }
         }
         let reasons = items(get(protocol, "reasons", work)?, true, work)?;
-        if reasons.len() != 3 { return invalid("manual-authoring.procedure-reasons"); }
-        for expected in ["source-contradiction", "scoped-information-absence", "unestablished-identity"] {
+        if reasons.len() != 3 {
+            return invalid("manual-authoring.procedure-reasons");
+        }
+        for expected in [
+            "source-contradiction",
+            "scoped-information-absence",
+            "unestablished-identity",
+        ] {
             let mut count = 0;
             for reason in reasons {
-                if equal(text(reason, work)?, expected, work)? { count += 1; }
+                if equal(text(reason, work)?, expected, work)? {
+                    count += 1;
+                }
             }
-            if count != 1 { return invalid("manual-authoring.procedure-reasons"); }
+            if count != 1 {
+                return invalid("manual-authoring.procedure-reasons");
+            }
         }
         get(body, "basis", work)
     }
 
     fn check(context: &Context, assessment: &Value, work: &mut Work<'_>) -> Result<()> {
         let claim = &context.subject.body;
-        if !equal(text(get(claim, "claim_id", work)?, work)?, &context.subject.id, work)?
-            || !numeric_equal(get(claim, "claim_version", work)?, &context.subject.version, work)?
-        {
+        if !equal(
+            text(get(claim, "claim_id", work)?, work)?,
+            &context.subject.id,
+            work,
+        )? || !numeric_equal(
+            get(claim, "claim_version", work)?,
+            &context.subject.version,
+            work,
+        )? {
             return invalid("manual-authoring.claim-envelope-mismatch");
         }
         let basis = selected_basis(context, assessment, work)?;
         let version = text(get(basis, "schema_version", work)?, work)?;
-        if !equal(version, VERSION, work)? { return invalid("manual-authoring.basis-version"); }
+        if !equal(version, VERSION, work)? {
+            return invalid("manual-authoring.basis-version");
+        }
         let question = get(basis, "question", work)?;
         closed(question, &["subject", "predicate", "value_path"], work)?;
         let subject = get(question, "subject", work)?;
         let subject_record = selected(subject, context, work)?;
-        if !equal(&subject_record.id, text(get(claim, "subject_ref", work)?, work)?, work)?
-            || !equal(text(get(question, "predicate", work)?, work)?, text(get(claim, "predicate", work)?, work)?, work)?
-        { return invalid("manual-authoring.question-mismatch"); }
+        if !equal(
+            &subject_record.id,
+            text(get(claim, "subject_ref", work)?, work)?,
+            work,
+        )? || !equal(
+            text(get(question, "predicate", work)?, work)?,
+            text(get(claim, "predicate", work)?, work)?,
+            work,
+        )? {
+            return invalid("manual-authoring.question-mismatch");
+        }
         let pointer = text(get(question, "value_path", work)?, work)?;
         value_at(claim, pointer, work)?;
         let finding = text(get(basis, "finding", work)?, work)?;
@@ -2666,19 +2798,40 @@ mod manual_authoring {
         // New manual-use qualification cannot label an explicitly uncertain source
         // assertion determinate. Reported source-unknown is still a scoped report;
         // its actual meaning/adequacy is the competent reviewer's judgment.
-        let mut source_unresolved = equal(status, "uncertain", work)? || equal(status, "disputed", work)?;
+        let mut source_unresolved =
+            equal(status, "uncertain", work)? || equal(status, "disputed", work)?;
         if let Some(polarity) = optional(claim, "polarity", work)? {
             source_unresolved |= equal(text(polarity, work)?, "unknown", work)?;
         }
         if equal(finding, "determinate", work)? {
             closed(basis, &["schema_version", "question", "finding"], work)?;
-            if source_unresolved { return invalid("manual-authoring.unresolved-source-as-determinate"); }
+            if source_unresolved {
+                return invalid("manual-authoring.unresolved-source-as-determinate");
+            }
             return Ok(());
         }
-        if !equal(finding, "unresolved", work)? { return invalid("manual-authoring.finding"); }
-        closed(basis, &["schema_version", "question", "finding", "grounds"], work)?;
+        if !equal(finding, "unresolved", work)? {
+            return invalid("manual-authoring.finding");
+        }
+        closed(
+            basis,
+            &["schema_version", "question", "finding", "grounds"],
+            work,
+        )?;
         let grounds = get(basis, "grounds", work)?;
-        closed(grounds, &["reason", "rationale", "read_extent", "alternatives", "residual", "resolution", "details"], work)?;
+        closed(
+            grounds,
+            &[
+                "reason",
+                "rationale",
+                "read_extent",
+                "alternatives",
+                "residual",
+                "resolution",
+                "details",
+            ],
+            work,
+        )?;
         text(get(grounds, "rationale", work)?, work)?;
         text(get(grounds, "residual", work)?, work)?;
         let resolution = get(grounds, "resolution", work)?;
@@ -2690,7 +2843,12 @@ mod manual_authoring {
         text(get(resolution, "statement", work)?, work)?;
         let extent = get(grounds, "read_extent", work)?;
         closed(extent, &["sources", "coverage_basis", "exclusions"], work)?;
-        citation(get(extent, "coverage_basis", work)?, context, assessment, work)?;
+        citation(
+            get(extent, "coverage_basis", work)?,
+            context,
+            assessment,
+            work,
+        )?;
         for source in items(get(extent, "sources", work)?, true, work)? {
             work.tick(1)?;
             citation(source, context, assessment, work)?;
@@ -2707,7 +2865,9 @@ mod manual_authoring {
             citation(get(details, "criterion", work)?, context, assessment, work)?;
             citation(get(details, "scope", work)?, context, assessment, work)?;
             text(get(details, "incompatibility", work)?, work)?;
-            if alternatives.len() < 2 { return invalid("manual-authoring.conflict-needs-alternatives"); }
+            if alternatives.len() < 2 {
+                return invalid("manual-authoring.conflict-needs-alternatives");
+            }
             // Nonidentical source values are a necessary structural condition,
             // not a proof of incompatibility (coauthors/ranges may coexist).
             // The exact criterion/scope and competent assessment own that
@@ -2718,9 +2878,19 @@ mod manual_authoring {
                 let a = citation(alternative, context, assessment, work)?;
                 if !equal(text(get(&a.body, "claim_id", work)?, work)?, &a.id, work)?
                     || !numeric_equal(get(&a.body, "claim_version", work)?, &a.version, work)?
-                    || !equal(text(get(&a.body, "subject_ref", work)?, work)?, &subject_record.id, work)?
-                    || !equal(text(get(&a.body, "predicate", work)?, work)?, text(get(claim, "predicate", work)?, work)?, work)?
-                { return invalid("manual-authoring.alternative-question-mismatch"); }
+                    || !equal(
+                        text(get(&a.body, "subject_ref", work)?, work)?,
+                        &subject_record.id,
+                        work,
+                    )?
+                    || !equal(
+                        text(get(&a.body, "predicate", work)?, work)?,
+                        text(get(claim, "predicate", work)?, work)?,
+                        work,
+                    )?
+                {
+                    return invalid("manual-authoring.alternative-question-mismatch");
+                }
                 let av = value_at(&a.body, pointer, work)?;
                 for other in &alternatives[..i] {
                     work.tick(1)?;
@@ -2731,18 +2901,30 @@ mod manual_authoring {
                     different |= !values_equal(av, value_at(&b.body, pointer, work)?, work)?;
                 }
             }
-            if !different { return invalid("manual-authoring.conflict-with-identical-values"); }
+            if !different {
+                return invalid("manual-authoring.conflict-with-identical-values");
+            }
         } else if equal(reason, "scoped-information-absence", work)? {
             closed(details, &["missing_at", "extent_justification"], work)?;
-            if !equal(text(get(details, "missing_at", work)?, work)?, pointer, work)? {
+            if !equal(
+                text(get(details, "missing_at", work)?, work)?,
+                pointer,
+                work,
+            )? {
                 return invalid("manual-authoring.absence-question-mismatch");
             }
             text(get(details, "extent_justification", work)?, work)?;
-            for alternative in alternatives { citation(alternative, context, assessment, work)?; }
+            for alternative in alternatives {
+                citation(alternative, context, assessment, work)?;
+            }
         } else if equal(reason, "unestablished-identity", work)? {
             // Criterion/comparison evidence belongs to this reason, not to a
             // universal name/string equality heuristic or an invented native role.
-            closed(details, &["identity_level", "criterion", "comparisons", "non_joins"], work)?;
+            closed(
+                details,
+                &["identity_level", "criterion", "comparisons", "non_joins"],
+                work,
+            )?;
             text(get(details, "identity_level", work)?, work)?;
             citation(get(details, "criterion", work)?, context, assessment, work)?;
             for comparison in items(get(details, "comparisons", work)?, true, work)? {
@@ -2753,12 +2935,20 @@ mod manual_authoring {
                 work.tick(1)?;
                 citation(non_join, context, assessment, work)?;
             }
-            for candidate in alternatives { citation(candidate, context, assessment, work)?; }
-        } else { return invalid("manual-authoring.pending-or-unsupported-reason"); }
+            for candidate in alternatives {
+                citation(candidate, context, assessment, work)?;
+            }
+        } else {
+            return invalid("manual-authoring.pending-or-unsupported-reason");
+        }
         Ok(())
     }
 
-    pub(super) fn qualify(context: &Context, assessment: &Value, work: &mut Work<'_>) -> Result<Option<String>> {
+    pub(super) fn qualify(
+        context: &Context,
+        assessment: &Value,
+        work: &mut Work<'_>,
+    ) -> Result<Option<String>> {
         // Only Engine::qualify calls this, for the exact protected requested use
         // and positive decisions. Existing use branches incur no new traversal.
         match check(context, assessment, work) {
@@ -2780,24 +2970,36 @@ mod manual_authoring {
         fn record(id: &str, body: Value, work: &mut Work<'_>) -> Record {
             // Pure value fixtures have no native IDs, authority/grant/cut or
             // complete/readiness evidence. They cannot enter a source schema.
-            Record::read(&AssessmentRecordInput {
-                envelope: serde_json::to_vec(&json!({"id":id,"version":1,
-                    "payload":body,"origin_id":"fixture:origin"})).unwrap(),
-            }, work).unwrap()
+            Record::read(
+                &AssessmentRecordInput {
+                    envelope: serde_json::to_vec(&json!({"id":id,"version":1,
+                    "payload":body,"origin_id":"fixture:origin"}))
+                    .unwrap(),
+                },
+                work,
+            )
+            .unwrap()
         }
         fn cite(record: &Record) -> Value {
             json!({"record":record.reference,"locator":"json-pointer:/evidence"})
         }
         fn retarget(context: &mut Context, work: &mut Work<'_>) {
             let basis = context.subject.body["qualifiers"]["manual_authoring"].clone();
-            let source = record("fixture:basis", json!({
-                "record_id":"fixture:basis", "record_version":1,
-                "record_type":"manual-authoring-basis", "schema_version":"tos_manual_authoring_basis_record_v1",
-                "body":{"target":context.subject.reference,
-                    "procedure":context.required[5].reference,"basis":basis}
-            }), work);
-            if context.required.len() == 6 { context.required.push(source); }
-            else { context.required[6] = source; }
+            let source = record(
+                "fixture:basis",
+                json!({
+                    "record_id":"fixture:basis", "record_version":1,
+                    "record_type":"manual-authoring-basis", "schema_version":"tos_manual_authoring_basis_record_v1",
+                    "body":{"target":context.subject.reference,
+                        "procedure":context.required[5].reference,"basis":basis}
+                }),
+                work,
+            );
+            if context.required.len() == 6 {
+                context.required.push(source);
+            } else {
+                context.required[6] = source;
+            }
         }
         #[test]
         fn reason_specific_basis_refuses_foreign_empty_pending_and_spent_prefixes() {
@@ -2813,13 +3015,33 @@ mod manual_authoring {
                 bytes: 0,
                 work: 0,
             };
-            let metadata = record("fixture:work", json!({"record_type":"work","evidence":"Actual source field."}), &mut work);
-            let scope = record("fixture:extent", json!({"scope":"bounded source field","evidence":"Declared extent."}), &mut work);
-            let criterion = record("fixture:criterion", json!({"criterion":"source-owned","evidence":"Comparison criterion."}), &mut work);
-            let a = record("fixture:a", json!({"claim_id":"fixture:a","claim_version":1,"subject_ref":"fixture:work",
-                "predicate":"reported_date","object":{"date":"A"},"evidence":"Source reports A."}), &mut work);
-            let b = record("fixture:b", json!({"claim_id":"fixture:b","claim_version":1,"subject_ref":"fixture:work",
-                "predicate":"reported_date","object":{"date":"B"},"evidence":"Source reports B."}), &mut work);
+            let metadata = record(
+                "fixture:work",
+                json!({"record_type":"work","evidence":"Actual source field."}),
+                &mut work,
+            );
+            let scope = record(
+                "fixture:extent",
+                json!({"scope":"bounded source field","evidence":"Declared extent."}),
+                &mut work,
+            );
+            let criterion = record(
+                "fixture:criterion",
+                json!({"criterion":"source-owned","evidence":"Comparison criterion."}),
+                &mut work,
+            );
+            let a = record(
+                "fixture:a",
+                json!({"claim_id":"fixture:a","claim_version":1,"subject_ref":"fixture:work",
+                "predicate":"reported_date","object":{"date":"A"},"evidence":"Source reports A."}),
+                &mut work,
+            );
+            let b = record(
+                "fixture:b",
+                json!({"claim_id":"fixture:b","claim_version":1,"subject_ref":"fixture:work",
+                "predicate":"reported_date","object":{"date":"B"},"evidence":"Source reports B."}),
+                &mut work,
+            );
             let mut body = json!({"claim_id":"fixture:target","claim_version":1,"subject_ref":"fixture:work",
                 "predicate":"reported_date","object":{"date":"source reports no date"},
                 "epistemic_status":"uncertain","qualifiers":{"manual_authoring":{
@@ -2835,20 +3057,27 @@ mod manual_authoring {
                             "exclusions":["Other sources have not been examined."]},
                         "alternatives":[],"details":{"missing_at":"/object/date",
                             "extent_justification":"Extent is limited to this source field."}}}}});
-            let procedure = record("fixture:procedure", json!({
-                "record_id":"fixture:procedure", "record_version":1,
-                "record_type":"manual-authoring-procedure", "schema_version":"tos_manual_authoring_procedure_record_v1",
-                "body":{"requested_use":USE,"basis_schema_version":VERSION,
-                    "locator_adapter":"json-pointer-record-body-v1",
-                    "reasons":["source-contradiction","scoped-information-absence","unestablished-identity"]}
-            }), &mut work);
+            let procedure = record(
+                "fixture:procedure",
+                json!({
+                    "record_id":"fixture:procedure", "record_version":1,
+                    "record_type":"manual-authoring-procedure", "schema_version":"tos_manual_authoring_procedure_record_v1",
+                    "body":{"requested_use":USE,"basis_schema_version":VERSION,
+                        "locator_adapter":"json-pointer-record-body-v1",
+                        "reasons":["source-contradiction","scoped-information-absence","unestablished-identity"]}
+                }),
+                &mut work,
+            );
             let evidence = json!({"method":{"procedure_ref":procedure.reference},
                 "evidence":[cite(&metadata),cite(&scope),cite(&criterion),cite(&a),cite(&b)]});
             let mut context = Context {
                 subject: record("fixture:target", body.clone(), &mut work),
-                scope: json!({}), languages: Vec::new(),
-                required: vec![metadata, scope, criterion, a, b, procedure], admissions: Vec::new(),
-                source_ready: false, positive: false,
+                scope: json!({}),
+                languages: Vec::new(),
+                required: vec![metadata, scope, criterion, a, b, procedure],
+                admissions: Vec::new(),
+                source_ready: false,
+                positive: false,
             };
             retarget(&mut context, &mut work);
             assert!(check(&context, &evidence, &mut work).is_ok());
@@ -2856,30 +3085,39 @@ mod manual_authoring {
             context.subject = record("fixture:target", body.clone(), &mut work);
             retarget(&mut context, &mut work);
             let spent = work.work;
-            assert_eq!(qualify(&context, &evidence, &mut work).unwrap().as_deref(), Some("manual-authoring.empty-rationale-or-locator"));
+            assert_eq!(
+                qualify(&context, &evidence, &mut work).unwrap().as_deref(),
+                Some("manual-authoring.empty-rationale-or-locator")
+            );
             assert!(work.work > spent);
-            body["qualifiers"]["manual_authoring"]["grounds"]["rationale"] = json!("Bounded source report.");
+            body["qualifiers"]["manual_authoring"]["grounds"]["rationale"] =
+                json!("Bounded source report.");
             body["qualifiers"]["manual_authoring"]["grounds"]["reason"] = json!("not-yet-reviewed");
             context.subject = record("fixture:target", body.clone(), &mut work);
             retarget(&mut context, &mut work);
             assert!(check(&context, &evidence, &mut work).is_err());
-            body["qualifiers"]["manual_authoring"]["grounds"]["reason"] = json!("scoped-information-absence");
-            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] = json!("json-pointer:/absent");
+            body["qualifiers"]["manual_authoring"]["grounds"]["reason"] =
+                json!("scoped-information-absence");
+            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] =
+                json!("json-pointer:/absent");
             context.subject = record("fixture:target", body.clone(), &mut work);
             retarget(&mut context, &mut work);
             let mut irrelevant = evidence.clone();
             irrelevant["evidence"][0]["locator"] = json!("json-pointer:/absent");
             assert!(check(&context, &irrelevant, &mut work).is_err());
-            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] = json!("json-pointer:/evidence");
+            body["qualifiers"]["manual_authoring"]["grounds"]["read_extent"]["sources"][0]["locator"] =
+                json!("json-pointer:/evidence");
             let grounds = &mut body["qualifiers"]["manual_authoring"]["grounds"];
             grounds["reason"] = json!("source-contradiction");
             grounds["details"] = json!({"criterion":cite(&context.required[2]),
                 "scope":cite(&context.required[1]),"incompatibility":"Qualified source comparison is required."});
-            grounds["alternatives"] = json!([cite(&context.required[3]),cite(&context.required[4])]);
+            grounds["alternatives"] =
+                json!([cite(&context.required[3]), cite(&context.required[4])]);
             context.subject = record("fixture:target", body.clone(), &mut work);
             retarget(&mut context, &mut work);
             assert!(check(&context, &evidence, &mut work).is_ok());
-            body["qualifiers"]["manual_authoring"]["grounds"]["alternatives"] = json!([cite(&context.required[3]),cite(&context.required[3])]);
+            body["qualifiers"]["manual_authoring"]["grounds"]["alternatives"] =
+                json!([cite(&context.required[3]), cite(&context.required[3])]);
             context.subject = record("fixture:target", body.clone(), &mut work);
             retarget(&mut context, &mut work);
             assert!(check(&context, &evidence, &mut work).is_err());
@@ -2909,7 +3147,10 @@ mod manual_authoring {
             // A Claim's old inline qualifier cannot substitute for the selected
             // independent source basis or select a stale target version.
             context.required.pop();
-            assert!(matches!(check(&context, &evidence, &mut work), Err(AssessmentRefusal::InvalidInput(_))));
+            assert!(matches!(
+                check(&context, &evidence, &mut work),
+                Err(AssessmentRefusal::InvalidInput(_))
+            ));
             let mut floating = context.required[0].reference.clone();
             floating["version"] = json!(1.0);
             assert!(same_reference(&floating, &context.required[0].reference, &mut work).unwrap());
@@ -2917,10 +3158,16 @@ mod manual_authoring {
             let key = "p".repeat(8192) + "A";
             let query = "p".repeat(8192) + "B";
             let value = Value::Object(serde_json::Map::from_iter([(key, json!("value"))]));
-            assert_eq!(get(&value, &query, &mut work), Err(AssessmentRefusal::Budget));
+            assert_eq!(
+                get(&value, &query, &mut work),
+                Err(AssessmentRefusal::Budget)
+            );
             assert_eq!(work.work, work.limits.max_work);
             cancelled.store(true, Ordering::Relaxed);
-            assert!(matches!(qualify(&context, &evidence, &mut work), Err(AssessmentRefusal::Cancelled)));
+            assert!(matches!(
+                qualify(&context, &evidence, &mut work),
+                Err(AssessmentRefusal::Cancelled)
+            ));
         }
     }
 }
