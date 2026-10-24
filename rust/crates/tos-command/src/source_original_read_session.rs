@@ -7,8 +7,8 @@ use std::{fs::File, mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_compiler::pwe_native::{Error, Session};
 use tos_foundation::{RelativePath, SourceRevision};
 use tos_source_store::{
-    CorpusCutReader, CorpusDescriptor, OriginalReadAdmission, OriginalReadResult,
-    OriginalReadKind, OriginalReadStage, RetiredSourceMemberV1, SourceMemberV1, StoreError,
+    CorpusCutReader, CorpusDescriptor, OriginalReadAdmission, OriginalReadKind, OriginalReadResult,
+    OriginalReadStage, RetiredSourceMemberV1, SourceMemberV1, StoreError,
 };
 
 /// The caller retains its actual selected cut and original payer throughout.
@@ -153,11 +153,7 @@ impl<'loan, 'session, 'budget, 'cancel> OriginalImmutableReads<'loan, 'session, 
                 OriginalReadKind::Member | OriginalReadKind::Retirement => {
                     // The outer cut search compares actual revision digests,
                     // including retirement's key_bytes=0, before any path lookup.
-                    self.prefix(
-                        times(entries, 2 * size_of::<SourceRevision>())?,
-                        entries,
-                        0,
-                    )
+                    self.prefix(times(entries, 2 * size_of::<SourceRevision>())?, entries, 0)
                 }
                 OriginalReadKind::SelectedObject => {
                     // check_snapshot's Arc identity, member lookup and complete
@@ -179,11 +175,7 @@ impl<'loan, 'session, 'budget, 'cancel> OriginalImmutableReads<'loan, 'session, 
                 // Both operands can contribute the query-length common prefix
                 // and the first mismatching boundary. This is a complete upper
                 // count, not a selected top-N subset of the member map.
-                self.prefix(
-                    times(entries, times(2, plus(key_bytes, 1)?)?)?,
-                    entries,
-                    0,
-                )
+                self.prefix(times(entries, times(2, plus(key_bytes, 1)?)?)?, entries, 0)
             }
             Descriptor { path_bytes } => self.prefix(path_bytes, 1, path_bytes),
             Open { .. } => {
