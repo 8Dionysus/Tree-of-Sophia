@@ -101,7 +101,8 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
         cancelled: &AtomicBool,
         run: impl FnOnce(&mut SourceRevisionReadSession<'store>) -> crate::DurableResult<T>,
     ) -> crate::DurableResult<T> {
-        payer.reserve(std::mem::size_of::<crate::DurableResult<T>>())
+        payer
+            .reserve(std::mem::size_of::<crate::DurableResult<T>>())
             .map_err(crate::DurableError::Source)?;
         let mut session = self.session.try_borrow_mut().map_err(|_| {
             crate::DurableError::Conflict("selected PG source session already borrowed")
@@ -332,20 +333,31 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
 /// no diagnostic is translated into a fabricated successful source result.
 fn admitted_freshness_data(
     session: &mut SourceRevisionReadSession<'_>,
-    payer: &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>,
+    payer: &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
+        '_,
+        '_,
+    >,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> crate::DurableResult<()> {
-    payer.reserve(std::mem::size_of::<Option<crate::DurableError>>()
-        .checked_add(std::mem::size_of::<crate::DurableResult<()>>())
-        .ok_or(crate::DurableError::Refused("PG query error carrier overflow"))?)
+    payer
+        .reserve(
+            std::mem::size_of::<Option<crate::DurableError>>()
+                .checked_add(std::mem::size_of::<crate::DurableResult<()>>())
+                .ok_or(crate::DurableError::Refused(
+                    "PG query error carrier overflow",
+                ))?,
+        )
         .map_err(crate::DurableError::Source)?;
     let mut foreign = None;
     let result = payer.with_operation(|budget| {
         match session.verify_fresh_with_query_data_admission(budget, deadline, cancelled) {
             Ok(()) => Ok(()),
             Err(crate::DurableError::Source(error)) => Err(error),
-            Err(error) => { foreign = Some(error); Ok(()) },
+            Err(error) => {
+                foreign = Some(error);
+                Ok(())
+            }
         }
     });
     match (result, foreign) {

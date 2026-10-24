@@ -780,18 +780,30 @@ impl SourceRevisionIdentityClosure {
         let cohort_data = add(
             9 * size_of::<u64>()
                 + b"tos-pg-record-revision-cohort-identity-v1".len()
-                + 16 + 32 + 8 + 32 + 8 + 32 + 8,
+                + 16
+                + 32
+                + 8
+                + 32
+                + 8
+                + 32
+                + 8,
             session.selection.cohort.domain.len(),
         )?;
-        let hash_data = add(add(cohort_data, session.selection.cohort.domain.len())?,
-                            session.selection.job_id.len())?;
+        let hash_data = add(
+            add(cohort_data, session.selection.cohort.domain.len())?,
+            session.selection.job_id.len(),
+        )?;
         let initial_holders = add(
             3 * size_of::<Digest256Hasher>() + size_of::<PgRecordRevisionIdentity>(),
             size_of::<DurableResult<()>>(),
         )?;
-        debit(budget, initial_holders,
-              add(hash_data, 2 * size_of::<PgRecordRevisionIdentity>())?,
-              deadline, cancelled)?;
+        debit(
+            budget,
+            initial_holders,
+            add(hash_data, 2 * size_of::<PgRecordRevisionIdentity>())?,
+            deadline,
+            cancelled,
+        )?;
         if session.selection.identity() != self.selection_identity
             || self.generations.len() != mul(self.owners.len(), PG_AGENT_INDEX_KINDS.len())?
         {
@@ -801,7 +813,13 @@ impl SourceRevisionIdentityClosure {
         }
         // One genuine definition hex carrier for this check. Avoid the legacy
         // verifier's per-candidate to_hex allocation inside the predicate scan.
-        debit(budget, 64 + size_of::<String>(), 32 + 64 + 64, deadline, cancelled)?;
+        debit(
+            budget,
+            64 + size_of::<String>(),
+            32 + 64 + 64,
+            deadline,
+            cancelled,
+        )?;
         let definition = session.selection.cohort.definition.to_hex();
         // The ACTUAL session has one producer of unique Generation reads:
         // record_predicate inserts through its private BTreeSet before push.
@@ -811,22 +829,33 @@ impl SourceRevisionIdentityClosure {
         let mut matched = 0usize;
         for read in &session.reads.reads {
             debit(budget, 0, 1, deadline, cancelled)?;
-            let PredicateRead::Generation { predicate, observed_generation } = read else {
+            let PredicateRead::Generation {
+                predicate,
+                observed_generation,
+            } = read
+            else {
                 continue;
             };
             let scope_work = PG_AGENT_INDEX_KINDS.iter().try_fold(0usize, |n, kind| {
                 add(n, add(kind.len(), predicate.scope.len())?)
             })?;
-            debit(budget, 0, add(add(OWNER.len(), predicate.owner.len())?, scope_work)?,
-                  deadline, cancelled)?;
+            debit(
+                budget,
+                0,
+                add(add(OWNER.len(), predicate.owner.len())?, scope_work)?,
+                deadline,
+                cancelled,
+            )?;
             if predicate.kind != PredicateKind::Unique
                 || predicate.owner != OWNER
                 || !PG_AGENT_INDEX_KINDS.contains(&predicate.scope.as_str())
             {
                 continue;
             }
-            let token_work = mul(comparisons(self.owners.len())?,
-                                 mul(2, add(predicate.token.len(), size_of::<usize>())?)?)?;
+            let token_work = mul(
+                comparisons(self.owners.len())?,
+                mul(2, add(predicate.token.len(), size_of::<usize>())?)?,
+            )?;
             debit(budget, 0, token_work, deadline, cancelled)?;
             if !self.owners.contains_key(predicate.token.as_str()) {
                 continue;
@@ -836,15 +865,27 @@ impl SourceRevisionIdentityClosure {
                 comparisons(self.generations.len())?,
                 mul(2, add(key_data, 2 * size_of::<usize>())?)?,
             )?;
-            debit(budget, add(key_data, 2 * size_of::<String>())?,
-                  add(key_data, key_comparison)?, deadline, cancelled)?;
+            debit(
+                budget,
+                add(key_data, 2 * size_of::<String>())?,
+                add(key_data, key_comparison)?,
+                deadline,
+                cancelled,
+            )?;
             let key = (predicate.scope.clone(), predicate.token.clone());
             let generation = self.generations.get(&key).ok_or(DurableError::Conflict(
                 "source identity closure generation is absent",
             ))?;
-            debit(budget, 0,
-                  add(add(predicate.definition_version.len(), definition.len())?,
-                      2 * size_of::<u64>())?, deadline, cancelled)?;
+            debit(
+                budget,
+                0,
+                add(
+                    add(predicate.definition_version.len(), definition.len())?,
+                    2 * size_of::<u64>(),
+                )?,
+                deadline,
+                cancelled,
+            )?;
             if predicate.definition_version != definition || observed_generation != generation {
                 return Err(DurableError::Conflict(
                     "source identity closure predicate is absent from readset",
@@ -865,12 +906,20 @@ impl SourceRevisionIdentityClosure {
                     mul(2, add(path.as_str().len(), size_of::<usize>())?)?,
                 )?;
                 debit(budget, 0, point_work, deadline, cancelled)?;
-                let observation = session.observations.get(path.as_str()).ok_or(
-                    DurableError::Conflict("source identity closure owner member was not read"),
+                let observation =
+                    session
+                        .observations
+                        .get(path.as_str())
+                        .ok_or(DurableError::Conflict(
+                            "source identity closure owner member was not read",
+                        ))?;
+                debit(
+                    budget,
+                    0,
+                    add(path.as_str().len(), observation.member.path.as_str().len())?,
+                    deadline,
+                    cancelled,
                 )?;
-                debit(budget, 0,
-                      add(path.as_str().len(), observation.member.path.as_str().len())?,
-                      deadline, cancelled)?;
                 if observation.member.path != *path {
                     return Err(DurableError::Conflict(
                         "source identity closure owner member path differs",
@@ -1104,7 +1153,13 @@ impl DurablePgCoordinator {
         operation: impl FnOnce(&mut SourceRevisionReadSession<'_>) -> DurableResult<T>,
     ) -> DurableResult<(T, SourceRevisionReadSet)> {
         self.with_source_revision_session_resources(
-            store, domain, job_id, job_fence, deadline, cancelled, &mut (),
+            store,
+            domain,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            &mut (),
             |session, _| operation(session),
             |session, _| session.verify_fresh(deadline, cancelled),
         )
@@ -1129,7 +1184,14 @@ impl DurablePgCoordinator {
         ) -> DurableResult<T>,
     ) -> DurableResult<(T, SourceRevisionReadSet)> {
         self.with_source_revision_session_resources(
-            store, domain, job_id, job_fence, deadline, cancelled, budget, operation,
+            store,
+            domain,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            budget,
+            operation,
             |session, budget| {
                 session.verify_fresh_with_query_data_admission(budget, deadline, cancelled)
             },
@@ -3324,7 +3386,9 @@ impl SourceRevisionReadSession<'_> {
     /// Native held callers may borrow this primitive; no readset is finalized
     /// or manufactured here. Cutoff refusal can precede the physical queries.
     pub(crate) fn verify_fresh(
-        &mut self, deadline: Instant, cancelled: &AtomicBool,
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
     ) -> DurableResult<()> {
         self.verify_fresh_using_query_data(None, deadline, cancelled)
     }
@@ -3335,7 +3399,8 @@ impl SourceRevisionReadSession<'_> {
     pub(crate) fn verify_fresh_with_query_data_admission(
         &mut self,
         budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
-        deadline: Instant, cancelled: &AtomicBool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
     ) -> DurableResult<()> {
         self.verify_fresh_using_query_data(Some(budget), deadline, cancelled)
     }
@@ -3343,7 +3408,8 @@ impl SourceRevisionReadSession<'_> {
     fn verify_fresh_using_query_data(
         &mut self,
         mut budget: Option<&mut crate::source_native_cli::private_assessment::OperationBudget>,
-        deadline: Instant, cancelled: &AtomicBool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
     ) -> DurableResult<()> {
         active(deadline, cancelled)?;
         if let Some(budget) = budget.as_deref_mut() {
@@ -3351,26 +3417,41 @@ impl SourceRevisionReadSession<'_> {
         }
         let mut tx = self.coordinator.client.transaction()?;
         if let Some(budget) = budget.as_deref_mut() {
-            query_data::statement(budget, FRESHNESS_SETUP_SQL, &[],
-                query_data::RowShape::None, deadline, cancelled).map_err(DurableError::Source)?;
+            query_data::statement(
+                budget,
+                FRESHNESS_SETUP_SQL,
+                &[],
+                query_data::RowShape::None,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
         }
         tx.batch_execute(FRESHNESS_SETUP_SQL)?;
         if let Some(budget) = budget.as_deref_mut() {
-            query_data::statement(budget, FRESHNESS_AUDIT_SQL, &[self.selection.cohort.domain.len()],
-                query_data::RowShape::Audit, deadline, cancelled).map_err(DurableError::Source)?;
+            query_data::statement(
+                budget,
+                FRESHNESS_AUDIT_SQL,
+                &[self.selection.cohort.domain.len()],
+                query_data::RowShape::Audit,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
         }
-        let fence = tx.query_one(
-            FRESHNESS_AUDIT_SQL,
-            &[&self.selection.cohort.domain],
-        )?;
+        let fence = tx.query_one(FRESHNESS_AUDIT_SQL, &[&self.selection.cohort.domain])?;
         if let Some(budget) = budget.as_deref_mut() {
-            query_data::statement(budget, FRESHNESS_DOMAIN_SQL, &[self.selection.cohort.domain.len()],
-                query_data::RowShape::Domain, deadline, cancelled).map_err(DurableError::Source)?;
+            query_data::statement(
+                budget,
+                FRESHNESS_DOMAIN_SQL,
+                &[self.selection.cohort.domain.len()],
+                query_data::RowShape::Domain,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
         }
-        let row = tx.query_one(
-            FRESHNESS_DOMAIN_SQL,
-            &[&self.selection.cohort.domain],
-        )?;
+        let row = tx.query_one(FRESHNESS_DOMAIN_SQL, &[&self.selection.cohort.domain])?;
         super::require_current_source_definition(parse_hex(
             row.get::<_, Option<String>>("source_definition_digest")
                 .ok_or(DurableError::Corrupt("source definition absent"))?,
@@ -3399,8 +3480,18 @@ impl SourceRevisionReadSession<'_> {
             ));
         }
         if let Some(budget) = budget.as_deref_mut() {
-            query_data::statement(budget, FRESHNESS_JOB_SQL, &[self.selection.cohort.domain.len(), self.selection.job_id.len()],
-                query_data::RowShape::Job, deadline, cancelled).map_err(DurableError::Source)?;
+            query_data::statement(
+                budget,
+                FRESHNESS_JOB_SQL,
+                &[
+                    self.selection.cohort.domain.len(),
+                    self.selection.job_id.len(),
+                ],
+                query_data::RowShape::Job,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
         }
         let job = tx.query_one(
             FRESHNESS_JOB_SQL,
