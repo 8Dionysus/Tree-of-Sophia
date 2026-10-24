@@ -11755,6 +11755,44 @@ mod retained_history_reader_regression {
         let after = actual_operation.limits().unwrap();
         assert!(after.max_work < before.max_work);
         assert!(after.max_input_bytes < before.max_input_bytes);
+        // Each is a separate data-only Assessment invocation, through the
+        // ACTUAL operation-only selector. Short Int/Float payloads need the
+        // writer's independent strict-parser frame even with tiny output.
+        for (numeric_wire, expected_kind) in [
+            (br#"{"n":1}"#.as_slice(), tos_foundation::JsonNumberKind::Int),
+            (br#"{"n":1.5}"#.as_slice(), tos_foundation::JsonNumberKind::Float),
+        ] {
+            let mut short_row = rows.get("synthetic.selector").unwrap().clone();
+            set(&mut short_row, "payload", parse(numeric_wire).unwrap()).unwrap();
+            let short_reference = assessment::owner_reference(&short_row).unwrap();
+            let mut short_config_wire = config_wire.clone();
+            short_config_wire["subjects"]["synthetic.selector"]["record"] =
+                serde_json::from_slice(&canonical(&short_reference).unwrap()).unwrap();
+            let short_config = parse(&serde_json::to_vec(&short_config_wire).unwrap()).unwrap();
+            let short_request = assessment::ParsedRequest {
+                operation: "inspect".into(), subject_id: "synthetic.selector".into(),
+                expected_subject: Some(short_reference), expected_snapshot: None,
+                command_id: None, expected_revision: None, assessments: Vec::new(),
+            };
+            let short_rows = BTreeMap::from([("synthetic.selector".to_owned(), short_row)]);
+            let expected_short = assessment::select_current_scope(
+                &short_config, &short_request, &short_rows,
+            ).unwrap();
+            let mut short_operation =
+                assessment::OperationBudget::new(&numeric_invocation, deadline).unwrap();
+            short_operation.lower_remaining(1_048_576, 262_144).unwrap();
+            let short_before = short_operation.limits().unwrap();
+            let short_selected = assessment::select_current_scope_with_operation_admission(
+                &short_config, &short_request, &short_rows,
+                &mut short_operation, deadline, &cancelled,
+            ).unwrap();
+            assert_eq!(short_selected, expected_short);
+            assert!(matches!(field(field(&short_selected.0, "payload").unwrap(), "n").unwrap(),
+                JsonValue::Number(number) if number.kind == expected_kind));
+            let short_after = short_operation.limits().unwrap();
+            assert!(short_after.max_work < short_before.max_work);
+            assert!(short_after.max_input_bytes < short_before.max_input_bytes);
+        }
         actual_operation.lower_remaining(after.max_input_bytes.min(100_000), 65).unwrap();
         for _ in 0..2 {
             assert!(assessment::select_current_scope_with_operation_admission(
