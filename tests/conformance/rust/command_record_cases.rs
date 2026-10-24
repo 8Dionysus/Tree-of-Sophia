@@ -878,6 +878,127 @@ fn run_with_cut(
 }
 /// Exact current native metadata rule inputs; historical fixture implementation
 /// names describe the capture and are never selected as executable software.
+/// Close actual native fixture schemas over every declared registry route.
+/// Reuses the established offline closure, caps and fail-closed URI/fragment
+/// checks; supplied roots add the operation's direct non-profile contracts.
+pub(super) fn native_fixture_schema_closure(
+    files: &BTreeMap<String, Vec<u8>>,
+    mut required_schemas: std::collections::BTreeSet<String>,
+) -> (BTreeMap<String, Vec<u8>>, usize) {
+    // The unchanged catalog owner enumerates ALL registry profile routes, even
+    // when this finite fixture has no instance of a particular profile.
+    for (registry_path, rows_key, profile_key) in [
+        (
+            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+            "types",
+            "source_record_profile",
+        ),
+        (
+            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+            "relations",
+            "source_claim_profile",
+        ),
+    ] {
+        let registry: Value = serde_json::from_slice(&files[registry_path]).unwrap();
+        for entry in registry[rows_key].as_array().unwrap() {
+            if let Some(profile) = entry.get(profile_key) {
+                for route in profile["schemas"].as_array().unwrap() {
+                    required_schemas.insert(route["schema_ref"].as_str().unwrap().to_owned());
+                    for dependency in route["schema_dependencies"].as_array().unwrap() {
+                        required_schemas.insert(dependency.as_str().unwrap().to_owned());
+                    }
+                }
+            }
+        }
+    }
+    // Resolve the existing declared resource graph offline. Unrelated schemas
+    // are not selected, and a missing/incompatible required schema is a failure.
+    let schema_ids = files
+        .iter()
+        .filter(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
+        .map(|(path, raw)| {
+            let schema: Value = serde_json::from_slice(raw).unwrap();
+            (schema["$id"].as_str().unwrap().to_owned(), path.clone())
+        })
+        .collect::<BTreeMap<_, _>>();
+    let mut pending = required_schemas.iter().cloned().collect::<Vec<_>>();
+    let mut selected_schema_files = BTreeMap::new();
+    let mut schema_bytes = 0usize;
+    let mut schema_visits = 0usize;
+    while let Some(path) = pending.pop() {
+        if selected_schema_files.contains_key(&path) {
+            continue;
+        }
+        assert!(selected_schema_files.len() < 128);
+        let raw = files.get(&path).expect("required fixture schema absent");
+        assert!(raw.len() <= 4 * 1024 * 1024);
+        schema_bytes = schema_bytes.checked_add(raw.len()).unwrap();
+        assert!(schema_bytes <= 16 * 1024 * 1024);
+        let schema: Value = serde_json::from_slice(raw).unwrap();
+        let id = schema["$id"].as_str().unwrap();
+        assert!(
+            id == format!("https://tree-of-sophia.local/{path}")
+                || id == format!("https://treeofsophia.local/{path}"),
+            "selected schema dispatcher identity: {path}"
+        );
+        let mut values = vec![&schema];
+        while let Some(value) = values.pop() {
+            schema_visits = schema_visits.checked_add(1).unwrap();
+            assert!(schema_visits <= 1_000_000);
+            match value {
+                Value::Object(fields) => {
+                    if !std::ptr::eq(value, &schema) {
+                        assert!(
+                            !fields.contains_key("$id"),
+                            "unsupported nested schema ID in fixture closure"
+                        );
+                    }
+                    for (key, value) in fields {
+                        if key == "$ref" || key == "$dynamicRef" {
+                            let reference = value.as_str().unwrap();
+                            let resource = reference.split('#').next().unwrap();
+                            let uri = if resource.is_empty() {
+                                id.to_owned()
+                            } else if resource.starts_with("https://") {
+                                resource.to_owned()
+                            } else {
+                                assert!(!resource.contains(':') && !resource.starts_with('/'));
+                                format!("{}/{}", id.rsplit_once('/').unwrap().0, resource)
+                            };
+                            let dependency = schema_ids
+                                .get(&uri)
+                                .expect("offline fixture schema reference absent");
+                            if let Some((_, fragment)) = reference.split_once('#') {
+                                if !fragment.is_empty() {
+                                    assert!(
+                                        fragment.starts_with('/'),
+                                        "unsupported named schema anchor in selected fixture"
+                                    );
+                                    let target: Value =
+                                        serde_json::from_slice(&files[dependency]).unwrap();
+                                    assert!(
+                                        target.pointer(fragment).is_some(),
+                                        "offline schema fragment absent: {reference}"
+                                    );
+                                }
+                            }
+                            if !selected_schema_files.contains_key(dependency) {
+                                pending.push(dependency.clone());
+                            }
+                        } else {
+                            values.push(value);
+                        }
+                    }
+                }
+                Value::Array(rows) => values.extend(rows),
+                _ => {}
+            }
+        }
+        selected_schema_files.insert(path, raw.clone());
+    }
+    (selected_schema_files, schema_bytes)
+}
+
 pub(super) fn native_metadata_rule_files(
     repository: &Path,
     files: &mut BTreeMap<String, Vec<u8>>,
@@ -1219,117 +1340,8 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
     ] {
         required_schemas.insert(format!("ToS/contracts/{root}.schema.json"));
     }
-    // The unchanged catalog owner enumerates ALL registry profile routes, even
-    // when this finite fixture has no instance of a particular profile.
-    for (registry_path, rows_key, profile_key) in [
-        (
-            "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-            "types",
-            "source_record_profile",
-        ),
-        (
-            "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-            "relations",
-            "source_claim_profile",
-        ),
-    ] {
-        let registry: Value = serde_json::from_slice(&files[registry_path]).unwrap();
-        for entry in registry[rows_key].as_array().unwrap() {
-            if let Some(profile) = entry.get(profile_key) {
-                for route in profile["schemas"].as_array().unwrap() {
-                    required_schemas.insert(route["schema_ref"].as_str().unwrap().to_owned());
-                    for dependency in route["schema_dependencies"].as_array().unwrap() {
-                        required_schemas.insert(dependency.as_str().unwrap().to_owned());
-                    }
-                }
-            }
-        }
-    }
-    // Resolve the existing declared resource graph offline. Unrelated schemas
-    // are not selected, and a missing/incompatible required schema is a failure.
-    let schema_ids = files
-        .iter()
-        .filter(|(path, _)| path.starts_with("ToS/contracts/") && path.ends_with(".schema.json"))
-        .map(|(path, raw)| {
-            let schema: Value = serde_json::from_slice(raw).unwrap();
-            (schema["$id"].as_str().unwrap().to_owned(), path.clone())
-        })
-        .collect::<BTreeMap<_, _>>();
-    let mut pending = required_schemas.iter().cloned().collect::<Vec<_>>();
-    let mut selected_schema_files = BTreeMap::new();
-    let mut schema_bytes = 0usize;
-    let mut schema_visits = 0usize;
-    while let Some(path) = pending.pop() {
-        if selected_schema_files.contains_key(&path) {
-            continue;
-        }
-        assert!(selected_schema_files.len() < 128);
-        let raw = files.get(&path).expect("required fixture schema absent");
-        assert!(raw.len() <= 4 * 1024 * 1024);
-        schema_bytes = schema_bytes.checked_add(raw.len()).unwrap();
-        assert!(schema_bytes <= 16 * 1024 * 1024);
-        let schema: Value = serde_json::from_slice(raw).unwrap();
-        let id = schema["$id"].as_str().unwrap();
-        assert!(
-            id == format!("https://tree-of-sophia.local/{path}")
-                || id == format!("https://treeofsophia.local/{path}"),
-            "selected schema dispatcher identity: {path}"
-        );
-        let mut values = vec![&schema];
-        while let Some(value) = values.pop() {
-            schema_visits = schema_visits.checked_add(1).unwrap();
-            assert!(schema_visits <= 1_000_000);
-            match value {
-                Value::Object(fields) => {
-                    if !std::ptr::eq(value, &schema) {
-                        assert!(
-                            !fields.contains_key("$id"),
-                            "unsupported nested schema ID in fixture closure"
-                        );
-                    }
-                    for (key, value) in fields {
-                        if key == "$ref" || key == "$dynamicRef" {
-                            let reference = value.as_str().unwrap();
-                            let resource = reference.split('#').next().unwrap();
-                            let uri = if resource.is_empty() {
-                                id.to_owned()
-                            } else if resource.starts_with("https://") {
-                                resource.to_owned()
-                            } else {
-                                assert!(!resource.contains(':') && !resource.starts_with('/'));
-                                format!("{}/{}", id.rsplit_once('/').unwrap().0, resource)
-                            };
-                            let dependency = schema_ids
-                                .get(&uri)
-                                .expect("offline fixture schema reference absent");
-                            if let Some((_, fragment)) = reference.split_once('#') {
-                                if !fragment.is_empty() {
-                                    assert!(
-                                        fragment.starts_with('/'),
-                                        "unsupported named schema anchor in selected fixture"
-                                    );
-                                    let target: Value =
-                                        serde_json::from_slice(&files[dependency]).unwrap();
-                                    assert!(
-                                        target.pointer(fragment).is_some(),
-                                        "offline schema fragment absent: {reference}"
-                                    );
-                                }
-                            }
-                            if !selected_schema_files.contains_key(dependency) {
-                                pending.push(dependency.clone());
-                            }
-                        } else {
-                            values.push(value);
-                        }
-                    }
-                }
-                Value::Array(rows) => values.extend(rows),
-                _ => {}
-            }
-        }
-        selected_schema_files.insert(path, raw.clone());
-    }
+    let (mut selected_schema_files, schema_bytes) =
+        native_fixture_schema_closure(&files, required_schemas);
     files.retain(|path, _| {
         !path.starts_with("ToS/contracts/")
             || !path.ends_with(".schema.json")

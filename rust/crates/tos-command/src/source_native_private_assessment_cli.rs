@@ -1863,7 +1863,7 @@ where
     // source presence and a general review must never stand in for mandatory
     // PWE role/dependency/application dispatch. Actual PWE hosts assess only
     // through their private NativeConsumerOwner after those checks.
-    if requires_held_pwe_dispatch(&plan.current, budget)? {
+    if requires_held_pwe_dispatch(&plan.current, budget, cancelled)? {
         return Err(SourceCommandError::Unsupported(
             "PWE source Claim requires its held exact-basis consumer dispatch",
         ));
@@ -3167,12 +3167,15 @@ fn evaluation_limits(budget: &OperationBudget) -> SourceCommandResult<Assessment
 fn requires_held_pwe_dispatch(
     current: &JsonValue,
     budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
 ) -> SourceCommandResult<bool> {
     fn get<'v>(
         value: &'v JsonValue,
         key: &str,
         budget: &mut OperationBudget,
+        cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<&'v JsonValue>> {
+        active(budget.deadline, cancelled)?;
         budget.charge_work(1)?;
         let Some(fields) = value.as_object() else {
             return Ok(None);
@@ -3181,6 +3184,7 @@ fn requires_held_pwe_dispatch(
             SourceCommandError::Unsupported("PWE dispatch field iteration overflow"),
         )?)?;
         for (name, value) in fields {
+            active(budget.deadline, cancelled)?;
             if let Some(name) = name.as_str() {
                 budget.charge_work(name.len().checked_add(key.len()).ok_or(
                     SourceCommandError::Unsupported("PWE dispatch field comparison overflow"),
@@ -3192,7 +3196,7 @@ fn requires_held_pwe_dispatch(
         }
         Ok(None)
     }
-    let payload = get(current, "payload", budget)?.unwrap_or(current);
+    let payload = get(current, "payload", budget, cancelled)?.unwrap_or(current);
     // These exact constants are the three declared source families in the
     // maintained pwe-bindings.v1.json, not inferred from a similar object body.
     for (field, expected) in [
@@ -3203,7 +3207,7 @@ fn requires_held_pwe_dispatch(
         ("predicate", "pwe_responsibility_account"),
         ("predicate", "pwe_identity_correspondence"),
     ] {
-        if let Some(actual) = get(payload, field, budget)?.and_then(JsonValue::as_str) {
+        if let Some(actual) = get(payload, field, budget, cancelled)?.and_then(JsonValue::as_str) {
             budget.charge_work(actual.len().checked_add(expected.len()).ok_or(
                 SourceCommandError::Unsupported("PWE dispatch family comparison overflow"),
             )?)?;

@@ -163,6 +163,46 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         files.insert(path.into(), fs::read(repository.join(path)).unwrap());
     }
     super::command_record_cases::native_metadata_rule_files(&repository, &mut files, &[]);
+    // Select a source-derived superset of this native Artifact operation's
+    // direct schema roots, ALL registered metadata/Claim routes, and their
+    // transitive refs. Unrelated contracts are not part of this fixed fixture.
+    // Preserve the existing physical256-entry/8MiB envelope and all assertions.
+    let required_schemas = [
+        "artifact-source-witness",
+        "artifact-source-witness-v2",
+        "rights-record",
+        "material-discovery-record",
+        "provenance-event-v2",
+        "human-form",
+        "human-form-set",
+        "human-form-template",
+        "historical-record",
+        "historical-claim",
+        "claim-packet",
+        "knowledge-assessment",
+        "corpus-record",
+        "source-witness-bibliographic-graph",
+        "scholarly-composite-witness",
+        "source-link",
+        "claim-display-fields",
+        "tos-corpus-index",
+        "tos-source-home",
+        "tos-node-contract",
+    ]
+    .into_iter()
+    .map(|name| format!("ToS/contracts/{name}.schema.json"))
+    .collect();
+    let (schemas, schema_bytes) =
+        super::command_record_cases::native_fixture_schema_closure(&files, required_schemas);
+    files.retain(|path, _| {
+        !path.starts_with("ToS/contracts/")
+            || !path.ends_with(".schema.json")
+            || schemas.contains_key(path)
+    });
+    eprintln!(
+        "Artifact selected schemas={} bytes={} all registered routes and refs retained",
+        schemas.len(), schema_bytes,
+    );
     let fixture_bytes = files
         .values()
         .try_fold(0u64, |n, raw| n.checked_add(raw.len() as u64))
