@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_relation_type_registry_v1",
   "registry_id": "tos.semantic.relation-types",
-  "registry_version": 48,
+  "registry_version": 49,
   "entity_registry_ref": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
   "source_refs": [
     "ToS/doctrine/semantic-interchange/README.md",
@@ -13111,7 +13111,9 @@
         "tos.entity.pwe-source-account-carrier",
         "tos.entity.pwe-source-account-scenario",
         "tos.entity.pwe-prepared-values",
-        "tos.entity.pwe-prepared-values-output-profile"
+        "tos.entity.pwe-prepared-values-output-profile",
+        "tos.entity.manual-authoring-basis",
+        "tos.entity.manual-authoring-procedure"
       ],
       "directionality": "directed",
       "transitive": false,

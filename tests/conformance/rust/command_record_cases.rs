@@ -1370,8 +1370,8 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
     ] {
         files.insert(name.into(), fs::read(repository.join(name)).unwrap());
     }
-    // Prior 59 schemas + three TS profiles + 18 PWE profile/dependency schemas.
-    assert_eq!(selected_schema_files.len(), 80);
+    // Prior 80-schema TS/PWE closure plus both manual-authoring profile schemas.
+    assert_eq!(selected_schema_files.len(), 82);
     assert!(files.len() <= 512 && files.values().map(Vec::len).sum::<usize>() <= 16 * 1024 * 1024);
 
     let (captured, software, components) = captured_components(&files, deadline, &cancellation);
@@ -5078,7 +5078,7 @@ process.stdout.write(output);"#;
                         fs::write(&target, &raw).unwrap();
                         fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
                     }
-                    assert_eq!(selected_schema_files.len(), 80);
+                    assert_eq!(selected_schema_files.len(), 82);
                     let c01_authored = current_authored();
                     assert!(c01_authored.len() <= 512);
                     assert!(
@@ -5095,7 +5095,7 @@ process.stdout.write(output);"#;
                                 |p| p.starts_with("ToS/contracts/") && p.ends_with(".schema.json")
                             )
                             .count(),
-                        85 // 80 selected schemas plus the five exact pinned additions above.
+                        87 // 82 selected schemas plus the five exact pinned additions above.
                     );
                     assert_eq!(c01_authored[relative], v2_raw);
                     assert_eq!(c01_authored[c01_archive], v1_raw);
@@ -5635,7 +5635,7 @@ process.stdout.write(output);"#;
                     assert_eq!(fs::read(&c01_context_path).unwrap(), c01_context_raw);
                     assert_eq!(fs::read(isolated.path().join(relative)).unwrap(), v2_raw);
                     assert_eq!(fs::read(isolated.path().join(c01_archive)).unwrap(), v1_raw);
-                    assert_eq!(selected_schema_files.len(), 80); // later G10 closure unchanged
+                    assert_eq!(selected_schema_files.len(), 82); // later G10 closure unchanged
                     eprintln!(
                         "C01 source=actual-R2 phase=complete native_calls=3 contexts=2 pure_calls=6 current=J1 pinned=R1 out_of_coverage=13 withdrawal=J2"
                     );

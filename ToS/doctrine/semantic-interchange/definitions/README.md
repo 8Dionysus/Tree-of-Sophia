@@ -20,7 +20,7 @@ compatibility guard until I/C completes that paired integration. No main,
 release, production or corpus-runtime selection is implied by this local change.
 
 The initial migration records 160 entity types, 168 properties and 196 relations
-in original registry order. The current candidate manifest has 180 entity types,
+in original registry order. The current candidate manifest has 182 entity types,
 168 properties and 199 relations: the two reviewed temporal types follow the
 historical entries. The initial entries retain the complete migration mapping:
 `collection` and stable `id` identify the old array member; `path` identifies its
