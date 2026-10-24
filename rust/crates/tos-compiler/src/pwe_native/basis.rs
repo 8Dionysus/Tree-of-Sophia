@@ -265,7 +265,9 @@ impl<'a> Session<'a> {
             }
             (Value::Number(left), Value::Number(right)) => {
                 if self.source_admission.is_some() {
-                    let n = left.as_str().len()
+                    let n = left
+                        .as_str()
+                        .len()
                         .checked_add(right.as_str().len())
                         .ok_or(Error::ResourceLimit)?;
                     self.admit_source_prefix(n, 1)?;
@@ -499,13 +501,26 @@ impl<'a> Session<'a> {
     // serialization. A number is already a stored JSON lexeme (pinned serde).
     fn source_text_bound(&mut self, text: &str) -> Result<usize> {
         let n = text.len();
-        self.tick(n.checked_mul(7).and_then(|n| n.checked_add(32)).ok_or(Error::ResourceLimit)?)?;
+        self.tick(
+            n.checked_mul(7)
+                .and_then(|n| n.checked_add(32))
+                .ok_or(Error::ResourceLimit)?,
+        )?;
         self.admit_source_prefix(n, 1)?;
-        n.checked_mul(6).and_then(|n| n.checked_add(2)).ok_or(Error::ResourceLimit)
+        n.checked_mul(6)
+            .and_then(|n| n.checked_add(2))
+            .ok_or(Error::ResourceLimit)
     }
-    fn source_wire_bound(&mut self, value: &Value, depth: usize, nodes: &mut usize) -> Result<usize> {
+    fn source_wire_bound(
+        &mut self,
+        value: &Value,
+        depth: usize,
+        nodes: &mut usize,
+    ) -> Result<usize> {
         self.admit_source_prefix(0, 1)?;
-        if depth > self.limits.max_depth || *nodes >= 1_000_000 { return Err(Error::ResourceLimit); }
+        if depth > self.limits.max_depth || *nodes >= 1_000_000 {
+            return Err(Error::ResourceLimit);
+        }
         *nodes += 1;
         self.tick(32)?;
         match value {
@@ -522,15 +537,22 @@ impl<'a> Session<'a> {
             Value::Array(values) => {
                 let mut bound = values.len().checked_add(2).ok_or(Error::ResourceLimit)?;
                 for value in values {
-                    bound = bound.checked_add(self.source_wire_bound(value, depth + 1, nodes)?).ok_or(Error::ResourceLimit)?;
+                    bound = bound
+                        .checked_add(self.source_wire_bound(value, depth + 1, nodes)?)
+                        .ok_or(Error::ResourceLimit)?;
                 }
                 Ok(bound)
             }
             Value::Object(values) => {
                 let mut bound = 2usize;
                 for (key, value) in values {
-                    bound = bound.checked_add(self.source_text_bound(key)?).and_then(|n| n.checked_add(2)).ok_or(Error::ResourceLimit)?;
-                    bound = bound.checked_add(self.source_wire_bound(value, depth + 1, nodes)?).ok_or(Error::ResourceLimit)?;
+                    bound = bound
+                        .checked_add(self.source_text_bound(key)?)
+                        .and_then(|n| n.checked_add(2))
+                        .ok_or(Error::ResourceLimit)?;
+                    bound = bound
+                        .checked_add(self.source_wire_bound(value, depth + 1, nodes)?)
+                        .ok_or(Error::ResourceLimit)?;
                 }
                 Ok(bound)
             }
@@ -539,39 +561,71 @@ impl<'a> Session<'a> {
     /// Borrow this SAME Session for each maintained codec prefix. Cutoff and
     /// admission errors retain their original identity; no callback ledger is
     /// constructed and no successfully spent prefix is refunded.
-    fn source_codec<T>(&mut self, run: impl FnOnce(
-        &mut dyn FnMut() -> tos_foundation::Result<()>,
-        &mut dyn FnMut(usize, usize) -> tos_foundation::Result<()>,
-    ) -> tos_foundation::Result<T>) -> Result<T> {
+    fn source_codec<T>(
+        &mut self,
+        run: impl FnOnce(
+            &mut dyn FnMut() -> tos_foundation::Result<()>,
+            &mut dyn FnMut(usize, usize) -> tos_foundation::Result<()>,
+        ) -> tos_foundation::Result<T>,
+    ) -> Result<T> {
         let cancelled = self.cancelled;
         let deadline = self.limits.deadline;
         let first = std::cell::RefCell::new(None);
         let result = {
             let mut check = || {
-                let error = if cancelled.load(Ordering::Relaxed) { Some(Error::Cancelled) }
-                    else if Instant::now() >= deadline { Some(Error::Deadline) } else { None };
+                let error = if cancelled.load(Ordering::Relaxed) {
+                    Some(Error::Cancelled)
+                } else if Instant::now() >= deadline {
+                    Some(Error::Deadline)
+                } else {
+                    None
+                };
                 if let Some(error) = error {
-                    if first.borrow().is_none() { *first.borrow_mut() = Some(error); }
-                    Err(FoundationError::new(FoundationErrorCode::BudgetExceeded, "PWE original SOURCE cutoff"))
-                } else { Ok(()) }
+                    if first.borrow().is_none() {
+                        *first.borrow_mut() = Some(error);
+                    }
+                    Err(FoundationError::new(
+                        FoundationErrorCode::BudgetExceeded,
+                        "PWE original SOURCE cutoff",
+                    ))
+                } else {
+                    Ok(())
+                }
             };
-            let mut admit = |bytes, visits| self.admit_source_prefix(bytes, visits).map_err(|error| {
-                if first.borrow().is_none() { *first.borrow_mut() = Some(error); }
-                FoundationError::new(FoundationErrorCode::BudgetExceeded, "PWE original SOURCE admission")
-            });
+            let mut admit = |bytes, visits| {
+                self.admit_source_prefix(bytes, visits).map_err(|error| {
+                    if first.borrow().is_none() {
+                        *first.borrow_mut() = Some(error);
+                    }
+                    FoundationError::new(
+                        FoundationErrorCode::BudgetExceeded,
+                        "PWE original SOURCE admission",
+                    )
+                })
+            };
             run(&mut check, &mut admit)
         };
-        if let Some(error) = first.into_inner() { return Err(error); }
+        if let Some(error) = first.into_inner() {
+            return Err(error);
+        }
         self.check()?;
-        result.map_err(|error| if error.code == FoundationErrorCode::BudgetExceeded {
-            Error::ResourceLimit
-        } else { Error::Upstream("pinned SOURCE canonical codec") })
+        result.map_err(|error| {
+            if error.code == FoundationErrorCode::BudgetExceeded {
+                Error::ResourceLimit
+            } else {
+                Error::Upstream("pinned SOURCE canonical codec")
+            }
+        })
     }
     fn source_codec_limits(&self) -> Result<JsonLimits> {
         let remaining = self.source_allowance()?;
-        JsonLimits::new(remaining.input_bytes, remaining.depth.min(96),
-            remaining.nodes.min(remaining.work).min(1_000_000), 4096)
-            .map_err(|_| Error::ResourceLimit)
+        JsonLimits::new(
+            remaining.input_bytes,
+            remaining.depth.min(96),
+            remaining.nodes.min(remaining.work).min(1_000_000),
+            4096,
+        )
+        .map_err(|_| Error::ResourceLimit)
     }
     /// Same compact serde wire -> PublishedStrict parse -> SourceRecordDigestV1
     /// composition as the maintained owner renderer. Only SOURCE accounting is
@@ -582,36 +636,60 @@ impl<'a> Session<'a> {
         // Conservative public-ABI frame envelope also covers the prepass
         // recursion before it starts. The maintained codecs enforce their
         // own exact state requirements inside the prepaid reservations.
-        let fixed = size_of::<JsonValue>().checked_add(size_of::<JsonString>())
-            .and_then(|n| n.checked_add(size_of::<Value>() + size_of::<String>() + 4 * size_of::<usize>()))
+        let fixed = size_of::<JsonValue>()
+            .checked_add(size_of::<JsonString>())
+            .and_then(|n| {
+                n.checked_add(size_of::<Value>() + size_of::<String>() + 4 * size_of::<usize>())
+            })
             .and_then(|n| n.checked_mul(16))
             .and_then(|n| n.checked_mul(depth + 1))
-            .and_then(|n| n.checked_add(1024)).ok_or(Error::ResourceLimit)?;
+            .and_then(|n| n.checked_add(1024))
+            .ok_or(Error::ResourceLimit)?;
         self.state(fixed)?;
         let mut nodes = 0;
         let bound = self.source_wire_bound(value, 0, &mut nodes)?;
-        self.state(bound.checked_add(size_of::<Vec<u8>>()).ok_or(Error::ResourceLimit)?)?;
+        self.state(
+            bound
+                .checked_add(size_of::<Vec<u8>>())
+                .ok_or(Error::ResourceLimit)?,
+        )?;
         // Reserve all compact output/scan work before either allocation or
         // emission; the sink cannot grow or write beyond that exact backing.
         self.tick(bound)?;
         self.admit_source_prefix(bound, 1)?;
         let mut wire = Vec::new();
-        wire.try_reserve_exact(bound).map_err(|_| Error::ResourceLimit)?;
-        if wire.capacity() > bound { return Err(Error::ResourceLimit); }
+        wire.try_reserve_exact(bound)
+            .map_err(|_| Error::ResourceLimit)?;
+        if wire.capacity() > bound {
+            return Err(Error::ResourceLimit);
+        }
         let cutoff = std::cell::RefCell::new(None);
         struct Sink<'w> {
-            wire: &'w mut Vec<u8>, bound: usize, cancelled: &'w AtomicBool,
-            deadline: Instant, cutoff: &'w std::cell::RefCell<Option<Error>>,
+            wire: &'w mut Vec<u8>,
+            bound: usize,
+            cancelled: &'w AtomicBool,
+            deadline: Instant,
+            cutoff: &'w std::cell::RefCell<Option<Error>>,
         }
         impl std::io::Write for Sink<'_> {
             fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-                if self.wire.len().checked_add(bytes.len()).is_none_or(|n| n > self.bound || n > self.wire.capacity()) {
+                if self
+                    .wire
+                    .len()
+                    .checked_add(bytes.len())
+                    .is_none_or(|n| n > self.bound || n > self.wire.capacity())
+                {
                     *self.cutoff.borrow_mut() = Some(Error::ResourceLimit);
                     return Err(std::io::Error::other("PWE prepaid compact wire"));
                 }
                 for chunk in bytes.chunks(65_536) {
-                    let error = if self.cancelled.load(Ordering::Relaxed) { Some(Error::Cancelled) }
-                        else if Instant::now() >= self.deadline { Some(Error::Deadline) } else { None };
+                    let error = if self.cancelled.load(Ordering::Relaxed) {
+                        Some(Error::Cancelled)
+                    } else if Instant::now() >= self.deadline {
+                        Some(Error::Deadline)
+                    } else {
+                        None
+                    };
                     if let Some(error) = error {
                         *self.cutoff.borrow_mut() = Some(error);
                         return Err(std::io::Error::other("PWE original compact cutoff"));
@@ -620,31 +698,69 @@ impl<'a> Session<'a> {
                 }
                 Ok(bytes.len())
             }
-            fn flush(&mut self) -> std::io::Result<()> { Ok(()) }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
         }
-        let serialized = serde_json::to_writer(&mut Sink {
-            wire: &mut wire, bound, cancelled: self.cancelled,
-            deadline: self.limits.deadline, cutoff: &cutoff,
-        }, value);
-        if let Some(error) = cutoff.into_inner() { return Err(error); }
+        let serialized = serde_json::to_writer(
+            &mut Sink {
+                wire: &mut wire,
+                bound,
+                cancelled: self.cancelled,
+                deadline: self.limits.deadline,
+                cutoff: &cutoff,
+            },
+            value,
+        );
+        if let Some(error) = cutoff.into_inner() {
+            return Err(error);
+        }
         serialized.map_err(|_| Error::Upstream("pinned compact serde codec"))?;
         self.check()?;
-        let stack = (depth + 1).checked_mul(size_of::<JsonValue>() + size_of::<JsonString>()
-            + size_of::<std::collections::HashMap<Vec<u16>, usize>>()
-            + 2 * size_of::<Vec<JsonValue>>()).ok_or(Error::ResourceLimit)?;
-        let parse_state = wire.len().checked_mul(64).and_then(|n| n.checked_add(1024))
-            .and_then(|n| n.checked_add(stack)).ok_or(Error::ResourceLimit)?;
+        let stack = (depth + 1)
+            .checked_mul(
+                size_of::<JsonValue>()
+                    + size_of::<JsonString>()
+                    + size_of::<std::collections::HashMap<Vec<u16>, usize>>()
+                    + 2 * size_of::<Vec<JsonValue>>(),
+            )
+            .ok_or(Error::ResourceLimit)?;
+        let parse_state = wire
+            .len()
+            .checked_mul(64)
+            .and_then(|n| n.checked_add(1024))
+            .and_then(|n| n.checked_add(stack))
+            .ok_or(Error::ResourceLimit)?;
         self.state(parse_state)?;
         let limits = self.source_codec_limits()?;
-        let document = self.source_codec(|check, admit| parse_json_with_state_budget_and_admission(
-            &wire, JsonMode::PublishedStrict, limits, parse_state, check, admit))?;
-        let canonical_state = bound.checked_add(fixed)
-            .and_then(|n| n.checked_add(nodes.checked_mul(size_of::<(usize, &(JsonString, JsonValue))>())?))
+        let document = self.source_codec(|check, admit| {
+            parse_json_with_state_budget_and_admission(
+                &wire,
+                JsonMode::PublishedStrict,
+                limits,
+                parse_state,
+                check,
+                admit,
+            )
+        })?;
+        let canonical_state = bound
+            .checked_add(fixed)
+            .and_then(|n| {
+                n.checked_add(nodes.checked_mul(size_of::<(usize, &(JsonString, JsonValue))>())?)
+            })
             .ok_or(Error::ResourceLimit)?;
         self.state(canonical_state)?;
         let limits = self.source_codec_limits()?;
-        let (raw, _) = self.source_codec(|check, admit| canonical_bytes_v1_with_state_budget_and_visits_and_admission(
-            document.root(), CanonicalProfile::SourceRecordDigestV1, limits, canonical_state, check, admit))?;
+        let (raw, _) = self.source_codec(|check, admit| {
+            canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+                document.root(),
+                CanonicalProfile::SourceRecordDigestV1,
+                limits,
+                canonical_state,
+                check,
+                admit,
+            )
+        })?;
         Ok(raw)
     }
     pub(super) fn record_matches(

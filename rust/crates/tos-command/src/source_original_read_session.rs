@@ -7,8 +7,8 @@ use std::{fs::File, mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_compiler::pwe_native::{Error, Session};
 use tos_foundation::{RelativePath, SourceRevision};
 use tos_source_store::{
-    CorpusCutReader, CorpusDescriptor, OriginalReadAdmission,
-    OriginalReadResult, OriginalReadStage, RetiredSourceMemberV1, SourceMemberV1, StoreError,
+    CorpusCutReader, CorpusDescriptor, OriginalReadAdmission, OriginalReadResult,
+    OriginalReadStage, RetiredSourceMemberV1, SourceMemberV1, StoreError,
 };
 
 /// The caller retains its actual selected cut and original payer throughout.
@@ -51,9 +51,7 @@ fn growth(
     Ok((times(new_capacity, element)?, times(capacity, element)?))
 }
 
-impl<'loan, 'session, 'budget, 'cancel>
-    OriginalImmutableReads<'loan, 'session, 'budget, 'cancel>
-{
+impl<'loan, 'session, 'budget, 'cancel> OriginalImmutableReads<'loan, 'session, 'budget, 'cancel> {
     pub(crate) fn new(
         cut: &'loan CorpusCutReader,
         session: &'loan mut Session<'session>,
@@ -81,10 +79,22 @@ impl<'loan, 'session, 'budget, 'cancel>
             .and_then(|n| n.checked_add(8 * size_of::<std::fs::Metadata>()))
             .and_then(|n| n.checked_add(8 * size_of::<File>()))
             .and_then(|n| n.checked_add(64 * size_of::<usize>()))
-            .ok_or(SourceCommandError::Unsupported("immutable read bootstrap holders"))?;
-        session.retain_source_state(fixed).map_err(|e| payer.error(e))?;
-        session.admit_source_prefix(0, 32).map_err(|e| payer.error(e))?;
-        Ok(Self { cut, session, payer, deadline, cancelled })
+            .ok_or(SourceCommandError::Unsupported(
+                "immutable read bootstrap holders",
+            ))?;
+        session
+            .retain_source_state(fixed)
+            .map_err(|e| payer.error(e))?;
+        session
+            .admit_source_prefix(0, 32)
+            .map_err(|e| payer.error(e))?;
+        Ok(Self {
+            cut,
+            session,
+            payer,
+            deadline,
+            cancelled,
+        })
     }
 
     pub(crate) fn member(
@@ -97,7 +107,12 @@ impl<'loan, 'session, 'budget, 'cancel>
         // loan. The exact source port owns the actual FD and every read slice.
         let cut = self.cut;
         cut.read_member_with_original_admission(
-            revision, path, max_bytes, self.deadline, self.cancelled, self,
+            revision,
+            path,
+            max_bytes,
+            self.deadline,
+            self.cancelled,
+            self,
         )
     }
 
@@ -109,7 +124,12 @@ impl<'loan, 'session, 'budget, 'cancel>
     ) -> OriginalReadResult<RetiredSourceMemberV1, SourceCommandError> {
         let cut = self.cut;
         cut.read_retirement_with_original_admission(
-            revision, index, max_bytes, self.deadline, self.cancelled, self,
+            revision,
+            index,
+            max_bytes,
+            self.deadline,
+            self.cancelled,
+            self,
         )
     }
 
@@ -125,7 +145,10 @@ impl<'loan, 'session, 'budget, 'cancel>
         // stage; size/capacity-dependent work/holders are additive below.
         self.prefix(0, 32, 0)?;
         match stage {
-            Bootstrap { entries, key_bytes, .. } | Lookup { entries, key_bytes } => {
+            Bootstrap {
+                entries, key_bytes, ..
+            }
+            | Lookup { entries, key_bytes } => {
                 // At most entries comparisons; a differing path comparison
                 // inspects at most this query's bytes plus one boundary.
                 self.prefix(times(entries, plus(key_bytes, 1)?)?, 1, 0)
@@ -138,29 +161,48 @@ impl<'loan, 'session, 'budget, 'cancel>
                 self.prefix(256, 8, 256)
             }
             Metadata => self.prefix(0, 4, 0),
-            Workspace { scratch_bytes, hash_state_bytes, stage_inline_bytes, .. } => {
-                self.prefix(0, 4, plus(scratch_bytes, plus(hash_state_bytes, stage_inline_bytes)?)?)
-            }
+            Workspace {
+                scratch_bytes,
+                hash_state_bytes,
+                stage_inline_bytes,
+                ..
+            } => self.prefix(
+                0,
+                4,
+                plus(scratch_bytes, plus(hash_state_bytes, stage_inline_bytes)?)?,
+            ),
             Read { requested_bytes } => self.prefix(requested_bytes, 1, 0),
             Inspect { .. } => self.prefix(0, 8, 0),
             Hash { bytes } => self.prefix(bytes, 1, 0),
-            Append { length, capacity, additional } => {
+            Append {
+                length,
+                capacity,
+                additional,
+            } => {
                 let (allocation, copy) = growth(length, capacity, additional, 1)?;
                 self.prefix(plus(copy, additional)?, 1, allocation)
             }
             Finalize { .. } => self.prefix(256, 4, 0),
-            ReturnMember { path_bytes, identity_entries } => {
-                self.prefix(
-                    plus(times(identity_entries, plus(path_bytes, 1)?)?, path_bytes)?,
-                    4,
-                    plus(path_bytes, size_of::<Vec<String>>())?,
-                )
-            }
-            ReturnId { id_bytes, length, capacity } => {
+            ReturnMember {
+                path_bytes,
+                identity_entries,
+            } => self.prefix(
+                plus(times(identity_entries, plus(path_bytes, 1)?)?, path_bytes)?,
+                4,
+                plus(path_bytes, size_of::<Vec<String>>())?,
+            ),
+            ReturnId {
+                id_bytes,
+                length,
+                capacity,
+            } => {
                 let (allocation, copy) = growth(length, capacity, 1, size_of::<String>())?;
                 self.prefix(plus(copy, id_bytes)?, 2, plus(allocation, id_bytes)?)
             }
-            ReturnRetirement { path_bytes, event_ref_bytes } => {
+            ReturnRetirement {
+                path_bytes,
+                event_ref_bytes,
+            } => {
                 let bytes = plus(path_bytes, event_ref_bytes)?;
                 // Source and separate event RawVecs remain paid/live here.
                 self.prefix(bytes, 2, bytes)
@@ -192,7 +234,9 @@ mod tests {
     use std::{fs, path::Path, time::Duration};
     use tos_compiler::pwe_native::Limits;
     use tos_foundation::{Digest256, JsonLimits};
-    use tos_source_store::{CorpusReader, CutReadLimits, OriginalReadError, ReadLimits, StoreErrorCode};
+    use tos_source_store::{
+        CorpusReader, CutReadLimits, OriginalReadError, ReadLimits, StoreErrorCode,
+    };
 
     fn copied_tree(from: &Path, to: &Path) {
         fs::create_dir(to).unwrap();
@@ -235,7 +279,8 @@ mod tests {
         ] {
             let mut manifest: Value = serde_json::from_slice(
                 &fs::read(root.join("revisions").join(original).join("snapshot.json")).unwrap(),
-            ).unwrap();
+            )
+            .unwrap();
             let rename = |name: &str| format!("ToS/source-witnesses/fixture/{name}");
             for row in manifest["files"].as_array_mut().unwrap() {
                 row["path"] = json!(rename(row["path"].as_str().unwrap()));
@@ -244,8 +289,12 @@ mod tests {
                 *path = json!(rename(path.as_str().unwrap()));
             }
             manifest["dependencies"] = Value::Object(
-                manifest["dependencies"].as_object().unwrap().iter()
-                    .map(|(name, refs)| (rename(name), refs.clone())).collect(),
+                manifest["dependencies"]
+                    .as_object()
+                    .unwrap()
+                    .iter()
+                    .map(|(name, refs)| (rename(name), refs.clone()))
+                    .collect(),
             );
             manifest["base_revision"] = previous.map(Value::String).unwrap_or(Value::Null);
             manifest.as_object_mut().unwrap().remove("revision");
@@ -259,9 +308,15 @@ mod tests {
         }
         let retained = revisions[0];
         let current = revisions[1];
-        let mut manifest: Value = serde_json::from_slice(&fs::read(
-            root.join("revisions").join(current.0.to_hex()).join("snapshot.json"),
-        ).unwrap()).unwrap();
+        let mut manifest: Value = serde_json::from_slice(
+            &fs::read(
+                root.join("revisions")
+                    .join(current.0.to_hex())
+                    .join("snapshot.json"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
         let old_digest = "1bb1a59e45683de29cf3c0437d7c68001bde5aebb085244fb366a37b4681402a";
         manifest["retirements"] = json!([{
             "path":"ToS/source-witnesses/fixture/retired-alpha.txt","sha256":old_digest,
@@ -277,48 +332,105 @@ mod tests {
         fs::write(home.join("snapshot.json"), manifest_bytes(&manifest)).unwrap();
         let cancel = AtomicBool::new(false);
         let deadline = Instant::now() + Duration::from_secs(30);
-        let reader = CorpusReader::open_existing(&root, ReadLimits {
-            max_manifest_bytes:8192,max_manifest_entries:32,max_selected_object_bytes:1024,
-            json:JsonLimits::default(),
-        }).unwrap();
-        let cut = reader.open_source_cut(current, CutReadLimits {
-            max_revisions:2,max_members:5,max_total_bytes:73,max_member_bytes:20,
-        }, deadline, &cancel).unwrap();
-        let mut operation = OperationBudget::new(&json!({"budgets":{
-            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-        }}), deadline).unwrap();
+        let reader = CorpusReader::open_existing(
+            &root,
+            ReadLimits {
+                max_manifest_bytes: 8192,
+                max_manifest_entries: 32,
+                max_selected_object_bytes: 1024,
+                json: JsonLimits::default(),
+            },
+        )
+        .unwrap();
+        let cut = reader
+            .open_source_cut(
+                current,
+                CutReadLimits {
+                    max_revisions: 2,
+                    max_members: 5,
+                    max_total_bytes: 73,
+                    max_member_bytes: 20,
+                },
+                deadline,
+                &cancel,
+            )
+            .unwrap();
+        let mut operation = OperationBudget::new(
+            &json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
         let limits = Limits {
-            max_input_bytes:1_048_576,max_nodes:8192,max_work:1_048_576,max_refs:64,
-            max_depth:16,max_items:64,max_state_bytes:8_388_608,deadline,
+            max_input_bytes: 1_048_576,
+            max_nodes: 8192,
+            max_work: 1_048_576,
+            max_refs: 64,
+            max_depth: 16,
+            max_items: 64,
+            max_state_bytes: 8_388_608,
+            deadline,
         };
-        let result: SourceCommandResult<()> = with_original_pwe_session(&mut operation, limits, &cancel, |payer, session| {
-            let mut read = OriginalImmutableReads::new(&cut, session, payer, deadline, &cancel)?;
-            let alpha = RelativePath::parse("ToS/source-witnesses/fixture/records/alpha.txt").unwrap();
-            assert_eq!(read.member(current, &alpha, 20).unwrap().raw, b"A\xc3\xa9+\xce\xa9\r\n");
-            assert_eq!(read.member(retained, &alpha, 20).unwrap().raw, b"A\xc3\xa9\r\n");
-            let retired = read.retirement(current, 0, 20).unwrap();
-            assert_eq!(retired.raw, b"A\xc3\xa9\r\n");
-            assert_eq!(retired.event_raw, b"new in revision two\n");
-            let paid = read.session.charges();
-            assert!(paid.4 >= 4 * 1_048_576, "both retirement objects keep their workspace charges");
-            fs::write(root.join("objects").join(old_digest), b"wrong").unwrap();
-            assert!(matches!(read.member(retained, &alpha, 20),
-                Err(OriginalReadError::Store(StoreError {code:StoreErrorCode::CorruptSelectedObject,..}))));
-            assert_eq!(read.member(current, &alpha, 20).unwrap().raw, b"A\xc3\xa9+\xce\xa9\r\n");
-            assert!(read.session.charges().0 > paid.0);
-            // Exhaust this SAME original Session; no new allowance or current
-            // fallback replaces an admitted-read prefix after the refusal.
-            let rest = read.session.source_allowance().map_err(|e| payer.error(e))?.state_bytes;
-            read.session.retain_source_state(rest).map_err(|e| payer.error(e))?;
-            let spent = read.session.charges();
-            let refusal = match read.member(current, &alpha, 20) {
-                Err(OriginalReadError::Admission(error)) => error,
-                _ => panic!("exhausted original Session must refuse before another read"),
-            };
-            assert_eq!(read.session.charges().4, spent.4);
-            assert!(read.session.charges().0 >= spent.0);
-            Err(refusal)
-        });
-        assert!(matches!(result, Err(SourceCommandError::Unsupported("PWE Assessment Session exhausted"))));
+        let result: SourceCommandResult<()> =
+            with_original_pwe_session(&mut operation, limits, &cancel, |payer, session| {
+                let mut read =
+                    OriginalImmutableReads::new(&cut, session, payer, deadline, &cancel)?;
+                let alpha =
+                    RelativePath::parse("ToS/source-witnesses/fixture/records/alpha.txt").unwrap();
+                assert_eq!(
+                    read.member(current, &alpha, 20).unwrap().raw,
+                    b"A\xc3\xa9+\xce\xa9\r\n"
+                );
+                assert_eq!(
+                    read.member(retained, &alpha, 20).unwrap().raw,
+                    b"A\xc3\xa9\r\n"
+                );
+                let retired = read.retirement(current, 0, 20).unwrap();
+                assert_eq!(retired.raw, b"A\xc3\xa9\r\n");
+                assert_eq!(retired.event_raw, b"new in revision two\n");
+                let paid = read.session.charges();
+                assert!(
+                    paid.4 >= 4 * 1_048_576,
+                    "both retirement objects keep their workspace charges"
+                );
+                fs::write(root.join("objects").join(old_digest), b"wrong").unwrap();
+                assert!(matches!(
+                    read.member(retained, &alpha, 20),
+                    Err(OriginalReadError::Store(StoreError {
+                        code: StoreErrorCode::CorruptSelectedObject,
+                        ..
+                    }))
+                ));
+                assert_eq!(
+                    read.member(current, &alpha, 20).unwrap().raw,
+                    b"A\xc3\xa9+\xce\xa9\r\n"
+                );
+                assert!(read.session.charges().0 > paid.0);
+                // Exhaust this SAME original Session; no new allowance or current
+                // fallback replaces an admitted-read prefix after the refusal.
+                let rest = read
+                    .session
+                    .source_allowance()
+                    .map_err(|e| payer.error(e))?
+                    .state_bytes;
+                read.session
+                    .retain_source_state(rest)
+                    .map_err(|e| payer.error(e))?;
+                let spent = read.session.charges();
+                let refusal = match read.member(current, &alpha, 20) {
+                    Err(OriginalReadError::Admission(error)) => error,
+                    _ => panic!("exhausted original Session must refuse before another read"),
+                };
+                assert_eq!(read.session.charges().4, spent.4);
+                assert!(read.session.charges().0 >= spent.0);
+                Err(refusal)
+            });
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Unsupported(
+                "PWE Assessment Session exhausted"
+            ))
+        ));
     }
 }

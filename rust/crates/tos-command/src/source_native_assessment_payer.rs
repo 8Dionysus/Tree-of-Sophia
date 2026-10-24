@@ -4,7 +4,12 @@
 use super::OperationBudget;
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::active;
-use std::{cell::{Cell, RefCell}, mem::size_of, sync::atomic::AtomicBool, time::Instant};
+use std::{
+    cell::{Cell, RefCell},
+    mem::size_of,
+    sync::atomic::AtomicBool,
+    time::Instant,
+};
 use tos_compiler::pwe_native::{Error, Limits, Session, SourceAdmission};
 
 #[path = "source_original_read_session.rs"]
@@ -152,7 +157,10 @@ impl OriginalAssessmentPayer<'_, '_> {
     }
 
     pub(crate) fn error(&self, error: Error) -> SourceCommandError {
-        if matches!(error, Error::Cancelled | Error::Deadline | Error::ResourceLimit) {
+        if matches!(
+            error,
+            Error::Cancelled | Error::Deadline | Error::ResourceLimit
+        ) {
             self.failed.set(true);
         }
         if let Some(original) = self.refusal.borrow_mut().take() {
@@ -173,7 +181,10 @@ impl OriginalAssessmentPayer<'_, '_> {
             return Err(original);
         }
         if self.failed.get()
-            || self.operation.try_borrow().map_or(true, |operation| operation.resource_refused.get())
+            || self
+                .operation
+                .try_borrow()
+                .map_or(true, |operation| operation.resource_refused.get())
         {
             return Err(SourceCommandError::Unsupported(
                 "original Assessment payer resource refusal persists",
@@ -207,22 +218,33 @@ mod tests {
             let mut original = OperationBudget::new(
                 &serde_json::json!({"budgets":{
                     "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-                }}), deadline,
-            ).unwrap();
+                }}),
+                deadline,
+            )
+            .unwrap();
             let before_work = original.work_remaining;
             let limits = Limits {
-                max_input_bytes:128,max_nodes:32,max_work:64,max_refs:8,
-                max_depth:8,max_items:8,max_state_bytes:128,deadline,
+                max_input_bytes: 128,
+                max_nodes: 32,
+                max_work: 64,
+                max_refs: 8,
+                max_depth: 8,
+                max_items: 8,
+                max_state_bytes: 128,
+                deadline,
             };
             let result = with_original_pwe_session(&mut original, limits, &cancel, |payer, _| {
                 match lane {
                     0 | 3 => {
                         let error = SourceAdmission::inspect(payer, usize::MAX).unwrap_err();
                         let mapped = payer.error(error); // takes the owned first error
-                        assert!(matches!(&mapped, SourceCommandError::Invalid(
-                            "assessment cumulative byte budget"
-                        )));
-                        if lane == 3 { return Err(mapped); }
+                        assert!(matches!(
+                            &mapped,
+                            SourceCommandError::Invalid("assessment cumulative byte budget")
+                        ));
+                        if lane == 3 {
+                            return Err(mapped);
+                        }
                         drop(mapped); // exact reported bypass: swallow then Ok
                     }
                     1 => {
@@ -243,15 +265,27 @@ mod tests {
                 Ok(())
             });
             if lane == 2 {
-                assert!(result.is_ok(), "handled subject result is not resource failure");
+                assert!(
+                    result.is_ok(),
+                    "handled subject result is not resource failure"
+                );
             } else if lane == 3 {
-                assert!(matches!(result, Err(SourceCommandError::Invalid(
-                    "assessment cumulative byte budget"
-                ))), "normal propagation preserves the original error");
+                assert!(
+                    matches!(
+                        result,
+                        Err(SourceCommandError::Invalid(
+                            "assessment cumulative byte budget"
+                        ))
+                    ),
+                    "normal propagation preserves the original error"
+                );
             } else {
-                assert!(matches!(result, Err(SourceCommandError::Unsupported(
-                    "original Assessment payer resource refusal persists"
-                ))));
+                assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Unsupported(
+                        "original Assessment payer resource refusal persists"
+                    ))
+                ));
             }
             assert_eq!(original.work_remaining, before_work - limits.max_work);
         }

@@ -451,13 +451,10 @@ impl OperationBudget {
     }
 
     pub(crate) fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
-        self.bytes_remaining =
-            self.bytes_remaining
-                .checked_sub(bytes)
-                .ok_or_else(|| {
-                    self.resource_refused.set(true);
-                    SourceCommandError::Invalid("assessment cumulative byte budget")
-                })?;
+        self.bytes_remaining = self.bytes_remaining.checked_sub(bytes).ok_or_else(|| {
+            self.resource_refused.set(true);
+            SourceCommandError::Invalid("assessment cumulative byte budget")
+        })?;
         if Instant::now() >= self.deadline {
             self.resource_refused.set(true);
             return Err(SourceCommandError::Denied("assessment operation deadline"));
@@ -503,21 +500,21 @@ impl OperationBudget {
                 self.resource_refused.set(true);
                 SourceCommandError::Invalid("assessment cumulative input budget")
             })?;
-        self.work_remaining = self.work_remaining.checked_sub(report.work_used()).ok_or_else(|| {
-            self.resource_refused.set(true);
-            SourceCommandError::Invalid("assessment cumulative work budget")
-        })?;
+        self.work_remaining = self
+            .work_remaining
+            .checked_sub(report.work_used())
+            .ok_or_else(|| {
+                self.resource_refused.set(true);
+                SourceCommandError::Invalid("assessment cumulative work budget")
+            })?;
         Ok(())
     }
 
     pub(crate) fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> {
-        self.work_remaining =
-            self.work_remaining
-                .checked_sub(work)
-                .ok_or_else(|| {
-                    self.resource_refused.set(true);
-                    SourceCommandError::Invalid("assessment cumulative work budget")
-                })?;
+        self.work_remaining = self.work_remaining.checked_sub(work).ok_or_else(|| {
+            self.resource_refused.set(true);
+            SourceCommandError::Invalid("assessment cumulative work budget")
+        })?;
         Ok(())
     }
 }
