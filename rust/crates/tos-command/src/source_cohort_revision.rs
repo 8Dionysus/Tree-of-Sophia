@@ -721,6 +721,153 @@ impl SourceRevisionIdentityClosure {
         }
         Ok(())
     }
+
+    /// Verify the selected point-identity coverage INSIDE the actual borrowed
+    /// epoch, before its eventual readset exists. This neither finalizes that
+    /// readset nor certifies semantic/history closure or current use. The held
+    /// owner must still perform its real paid exit fence, including on Err.
+    /// All comparisons/key copies below debit the caller's original operation;
+    /// no observation map, source payload or finalized readset is cloned.
+    pub(crate) fn verify_held_session_with_data_admission(
+        &self,
+        session: &SourceRevisionReadSession<'_>,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        use crate::source_native_cli::private_assessment::OperationBudget;
+        use std::mem::size_of;
+
+        fn debit(
+            budget: &mut OperationBudget,
+            bytes: usize,
+            work: usize,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> DurableResult<()> {
+            active(deadline, cancelled)?;
+            budget.limits().map_err(DurableError::Source)?;
+            budget.charge_work(work).map_err(DurableError::Source)?;
+            budget.charge_bytes(bytes).map_err(DurableError::Source)
+        }
+        fn add(a: usize, b: usize) -> DurableResult<usize> {
+            a.checked_add(b).ok_or(DurableError::Refused(
+                "held source identity comparison size overflow",
+            ))
+        }
+        fn mul(a: usize, b: usize) -> DurableResult<usize> {
+            a.checked_mul(b).ok_or(DurableError::Refused(
+                "held source identity comparison work overflow",
+            ))
+        }
+        // Same conservative BTree point bound as the admitted scope selector:
+        // locked Rust1.98.1 has <=11 comparisons per node and uniform leaf
+        // depth; every nonleaf has >=2 children, hence <=bit_width(N) levels.
+        fn comparisons(entries: usize) -> DurableResult<usize> {
+            let levels = (usize::BITS - entries.leading_zeros()) as usize;
+            Ok(entries.min(mul(11, levels)?))
+        }
+
+        debit(budget, 0, 0, deadline, cancelled)?;
+        if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
+            return Err(DurableError::Conflict(
+                "held source identity cutoff exceeds original operation",
+            ));
+        }
+        // Exact inputs of from_selection: nine length-prefixed cohort parts,
+        // plus the separate domain/job hashes. Pay before calling the owner
+        // identity constructor, not after observing its output.
+        let cohort_data = add(
+            9 * size_of::<u64>()
+                + b"tos-pg-record-revision-cohort-identity-v1".len()
+                + 16 + 32 + 8 + 32 + 8 + 32 + 8,
+            session.selection.cohort.domain.len(),
+        )?;
+        let hash_data = add(add(cohort_data, session.selection.cohort.domain.len())?,
+                            session.selection.job_id.len())?;
+        let initial_holders = add(
+            3 * size_of::<Digest256Hasher>() + size_of::<PgRecordRevisionIdentity>(),
+            size_of::<DurableResult<()>>(),
+        )?;
+        debit(budget, initial_holders,
+              add(hash_data, 2 * size_of::<PgRecordRevisionIdentity>())?,
+              deadline, cancelled)?;
+        if session.selection.identity() != self.selection_identity
+            || self.generations.len() != mul(self.owners.len(), PG_AGENT_INDEX_KINDS.len())?
+        {
+            return Err(DurableError::Conflict(
+                "source identity closure selection or generation count differs",
+            ));
+        }
+        // One genuine definition hex carrier for this check. Avoid the legacy
+        // verifier's per-candidate to_hex allocation inside the predicate scan.
+        debit(budget, 64, 32 + 64 + 64, deadline, cancelled)?;
+        let definition = session.selection.cohort.definition.to_hex();
+        for (token, owner) in &self.owners {
+            debit(budget, 0, 1, deadline, cancelled)?;
+            for kind in PG_AGENT_INDEX_KINDS {
+                let key_data = add(kind.len(), token.len())?;
+                let key_comparison = mul(
+                    comparisons(self.generations.len())?,
+                    mul(2, add(key_data, 2 * size_of::<usize>())?)?,
+                )?;
+                // Two owned tuple keys are required by this maintained map's
+                // get API. Reserve both actual copies before construction.
+                debit(budget, add(key_data, 2 * size_of::<String>())?,
+                      add(key_data, key_comparison)?, deadline, cancelled)?;
+                let key = (kind.to_owned(), token.clone());
+                let generation = self.generations.get(&key).ok_or(DurableError::Conflict(
+                    "source identity closure generation is absent",
+                ))?;
+                let mut present = false;
+                for read in &session.reads.reads {
+                    debit(budget, 0, 1, deadline, cancelled)?;
+                    if let PredicateRead::Generation { predicate, observed_generation } = read {
+                        let expected = add(add(OWNER.len(), kind.len())?,
+                                           add(token.len(), definition.len())?)?;
+                        let actual = add(add(predicate.owner.len(), predicate.scope.len())?,
+                                         add(predicate.token.len(), predicate.definition_version.len())?)?;
+                        debit(budget, 0, add(add(expected, actual)?, 2 * size_of::<u64>())?,
+                              deadline, cancelled)?;
+                        if predicate.kind == PredicateKind::Unique
+                            && predicate.owner == OWNER
+                            && predicate.scope == kind
+                            && predicate.token == *token
+                            && predicate.definition_version == definition
+                            && observed_generation == generation
+                        {
+                            present = true;
+                            break;
+                        }
+                    }
+                }
+                if !present {
+                    return Err(DurableError::Conflict(
+                        "source identity closure predicate is absent from readset",
+                    ));
+                }
+            }
+            if let Some((_, path)) = owner {
+                let point_work = mul(
+                    comparisons(session.observations.len())?,
+                    mul(2, add(path.as_str().len(), size_of::<usize>())?)?,
+                )?;
+                debit(budget, 0, point_work, deadline, cancelled)?;
+                let observation = session.observations.get(path.as_str()).ok_or(
+                    DurableError::Conflict("source identity closure owner member was not read"),
+                )?;
+                debit(budget, 0,
+                      add(path.as_str().len(), observation.member.path.as_str().len())?,
+                      deadline, cancelled)?;
+                if observation.member.path != *path {
+                    return Err(DurableError::Conflict(
+                        "source identity closure owner member path differs",
+                    ));
+                }
+            }
+        }
+        active(deadline, cancelled)
+    }
 }
 
 /// Sealed, bounded reverse-reference evidence produced from one fresh PG
