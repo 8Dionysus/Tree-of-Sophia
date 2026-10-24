@@ -25,6 +25,165 @@ PROFILE_LINKS = ('raw_data', 'raw_sha256', 'raw_abi')
 HEX64 = re.compile(r'[0-9a-f]{64}\Z')
 
 
+# BEGIN GENERATED FIXED PROTOCOL
+"""Pure fixed-status codec. No filesystem, clocks, exception text or subprocess."""
+STATUS_RESERVE = 512
+STATUS_LINE_CAP = 192
+REFUSAL_CODES = {
+    "bad-field-cap": 20,
+    "bad-limit": 21,
+    "conditional-drift": 22,
+    "config-drift": 23,
+    "custody": 24,
+    "deadline": 25,
+    "declared-size": 26,
+    "descriptor-cleanup": 27,
+    "directory-cache-binding": 28,
+    "directory-cache-drift": 29,
+    "directory-child-unreviewed": 30,
+    "directory-count": 31,
+    "directory-descriptor-cap": 32,
+    "directory-drift": 33,
+    "directory-duplicate": 34,
+    "directory-header": 35,
+    "directory-membership": 36,
+    "directory-record": 37,
+    "empty-local-drift": 38,
+    "encoding": 39,
+    "entry-name": 40,
+    "executable-drift": 41,
+    "executable-hash": 42,
+    "existing-timer": 43,
+    "feature-path": 44,
+    "feature-total": 45,
+    "feature-value": 46,
+    "features-drift": 47,
+    "features-empty": 48,
+    "field-budget": 49,
+    "held-executable-cap": 50,
+    "held-file-drift": 51,
+    "input-budget": 52,
+    "link-encoding": 53,
+    "link-size": 54,
+    "mandatory-absent": 55,
+    "metadata-type": 56,
+    "named-directory-drift": 57,
+    "named-file-drift": 58,
+    "native-abi": 59,
+    "native-buffer": 60,
+    "native-return": 61,
+    "operation-budget": 62,
+    "output-budget": 63,
+    "path-shape": 64,
+    "policy-inventory-drift": 65,
+    "policy-revision-drift": 66,
+    "private-local-nonempty": 67,
+    "profile-count": 68,
+    "profile-link-directory-forbidden": 69,
+    "profile-link-type": 70,
+    "profile-sha": 71,
+    "profile-sha-missing": 72,
+    "raw-abi": 73,
+    "raw-alias-drift": 74,
+    "raw-directory-forbidden": 75,
+    "raw-endpoint-drift": 76,
+    "raw-link": 77,
+    "raw-link-escape": 78,
+    "raw-link-layout": 80,
+    "raw-metadata-drift": 81,
+    "raw-open-forbidden": 82,
+    "raw-selector": 83,
+    "raw-selector-set": 84,
+    "raw-size-unavailable": 85,
+    "reader-contract": 86,
+    "revision": 87,
+    "selected-context": 88,
+    "source-drift": 89,
+    "source-hash": 90,
+    "total-output-budget": 91,
+    "tree-depth": 92,
+    "tree-directories": 93,
+    "tree-files": 94,
+    "tree-link": 95,
+    "type": 96,
+    "unreviewed-directory": 97,
+    "writer-contract": 98
+}
+EARLY = {
+    3: ('entry','selected-context','not-entered'),
+    4: ('payload','packed-bound','not-entered'),
+    5: ('payload','payload-bound','not-entered'),
+    6: ('payload','payload-hash','not-entered'),
+    7: ('payload','payload-shape','not-entered'),
+    8: ('payload','payload-type','not-entered'),
+    9: ('payload','untyped-failure','not-entered'),
+    10: ('binding','source-identity','not-entered'),
+    11: ('binding','platform-binding','not-entered'),
+    12: ('binding','image-version-metadata','not-entered'),
+    13: ('binding','sudo-environment-drift','not-entered'),
+    14: ('binding','untyped-failure','not-entered'),
+    15: ('collector-load','untyped-failure','not-entered'),
+    16: ('collector-call','untyped-failure','unknown'),
+    17: ('driver','untyped-failure','unknown'),
+}
+PAYLOAD_CODES = {'packed-bound':4,'payload-bound':5,'payload-hash':6,'payload-shape':7,'payload-type':8}
+BINDING_CODES = {'source-identity':10,'platform-binding':11,'image-version-metadata':12,'sudo-environment-drift':13}
+
+
+def literal_value_error(exc, table, fallback):
+    if type(exc) is ValueError and len(exc.args)==1 and type(exc.args[0]) is str:
+        return table.get(exc.args[0],fallback)
+    return fallback
+
+
+def refusal_exit(exc, refusal_type):
+    if type(exc) is refusal_type and len(exc.args)==1 and type(exc.args[0]) is str:
+        return REFUSAL_CODES.get(exc.args[0],100)
+    if isinstance(exc,OSError):
+        return 99
+    return 100
+
+
+def cleanup_exit(primary, mask):
+    #mask bits1/2/4 mean descriptor-close/disarm/handler-restore failure.
+    #A cleanup failure deliberately overrides the primary reason; do not infer it.
+    if type(mask) is not int or not 0<=mask<=7:
+        return 100
+    return 109+mask if mask else primary
+
+
+def status_record(raw):
+    code = None
+    if type(raw) is str and 1<=len(raw)<=3 and raw.isascii() and raw.isdecimal():
+        value = int(raw)
+        if 0<=value<=255 and str(value)==raw:
+            code = value
+    shown = str(code) if code is not None else 'unknown'
+    if code==79:
+        phase,reason,cleanup = 'complete','none','outer-ok'
+    elif code in EARLY:
+        phase,reason,cleanup = EARLY[code]
+    elif code in REFUSAL_CODES.values():
+        phase,reason,cleanup = 'collector',next(k for k,v in REFUSAL_CODES.items() if v==code),'outer-ok'
+    elif code in (99,100):
+        phase,reason,cleanup = 'collector',('os-error' if code==99 else 'untyped-failure'),'outer-ok'
+    elif code is not None and 110<=code<=116:
+        phase,cleanup = 'cleanup','outer-failed'
+        reason = ('fs' if (code-109)&1 else '') + ('-timer' if (code-109)&2 else '') + ('-handler' if (code-109)&4 else '')
+        reason = reason.lstrip('-')
+    else:
+        phase,reason,cleanup = 'transport','untyped-or-abrupt','unknown'
+    line = ('TOS_WITNESS_STATUS_V1 child='+shown+' phase='+phase+' reason='+reason+' cleanup='+cleanup+'\n').encode('ascii')
+    if len(line)>STATUS_LINE_CAP:
+        raise ValueError('fixed-status-bound')
+    return line
+
+
+def wrapper_unverified_record():
+    return b'TOS_WITNESS_STATUS_V1 child=79 phase=wrapper reason=output-unverified cleanup=outer-ok\n'
+# END GENERATED FIXED PROTOCOL
+
+
 class Refusal(Exception):
     """Codes are fixed nonsecret literals; never include observed content/path names."""
 
@@ -620,7 +779,7 @@ def encode(budget, report):
 def emit(budget, wire, writer=os.write):
     require(len(wire) <= OUTPUT_CAP, 'output-budget')
     pin = ('TOS_SOURCE_WITNESS_SHA256 ' + sha(wire) + ' bytes=' + str(len(wire)) + '\n').encode()
-    require(len(wire) + len(pin) <= OUTPUT_CAP, 'total-output-budget')
+    require(len(wire) + len(pin) + STATUS_RESERVE <= OUTPUT_CAP, 'total-output-budget')
     for fd, data in ((1, wire), (2, pin)):
         offset = 0
         while offset < len(data):
@@ -635,7 +794,8 @@ def run_selected(spec, binding):
     fs = None
     changed = False
     old_handler = None
-    result = 1
+    result = 100
+    cleanup_mask = 0
     try:
         require(binding.get('platform_binding') == 'coherent' and os.geteuid() == 0
                 and sys.flags.isolated and sys.flags.no_site, 'selected-context')
@@ -650,29 +810,31 @@ def run_selected(spec, binding):
         signal.setitimer(signal.ITIMER_REAL, max(0.000001, budget.deadline-budget.clock()))
         fs = RealFS(budget, '/')
         report = collect(fs, budget, spec, binding)
+        report['accounting']['status_reserve_bytes'] = STATUS_RESERVE
         emit(budget, encode(budget, report))
         result = 79
-    except BaseException:
-        # No post-failure host read, new ledger, JSON, exception text or private export.
-        result = 1
+    except BaseException as exc:
+        #Only a public fixed code leaves this process through its exit status.
+        #No post-failure read, JSON, exception text, private value or error write.
+        result = refusal_exit(exc, Refusal)
     finally:
         try:
             if fs is not None:
                 fs.close()
         except BaseException:
-            result = 1  # Cleanup refusal is fixed nonzero, never a traceback.
+            cleanup_mask |= 1  # Preserve all later restoration attempts.
         finally:
             if changed:
                 try:
                     signal.setitimer(signal.ITIMER_REAL, 0)
                 except BaseException:
-                    result = 1
+                    cleanup_mask |= 2
                 finally:
                     try:
                         signal.signal(signal.SIGALRM, old_handler)
                     except BaseException:
-                        result = 1
-    return result
+                        cleanup_mask |= 4
+    return cleanup_exit(result, cleanup_mask)
 
 
 if __name__ == '__main__':
