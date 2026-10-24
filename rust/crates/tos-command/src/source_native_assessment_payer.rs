@@ -84,6 +84,12 @@ pub(crate) fn with_original_pwe_session<T>(
 }
 
 impl OriginalAssessmentPayer<'_, '_> {
+    /// Borrow the real resource cutoff; no caller-selected replacement token.
+    /// This exposes neither the ledger nor source/assessment authority.
+    pub(crate) fn source_cutoff(&self) -> (Instant, &AtomicBool) {
+        (self.deadline, self.cancelled)
+    }
+
     /// Native frame/codec work outside the pure Session has its own
     /// prospective debit on the same operation. It does not spend a new Claim
     /// allowance or borrow work back from the prepaid pure Session envelope.

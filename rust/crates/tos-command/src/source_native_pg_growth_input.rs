@@ -23,6 +23,10 @@ const MAX_PREFIX_TOTAL_BYTES: usize = 33_554_432;
 const MAX_PREFIX_MEMBER_BYTES: usize = 8_388_608;
 const MAX_PREFIX_DEPTH: usize = 64;
 
+#[path = "source_native_pg_payload_loan.rs"]
+mod payload_loan;
+pub(crate) use payload_loan::{PgCurrentPayloadLoan, PgCurrentPayloadRef};
+
 /// A borrowed view of one fenced PG source epoch. Reads are recorded by the
 /// underlying `SourceRevisionReadSession`; `SourceRevisionReadSet` remains the
 /// authority used by the owner package's precommit validator.

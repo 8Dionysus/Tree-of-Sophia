@@ -1,0 +1,200 @@
+//! Lexical immutable payload custody over an actual PG source read epoch.
+//!
+//! This is a new, explicit selected-buffer lane, not a memo of filesystem
+//! currentness. It never replaces the existing FS capture verifier. The first
+//! read executes the actual committed-current SQL/STO owner, retains its normal
+//! observation, and moves its verified returned buffer into this private loan.
+//! Later uses borrow that SAME immutable buffer and fence the SAME live epoch.
+//! No caller-supplied bytes, verified flag, digest-only factory or opaque stamp
+//! can create a loan. Its mutable epoch borrow cannot survive the owner callback.
+//!
+//! This lane certifies neither current physical backing-store health after the
+//! initial read nor complete native funding. It does not refresh from a file or
+//! assert that a mutable file has become immutable. Rights/head/audit/job changes
+//! still fail the actual epoch fence. Selected-read policy and semantic/retained
+//! closure remain separate, required owner obligations.
+
+use super::{PgGrowthCurrentInput, admitted_freshness_data};
+use crate::source_cohort::ManagedCurrentMember;
+use crate::source_cohort::revision::{PgRecordRevisionIdentity, SourceRevisionReadSession};
+use crate::source_command::SourceCommandError;
+use crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer;
+use crate::{DurableError, DurableResult};
+use std::mem::size_of;
+use tos_compiler::pwe_native::Session;
+use tos_foundation::RelativePath;
+
+/// Only `with_current_payload_loan` constructs this type, after the actual
+/// selected read. All fields are private, there is no Clone or mutable payload
+/// accessor, and each byte borrow is confined to `with_bytes`' callback.
+/// The real `&mut SourceRevisionReadSession` keeps the issuing epoch alive;
+/// there is no address-only same-host test and no ABA allocation assumption.
+/// The original mutable Session is also borrowed for the entire loan; callers
+/// cannot supply a second Session to a later byte access.
+pub(crate) struct PgCurrentPayloadLoan<'host, 'store, 'budget, 'cancel, 'pure> {
+    epoch: &'host mut SourceRevisionReadSession<'store>,
+    payer: &'host OriginalAssessmentPayer<'budget, 'cancel>,
+    selected: PgRecordRevisionIdentity,
+    member: ManagedCurrentMember,
+    session: &'host mut Session<'pure>,
+}
+
+/// A borrowed binding, issued only inside a fenced loan callback. The real
+/// current-member result supplies custody revision, generation, commit, raw
+/// digest/length, dependency claims and placement; none is caller-authored.
+/// This carries transport evidence, never semantic membership/current use.
+pub(crate) struct PgCurrentPayloadRef<'payload> {
+    selected: &'payload PgRecordRevisionIdentity,
+    member: &'payload ManagedCurrentMember,
+}
+
+impl PgCurrentPayloadRef<'_> {
+    pub(crate) fn selected(&self) -> &PgRecordRevisionIdentity {
+        self.selected
+    }
+
+    pub(crate) fn member(&self) -> &ManagedCurrentMember {
+        self.member
+    }
+}
+
+impl<'store> PgGrowthCurrentInput<'_, 'store> {
+    /// Enter an actual selected PG epoch and read one physical CURRENT member.
+    /// The existing callback pays every STO request on the original Session,
+    /// including EOF/Err prefixes. Freshness-query DATA uses the same payer.
+    /// This does not fund the existing committed-read SQL, metadata clones,
+    /// foreign driver, initial owner bootstrap or the caller's semantic work.
+    /// Those debts are explicit; this method is not a fully funded public API.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn with_current_payload_loan<'budget, 'cancel, 'pure, T>(
+        &self,
+        payer: &OriginalAssessmentPayer<'budget, 'cancel>,
+        session: &mut Session<'pure>,
+        path: &RelativePath,
+        max_bytes: u64,
+        run: impl FnOnce(
+            &mut PgCurrentPayloadLoan<'_, 'store, 'budget, 'cancel, 'pure>,
+        ) -> DurableResult<T>,
+    ) -> DurableResult<T> {
+        // Also rejects a swallowed original resource refusal, even at zero.
+        payer
+            .charge_sto_source_measures(session, 0, 0, 0, 0, 0)
+            .map_err(DurableError::Source)?;
+        if max_bytes == 0 {
+            return Err(DurableError::Refused("PG payload loan empty read cap"));
+        }
+        let max_bytes = max_bytes.min(self.max_member_bytes as u64);
+        let (deadline, cancelled) = payer.source_cutoff();
+        let carriers = size_of::<PgCurrentPayloadLoan<'_, '_, '_, '_, '_>>()
+            .checked_add(size_of::<DurableResult<ManagedCurrentMember>>())
+            .and_then(|n| n.checked_add(size_of::<DurableResult<T>>()))
+            .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+                "PG payload loan logical carriers overflow",
+            )))?;
+        let comparisons = path.as_str().len().checked_mul(4).ok_or(
+            DurableError::Source(SourceCommandError::Unsupported(
+                "PG payload loan path comparison overflow",
+            )),
+        )?;
+        // Logical incoming/result holders and both path comparisons, before
+        // construction. This is not a complete activation/driver/RSS quote.
+        payer
+            .inspect(carriers, comparisons)
+            .map_err(DurableError::Source)?;
+        let selected = self.identity;
+        self.with_selected_read_epoch_with_query_data_admission(
+            payer,
+            deadline,
+            cancelled,
+            |epoch| {
+                let member = payer.read_current_member_sto_source(
+                    session, epoch, &selected, path, max_bytes,
+                )?;
+                if member.path != *path
+                    || member.metadata.path != *path
+                    || member.current_generation != selected.head_seq
+                    || member.metadata.size_bytes != member.raw.len() as u64
+                {
+                    return Err(DurableError::Conflict(
+                        "PG payload loan differs from its actual current observation",
+                    ));
+                }
+                // The returned buffer came only from the verified physical
+                // current read above; no reconstructed JSON or caller Vec.
+                let mut loan = PgCurrentPayloadLoan {
+                    epoch,
+                    payer,
+                    selected,
+                    member,
+                    session,
+                };
+                let result = run(&mut loan);
+                let cutoff = payer
+                    .charge_sto_source_measures(loan.session, 0, 0, 0, 0, 0)
+                    .map_err(DurableError::Source);
+                complete_use(result, cutoff)
+            },
+        )
+    }
+}
+
+impl<'pure> PgCurrentPayloadLoan<'_, '_, '_, '_, 'pure> {
+    /// Borrow exact bytes without copying/rehashing that already verified
+    /// private buffer. Every invocation checks the real original Session and
+    /// the actual source epoch before AND after its callback, including Err.
+    /// The callback owns prospective payment for inspecting/parsing the bytes;
+    /// merely borrowing a slice does not debit their size a second time.
+    pub(crate) fn with_bytes<T>(
+        &mut self,
+        run: impl FnOnce(PgCurrentPayloadRef<'_>, &mut Session<'pure>) -> DurableResult<T>,
+    ) -> DurableResult<T> {
+        self.payer
+            .charge_sto_source_measures(self.session, 0, 0, 0, 0, 0)
+            .map_err(DurableError::Source)?;
+        let (deadline, cancelled) = self.payer.source_cutoff();
+        let carriers = size_of::<DurableResult<T>>()
+            .checked_add(size_of::<PgCurrentPayloadRef<'_>>())
+            .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+                "PG payload borrowed result carriers overflow",
+            )))?;
+        self.payer
+            .reserve(carriers)
+            .map_err(DurableError::Source)?;
+        // An admitted identity check on the real borrowed selection, not a
+        // caller-authored identity or a fabricated finalized readset.
+        let identity = self
+            .payer
+            .with_operation(|budget| {
+                self.epoch
+                    .selection()
+                    .identity_with_data_admission(budget, deadline, cancelled)
+            })
+            .map_err(DurableError::Source)?;
+        if identity != self.selected {
+            return Err(DurableError::Conflict("PG payload issuing epoch changed"));
+        }
+        admitted_freshness_data(self.epoch, self.payer, deadline, cancelled)?;
+        let result = run(
+            PgCurrentPayloadRef {
+                selected: &self.selected,
+                member: &self.member,
+            },
+            self.session,
+        );
+        let cutoff = self
+            .payer
+            .charge_sto_source_measures(self.session, 0, 0, 0, 0, 0)
+            .map_err(DurableError::Source);
+        // Attempt the source fence even on callback Err. A resource refusal
+        // can prevent physical SQL, as on the existing paid epoch route.
+        let fenced = admitted_freshness_data(self.epoch, self.payer, deadline, cancelled);
+        complete_use(result, complete_use(cutoff, fenced))
+    }
+}
+
+fn complete_use<T>(result: DurableResult<T>, fenced: DurableResult<()>) -> DurableResult<T> {
+    match (result, fenced) {
+        (Err(original), _) | (Ok(_), Err(original)) => Err(original),
+        (Ok(value), Ok(())) => Ok(value),
+    }
+}
