@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-prepared-values-output-profile.schema.json",
+  "title": "PWE selected native pwe-prepared-values-output-profile",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "record_type": {
+          "const": "pwe-prepared-values-output-profile"
+        },
+        "schema_version": {
+          "const": "tos_pwe_prepared_values_output_profile_v1"
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "projection",
+            "pointer",
+            "codomain",
+            "item_pointer",
+            "item_selection",
+            "schema_bindings"
+          ],
+          "properties": {
+            "projection": {
+              "const": "JsonPointerBodyV1"
+            },
+            "pointer": {
+              "const": "/body"
+            },
+            "codomain": {
+              "const": "PreservedCandidate"
+            },
+            "item_pointer": {
+              "const": "/values"
+            },
+            "item_selection": {
+              "const": "each-array-element"
+            },
+            "schema_bindings": {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 3,
+              "prefixItems": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "raw_sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "const": "ToS/contracts/pwe-prepared-values-record.schema.json"
+                    },
+                    "raw_sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "raw_sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "const": "ToS/contracts/pwe-preserved-candidate.schema.json"
+                    },
+                    "raw_sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "raw_sha256"
+                  ],
+                  "properties": {
+                    "path": {
+                      "const": "ToS/contracts/pwe-values.schema.json"
+                    },
+                    "raw_sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              ],
+              "items": false
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "Candidate native source route. Authored instances, exact pins, current protected assessment and registration are separate inputs. A declaration issues neither source truth nor admission nor coverage."
+}

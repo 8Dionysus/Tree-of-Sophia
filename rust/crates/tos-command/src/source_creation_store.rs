@@ -379,6 +379,32 @@ pub(crate) enum ReadLength {
     Exact(usize),
 }
 
+/// Internal prospective-payment seam; no grant, allowance or refund is created.
+/// The caller pre-admits the callback and its carriers before entering this API.
+pub(crate) enum CreationReadStage {
+    Begin {
+        payload_cap: usize,
+        scratch_bytes: usize,
+    },
+    Read {
+        requested_bytes: usize,
+    },
+    Retain {
+        length: usize,
+        capacity: usize,
+        additional: usize,
+    },
+}
+pub(crate) trait CreationReadAdmission {
+    /// Inspect/admit only. Do not read, seek, replace or retain this descriptor.
+    /// Every successful payment stays spent if this or any later step fails.
+    fn before_creation_read(
+        &mut self,
+        descriptor: &File,
+        stage: CreationReadStage,
+    ) -> SourceCommandResult<()>;
+}
+
 pub(crate) fn raw(
     file: &mut File,
     cap: usize,
@@ -393,6 +419,16 @@ pub(crate) fn raw_with_length_limit(
     length: ReadLength,
     deadline: Instant,
     cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    raw_with_length_limit_and_admission(file, length, deadline, cancelled, None)
+}
+
+pub(crate) fn raw_with_length_limit_and_admission(
+    file: &mut File,
+    length: ReadLength,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut admission: Option<&mut dyn CreationReadAdmission>,
 ) -> SourceCommandResult<Vec<u8>> {
     let cap = match length {
         ReadLength::Legacy(cap) | ReadLength::AtMost(cap) | ReadLength::Exact(cap) => cap,
@@ -412,10 +448,29 @@ pub(crate) fn raw_with_length_limit(
             ));
         }
     }
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_creation_read(
+            file,
+            CreationReadStage::Begin {
+                payload_cap: cap,
+                scratch_bytes: 65536,
+            },
+        )?;
+        active(deadline, cancelled)?;
+    }
     let mut bytes = Vec::new();
     let mut buffer = [0u8; 65536];
     loop {
         active(deadline, cancelled)?;
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                CreationReadStage::Read {
+                    requested_bytes: buffer.len(),
+                },
+            )?;
+            active(deadline, cancelled)?;
+        }
         let n = file
             .read(&mut buffer)
             .map_err(|_| SourceCommandError::Invalid("creation descriptor read"))?;
@@ -429,6 +484,17 @@ pub(crate) fn raw_with_length_limit(
                 }
                 _ => SourceCommandError::Invalid("creation read exceeds byte budget"),
             });
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                CreationReadStage::Retain {
+                    length: bytes.len(),
+                    capacity: bytes.capacity(),
+                    additional: n,
+                },
+            )?;
+            active(deadline, cancelled)?;
         }
         bytes.extend_from_slice(&buffer[..n]);
     }
@@ -496,6 +562,114 @@ pub(crate) struct ClaimCatalogCapture {
     manifest: Option<Arc<[u8]>>,
     routes: BTreeMap<String, Arc<[u8]>>,
     uid: u32,
+}
+
+/// The live Claim route admits the SAME opened descriptor before its first
+/// payload read. A separate stat followed by read_at would admit another file
+/// if the name were replaced between those calls. Legacy local-only readers
+/// retain their existing path; no payer or allowance is created here.
+pub(crate) fn read_claim_catalog_at(
+    parent: &File,
+    name: &str,
+    uid: u32,
+    limit: usize,
+    whole_call: Option<&Rc<RefCell<crate::source_claims::ClaimCallBudget>>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<Vec<u8>>> {
+    let Some(whole_call) = whole_call else {
+        return work_transaction::read_at(parent, name, uid, limit, deadline, cancelled);
+    };
+    active(deadline, cancelled)?;
+    let mut file: File = match rustix::fs::openat(
+        parent,
+        name,
+        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+        Mode::empty(),
+    ) {
+        Ok(fd) => fd.into(),
+        Err(Errno::NOENT) => return Ok(None),
+        Err(_) => return Err(SourceCommandError::Denied("selected metadata file unsafe")),
+    };
+    let before = owned(&file, uid, false)?;
+    if before.mode() & 0o7000 != 0 {
+        return Err(SourceCommandError::Denied(
+            "selected metadata special file mode",
+        ));
+    }
+    let size = usize::try_from(before.len())
+        .map_err(|_| SourceCommandError::Unsupported("Claim catalog member size overflow"))?;
+    if size > limit {
+        return Err(SourceCommandError::Invalid(
+            "selected metadata file byte budget",
+        ));
+    }
+    // One extra byte detects growth without copying an unpaid suffix. The Vec
+    // and its later Arc copy overlap; keep their admitted logical holders and
+    // a fixed stack chunk in the original cumulative state ledger, even on Err.
+    let capacity = size.checked_add(1).ok_or(SourceCommandError::Unsupported(
+        "Claim catalog read size overflow",
+    ))?;
+    let state = capacity
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(8192 + 128))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim catalog holder size overflow",
+        ))?;
+    {
+        let mut budget = whole_call
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("Claim catalog original payer borrowed"))?;
+        budget.read(
+            u64::try_from(capacity)
+                .map_err(|_| SourceCommandError::Unsupported("Claim catalog read conversion"))?,
+        )?;
+        budget.retain(state)?;
+    }
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(capacity)
+        .map_err(|_| SourceCommandError::Unsupported("Claim catalog read reservation"))?;
+    if raw.capacity() > capacity {
+        return Err(SourceCommandError::Unsupported(
+            "Claim catalog admitted capacity",
+        ));
+    }
+    let mut chunk = [0u8; 8192];
+    loop {
+        active(deadline, cancelled)?;
+        let room = capacity - raw.len();
+        if room == 0 {
+            return Err(SourceCommandError::Conflict("selected metadata file grew"));
+        }
+        let chunk_limit = room.min(chunk.len());
+        let n = match file.read(&mut chunk[..chunk_limit]) {
+            Ok(n) => n,
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => return Err(SourceCommandError::Invalid("Claim catalog descriptor read")),
+        };
+        if n == 0 {
+            break;
+        }
+        raw.extend_from_slice(&chunk[..n]);
+    }
+    let again: File = rustix::fs::openat(
+        parent,
+        name,
+        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+        Mode::empty(),
+    )
+    .map(File::from)
+    .map_err(|_| SourceCommandError::Conflict("selected metadata file replaced"))?;
+    let current = owned(&again, uid, false)?;
+    if raw.len() != size
+        || stamp(&before) != stamp(&current)
+        || stamp(&before) != stamp(&owned(&file, uid, false)?)
+    {
+        return Err(SourceCommandError::Conflict(
+            "selected metadata file changed",
+        ));
+    }
+    Ok(Some(raw))
 }
 
 impl ClaimCatalogCapture {
@@ -611,6 +785,7 @@ impl ClaimCatalogCapture {
         path: &str,
         max_route_bytes: usize,
         max_new_bytes: usize,
+        whole_call: Option<&Rc<RefCell<crate::source_claims::ClaimCallBudget>>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<(Arc<[u8]>, usize)> {
@@ -629,11 +804,12 @@ impl ClaimCatalogCapture {
         ))?;
         let mut newly_read = 0usize;
         if self.manifest.is_none() {
-            let raw = work_transaction::read_at(
+            let raw = read_claim_catalog_at(
                 catalog,
                 "catalog.manifest.json",
                 self.uid,
                 2_097_152.min(max_new_bytes),
+                whole_call,
                 deadline,
                 cancelled,
             )?
@@ -649,11 +825,12 @@ impl ClaimCatalogCapture {
                 .ok_or(SourceCommandError::Unsupported(
                     "Claim generated catalog read budget",
                 ))?;
-        let raw = work_transaction::read_at(
+        let raw = read_claim_catalog_at(
             catalog,
             name,
             self.uid,
             remaining.min(max_route_bytes),
+            whole_call,
             deadline,
             cancelled,
         )?
@@ -5323,3 +5500,131 @@ pub(crate) use work_expression::{
 
 #[path = "source_read_filesystem.rs"]
 pub(crate) mod source_read_filesystem;
+
+#[cfg(test)]
+mod prospective_publication_raw_fixtures {
+    use super::*;
+    use std::io::Seek;
+    use std::sync::atomic::AtomicBool;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    // Synthetic chronological trace only; this does not issue a real payer,
+    // budget, authority or source/currentness certificate.
+    struct Trace {
+        calls: Vec<&'static str>,
+        requested: usize,
+        refuse_begin: bool,
+        grow_once: Option<File>,
+    }
+    impl CreationReadAdmission for Trace {
+        fn before_creation_read(
+            &mut self,
+            _descriptor: &File,
+            stage: CreationReadStage,
+        ) -> SourceCommandResult<()> {
+            match stage {
+                CreationReadStage::Begin {
+                    payload_cap,
+                    scratch_bytes,
+                } => {
+                    assert_eq!(payload_cap, 8192);
+                    assert_eq!(scratch_bytes, 65536);
+                    self.calls.push("begin");
+                    if self.refuse_begin {
+                        return Err(SourceCommandError::Denied("fixture admission refused"));
+                    }
+                }
+                CreationReadStage::Read { requested_bytes } => {
+                    self.requested += requested_bytes;
+                    self.calls.push("read");
+                    if let Some(mut writer) = self.grow_once.take() {
+                        writer.write_all(&[b'x'; 65536]).unwrap();
+                        writer.flush().unwrap();
+                    }
+                }
+                CreationReadStage::Retain { .. } => self.calls.push("retain"),
+            }
+            Ok(())
+        }
+    }
+    struct Fixture(std::path::PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let n = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "tos-publication-admission-{}-{n}",
+                std::process::id()
+            ));
+            std::fs::create_dir(&path).unwrap();
+            std::fs::write(path.join("control"), b"x").unwrap();
+            Self(path)
+        }
+        fn reader(&self) -> File {
+            File::open(self.0.join("control")).unwrap()
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    #[test]
+    fn publication_raw_growing_fd_prepays_full_read_before_original_cap_refusal() {
+        let fixture = Fixture::new();
+        let mut file = fixture.reader();
+        let writer = std::fs::OpenOptions::new()
+            .append(true)
+            .open(fixture.0.join("control"))
+            .unwrap();
+        let mut payer = Trace {
+            calls: Vec::new(),
+            requested: 0,
+            refuse_begin: false,
+            grow_once: Some(writer),
+        };
+        let result = raw_with_length_limit_and_admission(
+            &mut file,
+            ReadLength::Legacy(8192),
+            Instant::now() + Duration::from_secs(5),
+            &AtomicBool::new(false),
+            Some(&mut payer),
+        );
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Invalid(
+                "creation read exceeds byte budget"
+            ))
+        ));
+        assert_eq!(payer.calls, ["begin", "read"]);
+        assert_eq!(payer.requested, 65536);
+        assert_eq!(file.stream_position().unwrap(), 65536);
+    }
+    #[test]
+    fn publication_raw_admission_refusal_precedes_payload_read() {
+        let fixture = Fixture::new();
+        let mut file = fixture.reader();
+        let mut payer = Trace {
+            calls: Vec::new(),
+            requested: 0,
+            refuse_begin: true,
+            grow_once: None,
+        };
+        let result = raw_with_length_limit_and_admission(
+            &mut file,
+            ReadLength::Legacy(8192),
+            Instant::now() + Duration::from_secs(5),
+            &AtomicBool::new(false),
+            Some(&mut payer),
+        );
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Denied("fixture admission refused"))
+        ));
+        assert_eq!(payer.calls, ["begin"]);
+        assert_eq!(payer.requested, 0);
+        assert_eq!(file.stream_position().unwrap(), 0);
+    }
+}

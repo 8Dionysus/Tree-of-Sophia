@@ -38,6 +38,9 @@ use tos_validation::source_cut::{
 mod scope_admission;
 use scope_admission::ScopeAccess;
 
+#[path = "source_native_assessment_payer.rs"]
+pub(crate) mod original_payer;
+
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
 const QUALITY_BASIS_SCHEMA: &str = "ToS/contracts/native-text-layer-quality-basis.schema.json";
@@ -126,6 +129,74 @@ pub(crate) struct AssessmentEvaluationPlan<'a> {
     pub(crate) layers: Option<&'a crate::source_private_assessment_layers::PrivateAssessmentLayers>,
 }
 
+/// A borrowed position within the original protected plan, not another user
+/// request or an authorization ticket. Native account preparation must still
+/// check its exact application, source, scope, history and held host lease.
+pub(crate) struct AssessmentEvaluationTarget<'plan, 'data> {
+    plan: &'plan AssessmentEvaluationPlan<'data>,
+    parent: Option<&'plan ParentClaimContext>,
+}
+
+impl<'data> AssessmentEvaluationPlan<'data> {
+    pub(crate) fn current_target(&self) -> AssessmentEvaluationTarget<'_, 'data> {
+        AssessmentEvaluationTarget {
+            plan: self,
+            parent: None,
+        }
+    }
+
+    pub(crate) fn parent_target(&self) -> Option<AssessmentEvaluationTarget<'_, 'data>> {
+        self.parent_context
+            .as_ref()
+            .map(|parent| AssessmentEvaluationTarget {
+                plan: self,
+                parent: Some(parent),
+            })
+    }
+}
+
+impl<'plan, 'data> AssessmentEvaluationTarget<'plan, 'data> {
+    pub(crate) fn plan(&self) -> &'plan AssessmentEvaluationPlan<'data> {
+        self.plan
+    }
+
+    pub(crate) fn record(&self) -> &'plan JsonValue {
+        self.parent
+            .map_or(&self.plan.current, |parent| &parent.record)
+    }
+
+    pub(crate) fn scope(&self) -> &'plan JsonValue {
+        self.parent.map_or(&self.plan.scope, |parent| &parent.scope)
+    }
+
+    pub(crate) fn required_sources(&self) -> &'plan [JsonValue] {
+        self.parent
+            .map_or(self.plan.required_sources.as_slice(), |parent| {
+                parent.required_sources.as_slice()
+            })
+    }
+
+    pub(crate) fn quality_requirements(&self) -> &'plan [QualityRequirement] {
+        if self.parent.is_some() {
+            &self.plan.parent_quality_requirements
+        } else {
+            &self.plan.subject_quality_requirements
+        }
+    }
+
+    pub(crate) fn source_route(&self) -> AssessmentSourceRoute {
+        if self.parent.is_some() {
+            AssessmentSourceRoute::SourceBoundClaim
+        } else {
+            self.plan.source_route
+        }
+    }
+
+    pub(crate) fn is_parent(&self) -> bool {
+        self.parent.is_some()
+    }
+}
+
 pub(crate) struct AssessmentEvaluationResult {
     pub(crate) current_snapshot: String,
     pub(crate) quality_bases: Vec<(QualityRequirement, JsonValue)>,
@@ -148,6 +219,9 @@ pub(crate) struct OperationBudget {
     worker_cpu_seconds: u64,
     worker_address_space_bytes: u64,
     deadline: Instant,
+    // Sticky resource failure, including a failed debit swallowed inside a
+    // temporary native loan. It never records subject-level negative results.
+    resource_refused: std::cell::Cell<bool>,
 }
 
 /// Transport-neutral, collision-checked owner/source rows used by the
@@ -339,6 +413,7 @@ impl OperationBudget {
                 1_073_741_824,
             )?,
             deadline,
+            resource_refused: std::cell::Cell::new(false),
         })
     }
 
@@ -376,13 +451,12 @@ impl OperationBudget {
     }
 
     pub(crate) fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
-        self.bytes_remaining =
-            self.bytes_remaining
-                .checked_sub(bytes)
-                .ok_or(SourceCommandError::Invalid(
-                    "assessment cumulative byte budget",
-                ))?;
+        self.bytes_remaining = self.bytes_remaining.checked_sub(bytes).ok_or_else(|| {
+            self.resource_refused.set(true);
+            SourceCommandError::Invalid("assessment cumulative byte budget")
+        })?;
         if Instant::now() >= self.deadline {
+            self.resource_refused.set(true);
             return Err(SourceCommandError::Denied("assessment operation deadline"));
         }
         Ok(())
@@ -390,7 +464,12 @@ impl OperationBudget {
 
     pub(crate) fn limits(&self) -> SourceCommandResult<AssessmentLimits> {
         let remaining = self.deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() || self.work_remaining == 0 || self.bytes_remaining == 0 {
+        if self.resource_refused.get()
+            || remaining.is_zero()
+            || self.work_remaining == 0
+            || self.bytes_remaining == 0
+        {
+            self.resource_refused.set(true);
             return Err(SourceCommandError::Denied(
                 "assessment operation budget expired",
             ));
@@ -417,22 +496,32 @@ impl OperationBudget {
         self.bytes_remaining = self
             .bytes_remaining
             .checked_sub(report.input_bytes_used())
-            .ok_or(SourceCommandError::Invalid(
-                "assessment cumulative input budget",
-            ))?;
-        self.work_remaining = self.work_remaining.checked_sub(report.work_used()).ok_or(
-            SourceCommandError::Invalid("assessment cumulative work budget"),
-        )?;
+            .ok_or_else(|| {
+                self.resource_refused.set(true);
+                SourceCommandError::Invalid("assessment cumulative input budget")
+            })?;
+        self.work_remaining = self
+            .work_remaining
+            .checked_sub(report.work_used())
+            .ok_or_else(|| {
+                self.resource_refused.set(true);
+                SourceCommandError::Invalid("assessment cumulative work budget")
+            })?;
         Ok(())
     }
 
+    /// Observe a spent prefix in regressions without asking a refused
+    /// operation for a new usable allowance. No production reset or loan.
+    #[cfg(test)]
+    pub(crate) fn test_work_remaining(&self) -> usize {
+        self.work_remaining
+    }
+
     pub(crate) fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> {
-        self.work_remaining =
-            self.work_remaining
-                .checked_sub(work)
-                .ok_or(SourceCommandError::Invalid(
-                    "assessment cumulative work budget",
-                ))?;
+        self.work_remaining = self.work_remaining.checked_sub(work).ok_or_else(|| {
+            self.resource_refused.set(true);
+            SourceCommandError::Invalid("assessment cumulative work budget")
+        })?;
         Ok(())
     }
 }
@@ -1542,10 +1631,20 @@ fn selected_command_context(
         "ToS/contracts/corpus-record.schema.json",
         "ToS/contracts/semantic-relation-type-registry.schema.json",
         "ToS/contracts/semantic-entity-type-registry.schema.json",
+        // Source-cut schema resources for the actual held TS/C4 consumer.
+        // Presence selects bytes only; the caller still needs exact native
+        // selection/profile/registry pins and its protected owner frames.
+        "ToS/contracts/native-role-bindings.schema.json",
+        "ToS/contracts/ts-native-bindings.schema.json",
+        "ToS/contracts/ts-native-definition.schema.json",
+        "ToS/contracts/ts-native-value-profile.schema.json",
+        "ToS/contracts/ts-native-operation-result.schema.json",
+        "ToS/contracts/semantic-description-record.schema.json",
         "ToS/contracts/provenance-event-v2.schema.json",
         "ToS/contracts/source-anchor-v2.schema.json",
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "ToS/doctrine/semantic-interchange/ts-bindings.v1.json",
     ];
     let mut total = 0usize;
     for name in required {
@@ -1688,7 +1787,7 @@ pub(crate) fn plan_assessment_evaluation<'a>(
             "selected native layer assessment target is absent from source closure",
         ));
     }
-    let subject_required_source_refs = if version == OwnerVersion::V3 {
+    let mut subject_required_source_refs = if version == OwnerVersion::V3 {
         crate::source_sign::required_sources(
             &request.subject_id,
             public_claim_dependencies,
@@ -1703,6 +1802,15 @@ pub(crate) fn plan_assessment_evaluation<'a>(
             selected_layer,
         )?
     };
+    append_manual_authoring_sources(
+        &current,
+        &scope,
+        &resolved.source_records,
+        &mut subject_required_source_refs,
+        budget,
+        deadline,
+        cancelled,
+    )?;
     let required_sources = resolve_required_sources(&subject_required_source_refs, &all_by_id)?;
     let source_route = if selected_layer.is_some() {
         AssessmentSourceRoute::LayerQuality
@@ -1840,19 +1948,215 @@ where
         &AtomicBool,
     ) -> SourceCommandResult<AssessmentMechanicsReport>,
 {
+    evaluate_assessment_histories_using(
+        plan,
+        histories,
+        observed_now,
+        source_revision,
+        source_identity,
+        worker,
+        budget,
+        cancelled,
+        evaluate,
+        None,
+        None,
+    )
+}
+
+// Private common dispatch state: only evaluate_held_pwe_assessment below
+// constructs it from the actual owner-issued closed lexical loan.
+struct HeldPweCore<'loan, 'ticket, 'account, 'plan> {
+    ticket: Option<&'loan crate::pwe_source_owner::ApplicationCheckedTicket<'ticket>>,
+    parent: Option<&'loan crate::pwe_source_owner::CheckedPweParent<'account, 'plan>>,
+}
+fn held_scope_access<'a>(
+    budget: &'a mut OperationBudget,
+    whole: Option<&'a std::rc::Rc<std::cell::RefCell<crate::source_claims::ClaimCallBudget>>>,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+) -> ScopeAccess<'a> {
+    match whole {
+        Some(whole) => ScopeAccess::admitted(budget, whole, deadline, cancelled),
+        None => ScopeAccess::admitted_operation(budget, deadline, cancelled),
+    }
+}
+
+/// Sole exception to generic PWE refusal: the actual closed owner-issued loan.
+/// It evaluates the matching ticket target, never an arbitrary caller record.
+pub(crate) fn evaluate_held_pwe_assessment(
+    evaluation: &mut crate::pwe_source_owner::HeldPweEvaluation<'_>,
+) -> SourceCommandResult<AssessmentEvaluationResult> {
+    evaluation.with_filesystem(
+        |position,
+         target,
+         parent,
+         histories,
+         observed_now,
+         revision,
+         identity,
+         worker,
+         budget,
+         whole,
+         deadline,
+         cancelled| {
+            active(deadline, cancelled)?;
+            budget.charge_work(8)?;
+            if deadline > budget.deadline {
+                return Err(SourceCommandError::Conflict(
+                    "held PWE cutoff exceeds actual operation",
+                ));
+            }
+            let ticket = match position {
+                crate::pwe_source_owner::HeldEvaluationPosition::Account(ticket) => {
+                    let selected = ticket.target();
+                    if !std::ptr::eq(selected.plan(), target.plan())
+                        || !std::ptr::eq(selected.record(), target.record())
+                        || !std::ptr::eq(selected.scope(), target.scope())
+                        || selected.is_parent() != target.is_parent()
+                        || target.is_parent() && parent.is_some()
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "held PWE ticket/target differs",
+                        ));
+                    }
+                    Some(*ticket)
+                }
+                crate::pwe_source_owner::HeldEvaluationPosition::FormWithCheckedParent => {
+                    if target.is_parent() || parent.is_none() {
+                        return Err(SourceCommandError::Conflict(
+                            "held PWE form has no checked parent",
+                        ));
+                    }
+                    refuse_generic_pwe_subject(target.record(), budget, cancelled)?;
+                    None
+                }
+            };
+            held_scope_access(budget, whole, deadline, cancelled)
+                .retain(std::mem::size_of::<HeldPweCore<'_, '_, '_, '_>>())?;
+            let held = HeldPweCore { ticket, parent };
+            let mut evaluator = |input: &AssessmentReadInput,
+                                 worker: &mut CutWorkerSchemaExecutor,
+                                 limits: AssessmentLimits,
+                                 cancelled: &AtomicBool| {
+                evaluate_current_assessment(input, worker, limits, cancelled)
+                    .map_err(map_assessment_refusal)
+            };
+            evaluate_assessment_histories_using(
+                target.plan(),
+                histories,
+                observed_now,
+                Some(revision),
+                identity,
+                worker,
+                budget,
+                cancelled,
+                &mut evaluator,
+                Some(&held),
+                whole,
+            )
+        },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_assessment_histories_using<W, F>(
+    plan: &AssessmentEvaluationPlan<'_>,
+    histories: &BTreeMap<String, AssessmentHistory>,
+    observed_now: &str,
+    source_revision: Option<SourceRevision>,
+    source_identity: Digest256,
+    worker: &mut W,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+    evaluate: &mut F,
+    held: Option<&HeldPweCore<'_, '_, '_, '_>>,
+    whole: Option<&std::rc::Rc<std::cell::RefCell<crate::source_claims::ClaimCallBudget>>>,
+) -> SourceCommandResult<AssessmentEvaluationResult>
+where
+    W: CutSchemaExecutor,
+    F: FnMut(
+        &AssessmentReadInput,
+        &mut W,
+        AssessmentLimits,
+        &AtomicBool,
+    ) -> SourceCommandResult<AssessmentMechanicsReport>,
+{
+    let ticket = held.and_then(|held| held.ticket);
+    let checked_parent = held.and_then(|held| held.parent);
+    let read_only_parent = ticket.is_some_and(|ticket| ticket.target().is_parent());
+    let current = ticket.map_or(&plan.current, |ticket| ticket.target().record());
+    let scope = ticket.map_or(&plan.scope, |ticket| ticket.target().scope());
+    let subject_id = if ticket.is_some() {
+        pwe_dispatch_field(current, "id", budget, cancelled)?
+            .and_then(JsonValue::as_str)
+            .ok_or(SourceCommandError::Invalid("held PWE target ID"))?
+    } else {
+        plan.request.subject_id.as_str()
+    };
+    let parent_context = if read_only_parent {
+        None
+    } else {
+        plan.parent_context.as_ref()
+    };
+    if ticket.is_none() {
+        refuse_generic_pwe_subject(current, budget, cancelled)?;
+    }
+    if let Some(parent) = parent_context {
+        if checked_parent.is_none() {
+            refuse_generic_pwe_subject(&parent.record, budget, cancelled)?;
+        }
+    }
+    // A dependency-parent borrows its own required source set, never the
+    // ordinary form's reviews or requested scope. No ParsedRequest is created.
+    let parent_refs;
+    let selected_required_refs = if read_only_parent {
+        let required = ticket
+            .ok_or(SourceCommandError::Invalid("held parent ticket"))?
+            .target()
+            .required_sources();
+        let deadline = budget.deadline;
+        let mut access = held_scope_access(budget, whole, deadline, cancelled);
+        access.retain(
+            required
+                .len()
+                .checked_mul(std::mem::size_of::<JsonValue>())
+                .and_then(|n| n.checked_add(std::mem::size_of::<Vec<JsonValue>>()))
+                .ok_or(SourceCommandError::Unsupported(
+                    "held parent reference holders",
+                ))?,
+        )?;
+        let mut refs = Vec::new();
+        if refs.try_reserve_exact(required.len()).is_err() {
+            drop(access);
+            budget.resource_refused.set(true);
+            return Err(SourceCommandError::Unsupported(
+                "held parent reference allocation",
+            ));
+        }
+        for row in required {
+            refs.push(access.reference(row)?);
+        }
+        parent_refs = refs;
+        parent_refs.as_slice()
+    } else {
+        plan.subject_required_source_refs.as_slice()
+    };
+    let selected_route = ticket.map_or(plan.source_route, |ticket| ticket.target().source_route());
+    let quality_requirements = ticket
+        .map_or(plan.subject_quality_requirements.as_slice(), |ticket| {
+            ticket.target().quality_requirements()
+        });
     let config = plan.config;
     let request = plan.request;
     let version = plan.version;
     let source_records = &plan.resolved.source_records;
     let native_records = &plan.resolved.native_records;
     let all_by_id = &plan.all_by_id;
-    let selected_layer = plan
-        .layers
-        .and_then(|layers| layers.layers.get(&request.subject_id));
+    let selected_layer = plan.layers.and_then(|layers| layers.layers.get(subject_id));
     let mut current_snapshot = plan.base_snapshot.clone();
     let owner_record_rows = record_rows(config, &[])?;
     let mut quality_bases = Vec::new();
-    for requirement in &plan.subject_quality_requirements {
+    for requirement in quality_requirements {
         let layer = plan
             .layers
             .and_then(|layers| layers.layers.get(&requirement.layer_id))
@@ -1920,7 +2224,7 @@ where
         current_snapshot = quality_snapshot(&plan.base_snapshot, &quality_bases)?;
     }
     let subject_history = histories
-        .get(&request.subject_id)
+        .get(subject_id)
         .ok_or(SourceCommandError::Invalid(
             "assessment subject history absent",
         ))?;
@@ -1943,8 +2247,9 @@ where
         source_comparison_present: layer.comparison_record.is_some(),
         positive_use_allowed: layer.positive_use_allowed,
     });
-    if request.operation != "describe"
-        && plan.parent_context.is_none()
+    if !read_only_parent
+        && request.operation != "describe"
+        && parent_context.is_none()
         && request.expected_snapshot.as_deref() != Some(&current_snapshot)
     {
         return Err(SourceCommandError::Conflict(
@@ -1952,8 +2257,8 @@ where
         ));
     }
     let trusted_history = subject_history.submissions.clone();
-    let reviews = if request.operation == "append" {
-        append_submissions(config, &plan.scope, &request.assessments)?
+    let reviews = if !read_only_parent && request.operation == "append" {
+        append_submissions(config, scope, &request.assessments)?
     } else {
         Vec::new()
     };
@@ -1961,18 +2266,18 @@ where
         .iter()
         .map(|(_, basis, _, _)| basis.clone())
         .collect::<Vec<_>>();
-    let current_report = evaluate_selected_subject_with_executor(
+    let current_report = evaluate_selected_subject_with_ticket(
         config,
-        &request.subject_id,
-        &plan.scope,
+        subject_id,
+        scope,
         source_records,
         native_records,
         &record_rows,
-        &plan.subject_required_source_refs,
+        selected_required_refs,
         &admission_records,
         &trusted_history,
         &[],
-        plan.source_route,
+        selected_route,
         route_layer_quality,
         observed_now,
         source_revision.clone(),
@@ -1981,20 +2286,22 @@ where
         budget,
         cancelled,
         evaluate,
+        ticket,
+        whole,
     )?;
-    let append_report = if request.operation == "append" {
-        Some(evaluate_selected_subject_with_executor(
+    let append_report = if !read_only_parent && request.operation == "append" {
+        Some(evaluate_selected_subject_with_ticket(
             config,
-            &request.subject_id,
-            &plan.scope,
+            subject_id,
+            scope,
             source_records,
             native_records,
             &record_rows,
-            &plan.subject_required_source_refs,
+            selected_required_refs,
             &admission_records,
             &trusted_history,
             &reviews,
-            plan.source_route,
+            selected_route,
             route_layer_quality,
             observed_now,
             source_revision.clone(),
@@ -2003,57 +2310,61 @@ where
             budget,
             cancelled,
             evaluate,
+            ticket,
+            whole,
         )?)
     } else {
         None
     };
-    if !current_report.source_read_ready() && request.operation == "append" {
+    if !current_report.source_read_ready() && !read_only_parent && request.operation == "append" {
         return Err(SourceCommandError::Denied(
             "native-bound assessment append requires exact current source read",
         ));
     }
-    let parent_assessment = if let Some(parent) = &plan.parent_context {
+    let parent_assessment = if let Some(parent) = parent_context {
         let id = cmd::text(&parent.record, "id")?;
         let parent_history = histories.get(id).ok_or(SourceCommandError::Invalid(
             "assessment parent Claim history absent",
         ))?;
-        let parent_bases = quality_bases
-            .iter()
-            .filter(|(requirement, _)| plan.parent_quality_requirements.contains(requirement))
-            .map(|(_, basis)| record_input(basis))
-            .collect::<SourceCommandResult<Vec<_>>>()?;
-        let parent_required_refs = parent
-            .required_sources
-            .iter()
-            .map(owner_reference)
-            .collect::<SourceCommandResult<Vec<_>>>()?;
-        let parent_report = evaluate_selected_subject_with_executor(
-            config,
-            id,
-            &parent.scope,
-            source_records,
-            native_records,
-            &record_rows,
-            &parent_required_refs,
-            &parent_bases,
-            &parent_history.submissions,
-            &[],
-            AssessmentSourceRoute::SourceBoundClaim,
-            None,
-            observed_now,
-            source_revision,
-            source_identity,
-            worker,
-            budget,
-            cancelled,
-            evaluate,
-        )?;
-        let packet = parent_assessment_packet(
-            &parent.record,
-            &parent_report,
-            parent_history,
-            &parent.scope,
-        )?;
+        let evaluated_parent;
+        let parent_report = if let Some(parent) = checked_parent {
+            parent.report()
+        } else {
+            let parent_bases = quality_bases
+                .iter()
+                .filter(|(requirement, _)| plan.parent_quality_requirements.contains(requirement))
+                .map(|(_, basis)| record_input(basis))
+                .collect::<SourceCommandResult<Vec<_>>>()?;
+            let parent_required_refs = parent
+                .required_sources
+                .iter()
+                .map(owner_reference)
+                .collect::<SourceCommandResult<Vec<_>>>()?;
+            evaluated_parent = evaluate_selected_subject_with_executor(
+                config,
+                id,
+                &parent.scope,
+                source_records,
+                native_records,
+                &record_rows,
+                &parent_required_refs,
+                &parent_bases,
+                &parent_history.submissions,
+                &[],
+                AssessmentSourceRoute::SourceBoundClaim,
+                None,
+                observed_now,
+                source_revision,
+                source_identity,
+                worker,
+                budget,
+                cancelled,
+                evaluate,
+            )?;
+            &evaluated_parent
+        };
+        let packet =
+            parent_assessment_packet(&parent.record, parent_report, parent_history, &parent.scope)?;
         if version.has_layer_quality() {
             current_snapshot = extend_subject_assessment_snapshot(&current_snapshot, &packet)?;
         }
@@ -2062,6 +2373,7 @@ where
         None
     };
     if version.has_layer_quality()
+        && !read_only_parent
         && request.operation != "describe"
         && request.expected_snapshot.as_deref() != Some(&current_snapshot)
     {
@@ -2669,6 +2981,24 @@ pub(crate) fn select_current_scope_with_admission(
     )
 }
 
+/// The installed Assessment route borrows its actual OperationBudget only.
+/// Selection rules are shared with the genuine Claim route; no wallet/grant.
+pub(crate) fn select_current_scope_with_operation_admission(
+    config: &JsonValue,
+    request: &ParsedRequest,
+    all_by_id: &BTreeMap<String, JsonValue>,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, JsonValue)> {
+    select_current_scope_using(
+        config,
+        request,
+        all_by_id,
+        &mut ScopeAccess::admitted_operation(budget, deadline, cancelled),
+    )
+}
+
 fn select_current_scope_using(
     config: &JsonValue,
     request: &ParsedRequest,
@@ -2748,6 +3078,327 @@ fn select_current_scope_using(
     Ok((current, scope))
 }
 
+// New manual-use closure is derived ONLY from already source-owned rows, never
+// from config.records, request fields or a claimed complete/read bool. The
+// selected basis targets an exact existing Claim; the Claim need not acquire a
+// circular dependency on its later assessment artifact. Existing uses bypass it.
+fn append_manual_authoring_sources(
+    current: &JsonValue,
+    scope: &JsonValue,
+    sources: &[JsonValue],
+    required: &mut Vec<JsonValue>,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    struct Access<'a> {
+        budget: &'a mut OperationBudget,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    }
+    impl Access<'_> {
+        fn pay(&mut self, bytes: usize) -> SourceCommandResult<()> {
+            active(self.deadline, self.cancelled)?;
+            self.budget
+                .charge_work(bytes.checked_add(1).ok_or(SourceCommandError::Unsupported(
+                    "manual source work overflow",
+                ))?)
+        }
+        fn equal(&mut self, a: &str, b: &str) -> SourceCommandResult<bool> {
+            self.pay(
+                a.len()
+                    .checked_add(b.len())
+                    .ok_or(SourceCommandError::Unsupported(
+                        "manual source comparison overflow",
+                    ))?,
+            )?;
+            Ok(a == b)
+        }
+        fn get<'v>(
+            &mut self,
+            value: &'v JsonValue,
+            key: &str,
+        ) -> SourceCommandResult<Option<&'v JsonValue>> {
+            self.pay(0)?;
+            let Some(fields) = value.as_object() else {
+                return Err(SourceCommandError::Invalid("manual source object required"));
+            };
+            for (name, value) in fields {
+                self.pay(0)?;
+                if let Some(name) = name.as_str() {
+                    if self.equal(name, key)? {
+                        return Ok(Some(value));
+                    }
+                }
+            }
+            Ok(None)
+        }
+        fn field<'v>(
+            &mut self,
+            value: &'v JsonValue,
+            key: &str,
+        ) -> SourceCommandResult<&'v JsonValue> {
+            self.get(value, key)?
+                .ok_or(SourceCommandError::Invalid("manual source required field"))
+        }
+        fn text<'v>(&mut self, value: &'v JsonValue, key: &str) -> SourceCommandResult<&'v str> {
+            self.field(value, key)?
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("manual source text field"))
+        }
+        fn canonical(&mut self, value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
+            crate::source_native_roles::admitted_canonical(
+                value,
+                self.budget,
+                self.deadline,
+                self.cancelled,
+            )
+        }
+        fn same(&mut self, a: &JsonValue, b: &JsonValue) -> SourceCommandResult<bool> {
+            self.pay(0)?;
+            if a.as_object().is_none_or(|v| v.len() != 3)
+                || b.as_object().is_none_or(|v| v.len() != 3)
+            {
+                return Err(SourceCommandError::Invalid("manual exact reference shape"));
+            }
+            for key in ["id", "digest"] {
+                let av = self.text(a, key)?;
+                let bv = self.text(b, key)?;
+                if !self.equal(av, bv)? {
+                    return Ok(false);
+                }
+            }
+            let av = self.field(a, "version")?;
+            let bv = self.field(b, "version")?;
+            let (JsonValue::Number(an), JsonValue::Number(bn)) = (av, bv) else {
+                return Err(SourceCommandError::Invalid(
+                    "manual exact version is not numeric",
+                ));
+            };
+            let tokens = an.lexeme.len().checked_add(bn.lexeme.len()).ok_or(
+                SourceCommandError::Unsupported("manual version work overflow"),
+            )?;
+            self.pay(
+                tokens
+                    .checked_mul(16)
+                    .ok_or(SourceCommandError::Unsupported(
+                        "manual version work overflow",
+                    ))?,
+            )?;
+            // Only the two numeric leaves enter the maintained Python helper;
+            // it cannot sort an arbitrary object or apply bool/int coercion.
+            // All token scans/copies and integral-float formatting holders are
+            // reserved prospectively, preserving 1==1.0 without a u64 cast.
+            let holders = tokens
+                .checked_add(640)
+                .and_then(|n| n.checked_mul(8))
+                .ok_or(SourceCommandError::Unsupported(
+                    "manual version holder overflow",
+                ))?;
+            self.budget.charge_bytes(holders)?;
+            for number in [an, bn] {
+                if number.kind == tos_foundation::JsonNumberKind::Float {
+                    let n = number.lexeme.parse::<f64>().map_err(|_| {
+                        SourceCommandError::Unsupported("manual numeric representation")
+                    })?;
+                    if !n.is_finite() {
+                        return Err(SourceCommandError::Unsupported("manual nonfinite version"));
+                    }
+                    let exponent = ((n.to_bits() >> 52) & 0x7ff) as i32;
+                    let passes = (exponent - 1023 - 52).max(0) as usize;
+                    self.pay((passes + 1) * 3 * 640 + 1024)?;
+                }
+            }
+            tos_foundation::python_equals(av, bv, 1)
+                .map_err(|_| SourceCommandError::Unsupported("manual exact numeric equality"))
+        }
+        fn reference(&mut self, row: &JsonValue) -> SourceCommandResult<JsonValue> {
+            let id = self.text(row, "id")?;
+            let version = self.field(row, "version")?;
+            // A source envelope's existing version is preserved verbatim. No
+            // fresh scalar bound or source instance is invented by this port.
+            let version_raw = self.canonical(version)?;
+            let payload = self.field(row, "payload")?;
+            let raw = self.canonical(payload)?;
+            self.pay(raw.len())?;
+            let digest = Digest256::of_bytes(&raw);
+            let holder = id
+                .len()
+                .checked_mul(16)
+                .and_then(|n| n.checked_add(version_raw.len().checked_mul(16)?))
+                .and_then(|n| n.checked_add(2048))
+                .ok_or(SourceCommandError::Unsupported(
+                    "manual exact holder overflow",
+                ))?;
+            self.budget.charge_bytes(holder)?;
+            self.pay(holder)?;
+            Ok(cmd::object(vec![
+                ("id", cmd::string(id)),
+                ("version", version.clone()),
+                ("digest", cmd::string(&digest.to_prefixed())),
+            ]))
+        }
+        fn add(
+            &mut self,
+            reference: &JsonValue,
+            sources: &[JsonValue],
+            required: &mut Vec<JsonValue>,
+        ) -> SourceCommandResult<()> {
+            let id = self.text(reference, "id")?;
+            let mut found = None;
+            for row in sources {
+                self.pay(0)?;
+                let candidate = self.text(row, "id")?;
+                if self.equal(candidate, id)? {
+                    found = Some(row);
+                    break;
+                }
+            }
+            let row = found.ok_or(SourceCommandError::Unsupported(
+                "manual dependency absent from actual source selection",
+            ))?;
+            let actual = self.reference(row)?;
+            if !self.same(&actual, reference)? {
+                return Err(SourceCommandError::Conflict(
+                    "manual source dependency exact pin differs",
+                ));
+            }
+            for prior in required.iter() {
+                self.pay(0)?;
+                if self.same(prior, &actual)? {
+                    return Ok(());
+                }
+                let prior_id = self.text(prior, "id")?;
+                if self.equal(prior_id, id)? {
+                    return Err(SourceCommandError::Conflict(
+                        "manual source dependency versions conflict",
+                    ));
+                }
+            }
+            let vector_bytes = required
+                .len()
+                .checked_add(1)
+                .and_then(|n| n.checked_mul(std::mem::size_of::<JsonValue>()))
+                .and_then(|n| n.checked_mul(2))
+                .ok_or(SourceCommandError::Unsupported(
+                    "manual reference vector overflow",
+                ))?;
+            self.budget.charge_bytes(vector_bytes)?;
+            self.pay(vector_bytes)?;
+            required
+                .try_reserve_exact(1)
+                .map_err(|_| SourceCommandError::Unsupported("manual source reference holder"))?;
+            required.push(actual);
+            Ok(())
+        }
+        fn walk(
+            &mut self,
+            value: &JsonValue,
+            sources: &[JsonValue],
+            required: &mut Vec<JsonValue>,
+            depth: usize,
+        ) -> SourceCommandResult<()> {
+            self.pay(0)?;
+            if depth > tos_foundation::JsonLimits::default().max_depth {
+                return Err(SourceCommandError::Unsupported(
+                    "manual source closure depth",
+                ));
+            }
+            match value {
+                JsonValue::Object(fields) => {
+                    if fields.len() == 3
+                        && self.get(value, "id")?.is_some()
+                        && self.get(value, "version")?.is_some()
+                        && self.get(value, "digest")?.is_some()
+                    {
+                        return self.add(value, sources, required);
+                    }
+                    for (_, child) in fields {
+                        self.walk(child, sources, required, depth + 1)?;
+                    }
+                }
+                JsonValue::Array(values) => {
+                    for child in values {
+                        self.walk(child, sources, required, depth + 1)?;
+                    }
+                }
+                _ => (),
+            }
+            Ok(())
+        }
+    }
+    let mut access = Access {
+        budget,
+        deadline,
+        cancelled,
+    };
+    let requested_use = access.text(scope, "requested_use")?;
+    if !access.equal(requested_use, "registry-manual-authoring-v1")? {
+        return Ok(());
+    }
+    let target = access.reference(current)?;
+    let mut source_target = false;
+    let target_id = access.text(&target, "id")?;
+    for row in sources {
+        let row_id = access.text(row, "id")?;
+        if access.equal(row_id, target_id)? {
+            let actual = access.reference(row)?;
+            source_target = access.same(&actual, &target)?;
+            break;
+        }
+    }
+    if !source_target {
+        return Err(SourceCommandError::Denied(
+            "manual target is not the actual selected source Claim",
+        ));
+    }
+    let mut basis = None;
+    for row in sources {
+        access.pay(0)?;
+        let payload = access.field(row, "payload")?;
+        let Some(kind) = access
+            .get(payload, "record_type")?
+            .and_then(JsonValue::as_str)
+        else {
+            continue;
+        };
+        if !access.equal(kind, "manual-authoring-basis")? {
+            continue;
+        }
+        let body = access.field(payload, "body")?;
+        let target_ref = access.field(body, "target")?;
+        if !access.same(target_ref, &target)? {
+            continue;
+        }
+        if basis.replace(row).is_some() {
+            return Err(SourceCommandError::Conflict(
+                "multiple selected manual bases target the exact Claim",
+            ));
+        }
+    }
+    let basis = basis.ok_or(SourceCommandError::Unsupported(
+        "exact source manual basis is not selected",
+    ))?;
+    let basis_ref = access.reference(basis)?;
+    access.add(&basis_ref, sources, required)?;
+    let payload = access.field(basis, "payload")?;
+    let body = access.field(payload, "body")?;
+    let procedure = access.field(body, "procedure")?;
+    access.add(procedure, sources, required)?;
+    // Reserve the fixed borrowed walker stack BEFORE recursion. The closed
+    // registered body grammar determines which leaves can be exact refs.
+    let fixed = std::mem::size_of::<JsonValue>()
+        .checked_add(8 * std::mem::size_of::<usize>())
+        .and_then(|n| n.checked_mul(tos_foundation::JsonLimits::default().max_depth + 1))
+        .and_then(|n| n.checked_mul(16))
+        .ok_or(SourceCommandError::Unsupported(
+            "manual closure fixed state overflow",
+        ))?;
+    access.budget.charge_bytes(fixed)?;
+    let finding = access.field(body, "basis")?;
+    access.walk(finding, sources, required, 0)
+}
+
 pub(crate) fn resolve_required_sources(
     references: &[JsonValue],
     all_by_id: &BTreeMap<String, JsonValue>,
@@ -2812,6 +3463,115 @@ fn evaluation_limits(budget: &OperationBudget) -> SourceCommandResult<Assessment
     budget.limits()
 }
 
+/// Borrowed dispatch lookup, paid before field and string comparisons.
+fn pwe_dispatch_field<'v>(
+    value: &'v JsonValue,
+    key: &str,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<&'v JsonValue>> {
+    active(budget.deadline, cancelled)?;
+    budget.charge_work(1)?;
+    let Some(fields) = value.as_object() else {
+        return Ok(None);
+    };
+    budget.charge_work(
+        fields
+            .len()
+            .checked_add(1)
+            .ok_or(SourceCommandError::Unsupported(
+                "PWE dispatch field iteration overflow",
+            ))?,
+    )?;
+    for (name, value) in fields {
+        active(budget.deadline, cancelled)?;
+        if let Some(name) = name.as_str() {
+            budget.charge_work(name.len().checked_add(key.len()).ok_or(
+                SourceCommandError::Unsupported("PWE dispatch field comparison overflow"),
+            )?)?;
+            if name == key {
+                return Ok(Some(value));
+            }
+        }
+    }
+    Ok(None)
+}
+
+/// Exact registered PWE account families cannot fall through to the generic
+/// assessment engine while the protected native consumer is not installed.
+/// This is a refusal gate, never a report/authority/completeness constructor.
+fn requires_held_pwe_dispatch(
+    current: &JsonValue,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<bool> {
+    let payload = pwe_dispatch_field(current, "payload", budget, cancelled)?.unwrap_or(current);
+    // These exact constants are the three declared source families in the
+    // maintained pwe-bindings.v1.json, not inferred from a similar object body.
+    for (field, expected) in [
+        ("schema_version", "tos_pwe_name_assignment_claim_v1"),
+        ("schema_version", "tos_pwe_responsibility_account_claim_v1"),
+        ("schema_version", "tos_pwe_identity_correspondence_claim_v1"),
+        ("predicate", "pwe_name_assignment"),
+        ("predicate", "pwe_responsibility_account"),
+        ("predicate", "pwe_identity_correspondence"),
+    ] {
+        let actual = pwe_dispatch_field(payload, field, budget, cancelled)?;
+        if let Some(actual) = actual.and_then(JsonValue::as_str) {
+            budget.charge_work(actual.len().checked_add(expected.len()).ok_or(
+                SourceCommandError::Unsupported("PWE dispatch family comparison overflow"),
+            )?)?;
+            if actual == expected {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+/// The same boundary protects direct, form-parent and quality-dependency
+/// evaluation. Only the actual selected subject is checked; an unrelated PWE
+/// record in the shared source set must not infect another subject's result.
+fn refuse_generic_pwe_subject(
+    subject: &JsonValue,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if requires_held_pwe_dispatch(subject, budget, cancelled)? {
+        return Err(SourceCommandError::Unsupported(
+            "PWE source Claim requires its held exact-basis consumer dispatch",
+        ));
+    }
+    Ok(())
+}
+
+fn refuse_generic_pwe_subject_id(
+    subject_id: &str,
+    sources: [&[JsonValue]; 3],
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(budget.deadline, cancelled)?;
+    for records in sources {
+        budget.charge_work(records.len().checked_add(1).ok_or(
+            SourceCommandError::Unsupported("PWE subject dispatch iteration overflow"),
+        )?)?;
+        for record in records {
+            if let Some(id) =
+                pwe_dispatch_field(record, "id", budget, cancelled)?.and_then(JsonValue::as_str)
+            {
+                budget.charge_work(id.len().checked_add(subject_id.len()).ok_or(
+                    SourceCommandError::Unsupported("PWE subject identity comparison overflow"),
+                )?)?;
+                if id == subject_id {
+                    refuse_generic_pwe_subject(record, budget, cancelled)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn evaluate_selected_subject_with_executor<W, F>(
     config: &JsonValue,
     subject_id: &str,
@@ -2841,6 +3601,101 @@ where
         &AtomicBool,
     ) -> SourceCommandResult<AssessmentMechanicsReport>,
 {
+    evaluate_selected_subject_with_ticket(
+        config,
+        subject_id,
+        scope,
+        source_records,
+        native_records,
+        record_rows,
+        required_refs,
+        required_admission_bases,
+        trusted_history,
+        reviews,
+        source_route,
+        layer_quality,
+        observed_now,
+        source_revision,
+        source_identity,
+        worker,
+        budget,
+        cancelled,
+        evaluate,
+        None,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn evaluate_selected_subject_with_ticket<W, F>(
+    config: &JsonValue,
+    subject_id: &str,
+    scope: &JsonValue,
+    source_records: &[JsonValue],
+    native_records: &[JsonValue],
+    record_rows: &[JsonValue],
+    required_refs: &[JsonValue],
+    required_admission_bases: &[AssessmentRecordInput],
+    trusted_history: &[AssessmentSubmissionInput],
+    reviews: &[AssessmentSubmissionInput],
+    source_route: AssessmentSourceRoute,
+    layer_quality: Option<AssessmentLayerQualityObservation>,
+    observed_now: &str,
+    source_revision: Option<SourceRevision>,
+    source_identity: Digest256,
+    worker: &mut W,
+    budget: &mut OperationBudget,
+    cancelled: &AtomicBool,
+    evaluate: &mut F,
+    ticket: Option<&crate::pwe_source_owner::ApplicationCheckedTicket<'_>>,
+    whole: Option<&std::rc::Rc<std::cell::RefCell<crate::source_claims::ClaimCallBudget>>>,
+) -> SourceCommandResult<AssessmentMechanicsReport>
+where
+    F: FnMut(
+        &AssessmentReadInput,
+        &mut W,
+        AssessmentLimits,
+        &AtomicBool,
+    ) -> SourceCommandResult<AssessmentMechanicsReport>,
+{
+    if let Some(ticket) = ticket {
+        let expected = ticket.target().record();
+        let deadline = budget.deadline;
+        let mut access = held_scope_access(budget, whole, deadline, cancelled);
+        let expected_id = access.text(expected, "id")?;
+        if !access.text_equal(subject_id, expected_id)? {
+            return Err(SourceCommandError::Conflict(
+                "held PWE evaluator subject differs",
+            ));
+        }
+        let mut found = false;
+        for rows in [source_records, native_records, record_rows] {
+            for row in rows {
+                if let Some(id) = access.get(row, "id")?.and_then(JsonValue::as_str) {
+                    if access.text_equal(id, subject_id)? {
+                        if !access.same(row, expected)? {
+                            return Err(SourceCommandError::Conflict(
+                                "held PWE exact source envelope differs",
+                            ));
+                        }
+                        found = true;
+                    }
+                }
+            }
+        }
+        if !found {
+            return Err(SourceCommandError::Denied(
+                "held PWE account absent from selected sources",
+            ));
+        }
+    } else {
+        refuse_generic_pwe_subject_id(
+            subject_id,
+            [source_records, native_records, record_rows],
+            budget,
+            cancelled,
+        )?;
+    }
     let input = selected_assessment_input(
         config,
         subject_id,

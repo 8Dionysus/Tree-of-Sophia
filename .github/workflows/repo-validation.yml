@@ -99,6 +99,12 @@ jobs:
             /Cargo.lock
             /rust-toolchain.toml
             /rust/
+            /ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-production/historical-process.json
+            # Exact existing source inputs embedded by the PWE metadata regression.
+            /ToS/source-witnesses/agents/friedrich-ritschl/agent.json
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json
+            /ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json
+            /ToS/source-witnesses/languages/sumerian/language.json
             /tests/conformance/rust/
             /tests/support/selected_metadata_authority.rs
             /tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json
@@ -373,6 +379,7 @@ jobs:
             /Cargo.lock
             /rust-toolchain.toml
             /rust/
+            /ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-production/historical-process.json
             /tests/conformance/rust/
             /tests/support/selected_metadata_authority.rs
             /tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json
@@ -464,6 +471,7 @@ jobs:
             /Cargo.lock
             /rust-toolchain.toml
             /rust/
+            /ToS/source-witnesses/history/friedrich-nietzsche/jenseits-1886-production/historical-process.json
             /tests/conformance/rust/
             /tests/support/selected_metadata_authority.rs
             /tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json
@@ -570,6 +578,9 @@ jobs:
             /ToS/source-witnesses/research-corpora/foundation-source-routes/research-corpus.json
             /ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json
             /ToS/source-witnesses/agents/erasmus-of-rotterdam/agent.json
+            # Remaining exact PWE metadata inputs; artifact/link are selected below.
+            /ToS/source-witnesses/agents/friedrich-ritschl/agent.json
+            /ToS/source-witnesses/languages/sumerian/language.json
             /ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json
             # Exact named source fixture; historical regression inputs live in the native fixture capture.
             /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/

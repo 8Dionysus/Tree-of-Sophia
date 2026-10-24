@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/manual-authoring-basis.schema.json",
+  "title": "Source-owned manual-authoring-basis Record",
+  "description": "Declared semantic source Record; exact source creation/revision/history and qualified assessment remain separate. No authority, native instance, completeness or positive admission is issued.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "record_type": {
+          "const": "manual-authoring-basis"
+        },
+        "schema_version": {
+          "const": "tos_manual_authoring_basis_record_v1"
+        },
+        "record_id": {
+          "type": "string",
+          "pattern": "^tos\\.manual-authoring-basis\\."
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "target",
+            "procedure",
+            "basis"
+          ],
+          "properties": {
+            "target": {
+              "$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"
+            },
+            "procedure": {
+              "$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"
+            },
+            "basis": {
+              "$ref": "#/$defs/findingBasis"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record",
+        "locator"
+      ],
+      "properties": {
+        "record": {
+          "$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^json-pointer:/",
+          "description": "Registered v1 adapter: RFC6901 field of the actual exact selected JSON record body. Other source representation locators need an explicit source-owner adapter."
+        }
+      }
+    },
+    "findingBasis": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "question",
+            "finding"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "tos_manual_authoring_basis_v1"
+            },
+            "question": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "subject",
+                "predicate",
+                "value_path"
+              ],
+              "properties": {
+                "subject": {
+                  "$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"
+                },
+                "predicate": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value_path": {
+                  "type": "string",
+                  "pattern": "^/object(?:/(?:[^~]|~[01])*)?$"
+                }
+              }
+            },
+            "finding": {
+              "const": "determinate"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "question",
+            "finding",
+            "grounds"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "tos_manual_authoring_basis_v1"
+            },
+            "question": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "subject",
+                "predicate",
+                "value_path"
+              ],
+              "properties": {
+                "subject": {
+                  "$ref": "https://treeofsophia.local/ToS/contracts/knowledge-assessment.schema.json#/$defs/exactRef"
+                },
+                "predicate": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "value_path": {
+                  "type": "string",
+                  "pattern": "^/object(?:/(?:[^~]|~[01])*)?$"
+                }
+              }
+            },
+            "finding": {
+              "const": "unresolved"
+            },
+            "grounds": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason",
+                "rationale",
+                "read_extent",
+                "alternatives",
+                "residual",
+                "resolution",
+                "details"
+              ],
+              "properties": {
+                "reason": {
+                  "enum": [
+                    "source-contradiction",
+                    "scoped-information-absence",
+                    "unestablished-identity"
+                  ]
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "read_extent": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "sources",
+                    "coverage_basis",
+                    "exclusions"
+                  ],
+                  "properties": {
+                    "sources": {
+                      "type": "array",
+                      "maxItems": 256,
+                      "items": {
+                        "$ref": "#/$defs/citation"
+                      },
+                      "minItems": 1
+                    },
+                    "coverage_basis": {
+                      "$ref": "#/$defs/citation"
+                    },
+                    "exclusions": {
+                      "type": "array",
+                      "maxItems": 256,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                "alternatives": {
+                  "type": "array",
+                  "maxItems": 256,
+                  "items": {
+                    "$ref": "#/$defs/citation"
+                  }
+                },
+                "residual": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "resolution": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "statement"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "discriminator",
+                        "objective-boundary"
+                      ]
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "details": {}
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "reason": {
+                        "const": "source-contradiction"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "criterion",
+                          "scope",
+                          "incompatibility"
+                        ],
+                        "properties": {
+                          "criterion": {
+                            "$ref": "#/$defs/citation"
+                          },
+                          "scope": {
+                            "$ref": "#/$defs/citation"
+                          },
+                          "incompatibility": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "alternatives": {
+                        "type": "array",
+                        "maxItems": 256,
+                        "items": {
+                          "$ref": "#/$defs/citation"
+                        },
+                        "minItems": 2
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "reason": {
+                        "const": "scoped-information-absence"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "missing_at",
+                          "extent_justification"
+                        ],
+                        "properties": {
+                          "missing_at": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "extent_justification": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "reason": {
+                        "const": "unestablished-identity"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "identity_level",
+                          "criterion",
+                          "comparisons",
+                          "non_joins"
+                        ],
+                        "properties": {
+                          "identity_level": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "criterion": {
+                            "$ref": "#/$defs/citation"
+                          },
+                          "comparisons": {
+                            "type": "array",
+                            "maxItems": 256,
+                            "items": {
+                              "$ref": "#/$defs/citation"
+                            },
+                            "minItems": 1
+                          },
+                          "non_joins": {
+                            "type": "array",
+                            "maxItems": 256,
+                            "items": {
+                              "$ref": "#/$defs/citation"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

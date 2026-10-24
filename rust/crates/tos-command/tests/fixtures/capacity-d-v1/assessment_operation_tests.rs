@@ -15,6 +15,133 @@ const SUBJECT: &str = "tos.claim.capacity-fixture";
 type Failure = (&'static str, SourceCommandError);
 type Snapshot = BTreeMap<String, (u64, u64, u32, usize, Digest256)>;
 
+/// Shared filesystem (SourceRevision) and PG (opaque identity) evaluation
+/// boundary regression. The callback never fabricates a mechanics report;
+/// this is not a protected filesystem/PG protocol integration receipt.
+#[test]
+fn pwe_direct_and_form_parent_refuse_both_generic_source_identity_lanes() {
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let cancelled = AtomicBool::new(false);
+    let invocation = serde_json::json!({"budgets": {
+        "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824
+    }});
+    let policy = envelope(
+        "tos.policy.dispatch-unit",
+        serde_json::json!({}),
+        Value::Null,
+    );
+    let config = value(serde_json::json!({
+        "policy":policy,"authorities":[],"competencies":[]
+    }));
+    let scope = JsonValue::Null;
+    let identity = Digest256::of_bytes(b"shared-dispatch-unit-original-source");
+    for source_revision in [Some(SourceRevision(identity)), None] {
+        for (schema, predicate) in [
+            ("tos_pwe_name_assignment_claim_v1", "pwe_name_assignment"),
+            (
+                "tos_pwe_responsibility_account_claim_v1",
+                "pwe_responsibility_account",
+            ),
+            (
+                "tos_pwe_identity_correspondence_claim_v1",
+                "pwe_identity_correspondence",
+            ),
+        ] {
+            let claim_id = "tos.claim.dispatch-parent";
+            let claim = value(envelope(
+                claim_id,
+                serde_json::json!({
+                    "schema_version":schema,"predicate":predicate
+                }),
+                Value::Null,
+            ));
+            let form_id = "tos.form.dispatch-child";
+            let form = value(envelope(
+                form_id,
+                serde_json::json!({
+                    "schema_version":"tos_human_form_v1",
+                    "subject":{"id":claim_id,"version":1,"digest":"unit-unused"}
+                }),
+                Value::Null,
+            ));
+            let rows = [form, claim];
+            let called = std::cell::Cell::new(0usize);
+            let mut evaluate =
+                |_: &AssessmentReadInput, _: &mut (), _: AssessmentLimits, _: &AtomicBool| {
+                    called.set(called.get() + 1);
+                    Err(SourceCommandError::Denied("unit generic callback reached"))
+                };
+            let mut budget = OperationBudget::new(&invocation, deadline).unwrap();
+            // A selected form can reach its generic callback even when another
+            // source row is PWE. The separately evaluated parent must refuse.
+            let child = evaluate_selected_subject_with_executor(
+                &config,
+                form_id,
+                &scope,
+                &rows,
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                &[],
+                AssessmentSourceRoute::SelectedSource,
+                None,
+                NOW,
+                source_revision.clone(),
+                identity,
+                &mut (),
+                &mut budget,
+                &cancelled,
+                &mut evaluate,
+            );
+            assert!(matches!(
+                child,
+                Err(SourceCommandError::Denied("unit generic callback reached"))
+            ));
+            assert_eq!(called.get(), 1);
+            for route in [
+                AssessmentSourceRoute::SelectedSource,
+                AssessmentSourceRoute::SourceBoundClaim,
+            ] {
+                let before = budget.work_remaining;
+                let result = evaluate_selected_subject_with_executor(
+                    &config,
+                    claim_id,
+                    &scope,
+                    &rows,
+                    &[],
+                    &[],
+                    &[],
+                    &[],
+                    &[],
+                    &[],
+                    route,
+                    None,
+                    NOW,
+                    source_revision.clone(),
+                    identity,
+                    &mut (),
+                    &mut budget,
+                    &cancelled,
+                    &mut evaluate,
+                );
+                assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Unsupported(
+                        "PWE source Claim requires its held exact-basis consumer dispatch"
+                    ))
+                ));
+                assert_eq!(called.get(), 1, "PWE generic evaluator must not run");
+                assert!(
+                    budget.work_remaining < before,
+                    "same payer keeps spent prefix"
+                );
+            }
+        }
+    }
+}
+
 fn value(v: Value) -> JsonValue {
     cmd::parse(&serde_json::to_vec(&v).unwrap()).unwrap()
 }

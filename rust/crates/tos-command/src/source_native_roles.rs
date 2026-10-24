@@ -491,7 +491,7 @@ impl<'a> NativeRoleResolver<'a> {
     }
 }
 
-fn admitted_canonical(
+pub(crate) fn admitted_canonical(
     value: &JsonValue,
     budget: &mut OperationBudget,
     deadline: Instant,
@@ -552,7 +552,7 @@ fn admitted_canonical(
         admission_error.unwrap_or(Error::Invalid("native role canonical source record"))
     })
 }
-fn admitted_document(
+pub(crate) fn admitted_document(
     raw: &[u8],
     budget: &mut OperationBudget,
     deadline: Instant,
@@ -654,7 +654,7 @@ fn admitted_digest(
     budget.charge_work(encoded.len())?;
     Ok(Digest256::of_bytes(&encoded))
 }
-fn check_pin(
+pub(crate) fn check_pin(
     value: &JsonValue,
     expected: &ExactRecordRef,
     id: &str,

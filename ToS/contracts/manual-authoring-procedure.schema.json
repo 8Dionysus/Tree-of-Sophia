@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/manual-authoring-procedure.schema.json",
+  "title": "Source-owned manual-authoring-procedure Record",
+  "description": "Declared semantic source Record; exact source creation/revision/history and qualified assessment remain separate. No authority, native instance, completeness or positive admission is issued.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-description-record.schema.json#/$defs/semanticDescriptionFields"
+    },
+    {
+      "type": "object",
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "record_type": {
+          "const": "manual-authoring-procedure"
+        },
+        "schema_version": {
+          "const": "tos_manual_authoring_procedure_record_v1"
+        },
+        "record_id": {
+          "type": "string",
+          "pattern": "^tos\\.manual-authoring-procedure\\."
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested_use",
+            "basis_schema_version",
+            "locator_adapter",
+            "reasons"
+          ],
+          "properties": {
+            "requested_use": {
+              "const": "registry-manual-authoring-v1"
+            },
+            "basis_schema_version": {
+              "const": "tos_manual_authoring_basis_v1"
+            },
+            "locator_adapter": {
+              "const": "json-pointer-record-body-v1"
+            },
+            "reasons": {
+              "type": "array",
+              "uniqueItems": true,
+              "minItems": 3,
+              "maxItems": 3,
+              "items": {
+                "enum": [
+                  "source-contradiction",
+                  "scoped-information-absence",
+                  "unestablished-identity"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

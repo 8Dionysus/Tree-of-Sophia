@@ -1,0 +1,74 @@
+{
+  "parent_relation_type_ids": [
+    "tos.relation.related"
+  ],
+  "abstract": false,
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/pwe-name-assignment-claim.schema.json",
+  "domain_type_ids": [
+    "tos.entity.agent",
+    "tos.entity.organization",
+    "tos.entity.work",
+    "tos.entity.expression",
+    "tos.entity.edition",
+    "tos.entity.item",
+    "tos.entity.artifact",
+    "tos.entity.file",
+    "tos.entity.document",
+    "tos.entity.collection",
+    "tos.entity.composite",
+    "tos.entity.textual-fragment",
+    "tos.entity.quotation-passage"
+  ],
+  "directionality": "directed",
+  "transitive": false,
+  "inverse_relation_type_id": null,
+  "cardinality": {
+    "per_subject_min": null,
+    "per_subject_max": null,
+    "per_object_min": null,
+    "per_object_max": null
+  },
+  "assertion_mode": "reified-claim",
+  "evidence_required": true,
+  "review_requirement": "recorded",
+  "supersedes_relation_type_id": null,
+  "relation_type_id": "tos.relation.pwe-name-assignment",
+  "labels": {
+    "default": "pwe_name_assignment",
+    "en": "pwe_name_assignment",
+    "ru": null
+  },
+  "inverse_labels": null,
+  "definition": "Preserves the complete qualified name-assignment account from its source. Neither sign nor admission implies historical identity, authorship transfer or exhaustive scope.",
+  "range_type_ids": [
+    "tos.entity.name-assignment"
+  ],
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_predicate_id": "pwe_name_assignment",
+      "scope": "claim-predicate"
+    }
+  ],
+  "source_claim_profile": {
+    "profile_version": 1,
+    "reader": "pwe-exact-basis-v1",
+    "value_kind": "name-assignment",
+    "assertion_layers": [
+      "bibliographic_assertion"
+    ],
+    "schemas": [
+      {
+        "schema_version": "tos_pwe_name_assignment_claim_v1",
+        "schema_ref": "ToS/contracts/pwe-name-assignment-claim.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/source-claim-record.schema.json",
+          "ToS/contracts/claim-packet.schema.json",
+          "ToS/contracts/pwe-values.schema.json",
+          "ToS/contracts/operation-binding-v1.schema.json"
+        ]
+      }
+    ]
+  }
+}

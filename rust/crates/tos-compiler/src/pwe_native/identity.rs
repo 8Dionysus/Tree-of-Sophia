@@ -13,6 +13,33 @@ pub enum ViewLayer {
     SelectedAccounts,
     Historical,
 }
+/// Pure projection coordinates. Native owners still retain and check the full
+/// actual source identity; a supplied digest cannot construct that proof.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ViewSource {
+    SourceCut {
+        revision: SourceRevision,
+        input_identity: Digest256,
+    },
+    PgEpoch {
+        input_identity: Digest256,
+    },
+}
+impl ViewSource {
+    pub fn source_revision(self) -> Option<SourceRevision> {
+        match self {
+            Self::SourceCut { revision, .. } => Some(revision),
+            Self::PgEpoch { .. } => None,
+        }
+    }
+    pub fn input_identity(self) -> Digest256 {
+        match self {
+            Self::SourceCut { input_identity, .. } | Self::PgEpoch { input_identity } => {
+                input_identity
+            }
+        }
+    }
+}
 pub struct Query<'v> {
     pub context: &'v Value,
     pub scope: &'v Value,
@@ -23,8 +50,7 @@ pub struct Query<'v> {
     pub assertion_layer: &'v str,
     pub joint_carrier: &'v Value,
     pub scenario_ref: &'v Value,
-    pub source_revision: SourceRevision,
-    pub source_input_identity: Digest256,
+    pub source: ViewSource,
     pub assessment_schema_binding: AssessmentSchemaBindingV1,
     pub assessment_scope: &'v Value,
     pub assessment_policy: &'v Value,
@@ -38,12 +64,11 @@ pub struct ViewBasis<'v> {
     pub scope: &'v Value,
     pub criterion: &'v Value,
     pub identity_level: &'v str,
-    pub source_revision: SourceRevision,
+    pub source: ViewSource,
     pub account_modality: &'v str,
     pub assertion_layer: &'v str,
     pub joint_carrier: &'v Value,
     pub scenario_ref: &'v Value,
-    pub source_input_identity: Digest256,
     pub assessment_scope: &'v Value,
     pub assessment_policy: &'v Value,
     pub observed_now: &'v str,
@@ -56,6 +81,17 @@ pub struct ViewBasis<'v> {
 /// caller returns NeedsBinding until the owner-approved registration is present.
 pub trait ConsumerOwner {
     fn current_fence(&mut self, basis: &ViewBasis<'_>) -> Result<()>;
+    /// A native access scope contains the exact assessed Claim record. A view
+    /// over several Claims therefore needs each Claim's protected scope, while
+    /// content scope/context/criterion remain common query coordinates. The
+    /// default preserves the original single-scope consumer behavior.
+    fn assessment_scope<'o>(
+        &'o mut self,
+        basis: &'o ViewBasis<'_>,
+        _claim_ref: &Value,
+    ) -> Result<&'o Value> {
+        Ok(basis.assessment_scope)
+    }
     fn account_dispatch<'o>(
         &'o mut self,
         view: &ViewBasis<'_>,
@@ -261,8 +297,7 @@ impl Session<'_> {
             assertion_layer: q.assertion_layer,
             joint_carrier: q.joint_carrier,
             scenario_ref: q.scenario_ref,
-            source_revision: q.source_revision,
-            source_input_identity: q.source_input_identity,
+            source: q.source,
             assessment_scope: q.assessment_scope,
             assessment_policy: q.assessment_policy,
             observed_now: q.observed_now,
@@ -351,7 +386,10 @@ impl Session<'_> {
             self.check_dispatch(a, &row)?;
             self.check()?;
             let eligible = match input.assessment {
-                Some(report) => self.current_assessment(q, cr, report)?,
+                Some(report) => {
+                    let access_scope = owner.assessment_scope(&view.basis, input.claim_ref)?;
+                    self.current_assessment(q, cr, report, access_scope)?
+                }
                 None => false,
             };
             let outcome = self.str_field(a.value(), "asserted_outcome")?;
@@ -412,12 +450,13 @@ impl Session<'_> {
         q: &Query<'_>,
         claim: PweRef<'_>,
         report: &AssessmentMechanicsReport,
+        access_scope: &Value,
     ) -> Result<bool> {
         // Reports are native mechanics results, never authorization tokens.
         // Their own source/schema worker holders remain with ConsumerOwner.
         self.tick(report.work_used())?;
-        if report.source_revision() != Some(q.source_revision)
-            || report.source_input_identity() != q.source_input_identity
+        if report.source_revision() != q.source.source_revision()
+            || report.source_input_identity() != q.source.input_identity()
             || report.schema_binding() != q.assessment_schema_binding
             || !self.same_text(report.observed_now(), q.observed_now)?
         {
@@ -425,7 +464,8 @@ impl Session<'_> {
         }
         self.admit(report.scope())?;
         self.admit(report.current_admission())?;
-        if !self.equal(report.scope(), q.assessment_scope)? {
+        self.admit(access_scope)?;
+        if !self.equal(report.scope(), access_scope)? {
             return Err(Error::QualificationMismatch("current assessment scope"));
         }
         let a = report.current_admission();
@@ -438,7 +478,7 @@ impl Session<'_> {
             return Err(Error::ExactMismatch);
         }
         let used = self.field(a, "use")?;
-        let requested = self.field(q.assessment_scope, "requested_use")?;
+        let requested = self.field(access_scope, "requested_use")?;
         if !self.equal(used, requested)? {
             return Err(Error::QualificationMismatch("current use"));
         }

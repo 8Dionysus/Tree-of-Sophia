@@ -1864,6 +1864,25 @@ fn maintained_agent_creation_operation<
         "ToS/contracts/semantic-entity-type-registry.schema.json",
         "ToS/contracts/semantic-relation-type-registry.schema.json",
         "ToS/contracts/provenance-event-v2.schema.json",
+        // Fixed contract roots of the selected creation/Claim/catalog owners.
+        // Registry routes and transitive references are added below.
+        "ToS/contracts/artifact-source-witness-v2.schema.json",
+        "ToS/contracts/artifact-source-witness.schema.json",
+        "ToS/contracts/claim-display-fields.schema.json",
+        "ToS/contracts/knowledge-assessment-authority.schema.json",
+        "ToS/contracts/knowledge-assessment-batch.schema.json",
+        "ToS/contracts/knowledge-assessment-competence.schema.json",
+        "ToS/contracts/knowledge-assessment-policy.schema.json",
+        "ToS/contracts/material-discovery-record.schema.json",
+        "ToS/contracts/native-text-layer-binding.schema.json",
+        "ToS/contracts/native-text-unit-assessment-subject.schema.json",
+        "ToS/contracts/object-link-claim.schema.json",
+        "ToS/contracts/owner-local-source-context.schema.json",
+        "ToS/contracts/rights-record.schema.json",
+        "ToS/contracts/scholarly-composite-witness.schema.json",
+        "ToS/contracts/source-anchor-v2.schema.json",
+        "ToS/contracts/source-text-layer.schema.json",
+        "ToS/contracts/source-text-unit-packet-v1.schema.json",
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
     ];
@@ -1877,21 +1896,60 @@ fn maintained_agent_creation_operation<
             .chain(tos_command::source_claims::CLAIM_REVISION_RULE_INPUTS)
             .map(|path| (*path).to_owned()),
     );
-    // The actual catalog constructor validates every registry-declared route,
-    // including unused profiles. Reuse the source-case's complete finite
-    // contract resource closure; do not fake empty routes or patch registries.
-    for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
-        let entry = entry.unwrap();
-        if entry.file_type().unwrap().is_file()
-            && entry
-                .file_name()
-                .to_str()
-                .unwrap()
-                .ends_with(".schema.json")
-        {
-            let path = format!("ToS/contracts/{}", entry.file_name().to_str().unwrap());
-            input_paths.insert(path);
+    // Keep every declared route, including unused registry profiles, and every
+    // fixed owner root above. Close their local schema references instead of
+    // importing unrelated contracts into this finite source/backup fixture.
+    // This does not filter authored Agent/Work packages or retained history.
+    fn contract_references(
+        value: &serde_json::Value,
+        paths: &mut std::collections::BTreeSet<String>,
+    ) {
+        match value {
+            serde_json::Value::String(text) => {
+                let text = text.split('#').next().unwrap();
+                let text = text
+                    .strip_prefix("https://tree-of-sophia.local/")
+                    .or_else(|| text.strip_prefix("https://treeofsophia.local/"))
+                    .unwrap_or(text);
+                if text.starts_with("ToS/contracts/") && text.ends_with(".schema.json") {
+                    assert!(RelativePath::parse(text).is_ok());
+                    paths.insert(text.to_owned());
+                }
+            }
+            serde_json::Value::Array(values) => {
+                for value in values {
+                    contract_references(value, paths);
+                }
+            }
+            serde_json::Value::Object(values) => {
+                for (key, value) in values {
+                    if key == "$ref" || key == "$dynamicRef" {
+                        let reference = value.as_str().unwrap().split('#').next().unwrap();
+                        if !reference.is_empty() && !reference.contains('/') {
+                            assert!(reference.ends_with(".schema.json"));
+                            paths.insert(format!("ToS/contracts/{reference}"));
+                        }
+                    }
+                    contract_references(value, paths);
+                }
+            }
+            _ => {}
         }
+    }
+    let mut pending = input_paths
+        .iter()
+        .filter(|path| path.ends_with(".json"))
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut visited = std::collections::BTreeSet::new();
+    while let Some(path) = pending.pop_first() {
+        if !visited.insert(path.clone()) {
+            continue;
+        }
+        let raw = fs::read(repository.join(&path)).unwrap();
+        let value = serde_json::from_slice(&raw).unwrap();
+        contract_references(&value, &mut pending);
+        input_paths.insert(path);
     }
     let mut files = input_paths
         .into_iter()
@@ -5239,6 +5297,25 @@ fn maintained_agent_creation_operation<
         let source_inventory_rows =
             ensure_source_inventory_projection_fixture(&url, &recovery_domain);
         let journal = addressed_journal_snapshot(&url, &recovery_domain);
+        let backup_profile = tos_command::backup_recovery::BackupProfile::default();
+        let mut backup_counts = Client::connect(&url, NoTls).unwrap();
+        for (table, limit) in [
+            ("cmd2_member", backup_profile.max_member_rows),
+            ("cmd2_current", backup_profile.max_member_rows),
+            ("cmd2_history", backup_profile.max_history_rows),
+            ("cmd2_log", backup_profile.max_log_rows),
+        ] {
+            let count = backup_counts
+                .query_one(
+                    &format!("SELECT count(*) FROM {table} WHERE domain=$1"),
+                    &[&recovery_domain],
+                )
+                .unwrap()
+                .get::<_, i64>(0);
+            eprintln!("CMD2_BACKUP_FIXTURE_ROWS table={table} count={count} limit={limit}");
+            assert!(count >= 0 && (count as u64) <= limit);
+        }
+        drop(backup_counts);
         expected_reselect_journal = Some(journal.clone());
         run_addressed_transport_phase(
             "backup",

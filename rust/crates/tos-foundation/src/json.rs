@@ -515,18 +515,9 @@ fn parse_json_inner_with_admission<'callback>(
     };
     // Recursive keys and values temporarily coexist with container indexes.
     // Their fixed stack slots are priced once, independently of node count.
-    parser.charge(
-        (limits.max_depth + 1)
-            .checked_mul(
-                std::mem::size_of::<JsonValue>()
-                    + std::mem::size_of::<JsonString>()
-                    + std::mem::size_of::<HashMap<Vec<u16>, usize>>()
-                    + 2 * std::mem::size_of::<Vec<JsonValue>>(),
-            )
-            .ok_or_else(|| {
-                parser.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
-            })?,
-    )?;
+    let fixed = parser_fixed_scratch(limits)
+        .map_err(|_| parser.error(Code::BudgetExceeded, "JSON parser state budget exceeded"))?;
+    parser.charge(fixed)?;
     let root = parser.value(0)?;
     parser.spaces()?;
     if parser.at != raw.len() {
@@ -550,6 +541,21 @@ struct Parser<'a, 'c> {
     limits: JsonLimits,
     poll: JsonCheck<'c>,
     next_check: usize,
+}
+
+fn parser_fixed_scratch(limits: JsonLimits) -> Result<usize> {
+    limits
+        .max_depth
+        .checked_add(1)
+        .and_then(|depth| {
+            depth.checked_mul(
+                std::mem::size_of::<JsonValue>()
+                    + std::mem::size_of::<JsonString>()
+                    + std::mem::size_of::<HashMap<Vec<u16>, usize>>()
+                    + 2 * std::mem::size_of::<Vec<JsonValue>>(),
+            )
+        })
+        .ok_or_else(state_error)
 }
 
 impl Parser<'_, '_> {
@@ -1700,16 +1706,34 @@ pub fn emit_python_pretty_sorted_json_with_state_budget(
     )
 }
 
-fn write_with_state_budget_and_visits(
-    value: &JsonValue,
-    style: WriteStyle,
-    mut limits: JsonLimits,
-    available: usize,
-    mut check: Option<&mut dyn FnMut() -> Result<()>>,
-    mut admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
-    incremental_admission: bool,
-) -> Result<(Vec<u8>, usize)> {
-    let scratch_slots = limits
+/// Exact private fixed scratch used by the incremental checked canonical
+/// writer. This is a logical quote, not a native stack/RSS or access grant.
+pub fn canonical_incremental_fixed_state(limits: JsonLimits) -> Result<usize> {
+    canonical_fixed_scratch(limits, true)
+}
+
+/// Overlapping strict-number validation workspace for the checked writer.
+/// The parser's actual fixed state is independent of lexeme/output length.
+/// Parser::number appends ASCII chunks into String: pinned Rust1.98.1
+/// amortized growth has new capacity <= max(2*n,8), with old capacity < n
+/// during growth. Thus 3*n+8 covers both numeric heap backings, and also
+/// dominates its logical n-byte parser charge. This is not an RSS guarantee.
+pub fn canonical_incremental_numeric_state(
+    limits: JsonLimits,
+    lexeme_bytes: usize,
+) -> Result<usize> {
+    limits.validate()?;
+    let heap = lexeme_bytes
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(8))
+        .ok_or_else(state_error)?;
+    parser_fixed_scratch(limits)?
+        .checked_add(heap)
+        .ok_or_else(state_error)
+}
+
+fn canonical_fixed_scratch(limits: JsonLimits, checked: bool) -> Result<usize> {
+    limits
         .max_depth
         .checked_add(1)
         .and_then(|depth| {
@@ -1719,13 +1743,25 @@ fn write_with_state_budget_and_visits(
         .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
         .and_then(|n| n.checked_add(std::mem::size_of::<FormatCount>()))
         .and_then(|n| {
-            n.checked_add(if check.is_some() {
+            n.checked_add(if checked {
                 2 * std::mem::size_of::<JsonOutput>()
             } else {
                 0
             })
         })
-        .ok_or_else(state_error)?;
+        .ok_or_else(state_error)
+}
+
+fn write_with_state_budget_and_visits(
+    value: &JsonValue,
+    style: WriteStyle,
+    mut limits: JsonLimits,
+    available: usize,
+    mut check: Option<&mut dyn FnMut() -> Result<()>>,
+    mut admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
+    incremental_admission: bool,
+) -> Result<(Vec<u8>, usize)> {
+    let scratch_slots = canonical_fixed_scratch(limits, check.is_some())?;
     if scratch_slots > available {
         return Err(state_error());
     }

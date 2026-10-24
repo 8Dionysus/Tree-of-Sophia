@@ -12,6 +12,26 @@ execution. Access adapters remain read-only.
 The separately selected [loopback command transport](../docs/SOURCE_COMMAND_HTTP.md)
 can carry that same grammar to authenticated browser or agent clients. It carries the selected source command’s existing grant and request scope.
 
+Choose the [existing operation index](../README.md) and its typed owner contract
+before preparing a request. Standalone Work creation, Work/Expression growth,
+Expression/Edition growth and Item/File custody are separate operations; an
+Edition is not an acquired Item or immutable File. Collection membership and
+object-Link association likewise retain their own compound owners. Follow the
+[source-witness topology](../../../../../ToS/source-witnesses/README.md#speaking-topology)
+for the actual native Claim home and retained legacy carriers, not an assumed
+corpus-wide stream or a bare-ID join.
+
+For identity lookup, select the admitted data snapshot and current manifest
+through the [data and corpus route](../../../../../docs/RELEASING.md#data-and-corpus-operations).
+`TOS_DATA_ROOT` or the reader's `--root` selects reader data; it does not select
+or issue a mutation grant. The protected source-command invocation separately
+binds the owner's actual corpus/software cuts and configuration. A Git checkout
+or saved discovery response is not a selected live catalog. If the data root,
+source cut or current index has not been selected, retain that lookup as
+unperformed; do not infer absence or create a replacement identity from it.
+For manual registry uncertainty, follow [reason-specific admission](#reason-specific-manual-authoring-admission);
+an unperformed or unread lookup is not source-backed historical unknown.
+
 ### Explicit Claim display fields
 
 `public-source-forms` also exposes `tos_local_claim_form_owner_v2`, selected by
@@ -135,6 +155,40 @@ bind them to actual source and authority records. Local invariant checks belong 
 
 ## Source-owner journal
 
+### Reason-specific manual authoring admission
+
+The existing assessment command and current-view calculation support the separate
+`registry-manual-authoring-v1` requested use. It requires a genuinely selected
+protected scope and policy/authority/competence permitting that use; discovery or
+a basis Record supplies no grant. No such production owner or policy is issued
+by this documentation.
+
+Create the source-owned manual-authoring-procedure and manual-authoring-basis
+Records through public-profile-create / source.create with their actual declared
+profiles and independently delegated scope. Their schema/profile definitions
+issue no source instance or grant. The [basis Record contract](../../../../../ToS/contracts/manual-authoring-basis.schema.json)
+binds its exact existing Claim target, procedure and structured finding;
+[source assessment law](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md#manual-registry-authoring)
+requires the assessment's actual qualified method to name that same procedure.
+The protected assessment owner selects these records and all real cited sources.
+The manual-use planner derives the additional exact closure solely from those
+source-owned rows; inline config/request records cannot complete it. Then assess
+the exact Claim for this explicit use and read the recalculated current result.
+Raw source creation remains unreviewed. Multiple selected bases for that exact
+Claim refuse instead of guessing which is current.
+
+Each exact citation must already be in the actual owner's required closure and
+in assessment evidence with the same locator. The v1 implementation checks
+`json-pointer:/...` against an existing field of that selected Record body.
+A repeated but nonexistent locator refuses. Original file/scan/cell reading is
+a separate source-owner obligation; no adapter for those locator forms is issued
+here. Missing source selection refuses;
+neither copying a Claim into a request nor adding a claimed `complete` flag fixes
+it. Source-backed historical uncertainty and unfinished agent work have distinct
+dispositions. Existing negative/defer/withdraw routes remain available under
+their own exact-source and authority conditions. Earlier research admission is
+not silently reinterpreted as this new use.
+
 ### Owner-local translation Alignment through the PG source command
 
 The protected `tos_local_native_alignment_owner_v1` grant remains the source
@@ -222,6 +276,16 @@ issuance, identity merges/splits or canon transitions. The read-only version rou
 its original assertion and review context.
 
 ### Read-only exact Claim versions
+
+The Python-style API spellings in this section and the next are retained
+read-contract notation, not installed Python entrypoints. Maintained exact
+metadata/Claim history resolution is in
+`rust/crates/tos-compiler/src/source_bibliographic_versions.rs`. For the native
+consumer entry, use the selected-owner [Access source transport](../../../../../access/README.md#backend-defined-knowledge-construction)
+and its [exact-source wire contract](../../../../../access/contracts/source-read.v1.schema.json):
+check capabilities, discover a typed target, then read the returned exact
+handle. An unconfigured owner remains unavailable. These routes do not turn a
+bare ID into an exact source reference or supply a latest-version fallback.
 
 `claim_version_reader.resolve_claim_version(root, exact_ref)` accepts an
 absolute public repository root and exact `{id, version, digest}` Claim ref.

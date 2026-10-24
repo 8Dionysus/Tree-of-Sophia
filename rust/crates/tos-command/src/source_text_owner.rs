@@ -1621,6 +1621,39 @@ impl OwnerTextContext {
         selected.verify_at(&root, self.uid, deadline, cancelled)
     }
 
+    /// Admission-aware physical owner route. The protected caller retains the
+    /// original payer/Session across selection and every verification reread.
+    /// PG selected members retain their existing transport and accounting.
+    pub(crate) fn select_publication_with_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn crate::source_creation_store::work_transaction::PublicationReadAdmission,
+    ) -> SourceCommandResult<crate::source_creation_store::work_transaction::PublicationSnapshot>
+    {
+        if self.has_pg_selected_members()? {
+            return self.select_publication(deadline, cancelled);
+        }
+        let root = self.public_root_handle()?;
+        crate::source_creation_store::work_transaction::PublicationSnapshot::select_at_with_admission(
+            &root, self.uid, deadline, cancelled, admission,
+        )
+    }
+
+    pub(crate) fn verify_publication_with_admission(
+        &self,
+        selected: &crate::source_creation_store::work_transaction::PublicationSnapshot,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn crate::source_creation_store::work_transaction::PublicationReadAdmission,
+    ) -> SourceCommandResult<()> {
+        if self.has_pg_selected_members()? {
+            return self.verify_publication(selected, deadline, cancelled);
+        }
+        let root = self.public_root_handle()?;
+        selected.verify_at_with_admission(&root, self.uid, deadline, cancelled, admission)
+    }
+
     pub(crate) fn install_pg_publication(
         &self,
         input: &dyn SourceCutInput,

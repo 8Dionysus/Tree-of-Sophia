@@ -6,7 +6,19 @@ any protected delegation or source target:
 ```sh
 tos-native-owner-command source-commands --discover
 tos-native-owner-command source-commands --discover --handler native-expression-responsibility
+tos-native-owner-command source-commands --discover --handler native-corpus-create
+tos-native-owner-command source-commands --discover --handler native-collection-membership
+tos-native-owner-command source-commands --discover --handler native-object-link-create
 ```
+
+Select the family through the existing [operation index](../README.md), then
+use its exact `handler_id`. A handler selector is not a mutation name or Claim
+predicate: `native-corpus-create` exposes `source.create`,
+`native-collection-membership` exposes `collection.work.attach`, and
+`native-object-link-create` exposes `object.link.create`. The membership Claim's
+`contains_work` predicate remains source content, not a command. The packaged
+descriptor below remains the single operation grammar; these examples create
+no additional API or delegation.
 
 The Rust API is `tos_command::source_native_cli::discover_commands(handler)`.
 An optional handler ID selects one exact handler from the complete catalogue.
@@ -125,7 +137,13 @@ source-owner front door.
 Discovery reads the packaged descriptor and performs no owner/configuration,
 source-target, credential, clock or network reads and writes no source files.
 Its output is deterministic for the loaded implementation, with no target
-currentness or remote/runtime availability claim.
+currentness or remote/runtime availability claim. A saved discovery response
+therefore describes its captured implementation, not the currently installed
+executable, selected profile, grant or successful execution. Bind a rehearsal to
+the actual selected executable/software identity and that implementation's
+handler response; retain the owner-specific current/history readback and
+terminal publication or recovery evidence separately. Preparation, a retained
+receipt and present admission are different claims.
 
 The native catalogue regression checks all handler selectors and the shared
 authority boundary. Family conformance owns request validation, authority,

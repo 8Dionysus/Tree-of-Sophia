@@ -752,6 +752,11 @@ pub(crate) fn run(
     }
     let _ = super::capped(budgets, "max_schema_receipts", 128)?;
     let _ = super::capped(budgets, "max_schema_receipt_bytes", 262_144)?;
+    // One original operation ledger survives selection, preflight and the
+    // locked evaluation. Repeated source epochs do not mint another allowance.
+    // Transport/bootstrap paths still require their own prospective admission;
+    // moving the ledger does not retrospectively certify those earlier reads.
+    let mut budget = assessment::OperationBudget::new(invocation, deadline)?;
     super::absolute(super::text(invocation, "native_executable")?)?;
     let runtime = crate::source_serialization::observe_executable(deadline, cancelled)?;
     let executable_digest = super::digest(super::text(invocation, "native_executable_sha256")?)?;
@@ -814,14 +819,15 @@ pub(crate) fn run(
         ),
         _,
     ) = source_db
-        .with_source_revision_session(
+        .with_source_revision_session_with_exit_data_admission(
             &store,
             &selection.domain,
             &selection.job_id,
             selection.job_fence,
             deadline,
             cancelled,
-            |session| {
+            &mut budget,
+            |session, _budget| {
                 let identity = session.selection().identity();
                 if identity.contract != selection.contract {
                     return Err(DurableError::Conflict(
@@ -1007,14 +1013,15 @@ pub(crate) fn run(
     );
 
     let ((preflight_worker, schema_members, lock_subjects, subject_targets), _) = source_db
-        .with_source_revision_session(
+        .with_source_revision_session_with_exit_data_admission(
             &store,
             &selection.domain,
             &selection.job_id,
             selection.job_fence,
             deadline,
             cancelled,
-            |session| {
+            &mut budget,
+            |session, mut budget| {
                 let identity = session.selection().identity();
                 if identity != initial_identity || identity.contract != selection.contract {
                     return Err(DurableError::Conflict(
@@ -1156,8 +1163,6 @@ pub(crate) fn run(
                         deadline,
                         cancelled,
                     )
-                    .map_err(DurableError::Source)?;
-                let mut budget = assessment::OperationBudget::new(invocation, deadline)
                     .map_err(DurableError::Source)?;
                 budget
                     .charge_bytes(
@@ -1312,14 +1317,15 @@ pub(crate) fn run(
             cancelled,
             |histories, assessment_packages, source_packages, guarded_worker, held_deadline, held_cancelled| {
                 let ((operation, owner, grant, current_config_raw, target_ref, expected_current, dependencies, private_generation, package_histories), readset) =
-                    source_db.with_source_revision_session(
+                    source_db.with_source_revision_session_with_exit_data_admission(
                         &store,
                         &selection.domain,
                         &selection.job_id,
                         selection.job_fence,
                         held_deadline,
                         held_cancelled,
-                        |session| {
+                        &mut budget,
+                        |session, mut budget| {
                             let identity = session.selection().identity();
                             if identity != preflight.identity || identity.contract != selection.contract {
                                 return Err(DurableError::Conflict(
@@ -1497,8 +1503,6 @@ pub(crate) fn run(
                                 held_cancelled,
                             )
                             .map_err(DurableError::Source)?;
-                            let mut budget = assessment::OperationBudget::new(invocation, held_deadline)
-                                .map_err(DurableError::Source)?;
                             budget
                                 .charge_bytes(
                                     private

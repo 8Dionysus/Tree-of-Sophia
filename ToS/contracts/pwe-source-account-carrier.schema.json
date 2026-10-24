@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-source-account-carrier.schema.json",
+  "title": "Native positive source-account carrier Record",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "tos_pwe_source_account_carrier_v1"
+        },
+        "record_type": {
+          "const": "pwe-source-account-carrier"
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "interpretation",
+            "claim_ref",
+            "context_ref",
+            "scope_ref",
+            "scenario_refs"
+          ],
+          "properties": {
+            "interpretation": {
+              "const": "positive-source-account-groups-v1"
+            },
+            "claim_ref": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/operation-binding-v1.schema.json#/$defs/exactRef"
+            },
+            "context_ref": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/typedRef"
+            },
+            "scope_ref": {
+              "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/typedRef"
+            },
+            "scenario_refs": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4096,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "https://tree-of-sophia.local/ToS/contracts/operation-binding-v1.schema.json#/$defs/exactRef"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "A separately authored actual Record must be registered, selected and source-admitted. Its ID is never derived from an unnamed group. Source group conjunction yields only scoped positive source-account witnesses. No negative atom from silence, historical transfer, all-author set, exactly-one alternative or universal coverage is asserted."
+}

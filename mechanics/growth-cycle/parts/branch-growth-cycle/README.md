@@ -9,8 +9,11 @@ transaction recovery, cancellation and deadlines retain their existing owners.
 | --- | --- |
 | Discover an implemented command | [Discovery](docs/SOURCE_COMMAND_DISCOVERY.md) |
 | Carry an authorized command over HTTP | [Command transport](docs/SOURCE_COMMAND_HTTP.md) |
+| Create a standalone Agent / Place / Organization / Work or bare Collection | [Standalone identities](docs/SOURCE_OWNER_OPERATIONS.md#native-standalone-identities) |
 | Work / Expression / Edition growth | [Work and Expression](docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [Edition](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md) |
 | Retain a local File and adopt an Item | [Item adoption](docs/NATIVE_ITEM_ADOPTION.md) |
+| Attach an existing Work to a Collection | [Collection growth](docs/NATIVE_COLLECTION_GROWTH.md) |
+| Create a Link and its qualified association to an existing object | [Object-Link growth](docs/NATIVE_OBJECT_LINK_GROWTH.md) |
 | Construct or assess a TextLayer | [Construction](docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md), [assessment](docs/NATIVE_TEXT_LAYER_ASSESSMENT.md) |
 | Assess an image/OCR layer | [Image/OCR assessment](docs/NATIVE_IMAGE_OCR_ASSESSMENT.md) |
 | Create a translation Alignment | [Alignment](docs/NATIVE_TRANSLATION_ALIGNMENT.md) |

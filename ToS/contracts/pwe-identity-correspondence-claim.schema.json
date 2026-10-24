@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-identity-correspondence-claim.schema.json",
+  "title": "Native source Claim: identity-correspondence",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_pwe_identity_correspondence_claim_v1"
+        },
+        "claim_type": {
+          "const": "relation"
+        },
+        "predicate": {
+          "const": "pwe_identity_correspondence"
+        },
+        "assertion_layer": {
+          "const": "identity_assertion"
+        },
+        "object": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/identityCorrespondence"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "Registration/grant/exact-basis/role/history/currentness execution remain mandatory. This schema grants no historical identity, responsibility or admission."
+}

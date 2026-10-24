@@ -86,7 +86,7 @@ source-witnesses/
 │   ├── links.jsonl
 │   ├── artifacts.jsonl                    # native physical IDs and witness metadata
 │   └── claims.jsonl                       # generated source-returnable relation index
-├── relations/                             # corpus-wide identity-ladder assertions
+├── relations/                             # retained legacy streams; other native Claim homes
 │   ├── work-expression/
 │   │   └── work-expression-claims.jsonl   # Work --has_expression--> Expression
 │   ├── expression-edition/
@@ -106,15 +106,18 @@ source-witnesses/
 │           ├── expressions/
 │           │   └── <language-and-responsibility>/
 │           │       ├── expression.json
+│           │       ├── source-claims.jsonl  # native has_expression, with compound receipt
 │           │       └── editions/
 │           │           └── <edition>/
 │           │               ├── edition.json
+│           │               ├── source-claims.jsonl # native embodied_by, with compound receipt
 │           │               ├── publication-claims.jsonl # evidence-bearing, review-gated publication assertions
 │           │               ├── provision-activity-claims.jsonl # grouped place/agent/date statements
 │           │               ├── responsibility-claims.jsonl # optional Edition-local responsibility bundle
 │           │               └── items/
 │           │                   └── <item>/
 │           │                       ├── item.manifest.json
+│           │                       ├── source-claims.jsonl # native exemplified_by, with compound receipt
 │           │                       ├── resource-inventory.json # tracked pages/resources, no source text
 │           │                       ├── fixity.sha256
 │           │                       ├── provenance.jsonl
@@ -135,6 +138,22 @@ source-witnesses/
             └── structure/
                 └── work-boundaries/       # text-free member ranges + page anchors
 ```
+
+The three legacy identity-ladder streams remain under [`relations/`](relations/README.md).
+Native compound growth retains its new `has_expression`, `embodied_by` and
+`exemplified_by` Claims in the new Expression, Edition and Item homes shown
+above, respectively. Both carriers participate in exact forward/backlink closure;
+neither is moved or rewritten into the other. Follow the actual source Claim and
+verified compound receipt, not an assumed corpus-wide stream path.
+
+For manual creation, use [standalone Agent/Place/Organization/Work identities](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/SOURCE_OWNER_OPERATIONS.md#native-standalone-identities),
+then [Work to Expression](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_WORK_EXPRESSION_GROWTH.md),
+[Expression to Edition](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_EXPRESSION_EDITION_GROWTH.md)
+and [Edition to Item/File custody](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_ITEM_ADOPTION.md)
+under their separately selected grants. [Collection membership](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_COLLECTION_GROWTH.md)
+and [object-Link creation](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/NATIVE_OBJECT_LINK_GROWTH.md)
+have their own compound owners. The standalone Work route refuses the stronger
+Nietzsche home; its authorship and chronology closure must not be bypassed.
 
 The corpus-wide `provision-activities/` route holds digest-bound provenance
 for bounded Edition-owned provision claims; a named subbranch may own one
@@ -195,6 +214,11 @@ managed snapshot build are documented in
 The native owner composes the existing Rust catalog, Claim, navigation, and
 bibliographic renderers; this README remains the source for ToS identity and
 projection boundaries, not a second operational API.
+
+Select the admitted data snapshot explicitly through `TOS_DATA_ROOT` or `--root`
+and its current manifest, as required by that data route. The generated current
+catalog is intentionally outside Git. A Git-only checkout does not establish
+that an identity, Claim or acquired Item is absent from the selected Tree.
 
 The addressed-catalog schema and earlier Python APIs remain evidence of their
 historical contract. They do not provide a runnable Python builder, transition

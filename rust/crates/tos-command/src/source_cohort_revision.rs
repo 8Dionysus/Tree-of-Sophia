@@ -11,6 +11,18 @@ use crate::source_revisions::ReadonlyRecordFiles;
 use postgres::IsolationLevel;
 use std::sync::atomic::AtomicBool;
 
+#[path = "source_native_pg_query_data.rs"]
+mod query_data;
+
+const FRESHNESS_SETUP_SQL: &str = "SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'";
+const FRESHNESS_AUDIT_SQL: &str = "SELECT generation,maintenance_state FROM cmd2_audit_fence
+             WHERE domain=$1 FOR SHARE";
+const FRESHNESS_DOMAIN_SQL: &str = "SELECT source_definition_digest,rights_allowed,source_complete,
+                    rights_version,rule_version,head_seq,source_generation,
+                    source_epoch,contract_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE";
+const FRESHNESS_JOB_SQL: &str = "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2";
+
 const MAX_CHILDREN: usize = 64;
 const MAX_RETAINED_STATE_BYTES: usize = 64 * 1024 * 1024;
 const MAX_CLAIM_DEPENDENCY_LOOKUPS: usize = 4_096;
@@ -709,6 +721,214 @@ impl SourceRevisionIdentityClosure {
         }
         Ok(())
     }
+
+    /// Verify the selected point-identity coverage INSIDE the actual borrowed
+    /// epoch, before its eventual readset exists. This neither finalizes that
+    /// readset nor certifies semantic/history closure or current use. The held
+    /// owner must still perform its real paid exit fence, including on Err.
+    /// All comparisons/key copies below debit the caller's original operation;
+    /// no observation map, source payload or finalized readset is cloned.
+    pub(crate) fn verify_held_session_with_data_admission(
+        &self,
+        session: &SourceRevisionReadSession<'_>,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        use crate::source_native_cli::private_assessment::OperationBudget;
+        use std::mem::size_of;
+
+        fn debit(
+            budget: &mut OperationBudget,
+            bytes: usize,
+            work: usize,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> DurableResult<()> {
+            active(deadline, cancelled)?;
+            budget.limits().map_err(DurableError::Source)?;
+            budget.charge_work(work).map_err(DurableError::Source)?;
+            budget.charge_bytes(bytes).map_err(DurableError::Source)
+        }
+        fn add(a: usize, b: usize) -> DurableResult<usize> {
+            a.checked_add(b).ok_or(DurableError::Refused(
+                "held source identity comparison size overflow",
+            ))
+        }
+        fn mul(a: usize, b: usize) -> DurableResult<usize> {
+            a.checked_mul(b).ok_or(DurableError::Refused(
+                "held source identity comparison work overflow",
+            ))
+        }
+        // Same conservative BTree point bound as the admitted scope selector:
+        // locked Rust1.98.1 has <=11 comparisons per node and uniform leaf
+        // depth; every nonleaf has >=2 children, hence <=bit_width(N) levels.
+        fn comparisons(entries: usize) -> DurableResult<usize> {
+            let levels = (usize::BITS - entries.leading_zeros()) as usize;
+            Ok(entries.min(mul(11, levels)?))
+        }
+
+        debit(budget, 0, 0, deadline, cancelled)?;
+        if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
+            return Err(DurableError::Conflict(
+                "held source identity cutoff exceeds original operation",
+            ));
+        }
+        // Exact inputs of from_selection: nine length-prefixed cohort parts,
+        // plus the separate domain/job hashes. Pay before calling the owner
+        // identity constructor, not after observing its output.
+        let cohort_data = add(
+            9 * size_of::<u64>()
+                + b"tos-pg-record-revision-cohort-identity-v1".len()
+                + 16
+                + 32
+                + 8
+                + 32
+                + 8
+                + 32
+                + 8,
+            session.selection.cohort.domain.len(),
+        )?;
+        let hash_data = add(
+            add(cohort_data, session.selection.cohort.domain.len())?,
+            session.selection.job_id.len(),
+        )?;
+        let initial_holders = add(
+            3 * size_of::<Digest256Hasher>() + size_of::<PgRecordRevisionIdentity>(),
+            size_of::<DurableResult<()>>(),
+        )?;
+        debit(
+            budget,
+            initial_holders,
+            add(hash_data, 2 * size_of::<PgRecordRevisionIdentity>())?,
+            deadline,
+            cancelled,
+        )?;
+        if session.selection.identity() != self.selection_identity
+            || self.generations.len() != mul(self.owners.len(), PG_AGENT_INDEX_KINDS.len())?
+        {
+            return Err(DurableError::Conflict(
+                "source identity closure selection or generation count differs",
+            ));
+        }
+        // One genuine definition hex carrier for this check. Avoid the legacy
+        // verifier's per-candidate to_hex allocation inside the predicate scan.
+        debit(
+            budget,
+            64 + size_of::<String>(),
+            32 + 64 + 64,
+            deadline,
+            cancelled,
+        )?;
+        let definition = session.selection.cohort.definition.to_hex();
+        // The ACTUAL session has one producer of unique Generation reads:
+        // record_predicate inserts through its private BTreeSet before push.
+        // Its initial cohort Generation is Range. Thus no selected unique
+        // (scope,token) can be counted twice; scan this operation's reads ONCE,
+        // rather than rescanning them for each of the five predicates/token.
+        let mut matched = 0usize;
+        for read in &session.reads.reads {
+            debit(budget, 0, 1, deadline, cancelled)?;
+            let PredicateRead::Generation {
+                predicate,
+                observed_generation,
+            } = read
+            else {
+                continue;
+            };
+            let scope_work = PG_AGENT_INDEX_KINDS.iter().try_fold(0usize, |n, kind| {
+                add(n, add(kind.len(), predicate.scope.len())?)
+            })?;
+            debit(
+                budget,
+                0,
+                add(add(OWNER.len(), predicate.owner.len())?, scope_work)?,
+                deadline,
+                cancelled,
+            )?;
+            if predicate.kind != PredicateKind::Unique
+                || predicate.owner != OWNER
+                || !PG_AGENT_INDEX_KINDS.contains(&predicate.scope.as_str())
+            {
+                continue;
+            }
+            let token_work = mul(
+                comparisons(self.owners.len())?,
+                mul(2, add(predicate.token.len(), size_of::<usize>())?)?,
+            )?;
+            debit(budget, 0, token_work, deadline, cancelled)?;
+            if !self.owners.contains_key(predicate.token.as_str()) {
+                continue;
+            }
+            let key_data = add(predicate.scope.len(), predicate.token.len())?;
+            let key_comparison = mul(
+                comparisons(self.generations.len())?,
+                mul(2, add(key_data, 2 * size_of::<usize>())?)?,
+            )?;
+            debit(
+                budget,
+                add(key_data, 2 * size_of::<String>())?,
+                add(key_data, key_comparison)?,
+                deadline,
+                cancelled,
+            )?;
+            let key = (predicate.scope.clone(), predicate.token.clone());
+            let generation = self.generations.get(&key).ok_or(DurableError::Conflict(
+                "source identity closure generation is absent",
+            ))?;
+            debit(
+                budget,
+                0,
+                add(
+                    add(predicate.definition_version.len(), definition.len())?,
+                    2 * size_of::<u64>(),
+                )?,
+                deadline,
+                cancelled,
+            )?;
+            if predicate.definition_version != definition || observed_generation != generation {
+                return Err(DurableError::Conflict(
+                    "source identity closure predicate is absent from readset",
+                ));
+            }
+            matched = add(matched, 1)?;
+        }
+        if matched != self.generations.len() {
+            return Err(DurableError::Conflict(
+                "source identity closure predicate is absent from readset",
+            ));
+        }
+        for owner in self.owners.values() {
+            debit(budget, 0, 1, deadline, cancelled)?;
+            if let Some((_, path)) = owner {
+                let point_work = mul(
+                    comparisons(session.observations.len())?,
+                    mul(2, add(path.as_str().len(), size_of::<usize>())?)?,
+                )?;
+                debit(budget, 0, point_work, deadline, cancelled)?;
+                let observation =
+                    session
+                        .observations
+                        .get(path.as_str())
+                        .ok_or(DurableError::Conflict(
+                            "source identity closure owner member was not read",
+                        ))?;
+                debit(
+                    budget,
+                    0,
+                    add(path.as_str().len(), observation.member.path.as_str().len())?,
+                    deadline,
+                    cancelled,
+                )?;
+                if observation.member.path != *path {
+                    return Err(DurableError::Conflict(
+                        "source identity closure owner member path differs",
+                    ));
+                }
+            }
+        }
+        active(deadline, cancelled)
+    }
 }
 
 /// Sealed, bounded reverse-reference evidence produced from one fresh PG
@@ -932,6 +1152,67 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
         operation: impl FnOnce(&mut SourceRevisionReadSession<'_>) -> DurableResult<T>,
     ) -> DurableResult<(T, SourceRevisionReadSet)> {
+        self.with_source_revision_session_resources(
+            store,
+            domain,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            &mut (),
+            |session, _| operation(session),
+            |session, _| session.verify_fresh(deadline, cancelled),
+        )
+    }
+
+    /// The actual Assessment caller lends its ONE original operation through
+    /// body and exit. Only the final freshness query DATA is admitted here;
+    /// opening the epoch, earlier queries/STO and native driver/control fit
+    /// remain separate obligations. No pure PWE Session/payer is constructed.
+    pub(crate) fn with_source_revision_session_with_exit_data_admission<T>(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        operation: impl FnOnce(
+            &mut SourceRevisionReadSession<'_>,
+            &mut crate::source_native_cli::private_assessment::OperationBudget,
+        ) -> DurableResult<T>,
+    ) -> DurableResult<(T, SourceRevisionReadSet)> {
+        self.with_source_revision_session_resources(
+            store,
+            domain,
+            job_id,
+            job_fence,
+            deadline,
+            cancelled,
+            budget,
+            operation,
+            |session, budget| {
+                session.verify_fresh_with_query_data_admission(budget, deadline, cancelled)
+            },
+        )
+    }
+
+    /// One owner construction/finalization path for both existing callers and
+    /// the admitted Assessment counterpart. The body loan ends before finish;
+    /// resources are neither cloned, replenished nor reselected here.
+    fn with_source_revision_session_resources<T, C: ?Sized>(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        job_id: &str,
+        job_fence: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        resources: &mut C,
+        operation: impl FnOnce(&mut SourceRevisionReadSession<'_>, &mut C) -> DurableResult<T>,
+        finish: impl FnOnce(&mut SourceRevisionReadSession<'_>, &mut C) -> DurableResult<()>,
+    ) -> DurableResult<(T, SourceRevisionReadSet)> {
         active(deadline, cancelled)?;
         let selection = self.open_source_revision_selection(
             store, domain, job_id, job_fence, deadline, cancelled,
@@ -965,8 +1246,11 @@ impl DurablePgCoordinator {
             claim_navigation_as_of_sequence: None,
             claim_navigation_baseline_sequence: None,
         };
-        let result = operation(&mut session)?;
-        session.verify_fresh(deadline, cancelled)?;
+        // The actual owner must attempt its exit fence even when the borrowed
+        // operation refuses. Preserve the first error and every spent prefix;
+        // only a successful body AND fence may expose the finalized readset.
+        let result = operation(&mut session, resources);
+        let result = finish_source_revision_epoch(result, || finish(&mut session, resources))?;
         let readset = SourceRevisionReadSet {
             selection: session.selection.clone(),
             reads: session.reads,
@@ -3097,19 +3381,77 @@ impl SourceRevisionReadSession<'_> {
         Ok(())
     }
 
-    fn verify_fresh(&mut self, deadline: Instant, cancelled: &AtomicBool) -> DurableResult<()> {
+    /// Recheck this actual borrowed PG read epoch. It is not a continuous SQL
+    /// transaction or a substitute for the original caller's query admission.
+    /// Native held callers may borrow this primitive; no readset is finalized
+    /// or manufactured here. Cutoff refusal can precede the physical queries.
+    pub(crate) fn verify_fresh(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        self.verify_fresh_using_query_data(None, deadline, cancelled)
+    }
+
+    /// Prospective selected-query DATA/Row admission only, using the ACTUAL
+    /// original operation. Driver wire/errors/transport and STO admission are
+    /// separate obligations; this primitive does not certify complete funding.
+    pub(crate) fn verify_fresh_with_query_data_admission(
+        &mut self,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        self.verify_fresh_using_query_data(Some(budget), deadline, cancelled)
+    }
+
+    fn verify_fresh_using_query_data(
+        &mut self,
+        mut budget: Option<&mut crate::source_native_cli::private_assessment::OperationBudget>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
         active(deadline, cancelled)?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::begin(budget, deadline, cancelled).map_err(DurableError::Source)?;
+        }
         let mut tx = self.coordinator.client.transaction()?;
-        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
-        let fence = tx.query_one(
-            "SELECT generation,maintenance_state FROM cmd2_audit_fence
-             WHERE domain=$1 FOR SHARE",
-            &[&self.selection.cohort.domain],
-        )?;
-        let row = tx.query_one(
-            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
-            &[&self.selection.cohort.domain],
-        )?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(
+                budget,
+                FRESHNESS_SETUP_SQL,
+                &[],
+                query_data::RowShape::None,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+        }
+        tx.batch_execute(FRESHNESS_SETUP_SQL)?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(
+                budget,
+                FRESHNESS_AUDIT_SQL,
+                &[self.selection.cohort.domain.len()],
+                query_data::RowShape::Audit,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+        }
+        let fence = tx.query_one(FRESHNESS_AUDIT_SQL, &[&self.selection.cohort.domain])?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(
+                budget,
+                FRESHNESS_DOMAIN_SQL,
+                &[self.selection.cohort.domain.len()],
+                query_data::RowShape::Domain,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+        }
+        let row = tx.query_one(FRESHNESS_DOMAIN_SQL, &[&self.selection.cohort.domain])?;
         super::require_current_source_definition(parse_hex(
             row.get::<_, Option<String>>("source_definition_digest")
                 .ok_or(DurableError::Corrupt("source definition absent"))?,
@@ -3137,8 +3479,22 @@ impl SourceRevisionReadSession<'_> {
                 "bounded source revision read epoch changed",
             ));
         }
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(
+                budget,
+                FRESHNESS_JOB_SQL,
+                &[
+                    self.selection.cohort.domain.len(),
+                    self.selection.job_id.len(),
+                ],
+                query_data::RowShape::Job,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+        }
         let job = tx.query_one(
-            "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2",
+            FRESHNESS_JOB_SQL,
             &[&self.selection.cohort.domain, &self.selection.job_id],
         )?;
         if as_u64(job.get(0))? != self.selection.job_fence {
@@ -3935,6 +4291,49 @@ impl ReadonlyRecordFiles for SourceRevisionReadSession<'_> {
 
     fn retained_state_bytes(&self) -> usize {
         self.retained_state_bytes
+    }
+}
+
+/// Run the real owner exit once on both body outcomes, preserving the original
+/// refusal if the exit also fails. The caller retains the actual session until
+/// this returns, and can finalize its readset only on success.
+fn finish_source_revision_epoch<T>(
+    body: DurableResult<T>,
+    fence: impl FnOnce() -> DurableResult<()>,
+) -> DurableResult<T> {
+    let fenced = fence();
+    match (body, fenced) {
+        (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+        (Ok(value), Ok(())) => Ok(value),
+    }
+}
+
+#[cfg(test)]
+mod epoch_exit_tests {
+    use super::*;
+
+    #[test]
+    fn refused_body_attempts_exit_and_keeps_first_error() {
+        let mut attempts = 0;
+        let result: DurableResult<()> =
+            finish_source_revision_epoch(Err(DurableError::Refused("body refused")), || {
+                attempts += 1;
+                Err(DurableError::Conflict("epoch changed"))
+            });
+        assert_eq!(attempts, 1);
+        assert!(matches!(result, Err(DurableError::Refused("body refused"))));
+
+        let result = finish_source_revision_epoch(Ok(7), || {
+            attempts += 1;
+            Err(DurableError::Conflict("epoch changed"))
+        });
+        assert_eq!(attempts, 2);
+        assert!(matches!(
+            result,
+            Err(DurableError::Conflict("epoch changed"))
+        ));
+
+        assert_eq!(finish_source_revision_epoch(Ok(7), || Ok(())).unwrap(), 7);
     }
 }
 

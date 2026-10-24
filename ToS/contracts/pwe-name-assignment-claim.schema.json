@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-name-assignment-claim.schema.json",
+  "title": "Native source Claim: name-assignment",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-claim-record.schema.json"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_pwe_name_assignment_claim_v1"
+        },
+        "claim_type": {
+          "const": "relation"
+        },
+        "predicate": {
+          "const": "pwe_name_assignment"
+        },
+        "assertion_layer": {
+          "const": "bibliographic_assertion"
+        },
+        "object": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/nameAssignment"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "Registration/grant/exact-basis/role/history/currentness execution remain mandatory. This schema grants no historical identity, responsibility or admission."
+}

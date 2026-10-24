@@ -4,7 +4,10 @@
 //! publication control is a cooperating-reader epoch, not source admission or
 //! protection from an independently mutating same-UID writer.
 
-use super::{CreationFilesystem, active, inode, owned, raw, stamp, walk};
+use super::{
+    CreationFilesystem, CreationReadAdmission, ReadLength, active, inode, owned, raw,
+    raw_with_length_limit_and_admission, stamp, walk,
+};
 use crate::source_admission_store::PreparedV2SuccessorLocatorV2;
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use rustix::fs::{AtFlags, Mode, OFlags, RenameFlags};
@@ -301,11 +304,48 @@ pub(crate) fn state(value: &JsonValue) -> SourceCommandResult<()> {
     Ok(())
 }
 
+/// These stages admit existing parse/validation/clone/comparison work; they
+/// cannot supply publication bytes, source identity or a ready/token result.
+pub(crate) enum PublicationReadStage<'a> {
+    Parse {
+        raw_bytes: usize,
+    },
+    Validate {
+        value: &'a JsonValue,
+    },
+    Select {
+        state: Option<&'a JsonValue>,
+    },
+    Compare {
+        selected: &'a JsonValue,
+        current: &'a JsonValue,
+    },
+}
+pub(crate) trait PublicationReadAdmission: CreationReadAdmission {
+    /// The actual opened control FD is present for Parse and Validate. Select
+    /// and Compare only borrow the already-read values, after that FD closed.
+    fn before_publication_stage(
+        &mut self,
+        descriptor: Option<&File>,
+        stage: PublicationReadStage<'_>,
+    ) -> SourceCommandResult<()>;
+}
+
 fn read_state_at(
     root: &File,
     uid: u32,
     deadline: Instant,
     cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<JsonValue>> {
+    read_state_at_with_admission(root, uid, deadline, cancelled, None)
+}
+
+fn read_state_at_with_admission(
+    root: &File,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut admission: Option<&mut dyn PublicationReadAdmission>,
 ) -> SourceCommandResult<Option<JsonValue>> {
     active(deadline, cancelled)?;
     let witness = walk(root, HOME, uid)?;
@@ -328,7 +368,16 @@ fn read_state_at(
             "publication control byte budget",
         ));
     }
-    let bytes = raw(&mut descriptor, MAX_STATE, deadline, cancelled)?;
+    let bytes = match admission.as_deref_mut() {
+        Some(payer) => raw_with_length_limit_and_admission(
+            &mut descriptor,
+            ReadLength::Legacy(MAX_STATE),
+            deadline,
+            cancelled,
+            Some(payer),
+        )?,
+        None => raw(&mut descriptor, MAX_STATE, deadline, cancelled)?,
+    };
     let again: File = rustix::fs::openat(
         &witness,
         CONTROL,
@@ -343,7 +392,23 @@ fn read_state_at(
             "publication control replaced during read",
         ));
     }
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_publication_stage(
+            Some(&descriptor),
+            PublicationReadStage::Parse {
+                raw_bytes: bytes.len(),
+            },
+        )?;
+        active(deadline, cancelled)?;
+    }
     let value = cmd::parse(&bytes)?;
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_publication_stage(
+            Some(&descriptor),
+            PublicationReadStage::Validate { value: &value },
+        )?;
+        active(deadline, cancelled)?;
+    }
     state(&value)?;
     Ok(Some(value))
 }
@@ -422,7 +487,33 @@ impl PublicationSnapshot {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        let state = read_state_at(root, uid, deadline, cancelled)?;
+        Self::select_at_inner(root, uid, deadline, cancelled, None)
+    }
+
+    /// The original session payer must fund all callback/bootstrap carriers.
+    pub(crate) fn select_at_with_admission(
+        root: &File,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn PublicationReadAdmission,
+    ) -> SourceCommandResult<Self> {
+        Self::select_at_inner(root, uid, deadline, cancelled, Some(admission))
+    }
+
+    fn select_at_inner(
+        root: &File,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut admission: Option<&mut dyn PublicationReadAdmission>,
+    ) -> SourceCommandResult<Self> {
+        let state = match admission.as_mut() {
+            Some(payer) => {
+                read_state_at_with_admission(root, uid, deadline, cancelled, Some(&mut **payer))?
+            }
+            None => read_state_at_with_admission(root, uid, deadline, cancelled, None)?,
+        };
         if state
             .as_ref()
             .is_some_and(|v| cmd::text(v, "phase").ok() != Some("ready"))
@@ -430,6 +521,15 @@ impl PublicationSnapshot {
             return Err(SourceCommandError::Conflict(
                 "selected metadata publication pending",
             ));
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_publication_stage(
+                None,
+                PublicationReadStage::Select {
+                    state: state.as_ref(),
+                },
+            )?;
+            active(deadline, cancelled)?;
         }
         let token = state
             .as_ref()
@@ -482,13 +582,52 @@ impl PublicationSnapshot {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        let now = read_state_at(root, uid, deadline, cancelled)?;
+        self.verify_at_inner(root, uid, deadline, cancelled, None)
+    }
+
+    pub(crate) fn verify_at_with_admission(
+        &self,
+        root: &File,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn PublicationReadAdmission,
+    ) -> SourceCommandResult<()> {
+        self.verify_at_inner(root, uid, deadline, cancelled, Some(admission))
+    }
+
+    fn verify_at_inner(
+        &self,
+        root: &File,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut admission: Option<&mut dyn PublicationReadAdmission>,
+    ) -> SourceCommandResult<()> {
+        let now = match admission.as_mut() {
+            Some(payer) => {
+                read_state_at_with_admission(root, uid, deadline, cancelled, Some(&mut **payer))?
+            }
+            None => read_state_at_with_admission(root, uid, deadline, cancelled, None)?,
+        };
         if now
             .as_ref()
             .is_some_and(|v| cmd::text(v, "phase").ok() != Some("ready"))
             || !match (&self.state, &now) {
                 (None, None) => true,
-                (Some(a), Some(b)) => cmd::same(a, b)?,
+                (Some(a), Some(b)) => {
+                    if let Some(payer) = admission.as_deref_mut() {
+                        payer.before_publication_stage(
+                            None,
+                            PublicationReadStage::Compare {
+                                selected: a,
+                                current: b,
+                            },
+                        )?;
+                        active(deadline, cancelled)?;
+                    }
+                    cmd::same(a, b)?
+                }
                 _ => false,
             }
         {

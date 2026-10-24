@@ -1,0 +1,83 @@
+{
+  "version": "1.0.0",
+  "status": "authored domain body inputs for real native source registration; no Record wrappers/IDs/admission are invented",
+  "definition_bodies": [
+    {
+      "definition_kind": "bounded-ts-rule-v1",
+      "specification": {
+        "domain": "rational-linear-order",
+        "rule": "exact-rational-arithmetic",
+        "premises": [
+          "Symmetric i128 numerator range excluding MIN; strictly positive denominator, normalized by gcd.",
+          "Exact checked arithmetic, no rounding/saturation; NumericRange does not imply logical contradiction."
+        ]
+      }
+    },
+    {
+      "definition_kind": "bounded-ts-rule-v1",
+      "specification": {
+        "domain": "rational-linear-order",
+        "rule": "span-membership-meet",
+        "premises": [
+          "One exact resolved linear axis/TRS/rule binding; inclusivity explicit.",
+          "Actual extent, dating possibility and observed positive support are distinct; unknown is not infinite/empty."
+        ]
+      }
+    },
+    {
+      "definition_kind": "bounded-ts-rule-v1",
+      "specification": {
+        "domain": "rational-linear-order",
+        "rule": "allen-endpoint-order",
+        "premises": [
+          "Proper intervals with start<end on one exact axis.",
+          "Endpoint relation family is separate from coarse source envelopes and membership meet."
+        ]
+      }
+    },
+    {
+      "definition_kind": "bounded-ts-rule-v1",
+      "specification": {
+        "domain": "rational-linear-order",
+        "rule": "dense-q-order-conjunction",
+        "premises": [
+          "Finite conjunction of <,<=,= and every numeric anchor over abstract unbounded dense Q.",
+          "Witness/cycle premises replay against the full exact problem; bounded representation failures remain limits."
+        ]
+      }
+    },
+    {
+      "definition_kind": "bounded-ts-rule-v1",
+      "specification": {
+        "domain": "rational-cartesian-2d",
+        "rule": "rectangle-point-topology",
+        "premises": [
+          "One exact physical Cartesian rational2d frame/CRS/rules/axes-units profile and actual extent role.",
+          "Nondegenerate closed rectangles and points only; no metric, arbitrary polygon, geodetic or administrative inference."
+        ]
+      }
+    }
+  ],
+  "value_profile_bodies": [
+    {
+      "projection": "DirectDomainValueV1",
+      "codomain": "SpanMeet"
+    },
+    {
+      "projection": "DirectDomainValueV1",
+      "codomain": "AllenRelation"
+    },
+    {
+      "projection": "DirectDomainValueV1",
+      "codomain": "OrderSolution"
+    },
+    {
+      "projection": "DirectDomainValueV1",
+      "codomain": "RelationImage"
+    },
+    {
+      "projection": "DirectDomainValueV1",
+      "codomain": "TopologyValue"
+    }
+  ]
+}

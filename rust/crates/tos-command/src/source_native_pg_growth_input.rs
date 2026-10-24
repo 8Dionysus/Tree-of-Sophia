@@ -61,6 +61,66 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
         ItemRefusal::Source("PG Growth selected source read failed".into())
     }
 
+    /// Lexical loan of the ACTUAL session already owned by this selected input.
+    /// Its observations and predicates stay in that owner; a finalized readset
+    /// cannot be supplied by the caller or synthesized during this callback.
+    /// This is a fenced read epoch, not a continuous database transaction.
+    /// The native caller still owes prospective query/I/O/holder admission; this
+    /// loan alone is not a certificate that the operation is fully funded.
+    pub(crate) fn with_selected_read_epoch<T>(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        run: impl FnOnce(&mut SourceRevisionReadSession<'store>) -> crate::DurableResult<T>,
+    ) -> crate::DurableResult<T> {
+        let mut session = self.session.try_borrow_mut().map_err(|_| {
+            crate::DurableError::Conflict("selected PG source session already borrowed")
+        })?;
+        if session.selection().identity() != self.identity {
+            return Err(crate::DurableError::Conflict(
+                "selected PG source session identity differs",
+            ));
+        }
+        session.verify_fresh(deadline, cancelled)?;
+        let result = run(&mut session);
+        let fenced = session.verify_fresh(deadline, cancelled);
+        match (result, fenced) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+
+    /// Actual epoch loan with prospective freshness-query DATA admission on
+    /// the SAME original Assessment payer. Each short operation loan ends
+    /// before run, so that callback can borrow its original source Session.
+    /// This does not admit its STO reads or foreign driver/error/network cost.
+    pub(crate) fn with_selected_read_epoch_with_query_data_admission<T>(
+        &self,
+        payer: &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        run: impl FnOnce(&mut SourceRevisionReadSession<'store>) -> crate::DurableResult<T>,
+    ) -> crate::DurableResult<T> {
+        payer
+            .reserve(std::mem::size_of::<crate::DurableResult<T>>())
+            .map_err(crate::DurableError::Source)?;
+        let mut session = self.session.try_borrow_mut().map_err(|_| {
+            crate::DurableError::Conflict("selected PG source session already borrowed")
+        })?;
+        if session.selection().identity() != self.identity {
+            return Err(crate::DurableError::Conflict(
+                "selected PG source session identity differs",
+            ));
+        }
+        admitted_freshness_data(&mut session, payer, deadline, cancelled)?;
+        let result = run(&mut session);
+        let fenced = admitted_freshness_data(&mut session, payer, deadline, cancelled);
+        match (result, fenced) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+
     /// Resolve annotation owner IDs through the selected PG index while this
     /// input still owns the borrowed read session. Exact packet/member
     /// validation remains the caller's responsibility.
@@ -228,6 +288,45 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
             })?;
         }
         Ok(())
+    }
+}
+
+/// Keep actual Source(original error) in the operation's normal Err lane.
+/// Other Durable errors remain owned values outside the short resource loan;
+/// no diagnostic is translated into a fabricated successful source result.
+fn admitted_freshness_data(
+    session: &mut SourceRevisionReadSession<'_>,
+    payer: &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
+        '_,
+        '_,
+    >,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> crate::DurableResult<()> {
+    payer
+        .reserve(
+            std::mem::size_of::<Option<crate::DurableError>>()
+                .checked_add(std::mem::size_of::<crate::DurableResult<()>>())
+                .ok_or(crate::DurableError::Refused(
+                    "PG query error carrier overflow",
+                ))?,
+        )
+        .map_err(crate::DurableError::Source)?;
+    let mut foreign = None;
+    let result = payer.with_operation(|budget| {
+        match session.verify_fresh_with_query_data_admission(budget, deadline, cancelled) {
+            Ok(()) => Ok(()),
+            Err(crate::DurableError::Source(error)) => Err(error),
+            Err(error) => {
+                foreign = Some(error);
+                Ok(())
+            }
+        }
+    });
+    match (result, foreign) {
+        (Err(error), _) => Err(crate::DurableError::Source(error)),
+        (Ok(()), Some(error)) => Err(error),
+        (Ok(()), None) => Ok(()),
     }
 }
 

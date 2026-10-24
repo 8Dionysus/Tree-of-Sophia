@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-prepared-values-record.schema.json",
+  "title": "PWE selected native pwe-prepared-values",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "record_type": {
+          "const": "pwe-prepared-values"
+        },
+        "schema_version": {
+          "const": "tos_pwe_prepared_values_record_v1"
+        },
+        "body": {
+          "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-preserved-candidate.schema.json"
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "Candidate native source route. Authored instances, exact pins, current protected assessment and registration are separate inputs. A declaration issues neither source truth nor admission nor coverage."
+}

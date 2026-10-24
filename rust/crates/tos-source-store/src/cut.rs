@@ -712,6 +712,192 @@ impl CorpusCutReader {
             stable_ids: snapshot.ids_for_path(path).map(str::to_owned).collect(),
         })
     }
+    /// Exact immutable v1 member through the ORIGINAL caller payer/session.
+    /// Generic legacy stream/SourceCutRead entrypoints are not silently funded.
+    pub fn read_member_with_original_admission<A: crate::object::OriginalReadAdmission + ?Sized>(
+        &self,
+        revision: SourceRevision,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut A,
+    ) -> crate::object::OriginalReadResult<SourceMemberV1, A::Error> {
+        check_time(deadline, cancelled)?;
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::Bootstrap {
+                kind: crate::object::OriginalReadKind::Member,
+                entries: self.snapshots.len(),
+                key_bytes: path.as_str().len(),
+            },
+            deadline,
+            cancelled,
+        )?;
+        let snapshot = self
+            .snapshots
+            .iter()
+            .find(|s| s.revision() == revision)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorCode::MissingRevision,
+                    "revision is outside opened source cut",
+                )
+            })?;
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::Lookup {
+                entries: snapshot.member_count(),
+                key_bytes: path.as_str().len(),
+            },
+            deadline,
+            cancelled,
+        )?;
+        let metadata = snapshot.member(path).ok_or_else(|| {
+            StoreError::new(
+                StoreErrorCode::MissingMember,
+                "member is outside exact source revision",
+            )
+        })?;
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::Descriptor {
+                path_bytes: path.as_str().len(),
+            },
+            deadline,
+            cancelled,
+        )?;
+        let descriptor = CorpusDescriptor {
+            revision,
+            path: path.clone(),
+            sha256: metadata.sha256,
+            size_bytes: metadata.size_bytes,
+            mode: metadata.mode,
+        };
+        let raw = self.reader.read_selected_with_original_admission(
+            snapshot,
+            &descriptor,
+            max_bytes.min(self.limits.max_member_bytes),
+            admission,
+            deadline,
+            cancelled,
+        )?;
+        check_time(deadline, cancelled)?;
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::ReturnMember {
+                path_bytes: path.as_str().len(),
+                identity_entries: snapshot.identity_count(),
+            },
+            deadline,
+            cancelled,
+        )?;
+        let mut stable_ids = Vec::new();
+        for id in snapshot.ids_for_path(path) {
+            crate::object::admit_original(
+                admission,
+                None,
+                crate::object::OriginalReadStage::ReturnId {
+                    id_bytes: id.len(),
+                    length: stable_ids.len(),
+                    capacity: stable_ids.capacity(),
+                },
+                deadline,
+                cancelled,
+            )?;
+            stable_ids.push(id.to_owned());
+        }
+        Ok(SourceMemberV1 {
+            path: path.clone(),
+            raw,
+            revision,
+            stable_ids,
+        })
+    }
+
+    /// Retired source AND its exact event use the same original admission.
+    pub fn read_retirement_with_original_admission<
+        A: crate::object::OriginalReadAdmission + ?Sized,
+    >(
+        &self,
+        revision: SourceRevision,
+        index: usize,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut A,
+    ) -> crate::object::OriginalReadResult<RetiredSourceMemberV1, A::Error> {
+        check_time(deadline, cancelled)?;
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::Bootstrap {
+                kind: crate::object::OriginalReadKind::Retirement,
+                entries: self.snapshots.len(),
+                key_bytes: 0,
+            },
+            deadline,
+            cancelled,
+        )?;
+        let snapshot = self
+            .snapshots
+            .iter()
+            .find(|s| s.revision() == revision)
+            .ok_or_else(|| {
+                StoreError::new(
+                    StoreErrorCode::MissingRevision,
+                    "revision is outside opened source cut",
+                )
+            })?;
+        let metadata = snapshot.retirements().get(index).ok_or_else(|| {
+            StoreError::new(
+                StoreErrorCode::MissingMember,
+                "retirement is outside exact source revision",
+            )
+        })?;
+        let cap = max_bytes.min(self.limits.max_member_bytes);
+        let raw = self.reader.read_retirement_object_with_original_admission(
+            snapshot,
+            metadata.sha256,
+            None,
+            cap,
+            admission,
+            deadline,
+            cancelled,
+        )?;
+        check_time(deadline, cancelled)?;
+        let event_raw = self.reader.read_retirement_object_with_original_admission(
+            snapshot,
+            metadata.event_sha256,
+            Some(metadata.event_size_bytes),
+            cap,
+            admission,
+            deadline,
+            cancelled,
+        )?;
+        check_time(deadline, cancelled)?;
+        crate::object::admit_original(
+            admission,
+            None,
+            crate::object::OriginalReadStage::ReturnRetirement {
+                path_bytes: metadata.path.as_str().len(),
+                event_ref_bytes: metadata.event_ref.as_str().len(),
+            },
+            deadline,
+            cancelled,
+        )?;
+        Ok(RetiredSourceMemberV1 {
+            revision,
+            metadata: metadata.clone(),
+            raw,
+            event_raw,
+        })
+    }
+
     pub fn presence(
         &self,
         revision: SourceRevision,

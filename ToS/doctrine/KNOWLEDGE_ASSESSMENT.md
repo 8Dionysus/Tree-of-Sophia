@@ -75,6 +75,61 @@ support.
 Unknown and conflicting findings remain inspectable. Competing admissible judgments remain visible as disagreement. Research may
 continue with that dispute explicitly open.
 
+### Manual registry authoring
+
+The separate `registry-manual-authoring-v1` use qualifies a source Claim for
+manual transfer readiness. Its protected owner scope, policy, authority and
+competence must actually permit that use; a source field or request cannot
+grant it. Earlier `research` uses and historical assessment scopes retain their
+meaning. Negative, deferred and withdrawal judgments keep their existing route.
+
+For positive manual-use qualification, the owner selects a separate source-owned
+[manual-authoring-basis Record](../contracts/manual-authoring-basis.schema.json)
+and [procedure Record](../contracts/manual-authoring-procedure.schema.json)
+through their declared semantic metadata profiles. The basis `body.target` is the
+exact existing source Claim; `body.procedure` must equal the actual qualified
+assessment's method procedure. The versioned finding in `body.basis` binds the
+exact subject metadata, predicate and an existing Claim-local value pointer.
+Neither an inline qualifier nor a reviewer-supplied record substitutes for these
+selected sources. An explicitly uncertain, disputed or unknown-polarity Claim
+cannot declare that finding determinate. Independent determinate fields remain
+separate Claims, unaffected by that finding.
+
+An unresolved finding has one reason-specific basis: source contradiction;
+information absent within a justified read extent; or unestablished identity.
+It retains actual exact evidence and locators, coverage grounds, exclusions,
+alternatives, residual and a discriminating condition or justified objective
+boundary. Contradiction additionally binds its criterion and scope and distinct
+same-question alternatives. Identity additionally binds its level, criterion,
+comparisons and known non-joins; a name match issues no identity. Pending work,
+unread sources and unsupported operations are not historical findings.
+
+The native manual-use planner selects exactly one basis for the exact Claim
+from actual source-owned rows, resolves its procedure and all typed body refs
+against that same selected source inventory, and appends their exact pins to
+the required closure. Inline configuration records cannot provide that closure.
+The admission rule requires every cited exact record to belong to the
+actual owner-selected required closure and every citation to appear with its
+exact locator in the qualified assessment. The implemented v1 locator is
+`json-pointer:/...`, resolved against the actual selected Record body with
+RFC 6901 escapes. An absent field refuses even when the submitted basis and
+assessment repeat the same locator. This checks a selected JSON field; it does
+not prove reading an underlying scan, spreadsheet or text file. Those original
+source representations and their read extent require their actual owner adapters
+and a competent substantive assessment. Other locator adapters are not installed
+by this rule. Missing, stale, foreign-question or
+empty grounds refuse positive manual use. Source-owned criteria and competent
+assessment still judge incompatibility, relevance and adequacy: different values,
+nonempty prose and a schema pass do not establish those judgments. Existing
+authority, independence, quality and currentness rules remain necessary; no
+universal source quota or truth probability is added.
+
+A fully preserved and read-back historical unknown can complete transfer while
+the historical question remains unresolved. Unread, unverified, unsupported or
+blocked work cannot. Transfer completion additionally requires the full batch's
+subject-matter acceptance; this use does not itself authorize writing, identity
+merge, research use, rights, publication or canon.
+
 ## History and withdrawal
 
 ### Text-layer quality and dependent use
@@ -236,3 +291,14 @@ The engine enforces the declared relationship and authority invariants. Actual
 agent accuracy, calibrated languages, trusted command binding, existing-corpus
 migration and consumer integration remain separate required evidence in the
 [foundation-v1 coverage record](FOUNDATION_V1.md).
+
+The initial basis body is protected by the existing metadata revision contract.
+Ordinary record.revise can correct its permitted descriptive fields and keeps
+exact predecessor history; it cannot silently rewrite the target, procedure or
+finding body. Changed findings use a new source basis Record and a separately
+bound superseding assessment for the same exact Claim, retaining the old Record
+and assessment. If the source Claim changes, the new basis targets its new exact
+version. Current protected selection must choose that basis explicitly; multiple
+selected bases for one exact Claim refuse. Inspection of old versions is history,
+not a fallback to older current admission. Source issuance, native readback and
+substantive acceptance remain distinct operations.
