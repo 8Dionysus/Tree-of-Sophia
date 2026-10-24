@@ -1,0 +1,12 @@
+# INERT SOURCE PROPOSAL; external exact-object selection is absent.
+name: ToS Source Witness Caller
+on:
+  push:
+    branches: ['codex/tos-item-source-witness-*']
+permissions:
+  contents: read
+jobs:
+  metadata:
+    uses: 8Dionysus/Tree-of-Sophia/.github/workflows/tos-source-witness-producer.yml@bbc384cd6a010725589dddf5792a5f426505f1af
+    with:
+      expected_producer: bbc384cd6a010725589dddf5792a5f426505f1af
