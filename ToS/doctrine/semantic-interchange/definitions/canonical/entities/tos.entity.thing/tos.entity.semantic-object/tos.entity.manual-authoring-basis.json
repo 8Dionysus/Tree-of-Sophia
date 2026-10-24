@@ -1,0 +1,48 @@
+{
+  "type_id": "tos.entity.manual-authoring-basis",
+  "parent_type_ids": [
+    "tos.entity.semantic-object"
+  ],
+  "abstract": false,
+  "object_role": "semantic",
+  "labels": {
+    "default": "manual-authoring-basis",
+    "en": "manual-authoring-basis",
+    "ru": null
+  },
+  "definition": "A source-owned versioned manual-authoring-basis for exact field-local manual-authoring qualification; source/schema compatibility issues no historical finding or admission.",
+  "lifecycle": "candidate",
+  "owner_ref": "ToS/contracts/manual-authoring-basis.schema.json",
+  "source_mappings": [
+    {
+      "source_graph": "source-claims",
+      "source_kind_id": "manual-authoring-basis"
+    },
+    {
+      "source_graph": "source-navigation",
+      "source_kind_id": "manual-authoring-basis"
+    }
+  ],
+  "source_record_profile": {
+    "profile_version": 1,
+    "reader": "semantic-metadata-v1",
+    "record_type": "manual-authoring-basis",
+    "id_prefix": "tos.manual-authoring-basis.",
+    "source_basename": "manual-authoring-basis.json",
+    "catalog_filename": "manual-authoring-basiss.jsonl",
+    "graph_layer": "source-profile",
+    "schemas": [
+      {
+        "schema_version": "tos_manual_authoring_basis_record_v1",
+        "schema_ref": "ToS/contracts/manual-authoring-basis.schema.json",
+        "schema_dependencies": [
+          "ToS/contracts/corpus-record.schema.json",
+          "ToS/contracts/source-metadata-record.schema.json",
+          "ToS/contracts/semantic-description-record.schema.json",
+          "ToS/contracts/knowledge-assessment.schema.json"
+        ]
+      }
+    ]
+  },
+  "supersedes_type_id": null
+}

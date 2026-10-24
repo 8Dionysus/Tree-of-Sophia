@@ -83,12 +83,17 @@ competence must actually permit that use; a source field or request cannot
 grant it. Earlier `research` uses and historical assessment scopes retain their
 meaning. Negative, deferred and withdrawal judgments keep their existing route.
 
-For positive manual-use qualification, the exact Claim carries the versioned
-[`manual-authoring-basis`](../contracts/manual-authoring-basis.schema.json) in
-`qualifiers.manual_authoring`. Its question binds the exact subject metadata,
-predicate and an existing Claim-local value pointer. An explicitly uncertain,
-disputed or unknown-polarity Claim cannot declare that finding determinate.
-Independent determinate fields remain separate Claims, unaffected by that finding.
+For positive manual-use qualification, the owner selects a separate source-owned
+[manual-authoring-basis Record](../contracts/manual-authoring-basis.schema.json)
+and [procedure Record](../contracts/manual-authoring-procedure.schema.json)
+through their declared semantic metadata profiles. The basis `body.target` is the
+exact existing source Claim; `body.procedure` must equal the actual qualified
+assessment's method procedure. The versioned finding in `body.basis` binds the
+exact subject metadata, predicate and an existing Claim-local value pointer.
+Neither an inline qualifier nor a reviewer-supplied record substitutes for these
+selected sources. An explicitly uncertain, disputed or unknown-polarity Claim
+cannot declare that finding determinate. Independent determinate fields remain
+separate Claims, unaffected by that finding.
 
 An unresolved finding has one reason-specific basis: source contradiction;
 information absent within a justified read extent; or unestablished identity.
@@ -99,7 +104,11 @@ same-question alternatives. Identity additionally binds its level, criterion,
 comparisons and known non-joins; a name match issues no identity. Pending work,
 unread sources and unsupported operations are not historical findings.
 
-The native admission rule requires every cited exact record to belong to the
+The native manual-use planner selects exactly one basis for the exact Claim
+from actual source-owned rows, resolves its procedure and all typed body refs
+against that same selected source inventory, and appends their exact pins to
+the required closure. Inline configuration records cannot provide that closure.
+The admission rule requires every cited exact record to belong to the
 actual owner-selected required closure and every citation to appear with its
 exact locator in the qualified assessment. The implemented v1 locator is
 `json-pointer:/...`, resolved against the actual selected Record body with
@@ -282,3 +291,14 @@ The engine enforces the declared relationship and authority invariants. Actual
 agent accuracy, calibrated languages, trusted command binding, existing-corpus
 migration and consumer integration remain separate required evidence in the
 [foundation-v1 coverage record](FOUNDATION_V1.md).
+
+The initial basis body is protected by the existing metadata revision contract.
+Ordinary record.revise can correct its permitted descriptive fields and keeps
+exact predecessor history; it cannot silently rewrite the target, procedure or
+finding body. Changed findings use a new source basis Record and a separately
+bound superseding assessment for the same exact Claim, retaining the old Record
+and assessment. If the source Claim changes, the new basis targets its new exact
+version. Current protected selection must choose that basis explicitly; multiple
+selected bases for one exact Claim refuse. Inspection of old versions is history,
+not a fallback to older current admission. Source issuance, native readback and
+substantive acceptance remain distinct operations.

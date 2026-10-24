@@ -140,16 +140,22 @@ bind them to actual source and authority records. Local invariant checks belong 
 The existing assessment command and current-view calculation support the separate
 `registry-manual-authoring-v1` requested use. It requires a genuinely selected
 protected scope and policy/authority/competence permitting that use; discovery or
-an inline basis supplies no grant. No such production owner or policy is issued
+a basis Record supplies no grant. No such production owner or policy is issued
 by this documentation.
 
-The exact source Claim's `qualifiers.manual_authoring` follows the
-[versioned basis contract](../../../../../ToS/contracts/manual-authoring-basis.schema.json)
-and [source assessment law](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md#manual-registry-authoring).
-Prepare the real source Claim with the ordinary typed authoring owner, select its
-actual required evidence closure, then assess this exact Claim for this explicit
-use and read the recalculated current result. Raw source creation remains
-unreviewed; retaining an assertion is not positive transfer readiness.
+Create the source-owned manual-authoring-procedure and manual-authoring-basis
+Records through public-profile-create / source.create with their actual declared
+profiles and independently delegated scope. Their schema/profile definitions
+issue no source instance or grant. The [basis Record contract](../../../../../ToS/contracts/manual-authoring-basis.schema.json)
+binds its exact existing Claim target, procedure and structured finding;
+[source assessment law](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md#manual-registry-authoring)
+requires the assessment's actual qualified method to name that same procedure.
+The protected assessment owner selects these records and all real cited sources.
+The manual-use planner derives the additional exact closure solely from those
+source-owned rows; inline config/request records cannot complete it. Then assess
+the exact Claim for this explicit use and read the recalculated current result.
+Raw source creation remains unreviewed. Multiple selected bases for that exact
+Claim refuse instead of guessing which is current.
 
 Each exact citation must already be in the actual owner's required closure and
 in assessment evidence with the same locator. The v1 implementation checks

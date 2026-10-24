@@ -491,7 +491,7 @@ impl<'a> NativeRoleResolver<'a> {
     }
 }
 
-fn admitted_canonical(
+pub(crate) fn admitted_canonical(
     value: &JsonValue,
     budget: &mut OperationBudget,
     deadline: Instant,
