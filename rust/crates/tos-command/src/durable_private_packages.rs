@@ -222,9 +222,7 @@ impl SelectedPrivateProducerResponse<'_> {
     }
 }
 
-impl<'loan, 'connection, 'targets>
-    PrivateOwnerSelectedHistoryRead<'loan, 'connection, 'targets>
-{
+impl<'loan, 'connection, 'targets> PrivateOwnerSelectedHistoryRead<'loan, 'connection, 'targets> {
     /// Issue no new read or permission: borrow the already authenticated
     /// CURRENT producer receipt of one actual selected target. Consumers must
     /// still check the family/response protocol and protected read selection.
@@ -242,13 +240,21 @@ impl<'loan, 'connection, 'targets>
         use std::mem::size_of;
         check_private_history_deadline(deadline, cancelled)?;
         if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
-            return Err(DurableError::Refused("producer witness cutoff exceeds original operation"));
+            return Err(DurableError::Refused(
+                "producer witness cutoff exceeds original operation",
+            ));
         }
         let overflow = || DurableError::Refused("producer witness data reservation overflow");
-        let work = target_ref.len().checked_add(1)
+        let work = target_ref
+            .len()
+            .checked_add(1)
             .and_then(|n| n.checked_mul(2))
-            .and_then(|n| self.targets.len().checked_add(self.histories.len())
-                .and_then(|entries| n.checked_mul(entries)))
+            .and_then(|n| {
+                self.targets
+                    .len()
+                    .checked_add(self.histories.len())
+                    .and_then(|entries| n.checked_mul(entries))
+            })
             .and_then(|n| n.checked_add(target_ref.len()))
             .ok_or_else(overflow)?;
         let holders = size_of::<SelectedPrivateProducerResponse<'_>>()
@@ -260,7 +266,9 @@ impl<'loan, 'connection, 'targets>
         budget.charge_bytes(holders).map_err(DurableError::Source)?;
         validate_target_ref(target_ref)?;
         if !self.targets.contains(target_ref) {
-            return Err(DurableError::Refused("producer witness target outside selected histories"));
+            return Err(DurableError::Refused(
+                "producer witness target outside selected histories",
+            ));
         }
         // Copy only this immutable reference. The returned witness borrows
         // the guard's map, not `&self` or its mutable SQL-session field.
@@ -268,7 +276,10 @@ impl<'loan, 'connection, 'targets>
         let history = histories.get(target_ref).ok_or(DurableError::Corrupt(
             "producer witness selected history is absent",
         ))?;
-        let scope_work = history.scope.domain.len()
+        let scope_work = history
+            .scope
+            .domain
+            .len()
             .checked_add(history.scope.owner_scope.len())
             .and_then(|n| n.checked_add(self.session.scope.domain.len()))
             .and_then(|n| n.checked_add(self.session.scope.owner_scope.len()))
@@ -276,17 +287,23 @@ impl<'loan, 'connection, 'targets>
             .and_then(|n| n.checked_add(target_ref.len()))
             .and_then(|n| n.checked_add(2 * size_of::<Digest256>() + 2 * size_of::<u64>()))
             .ok_or_else(overflow)?;
-        budget.charge_work(scope_work).map_err(DurableError::Source)?;
+        budget
+            .charge_work(scope_work)
+            .map_err(DurableError::Source)?;
         if history.scope != self.session.scope
             || history.target_ref != target_ref
             || history.private_audit_generation != self.session.private_audit_generation
         {
-            return Err(DurableError::Conflict("producer witness owner snapshot differs"));
+            return Err(DurableError::Conflict(
+                "producer witness owner snapshot differs",
+            ));
         }
         // read_package_history already verified that this last receipt and
         // its package are exactly the current head on this SAME RR snapshot.
         if history.current.is_none() {
-            return Err(DurableError::Refused("producer witness has no current package"));
+            return Err(DurableError::Refused(
+                "producer witness has no current package",
+            ));
         }
         let entry = history.history.last().ok_or(DurableError::Corrupt(
             "producer witness current history is empty",

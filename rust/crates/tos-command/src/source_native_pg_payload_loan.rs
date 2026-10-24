@@ -83,7 +83,9 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
             .charge_sto_source_measures(session, 0, 0, 0, 0, 0)
             .map_err(DurableError::Source)?;
         if max_bytes == 0 || paths.is_empty() || paths.len() > self.max_prefix_members {
-            return Err(DurableError::Refused("PG payload loan selected set or read cap"));
+            return Err(DurableError::Refused(
+                "PG payload loan selected set or read cap",
+            ));
         }
         let max_bytes = max_bytes.min(self.max_member_bytes as u64);
         let (deadline, cancelled) = payer.source_cutoff();
@@ -94,13 +96,17 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
                 "PG payload loan logical carriers overflow",
             )))?;
         let comparisons = paths.iter().try_fold(0usize, |sum, path| {
-            path.as_str().len().checked_mul(4)
+            path.as_str()
+                .len()
+                .checked_mul(4)
                 .and_then(|work| sum.checked_add(work))
                 .ok_or(DurableError::Source(SourceCommandError::Unsupported(
                     "PG payload loan path comparison overflow",
                 )))
         })?;
-        let backing = paths.len().checked_mul(size_of::<ManagedCurrentMember>())
+        let backing = paths
+            .len()
+            .checked_mul(size_of::<ManagedCurrentMember>())
             .ok_or(DurableError::Source(SourceCommandError::Unsupported(
                 "PG payload loan selected carrier backing overflow",
             )))?;
@@ -118,11 +124,14 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
                 // Pay the whole requested Vec backing before allocation. Old
                 // observation/raw clones still belong to the explicit lower
                 // metadata/native funding debt; this is not a fake full quote.
-                session.retain_source_state(backing)
+                session
+                    .retain_source_state(backing)
                     .map_err(|error| DurableError::Source(payer.error(error)))?;
                 let mut members = Vec::new();
                 members.try_reserve_exact(paths.len()).map_err(|_| {
-                    DurableError::Source(payer.error(tos_compiler::pwe_native::Error::ResourceLimit))
+                    DurableError::Source(
+                        payer.error(tos_compiler::pwe_native::Error::ResourceLimit),
+                    )
                 })?;
                 for path in paths {
                     let member = payer.read_current_member_sto_source(
@@ -158,9 +167,7 @@ impl<'store> PgGrowthCurrentInput<'_, 'store> {
     }
 }
 
-impl<'store, 'budget, 'cancel, 'pure>
-    PgCurrentPayloadLoan<'_, 'store, 'budget, 'cancel, 'pure>
-{
+impl<'store, 'budget, 'cancel, 'pure> PgCurrentPayloadLoan<'_, 'store, 'budget, 'cancel, 'pure> {
     /// Split the complete retained set from its mutable epoch and Session.
     /// All five borrows share this callback's lifetime; T cannot carry any of
     /// them out. The callback receives no whole mutable loan, so immutable
@@ -194,15 +201,20 @@ impl<'store, 'budget, 'cancel, 'pure>
             &OriginalAssessmentPayer<'budget, 'cancel>,
             &mut Session<'pure>,
         )>()
-            .checked_add(std::mem::size_of_val(&run))
-            .and_then(|n| n.checked_add(size_of::<PgRecordRevisionIdentity>()))
-            .and_then(|n| n.checked_add(size_of::<DurableResult<PgRecordRevisionIdentity>>()))
-            .and_then(|n| n.checked_add(size_of::<(std::time::Instant, &std::sync::atomic::AtomicBool)>()))
-            .and_then(|n| n.checked_add(size_of::<DurableResult<T>>()))
-            .and_then(|n| n.checked_add(2 * size_of::<DurableResult<()>>()))
-            .ok_or(DurableError::Source(SourceCommandError::Unsupported(
-                "PG selected payload split carriers overflow",
-            )))?;
+        .checked_add(std::mem::size_of_val(&run))
+        .and_then(|n| n.checked_add(size_of::<PgRecordRevisionIdentity>()))
+        .and_then(|n| n.checked_add(size_of::<DurableResult<PgRecordRevisionIdentity>>()))
+        .and_then(|n| {
+            n.checked_add(size_of::<(
+                std::time::Instant,
+                &std::sync::atomic::AtomicBool,
+            )>())
+        })
+        .and_then(|n| n.checked_add(size_of::<DurableResult<T>>()))
+        .and_then(|n| n.checked_add(2 * size_of::<DurableResult<()>>()))
+        .ok_or(DurableError::Source(SourceCommandError::Unsupported(
+            "PG selected payload split carriers overflow",
+        )))?;
         self.payer.reserve(carriers).map_err(DurableError::Source)?;
         let (deadline, cancelled) = self.payer.source_cutoff();
         let identity = self
@@ -255,9 +267,7 @@ impl<'store, 'budget, 'cancel, 'pure>
             .ok_or(DurableError::Source(SourceCommandError::Unsupported(
                 "PG payload borrowed result carriers overflow",
             )))?;
-        self.payer
-            .reserve(carriers)
-            .map_err(DurableError::Source)?;
+        self.payer.reserve(carriers).map_err(DurableError::Source)?;
         // An admitted identity check on the real borrowed selection, not a
         // caller-authored identity or a fabricated finalized readset.
         let identity = self
@@ -276,16 +286,25 @@ impl<'store, 'budget, 'cancel, 'pure>
             // Each comparison can inspect both common prefixes plus its first
             // boundary. Bounding by every SELECTED member is conservative even
             // for the binary search; it never depends on the whole corpus size.
-            let lookup_work = path.as_str().len().checked_add(1)
+            let lookup_work = path
+                .as_str()
+                .len()
+                .checked_add(1)
                 .and_then(|n| n.checked_mul(2))
                 .and_then(|n| n.checked_mul(self.members.len()))
                 .ok_or(DurableError::Source(SourceCommandError::Unsupported(
                     "PG payload selected lookup work overflow",
                 )))?;
-            self.payer.inspect(0, lookup_work).map_err(DurableError::Source)?;
-            let index = self.members.binary_search_by(|member| member.path.cmp(path));
+            self.payer
+                .inspect(0, lookup_work)
+                .map_err(DurableError::Source)?;
+            let index = self
+                .members
+                .binary_search_by(|member| member.path.cmp(path));
             match index {
-                Err(_) => Err(DurableError::Refused("PG payload path outside selected loan")),
+                Err(_) => Err(DurableError::Refused(
+                    "PG payload path outside selected loan",
+                )),
                 Ok(index) => run(
                     PgCurrentPayloadRef {
                         selected: &self.selected,

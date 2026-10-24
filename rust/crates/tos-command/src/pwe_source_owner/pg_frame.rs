@@ -10,7 +10,10 @@ use crate::source_command::SourceCommandError;
 use crate::source_native_cli::PgCurrentPayloadLoan;
 use crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer;
 use crate::{DurableError, DurableResult};
-use std::{cmp::Ordering as CmpOrdering, mem::{size_of, size_of_val}};
+use std::{
+    cmp::Ordering as CmpOrdering,
+    mem::{size_of, size_of_val},
+};
 use tos_compiler::pwe_native::{Error, Session};
 use tos_foundation::{CutPreparedSchemaExecutionBinding, Digest256, RelativePath};
 use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
@@ -84,12 +87,25 @@ pub(crate) fn with_pg_payload_host<'store, 'budget, 'cancel, 'pure, T>(
             .and_then(|n| n.checked_add(size_of_val(&run)))
             .ok_or(overflow())?;
         payer.reserve(carriers).map_err(DurableError::Source)?;
-        inspect(payer, 0, size_of::<CutPreparedSchemaExecutionBinding>() + 3 * size_of::<Digest256>())?;
+        inspect(
+            payer,
+            0,
+            size_of::<CutPreparedSchemaExecutionBinding>() + 3 * size_of::<Digest256>(),
+        )?;
         let binding = worker.prepared_execution_binding();
         let schema_set = worker.schema_set_digest();
         let contracts = worker.contract_selection_digest();
         let limits = worker.limits_sha256();
-        let frame = PgPayloadFrame { selected, epoch, payer, worker, binding, schema_set, contracts, limits };
+        let frame = PgPayloadFrame {
+            selected,
+            epoch,
+            payer,
+            worker,
+            binding,
+            schema_set,
+            contracts,
+            limits,
+        };
         let mut host = PgPayloadHost { frame, session };
         let result = (|| {
             // Build checkpoint, then actual worker-resource closure. Expected
@@ -98,7 +114,11 @@ pub(crate) fn with_pg_payload_host<'store, 'budget, 'cancel, 'pure, T>(
             host.frame.bind_worker_resources(members, host.session)?;
             // Host entry after the immutable schema/selection binding work.
             host.verify()?;
-            let views = PgPayloadViews { selected, members, payer };
+            let views = PgPayloadViews {
+                selected,
+                members,
+                payer,
+            };
             run(views, &mut host)
         })();
         // Host exit on every callback/binding Result, including Err. The
@@ -120,18 +140,23 @@ impl<'view, 'budget, 'cancel> PgPayloadViews<'view, 'budget, 'cancel> {
         check_session(host.session, self.payer)?;
         inspect(self.payer, 0, size_of::<PgRecordRevisionIdentity>() + 1)?;
         if self.selected != host.frame.selected || !std::ptr::eq(self.payer, host.frame.payer) {
-            return Err(DurableError::Conflict("PWE PG views/frame selection or payer differs"));
+            return Err(DurableError::Conflict(
+                "PWE PG views/frame selection or payer differs",
+            ));
         }
         host.verify()?;
         let member = lookup(self.members, path.as_str(), host.session, self.payer)?;
-        self.payer.reserve(size_of::<PgPayloadMember<'_>>()).map_err(DurableError::Source)?;
-        Ok(PgPayloadMember { selected: self.selected, member })
+        self.payer
+            .reserve(size_of::<PgPayloadMember<'_>>())
+            .map_err(DurableError::Source)?;
+        Ok(PgPayloadMember {
+            selected: self.selected,
+            member,
+        })
     }
 }
 
-impl<'view, 'store, 'budget, 'cancel, 'pure>
-    PgPayloadHost<'view, 'store, 'budget, 'cancel, 'pure>
-{
+impl<'view, 'store, 'budget, 'cancel, 'pure> PgPayloadHost<'view, 'store, 'budget, 'cancel, 'pure> {
     pub(crate) fn verify(&mut self) -> DurableResult<()> {
         self.frame.verify(self.session)
     }
@@ -145,8 +170,12 @@ impl<'view, 'store, 'budget, 'cancel, 'pure>
         let carriers = size_of::<DurableResult<T>>()
             .checked_add(size_of::<DurableResult<()>>())
             .and_then(|n| n.checked_add(size_of::<&mut Self>()))
-            .and_then(|n| n.checked_add(size_of_val(&run))).ok_or(overflow())?;
-        self.frame.payer.reserve(carriers).map_err(DurableError::Source)?;
+            .and_then(|n| n.checked_add(size_of_val(&run)))
+            .ok_or(overflow())?;
+        self.frame
+            .payer
+            .reserve(carriers)
+            .map_err(DurableError::Source)?;
         self.verify()?;
         let result = run(self);
         let fenced = self.verify();
@@ -208,9 +237,16 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
     /// sticky resource refusal may prevent physical SQL, as on the owner route.
     fn verify(&mut self, session: &mut Session<'_>) -> DurableResult<()> {
         let carriers = size_of::<PgRecordRevisionIdentity>()
-            .checked_add(size_of::<crate::source_command::SourceCommandResult<PgRecordRevisionIdentity>>())
+            .checked_add(size_of::<
+                crate::source_command::SourceCommandResult<PgRecordRevisionIdentity>,
+            >())
             .and_then(|n| n.checked_add(2 * size_of::<DurableResult<()>>()))
-            .and_then(|n| n.checked_add(size_of::<(std::time::Instant, &std::sync::atomic::AtomicBool)>()))
+            .and_then(|n| {
+                n.checked_add(size_of::<(
+                    std::time::Instant,
+                    &std::sync::atomic::AtomicBool,
+                )>())
+            })
             .ok_or(overflow())?;
         self.payer.reserve(carriers).map_err(DurableError::Source)?;
         let checked = (|| {
@@ -222,9 +258,14 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
                 .ok_or(overflow())?;
             inspect(self.payer, 0, work)?;
             let (deadline, cancelled) = self.payer.source_cutoff();
-            let actual = self.payer.with_operation(|budget| {
-                self.epoch.selection().identity_with_data_admission(budget, deadline, cancelled)
-            }).map_err(DurableError::Source)?;
+            let actual = self
+                .payer
+                .with_operation(|budget| {
+                    self.epoch
+                        .selection()
+                        .identity_with_data_admission(budget, deadline, cancelled)
+                })
+                .map_err(DurableError::Source)?;
             if actual != *self.selected
                 || self.worker.input_identity() != self.selected
                 || self.worker.prepared_execution_binding() != self.binding
@@ -232,7 +273,9 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
                 || self.worker.contract_selection_digest() != self.contracts
                 || self.worker.limits_sha256() != self.limits
             {
-                return Err(DurableError::Conflict("PWE PG epoch/worker binding differs"));
+                return Err(DurableError::Conflict(
+                    "PWE PG epoch/worker binding differs",
+                ));
             }
             Ok(())
         })();
@@ -281,7 +324,8 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
             &OriginalAssessmentPayer<'budget, 'cancel>,
             &mut Session<'pure>,
         )>()
-            .checked_add(size_of_val(&run)).ok_or(overflow())?;
+        .checked_add(size_of_val(&run))
+        .ok_or(overflow())?;
         self.payer.reserve(holders).map_err(DurableError::Source)?;
         self.with_current(session, |frame, same| {
             run(&mut *frame.epoch, frame.payer, same)
@@ -300,28 +344,48 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
         schema: &PgPayloadMember<'_>,
     ) -> DurableResult<()> {
         self.with_current(session, |frame, _same| {
-            inspect(frame.payer, 0, 2 * size_of::<PgRecordRevisionIdentity>() + 4)?;
+            inspect(
+                frame.payer,
+                0,
+                2 * size_of::<PgRecordRevisionIdentity>() + 4,
+            )?;
             if member.selected != frame.selected || schema.selected != frame.selected {
-                return Err(DurableError::Conflict("PWE PG schema/member selection differs"));
+                return Err(DurableError::Conflict(
+                    "PWE PG schema/member selection differs",
+                ));
             }
             let path = member.member.path.as_str();
             let root = schema.member.path.as_str();
             let names = path.len().checked_add(root.len()).ok_or(overflow())?;
-            let bytes = member.member.raw.len().checked_add(names).ok_or(overflow())?;
+            let bytes = member
+                .member
+                .raw
+                .len()
+                .checked_add(names)
+                .ok_or(overflow())?;
             inspect(frame.payer, bytes, 1)?;
             if !root.starts_with("ToS/contracts/") || !root.ends_with(".schema.json") {
-                return Err(DurableError::Refused("PWE PG schema path is not a selected contract"));
+                return Err(DurableError::Refused(
+                    "PWE PG schema path is not a selected contract",
+                ));
             }
             // Error path strings are also real holders: prepay their logical
             // retained bytes/copies before worker execution can produce Err.
             frame.payer.reserve(names).map_err(DurableError::Source)?;
             inspect(frame.payer, names, 1)?;
             let (deadline, cancelled) = frame.payer.source_cutoff();
-            match frame.worker.check(path, &member.member.raw, root, deadline, cancelled) {
+            match frame
+                .worker
+                .check(path, &member.member.raw, root, deadline, cancelled)
+            {
                 Ok(true) => Ok(()),
-                Ok(false) => Err(DurableError::Refused("PWE PG selected schema rejected payload")),
+                Ok(false) => Err(DurableError::Refused(
+                    "PWE PG selected schema rejected payload",
+                )),
                 Err(reason) => Err(DurableError::Source(SourceCommandError::SchemaExecution {
-                    path: path.to_owned(), root: root.to_owned(), reason,
+                    path: path.to_owned(),
+                    root: root.to_owned(),
+                    reason,
                 })),
             }
         })
@@ -336,7 +400,9 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
         // registry raw traversal, corpus inventory, JSON parse or rehash.
         inspect(self.payer, 0, 1)?;
         if self.worker.source_resource_count() == 0 {
-            return Err(DurableError::Refused("PWE PG worker selected schema closure is empty"));
+            return Err(DurableError::Refused(
+                "PWE PG worker selected schema closure is empty",
+            ));
         }
         // source_resources is a capture-free Map over a slice Iter. Four
         // words bound that iterator; the yielded metadata/Option holder is
@@ -348,13 +414,21 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
         let mut resources = self.worker.source_resources();
         loop {
             inspect(self.payer, 0, 1)?;
-            let Some(resource) = resources.next() else { break };
+            let Some(resource) = resources.next() else {
+                break;
+            };
             let member = lookup(members, resource.path, session, self.payer)?;
-            inspect(self.payer, 0, size_of::<u64>() + size_of::<tos_foundation::Digest256>())?;
+            inspect(
+                self.payer,
+                0,
+                size_of::<u64>() + size_of::<tos_foundation::Digest256>(),
+            )?;
             if resource.size_bytes != member.metadata.size_bytes
                 || resource.sha256 != member.metadata.sha256
             {
-                return Err(DurableError::Conflict("PWE PG worker resource differs from actual payload"));
+                return Err(DurableError::Conflict(
+                    "PWE PG worker resource differs from actual payload",
+                ));
             }
         }
         Ok(())
@@ -367,7 +441,8 @@ fn check_session(
 ) -> DurableResult<()> {
     // The same real pair is checked even when measures are zero. This checks
     // original sticky refusal as well as SOURCE mode/cutoff; no debit reset.
-    payer.charge_sto_source_measures(session, 0, 0, 0, 0, 0)
+    payer
+        .charge_sto_source_measures(session, 0, 0, 0, 0, 0)
         .map_err(DurableError::Source)
 }
 
@@ -384,7 +459,11 @@ fn map_session_result<T>(
     })
 }
 
-fn inspect(payer: &OriginalAssessmentPayer<'_, '_>, bytes: usize, visits: usize) -> DurableResult<()> {
+fn inspect(
+    payer: &OriginalAssessmentPayer<'_, '_>,
+    bytes: usize,
+    visits: usize,
+) -> DurableResult<()> {
     let work = bytes.checked_add(visits).ok_or(overflow())?;
     payer.inspect(bytes, work).map_err(DurableError::Source)
 }
@@ -406,10 +485,15 @@ fn lookup<'members>(
         // Pay bounds/index work BEFORE accessing the next candidate, then pay
         // both path operands BEFORE comparison. No full selected-set scan.
         inspect(payer, 0, 8)?;
-        if low == high { break }
+        if low == high {
+            break;
+        }
         let middle = low + (high - low) / 2;
         let member = &members[middle];
-        let bytes = path.len().checked_add(member.path.as_str().len()).ok_or(overflow())?;
+        let bytes = path
+            .len()
+            .checked_add(member.path.as_str().len())
+            .ok_or(overflow())?;
         inspect(payer, bytes, 1)?;
         match member.path.as_str().cmp(path) {
             CmpOrdering::Equal => return Ok(member),
@@ -417,7 +501,9 @@ fn lookup<'members>(
             CmpOrdering::Greater => high = middle,
         }
     }
-    Err(DurableError::Refused("PWE PG required payload absent from actual selected loan"))
+    Err(DurableError::Refused(
+        "PWE PG required payload absent from actual selected loan",
+    ))
 }
 
 fn epoch_fresh(
@@ -425,18 +511,21 @@ fn epoch_fresh(
     payer: &OriginalAssessmentPayer<'_, '_>,
 ) -> DurableResult<()> {
     let carriers = size_of::<crate::source_command::SourceCommandResult<DurableResult<()>>>()
-        .checked_add(size_of::<DurableResult<()>>()).ok_or(overflow())?;
+        .checked_add(size_of::<DurableResult<()>>())
+        .ok_or(overflow())?;
     payer.reserve(carriers).map_err(DurableError::Source)?;
     let (deadline, cancelled) = payer.source_cutoff();
     // A nested Result preserves the actual Durable error without a cloned
     // error cell. Source errors must cross the outer layer as Err so the
     // original-operation sticky check cannot replace that original E.
-    payer.with_operation(|budget| {
-        match epoch.verify_fresh_with_query_data_admission(budget, deadline, cancelled) {
-            Err(DurableError::Source(original)) => Err(original),
-            result => Ok(result),
-        }
-    }).map_err(DurableError::Source)?
+    payer
+        .with_operation(|budget| {
+            match epoch.verify_fresh_with_query_data_admission(budget, deadline, cancelled) {
+                Err(DurableError::Source(original)) => Err(original),
+                result => Ok(result),
+            }
+        })
+        .map_err(DurableError::Source)?
 }
 
 fn complete<T>(result: DurableResult<T>, fenced: DurableResult<()>) -> DurableResult<T> {
@@ -446,14 +535,21 @@ fn complete<T>(result: DurableResult<T>, fenced: DurableResult<()>) -> DurableRe
     }
 }
 fn overflow() -> DurableError {
-    DurableError::Source(SourceCommandError::Unsupported("PWE PG logical holder/work overflow"))
+    DurableError::Source(SourceCommandError::Unsupported(
+        "PWE PG logical holder/work overflow",
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::source_native_cli::private_assessment::{OperationBudget, original_payer::with_original_pwe_session_durable};
-    use std::{sync::atomic::{AtomicBool, Ordering}, time::{Duration, Instant}};
+    use crate::source_native_cli::private_assessment::{
+        OperationBudget, original_payer::with_original_pwe_session_durable,
+    };
+    use std::{
+        sync::atomic::{AtomicBool, Ordering},
+        time::{Duration, Instant},
+    };
     use tos_compiler::pwe_native::Limits;
 
     #[test]
@@ -463,23 +559,42 @@ mod tests {
         let config = serde_json::json!({"budgets": {"worker_cpu_seconds": 1, "worker_address_space_bytes": 1048576}});
         let mut original = OperationBudget::new(&config, deadline).unwrap();
         let mut other = OperationBudget::new(&config, deadline).unwrap();
-        let limits = Limits { max_input_bytes: 256, max_state_bytes: 256, max_work: 128,
-            max_nodes: 32, max_refs: 16, max_depth: 8, max_items: 16, deadline };
-        let result = with_original_pwe_session_durable(&mut original, limits, &cancelled, |payer, same| {
-            with_original_pwe_session_durable(&mut other, limits, &cancelled, |foreign, _| {
-                assert!(matches!(check_session(same, foreign), Err(DurableError::Source(
-                    SourceCommandError::Conflict("STO source Session uses a different original payer")
-                ))));
+        let limits = Limits {
+            max_input_bytes: 256,
+            max_state_bytes: 256,
+            max_work: 128,
+            max_nodes: 32,
+            max_refs: 16,
+            max_depth: 8,
+            max_items: 16,
+            deadline,
+        };
+        let result =
+            with_original_pwe_session_durable(&mut original, limits, &cancelled, |payer, same| {
+                with_original_pwe_session_durable(&mut other, limits, &cancelled, |foreign, _| {
+                    assert!(matches!(
+                        check_session(same, foreign),
+                        Err(DurableError::Source(SourceCommandError::Conflict(
+                            "STO source Session uses a different original payer"
+                        )))
+                    ));
+                    Ok(())
+                })?;
+                let before = same.charges();
+                let missing = lookup(&[], "ToS/required.json", same, payer);
+                assert!(matches!(
+                    missing,
+                    Err(DurableError::Refused(
+                        "PWE PG required payload absent from actual selected loan"
+                    ))
+                ));
+                assert_eq!(
+                    same.charges(),
+                    before,
+                    "native lookup fees cannot become SOURCE input/work/state"
+                );
                 Ok(())
-            })?;
-            let before = same.charges();
-            let missing = lookup(&[], "ToS/required.json", same, payer);
-            assert!(matches!(missing, Err(DurableError::Refused(
-                "PWE PG required payload absent from actual selected loan"
-            ))));
-            assert_eq!(same.charges(), before, "native lookup fees cannot become SOURCE input/work/state");
-            Ok(())
-        });
+            });
         assert!(result.is_ok());
     }
 
@@ -487,24 +602,50 @@ mod tests {
     fn pg_payload_helpers_preserve_original_error_sticky_prefix_and_cancelled_exit() {
         let cancelled = AtomicBool::new(false);
         let deadline = Instant::now() + Duration::from_secs(30);
-        let mut original = OperationBudget::new(&serde_json::json!({"budgets": {
-            "worker_cpu_seconds": 1, "worker_address_space_bytes": 1048576
-        }}), deadline).unwrap();
-        let limits = Limits { max_input_bytes: 128, max_state_bytes: 128, max_work: 64,
-            max_nodes: 16, max_refs: 8, max_depth: 8, max_items: 8, deadline };
-        let result: DurableResult<()> = with_original_pwe_session_durable(&mut original, limits, &cancelled, |payer, same| {
-            same.admit_source_work(3).map_err(|error| DurableError::Source(payer.error(error)))?;
-            let before = same.charges();
-            let error = inspect(payer, 0, usize::MAX);
-            assert!(matches!(error, Err(DurableError::Source(SourceCommandError::Invalid(
-                "assessment cumulative work budget"
-            )))));
-            assert_eq!(same.charges(), before);
-            assert!(check_session(same, payer).is_err(), "sticky original refusal survives a swallowed error");
-            cancelled.store(true, Ordering::Relaxed);
-            complete(Err(DurableError::Conflict("original PG consumer body")), check_session(same, payer))
-        });
-        assert!(matches!(result, Err(DurableError::Conflict("original PG consumer body"))));
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets": {
+                "worker_cpu_seconds": 1, "worker_address_space_bytes": 1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
+        let limits = Limits {
+            max_input_bytes: 128,
+            max_state_bytes: 128,
+            max_work: 64,
+            max_nodes: 16,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            deadline,
+        };
+        let result: DurableResult<()> =
+            with_original_pwe_session_durable(&mut original, limits, &cancelled, |payer, same| {
+                same.admit_source_work(3)
+                    .map_err(|error| DurableError::Source(payer.error(error)))?;
+                let before = same.charges();
+                let error = inspect(payer, 0, usize::MAX);
+                assert!(matches!(
+                    error,
+                    Err(DurableError::Source(SourceCommandError::Invalid(
+                        "assessment cumulative work budget"
+                    )))
+                ));
+                assert_eq!(same.charges(), before);
+                assert!(
+                    check_session(same, payer).is_err(),
+                    "sticky original refusal survives a swallowed error"
+                );
+                cancelled.store(true, Ordering::Relaxed);
+                complete(
+                    Err(DurableError::Conflict("original PG consumer body")),
+                    check_session(same, payer),
+                )
+            });
+        assert!(matches!(
+            result,
+            Err(DurableError::Conflict("original PG consumer body"))
+        ));
     }
 
     #[test]
@@ -514,19 +655,45 @@ mod tests {
         let config = serde_json::json!({"budgets": {"worker_cpu_seconds": 1, "worker_address_space_bytes": 1048576}});
         for resource in [false, true] {
             let mut original = OperationBudget::new(&config, deadline).unwrap();
-            let limits = Limits { max_input_bytes: 128, max_state_bytes: 128, max_work: 64,
-                max_nodes: 16, max_refs: 8, max_depth: 8, max_items: 8, deadline };
-            let result: DurableResult<()> = with_original_pwe_session_durable(&mut original, limits, &cancelled, |payer, same| {
-                let native = if resource { same.admit_source_work(65) }
-                    else { Err(Error::NeedsBinding("actual semantic binding missing")) };
-                map_session_result(native, payer, DurableError::Refused("real semantic refusal"))
-            });
+            let limits = Limits {
+                max_input_bytes: 128,
+                max_state_bytes: 128,
+                max_work: 64,
+                max_nodes: 16,
+                max_refs: 8,
+                max_depth: 8,
+                max_items: 8,
+                deadline,
+            };
+            let result: DurableResult<()> = with_original_pwe_session_durable(
+                &mut original,
+                limits,
+                &cancelled,
+                |payer, same| {
+                    let native = if resource {
+                        same.admit_source_work(65)
+                    } else {
+                        Err(Error::NeedsBinding("actual semantic binding missing"))
+                    };
+                    map_session_result(
+                        native,
+                        payer,
+                        DurableError::Refused("real semantic refusal"),
+                    )
+                },
+            );
             if resource {
-                assert!(matches!(result, Err(DurableError::Source(
-                    SourceCommandError::Unsupported("PWE Assessment Session exhausted")
-                ))));
+                assert!(matches!(
+                    result,
+                    Err(DurableError::Source(SourceCommandError::Unsupported(
+                        "PWE Assessment Session exhausted"
+                    )))
+                ));
             } else {
-                assert!(matches!(result, Err(DurableError::Refused("real semantic refusal"))));
+                assert!(matches!(
+                    result,
+                    Err(DurableError::Refused("real semantic refusal"))
+                ));
             }
         }
     }

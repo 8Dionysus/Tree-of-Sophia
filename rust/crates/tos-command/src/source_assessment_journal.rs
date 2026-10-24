@@ -3662,7 +3662,6 @@ mod private_history_worker_exit_tests {
     }
 }
 
-
 #[cfg(test)]
 mod protected_pg_grant_read_admission_tests {
     use super::*;
@@ -3675,19 +3674,31 @@ mod protected_pg_grant_read_admission_tests {
     struct Fixture(PathBuf);
     impl Fixture {
         fn new() -> Self {
-            let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+            let stamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
             let path = std::env::temp_dir().join(format!(
-                "tos-pg-grant-admission-{}-{stamp}", std::process::id(),
+                "tos-pg-grant-admission-{}-{stamp}",
+                std::process::id(),
             ));
-            std::fs::DirBuilder::new().mode(0o700).create(&path).unwrap();
+            std::fs::DirBuilder::new()
+                .mode(0o700)
+                .create(&path)
+                .unwrap();
             Self(path)
         }
         fn selected(&self) -> ProtectedAssessmentPgGrant {
             use std::io::Write;
             let path = self.0.join("grant.json");
             let raw = b"{}";
-            let mut file = std::fs::OpenOptions::new().read(true).write(true)
-                .create_new(true).mode(0o600).open(&path).unwrap();
+            let mut file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(&path)
+                .unwrap();
             file.write_all(raw).unwrap();
             let parent = File::open(&self.0).unwrap();
             ProtectedAssessmentPgGrant {
@@ -3704,7 +3715,9 @@ mod protected_pg_grant_read_admission_tests {
         }
     }
     impl Drop for Fixture {
-        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
     }
     // Chronological spy/refusal, not a payer, allowance or successful issuer.
     struct Trace {
@@ -3715,11 +3728,16 @@ mod protected_pg_grant_read_admission_tests {
     }
     impl CreationReadAdmission for Trace {
         fn before_creation_read(
-            &mut self, descriptor: &File, stage: CreationReadStage,
+            &mut self,
+            descriptor: &File,
+            stage: CreationReadStage,
         ) -> SourceCommandResult<()> {
             assert_eq!(inode(&descriptor.metadata().unwrap()), self.inode);
             match stage {
-                CreationReadStage::Begin { payload_cap, scratch_bytes } => {
+                CreationReadStage::Begin {
+                    payload_cap,
+                    scratch_bytes,
+                } => {
                     assert_eq!(payload_cap, 8_388_608);
                     assert_eq!(scratch_bytes, 65_536);
                     self.events.push("begin");
@@ -3729,10 +3747,14 @@ mod protected_pg_grant_read_admission_tests {
                     self.events.push("read");
                     self.requested += requested_bytes;
                     if self.refuse_read {
-                        return Err(SourceCommandError::Denied("actual grant read fixture refusal"));
+                        return Err(SourceCommandError::Denied(
+                            "actual grant read fixture refusal",
+                        ));
                     }
                 }
-                CreationReadStage::Retain { length, additional, .. } => {
+                CreationReadStage::Retain {
+                    length, additional, ..
+                } => {
                     assert_eq!(length, 0);
                     assert_eq!(additional, 2);
                     self.events.push("retain");
@@ -3748,9 +3770,14 @@ mod protected_pg_grant_read_admission_tests {
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
         let mut trace = Trace {
-            inode: grant.configuration_identity, events: Vec::new(), requested: 0, refuse_read: false,
+            inode: grant.configuration_identity,
+            events: Vec::new(),
+            requested: 0,
+            refuse_read: false,
         };
-        grant.verify_current_with_read_admission(deadline, &cancelled, &mut trace).unwrap();
+        grant
+            .verify_current_with_read_admission(deadline, &cancelled, &mut trace)
+            .unwrap();
         assert_eq!(trace.events, ["begin", "read", "retain", "read"]);
         assert_eq!(trace.requested, 2 * 65_536);
         // Legacy still applies the same owner/custody/exact raw checks.
@@ -3763,20 +3790,29 @@ mod protected_pg_grant_read_admission_tests {
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
         let mut trace = Trace {
-            inode: grant.configuration_identity, events: Vec::new(), requested: 0, refuse_read: true,
+            inode: grant.configuration_identity,
+            events: Vec::new(),
+            requested: 0,
+            refuse_read: true,
         };
-        assert!(matches!(grant.verify_current_with_read_admission(
-            deadline, &cancelled, &mut trace,
-        ), Err(SourceCommandError::Denied("actual grant read fixture refusal"))));
+        assert!(matches!(
+            grant.verify_current_with_read_admission(deadline, &cancelled, &mut trace,),
+            Err(SourceCommandError::Denied(
+                "actual grant read fixture refusal"
+            ))
+        ));
         assert_eq!(trace.events, ["begin", "read"]);
         assert_eq!(trace.requested, 65_536);
         // Change this fixture's SAME selected inode, retaining its mode. No
         // grant renewal, oracle rewrite, path replacement or permission bypass.
         std::fs::write(&grant.configuration_path, b"[]").unwrap();
-        trace.events.clear(); trace.requested = 0; trace.refuse_read = false;
-        assert!(matches!(grant.verify_current_with_read_admission(
-            deadline, &cancelled, &mut trace,
-        ), Err(SourceCommandError::Conflict("assessment PG grant changed"))));
+        trace.events.clear();
+        trace.requested = 0;
+        trace.refuse_read = false;
+        assert!(matches!(
+            grant.verify_current_with_read_admission(deadline, &cancelled, &mut trace,),
+            Err(SourceCommandError::Conflict("assessment PG grant changed"))
+        ));
         assert_eq!(trace.events, ["begin", "read", "retain", "read"]);
         assert_eq!(trace.requested, 2 * 65_536);
     }
@@ -3790,13 +3826,22 @@ mod protected_pg_grant_read_admission_tests {
         let grant = fixture.selected();
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
-        let mut original = OperationBudget::new(&serde_json::json!({"budgets":{
-            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-        }}), deadline).unwrap();
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
         let limits = Limits {
-            max_input_bytes: 262_144, max_nodes: 32, max_work: 262_144,
-            max_refs: 8, max_depth: 8, max_items: 8,
-            max_state_bytes: 1_048_576, deadline,
+            max_input_bytes: 262_144,
+            max_nodes: 32,
+            max_work: 262_144,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 1_048_576,
+            deadline,
         };
         let before_work = original.work_remaining;
         with_original_pwe_session(&mut original, limits, &cancelled, |payer, same| {
@@ -3806,7 +3851,8 @@ mod protected_pg_grant_read_admission_tests {
             assert_eq!(same.charges().3, 0);
             assert!(same.has_source_payer(payer));
             Ok(())
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(original.work_remaining, before_work - limits.max_work);
     }
 }

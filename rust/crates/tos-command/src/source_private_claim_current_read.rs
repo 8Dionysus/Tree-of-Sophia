@@ -3,7 +3,9 @@
 //! and cannot issue a mutation, admission, role or external content witness.
 use super::{CLAIM_STREAM, claim_id};
 use crate::source_assessment_journal::ProtectedAssessmentPgGrant;
-use crate::source_command::{self as cmd, SourceCommandError as Error, SourceCommandResult as Result};
+use crate::source_command::{
+    self as cmd, SourceCommandError as Error, SourceCommandResult as Result,
+};
 use crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer;
 use crate::source_native_cli::private_assessment::scope_admission::ScopeAccess;
 use crate::source_text_owner::OwnerTextContext;
@@ -22,15 +24,25 @@ pub(crate) struct CurrentClaimReadScope<'read> {
     content_requested: bool,
 }
 impl CurrentClaimReadScope<'_> {
-    pub(crate) fn path(&self) -> &str { self.path }
-    pub(crate) fn claim_id(&self) -> &str { self.claim }
-    pub(crate) fn assessment_selection(&self) -> &JsonValue { self.row }
+    pub(crate) fn path(&self) -> &str {
+        self.path
+    }
+    pub(crate) fn claim_id(&self) -> &str {
+        self.claim
+    }
+    pub(crate) fn assessment_selection(&self) -> &JsonValue {
+        self.row
+    }
     /// Necessary current selection only, not sufficient content provenance,
     /// custody/rights/identity/native binding or qualified semantic authority.
-    pub(crate) fn content_requested(&self) -> bool { self.content_requested }
+    pub(crate) fn content_requested(&self) -> bool {
+        self.content_requested
+    }
 }
 
-fn overflow() -> Error { Error::Unsupported("current Claim read-scope work overflow") }
+fn overflow() -> Error {
+    Error::Unsupported("current Claim read-scope work overflow")
+}
 
 fn selected_scope<'read>(
     access: &mut ScopeAccess<'_>,
@@ -53,9 +65,12 @@ fn selected_scope<'read>(
     if !access.text_equal(context, owner_context_path)? {
         return Err(Error::Denied("current Claim read context differs"));
     }
-    let rows = access.get(config, "owner_local_source_claims")?
+    let rows = access
+        .get(config, "owner_local_source_claims")?
         .and_then(JsonValue::as_array)
-        .ok_or(Error::Denied("current Assessment has no Claim read selection"))?;
+        .ok_or(Error::Denied(
+            "current Assessment has no Claim read selection",
+        ))?;
     if rows.len() > 32 {
         return Err(Error::Invalid("current Claim read selection count"));
     }
@@ -64,12 +79,24 @@ fn selected_scope<'read>(
         // Same exact maintained selector fields. Full endpoint/profile/form
         // qualification still belongs to preflight_assessment_claim_selections
         // and the actual Claim resolver; this token does not bypass either.
-        access.exact_keys(row, &[
-            "path", "claim_id", "relation_type_id", "origin_id", "source_access",
-            "source_records", "native_bindings", "verify_content", "form_ids",
-        ])?;
+        access.exact_keys(
+            row,
+            &[
+                "path",
+                "claim_id",
+                "relation_type_id",
+                "origin_id",
+                "source_access",
+                "source_records",
+                "native_bindings",
+                "verify_content",
+                "form_ids",
+            ],
+        )?;
         let claim = access.text(row, "claim_id")?;
-        if !access.text_equal(claim, requested_claim)? { continue; }
+        if !access.text_equal(claim, requested_claim)? {
+            continue;
+        }
         if selected.is_some() {
             return Err(Error::Denied("current Claim read identity is ambiguous"));
         }
@@ -77,29 +104,45 @@ fn selected_scope<'read>(
         if !access.text_equal(path, requested_path)? {
             return Err(Error::Denied("current Claim read path differs"));
         }
-        let path_work = path.len().checked_mul(2)
+        let path_work = path
+            .len()
+            .checked_mul(2)
             .and_then(|n| n.checked_add(private_prefix.len()))
-            .and_then(|n| n.checked_add(claim.len())).ok_or_else(overflow)?;
+            .and_then(|n| n.checked_add(claim.len()))
+            .ok_or_else(overflow)?;
         access.inspect(path_work, 1)?;
         if !claim_id(claim) {
             return Err(Error::Invalid("current Claim read identity"));
         }
         // Same named-package grammar as owner_path_claim_stream, using the
         // actual typed owner's prefix and no allocated Vec/format/string copy.
-        let tail = path.strip_prefix(private_prefix)
+        let tail = path
+            .strip_prefix(private_prefix)
             .ok_or(Error::Denied("current Claim read leaves owner prefix"))?;
         let mut parts = tail.split('/');
         let family = parts.next();
         let slug = parts.next().unwrap_or("");
         let stream = parts.next();
-        if family != Some("claims") || stream != Some(CLAIM_STREAM) || parts.next().is_some()
-            || slug.is_empty() || slug.split(['.', '-']).any(|part| part.is_empty()
-                || !part.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit()))
+        if family != Some("claims")
+            || stream != Some(CLAIM_STREAM)
+            || parts.next().is_some()
+            || slug.is_empty()
+            || slug.split(['.', '-']).any(|part| {
+                part.is_empty()
+                    || !part
+                        .bytes()
+                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+            })
         {
-            return Err(Error::Denied("current Claim read is not a named owner package"));
+            return Err(Error::Denied(
+                "current Claim read is not a named owner package",
+            ));
         }
         let source_access = access.field(row, "source_access")?;
-        access.exact_keys(source_access, &["read_scope", "access_allowed", "authority_ref"])?;
+        access.exact_keys(
+            source_access,
+            &["read_scope", "access_allowed", "authority_ref"],
+        )?;
         let scope = access.text(source_access, "read_scope")?;
         let metadata = access.text_equal(scope, "metadata_only")?;
         let exact = access.text_equal(scope, "exact_owner_local")?;
@@ -107,16 +150,29 @@ fn selected_scope<'read>(
         let authority = access.text(source_access, "authority_ref")?;
         access.inspect(authority.len().checked_mul(2).ok_or_else(overflow)?, 1)?;
         if (!metadata && !exact) || allowed.as_bool() != Some(true) || !cmd::nonblank(authority) {
-            return Err(Error::Denied("current Claim read source access is not explicit"));
+            return Err(Error::Denied(
+                "current Claim read source access is not explicit",
+            ));
         }
-        let verify_content = access.field(row, "verify_content")?.as_bool()
+        let verify_content = access
+            .field(row, "verify_content")?
+            .as_bool()
             .ok_or(Error::Invalid("current Claim read content mode"))?;
         if verify_content && !exact || content_requested && (!verify_content || !exact) {
-            return Err(Error::Denied("current Claim content is outside selected read scope"));
+            return Err(Error::Denied(
+                "current Claim content is outside selected read scope",
+            ));
         }
-        selected = Some(CurrentClaimReadScope { row, path, claim, content_requested });
+        selected = Some(CurrentClaimReadScope {
+            row,
+            path,
+            claim,
+            content_requested,
+        });
     }
-    selected.ok_or(Error::Denied("Claim is not selected by the current Assessment"))
+    selected.ok_or(Error::Denied(
+        "Claim is not selected by the current Assessment",
+    ))
 }
 
 /// A real current permission boundary, not a semantic Claim verifier. Actual
@@ -151,11 +207,28 @@ pub(crate) fn with_current_pg_claim_read_scope<'pure, T>(
             let mut access = ScopeAccess::admitted_operation(operation, deadline, cancelled);
             // Price path UTF-8 validation before Path::to_str. The retained typed
             // owner path, never caller-provided context JSON, supplies this side.
-            access.inspect(owner.configuration_path().as_os_str().as_encoded_bytes().len(), 1)?;
-            let context_path = owner.configuration_path().to_str()
+            access.inspect(
+                owner
+                    .configuration_path()
+                    .as_os_str()
+                    .as_encoded_bytes()
+                    .len(),
+                1,
+            )?;
+            let context_path = owner
+                .configuration_path()
+                .to_str()
                 .ok_or(Error::Invalid("current owner context path UTF-8"))?;
-            selected_scope(&mut access, grant.configuration(), owner.account_uid(), context_path,
-                owner.private_prefix(), path, claim, content_requested)
+            selected_scope(
+                &mut access,
+                grant.configuration(),
+                owner.account_uid(),
+                context_path,
+                owner.private_prefix(),
+                path,
+                claim,
+                content_requested,
+            )
         })?;
         run(selected, same)
     })();
@@ -165,8 +238,10 @@ pub(crate) fn with_current_pg_claim_read_scope<'pure, T>(
     let owner_exit = payer.recheck_owner_context_source(same, owner);
     let cutoff = payer.charge_sto_source_measures(same, 0, 0, 0, 0, 0);
     match (result, grant_exit, owner_exit, cutoff) {
-        (Err(original), _, _, _) | (Ok(_), Err(original), _, _)
-        | (Ok(_), Ok(()), Err(original), _) | (Ok(_), Ok(()), Ok(()), Err(original)) => Err(original),
+        (Err(original), _, _, _)
+        | (Ok(_), Err(original), _, _)
+        | (Ok(_), Ok(()), Err(original), _)
+        | (Ok(_), Ok(()), Ok(()), Err(original)) => Err(original),
         (Ok(value), Ok(()), Ok(()), Ok(())) => Ok(value),
     }
 }
@@ -175,11 +250,15 @@ pub(crate) fn with_current_pg_claim_read_scope<'pure, T>(
 mod tests {
     use super::*;
     use crate::source_native_cli::private_assessment::OperationBudget;
-    use std::{sync::atomic::AtomicBool, time::{Duration, Instant}};
     use serde_json::{Value, json};
+    use std::{
+        sync::atomic::AtomicBool,
+        time::{Duration, Instant},
+    };
 
     const PREFIX: &str = "ToS/source-witnesses/owner-local/selected/";
-    const PATH: &str = "ToS/source-witnesses/owner-local/selected/claims/context/source-claims.jsonl";
+    const PATH: &str =
+        "ToS/source-witnesses/owner-local/selected/claims/context/source-claims.jsonl";
     const CLAIM: &str = "tos.claim.selected";
     fn row(scope: &str, verify: bool) -> Value {
         json!({
@@ -193,29 +272,48 @@ mod tests {
     // These are not a ProtectedAssessmentPgGrant or an issuer fixture, and
     // cannot enter the public factory's actual physical grant/context guards.
     fn config(rows: Vec<Value>) -> JsonValue {
-        cmd::parse(&serde_json::to_vec(&json!({
-            "uid":17,"source_context_ref":"/selected/context.json",
-            "owner_local_source_claims":rows
-        })).unwrap()).unwrap()
+        cmd::parse(
+            &serde_json::to_vec(&json!({
+                "uid":17,"source_context_ref":"/selected/context.json",
+                "owner_local_source_claims":rows
+            }))
+            .unwrap(),
+        )
+        .unwrap()
     }
     fn check(config: &JsonValue, requested_content: bool) -> Result<(bool, String)> {
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
-        let mut budget = OperationBudget::new(&json!({"budgets":{
-            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-        }}), deadline).unwrap();
+        let mut budget = OperationBudget::new(
+            &json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
         let mut access = ScopeAccess::admitted_operation(&mut budget, deadline, &cancelled);
-        let selected = selected_scope(&mut access, config, 17, "/selected/context.json", PREFIX,
-            PATH, CLAIM, requested_content)?;
+        let selected = selected_scope(
+            &mut access,
+            config,
+            17,
+            "/selected/context.json",
+            PREFIX,
+            PATH,
+            CLAIM,
+            requested_content,
+        )?;
         Ok((selected.content_requested(), selected.path().to_owned()))
     }
     #[test]
     fn metadata_scope_does_not_promote_historical_or_unreviewed_content_access() {
         let metadata = config(vec![row("metadata_only", false)]);
         assert_eq!(check(&metadata, false).unwrap(), (false, PATH.to_owned()));
-        assert!(matches!(check(&metadata, true), Err(Error::Denied(
-            "current Claim content is outside selected read scope"
-        ))));
+        assert!(matches!(
+            check(&metadata, true),
+            Err(Error::Denied(
+                "current Claim content is outside selected read scope"
+            ))
+        ));
         let exact_without_verify = config(vec![row("exact_owner_local", false)]);
         assert!(check(&exact_without_verify, true).is_err());
         let exact = config(vec![row("exact_owner_local", true)]);
@@ -223,16 +321,25 @@ mod tests {
     }
     #[test]
     fn selected_claim_rejects_duplicate_identity_wrong_path_and_implicit_permission() {
-        assert!(matches!(check(&config(vec![row("metadata_only", false); 2]), false),
-            Err(Error::Denied("current Claim read identity is ambiguous"))));
+        assert!(matches!(
+            check(&config(vec![row("metadata_only", false); 2]), false),
+            Err(Error::Denied("current Claim read identity is ambiguous"))
+        ));
         let mut changed = row("metadata_only", false);
-        changed["path"] = json!("ToS/source-witnesses/owner-local/selected/claims/other/source-claims.jsonl");
-        assert!(matches!(check(&config(vec![changed]), false),
-            Err(Error::Denied("current Claim read path differs"))));
+        changed["path"] =
+            json!("ToS/source-witnesses/owner-local/selected/claims/other/source-claims.jsonl");
+        assert!(matches!(
+            check(&config(vec![changed]), false),
+            Err(Error::Denied("current Claim read path differs"))
+        ));
         let mut denied = row("metadata_only", false);
         denied["source_access"]["access_allowed"] = json!(false);
-        assert!(matches!(check(&config(vec![denied]), false),
-            Err(Error::Denied("current Claim read source access is not explicit"))));
+        assert!(matches!(
+            check(&config(vec![denied]), false),
+            Err(Error::Denied(
+                "current Claim read source access is not explicit"
+            ))
+        ));
         assert!(check(&config(Vec::new()), false).is_err());
     }
     #[test]
@@ -241,23 +348,48 @@ mod tests {
             "uid":18,"source_context_ref":"/selected/context.json",
             "owner_local_source_claims":[row("metadata_only", false)]
         });
-        assert!(matches!(check(&cmd::parse(&serde_json::to_vec(&wrong).unwrap()).unwrap(), false),
-            Err(Error::Denied("current Claim read account differs"))));
+        assert!(matches!(
+            check(
+                &cmd::parse(&serde_json::to_vec(&wrong).unwrap()).unwrap(),
+                false
+            ),
+            Err(Error::Denied("current Claim read account differs"))
+        ));
         wrong["uid"] = json!(17);
         wrong["source_context_ref"] = json!("/other/context.json");
-        assert!(matches!(check(&cmd::parse(&serde_json::to_vec(&wrong).unwrap()).unwrap(), false),
-            Err(Error::Denied("current Claim read context differs"))));
+        assert!(matches!(
+            check(
+                &cmd::parse(&serde_json::to_vec(&wrong).unwrap()).unwrap(),
+                false
+            ),
+            Err(Error::Denied("current Claim read context differs"))
+        ));
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
-        let mut budget = OperationBudget::new(&json!({"budgets":{
-            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-        }}), deadline).unwrap();
+        let mut budget = OperationBudget::new(
+            &json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
         let mut access = ScopeAccess::admitted_operation(&mut budget, deadline, &cancelled);
         let mut escaped = row("metadata_only", false);
         let outside = "ToS/source-witnesses/owner-local/other/claims/context/source-claims.jsonl";
         escaped["path"] = json!(outside);
         let escaped = config(vec![escaped]);
-        assert!(matches!(selected_scope(&mut access, &escaped, 17, "/selected/context.json", PREFIX,
-            outside, CLAIM, false), Err(Error::Denied("current Claim read leaves owner prefix"))));
+        assert!(matches!(
+            selected_scope(
+                &mut access,
+                &escaped,
+                17,
+                "/selected/context.json",
+                PREFIX,
+                outside,
+                CLAIM,
+                false
+            ),
+            Err(Error::Denied("current Claim read leaves owner prefix"))
+        ));
     }
 }
