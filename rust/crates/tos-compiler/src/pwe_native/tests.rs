@@ -188,10 +188,11 @@ fn source_numeric_canonical_and_revision_share_original_allowance() {
     let mut changed = new.clone(); changed["evidence_refs"] = json!(["numeric.changed"]);
     let changed_ref = json!({"id":changed["claim_id"],"version":2,"digest":s.digest(&changed).unwrap().to_prefixed()});
     assert!(matches!(s.description_revision(&old, &old_ref, &changed, &changed_ref), Err(Error::Malformed(_))));
-    // A SOURCE digest cannot pay the opaque legacy descriptor helper as well.
+    // The SOURCE descriptor path is admitted separately; invalid content does
+    // not become a descriptor merely because its resource port now exists.
     let null = Value::Null;
     let registry = RegistryDescriptor { value: &null, reference: s.exact(&pin).unwrap() };
-    assert!(matches!(s.metadata(&null, &null, &null, &registry), Err(Error::NeedsBinding(_))));
+    assert!(matches!(s.metadata(&null, &null, &null, &registry), Err(Error::Malformed(_))));
     // Three successful prepass/wire debits precede the first parser prefix.
     // Its original error must survive the generic foundation error wrapper.
     let before = s.charges(); original.fail_after.set(Some(3));
