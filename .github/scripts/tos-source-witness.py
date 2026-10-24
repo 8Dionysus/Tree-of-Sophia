@@ -131,6 +131,8 @@ REFUSAL_CODES.update({'policy-entry-not-directory': 101, 'policy-entry-link-loop
 EARLY.update({101: ('policy-entry', 'not-directory', 'outer-ok'), 102: ('policy-entry', 'link-loop', 'outer-ok'), 103: ('policy-entry', 'access-denied', 'outer-ok'), 104: ('policy-entry', 'not-permitted', 'outer-ok'), 105: ('policy-entry', 'not-found', 'outer-ok'), 106: ('policy-entry', 'other-io', 'outer-ok'), 107: ('revision-read', 'not-ready', 'outer-ok'), 108: ('revision-read', 'access-denied', 'outer-ok'), 109: ('revision-read', 'other-io', 'outer-ok')})
 REFUSAL_CODES.update({'kernel-policy-parent-fs': 18, 'kernel-policy-link-kind': 19, 'kernel-policy-link-custody': 117, 'kernel-policy-link-drift': 118, 'kernel-policy-target-fs': 119, 'kernel-policy-root-binding': 120, 'kernel-policy-root-state': 121, 'kernel-statfs-abi': 122, 'kernel-statfs-io': 123, 'kernel-policy-parent-drift': 124})
 EARLY.update({18: ('kernel-entry', 'parent-filesystem', 'outer-ok'), 19: ('kernel-entry', 'link-kind', 'outer-ok'), 117: ('kernel-entry', 'link-custody', 'outer-ok'), 118: ('kernel-entry', 'link-drift', 'outer-ok'), 119: ('kernel-entry', 'target-filesystem', 'outer-ok'), 120: ('kernel-entry', 'root-binding', 'outer-ok'), 121: ('kernel-entry', 'root-state', 'outer-ok'), 122: ('kernel-entry', 'statfs-abi', 'outer-ok'), 123: ('kernel-entry', 'statfs-io', 'outer-ok'), 124: ('kernel-entry', 'parent-drift', 'outer-ok')})
+CUSTODY_STATUS = {200: ('collector', 'custody-c01-uid', 'outer-ok'), 201: ('collector', 'custody-c01-write', 'outer-ok'), 202: ('collector', 'custody-c02-uid', 'outer-ok'), 203: ('collector', 'custody-c02-write', 'outer-ok'), 204: ('collector', 'custody-c03-uid', 'outer-ok'), 205: ('collector', 'custody-c03-write', 'outer-ok'), 206: ('collector', 'custody-c04-uid', 'outer-ok'), 207: ('collector', 'custody-c04-write', 'outer-ok'), 208: ('collector', 'custody-c05-uid', 'outer-ok'), 209: ('collector', 'custody-c05-write', 'outer-ok'), 210: ('collector', 'custody-c06-uid', 'outer-ok'), 211: ('collector', 'custody-c06-write', 'outer-ok'), 212: ('collector', 'custody-c07-uid', 'outer-ok'), 213: ('collector', 'custody-c07-write', 'outer-ok'), 214: ('collector', 'custody-c08-uid', 'outer-ok'), 215: ('collector', 'custody-c08-write', 'outer-ok'), 216: ('collector', 'custody-c09-uid', 'outer-ok'), 217: ('collector', 'custody-c09-write', 'outer-ok'), 218: ('collector', 'custody-c10-uid', 'outer-ok'), 219: ('collector', 'custody-c10-write', 'outer-ok'), 220: ('collector', 'custody-c11-uid', 'outer-ok'), 221: ('collector', 'custody-c11-write', 'outer-ok'), 222: ('collector', 'custody-c12-uid', 'outer-ok'), 223: ('collector', 'custody-c12-write', 'outer-ok'), 224: ('collector', 'custody-c13-uid', 'outer-ok'), 225: ('collector', 'custody-c13-write', 'outer-ok'), 226: ('collector', 'custody-c14-uid', 'outer-ok'), 227: ('collector', 'custody-c14-write', 'outer-ok'), 228: ('collector', 'custody-c15-uid', 'outer-ok'), 229: ('collector', 'custody-c15-write', 'outer-ok')}
+EARLY.update(CUSTODY_STATUS)
 PAYLOAD_CODES = {'packed-bound':4,'payload-bound':5,'payload-hash':6,'payload-shape':7,'payload-type':8}
 BINDING_CODES = {'source-identity':10,'platform-binding':11,'image-version-metadata':12,'sudo-environment-drift':13}
 
@@ -143,6 +145,14 @@ def literal_value_error(exc, table, fallback):
 
 def refusal_exit(exc, refusal_type):
     if type(exc) is refusal_type and len(exc.args)==1 and type(exc.args[0]) is str:
+        if exc.args[0]=='custody':
+            #Only our fixed integer discriminator is decoded; original args stay.
+            try:
+                marker=exc.__dict__.get('_custody_discriminator')
+            except MemoryError:
+                marker=None  #Diagnostic allocation cannot replace original24.
+            if type(marker) is int and 0<=marker<30:
+                return 200+marker
         return REFUSAL_CODES.get(exc.args[0],100)
     if isinstance(exc,OSError):
         return 99
@@ -351,8 +361,23 @@ def directory_allowed(path):
                 'profile-link-directory-forbidden')
 
 
-def custody(s, directory=False):
-    require(s.st_uid == 0 and not s.st_mode & 0o022, 'custody')
+def custody_refusal(site, predicate):
+    #Preserve original exception class/args. No path/UID/mode/text is retained.
+    exc=Refusal('custody')
+    if type(site) is int and 1<=site<=15 and type(predicate) is int and 0<=predicate<2:
+        try:
+            exc._custody_discriminator=2*(site-1)+predicate
+        except MemoryError:
+            pass  #Keep the original refusal, fall back to legacy24.
+    raise exc
+
+
+def custody(s, directory=False, *, site=None):
+    #Same short-circuit predicate order; no mode observation after failed UID.
+    if not s.st_uid == 0:
+        custody_refusal(site,0)
+    if s.st_mode & 0o022:
+        custody_refusal(site,1)
     require(stat.S_ISDIR(s.st_mode) if directory else stat.S_ISREG(s.st_mode), 'type')
 
 
@@ -466,7 +491,7 @@ class RealFS:
                               os.O_NOFOLLOW | os.O_CLOEXEC)
         try:
             root_info = self._stat(self.fd)
-            custody(root_info, True)
+            custody(root_info, True, site=1)
             self.directories = {'/': (self.fd, identity(root_info))}
         except BaseException:
             os.close(self.fd)
@@ -508,7 +533,7 @@ class RealFS:
         require(parent_path in self.directories
                 and self.directories[parent_path][0]==parent,'kernel-policy-root-state')
         before_parent=self._stat(parent)
-        custody(before_parent,True)
+        custody(before_parent,True, site=2)
         require(identity(before_parent)==self.directories[parent_path][1],
                 'kernel-policy-parent-drift')
         parent_kind=self._kernel_kind(parent)
@@ -524,7 +549,7 @@ class RealFS:
         try:
             fd=self.b.acquire(self._follow_fixed_policy,parent)
             target=self._stat(fd)
-            custody(target,True)
+            custody(target,True, site=3)
             target_kind=self._kernel_kind(fd)
             require(target_kind[0]==0x5a3c69f0,'kernel-policy-target-fs')
             require(identity(self._policy_link_info(parent))==identity(before_link),
@@ -575,7 +600,7 @@ class RealFS:
                                            os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=current)
                 try:
                     s = self._stat(child)
-                    custody(s, True)
+                    custody(s, True, site=4)
                     if marker is not None:
                         require(identity(s)==marker['target'],'kernel-policy-root-binding')
                         self.policy_entry=marker
@@ -585,7 +610,7 @@ class RealFS:
                     raise
             current = self.directories[prefix][0]
         before = self._stat(current)
-        custody(before, True)
+        custody(before, True, site=5)
         require(identity(before) == self.directories[prefix or '/'][1], 'directory-cache-drift')
         # Borrowed from this single-threaded collector's held cache, closed ONLY
         # by RealFS.close. No temporary duplicate or independent lifetime.
@@ -607,13 +632,13 @@ class RealFS:
             fd = self.b.acquire(os.open, name, os.O_RDONLY | os.O_NOFOLLOW |
                              os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=parent)
             before = self._stat(fd)
-            custody(before)
+            custody(before, site=6)
             # Files such as securityfs/procfs can report st_size=0 with content.
             require(before.st_size <= cap, 'declared-size')
             reader=lambda count:os.read(fd,count)
             data = revision_frame(self.b,reader) if one_frame else self.b.read(reader,cap)
             after = self._stat(fd)
-            custody(after)
+            custody(after, site=7)
             require(identity(before) == identity(after), 'held-file-drift')
             self.b.charge(STAT_DEBIT)
             named = self.b.call(os.stat, name, dir_fd=parent, follow_symlinks=False)
@@ -634,7 +659,7 @@ class RealFS:
     def validate_executables(self):
         for path, (fd, before) in self.held_executables.items():
             held = self._stat(fd)
-            custody(held)
+            custody(held, site=8)
             if identity(held) != before or identity(self.info(path)) != before:
                 return False
         return len(self.held_executables) == 2
@@ -647,7 +672,7 @@ class RealFS:
             fd = self.b.acquire(os.open, name, os.O_RDONLY | os.O_DIRECTORY |
                              os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=parent)
             before = self._stat(fd)
-            custody(before, True)
+            custody(before, True, site=9)
             data = self.b.read(lambda count: self.native.directory(fd, count), 262144)
             found = directory_names(data, count_cap)
             require(identity(before) == identity(self._stat(fd)), 'directory-drift')
@@ -683,7 +708,7 @@ class RealFS:
         for path in sorted(self.directories, key=lambda value: (value.count('/'), value)):
             fd, before = self.directories[path]
             held = self._stat(fd)
-            custody(held, True)
+            custody(held, True, site=10)
             require(identity(held) == before, 'directory-cache-drift')
             if path==POLICY:
                 self._verify_policy_root(fd,before)
@@ -723,13 +748,13 @@ def walk(fs, root, *, max_depth=16, max_files=2048, max_dirs=4096, links=()):
                 require(len(files) < max_files, 'tree-files')
                 files.append(path)
             elif stat.S_ISDIR(s.st_mode):
-                custody(s, True)
+                custody(s, True, site=11)
                 stack.append((path, depth + 1))
             else:
                 if stat.S_ISLNK(s.st_mode):
                     require(name in links and s.st_uid == 0, 'tree-link')
                 else:
-                    custody(s)
+                    custody(s, site=12)
                 require(len(files) < max_files, 'tree-files')
                 files.append(path)
     return sorted(files)
@@ -781,7 +806,7 @@ def raw_sizes(fs, rows, expected):
         require(HEX64.fullmatch(digest) and digest in expected, 'raw-selector')
         require(abi == 'v5', 'raw-abi')
         before = fs.info(raw)  # NEVER open raw_data, not even O_PATH.
-        custody(before)
+        custody(before, site=13)
         require(before.st_size > 0, 'raw-size-unavailable')
         require(text(fs, digest_path, 128).strip() == digest
                 and text(fs, abi_path, 64).strip() == abi, 'raw-metadata-drift')
@@ -827,7 +852,7 @@ def conditionals(fs, manifest, public):
             rows.append({'path': path, 'state': 'absent'})
             continue
         if stat.S_ISDIR(s.st_mode):
-            custody(s, True)
+            custody(s, True, site=14)
             require(entry['evidence_state'] == 'candidate_directory_contents_only',
                     'unreviewed-directory')
             expected = {x.rsplit('/', 1)[-1] for x in entry['known_public_children']}
@@ -838,7 +863,7 @@ def conditionals(fs, manifest, public):
                 sources(fs, [public[child]])
             rows.append({'path': path, 'state': 'reviewed-directory', 'children': len(expected)})
         else:
-            custody(s)
+            custody(s, site=15)
             if s.st_size:
                 require(path in public, 'private-local-nonempty')
                 sources(fs, [public[path]])
