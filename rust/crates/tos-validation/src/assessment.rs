@@ -1172,7 +1172,8 @@ fn evaluate_current_assessment_inner<S: CutSchemaExecutor>(
         let mut has_positive = false;
         for submission in history.iter().chain(&reviews) {
             work.tick(1)?;
-            has_positive |= submission.schema_valid && is_positive(text(&submission.body, "decision")?);
+            has_positive |=
+                submission.schema_valid && is_positive(text(&submission.body, "decision")?);
         }
         if has_positive {
             manual_authoring::validate_source_claims(&context, &sourced, schemas, &mut work)?;
@@ -2774,14 +2775,28 @@ mod manual_authoring {
         // these discriminator checks are not a Claim-like-fields substitute.
         if optional(&record.body, "record_type", work)?.is_some()
             || optional(&record.body, "record_id", work)?.is_some()
-        { return invalid("manual-authoring.not-a-claim-carrier"); }
+        {
+            return invalid("manual-authoring.not-a-claim-carrier");
+        }
         text(get(&record.body, "schema_version", work)?, work)?;
         let kind = text(get(&record.body, "claim_type", work)?, work)?;
         let mut allowed = false;
-        for expected in ["bibliographic", "textual", "linguistic", "translation", "semantic", "relation", "rights", "lived_witness", "canon"] {
+        for expected in [
+            "bibliographic",
+            "textual",
+            "linguistic",
+            "translation",
+            "semantic",
+            "relation",
+            "rights",
+            "lived_witness",
+            "canon",
+        ] {
             allowed |= equal(kind, expected, work)?;
         }
-        if !allowed { return invalid("manual-authoring.claim-type"); }
+        if !allowed {
+            return invalid("manual-authoring.claim-type");
+        }
         Ok(())
     }
     pub(super) fn validate_source_claims<S: super::CutSchemaExecutor>(
@@ -2793,26 +2808,43 @@ mod manual_authoring {
         let mut checks = Vec::new();
         for record in std::iter::once(&context.subject).chain(&context.required) {
             work.tick(1)?;
-            if !equal(&record.id, &context.subject.id, work)? && optional(&record.body, "claim_id", work)?.is_none() { continue; }
+            if !equal(&record.id, &context.subject.id, work)?
+                && optional(&record.body, "claim_id", work)?.is_none()
+            {
+                continue;
+            }
             claim_header(record, work)?;
             let mut source_owned = false;
             for source in sourced.values() {
                 work.tick(1)?;
-                if equal(&source.id, &record.id, work)? { source_owned = true; break; }
+                if equal(&source.id, &record.id, work)? {
+                    source_owned = true;
+                    break;
+                }
             }
-            if !source_owned { return invalid("manual-authoring.claim-is-not-selected-source"); }
+            if !source_owned {
+                return invalid("manual-authoring.claim-is-not-selected-source");
+            }
             // Actual source owners already validate the declared predicate/schema
             // route. This native check additionally enforces the complete shared
             // Claim carrier contract, including claim_type and required fields.
-            let holder = record.canonical.len().checked_add(record.id.len())
-                .and_then(|n| n.checked_add(256)).ok_or(AssessmentRefusal::Budget)?;
+            let holder = record
+                .canonical
+                .len()
+                .checked_add(record.id.len())
+                .and_then(|n| n.checked_add(256))
+                .ok_or(AssessmentRefusal::Budget)?;
             work.charge(holder)?;
             checks.push(super::CutSchemaCheck {
-                path: record.id.clone(), raw: record.canonical.clone(),
+                path: record.id.clone(),
+                raw: record.canonical.clone(),
                 contract: "ToS/contracts/source-claim-record.schema.json".into(),
             });
         }
-        if super::check_all(schemas, &checks, work)?.iter().any(|valid| !valid) {
+        if super::check_all(schemas, &checks, work)?
+            .iter()
+            .any(|valid| !valid)
+        {
             return invalid("manual-authoring.source-claim-schema");
         }
         Ok(())
@@ -3183,15 +3215,25 @@ mod manual_authoring {
             assert!(check(&context, &evidence, &mut work).is_ok());
             let mut second_version_body = context.required[3].body.clone();
             second_version_body["claim_version"] = json!(2);
-            second_version_body["object"]["date"] = json!("Changed version, not an independent Claim.");
+            second_version_body["object"]["date"] =
+                json!("Changed version, not an independent Claim.");
             let second_version = record_version("fixture:a", 2, second_version_body, &mut work);
             let mut version_evidence = evidence.clone();
-            version_evidence["evidence"].as_array_mut().unwrap().push(cite(&second_version));
-            body["qualifiers"]["manual_authoring"]["grounds"]["alternatives"] = json!([cite(&context.required[3]),cite(&second_version)]);
+            version_evidence["evidence"]
+                .as_array_mut()
+                .unwrap()
+                .push(cite(&second_version));
+            body["qualifiers"]["manual_authoring"]["grounds"]["alternatives"] =
+                json!([cite(&context.required[3]), cite(&second_version)]);
             context.required.push(second_version);
             context.subject = record("fixture:target", body.clone(), &mut work);
             retarget(&mut context, &mut work);
-            assert_eq!(qualify(&context, &version_evidence, &mut work).unwrap().as_deref(), Some("manual-authoring.repeated-logical-claim"));
+            assert_eq!(
+                qualify(&context, &version_evidence, &mut work)
+                    .unwrap()
+                    .as_deref(),
+                Some("manual-authoring.repeated-logical-claim")
+            );
             context.required.pop();
             let mut fake_body = context.required[4].body.clone();
             fake_body["claim_id"] = json!("fixture:not-claim");
@@ -3200,12 +3242,21 @@ mod manual_authoring {
             fake_body["schema_version"] = json!("tos_corpus_record_v1");
             let fake = record("fixture:not-claim", fake_body, &mut work);
             let mut fake_evidence = evidence.clone();
-            fake_evidence["evidence"].as_array_mut().unwrap().push(cite(&fake));
-            body["qualifiers"]["manual_authoring"]["grounds"]["alternatives"] = json!([cite(&context.required[3]),cite(&fake)]);
+            fake_evidence["evidence"]
+                .as_array_mut()
+                .unwrap()
+                .push(cite(&fake));
+            body["qualifiers"]["manual_authoring"]["grounds"]["alternatives"] =
+                json!([cite(&context.required[3]), cite(&fake)]);
             context.required.push(fake);
             context.subject = record("fixture:target", body.clone(), &mut work);
             retarget(&mut context, &mut work);
-            assert_eq!(qualify(&context, &fake_evidence, &mut work).unwrap().as_deref(), Some("manual-authoring.not-a-claim-carrier"));
+            assert_eq!(
+                qualify(&context, &fake_evidence, &mut work)
+                    .unwrap()
+                    .as_deref(),
+                Some("manual-authoring.not-a-claim-carrier")
+            );
             context.required.pop();
             body["qualifiers"]["manual_authoring"]["grounds"]["alternatives"] =
                 json!([cite(&context.required[3]), cite(&context.required[3])]);
