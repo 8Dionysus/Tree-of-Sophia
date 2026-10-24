@@ -3853,6 +3853,9 @@ mod protected_pg_grant_read_admission_tests {
             Ok(())
         })
         .unwrap();
-        assert_eq!(original.test_work_remaining(), before_work - limits.max_work);
+        assert_eq!(
+            original.test_work_remaining(),
+            before_work - limits.max_work
+        );
     }
 }
