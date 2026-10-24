@@ -67,7 +67,7 @@ impl ScopeAccess<'_> {
         }
         Ok(())
     }
-    fn retain(&mut self, bytes: usize) -> Result<()> {
+    pub(super) fn retain(&mut self, bytes: usize) -> Result<()> {
         if let Some(ledger) = &mut self.ledger {
             active(ledger.deadline, ledger.cancelled)?;
             if let Some(whole) = ledger.whole {
