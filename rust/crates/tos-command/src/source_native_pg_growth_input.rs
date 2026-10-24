@@ -107,7 +107,18 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
         let mut session = self.session.try_borrow_mut().map_err(|_| {
             crate::DurableError::Conflict("selected PG source session already borrowed")
         })?;
-        if session.selection().identity() != self.identity {
+        // The short original-operation loan pays the actual variable hash
+        // operands before construction; it ends before source Session hooks.
+        let actual = payer
+            .with_operation(|budget| {
+                session.selection().identity_with_data_admission(
+                    budget,
+                    deadline,
+                    cancelled,
+                )
+            })
+            .map_err(crate::DurableError::Source)?;
+        if actual != self.identity {
             return Err(crate::DurableError::Conflict(
                 "selected PG source session identity differs",
             ));
