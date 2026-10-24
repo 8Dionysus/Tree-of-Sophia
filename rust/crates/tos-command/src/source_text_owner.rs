@@ -1629,7 +1629,8 @@ impl OwnerTextContext {
         deadline: Instant,
         cancelled: &AtomicBool,
         admission: &mut dyn crate::source_creation_store::work_transaction::PublicationReadAdmission,
-    ) -> SourceCommandResult<crate::source_creation_store::work_transaction::PublicationSnapshot> {
+    ) -> SourceCommandResult<crate::source_creation_store::work_transaction::PublicationSnapshot>
+    {
         if self.has_pg_selected_members()? {
             return self.select_publication(deadline, cancelled);
         }
