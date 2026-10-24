@@ -541,13 +541,15 @@ pub(crate) fn read_claim_catalog_at(
     // One extra byte detects growth without copying an unpaid suffix. The Vec
     // and its later Arc copy overlap; keep their admitted logical holders and
     // a fixed stack chunk in the original cumulative state ledger, even on Err.
-    let capacity = size
-        .checked_add(1)
-        .ok_or(SourceCommandError::Unsupported("Claim catalog read size overflow"))?;
+    let capacity = size.checked_add(1).ok_or(SourceCommandError::Unsupported(
+        "Claim catalog read size overflow",
+    ))?;
     let state = capacity
         .checked_mul(2)
         .and_then(|n| n.checked_add(8192 + 128))
-        .ok_or(SourceCommandError::Unsupported("Claim catalog holder size overflow"))?;
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim catalog holder size overflow",
+        ))?;
     {
         let mut budget = whole_call
             .try_borrow_mut()
@@ -597,7 +599,9 @@ pub(crate) fn read_claim_catalog_at(
         || stamp(&before) != stamp(&current)
         || stamp(&before) != stamp(&owned(&file, uid, false)?)
     {
-        return Err(SourceCommandError::Conflict("selected metadata file changed"));
+        return Err(SourceCommandError::Conflict(
+            "selected metadata file changed",
+        ));
     }
     Ok(Some(raw))
 }
