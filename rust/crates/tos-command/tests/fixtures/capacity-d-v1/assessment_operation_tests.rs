@@ -25,7 +25,11 @@ fn pwe_direct_and_form_parent_refuse_both_generic_source_identity_lanes() {
     let invocation = serde_json::json!({"budgets": {
         "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824
     }});
-    let policy = envelope("tos.policy.dispatch-unit", serde_json::json!({}), Value::Null);
+    let policy = envelope(
+        "tos.policy.dispatch-unit",
+        serde_json::json!({}),
+        Value::Null,
+    );
     let config = value(serde_json::json!({
         "policy":policy,"authorities":[],"competencies":[]
     }));
@@ -34,27 +38,39 @@ fn pwe_direct_and_form_parent_refuse_both_generic_source_identity_lanes() {
     for source_revision in [Some(SourceRevision(identity)), None] {
         for (schema, predicate) in [
             ("tos_pwe_name_assignment_claim_v1", "pwe_name_assignment"),
-            ("tos_pwe_responsibility_account_claim_v1", "pwe_responsibility_account"),
-            ("tos_pwe_identity_correspondence_claim_v1", "pwe_identity_correspondence"),
+            (
+                "tos_pwe_responsibility_account_claim_v1",
+                "pwe_responsibility_account",
+            ),
+            (
+                "tos_pwe_identity_correspondence_claim_v1",
+                "pwe_identity_correspondence",
+            ),
         ] {
             let claim_id = "tos.claim.dispatch-parent";
-            let claim = value(envelope(claim_id, serde_json::json!({
-                "schema_version":schema,"predicate":predicate
-            }), Value::Null));
+            let claim = value(envelope(
+                claim_id,
+                serde_json::json!({
+                    "schema_version":schema,"predicate":predicate
+                }),
+                Value::Null,
+            ));
             let form_id = "tos.form.dispatch-child";
-            let form = value(envelope(form_id, serde_json::json!({
-                "schema_version":"tos_human_form_v1",
-                "subject":{"id":claim_id,"version":1,"digest":"unit-unused"}
-            }), Value::Null));
+            let form = value(envelope(
+                form_id,
+                serde_json::json!({
+                    "schema_version":"tos_human_form_v1",
+                    "subject":{"id":claim_id,"version":1,"digest":"unit-unused"}
+                }),
+                Value::Null,
+            ));
             let rows = [form, claim];
             let called = std::cell::Cell::new(0usize);
-            let mut evaluate = |_: &AssessmentReadInput,
-                                _: &mut (),
-                                _: AssessmentLimits,
-                                _: &AtomicBool| {
-                called.set(called.get() + 1);
-                Err(SourceCommandError::Denied("unit generic callback reached"))
-            };
+            let mut evaluate =
+                |_: &AssessmentReadInput, _: &mut (), _: AssessmentLimits, _: &AtomicBool| {
+                    called.set(called.get() + 1);
+                    Err(SourceCommandError::Denied("unit generic callback reached"))
+                };
             let mut budget = OperationBudget::new(&invocation, deadline).unwrap();
             // A selected form can reach its generic callback even when another
             // source row is PWE. The separately evaluated parent must refuse.
@@ -79,9 +95,10 @@ fn pwe_direct_and_form_parent_refuse_both_generic_source_identity_lanes() {
                 &cancelled,
                 &mut evaluate,
             );
-            assert!(matches!(child, Err(SourceCommandError::Denied(
-                "unit generic callback reached"
-            ))));
+            assert!(matches!(
+                child,
+                Err(SourceCommandError::Denied("unit generic callback reached"))
+            ));
             assert_eq!(called.get(), 1);
             for route in [
                 AssessmentSourceRoute::SelectedSource,
@@ -109,11 +126,17 @@ fn pwe_direct_and_form_parent_refuse_both_generic_source_identity_lanes() {
                     &cancelled,
                     &mut evaluate,
                 );
-                assert!(matches!(result, Err(SourceCommandError::Unsupported(
-                    "PWE source Claim requires its held exact-basis consumer dispatch"
-                ))));
+                assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Unsupported(
+                        "PWE source Claim requires its held exact-basis consumer dispatch"
+                    ))
+                ));
                 assert_eq!(called.get(), 1, "PWE generic evaluator must not run");
-                assert!(budget.work_remaining < before, "same payer keeps spent prefix");
+                assert!(
+                    budget.work_remaining < before,
+                    "same payer keeps spent prefix"
+                );
             }
         }
     }

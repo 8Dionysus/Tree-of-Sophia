@@ -3173,9 +3173,14 @@ fn pwe_dispatch_field<'v>(
     let Some(fields) = value.as_object() else {
         return Ok(None);
     };
-    budget.charge_work(fields.len().checked_add(1).ok_or(
-        SourceCommandError::Unsupported("PWE dispatch field iteration overflow"),
-    )?)?;
+    budget.charge_work(
+        fields
+            .len()
+            .checked_add(1)
+            .ok_or(SourceCommandError::Unsupported(
+                "PWE dispatch field iteration overflow",
+            ))?,
+    )?;
     for (name, value) in fields {
         active(budget.deadline, cancelled)?;
         if let Some(name) = name.as_str() {
@@ -3250,8 +3255,8 @@ fn refuse_generic_pwe_subject_id(
             SourceCommandError::Unsupported("PWE subject dispatch iteration overflow"),
         )?)?;
         for record in records {
-            if let Some(id) = pwe_dispatch_field(record, "id", budget, cancelled)?
-                .and_then(JsonValue::as_str)
+            if let Some(id) =
+                pwe_dispatch_field(record, "id", budget, cancelled)?.and_then(JsonValue::as_str)
             {
                 budget.charge_work(id.len().checked_add(subject_id.len()).ok_or(
                     SourceCommandError::Unsupported("PWE subject identity comparison overflow"),
