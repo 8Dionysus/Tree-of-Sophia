@@ -515,9 +515,8 @@ fn parse_json_inner_with_admission<'callback>(
     };
     // Recursive keys and values temporarily coexist with container indexes.
     // Their fixed stack slots are priced once, independently of node count.
-    let fixed = parser_fixed_scratch(limits).map_err(|_| {
-        parser.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
-    })?;
+    let fixed = parser_fixed_scratch(limits)
+        .map_err(|_| parser.error(Code::BudgetExceeded, "JSON parser state budget exceeded"))?;
     parser.charge(fixed)?;
     let root = parser.value(0)?;
     parser.spaces()?;
@@ -545,13 +544,18 @@ struct Parser<'a, 'c> {
 }
 
 fn parser_fixed_scratch(limits: JsonLimits) -> Result<usize> {
-    limits.max_depth.checked_add(1)
-        .and_then(|depth| depth.checked_mul(
-            std::mem::size_of::<JsonValue>()
-                + std::mem::size_of::<JsonString>()
-                + std::mem::size_of::<HashMap<Vec<u16>, usize>>()
-                + 2 * std::mem::size_of::<Vec<JsonValue>>(),
-        )).ok_or_else(state_error)
+    limits
+        .max_depth
+        .checked_add(1)
+        .and_then(|depth| {
+            depth.checked_mul(
+                std::mem::size_of::<JsonValue>()
+                    + std::mem::size_of::<JsonString>()
+                    + std::mem::size_of::<HashMap<Vec<u16>, usize>>()
+                    + 2 * std::mem::size_of::<Vec<JsonValue>>(),
+            )
+        })
+        .ok_or_else(state_error)
 }
 
 impl Parser<'_, '_> {
@@ -1714,11 +1718,18 @@ pub fn canonical_incremental_fixed_state(limits: JsonLimits) -> Result<usize> {
 /// amortized growth has new capacity <= max(2*n,8), with old capacity < n
 /// during growth. Thus 3*n+8 covers both numeric heap backings, and also
 /// dominates its logical n-byte parser charge. This is not an RSS guarantee.
-pub fn canonical_incremental_numeric_state(limits: JsonLimits, lexeme_bytes: usize) -> Result<usize> {
+pub fn canonical_incremental_numeric_state(
+    limits: JsonLimits,
+    lexeme_bytes: usize,
+) -> Result<usize> {
     limits.validate()?;
-    let heap = lexeme_bytes.checked_mul(3)
-        .and_then(|n| n.checked_add(8)).ok_or_else(state_error)?;
-    parser_fixed_scratch(limits)?.checked_add(heap).ok_or_else(state_error)
+    let heap = lexeme_bytes
+        .checked_mul(3)
+        .and_then(|n| n.checked_add(8))
+        .ok_or_else(state_error)?;
+    parser_fixed_scratch(limits)?
+        .checked_add(heap)
+        .ok_or_else(state_error)
 }
 
 fn canonical_fixed_scratch(limits: JsonLimits, checked: bool) -> Result<usize> {

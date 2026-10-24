@@ -51,7 +51,14 @@ impl ScopeAccess<'_> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> ScopeAccess<'a> {
-        ScopeAccess { ledger: Some(Ledger { operation, whole: None, deadline, cancelled }) }
+        ScopeAccess {
+            ledger: Some(Ledger {
+                operation,
+                whole: None,
+                deadline,
+                cancelled,
+            }),
+        }
     }
     pub(super) fn inspect(&mut self, bytes: usize, visits: usize) -> Result<()> {
         if let Some(ledger) = &mut self.ledger {
@@ -61,7 +68,9 @@ impl ScopeAccess<'_> {
                 .charge_work(bytes.checked_add(visits).ok_or_else(exhausted)?)?;
             ledger.operation.charge_bytes(bytes)?;
             if let Some(whole) = ledger.whole {
-                whole.try_borrow_mut().map_err(|_| exhausted())?
+                whole
+                    .try_borrow_mut()
+                    .map_err(|_| exhausted())?
                     .read(u64::try_from(bytes).map_err(|_| exhausted())?)?;
             }
         }
@@ -71,7 +80,10 @@ impl ScopeAccess<'_> {
         if let Some(ledger) = &mut self.ledger {
             active(ledger.deadline, ledger.cancelled)?;
             if let Some(whole) = ledger.whole {
-                whole.try_borrow_mut().map_err(|_| exhausted())?.retain(bytes)?;
+                whole
+                    .try_borrow_mut()
+                    .map_err(|_| exhausted())?
+                    .retain(bytes)?;
             } else {
                 // Assessment has ONE original byte currency. Pay holders
                 // before construction, not against a fabricated Claim wallet.
@@ -104,11 +116,19 @@ impl ScopeAccess<'_> {
             // This quotes comparison input, not machine instruction/RSS time.
             let levels = (usize::BITS - all.len().leading_zeros()) as usize;
             let comparisons = all.len().min(levels.checked_mul(11).ok_or_else(exhausted)?);
-            let bytes = key.len().checked_add(size_of::<usize>())
+            let bytes = key
+                .len()
+                .checked_add(size_of::<usize>())
                 .and_then(|n| n.checked_mul(2))
-                .and_then(|n| n.checked_mul(comparisons)).ok_or_else(exhausted)?;
-            self.inspect(bytes, comparisons.checked_add(levels)
-                .and_then(|n| n.checked_add(1)).ok_or_else(exhausted)?)?;
+                .and_then(|n| n.checked_mul(comparisons))
+                .ok_or_else(exhausted)?;
+            self.inspect(
+                bytes,
+                comparisons
+                    .checked_add(levels)
+                    .and_then(|n| n.checked_add(1))
+                    .ok_or_else(exhausted)?,
+            )?;
             all.get(key)
         };
         selected.ok_or(Error::Denied(
@@ -272,7 +292,11 @@ impl ScopeAccess<'_> {
         Ok(left == right)
     }
     fn canonical(&mut self, value: &JsonValue) -> Result<Vec<u8>> {
-        if self.ledger.as_ref().is_some_and(|ledger| ledger.whole.is_none()) {
+        if self
+            .ledger
+            .as_ref()
+            .is_some_and(|ledger| ledger.whole.is_none())
+        {
             return self.canonical_operation(value);
         }
         let Some(ledger) = &mut self.ledger else {
@@ -339,11 +363,17 @@ impl ScopeAccess<'_> {
     // Borrowed output envelope only, never a replacement canonical grammar.
     // Every node/key/string/number is paid before its future codec traversal.
     fn operation_envelope(
-        &mut self, value: &JsonValue, depth: usize, nodes: &mut usize, numeric_state: &mut usize,
+        &mut self,
+        value: &JsonValue,
+        depth: usize,
+        nodes: &mut usize,
+        numeric_state: &mut usize,
     ) -> Result<usize> {
         self.inspect(0, 1)?;
         let limits = JsonLimits::default();
-        if depth > limits.max_depth || *nodes >= limits.max_visits { return Err(exhausted()); }
+        if depth > limits.max_depth || *nodes >= limits.max_visits {
+            return Err(exhausted());
+        }
         *nodes += 1;
         let add = |a: usize, b: usize| a.checked_add(b).ok_or_else(exhausted);
         match value {
@@ -351,27 +381,58 @@ impl ScopeAccess<'_> {
             JsonValue::Number(number) => {
                 self.inspect(number.lexeme.len(), 1)?;
                 *numeric_state = (*numeric_state).max(
-                    tos_foundation::canonical_incremental_numeric_state(limits, number.lexeme.len())
-                        .map_err(|_| exhausted())?,
+                    tos_foundation::canonical_incremental_numeric_state(
+                        limits,
+                        number.lexeme.len(),
+                    )
+                    .map_err(|_| exhausted())?,
                 );
-                number.lexeme.len().checked_mul(8)
-                    .and_then(|n| n.checked_add(limits.max_integer_digits)).ok_or_else(exhausted)
+                number
+                    .lexeme
+                    .len()
+                    .checked_mul(8)
+                    .and_then(|n| n.checked_add(limits.max_integer_digits))
+                    .ok_or_else(exhausted)
             }
             JsonValue::String(text) => {
                 self.prepay_string(text, false)?;
-                text.units().len().checked_mul(6).and_then(|n| n.checked_add(2)).ok_or_else(exhausted)
+                text.units()
+                    .len()
+                    .checked_mul(6)
+                    .and_then(|n| n.checked_add(2))
+                    .ok_or_else(exhausted)
             }
             JsonValue::Array(values) => {
                 let mut output = add(values.len(), 2)?;
-                for child in values { output = add(output, self.operation_envelope(child, depth + 1, nodes, numeric_state)?)?; }
+                for child in values {
+                    output = add(
+                        output,
+                        self.operation_envelope(child, depth + 1, nodes, numeric_state)?,
+                    )?;
+                }
                 Ok(output)
             }
             JsonValue::Object(fields) => {
-                let mut output = fields.len().checked_mul(2).and_then(|n| n.checked_add(2)).ok_or_else(exhausted)?;
+                let mut output = fields
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(2))
+                    .ok_or_else(exhausted)?;
                 for (key, child) in fields {
                     self.prepay_string(key, false)?;
-                    let key = key.units().len().checked_mul(6).and_then(|n| n.checked_add(2)).ok_or_else(exhausted)?;
-                    output = add(output, add(key, self.operation_envelope(child, depth + 1, nodes, numeric_state)?)?)?;
+                    let key = key
+                        .units()
+                        .len()
+                        .checked_mul(6)
+                        .and_then(|n| n.checked_add(2))
+                        .ok_or_else(exhausted)?;
+                    output = add(
+                        output,
+                        add(
+                            key,
+                            self.operation_envelope(child, depth + 1, nodes, numeric_state)?,
+                        )?,
+                    )?;
                 }
                 Ok(output)
             }
@@ -381,20 +442,40 @@ impl ScopeAccess<'_> {
         let defaults = JsonLimits::default();
         // Additive logical frame slots for this borrowed prepass. The actual
         // codec's private ABI-sized fixed scratch is quoted by Foundation.
-        type WalkFrame<'a> = (&'a JsonValue, JsonLimits, usize, &'a mut usize, &'a mut usize,
-            std::slice::Iter<'a, JsonValue>, std::slice::Iter<'a, (JsonString, JsonValue)>,
-            Option<&'a JsonString>, Option<&'a JsonValue>, usize, Result<usize>);
-        let prepass = defaults.max_depth.checked_add(1)
-            .and_then(|n| n.checked_mul(size_of::<WalkFrame<'_>>())).ok_or_else(exhausted)?;
+        type WalkFrame<'a> = (
+            &'a JsonValue,
+            JsonLimits,
+            usize,
+            &'a mut usize,
+            &'a mut usize,
+            std::slice::Iter<'a, JsonValue>,
+            std::slice::Iter<'a, (JsonString, JsonValue)>,
+            Option<&'a JsonString>,
+            Option<&'a JsonValue>,
+            usize,
+            Result<usize>,
+        );
+        let prepass = defaults
+            .max_depth
+            .checked_add(1)
+            .and_then(|n| n.checked_mul(size_of::<WalkFrame<'_>>()))
+            .ok_or_else(exhausted)?;
         self.retain(prepass)?;
         let mut nodes = 0;
         let mut numeric_state = 0;
         let output = self.operation_envelope(value, 0, &mut nodes, &mut numeric_state)?;
-        let fixed = tos_foundation::canonical_incremental_fixed_state(defaults).map_err(|_| exhausted())?;
-        let state = nodes.checked_mul(size_of::<(usize, &(JsonString, JsonValue))>())
-            .and_then(|n| output.checked_mul(2).and_then(|output| n.checked_add(output)))
+        let fixed =
+            tos_foundation::canonical_incremental_fixed_state(defaults).map_err(|_| exhausted())?;
+        let state = nodes
+            .checked_mul(size_of::<(usize, &(JsonString, JsonValue))>())
+            .and_then(|n| {
+                output
+                    .checked_mul(2)
+                    .and_then(|output| n.checked_add(output))
+            })
             .and_then(|n| n.checked_add(fixed))
-            .and_then(|n| n.checked_add(numeric_state)).ok_or_else(exhausted)?;
+            .and_then(|n| n.checked_add(numeric_state))
+            .ok_or_else(exhausted)?;
         // ONE currency: reserve overlapping output/sort/numeric scratch BEFORE
         // count/sort/emission, INCLUDING the separate strict parser invoked
         // for each Number. Number validators are sequential; the maximum
@@ -402,7 +483,9 @@ impl ScopeAccess<'_> {
         // Keep it spent on every later Err; never refund.
         self.retain(state)?;
         let ledger = self.ledger.as_mut().ok_or_else(exhausted)?;
-        if ledger.whole.is_some() { return Err(exhausted()); }
+        if ledger.whole.is_some() {
+            return Err(exhausted());
+        }
         active(ledger.deadline, ledger.cancelled)?;
         // Recompute AFTER all holder debits, not from an obsolete allowance.
         let remaining = ledger.operation.limits()?;
@@ -414,24 +497,40 @@ impl ScopeAccess<'_> {
         let deadline = ledger.deadline;
         let cancelled = ledger.cancelled;
         let mut refusal = None;
-        let mut cutoff = || active(deadline, cancelled).map_err(|_| {
-            FoundationError::new(FoundationErrorCode::BudgetExceeded, "scope codec cutoff")
-        });
+        let mut cutoff = || {
+            active(deadline, cancelled).map_err(|_| {
+                FoundationError::new(FoundationErrorCode::BudgetExceeded, "scope codec cutoff")
+            })
+        };
         let mut admit = |bytes: usize, visits: usize| {
             let result = (|| -> Result<()> {
                 active(deadline, cancelled)?;
-                ledger.operation.charge_work(bytes.checked_add(visits).ok_or_else(exhausted)?)?;
+                ledger
+                    .operation
+                    .charge_work(bytes.checked_add(visits).ok_or_else(exhausted)?)?;
                 ledger.operation.charge_bytes(bytes)
             })();
             result.map_err(|error| {
-                if refusal.is_none() { refusal = Some(error); }
+                if refusal.is_none() {
+                    refusal = Some(error);
+                }
                 FoundationError::new(FoundationErrorCode::BudgetExceeded, "scope codec admission")
             })
         };
         canonical_bytes_v1_with_state_budget_and_visits_and_admission(
-            value, CanonicalProfile::SourceCommandInputV1, limits, state, &mut cutoff, &mut admit,
-        ).map(|(raw, _)| raw).map_err(|_| refusal
-            .or_else(|| active(deadline, cancelled).err()).unwrap_or_else(exhausted))
+            value,
+            CanonicalProfile::SourceCommandInputV1,
+            limits,
+            state,
+            &mut cutoff,
+            &mut admit,
+        )
+        .map(|(raw, _)| raw)
+        .map_err(|_| {
+            refusal
+                .or_else(|| active(deadline, cancelled).err())
+                .unwrap_or_else(exhausted)
+        })
     }
     pub(super) fn same(&mut self, left: &JsonValue, right: &JsonValue) -> Result<bool> {
         if self.ledger.is_none() {

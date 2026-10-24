@@ -17,8 +17,13 @@ pub enum ViewLayer {
 /// actual source identity; a supplied digest cannot construct that proof.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ViewSource {
-    SourceCut { revision: SourceRevision, input_identity: Digest256 },
-    PgEpoch { input_identity: Digest256 },
+    SourceCut {
+        revision: SourceRevision,
+        input_identity: Digest256,
+    },
+    PgEpoch {
+        input_identity: Digest256,
+    },
 }
 impl ViewSource {
     pub fn source_revision(self) -> Option<SourceRevision> {
@@ -29,7 +34,9 @@ impl ViewSource {
     }
     pub fn input_identity(self) -> Digest256 {
         match self {
-            Self::SourceCut { input_identity, .. } | Self::PgEpoch { input_identity } => input_identity,
+            Self::SourceCut { input_identity, .. } | Self::PgEpoch { input_identity } => {
+                input_identity
+            }
         }
     }
 }

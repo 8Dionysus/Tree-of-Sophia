@@ -1948,8 +1948,19 @@ where
         &AtomicBool,
     ) -> SourceCommandResult<AssessmentMechanicsReport>,
 {
-    evaluate_assessment_histories_using(plan, histories, observed_now,
-        source_revision, source_identity, worker, budget, cancelled, evaluate, None, None)
+    evaluate_assessment_histories_using(
+        plan,
+        histories,
+        observed_now,
+        source_revision,
+        source_identity,
+        worker,
+        budget,
+        cancelled,
+        evaluate,
+        None,
+        None,
+    )
 }
 
 // Private common dispatch state: only evaluate_held_pwe_assessment below
@@ -1975,44 +1986,76 @@ fn held_scope_access<'a>(
 pub(crate) fn evaluate_held_pwe_assessment(
     evaluation: &mut crate::pwe_source_owner::HeldPweEvaluation<'_>,
 ) -> SourceCommandResult<AssessmentEvaluationResult> {
-    evaluation.with_filesystem(|position, target, parent, histories, observed_now,
-        revision, identity, worker, budget, whole, deadline, cancelled| {
-        active(deadline, cancelled)?;
-        budget.charge_work(8)?;
-        if deadline > budget.deadline {
-            return Err(SourceCommandError::Conflict("held PWE cutoff exceeds actual operation"));
-        }
-        let ticket = match position {
-            crate::pwe_source_owner::HeldEvaluationPosition::Account(ticket) => {
-                let selected = ticket.target();
-                if !std::ptr::eq(selected.plan(), target.plan())
-                    || !std::ptr::eq(selected.record(), target.record())
-                    || !std::ptr::eq(selected.scope(), target.scope())
-                    || selected.is_parent() != target.is_parent()
-                    || target.is_parent() && parent.is_some()
-                {
-                    return Err(SourceCommandError::Conflict("held PWE ticket/target differs"));
-                }
-                Some(*ticket)
+    evaluation.with_filesystem(
+        |position,
+         target,
+         parent,
+         histories,
+         observed_now,
+         revision,
+         identity,
+         worker,
+         budget,
+         whole,
+         deadline,
+         cancelled| {
+            active(deadline, cancelled)?;
+            budget.charge_work(8)?;
+            if deadline > budget.deadline {
+                return Err(SourceCommandError::Conflict(
+                    "held PWE cutoff exceeds actual operation",
+                ));
             }
-            crate::pwe_source_owner::HeldEvaluationPosition::FormWithCheckedParent => {
-                if target.is_parent() || parent.is_none() {
-                    return Err(SourceCommandError::Conflict("held PWE form has no checked parent"));
+            let ticket = match position {
+                crate::pwe_source_owner::HeldEvaluationPosition::Account(ticket) => {
+                    let selected = ticket.target();
+                    if !std::ptr::eq(selected.plan(), target.plan())
+                        || !std::ptr::eq(selected.record(), target.record())
+                        || !std::ptr::eq(selected.scope(), target.scope())
+                        || selected.is_parent() != target.is_parent()
+                        || target.is_parent() && parent.is_some()
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "held PWE ticket/target differs",
+                        ));
+                    }
+                    Some(*ticket)
                 }
-                refuse_generic_pwe_subject(target.record(), budget, cancelled)?;
-                None
-            }
-        };
-        held_scope_access(budget, whole, deadline, cancelled)
-            .retain(std::mem::size_of::<HeldPweCore<'_, '_, '_, '_>>())?;
-        let held = HeldPweCore { ticket, parent };
-        let mut evaluator = |input: &AssessmentReadInput, worker: &mut CutWorkerSchemaExecutor,
-            limits: AssessmentLimits, cancelled: &AtomicBool| {
-            evaluate_current_assessment(input, worker, limits, cancelled).map_err(map_assessment_refusal)
-        };
-        evaluate_assessment_histories_using(target.plan(), histories, observed_now,
-            Some(revision), identity, worker, budget, cancelled, &mut evaluator, Some(&held), whole)
-    })
+                crate::pwe_source_owner::HeldEvaluationPosition::FormWithCheckedParent => {
+                    if target.is_parent() || parent.is_none() {
+                        return Err(SourceCommandError::Conflict(
+                            "held PWE form has no checked parent",
+                        ));
+                    }
+                    refuse_generic_pwe_subject(target.record(), budget, cancelled)?;
+                    None
+                }
+            };
+            held_scope_access(budget, whole, deadline, cancelled)
+                .retain(std::mem::size_of::<HeldPweCore<'_, '_, '_, '_>>())?;
+            let held = HeldPweCore { ticket, parent };
+            let mut evaluator = |input: &AssessmentReadInput,
+                                 worker: &mut CutWorkerSchemaExecutor,
+                                 limits: AssessmentLimits,
+                                 cancelled: &AtomicBool| {
+                evaluate_current_assessment(input, worker, limits, cancelled)
+                    .map_err(map_assessment_refusal)
+            };
+            evaluate_assessment_histories_using(
+                target.plan(),
+                histories,
+                observed_now,
+                Some(revision),
+                identity,
+                worker,
+                budget,
+                cancelled,
+                &mut evaluator,
+                Some(&held),
+                whole,
+            )
+        },
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2045,45 +2088,71 @@ where
     let scope = ticket.map_or(&plan.scope, |ticket| ticket.target().scope());
     let subject_id = if ticket.is_some() {
         pwe_dispatch_field(current, "id", budget, cancelled)?
-            .and_then(JsonValue::as_str).ok_or(SourceCommandError::Invalid("held PWE target ID"))?
-    } else { plan.request.subject_id.as_str() };
-    let parent_context = if read_only_parent { None } else { plan.parent_context.as_ref() };
-    if ticket.is_none() { refuse_generic_pwe_subject(current, budget, cancelled)?; }
+            .and_then(JsonValue::as_str)
+            .ok_or(SourceCommandError::Invalid("held PWE target ID"))?
+    } else {
+        plan.request.subject_id.as_str()
+    };
+    let parent_context = if read_only_parent {
+        None
+    } else {
+        plan.parent_context.as_ref()
+    };
+    if ticket.is_none() {
+        refuse_generic_pwe_subject(current, budget, cancelled)?;
+    }
     if let Some(parent) = parent_context {
-        if checked_parent.is_none() { refuse_generic_pwe_subject(&parent.record, budget, cancelled)?; }
+        if checked_parent.is_none() {
+            refuse_generic_pwe_subject(&parent.record, budget, cancelled)?;
+        }
     }
     // A dependency-parent borrows its own required source set, never the
     // ordinary form's reviews or requested scope. No ParsedRequest is created.
     let parent_refs;
     let selected_required_refs = if read_only_parent {
-        let required = ticket.ok_or(SourceCommandError::Invalid("held parent ticket"))?.target().required_sources();
+        let required = ticket
+            .ok_or(SourceCommandError::Invalid("held parent ticket"))?
+            .target()
+            .required_sources();
         let deadline = budget.deadline;
         let mut access = held_scope_access(budget, whole, deadline, cancelled);
-        access.retain(required.len().checked_mul(std::mem::size_of::<JsonValue>())
-            .and_then(|n| n.checked_add(std::mem::size_of::<Vec<JsonValue>>()))
-            .ok_or(SourceCommandError::Unsupported("held parent reference holders"))?)?;
+        access.retain(
+            required
+                .len()
+                .checked_mul(std::mem::size_of::<JsonValue>())
+                .and_then(|n| n.checked_add(std::mem::size_of::<Vec<JsonValue>>()))
+                .ok_or(SourceCommandError::Unsupported(
+                    "held parent reference holders",
+                ))?,
+        )?;
         let mut refs = Vec::new();
         if refs.try_reserve_exact(required.len()).is_err() {
             drop(access);
             budget.resource_refused.set(true);
-            return Err(SourceCommandError::Unsupported("held parent reference allocation"));
+            return Err(SourceCommandError::Unsupported(
+                "held parent reference allocation",
+            ));
         }
-        for row in required { refs.push(access.reference(row)?); }
+        for row in required {
+            refs.push(access.reference(row)?);
+        }
         parent_refs = refs;
         parent_refs.as_slice()
-    } else { plan.subject_required_source_refs.as_slice() };
+    } else {
+        plan.subject_required_source_refs.as_slice()
+    };
     let selected_route = ticket.map_or(plan.source_route, |ticket| ticket.target().source_route());
-    let quality_requirements = ticket.map_or(plan.subject_quality_requirements.as_slice(),
-        |ticket| ticket.target().quality_requirements());
+    let quality_requirements = ticket
+        .map_or(plan.subject_quality_requirements.as_slice(), |ticket| {
+            ticket.target().quality_requirements()
+        });
     let config = plan.config;
     let request = plan.request;
     let version = plan.version;
     let source_records = &plan.resolved.source_records;
     let native_records = &plan.resolved.native_records;
     let all_by_id = &plan.all_by_id;
-    let selected_layer = plan
-        .layers
-        .and_then(|layers| layers.layers.get(subject_id));
+    let selected_layer = plan.layers.and_then(|layers| layers.layers.get(subject_id));
     let mut current_snapshot = plan.base_snapshot.clone();
     let owner_record_rows = record_rows(config, &[])?;
     let mut quality_bases = Vec::new();
@@ -2178,7 +2247,8 @@ where
         source_comparison_present: layer.comparison_record.is_some(),
         positive_use_allowed: layer.positive_use_allowed,
     });
-    if !read_only_parent && request.operation != "describe"
+    if !read_only_parent
+        && request.operation != "describe"
         && parent_context.is_none()
         && request.expected_snapshot.as_deref() != Some(&current_snapshot)
     {
@@ -2216,7 +2286,8 @@ where
         budget,
         cancelled,
         evaluate,
-        ticket, whole,
+        ticket,
+        whole,
     )?;
     let append_report = if !read_only_parent && request.operation == "append" {
         Some(evaluate_selected_subject_with_ticket(
@@ -2239,7 +2310,8 @@ where
             budget,
             cancelled,
             evaluate,
-        ticket, whole,
+            ticket,
+            whole,
         )?)
     } else {
         None
@@ -2291,12 +2363,8 @@ where
             )?;
             &evaluated_parent
         };
-        let packet = parent_assessment_packet(
-            &parent.record,
-            parent_report,
-            parent_history,
-            &parent.scope,
-        )?;
+        let packet =
+            parent_assessment_packet(&parent.record, parent_report, parent_history, &parent.scope)?;
         if version.has_layer_quality() {
             current_snapshot = extend_subject_assessment_snapshot(&current_snapshot, &packet)?;
         }
@@ -2305,7 +2373,8 @@ where
         None
     };
     if version.has_layer_quality()
-        && !read_only_parent && request.operation != "describe"
+        && !read_only_parent
+        && request.operation != "describe"
         && request.expected_snapshot.as_deref() != Some(&current_snapshot)
     {
         return Err(SourceCommandError::Conflict(
@@ -2922,8 +2991,12 @@ pub(crate) fn select_current_scope_with_operation_admission(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, JsonValue)> {
-    select_current_scope_using(config, request, all_by_id,
-        &mut ScopeAccess::admitted_operation(budget, deadline, cancelled))
+    select_current_scope_using(
+        config,
+        request,
+        all_by_id,
+        &mut ScopeAccess::admitted_operation(budget, deadline, cancelled),
+    )
 }
 
 fn select_current_scope_using(
@@ -3528,10 +3601,29 @@ where
         &AtomicBool,
     ) -> SourceCommandResult<AssessmentMechanicsReport>,
 {
-    evaluate_selected_subject_with_ticket(config, subject_id, scope, source_records,
-        native_records, record_rows, required_refs, required_admission_bases,
-        trusted_history, reviews, source_route, layer_quality, observed_now,
-        source_revision, source_identity, worker, budget, cancelled, evaluate, None, None)
+    evaluate_selected_subject_with_ticket(
+        config,
+        subject_id,
+        scope,
+        source_records,
+        native_records,
+        record_rows,
+        required_refs,
+        required_admission_bases,
+        trusted_history,
+        reviews,
+        source_route,
+        layer_quality,
+        observed_now,
+        source_revision,
+        source_identity,
+        worker,
+        budget,
+        cancelled,
+        evaluate,
+        None,
+        None,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -3572,7 +3664,9 @@ where
         let mut access = held_scope_access(budget, whole, deadline, cancelled);
         let expected_id = access.text(expected, "id")?;
         if !access.text_equal(subject_id, expected_id)? {
-            return Err(SourceCommandError::Conflict("held PWE evaluator subject differs"));
+            return Err(SourceCommandError::Conflict(
+                "held PWE evaluator subject differs",
+            ));
         }
         let mut found = false;
         for rows in [source_records, native_records, record_rows] {
@@ -3580,17 +3674,27 @@ where
                 if let Some(id) = access.get(row, "id")?.and_then(JsonValue::as_str) {
                     if access.text_equal(id, subject_id)? {
                         if !access.same(row, expected)? {
-                            return Err(SourceCommandError::Conflict("held PWE exact source envelope differs"));
+                            return Err(SourceCommandError::Conflict(
+                                "held PWE exact source envelope differs",
+                            ));
                         }
                         found = true;
                     }
                 }
             }
         }
-        if !found { return Err(SourceCommandError::Denied("held PWE account absent from selected sources")); }
+        if !found {
+            return Err(SourceCommandError::Denied(
+                "held PWE account absent from selected sources",
+            ));
+        }
     } else {
-        refuse_generic_pwe_subject_id(subject_id,
-            [source_records, native_records, record_rows], budget, cancelled)?;
+        refuse_generic_pwe_subject_id(
+            subject_id,
+            [source_records, native_records, record_rows],
+            budget,
+            cancelled,
+        )?;
     }
     let input = selected_assessment_input(
         config,

@@ -29,7 +29,8 @@ impl NativeBasis {
     ) -> SourceCommandResult<Self> {
         frames.verify()?;
         let slots = super::owner::host_session_result(
-            session.exact_basis(account), payer,
+            session.exact_basis(account),
+            payer,
             unsupported("PWE exact basis requires all declared bindings"),
         )?;
         if slots.len() > MAX_RECORDS {

@@ -42,7 +42,10 @@ impl<'a> CanonicalLedger<'a> {
     }
     pub(super) fn remaining_live(&mut self) -> SourceCommandResult<usize> {
         match self.whole {
-            Some(whole) => whole.try_borrow().map_err(|_| invalid("PWE whole-call budget in use"))?.remaining_live(),
+            Some(whole) => whole
+                .try_borrow()
+                .map_err(|_| invalid("PWE whole-call budget in use"))?
+                .remaining_live(),
             None => self.budget.remaining_bytes(),
         }
     }
@@ -50,7 +53,10 @@ impl<'a> CanonicalLedger<'a> {
         active(self.deadline, self.cancelled)?;
         let remaining = self.budget.limits()?;
         let read = match self.whole {
-            Some(whole) => whole.try_borrow().map_err(|_| invalid("PWE whole-call budget in use"))?.remaining_read()?,
+            Some(whole) => whole
+                .try_borrow()
+                .map_err(|_| invalid("PWE whole-call budget in use"))?
+                .remaining_read()?,
             None => remaining.max_input_bytes as u64,
         };
         let bytes = limits
@@ -106,25 +112,45 @@ impl<'a> CanonicalLedger<'a> {
         limits: JsonLimits,
     ) -> SourceCommandResult<Vec<u8>> {
         // Preserve the legacy Claim route's first-error ordering.
-        let claim_limits = if self.whole.is_some() { Some(self.limits(limits)?) } else { None };
+        let claim_limits = if self.whole.is_some() {
+            Some(self.limits(limits)?)
+        } else {
+            None
+        };
         let state = if self.whole.is_none() {
             let fixed = std::mem::size_of::<JsonValue>()
                 .checked_add(std::mem::size_of::<tos_foundation::JsonString>())
-                .and_then(|n| n.checked_add(std::mem::size_of::<serde_json::Value>()
-                    + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>()))
-                .and_then(|n| n.checked_mul(16 * 97)).and_then(|n| n.checked_add(1024))
+                .and_then(|n| {
+                    n.checked_add(
+                        std::mem::size_of::<serde_json::Value>()
+                            + std::mem::size_of::<String>()
+                            + 4 * std::mem::size_of::<usize>(),
+                    )
+                })
+                .and_then(|n| n.checked_mul(16 * 97))
+                .and_then(|n| n.checked_add(1024))
                 .ok_or(unsupported("PWE Assessment codec frame holder"))?;
             self.reserve_access(fixed)?;
             let mut nodes = 0;
             let output = native_envelope(self, value, 0, limits.max_depth.min(96), &mut nodes)?;
-            let workspace = nodes.checked_mul(std::mem::size_of::<(usize, &(tos_foundation::JsonString, JsonValue))>())
-                .and_then(|n| n.checked_add(output)).and_then(|n| n.checked_add(fixed))
+            let workspace = nodes
+                .checked_mul(std::mem::size_of::<(
+                    usize,
+                    &(tos_foundation::JsonString, JsonValue),
+                )>())
+                .and_then(|n| n.checked_add(output))
+                .and_then(|n| n.checked_add(fixed))
                 .ok_or(unsupported("PWE Assessment codec workspace"))?;
             // ONE byte currency: reserve overlap BEFORE count/sort/emission.
             self.reserve_access(workspace)?;
             workspace
-        } else { self.remaining_live()? };
-        let limits = match claim_limits { Some(limits) => limits, None => self.limits(limits)? };
+        } else {
+            self.remaining_live()?
+        };
+        let limits = match claim_limits {
+            Some(limits) => limits,
+            None => self.limits(limits)?,
+        };
         let deadline = self.deadline;
         let cancelled = self.cancelled;
         let mut admission_error = None;
@@ -147,7 +173,9 @@ impl<'a> CanonicalLedger<'a> {
         // Claim state was bounded prospectively by the visitor and has a
         // separate live currency. Assessment already paid its overlapping
         // workspace before the codec and cannot retain-after-encode.
-        if self.whole.is_some() { self.reserve_access(bytes.capacity())?; }
+        if self.whole.is_some() {
+            self.reserve_access(bytes.capacity())?;
+        }
         Ok(bytes)
     }
     pub(super) fn hash_bytes(&mut self, bytes: &[u8]) -> SourceCommandResult<Digest256> {
@@ -311,14 +339,19 @@ impl<'a> CanonicalLedger<'a> {
     pub(super) fn account_copy_input(&mut self, bytes: usize) -> SourceCommandResult<()> {
         self.budget.charge_bytes(bytes)?;
         if let Some(whole) = self.whole {
-            whole.try_borrow_mut().map_err(|_| invalid("PWE whole-call budget in use"))?
+            whole
+                .try_borrow_mut()
+                .map_err(|_| invalid("PWE whole-call budget in use"))?
                 .read(u64::try_from(bytes).map_err(|_| invalid("PWE source size conversion"))?)?;
         }
         Ok(())
     }
     pub(super) fn reserve_access(&mut self, bytes: usize) -> SourceCommandResult<()> {
         match self.whole {
-            Some(whole) => whole.try_borrow_mut().map_err(|_| invalid("PWE whole-call budget in use"))?.retain(bytes),
+            Some(whole) => whole
+                .try_borrow_mut()
+                .map_err(|_| invalid("PWE whole-call budget in use"))?
+                .retain(bytes),
             None => self.budget.charge_bytes(bytes),
         }
     }
@@ -330,8 +363,12 @@ impl<'a> CanonicalLedger<'a> {
         self.budget.charge_work(bytes)?;
         self.budget.charge_bytes(bytes)?;
         if let Some(whole) = self.whole {
-            whole.try_borrow_mut().map_err(|_| invalid("PWE whole-call budget in use"))?
-                .read(u64::try_from(bytes).map_err(|_| unsupported("PWE codec byte conversion"))?)?;
+            whole
+                .try_borrow_mut()
+                .map_err(|_| invalid("PWE whole-call budget in use"))?
+                .read(
+                    u64::try_from(bytes).map_err(|_| unsupported("PWE codec byte conversion"))?,
+                )?;
         }
         Ok(())
     }
@@ -361,7 +398,9 @@ fn admit_prefix(
     budget.charge_work(work)?;
     budget.charge_bytes(bytes)?;
     if let Some(whole) = whole {
-        whole.try_borrow_mut().map_err(|_| invalid("PWE whole-call budget in use"))?
+        whole
+            .try_borrow_mut()
+            .map_err(|_| invalid("PWE whole-call budget in use"))?
             .read(u64::try_from(bytes).map_err(|_| unsupported("PWE codec byte conversion"))?)?;
     }
     Ok(())
@@ -394,12 +433,41 @@ fn codec_error(
 // This erased resource port has ONE concrete implementation. Private frame
 // constructors accept the actual OriginalAssessmentPayer before erasure.
 pub(super) trait AssessmentOperationLoan: super::source_budget::OriginalPayer {
-    fn lend_payer(&self, run: &mut dyn FnMut(&crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>) -> SourceCommandResult<()>) -> SourceCommandResult<()>;
-    fn lend(&self, run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>) -> SourceCommandResult<()>;
+    fn lend_payer(
+        &self,
+        run: &mut dyn FnMut(
+            &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
+                '_,
+                '_,
+            >,
+        ) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<()>;
+    fn lend(
+        &self,
+        run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<()>;
 }
-impl AssessmentOperationLoan for crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_> {
-    fn lend_payer(&self, run: &mut dyn FnMut(&crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>) -> SourceCommandResult<()>) -> SourceCommandResult<()> { run(self) }
-    fn lend(&self, run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>) -> SourceCommandResult<()> {
+impl AssessmentOperationLoan
+    for crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
+        '_,
+        '_,
+    >
+{
+    fn lend_payer(
+        &self,
+        run: &mut dyn FnMut(
+            &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
+                '_,
+                '_,
+            >,
+        ) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<()> {
+        run(self)
+    }
+    fn lend(
+        &self,
+        run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<()> {
         self.with_operation(|operation| run(operation))
     }
 }
@@ -408,14 +476,19 @@ pub(super) enum FrameBudget<'a> {
     Assessment(&'a dyn AssessmentOperationLoan),
 }
 impl FrameBudget<'_> {
-    pub(super) fn with_operation<T>(&mut self, run: impl FnOnce(&mut OperationBudget) -> SourceCommandResult<T>) -> SourceCommandResult<T> {
+    pub(super) fn with_operation<T>(
+        &mut self,
+        run: impl FnOnce(&mut OperationBudget) -> SourceCommandResult<T>,
+    ) -> SourceCommandResult<T> {
         match self {
             Self::Claim(operation) => run(operation),
             Self::Assessment(payer) => {
                 let mut run = Some(run);
                 let mut value = None;
                 payer.lend(&mut |operation| {
-                    let body = run.take().ok_or(invalid("PWE repeated original operation loan"))?;
+                    let body = run
+                        .take()
+                        .ok_or(invalid("PWE repeated original operation loan"))?;
                     value = Some(body(operation)?);
                     Ok(())
                 })?;
@@ -423,13 +496,26 @@ impl FrameBudget<'_> {
             }
         }
     }
-    pub(super) fn with_assessment_payer<T>(&self,
-        run: impl FnOnce(&crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>) -> SourceCommandResult<T>) -> SourceCommandResult<T> {
-        let Self::Assessment(payer) = self else { return Err(invalid("PWE Assessment payer loan on Claim route")); };
-        let mut body = Some(run); let mut result = None;
+    pub(super) fn with_assessment_payer<T>(
+        &self,
+        run: impl FnOnce(
+            &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
+                '_,
+                '_,
+            >,
+        ) -> SourceCommandResult<T>,
+    ) -> SourceCommandResult<T> {
+        let Self::Assessment(payer) = self else {
+            return Err(invalid("PWE Assessment payer loan on Claim route"));
+        };
+        let mut body = Some(run);
+        let mut result = None;
         payer.lend_payer(&mut |actual| {
-            let body = body.take().ok_or(invalid("PWE repeated native source payer loan"))?;
-            result = Some(body(actual)?); Ok(())
+            let body = body
+                .take()
+                .ok_or(invalid("PWE repeated native source payer loan"))?;
+            result = Some(body(actual)?);
+            Ok(())
         })?;
         result.ok_or(invalid("PWE native source payer loan absent"))
     }
@@ -439,10 +525,15 @@ impl FrameBudget<'_> {
     pub(super) fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
         self.with_operation(|operation| operation.charge_bytes(bytes))
     }
-    pub(super) fn limits(&mut self) -> SourceCommandResult<tos_validation::assessment::AssessmentLimits> {
+    pub(super) fn limits(
+        &mut self,
+    ) -> SourceCommandResult<tos_validation::assessment::AssessmentLimits> {
         self.with_operation(|operation| operation.limits())
     }
-    pub(super) fn matches_assessment(&self, payer: &dyn super::source_budget::OriginalPayer) -> bool {
+    pub(super) fn matches_assessment(
+        &self,
+        payer: &dyn super::source_budget::OriginalPayer,
+    ) -> bool {
         match self {
             Self::Assessment(actual) => std::ptr::addr_eq(actual.admission(), payer.admission()),
             Self::Claim(_) => false,
@@ -485,7 +576,10 @@ pub(super) fn native_envelope<M: super::access::AccessMeter>(
         JsonValue::Array(items) => {
             let mut bytes = add(items.len(), 2)?;
             for child in items {
-                bytes = add(bytes, native_envelope(meter, child, depth + 1, depth_limit, nodes)?)?;
+                bytes = add(
+                    bytes,
+                    native_envelope(meter, child, depth + 1, depth_limit, nodes)?,
+                )?;
             }
             Ok(bytes)
         }
@@ -510,19 +604,31 @@ pub(super) fn native_envelope<M: super::access::AccessMeter>(
 }
 
 pub(super) trait OperationAccess {
-    fn lend_operation(&mut self, run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>) -> SourceCommandResult<()>;
+    fn lend_operation(
+        &mut self,
+        run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<()>;
 }
 impl OperationAccess for FrameBudget<'_> {
-    fn lend_operation(&mut self, run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>) -> SourceCommandResult<()> {
+    fn lend_operation(
+        &mut self,
+        run: &mut dyn FnMut(&mut OperationBudget) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<()> {
         self.with_operation(|operation| run(operation))
     }
 }
-pub(super) fn with_operation_access<T>(access: &mut dyn OperationAccess,
-    run: impl FnOnce(&mut OperationBudget) -> SourceCommandResult<T>) -> SourceCommandResult<T> {
-    let mut body = Some(run); let mut result = None;
+pub(super) fn with_operation_access<T>(
+    access: &mut dyn OperationAccess,
+    run: impl FnOnce(&mut OperationBudget) -> SourceCommandResult<T>,
+) -> SourceCommandResult<T> {
+    let mut body = Some(run);
+    let mut result = None;
     access.lend_operation(&mut |operation| {
-        let body = body.take().ok_or(invalid("PWE repeated closed operation loan"))?;
-        result = Some(body(operation)?); Ok(())
+        let body = body
+            .take()
+            .ok_or(invalid("PWE repeated closed operation loan"))?;
+        result = Some(body(operation)?);
+        Ok(())
     })?;
     result.ok_or(invalid("PWE closed operation loan absent"))
 }
@@ -536,9 +642,15 @@ pub(super) trait NativeBudgetPort {
     fn remaining_bytes(&self) -> SourceCommandResult<usize>;
 }
 impl NativeBudgetPort for FrameBudget<'_> {
-    fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> { FrameBudget::charge_work(self, work) }
-    fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> { FrameBudget::charge_bytes(self, bytes) }
-    fn limits(&mut self) -> SourceCommandResult<tos_validation::assessment::AssessmentLimits> { FrameBudget::limits(self) }
+    fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> {
+        FrameBudget::charge_work(self, work)
+    }
+    fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
+        FrameBudget::charge_bytes(self, bytes)
+    }
+    fn limits(&mut self) -> SourceCommandResult<tos_validation::assessment::AssessmentLimits> {
+        FrameBudget::limits(self)
+    }
     fn remaining_bytes(&self) -> SourceCommandResult<usize> {
         match self {
             FrameBudget::Assessment(payer) => Ok(payer.remaining()?.0),
@@ -548,11 +660,19 @@ impl NativeBudgetPort for FrameBudget<'_> {
 }
 
 impl NativeBudgetPort for OperationBudget {
-    fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> { OperationBudget::charge_work(self, work) }
-    fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> { OperationBudget::charge_bytes(self, bytes) }
-    fn limits(&mut self) -> SourceCommandResult<tos_validation::assessment::AssessmentLimits> { OperationBudget::limits(self) }
+    fn charge_work(&mut self, work: usize) -> SourceCommandResult<()> {
+        OperationBudget::charge_work(self, work)
+    }
+    fn charge_bytes(&mut self, bytes: usize) -> SourceCommandResult<()> {
+        OperationBudget::charge_bytes(self, bytes)
+    }
+    fn limits(&mut self) -> SourceCommandResult<tos_validation::assessment::AssessmentLimits> {
+        OperationBudget::limits(self)
+    }
     fn remaining_bytes(&self) -> SourceCommandResult<usize> {
         // Raw legacy reader construction always has its genuine Claim wallet.
-        Err(invalid("PWE raw operation requires a selected state-currency port"))
+        Err(invalid(
+            "PWE raw operation requires a selected state-currency port",
+        ))
     }
 }

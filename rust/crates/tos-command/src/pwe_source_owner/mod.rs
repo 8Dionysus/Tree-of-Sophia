@@ -14,8 +14,11 @@ mod source_budget;
 
 pub(crate) use basis::NativeBasis;
 pub(crate) use carrier::{PositiveCarrier, SelectedCarrier, SelectedGroup};
-pub(crate) use frames::{HeldFrames, HeldPweEvaluation, HeldEvaluationPosition};
-pub(crate) use owner::{NativeAccount, NativeConsumerOwner, NativeAssessmentHost, ApplicationCheckedTicket, CheckedPweParent};
+pub(crate) use frames::{HeldEvaluationPosition, HeldFrames, HeldPweEvaluation};
+pub(crate) use owner::{
+    ApplicationCheckedTicket, CheckedPweParent, NativeAccount, NativeAssessmentHost,
+    NativeConsumerOwner,
+};
 pub(crate) use producer::NativePreservedCandidate;
 pub(crate) use reader::{
     ClaimDependencies, NativeExactSlot, NativeUnresolvedSlot, check_description_revision,
@@ -25,7 +28,9 @@ pub(crate) use reader::{
 };
 pub(crate) use registry::{BindingRegistry, DispatchSpec};
 pub(crate) use roles::{ExactDependencyReader, ResolvedDependency, RoleCache};
-pub(crate) use source_budget::{SourcePayer, source_canonical, assessment_canonical, assessment_domain_value};
+pub(crate) use source_budget::{
+    SourcePayer, assessment_canonical, assessment_domain_value, source_canonical,
+};
 
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use access::BorrowedAccess;

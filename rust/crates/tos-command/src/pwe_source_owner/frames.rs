@@ -25,7 +25,9 @@ use tos_validation::{
     source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor},
 };
 
-pub(super) struct FrameLease { _private: u8 }
+pub(super) struct FrameLease {
+    _private: u8,
+}
 
 pub(crate) struct HeldFrames<'a, 'scope> {
     pub(super) lease: Rc<FrameLease>,
@@ -65,7 +67,23 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> SourceCommandResult<Self> {
-        Self::build(owner, context, cut, grant, private, public, fence, histories, software, components, worker, FrameBudget::Claim(budget), Some(whole), deadline, cancelled)
+        Self::build(
+            owner,
+            context,
+            cut,
+            grant,
+            private,
+            public,
+            fence,
+            histories,
+            software,
+            components,
+            worker,
+            FrameBudget::Claim(budget),
+            Some(whole),
+            deadline,
+            cancelled,
+        )
     }
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_assessment<'budget, 'cancel>(
@@ -84,7 +102,23 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> SourceCommandResult<Self> {
-        Self::build(owner, context, cut, grant, private, public, fence, histories, software, components, worker, FrameBudget::Assessment(payer), None, deadline, cancelled)
+        Self::build(
+            owner,
+            context,
+            cut,
+            grant,
+            private,
+            public,
+            fence,
+            histories,
+            software,
+            components,
+            worker,
+            FrameBudget::Assessment(payer),
+            None,
+            deadline,
+            cancelled,
+        )
     }
     #[allow(clippy::too_many_arguments)]
     fn build(
@@ -105,14 +139,21 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         cancelled: &'a AtomicBool,
     ) -> SourceCommandResult<Self> {
         active(deadline, cancelled)?;
-        if deadline > budget.limits()?.deadline { return Err(invalid("PWE frame exceeds original operation deadline")); }
+        if deadline > budget.limits()?.deadline {
+            return Err(invalid("PWE frame exceeds original operation deadline"));
+        }
         let holders = std::mem::size_of::<Self>()
             .checked_add(std::mem::size_of::<FrameLease>())
             .and_then(|n| n.checked_add(4 * std::mem::size_of::<usize>()))
             .ok_or(unsupported("PWE protected frame lease holder"))?;
         budget.charge_work(holders)?;
         budget.charge_bytes(holders)?;
-        if let Some(whole) = whole { whole.try_borrow_mut().map_err(|_| invalid("PWE whole-call budget in use"))?.retain(holders)?; }
+        if let Some(whole) = whole {
+            whole
+                .try_borrow_mut()
+                .map_err(|_| invalid("PWE whole-call budget in use"))?
+                .retain(holders)?;
+        }
         let binding = worker.prepared_execution_binding();
         let mut frames = Self {
             lease: Rc::new(FrameLease { _private: 0 }),
@@ -136,19 +177,29 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         frames.verify()?;
         Ok(frames)
     }
-    fn with_ledger<T>(&mut self, run: impl FnOnce(&mut CanonicalLedger<'_>) -> SourceCommandResult<T>) -> SourceCommandResult<T> {
+    fn with_ledger<T>(
+        &mut self,
+        run: impl FnOnce(&mut CanonicalLedger<'_>) -> SourceCommandResult<T>,
+    ) -> SourceCommandResult<T> {
         let (whole, deadline, cancelled) = (self.whole, self.deadline, self.cancelled);
-        let mut ledger = CanonicalLedger::new_selected(&mut self.budget, whole, deadline, cancelled);
+        let mut ledger =
+            CanonicalLedger::new_selected(&mut self.budget, whole, deadline, cancelled);
         run(&mut ledger)
     }
     pub(super) fn remaining_live(&mut self) -> SourceCommandResult<usize> {
         self.with_ledger(|ledger| ledger.remaining_live())
     }
     pub(super) fn check_live(&mut self, bytes: usize) -> SourceCommandResult<()> {
-        if bytes > self.remaining_live()? { return Err(unsupported("PWE original live allowance")); }
+        if bytes > self.remaining_live()? {
+            return Err(unsupported("PWE original live allowance"));
+        }
         Ok(())
     }
-    pub(super) fn check_session_payer(&mut self, session: &tos_compiler::pwe_native::Session<'_>, payer: &dyn super::source_budget::OriginalPayer) -> SourceCommandResult<()> {
+    pub(super) fn check_session_payer(
+        &mut self,
+        session: &tos_compiler::pwe_native::Session<'_>,
+        payer: &dyn super::source_budget::OriginalPayer,
+    ) -> SourceCommandResult<()> {
         self.inspect_access(0, 3)?;
         payer.check_cutoff(self.deadline, self.cancelled)?;
         let matches = match (self.whole, payer.claim_wallet()) {
@@ -157,7 +208,9 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             _ => false,
         };
         if !matches || !session.has_source_payer(payer.admission()) {
-            return Err(SourceCommandError::Conflict("PWE frame/Session original payer differs"));
+            return Err(SourceCommandError::Conflict(
+                "PWE frame/Session original payer differs",
+            ));
         }
         Ok(())
     }
@@ -169,8 +222,15 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         ) -> SourceCommandResult<T>,
     ) -> SourceCommandResult<T> {
         self.verify()?;
-        let (context, cut, owner, private, worker, deadline, cancelled) =
-            (self.context, self.cut, self.owner, self.private, &mut *self.worker, self.deadline, self.cancelled);
+        let (context, cut, owner, private, worker, deadline, cancelled) = (
+            self.context,
+            self.cut,
+            self.owner,
+            self.private,
+            &mut *self.worker,
+            self.deadline,
+            self.cancelled,
+        );
         let result = self.budget.with_operation(|budget| {
             let mut resolver = crate::source_native_roles::NativeRoleResolver::new(
                 context, cut, owner, private, worker, budget, registry, deadline, cancelled,
@@ -204,11 +264,21 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         ) -> SourceCommandResult<T>,
     ) -> SourceCommandResult<T> {
         self.verify()?;
-        let (context, cut, worker, whole, deadline, cancelled) =
-            (self.context, self.cut, &mut *self.worker, self.whole, self.deadline, self.cancelled);
+        let (context, cut, worker, whole, deadline, cancelled) = (
+            self.context,
+            self.cut,
+            &mut *self.worker,
+            self.whole,
+            self.deadline,
+            self.cancelled,
+        );
         let result = match whole {
-            Some(whole) => self.budget.with_operation(|budget| read(context, cut, worker, budget, whole, deadline, cancelled)),
-            None => Err(unsupported("PWE dependency reader requires the actual Assessment loan, not a Claim wallet")),
+            Some(whole) => self.budget.with_operation(|budget| {
+                read(context, cut, worker, budget, whole, deadline, cancelled)
+            }),
+            None => Err(unsupported(
+                "PWE dependency reader requires the actual Assessment loan, not a Claim wallet",
+            )),
         };
         // Attempt the original fence even on callback failure. A successful
         // value is never released after a source/worker/currentness failure.
@@ -222,15 +292,31 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
     /// Actual FS Assessment source loan. There is deliberately no Claim wallet.
     pub(crate) fn with_assessment_dependency<T>(
         &mut self,
-        read: impl FnOnce(&CommandContext, &CorpusCutReader, &mut CutWorkerSchemaExecutor,
-            &mut OperationBudget, Instant, &AtomicBool) -> SourceCommandResult<T>,
+        read: impl FnOnce(
+            &CommandContext,
+            &CorpusCutReader,
+            &mut CutWorkerSchemaExecutor,
+            &mut OperationBudget,
+            Instant,
+            &AtomicBool,
+        ) -> SourceCommandResult<T>,
     ) -> SourceCommandResult<T> {
         self.verify()?;
-        let (context, cut, worker, deadline, cancelled) =
-            (self.context, self.cut, &mut *self.worker, self.deadline, self.cancelled);
+        let (context, cut, worker, deadline, cancelled) = (
+            self.context,
+            self.cut,
+            &mut *self.worker,
+            self.deadline,
+            self.cancelled,
+        );
         let result = if self.whole.is_none() {
-            self.budget.with_operation(|budget| read(context, cut, worker, budget, deadline, cancelled))
-        } else { Err(unsupported("PWE actual Assessment source loan selected for a Claim route")) };
+            self.budget
+                .with_operation(|budget| read(context, cut, worker, budget, deadline, cancelled))
+        } else {
+            Err(unsupported(
+                "PWE actual Assessment source loan selected for a Claim route",
+            ))
+        };
         let fenced = self.verify();
         match (result, fenced) {
             (Err(error), _) | (Ok(_), Err(error)) => Err(error),
@@ -241,14 +327,29 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
     /// RefCell loan. This supports the Common original immutable read session.
     pub(crate) fn with_assessment_source_dependency<T>(
         &mut self,
-        read: impl FnOnce(&CommandContext, &CorpusCutReader, &mut CutWorkerSchemaExecutor,
-            &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>,
-            Instant, &AtomicBool) -> SourceCommandResult<T>,
+        read: impl FnOnce(
+            &CommandContext,
+            &CorpusCutReader,
+            &mut CutWorkerSchemaExecutor,
+            &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<
+                '_,
+                '_,
+            >,
+            Instant,
+            &AtomicBool,
+        ) -> SourceCommandResult<T>,
     ) -> SourceCommandResult<T> {
         self.verify()?;
-        let (context, cut, worker, deadline, cancelled) =
-            (self.context, self.cut, &mut *self.worker, self.deadline, self.cancelled);
-        let result = self.budget.with_assessment_payer(|payer| read(context, cut, worker, payer, deadline, cancelled));
+        let (context, cut, worker, deadline, cancelled) = (
+            self.context,
+            self.cut,
+            &mut *self.worker,
+            self.deadline,
+            self.cancelled,
+        );
+        let result = self
+            .budget
+            .with_assessment_payer(|payer| read(context, cut, worker, payer, deadline, cancelled));
         let fenced = self.verify();
         match (result, fenced) {
             (Err(error), _) | (Ok(_), Err(error)) => Err(error),
@@ -284,19 +385,19 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         row: &JsonValue,
     ) -> SourceCommandResult<serde_json::Value> {
         let (id, version, digest) = self.with_ledger(|ledger| {
-        ledger.inspect_access(0, 1)?;
-        if row.as_object().map(|o| o.len()) != Some(4) {
-            return Err(invalid("PWE selected Claim envelope fields"));
-        }
-        let id = ledger.native_text(row, "id")?;
-        let version = ledger
-            .native_field(row, "version")?
-            .as_u64()
-            .ok_or(invalid("PWE selected Claim envelope version"))?;
-        let payload = ledger.native_field(row, "payload")?;
-        ledger.native_field(row, "origin_id")?;
-        let digest = ledger.digest(payload)?;
-        Ok((id, version, digest))
+            ledger.inspect_access(0, 1)?;
+            if row.as_object().map(|o| o.len()) != Some(4) {
+                return Err(invalid("PWE selected Claim envelope fields"));
+            }
+            let id = ledger.native_text(row, "id")?;
+            let version = ledger
+                .native_field(row, "version")?
+                .as_u64()
+                .ok_or(invalid("PWE selected Claim envelope version"))?;
+            let payload = ledger.native_field(row, "payload")?;
+            ledger.native_field(row, "origin_id")?;
+            let digest = ledger.digest(payload)?;
+            Ok((id, version, digest))
         })?;
         self.budget.charge_work(id.len())?;
         self.retain(
@@ -534,12 +635,13 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         &mut self,
         contract: &str,
     ) -> SourceCommandResult<Option<Digest256>> {
-        let (worker, whole, deadline, cancelled) = (&mut *self.worker, self.whole, self.deadline, self.cancelled);
+        let (worker, whole, deadline, cancelled) =
+            (&mut *self.worker, self.whole, self.deadline, self.cancelled);
         {
-            let mut ledger = CanonicalLedger::new_selected(&mut self.budget, whole, deadline, cancelled);
-        let mut admission_error = None;
-        let result = worker
-            .contract_digest_with_admission(contract, &mut |bytes, visits| {
+            let mut ledger =
+                CanonicalLedger::new_selected(&mut self.budget, whole, deadline, cancelled);
+            let mut admission_error = None;
+            let result = worker.contract_digest_with_admission(contract, &mut |bytes, visits| {
                 ledger.inspect_access(bytes, visits).map_err(|error| {
                     admission_error = Some(error);
                     tos_foundation::FoundationError::new(
@@ -548,9 +650,9 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
                     )
                 })
             });
-        result.map_err(|_| {
-            admission_error.unwrap_or(unsupported("PWE held schema lookup incomplete"))
-        })
+            result.map_err(|_| {
+                admission_error.unwrap_or(unsupported("PWE held schema lookup incomplete"))
+            })
         }
     }
     pub(crate) fn revision(&self) -> SourceRevision {
@@ -564,33 +666,34 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         let private = &self.private.source_paths;
         let (whole, deadline, cancelled) = (self.whole, self.deadline, self.cancelled);
         {
-            let mut ledger = CanonicalLedger::new_selected(&mut self.budget, whole, deadline, cancelled);
-        let mut selected_public = None;
-        for (candidate, path) in public {
-            if ledger.text_equal(candidate, id)? {
-                selected_public = Some(path.as_str());
-                break;
-            }
-        }
-        let selected_private = ledger.string_map_get(private, id)?.map(String::as_str);
-        match (selected_public, selected_private) {
-            (Some(a), Some(b)) => {
-                if !ledger.text_equal(a, b)? {
-                    return Err(SourceCommandError::Conflict(
-                        "PWE selected owner source path collision",
-                    ));
+            let mut ledger =
+                CanonicalLedger::new_selected(&mut self.budget, whole, deadline, cancelled);
+            let mut selected_public = None;
+            for (candidate, path) in public {
+                if ledger.text_equal(candidate, id)? {
+                    selected_public = Some(path.as_str());
+                    break;
                 }
-                ledger.inspect_access(a.len(), 1)?;
-                ledger.reserve_access(a.len())?;
-                Ok(a.to_owned())
             }
-            (Some(path), _) | (_, Some(path)) => {
-                ledger.inspect_access(path.len(), 1)?;
-                ledger.reserve_access(path.len())?;
-                Ok(path.to_owned())
+            let selected_private = ledger.string_map_get(private, id)?.map(String::as_str);
+            match (selected_public, selected_private) {
+                (Some(a), Some(b)) => {
+                    if !ledger.text_equal(a, b)? {
+                        return Err(SourceCommandError::Conflict(
+                            "PWE selected owner source path collision",
+                        ));
+                    }
+                    ledger.inspect_access(a.len(), 1)?;
+                    ledger.reserve_access(a.len())?;
+                    Ok(a.to_owned())
+                }
+                (Some(path), _) | (_, Some(path)) => {
+                    ledger.inspect_access(path.len(), 1)?;
+                    ledger.reserve_access(path.len())?;
+                    Ok(path.to_owned())
+                }
+                _ => Err(unsupported("PWE actual source Claim path not selected")),
             }
-            _ => Err(unsupported("PWE actual source Claim path not selected")),
-        }
         }
     }
     pub(crate) fn verify(&mut self) -> SourceCommandResult<()> {
@@ -635,8 +738,13 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         self.budget.charge_work(fence_bytes)?;
         self.budget.charge_bytes(fence_bytes)?;
         if let Some(whole) = self.whole {
-            whole.try_borrow_mut().map_err(|_| invalid("PWE whole-call budget in use"))?
-                .read(u64::try_from(fence_bytes).map_err(|_| unsupported("PWE fence byte conversion"))?)?;
+            whole
+                .try_borrow_mut()
+                .map_err(|_| invalid("PWE whole-call budget in use"))?
+                .read(
+                    u64::try_from(fence_bytes)
+                        .map_err(|_| unsupported("PWE fence byte conversion"))?,
+                )?;
         }
         self.context.check_from_selected_captures(
             self.cut,
@@ -678,57 +786,62 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         let context = self.context;
         let private = self.private;
         self.with_ledger(|ledger| {
-        ledger.inspect_access(
-            path.len()
-                .checked_mul(16)
-                .ok_or(unsupported("PWE path work overflow"))?,
-            1,
-        )?;
-        ledger.reserve_access(
-            path.len()
-                .checked_add(std::mem::size_of::<RelativePath>())
-                .ok_or(unsupported("PWE path holder overflow"))?,
-        )?;
-        let relative =
-            RelativePath::parse(path).map_err(|_| invalid("PWE selected source path"))?;
-        let mut public = None;
-        for file in &context.files {
-            if ledger.text_equal(file.path.as_str(), relative.as_str())? {
-                if public.is_some() {
-                    return Err(invalid("duplicate selected source path"));
+            ledger.inspect_access(
+                path.len()
+                    .checked_mul(16)
+                    .ok_or(unsupported("PWE path work overflow"))?,
+                1,
+            )?;
+            ledger.reserve_access(
+                path.len()
+                    .checked_add(std::mem::size_of::<RelativePath>())
+                    .ok_or(unsupported("PWE path holder overflow"))?,
+            )?;
+            let relative =
+                RelativePath::parse(path).map_err(|_| invalid("PWE selected source path"))?;
+            let mut public = None;
+            for file in &context.files {
+                if ledger.text_equal(file.path.as_str(), relative.as_str())? {
+                    if public.is_some() {
+                        return Err(invalid("duplicate selected source path"));
+                    }
+                    public = Some(file.raw.as_slice());
                 }
-                public = Some(file.raw.as_slice());
             }
-        }
-        let private = ledger
-            .string_map_get(&private.retained_raw, path)?
-            .map(Vec::as_slice);
-        let raw = match (public, private) {
-            (Some(a), Some(b)) => {
-                if a.len() > MAX_BYTES || b.len() > MAX_BYTES {
-                    return Err(unsupported("PWE source member byte cap"));
+            let private = ledger
+                .string_map_get(&private.retained_raw, path)?
+                .map(Vec::as_slice);
+            let raw = match (public, private) {
+                (Some(a), Some(b)) => {
+                    if a.len() > MAX_BYTES || b.len() > MAX_BYTES {
+                        return Err(unsupported("PWE source member byte cap"));
+                    }
+                    if !ledger.bytes_equal(a, b)? {
+                        return Err(SourceCommandError::Conflict(
+                            "PWE selected source collision",
+                        ));
+                    }
+                    a
                 }
-                if !ledger.bytes_equal(a, b)? {
-                    return Err(SourceCommandError::Conflict(
-                        "PWE selected source collision",
-                    ));
-                }
-                a
+                (Some(a), _) | (_, Some(a)) => a,
+                _ => return Err(unsupported("PWE exact source path was not selected")),
+            };
+            ledger.inspect_access(raw.len(), 1)?;
+            if raw.len() > MAX_BYTES {
+                return Err(unsupported("PWE source member byte cap"));
             }
-            (Some(a), _) | (_, Some(a)) => a,
-            _ => return Err(unsupported("PWE exact source path was not selected")),
-        };
-        ledger.inspect_access(raw.len(), 1)?;
-        if raw.len() > MAX_BYTES { return Err(unsupported("PWE source member byte cap")); }
-        ledger.account_copy_input(raw.len())?;
-        let available = ledger.remaining_live()?;
-        ledger.reserve_access(raw.len())?;
-        let mut copy = Vec::new();
-        copy.try_reserve_exact(raw.len()).map_err(|_| unsupported("PWE source buffer reservation"))?;
-        if copy.capacity() > available { return Err(unsupported("PWE source buffer live allowance")); }
-        ledger.reserve_access(copy.capacity().saturating_sub(raw.len()))?;
-        copy.extend_from_slice(raw);
-        Ok(copy)
+            ledger.account_copy_input(raw.len())?;
+            let available = ledger.remaining_live()?;
+            ledger.reserve_access(raw.len())?;
+            let mut copy = Vec::new();
+            copy.try_reserve_exact(raw.len())
+                .map_err(|_| unsupported("PWE source buffer reservation"))?;
+            if copy.capacity() > available {
+                return Err(unsupported("PWE source buffer live allowance"));
+            }
+            ledger.reserve_access(copy.capacity().saturating_sub(raw.len()))?;
+            copy.extend_from_slice(raw);
+            Ok(copy)
         })
     }
     pub(crate) fn parse(&mut self, raw: &[u8]) -> SourceCommandResult<JsonValue> {
@@ -834,17 +947,19 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             evaluate_current_assessment(input, worker, limits, cancelled)
                 .map_err(private_assessment::map_assessment_refusal)
         };
-        let result = self.budget.with_operation(|budget| private_assessment::evaluate_assessment_histories(
-            plan,
-            self.histories,
-            &self.context.recorded_at,
-            Some(revision),
-            revision.0,
-            self.worker,
-            budget,
-            self.cancelled,
-            &mut evaluator,
-        ))?;
+        let result = self.budget.with_operation(|budget| {
+            private_assessment::evaluate_assessment_histories(
+                plan,
+                self.histories,
+                &self.context.recorded_at,
+                Some(revision),
+                revision.0,
+                self.worker,
+                budget,
+                self.cancelled,
+                &mut evaluator,
+            )
+        })?;
         Ok(result.current_report)
     }
 }
@@ -870,9 +985,15 @@ pub(crate) struct HeldPweEvaluation<'checked> {
     cancelled: &'checked AtomicBool,
 }
 impl HeldPweEvaluation<'_> {
-    pub(crate) fn position(&self) -> &HeldEvaluationPosition<'_> { &self.position }
-    pub(crate) fn target(&self) -> &private_assessment::AssessmentEvaluationTarget<'_, '_> { self.target }
-    pub(crate) fn parent(&self) -> Option<&super::owner::CheckedPweParent<'_, '_>> { self.parent }
+    pub(crate) fn position(&self) -> &HeldEvaluationPosition<'_> {
+        &self.position
+    }
+    pub(crate) fn target(&self) -> &private_assessment::AssessmentEvaluationTarget<'_, '_> {
+        self.target
+    }
+    pub(crate) fn parent(&self) -> Option<&super::owner::CheckedPweParent<'_, '_>> {
+        self.parent
+    }
     /// Lexical resource loan to Common's maintained evaluator. The private
     /// checked constructor, not this callback, binds application permission.
     #[allow(clippy::too_many_arguments)]
@@ -882,26 +1003,79 @@ impl HeldPweEvaluation<'_> {
             &HeldEvaluationPosition<'_>,
             &private_assessment::AssessmentEvaluationTarget<'_, '_>,
             Option<&super::owner::CheckedPweParent<'_, '_>>,
-            &BTreeMap<String, AssessmentHistory>, &str, SourceRevision, Digest256,
-            &mut CutWorkerSchemaExecutor, &mut OperationBudget,
-            Option<&Rc<RefCell<ClaimCallBudget>>>, Instant, &AtomicBool,
+            &BTreeMap<String, AssessmentHistory>,
+            &str,
+            SourceRevision,
+            Digest256,
+            &mut CutWorkerSchemaExecutor,
+            &mut OperationBudget,
+            Option<&Rc<RefCell<ClaimCallBudget>>>,
+            Instant,
+            &AtomicBool,
         ) -> SourceCommandResult<T>,
     ) -> SourceCommandResult<T> {
-        let (position, target, parent, histories, observed, revision, identity, worker, whole, deadline, cancelled) =
-            (&self.position, self.target, self.parent, self.histories, self.observed_now,
-             self.source_revision, self.source_identity, &mut *self.worker, self.whole, self.deadline, self.cancelled);
-        super::budget::with_operation_access(self.budget, |budget| run(position, target, parent, histories, observed,
-            revision, identity, worker, budget, whole, deadline, cancelled))
+        let (
+            position,
+            target,
+            parent,
+            histories,
+            observed,
+            revision,
+            identity,
+            worker,
+            whole,
+            deadline,
+            cancelled,
+        ) = (
+            &self.position,
+            self.target,
+            self.parent,
+            self.histories,
+            self.observed_now,
+            self.source_revision,
+            self.source_identity,
+            &mut *self.worker,
+            self.whole,
+            self.deadline,
+            self.cancelled,
+        );
+        super::budget::with_operation_access(self.budget, |budget| {
+            run(
+                position, target, parent, histories, observed, revision, identity, worker, budget,
+                whole, deadline, cancelled,
+            )
+        })
     }
 }
 impl HeldFrames<'_, '_> {
-    fn selected_scope(&mut self, plan: &AssessmentEvaluationPlan<'_>) -> SourceCommandResult<(JsonValue, JsonValue)> {
-        let (config, whole, deadline, cancelled) = (self.grant.configuration(), self.whole, self.deadline, self.cancelled);
+    fn selected_scope(
+        &mut self,
+        plan: &AssessmentEvaluationPlan<'_>,
+    ) -> SourceCommandResult<(JsonValue, JsonValue)> {
+        let (config, whole, deadline, cancelled) = (
+            self.grant.configuration(),
+            self.whole,
+            self.deadline,
+            self.cancelled,
+        );
         self.budget.with_operation(|budget| match whole {
             Some(whole) => private_assessment::select_current_scope_with_admission(
-                config, plan.request, &plan.all_by_id, budget, whole, deadline, cancelled),
+                config,
+                plan.request,
+                &plan.all_by_id,
+                budget,
+                whole,
+                deadline,
+                cancelled,
+            ),
             None => private_assessment::select_current_scope_with_operation_admission(
-                config, plan.request, &plan.all_by_id, budget, deadline, cancelled),
+                config,
+                plan.request,
+                &plan.all_by_id,
+                budget,
+                deadline,
+                cancelled,
+            ),
         })
     }
     pub(super) fn reserve_scoped(
@@ -913,17 +1087,28 @@ impl HeldFrames<'_, '_> {
         self.check_session_payer(session, payer)?;
         self.budget.charge_work(bytes)?;
         self.budget.charge_bytes(bytes)?;
-        session.admit_source_prefix(0, 8).map_err(|e| payer.error(e, "PWE lease work"))?;
-        session.retain_source_state(bytes).map_err(|e| payer.error(e, "PWE scoped holder"))
+        session
+            .admit_source_prefix(0, 8)
+            .map_err(|e| payer.error(e, "PWE lease work"))?;
+        session
+            .retain_source_state(bytes)
+            .map_err(|e| payer.error(e, "PWE scoped holder"))
     }
-    fn check_selected_plan(&mut self, plan: &AssessmentEvaluationPlan<'_>) -> SourceCommandResult<()> {
+    fn check_selected_plan(
+        &mut self,
+        plan: &AssessmentEvaluationPlan<'_>,
+    ) -> SourceCommandResult<()> {
         let grant = self.grant;
         if !self.same(plan.config, grant.configuration())? {
-            return Err(SourceCommandError::Conflict("PWE checked evaluation protected config differs"));
+            return Err(SourceCommandError::Conflict(
+                "PWE checked evaluation protected config differs",
+            ));
         }
         let (current, scope) = self.selected_scope(plan)?;
         if !self.same(&current, &plan.current)? || !self.same(&scope, &plan.scope)? {
-            return Err(SourceCommandError::Conflict("PWE checked evaluation selected plan differs"));
+            return Err(SourceCommandError::Conflict(
+                "PWE checked evaluation selected plan differs",
+            ));
         }
         for subject in &plan.lock_subjects {
             if self.string_map_get(self.histories, subject)?.is_none() {
@@ -939,7 +1124,8 @@ impl HeldFrames<'_, '_> {
     ) -> SourceCommandResult<()> {
         self.inspect_access(0, 4)?;
         let binding = tos_validation::assessment::AssessmentSchemaBindingV1::SourceCut {
-            source_revision: self.revision(), worker: self.worker.prepared_execution_binding(),
+            source_revision: self.revision(),
+            worker: self.worker.prepared_execution_binding(),
         };
         let recorded_at = self.context.recorded_at.as_str();
         if report.source_revision() != Some(self.revision())
@@ -947,14 +1133,18 @@ impl HeldFrames<'_, '_> {
             || report.schema_binding() != binding
             || !self.text_equal(report.observed_now(), recorded_at)?
         {
-            return Err(SourceCommandError::Conflict("PWE checked evaluation source/worker/time differs"));
+            return Err(SourceCommandError::Conflict(
+                "PWE checked evaluation source/worker/time differs",
+            ));
         }
         let reference = self.claim_reference(target.record())?;
         let scope = self.domain_value(target.scope())?;
         if !self.field_equal(report.current_admission(), "subject", &reference)?
             || !self.equal(report.scope(), &scope)?
         {
-            return Err(SourceCommandError::Conflict("PWE checked evaluation exact subject/scope differs"));
+            return Err(SourceCommandError::Conflict(
+                "PWE checked evaluation exact subject/scope differs",
+            ));
         }
         Ok(())
     }
@@ -966,19 +1156,30 @@ impl HeldFrames<'_, '_> {
         self.verify()?;
         let result = (|| {
             self.check_selected_plan(ticket.target.plan())?;
-            if ticket.target.source_route() != tos_validation::assessment::AssessmentSourceRoute::SourceBoundClaim {
+            if ticket.target.source_route()
+                != tos_validation::assessment::AssessmentSourceRoute::SourceBoundClaim
+            {
                 return Err(invalid("PWE ticket target is not an actual source Claim"));
             }
             ticket.check_frame(self)?;
-            if let Some(parent) = parent.as_ref() { ticket.check_parent(parent, self)?; }
+            if let Some(parent) = parent.as_ref() {
+                ticket.check_parent(parent, self)?;
+            }
             let revision = self.revision();
             let identity = self.source_identity();
             let mut evaluation = HeldPweEvaluation {
-                position: HeldEvaluationPosition::Account(&ticket), target: &ticket.target,
-                parent: parent.as_ref(), histories: self.histories,
-                observed_now: &self.context.recorded_at, source_revision: revision, source_identity: identity,
-                worker: &mut *self.worker, budget: &mut self.budget, whole: self.whole,
-                deadline: self.deadline, cancelled: self.cancelled,
+                position: HeldEvaluationPosition::Account(&ticket),
+                target: &ticket.target,
+                parent: parent.as_ref(),
+                histories: self.histories,
+                observed_now: &self.context.recorded_at,
+                source_revision: revision,
+                source_identity: identity,
+                worker: &mut *self.worker,
+                budget: &mut self.budget,
+                whole: self.whole,
+                deadline: self.deadline,
+                cancelled: self.cancelled,
             };
             // Common owns this agreed closed entry and its private dispatch
             // implementation. No raw generic/PWE exemption or report factory.
@@ -1008,17 +1209,26 @@ impl HeldFrames<'_, '_> {
             let payload = self.native_field(&plan.current, "payload")?;
             let schema = self.native_text(payload, "schema_version")?;
             if !self.text_equal(schema, "tos_human_form_v1")? {
-                return Err(invalid("PWE parent-only loan requires actual ordinary human form"));
+                return Err(invalid(
+                    "PWE parent-only loan requires actual ordinary human form",
+                ));
             }
             let target = plan.current_target();
             let revision = self.revision();
             let identity = self.source_identity();
             let mut evaluation = HeldPweEvaluation {
-                position: HeldEvaluationPosition::FormWithCheckedParent, target: &target,
-                parent: Some(&parent), histories: self.histories,
-                observed_now: &self.context.recorded_at, source_revision: revision, source_identity: identity,
-                worker: &mut *self.worker, budget: &mut self.budget, whole: self.whole,
-                deadline: self.deadline, cancelled: self.cancelled,
+                position: HeldEvaluationPosition::FormWithCheckedParent,
+                target: &target,
+                parent: Some(&parent),
+                histories: self.histories,
+                observed_now: &self.context.recorded_at,
+                source_revision: revision,
+                source_identity: identity,
+                worker: &mut *self.worker,
+                budget: &mut self.budget,
+                whole: self.whole,
+                deadline: self.deadline,
+                cancelled: self.cancelled,
             };
             let result = private_assessment::evaluate_held_pwe_assessment(&mut evaluation);
             drop(evaluation);
