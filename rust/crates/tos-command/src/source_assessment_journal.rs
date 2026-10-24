@@ -3780,4 +3780,33 @@ mod protected_pg_grant_read_admission_tests {
         assert_eq!(trace.events, ["begin", "read", "retain", "read"]);
         assert_eq!(trace.requested, 2 * 65_536);
     }
+
+    #[test]
+    fn actual_original_session_rechecks_current_grant_without_a_second_payer() {
+        use crate::source_native_cli::private_assessment::OperationBudget;
+        use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session;
+        use tos_compiler::pwe_native::Limits;
+        let fixture = Fixture::new();
+        let grant = fixture.selected();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut original = OperationBudget::new(&serde_json::json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}), deadline).unwrap();
+        let limits = Limits {
+            max_input_bytes: 262_144, max_nodes: 32, max_work: 262_144,
+            max_refs: 8, max_depth: 8, max_items: 8,
+            max_state_bytes: 1_048_576, deadline,
+        };
+        let before_work = original.work_remaining;
+        with_original_pwe_session(&mut original, limits, &cancelled, |payer, same| {
+            payer.recheck_current_pg_grant_source(same, &grant)?;
+            assert_eq!(same.charges().0, 2 * 65_536);
+            assert_eq!(same.charges().1, 0);
+            assert_eq!(same.charges().3, 0);
+            assert!(same.has_source_payer(payer));
+            Ok(())
+        }).unwrap();
+        assert_eq!(original.work_remaining, before_work - limits.max_work);
+    }
 }

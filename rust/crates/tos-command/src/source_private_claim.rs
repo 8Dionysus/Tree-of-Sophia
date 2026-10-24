@@ -21,6 +21,10 @@ use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
+#[path = "source_private_claim_current_read.rs"]
+mod current_read;
+pub(crate) use current_read::{CurrentClaimReadScope, with_current_pg_claim_read_scope};
+
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
 pub(crate) const CLAIM_STREAM: &str = "source-claims.jsonl";

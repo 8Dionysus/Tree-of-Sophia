@@ -33,7 +33,7 @@ fn times(a: usize, b: usize) -> Result<usize, Error> {
 /// Vec<String>::push. Global records the requested layout, not allocator RSS.
 /// The already-paid old backing stays live; reserve the WHOLE new backing
 /// before growth and pay its possible old-capacity copy separately.
-fn growth(
+pub(super) fn growth(
     length: usize,
     capacity: usize,
     additional: usize,

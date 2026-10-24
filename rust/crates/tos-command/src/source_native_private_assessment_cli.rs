@@ -35,7 +35,7 @@ use tos_validation::source_cut::{
 };
 
 #[path = "source_native_private_assessment_scope.rs"]
-mod scope_admission;
+pub(crate) mod scope_admission;
 use scope_admission::ScopeAccess;
 
 #[path = "source_native_assessment_payer.rs"]

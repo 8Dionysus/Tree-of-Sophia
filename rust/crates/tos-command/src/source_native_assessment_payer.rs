@@ -15,6 +15,9 @@ use tos_compiler::pwe_native::{Error, Limits, Session, SourceAdmission};
 #[path = "source_original_read_session.rs"]
 pub(crate) mod immutable_read;
 
+#[path = "source_original_protected_read.rs"]
+pub(crate) mod protected_read;
+
 pub(crate) struct OriginalAssessmentPayer<'budget, 'cancel> {
     operation: RefCell<&'budget mut OperationBudget>,
     deadline: Instant,

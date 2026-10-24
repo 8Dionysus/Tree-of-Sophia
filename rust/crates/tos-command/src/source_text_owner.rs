@@ -94,6 +94,31 @@ fn read_held_fd_with_io(
     cancelled: &AtomicBool,
     io: Option<&tos_source_store::PinnedSqliteIoBudget>,
 ) -> SourceCommandResult<Vec<u8>> {
+    read_held_fd_with_policies(file, max, deadline, cancelled, io, None)
+}
+
+/// Original resource port only; the actual owner still selects the FD,
+/// verifies its custody and applies read policy. Work has no input/state proxy.
+pub(crate) trait ProtectedContextReadAdmission:
+    crate::source_creation_store::CreationReadAdmission
+{
+    fn before_protected_context_work(&mut self, bytes: usize) -> SourceCommandResult<()>;
+}
+
+fn read_held_fd_with_policies(
+    file: &File,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    mut admission: Option<&mut dyn ProtectedContextReadAdmission>,
+) -> SourceCommandResult<Vec<u8>> {
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_creation_read(file, crate::source_creation_store::CreationReadStage::Begin {
+            payload_cap: max, scratch_bytes: 65_536,
+        })?;
+        active(deadline, cancelled)?;
+    }
     let mut raw = Vec::new();
     let mut offset = 0u64;
     let mut block = [0u8; 65_536];
@@ -111,6 +136,12 @@ fn read_held_fd_with_io(
             io.charge_read(limit as u64)
                 .map_err(|_| SourceCommandError::Denied("owner-local retained read permit"))?;
         }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(file, crate::source_creation_store::CreationReadStage::Read {
+                requested_bytes: limit,
+            })?;
+            active(deadline, cancelled)?;
+        }
         let count = file
             .read_at(&mut block[..limit], offset)
             .map_err(|_| SourceCommandError::Denied("owner-local retained file read"))?;
@@ -120,6 +151,12 @@ fn read_held_fd_with_io(
         }
         if count == 0 {
             break;
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(file, crate::source_creation_store::CreationReadStage::Retain {
+                length: raw.len(), capacity: raw.capacity(), additional: count,
+            })?;
+            active(deadline, cancelled)?;
         }
         raw.extend_from_slice(&block[..count]);
         offset = offset
@@ -272,6 +309,27 @@ fn verify_held_file_with_optional_io(
     cancelled: &AtomicBool,
     io: Option<&tos_source_store::PinnedSqliteIoBudget>,
 ) -> SourceCommandResult<()> {
+    verify_held_file_with_policies(held, uid, deadline, cancelled, io, None)
+}
+
+pub(crate) fn verify_held_file_with_read_admission(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    admission: &mut dyn ProtectedContextReadAdmission,
+) -> SourceCommandResult<()> {
+    verify_held_file_with_policies(held, uid, deadline, cancelled, None, Some(admission))
+}
+
+fn verify_held_file_with_policies(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    mut admission: Option<&mut dyn ProtectedContextReadAdmission>,
+) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
     let parent_meta = checked_directory(&held.parent, uid, held.confidential)?;
     if identity(&parent_meta) != held.parent_identity {
@@ -302,8 +360,28 @@ fn verify_held_file_with_optional_io(
     let named_current_meta = named_current
         .metadata()
         .map_err(|_| SourceCommandError::Conflict("owner-local file identity changed"))?;
-    let retained_raw = read_held_fd_with_io(&held.file, held.size, deadline, cancelled, io)?;
-    let current_raw = read_held_fd_with_io(&current, held.size, deadline, cancelled, io)?;
+    // Reborrow disjointly for each physical read; neither Result carries the
+    // payer reference and no long mutable operation loan spans these calls.
+    let retained_raw = match admission.as_mut() {
+        Some(payer) => read_held_fd_with_policies(
+            &held.file, held.size, deadline, cancelled, io, Some(&mut **payer),
+        )?,
+        None => read_held_fd_with_io(&held.file, held.size, deadline, cancelled, io)?,
+    };
+    let current_raw = match admission.as_mut() {
+        Some(payer) => read_held_fd_with_policies(
+            &current, held.size, deadline, cancelled, io, Some(&mut **payer),
+        )?,
+        None => read_held_fd_with_io(&current, held.size, deadline, cancelled, io)?,
+    };
+    if let Some(payer) = admission.as_deref_mut() {
+        // Two equality operands and the actual current hash input, paid before
+        // either bulk comparison or Digest256 inspection, not after the hash.
+        let work = retained_raw.len().checked_add(current_raw.len())
+            .and_then(|n| n.checked_add(current_raw.len()))
+            .ok_or(SourceCommandError::Unsupported("held owner byte work overflow"))?;
+        payer.before_protected_context_work(work)?;
+    }
     if held_file_identity(&current_meta) != held.file_identity
         || held_file_identity(&current_meta) != held_file_identity(&named_current_meta)
         || retained_raw != current_raw
@@ -2468,6 +2546,59 @@ impl OwnerTextContext {
         Ok(Digest256::of_bytes(&cmd::canonical(&binding)?))
     }
 
+    /// Actual owner-context rechecks with original physical-read admission.
+    /// No context/scope is constructed from caller JSON and no pinned SQLite
+    /// I/O wallet is manufactured. Legacy verify_context_base is unchanged.
+    /// The caller must still fund outer path/metadata/control/held-owner state.
+    pub(crate) fn verify_context_base_with_read_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn ProtectedContextReadAdmission,
+    ) -> SourceCommandResult<()> {
+        verify_held_file_with_read_admission(
+            &self.configuration_held, self.uid, deadline, cancelled, admission,
+        )?;
+        if let Some(schema) = &self.schema_held {
+            verify_held_file_with_read_admission(schema, self.uid, deadline, cancelled, admission)?;
+        }
+        {
+            let configuration = read_held_fd_with_policies(
+                &self.configuration_held.file, MAX_CONTEXT_BYTES,
+                deadline, cancelled, None, Some(&mut *admission),
+            )?;
+            let comparison = configuration.len().checked_add(self.configuration_raw.len())
+                .ok_or(SourceCommandError::Unsupported("owner configuration comparison overflow"))?;
+            admission.before_protected_context_work(comparison)?;
+            if configuration != self.configuration_raw {
+                return Err(SourceCommandError::Conflict("owner-local configuration or contract changed"));
+            }
+        }
+        if let Some(schema) = &self.schema_held {
+            // Propagate the actual admission/I/O error. The legacy is_some_and
+            // branch intentionally remains legacy; this new route cannot map
+            // an original resource refusal into a generic conflict.
+            let raw = read_held_fd_with_policies(
+                &schema.file, MAX_CONTEXT_BYTES, deadline, cancelled, None, Some(&mut *admission),
+            )?;
+            let comparison = raw.len().checked_add(self.schema_raw.len())
+                .ok_or(SourceCommandError::Unsupported("owner schema comparison overflow"))?;
+            admission.before_protected_context_work(comparison)?;
+            if raw != self.schema_raw {
+                return Err(SourceCommandError::Conflict("owner-local configuration or contract changed"));
+            }
+        }
+        let public = self.public_root_handle()?;
+        let private = self.private_root_handle()?;
+        if identity(&checked_directory(&public, self.uid, false)?) != self.public_identity
+            || identity(&checked_directory(&private, self.uid, true)?) != self.private_identity
+            || self.public_root.join(OWNER_HOME.trim_end_matches('/')).symlink_metadata().is_ok()
+        {
+            return Err(SourceCommandError::Conflict("owner-local context root changed"));
+        }
+        Ok(())
+    }
+
     fn verify_context_base(
         &self,
         deadline: Instant,
@@ -2545,5 +2676,116 @@ impl crate::source_sign_native::SignNativeRead for OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<String>> {
         Ok(Some(self.snapshot(deadline, cancelled)?.to_prefixed()))
+    }
+}
+
+
+#[cfg(test)]
+mod original_owner_context_read_tests {
+    use super::*;
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session;
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use tos_compiler::pwe_native::Limits;
+
+    // Real held FD/root mechanics fixture only. It bypasses the schema
+    // selector in TEST code and therefore proves no production context,
+    // authority, grant, selected PG identity or semantic eligibility.
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "tos-original-owner-context-{}-{stamp}", std::process::id(),
+            ));
+            std::fs::DirBuilder::new().mode(0o700).create(&path).unwrap();
+            for name in ["public", "private"] {
+                std::fs::DirBuilder::new().mode(0o700).create(path.join(name)).unwrap();
+            }
+            use std::io::Write;
+            for name in ["config", "schema"] {
+                let mut file = std::fs::OpenOptions::new().write(true).create_new(true)
+                    .mode(0o600).open(path.join(name)).unwrap();
+                file.write_all(b"{}").unwrap();
+            }
+            Self(path)
+        }
+        fn context(&self, deadline: Instant, cancelled: &AtomicBool) -> OwnerTextContext {
+            let uid = rustix::process::getuid().as_raw();
+            let (configuration_held, configuration_raw) = select_held_file(
+                &self.0.join("config"), uid, true, MAX_CONTEXT_BYTES, deadline, cancelled,
+            ).unwrap();
+            let (schema_held, schema_raw) = select_held_file(
+                &self.0.join("schema"), uid, true, MAX_CONTEXT_BYTES, deadline, cancelled,
+            ).unwrap();
+            let public = File::open(self.0.join("public")).unwrap();
+            let private = File::open(self.0.join("private")).unwrap();
+            OwnerTextContext {
+                configuration_path: self.0.join("config"), configuration_raw, configuration_held,
+                schema_raw, schema_held: Some(schema_held),
+                public_root: self.0.join("public"), private_root: self.0.join("private"),
+                private_prefix: "ToS/source-witnesses/owner-local/fixture/".to_owned(),
+                public_identity: identity(&public.metadata().unwrap()),
+                private_identity: identity(&private.metadata().unwrap()),
+                public_root_file: public, private_root_file: private, uid,
+                held_reads: RefCell::new(BTreeMap::new()),
+                pg_selected_members: RefCell::new(None),
+                pg_publication: RefCell::new(None), pg_identity_snapshot: RefCell::new(None),
+            }
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+    }
+    fn budget(deadline: Instant) -> OperationBudget {
+        OperationBudget::new(&serde_json::json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}), deadline).unwrap()
+    }
+    fn limits(deadline: Instant) -> Limits {
+        Limits {
+            max_input_bytes: 524_288, max_nodes: 32, max_work: 524_288,
+            max_refs: 8, max_depth: 8, max_items: 8,
+            max_state_bytes: 1_048_576, deadline,
+        }
+    }
+    #[test]
+    fn original_owner_context_prices_all_six_actual_fd_reads_and_hashes() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = fixture.context(deadline, &cancelled);
+        let mut original = budget(deadline);
+        with_original_pwe_session(&mut original, limits(deadline), &cancelled, |payer, same| {
+            payer.recheck_owner_context_source(same, &owner)?;
+            // Each retained/current2B read requests3+1. The final independent
+            // config/schema rereads use the real1MiB cap and request65536 twice.
+            assert_eq!(same.charges().0, 4 * (3 + 1) + 4 * 65_536);
+            assert_eq!(same.charges().1, 0);
+            assert!(same.charges().2 > same.charges().0, "hash/compare work is separately paid");
+            assert_eq!(same.charges().3, 0);
+            assert!(same.has_source_payer(payer));
+            Ok(())
+        }).unwrap();
+    }
+    #[test]
+    fn original_schema_reread_refusal_is_not_masked_as_context_conflict() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = fixture.context(deadline, &cancelled);
+        let mut original = budget(deadline);
+        let mut limited = limits(deadline);
+        // Allow both held-file double rereads and final config reread, then
+        // refuse specifically the final schema read formerly inside is_some_and.
+        limited.max_input_bytes = 4 * (3 + 1) + 2 * 65_536;
+        let result = with_original_pwe_session(&mut original, limited, &cancelled, |payer, same| {
+            let body = payer.recheck_owner_context_source(same, &owner);
+            assert_eq!(same.charges().0, limited.max_input_bytes);
+            assert!(matches!(&body, Err(SourceCommandError::Unsupported("PWE Assessment Session exhausted"))));
+            body
+        });
+        assert!(matches!(result, Err(SourceCommandError::Unsupported("PWE Assessment Session exhausted"))));
     }
 }
