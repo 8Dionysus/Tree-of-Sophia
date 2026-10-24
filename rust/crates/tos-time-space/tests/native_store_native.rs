@@ -147,12 +147,18 @@ fn remaining_parent_reservation_keeps_original_spent_prefix() {
     original.source_read(1, 13).unwrap();
     let next = original.remaining_allowance().unwrap();
     assert_eq!(next.domain.max_work, first.domain.max_work - 20);
-    assert_eq!(next.domain.max_requested_bytes, first.domain.max_requested_bytes - 11);
+    assert_eq!(
+        next.domain.max_requested_bytes,
+        first.domain.max_requested_bytes - 11
+    );
     assert_eq!(next.domain.max_items, first.domain.max_items - 1);
     assert_eq!(next.max_source_files, first.max_source_files - 1);
     assert_eq!(next.max_source_bytes, first.max_source_bytes - 13);
     assert_eq!(next.deadline, first.deadline);
-    assert!(matches!(original.work(usize::MAX), Err(DomainError::ResourceLimit)));
+    assert!(matches!(
+        original.work(usize::MAX),
+        Err(DomainError::ResourceLimit)
+    ));
     let after_failure = original.remaining_allowance().unwrap();
     assert_eq!(after_failure.domain.max_work, next.domain.max_work);
     assert_eq!(original.usage().work, 20);

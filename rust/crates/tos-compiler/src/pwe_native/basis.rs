@@ -107,7 +107,8 @@ impl<'a> Session<'a> {
         Ok(session)
     }
     pub fn has_source_payer(&self, payer: &dyn SourceAdmission) -> bool {
-        self.source_admission.is_some_and(|actual| std::ptr::addr_eq(actual, payer))
+        self.source_admission
+            .is_some_and(|actual| std::ptr::addr_eq(actual, payer))
     }
     /// Only the current remainder is exposed; no setter, reset or new payer.
     pub fn source_allowance(&self) -> Result<SourceAllowance> {
@@ -116,10 +117,26 @@ impl<'a> Session<'a> {
             return Err(Error::NeedsBinding("original source payer"));
         }
         Ok(SourceAllowance {
-            input_bytes: self.limits.max_input_bytes.checked_sub(self.bytes).ok_or(Error::ResourceLimit)?,
-            nodes: self.limits.max_nodes.checked_sub(self.nodes).ok_or(Error::ResourceLimit)?,
-            work: self.limits.max_work.checked_sub(self.work).ok_or(Error::ResourceLimit)?,
-            state_bytes: self.limits.max_state_bytes.checked_sub(self.state).ok_or(Error::ResourceLimit)?,
+            input_bytes: self
+                .limits
+                .max_input_bytes
+                .checked_sub(self.bytes)
+                .ok_or(Error::ResourceLimit)?,
+            nodes: self
+                .limits
+                .max_nodes
+                .checked_sub(self.nodes)
+                .ok_or(Error::ResourceLimit)?,
+            work: self
+                .limits
+                .max_work
+                .checked_sub(self.work)
+                .ok_or(Error::ResourceLimit)?,
+            state_bytes: self
+                .limits
+                .max_state_bytes
+                .checked_sub(self.state)
+                .ok_or(Error::ResourceLimit)?,
             depth: self.limits.max_depth,
         })
     }
@@ -152,12 +169,16 @@ impl<'a> Session<'a> {
     pub(super) fn state(&mut self, n: usize) -> Result<()> {
         self.check()?;
         add(&mut self.state, n, self.limits.max_state_bytes)?;
-        if let Some(payer) = self.source_admission { payer.retain(n)?; }
+        if let Some(payer) = self.source_admission {
+            payer.retain(n)?;
+        }
         Ok(())
     }
     fn source_read(&self, n: usize) -> Result<()> {
         self.check()?;
-        if let Some(payer) = self.source_admission { payer.inspect(n)?; }
+        if let Some(payer) = self.source_admission {
+            payer.inspect(n)?;
+        }
         Ok(())
     }
     fn input(&mut self, n: usize) -> Result<()> {
@@ -222,7 +243,12 @@ impl<'a> Session<'a> {
                 }
                 for (k, v) in a {
                     self.tick(k.len().checked_mul(b.len()).ok_or(Error::ResourceLimit)?)?;
-                    self.source_read(k.len().checked_mul(b.len()).and_then(|n| n.checked_mul(2)).ok_or(Error::ResourceLimit)?)?;
+                    self.source_read(
+                        k.len()
+                            .checked_mul(b.len())
+                            .and_then(|n| n.checked_mul(2))
+                            .ok_or(Error::ResourceLimit)?,
+                    )?;
                     let Some(w) = b.get(k) else { return Ok(false) };
                     if !self.equal(v, w)? {
                         return Ok(false);
@@ -324,7 +350,11 @@ impl<'a> Session<'a> {
                     .checked_add(k.len() + 1)
                     .ok_or(Error::ResourceLimit)?,
             )?;
-            self.source_read(key.len().checked_add(k.len() + 1).ok_or(Error::ResourceLimit)?)?;
+            self.source_read(
+                key.len()
+                    .checked_add(k.len() + 1)
+                    .ok_or(Error::ResourceLimit)?,
+            )?;
         }
         obj.get(k).ok_or(Error::Malformed("missing field"))
     }

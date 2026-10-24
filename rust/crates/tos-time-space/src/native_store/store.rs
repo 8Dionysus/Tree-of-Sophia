@@ -343,14 +343,22 @@ impl<'a> NativeTsStore<'a> {
         let result = (|| {
             self.fence()?;
             {
-                let mut budget = self.budget.try_borrow_mut()
+                let mut budget = self
+                    .budget
+                    .try_borrow_mut()
                     .map_err(|_| DomainError::ResourceLimit)?;
-                let declared = wire(field(run.as_json(), "selection_ref", &mut budget)?, &mut budget)?;
+                let declared = wire(
+                    field(run.as_json(), "selection_ref", &mut budget)?,
+                    &mut budget,
+                )?;
                 budget.exact(&self.selection.selection_ref)?;
                 if declared.id != self.selection.selection_ref.id.as_str()
                     || declared.version != self.selection.selection_ref.version.get()
-                    || declared.digest != self.selection.selection_ref.digest {
-                    return Err(DomainError::Incompatible("K0 run and native TS source selection differ"));
+                    || declared.digest != self.selection.selection_ref.digest
+                {
+                    return Err(DomainError::Incompatible(
+                        "K0 run and native TS source selection differ",
+                    ));
                 }
                 budget.reserve_checker(limits.local)?;
             }

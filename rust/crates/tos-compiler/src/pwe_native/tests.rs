@@ -29,21 +29,49 @@ fn session(cancel: &AtomicBool) -> Session<'_> {
 fn source_session_keeps_original_admission_and_spent_prefixes() {
     use std::cell::Cell;
     // Numerical accounting only: no source/owner/frame/assessment fixture.
-    struct NumericSource { read: Cell<usize>, live: Cell<usize> }
+    struct NumericSource {
+        read: Cell<usize>,
+        live: Cell<usize>,
+    }
     impl SourceAdmission for NumericSource {
         fn inspect(&self, bytes: usize) -> Result<()> {
-            self.read.set(self.read.get().checked_sub(bytes).ok_or(Error::ResourceLimit)?);
+            self.read.set(
+                self.read
+                    .get()
+                    .checked_sub(bytes)
+                    .ok_or(Error::ResourceLimit)?,
+            );
             Ok(())
         }
         fn retain(&self, bytes: usize) -> Result<()> {
-            self.live.set(self.live.get().checked_sub(bytes).ok_or(Error::ResourceLimit)?);
+            self.live.set(
+                self.live
+                    .get()
+                    .checked_sub(bytes)
+                    .ok_or(Error::ResourceLimit)?,
+            );
             Ok(())
         }
     }
     let cancel = AtomicBool::new(false);
-    let payer = NumericSource { read: Cell::new(5), live: Cell::new(2) };
-    let other = NumericSource { read: Cell::new(5), live: Cell::new(2) };
-    let limits = Limits { max_input_bytes: 100, max_nodes: 100, max_work: 100, max_refs: 10, max_depth: 4, max_items: 10, max_state_bytes: 100, deadline: Instant::now() + Duration::from_secs(30) };
+    let payer = NumericSource {
+        read: Cell::new(5),
+        live: Cell::new(2),
+    };
+    let other = NumericSource {
+        read: Cell::new(5),
+        live: Cell::new(2),
+    };
+    let limits = Limits {
+        max_input_bytes: 100,
+        max_nodes: 100,
+        max_work: 100,
+        max_refs: 10,
+        max_depth: 4,
+        max_items: 10,
+        max_state_bytes: 100,
+        deadline: Instant::now() + Duration::from_secs(30),
+    };
     let mut source = Session::new_source(limits, &cancel, &payer).unwrap();
     assert!(source.has_source_payer(&payer));
     assert!(!source.has_source_payer(&other));

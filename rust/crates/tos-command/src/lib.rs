@@ -59,8 +59,6 @@ pub mod source_metadata_publication;
 mod source_metadata_publication_assembly;
 pub mod source_native_cli;
 pub(crate) mod source_native_roles;
-#[path = "../../tos-time-space/src/native_store/integration/source_ts_native_owner.rs"]
-pub(crate) mod source_ts_native_owner;
 pub mod source_navigation_bootstrap;
 mod source_navigation_claim_input;
 mod source_navigation_claim_selection;
@@ -71,6 +69,8 @@ pub mod source_navigation_query;
 mod source_navigation_record_input;
 pub mod source_projection_cli;
 pub mod source_search_projection;
+#[path = "../../tos-time-space/src/native_store/integration/source_ts_native_owner.rs"]
+pub(crate) mod source_ts_native_owner;
 pub mod temporal_chronology;
 pub mod temporal_chronology_list;
 pub mod temporal_chronology_projection;

@@ -105,9 +105,12 @@ impl<'a> NativeTsSession<'a> {
         out.domain.max_items -= self.used.items;
         out.max_source_files -= self.source_files;
         out.max_source_bytes -= self.source_bytes;
-        if out.domain.max_work == 0 || out.domain.max_requested_bytes == 0
-            || out.domain.max_items == 0 || out.max_source_files == 0
-            || out.max_source_bytes == 0 {
+        if out.domain.max_work == 0
+            || out.domain.max_requested_bytes == 0
+            || out.domain.max_items == 0
+            || out.max_source_files == 0
+            || out.max_source_bytes == 0
+        {
             return Err(DomainError::ResourceLimit);
         }
         Ok(out)
