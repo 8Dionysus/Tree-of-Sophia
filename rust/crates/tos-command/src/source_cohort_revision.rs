@@ -17,6 +17,13 @@ mod query_data;
 const FRESHNESS_SETUP_SQL: &str = "SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'";
 const FRESHNESS_AUDIT_SQL: &str = "SELECT generation,maintenance_state FROM cmd2_audit_fence
              WHERE domain=$1 FOR SHARE";
+// Use the actual binary type sender, including character padding and the
+// connection's encoding conversion. Keep its row lock until the following
+// full domain-row query finishes; a byte envelope from another cut is invalid.
+const FRESHNESS_DOMAIN_LENGTHS_SQL: &str = "SELECT
+             COALESCE(octet_length(pg_catalog.bpcharsend(source_definition_digest)),0),
+             COALESCE(octet_length(pg_catalog.bpcharsend(contract_digest)),0)
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE";
 const FRESHNESS_DOMAIN_SQL: &str = "SELECT source_definition_digest,rights_allowed,source_complete,
                     rights_version,rule_version,head_seq,source_generation,
                     source_epoch,contract_digest
@@ -3501,11 +3508,31 @@ impl SourceRevisionReadSession<'_> {
         }
         let fence = tx.query_one(FRESHNESS_AUDIT_SQL, &[&self.selection.cohort.domain])?;
         if let Some(budget) = budget.as_deref_mut() {
+            // Fetch only two int4 lengths first. No digest string/body enters
+            // the client until its complete sender payload is paid. This is
+            // the SAME transaction and domain row lock as the full read.
+            query_data::statement(
+                budget,
+                FRESHNESS_DOMAIN_LENGTHS_SQL,
+                &[self.selection.cohort.domain.len()],
+                query_data::RowShape::DomainLengths,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+            let lengths = tx.query_one(
+                FRESHNESS_DOMAIN_LENGTHS_SQL,
+                &[&self.selection.cohort.domain],
+            )?;
+            let definition_bytes = usize::try_from(lengths.get::<_, i32>(0))
+                .map_err(|_| DurableError::Corrupt("source definition sender length"))?;
+            let contract_bytes = usize::try_from(lengths.get::<_, i32>(1))
+                .map_err(|_| DurableError::Corrupt("source contract sender length"))?;
             query_data::statement(
                 budget,
                 FRESHNESS_DOMAIN_SQL,
                 &[self.selection.cohort.domain.len()],
-                query_data::RowShape::Domain,
+                query_data::RowShape::domain(definition_bytes, contract_bytes),
                 deadline,
                 cancelled,
             )

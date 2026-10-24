@@ -16,55 +16,44 @@ fn mul(a: usize, b: usize) -> SourceCommandResult<usize> {
     a.checked_mul(b).ok_or_else(exhausted)
 }
 
-// PostgreSQL char(64) counts characters, not encoded bytes. Even a malformed
-// non-ASCII digest must be transferred before parse_hex can refuse it. A UTF-8
-// scalar occupies at most four bytes; do not assume a private writer emitted
-// lowercase ASCII merely from the column's char(64) declaration.
-const CHAR64_UTF8_MAX_BYTES: usize = 64 * 4;
-
-/// The real Row payload shapes from durable_schema.sql: bigint8, bool1,
-/// char(64)<=256 UTF-8 bytes and normal/active maintenance_state (max6).
+/// Payloads of the selected binary queries, not a private-writer promise.
+/// Domain digest lengths come from the actual bpcharsend envelope under the
+/// same row lock before the full row is fetched. char(64) is NOT byte64.
 /// Null fields need no more payload. This is not a configurable source grant.
 pub(super) enum RowShape {
     None,
     Audit,
-    Domain,
+    DomainLengths,
+    Domain([usize; 9]),
     Job,
 }
 impl RowShape {
-    fn fields(&self) -> &'static [usize] {
+    pub(super) fn domain(definition_bytes: usize, contract_bytes: usize) -> Self {
+        Self::Domain([definition_bytes, 1, 1, 8, 8, 8, 8, 8, contract_bytes])
+    }
+    fn fields(&self) -> &[usize] {
         match self {
             Self::None => &[],
             Self::Audit => &[8, 6],
-            Self::Domain => &[
-                CHAR64_UTF8_MAX_BYTES,
-                1,
-                1,
-                8,
-                8,
-                8,
-                8,
-                8,
-                CHAR64_UTF8_MAX_BYTES,
-            ],
+            Self::DomainLengths => &[4, 4],
+            Self::Domain(fields) => fields,
             Self::Job => &[8],
         }
     }
-    fn decoded(&self) -> (usize, usize) {
-        match self {
-            // Actual get::<String> copies, plus two expected digest hex
-            // Strings in the domain comparisons. No post-query measurement.
+    fn decoded(&self) -> SourceCommandResult<(usize, usize)> {
+        Ok(match self {
             Self::Audit => (6, 1),
-            // source_definition_digest is copied twice, contract_digest once;
-            // the two expected Digest256::to_hex values are always ASCII64.
-            Self::Domain => (3 * CHAR64_UTF8_MAX_BYTES + 2 * 64, 5),
-            Self::None | Self::Job => (0, 0),
-        }
+            // The real caller copies definition twice and contract once.
+            // Only the two expected Digest256::to_hex values are ASCII64.
+            Self::Domain(fields) => (add(add(mul(2, fields[0])?, fields[8])?, 2 * 64)?, 5),
+            Self::None | Self::DomainLengths | Self::Job => (0, 0),
+        })
     }
 }
 
-/// Reserve actual inline transaction/three returned Row carriers before BEGIN,
-/// and all three possible transaction-control SQL inputs before cleanup can
+/// Reserve the actual transaction/four Row carriers and five statement-shape
+/// holders before BEGIN, plus the two decoded length scalars. Also reserve
+/// all three possible transaction-control SQL inputs before cleanup can
 /// be needed. No claimed bound for foreign driver-owned error payloads.
 pub(super) fn begin(
     budget: &mut OperationBudget,
@@ -79,7 +68,13 @@ pub(super) fn begin(
     }
     let carriers = add(
         size_of::<postgres::Transaction<'_>>(),
-        mul(3, size_of::<postgres::Row>())?,
+        add(
+            mul(4, size_of::<postgres::Row>())?,
+            add(
+                mul(5, size_of::<RowShape>())?,
+                mul(2, size_of::<i32>() + size_of::<usize>())?,
+            )?,
+        )?,
     )?;
     let transaction_sql = add(
         add("START TRANSACTION".len(), "COMMIT".len())?,
@@ -120,7 +115,7 @@ pub(super) fn statement(
             size_of::<Option<Range<usize>>>(),
         )?
     };
-    let (decoded_bytes, decoded_strings) = shape.decoded();
+    let (decoded_bytes, decoded_strings) = shape.decoded()?;
     let holders = add(
         add(data_row, ranges)?,
         add(decoded_bytes, mul(decoded_strings, size_of::<String>())?)?,
@@ -137,16 +132,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn digest_row_quote_covers_non_ascii_char64_before_hex_refusal() {
+    fn digest_row_quote_uses_sender_bytes_before_hex_refusal() {
         let field = "\u{1f642}".repeat(64);
         assert_eq!(field.chars().count(), 64);
         assert_eq!(field.len(), 256);
         assert!(tos_foundation::Digest256::from_hex(&field).is_err());
-        let fields = RowShape::Domain.fields();
-        assert!(fields[0] >= field.len());
-        assert!(fields[8] >= field.len());
-        let (copies, strings) = RowShape::Domain.decoded();
+        let shape = RowShape::domain(field.len(), field.len());
+        let fields = shape.fields();
+        assert_eq!(fields[0], field.len());
+        assert_eq!(fields[8], field.len());
+        let (copies, strings) = shape.decoded().unwrap();
         assert!(copies >= 3 * field.len() + 2 * 64);
         assert_eq!(strings, 5);
+        // The actual sender envelope, not a character-count heuristic,
+        // supplies these lengths. Never clamp a larger observation to 256.
+        let converted = RowShape::domain(384, 384);
+        assert_eq!(converted.fields()[0], 384);
+        assert_eq!(converted.fields()[8], 384);
+        assert_eq!(converted.decoded().unwrap(), (3 * 384 + 2 * 64, 5));
+        assert!(RowShape::domain(usize::MAX, 1).decoded().is_err());
     }
 }
