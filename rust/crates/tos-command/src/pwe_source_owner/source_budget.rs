@@ -430,4 +430,61 @@ mod assessment_payer_tests {
         // cannot turn that refused operation into a successful continuation.
         assert!(original.limits().is_err());
     }
+
+    #[test]
+    fn work_only_uses_prepaid_work_and_keeps_original_error_and_sticky_finish() {
+        for lane in 0..3 {
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let cancelled = AtomicBool::new(false);
+            let mut original = OperationBudget::new(&serde_json::json!({"budgets": {
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}), deadline).unwrap();
+            let selected = Limits {
+                max_input_bytes: 128, max_nodes: 16, max_work: 64, max_refs: 8,
+                max_depth: 8, max_items: 8, max_state_bytes: 128, deadline,
+            };
+            let result = with_original_pwe_session(&mut original, selected, &cancelled, |payer, session| {
+                let before = payer.remaining()?;
+                session.admit_source_work(3).map_err(|e| payer.error(e))?;
+                session.admit_source_work(5).map_err(|e| payer.error(e))?;
+                assert_eq!(session.charges(), (0, 0, 8, 0, 0));
+                let after = payer.remaining()?;
+                // Work was already reserved ONCE at the real operation entry.
+                assert_eq!((after.bytes, after.work), (before.bytes, before.work));
+                let error = if lane == 2 {
+                    payer.with_operation(|operation| {
+                        let work = operation.limits()?.max_work;
+                        operation.lower_remaining(1, work)
+                    })?;
+                    // Actual byte refusal supplies an original error by value;
+                    // preceding work-only calls must not consume or replace it.
+                    session.admit_source_prefix(2, 1).unwrap_err()
+                } else {
+                    let spent = session.charges();
+                    let error = session.admit_source_work(57).unwrap_err();
+                    assert_eq!(error, Error::ResourceLimit);
+                    assert_eq!(session.charges(), spent);
+                    error
+                };
+                let mapped = payer.error(error);
+                if lane == 1 {
+                    drop(mapped); // swallowed mapped work refusal stays sticky
+                    Ok(())
+                } else {
+                    Err::<(), _>(mapped) // actual finish preserves original body Err
+                }
+            });
+            match lane {
+                0 => assert!(matches!(result, Err(SourceCommandError::Unsupported(
+                    "PWE Assessment Session exhausted"
+                )))),
+                1 => assert!(matches!(result, Err(SourceCommandError::Unsupported(
+                    "original Assessment payer resource refusal persists"
+                )))),
+                _ => assert!(matches!(result, Err(SourceCommandError::Invalid(
+                    "assessment cumulative byte budget"
+                )))),
+            }
+        }
+    }
 }

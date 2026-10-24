@@ -153,6 +153,14 @@ impl<'a> Session<'a> {
         self.input(bytes)?;
         add(&mut self.nodes, visits, self.limits.max_nodes)
     }
+    /// Work only on this cumulative SOURCE Session. Original work funding is
+    /// caller-owned; this never converts work into input/state/nodes/refs or
+    /// invokes a byte-admission callback. The caller preserves refusal through
+    /// its original payer mapping, as for the other Session operations.
+    pub fn admit_source_work(&mut self, work: usize) -> Result<()> {
+        self.source_allowance()?;
+        self.tick(work)
+    }
     pub fn retain_source_state(&mut self, bytes: usize) -> Result<()> {
         self.source_allowance()?;
         self.state(bytes)
@@ -796,5 +804,94 @@ impl<'a> PweRef<'a> {
     }
     pub fn digest(self) -> Digest256 {
         self.digest
+    }
+}
+
+#[cfg(test)]
+mod source_work_tests {
+    use super::*;
+    use std::{cell::Cell, time::Duration};
+
+    // Resource observations only; no native owner, record or authority.
+    #[derive(Default)]
+    struct ByteProbe {
+        input: Cell<usize>,
+        state: Cell<usize>,
+    }
+    impl SourceAdmission for ByteProbe {
+        fn inspect(&self, n: usize) -> Result<()> {
+            self.input.set(self.input.get() + n);
+            Ok(())
+        }
+        fn retain(&self, n: usize) -> Result<()> {
+            self.state.set(self.state.get() + n);
+            Ok(())
+        }
+    }
+    fn limits() -> Limits {
+        Limits {
+            max_input_bytes: 8, max_nodes: 1, max_work: 16, max_refs: 1,
+            max_depth: 8, max_items: 1, max_state_bytes: 4,
+            deadline: Instant::now() + Duration::from_secs(30),
+        }
+    }
+
+    #[test]
+    fn work_only_keeps_currencies_and_cumulative_prefix_separate() {
+        let cancelled = AtomicBool::new(false);
+        let payer = ByteProbe::default();
+        let mut s = Session::new_source(limits(), &cancelled, &payer).unwrap();
+        s.admit_source_prefix(8, 1).unwrap(); // input and semantic nodes exhausted
+        s.retain_source_state(4).unwrap();
+        s.refs = 1; // private test setup: exhaust independent reference currency
+        let before = s.charges();
+        s.admit_source_work(5).unwrap();
+        s.admit_source_work(2).unwrap();
+        s.admit_source_work(0).unwrap();
+        assert_eq!(s.charges(), (before.0, before.1, before.2 + 7, before.3, before.4));
+        assert_eq!((payer.input.get(), payer.state.get()), (8, 4));
+        let spent = s.charges();
+        assert_eq!(s.admit_source_work(1), Err(Error::ResourceLimit));
+        assert_eq!(s.admit_source_work(usize::MAX), Err(Error::ResourceLimit));
+        assert_eq!(s.charges(), spent); // neither refund nor partial failed add
+        assert_eq!((payer.input.get(), payer.state.get()), (8, 4));
+    }
+
+    #[test]
+    fn work_only_requires_source_mode_and_both_cutoffs_even_for_zero() {
+        let cancelled = AtomicBool::new(false);
+        let mut plain = Session::new(limits(), &cancelled).unwrap();
+        let before = plain.charges();
+        assert_eq!(plain.admit_source_work(0), Err(Error::NeedsBinding("original source payer")));
+        assert_eq!(plain.charges(), before);
+        let payer = ByteProbe::default();
+        let mut s = Session::new_source(limits(), &cancelled, &payer).unwrap();
+        cancelled.store(true, Ordering::Relaxed);
+        assert_eq!(s.admit_source_work(0), Err(Error::Cancelled));
+        assert_eq!(s.charges(), (0, 0, 0, 0, 0));
+        // Independent expired-deadline case, without a sleep or a public reset.
+        let other_cancelled = AtomicBool::new(false);
+        let mut expired = Session::new_source(limits(), &other_cancelled, &payer).unwrap();
+        expired.limits.deadline = Instant::now();
+        assert_eq!(expired.admit_source_work(0), Err(Error::Deadline));
+        assert_eq!(expired.charges(), (0, 0, 0, 0, 0));
+        assert_eq!((payer.input.get(), payer.state.get()), (0, 0));
+    }
+
+    #[test]
+    fn work_only_cannot_fit_strictly_more_than_four_times_one_mib() {
+        // Numeric capacity bound only; no frame allocation or production profile.
+        let cancelled = AtomicBool::new(false);
+        let payer = ByteProbe::default();
+        let n = 1_048_576usize;
+        let mut selected = limits();
+        selected.max_work = 4_194_304;
+        let mut s = Session::new_source(selected, &cancelled, &payer).unwrap();
+        assert_eq!(s.admit_source_work(4 * n + 1), Err(Error::ResourceLimit));
+        assert_eq!(s.charges(), (0, 0, 0, 0, 0));
+        s.admit_source_work(4 * n).unwrap();
+        assert_eq!(s.admit_source_work(1), Err(Error::ResourceLimit));
+        assert_eq!(s.charges(), (0, 0, 4_194_304, 0, 0));
+        assert_eq!((payer.input.get(), payer.state.get()), (0, 0));
     }
 }
