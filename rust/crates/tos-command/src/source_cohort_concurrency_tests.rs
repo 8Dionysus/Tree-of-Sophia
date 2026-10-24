@@ -1044,7 +1044,7 @@ fn selected_pg_payload_loan_reads_each_member_once_and_fences_body_and_success_e
                                         let unselected = RelativePath::parse(
                                     "ToS/contracts/semantic-entity-type-registry.schema.json"
                                 ).unwrap();
-                                        assert!(matches!(loan.with_bytes(&unselected, |_, _| {
+                                        assert!(matches!(loan.with_bytes(&unselected, |_, _| -> std::result::Result<(), DurableError> {
                                     panic!("existing but unselected payload must not be exposed")
                                 }), Err(DurableError::Refused(
                                     "PG payload path outside selected loan"
