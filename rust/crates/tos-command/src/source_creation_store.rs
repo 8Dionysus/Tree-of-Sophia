@@ -379,6 +379,23 @@ pub(crate) enum ReadLength {
     Exact(usize),
 }
 
+/// Internal prospective-payment seam; no grant, allowance or refund is created.
+/// The caller pre-admits the callback and its carriers before entering this API.
+pub(crate) enum CreationReadStage {
+    Begin { payload_cap: usize, scratch_bytes: usize },
+    Read { requested_bytes: usize },
+    Retain { length: usize, capacity: usize, additional: usize },
+}
+pub(crate) trait CreationReadAdmission {
+    /// Inspect/admit only. Do not read, seek, replace or retain this descriptor.
+    /// Every successful payment stays spent if this or any later step fails.
+    fn before_creation_read(
+        &mut self,
+        descriptor: &File,
+        stage: CreationReadStage,
+    ) -> SourceCommandResult<()>;
+}
+
 pub(crate) fn raw(
     file: &mut File,
     cap: usize,
@@ -393,6 +410,16 @@ pub(crate) fn raw_with_length_limit(
     length: ReadLength,
     deadline: Instant,
     cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    raw_with_length_limit_and_admission(file, length, deadline, cancelled, None)
+}
+
+pub(crate) fn raw_with_length_limit_and_admission(
+    file: &mut File,
+    length: ReadLength,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut admission: Option<&mut dyn CreationReadAdmission>,
 ) -> SourceCommandResult<Vec<u8>> {
     let cap = match length {
         ReadLength::Legacy(cap) | ReadLength::AtMost(cap) | ReadLength::Exact(cap) => cap,
@@ -412,10 +439,22 @@ pub(crate) fn raw_with_length_limit(
             ));
         }
     }
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_creation_read(file, CreationReadStage::Begin {
+            payload_cap: cap, scratch_bytes: 65536,
+        })?;
+        active(deadline, cancelled)?;
+    }
     let mut bytes = Vec::new();
     let mut buffer = [0u8; 65536];
     loop {
         active(deadline, cancelled)?;
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(file, CreationReadStage::Read {
+                requested_bytes: buffer.len(),
+            })?;
+            active(deadline, cancelled)?;
+        }
         let n = file
             .read(&mut buffer)
             .map_err(|_| SourceCommandError::Invalid("creation descriptor read"))?;
@@ -429,6 +468,12 @@ pub(crate) fn raw_with_length_limit(
                 }
                 _ => SourceCommandError::Invalid("creation read exceeds byte budget"),
             });
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(file, CreationReadStage::Retain {
+                length: bytes.len(), capacity: bytes.capacity(), additional: n,
+            })?;
+            active(deadline, cancelled)?;
         }
         bytes.extend_from_slice(&buffer[..n]);
     }
@@ -5434,3 +5479,91 @@ pub(crate) use work_expression::{
 
 #[path = "source_read_filesystem.rs"]
 pub(crate) mod source_read_filesystem;
+
+#[cfg(test)]
+mod prospective_publication_raw_fixtures {
+    use super::*;
+    use std::io::Seek;
+    use std::sync::atomic::AtomicBool;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    // Synthetic chronological trace only; this does not issue a real payer,
+    // budget, authority or source/currentness certificate.
+    struct Trace {
+        calls: Vec<&'static str>,
+        requested: usize,
+        refuse_begin: bool,
+        grow_once: Option<File>,
+    }
+    impl CreationReadAdmission for Trace {
+        fn before_creation_read(
+            &mut self,
+            _descriptor: &File,
+            stage: CreationReadStage,
+        ) -> SourceCommandResult<()> {
+            match stage {
+                CreationReadStage::Begin { payload_cap, scratch_bytes } => {
+                    assert_eq!(payload_cap, 8192);
+                    assert_eq!(scratch_bytes, 65536);
+                    self.calls.push("begin");
+                    if self.refuse_begin {
+                        return Err(SourceCommandError::Denied("fixture admission refused"));
+                    }
+                }
+                CreationReadStage::Read { requested_bytes } => {
+                    self.requested += requested_bytes;
+                    self.calls.push("read");
+                    if let Some(mut writer) = self.grow_once.take() {
+                        writer.write_all(&[b'x'; 65536]).unwrap();
+                        writer.flush().unwrap();
+                    }
+                }
+                CreationReadStage::Retain { .. } => self.calls.push("retain"),
+            }
+            Ok(())
+        }
+    }
+    struct Fixture(std::path::PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let n = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+            let path = std::env::temp_dir().join(format!("tos-publication-admission-{}-{n}", std::process::id()));
+            std::fs::create_dir(&path).unwrap();
+            std::fs::write(path.join("control"), b"x").unwrap();
+            Self(path)
+        }
+        fn reader(&self) -> File { File::open(self.0.join("control")).unwrap() }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+    }
+    #[test]
+    fn publication_raw_growing_fd_prepays_full_read_before_original_cap_refusal() {
+        let fixture = Fixture::new();
+        let mut file = fixture.reader();
+        let writer = std::fs::OpenOptions::new().append(true).open(fixture.0.join("control")).unwrap();
+        let mut payer = Trace { calls: Vec::new(), requested: 0, refuse_begin: false, grow_once: Some(writer) };
+        let result = raw_with_length_limit_and_admission(
+            &mut file, ReadLength::Legacy(8192), Instant::now() + Duration::from_secs(5),
+            &AtomicBool::new(false), Some(&mut payer),
+        );
+        assert!(matches!(result, Err(SourceCommandError::Invalid("creation read exceeds byte budget"))));
+        assert_eq!(payer.calls, ["begin", "read"]);
+        assert_eq!(payer.requested, 65536);
+        assert_eq!(file.stream_position().unwrap(), 65536);
+    }
+    #[test]
+    fn publication_raw_admission_refusal_precedes_payload_read() {
+        let fixture = Fixture::new();
+        let mut file = fixture.reader();
+        let mut payer = Trace { calls: Vec::new(), requested: 0, refuse_begin: true, grow_once: None };
+        let result = raw_with_length_limit_and_admission(
+            &mut file, ReadLength::Legacy(8192), Instant::now() + Duration::from_secs(5),
+            &AtomicBool::new(false), Some(&mut payer),
+        );
+        assert!(matches!(result, Err(SourceCommandError::Denied("fixture admission refused"))));
+        assert_eq!(payer.calls, ["begin"]);
+        assert_eq!(payer.requested, 0);
+        assert_eq!(file.stream_position().unwrap(), 0);
+    }
+}
