@@ -135,6 +135,40 @@ bind them to actual source and authority records. Local invariant checks belong 
 
 ## Source-owner journal
 
+### Reason-specific manual authoring admission
+
+The existing assessment command and current-view calculation support the separate
+`registry-manual-authoring-v1` requested use. It requires a genuinely selected
+protected scope and policy/authority/competence permitting that use; discovery or
+a basis Record supplies no grant. No such production owner or policy is issued
+by this documentation.
+
+Create the source-owned manual-authoring-procedure and manual-authoring-basis
+Records through public-profile-create / source.create with their actual declared
+profiles and independently delegated scope. Their schema/profile definitions
+issue no source instance or grant. The [basis Record contract](../../../../../ToS/contracts/manual-authoring-basis.schema.json)
+binds its exact existing Claim target, procedure and structured finding;
+[source assessment law](../../../../../ToS/doctrine/KNOWLEDGE_ASSESSMENT.md#manual-registry-authoring)
+requires the assessment's actual qualified method to name that same procedure.
+The protected assessment owner selects these records and all real cited sources.
+The manual-use planner derives the additional exact closure solely from those
+source-owned rows; inline config/request records cannot complete it. Then assess
+the exact Claim for this explicit use and read the recalculated current result.
+Raw source creation remains unreviewed. Multiple selected bases for that exact
+Claim refuse instead of guessing which is current.
+
+Each exact citation must already be in the actual owner's required closure and
+in assessment evidence with the same locator. The v1 implementation checks
+`json-pointer:/...` against an existing field of that selected Record body.
+A repeated but nonexistent locator refuses. Original file/scan/cell reading is
+a separate source-owner obligation; no adapter for those locator forms is issued
+here. Missing source selection refuses;
+neither copying a Claim into a request nor adding a claimed `complete` flag fixes
+it. Source-backed historical uncertainty and unfinished agent work have distinct
+dispositions. Existing negative/defer/withdraw routes remain available under
+their own exact-source and authority conditions. Earlier research admission is
+not silently reinterpreted as this new use.
+
 ### Owner-local translation Alignment through the PG source command
 
 The protected `tos_local_native_alignment_owner_v1` grant remains the source

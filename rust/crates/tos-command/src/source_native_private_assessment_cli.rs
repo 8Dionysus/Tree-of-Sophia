@@ -1688,7 +1688,7 @@ pub(crate) fn plan_assessment_evaluation<'a>(
             "selected native layer assessment target is absent from source closure",
         ));
     }
-    let subject_required_source_refs = if version == OwnerVersion::V3 {
+    let mut subject_required_source_refs = if version == OwnerVersion::V3 {
         crate::source_sign::required_sources(
             &request.subject_id,
             public_claim_dependencies,
@@ -1703,6 +1703,15 @@ pub(crate) fn plan_assessment_evaluation<'a>(
             selected_layer,
         )?
     };
+    append_manual_authoring_sources(
+        &current,
+        &scope,
+        &resolved.source_records,
+        &mut subject_required_source_refs,
+        budget,
+        deadline,
+        cancelled,
+    )?;
     let required_sources = resolve_required_sources(&subject_required_source_refs, &all_by_id)?;
     let source_route = if selected_layer.is_some() {
         AssessmentSourceRoute::LayerQuality
@@ -2746,6 +2755,327 @@ fn select_current_scope_using(
         }
     }
     Ok((current, scope))
+}
+
+// New manual-use closure is derived ONLY from already source-owned rows, never
+// from config.records, request fields or a claimed complete/read bool. The
+// selected basis targets an exact existing Claim; the Claim need not acquire a
+// circular dependency on its later assessment artifact. Existing uses bypass it.
+fn append_manual_authoring_sources(
+    current: &JsonValue,
+    scope: &JsonValue,
+    sources: &[JsonValue],
+    required: &mut Vec<JsonValue>,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    struct Access<'a> {
+        budget: &'a mut OperationBudget,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    }
+    impl Access<'_> {
+        fn pay(&mut self, bytes: usize) -> SourceCommandResult<()> {
+            active(self.deadline, self.cancelled)?;
+            self.budget
+                .charge_work(bytes.checked_add(1).ok_or(SourceCommandError::Unsupported(
+                    "manual source work overflow",
+                ))?)
+        }
+        fn equal(&mut self, a: &str, b: &str) -> SourceCommandResult<bool> {
+            self.pay(
+                a.len()
+                    .checked_add(b.len())
+                    .ok_or(SourceCommandError::Unsupported(
+                        "manual source comparison overflow",
+                    ))?,
+            )?;
+            Ok(a == b)
+        }
+        fn get<'v>(
+            &mut self,
+            value: &'v JsonValue,
+            key: &str,
+        ) -> SourceCommandResult<Option<&'v JsonValue>> {
+            self.pay(0)?;
+            let Some(fields) = value.as_object() else {
+                return Err(SourceCommandError::Invalid("manual source object required"));
+            };
+            for (name, value) in fields {
+                self.pay(0)?;
+                if let Some(name) = name.as_str() {
+                    if self.equal(name, key)? {
+                        return Ok(Some(value));
+                    }
+                }
+            }
+            Ok(None)
+        }
+        fn field<'v>(
+            &mut self,
+            value: &'v JsonValue,
+            key: &str,
+        ) -> SourceCommandResult<&'v JsonValue> {
+            self.get(value, key)?
+                .ok_or(SourceCommandError::Invalid("manual source required field"))
+        }
+        fn text<'v>(&mut self, value: &'v JsonValue, key: &str) -> SourceCommandResult<&'v str> {
+            self.field(value, key)?
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("manual source text field"))
+        }
+        fn canonical(&mut self, value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
+            crate::source_native_roles::admitted_canonical(
+                value,
+                self.budget,
+                self.deadline,
+                self.cancelled,
+            )
+        }
+        fn same(&mut self, a: &JsonValue, b: &JsonValue) -> SourceCommandResult<bool> {
+            self.pay(0)?;
+            if a.as_object().is_none_or(|v| v.len() != 3)
+                || b.as_object().is_none_or(|v| v.len() != 3)
+            {
+                return Err(SourceCommandError::Invalid("manual exact reference shape"));
+            }
+            for key in ["id", "digest"] {
+                let av = self.text(a, key)?;
+                let bv = self.text(b, key)?;
+                if !self.equal(av, bv)? {
+                    return Ok(false);
+                }
+            }
+            let av = self.field(a, "version")?;
+            let bv = self.field(b, "version")?;
+            let (JsonValue::Number(an), JsonValue::Number(bn)) = (av, bv) else {
+                return Err(SourceCommandError::Invalid(
+                    "manual exact version is not numeric",
+                ));
+            };
+            let tokens = an.lexeme.len().checked_add(bn.lexeme.len()).ok_or(
+                SourceCommandError::Unsupported("manual version work overflow"),
+            )?;
+            self.pay(
+                tokens
+                    .checked_mul(16)
+                    .ok_or(SourceCommandError::Unsupported(
+                        "manual version work overflow",
+                    ))?,
+            )?;
+            // Only the two numeric leaves enter the maintained Python helper;
+            // it cannot sort an arbitrary object or apply bool/int coercion.
+            // All token scans/copies and integral-float formatting holders are
+            // reserved prospectively, preserving 1==1.0 without a u64 cast.
+            let holders = tokens
+                .checked_add(640)
+                .and_then(|n| n.checked_mul(8))
+                .ok_or(SourceCommandError::Unsupported(
+                    "manual version holder overflow",
+                ))?;
+            self.budget.charge_bytes(holders)?;
+            for number in [an, bn] {
+                if number.kind == tos_foundation::JsonNumberKind::Float {
+                    let n = number.lexeme.parse::<f64>().map_err(|_| {
+                        SourceCommandError::Unsupported("manual numeric representation")
+                    })?;
+                    if !n.is_finite() {
+                        return Err(SourceCommandError::Unsupported("manual nonfinite version"));
+                    }
+                    let exponent = ((n.to_bits() >> 52) & 0x7ff) as i32;
+                    let passes = (exponent - 1023 - 52).max(0) as usize;
+                    self.pay((passes + 1) * 3 * 640 + 1024)?;
+                }
+            }
+            tos_foundation::python_equals(av, bv, 1)
+                .map_err(|_| SourceCommandError::Unsupported("manual exact numeric equality"))
+        }
+        fn reference(&mut self, row: &JsonValue) -> SourceCommandResult<JsonValue> {
+            let id = self.text(row, "id")?;
+            let version = self.field(row, "version")?;
+            // A source envelope's existing version is preserved verbatim. No
+            // fresh scalar bound or source instance is invented by this port.
+            let version_raw = self.canonical(version)?;
+            let payload = self.field(row, "payload")?;
+            let raw = self.canonical(payload)?;
+            self.pay(raw.len())?;
+            let digest = Digest256::of_bytes(&raw);
+            let holder = id
+                .len()
+                .checked_mul(16)
+                .and_then(|n| n.checked_add(version_raw.len().checked_mul(16)?))
+                .and_then(|n| n.checked_add(2048))
+                .ok_or(SourceCommandError::Unsupported(
+                    "manual exact holder overflow",
+                ))?;
+            self.budget.charge_bytes(holder)?;
+            self.pay(holder)?;
+            Ok(cmd::object(vec![
+                ("id", cmd::string(id)),
+                ("version", version.clone()),
+                ("digest", cmd::string(&digest.to_prefixed())),
+            ]))
+        }
+        fn add(
+            &mut self,
+            reference: &JsonValue,
+            sources: &[JsonValue],
+            required: &mut Vec<JsonValue>,
+        ) -> SourceCommandResult<()> {
+            let id = self.text(reference, "id")?;
+            let mut found = None;
+            for row in sources {
+                self.pay(0)?;
+                let candidate = self.text(row, "id")?;
+                if self.equal(candidate, id)? {
+                    found = Some(row);
+                    break;
+                }
+            }
+            let row = found.ok_or(SourceCommandError::Unsupported(
+                "manual dependency absent from actual source selection",
+            ))?;
+            let actual = self.reference(row)?;
+            if !self.same(&actual, reference)? {
+                return Err(SourceCommandError::Conflict(
+                    "manual source dependency exact pin differs",
+                ));
+            }
+            for prior in required.iter() {
+                self.pay(0)?;
+                if self.same(prior, &actual)? {
+                    return Ok(());
+                }
+                let prior_id = self.text(prior, "id")?;
+                if self.equal(prior_id, id)? {
+                    return Err(SourceCommandError::Conflict(
+                        "manual source dependency versions conflict",
+                    ));
+                }
+            }
+            let vector_bytes = required
+                .len()
+                .checked_add(1)
+                .and_then(|n| n.checked_mul(std::mem::size_of::<JsonValue>()))
+                .and_then(|n| n.checked_mul(2))
+                .ok_or(SourceCommandError::Unsupported(
+                    "manual reference vector overflow",
+                ))?;
+            self.budget.charge_bytes(vector_bytes)?;
+            self.pay(vector_bytes)?;
+            required
+                .try_reserve_exact(1)
+                .map_err(|_| SourceCommandError::Unsupported("manual source reference holder"))?;
+            required.push(actual);
+            Ok(())
+        }
+        fn walk(
+            &mut self,
+            value: &JsonValue,
+            sources: &[JsonValue],
+            required: &mut Vec<JsonValue>,
+            depth: usize,
+        ) -> SourceCommandResult<()> {
+            self.pay(0)?;
+            if depth > tos_foundation::JsonLimits::default().max_depth {
+                return Err(SourceCommandError::Unsupported(
+                    "manual source closure depth",
+                ));
+            }
+            match value {
+                JsonValue::Object(fields) => {
+                    if fields.len() == 3
+                        && self.get(value, "id")?.is_some()
+                        && self.get(value, "version")?.is_some()
+                        && self.get(value, "digest")?.is_some()
+                    {
+                        return self.add(value, sources, required);
+                    }
+                    for (_, child) in fields {
+                        self.walk(child, sources, required, depth + 1)?;
+                    }
+                }
+                JsonValue::Array(values) => {
+                    for child in values {
+                        self.walk(child, sources, required, depth + 1)?;
+                    }
+                }
+                _ => (),
+            }
+            Ok(())
+        }
+    }
+    let mut access = Access {
+        budget,
+        deadline,
+        cancelled,
+    };
+    let requested_use = access.text(scope, "requested_use")?;
+    if !access.equal(requested_use, "registry-manual-authoring-v1")? {
+        return Ok(());
+    }
+    let target = access.reference(current)?;
+    let mut source_target = false;
+    let target_id = access.text(&target, "id")?;
+    for row in sources {
+        let row_id = access.text(row, "id")?;
+        if access.equal(row_id, target_id)? {
+            let actual = access.reference(row)?;
+            source_target = access.same(&actual, &target)?;
+            break;
+        }
+    }
+    if !source_target {
+        return Err(SourceCommandError::Denied(
+            "manual target is not the actual selected source Claim",
+        ));
+    }
+    let mut basis = None;
+    for row in sources {
+        access.pay(0)?;
+        let payload = access.field(row, "payload")?;
+        let Some(kind) = access
+            .get(payload, "record_type")?
+            .and_then(JsonValue::as_str)
+        else {
+            continue;
+        };
+        if !access.equal(kind, "manual-authoring-basis")? {
+            continue;
+        }
+        let body = access.field(payload, "body")?;
+        let target_ref = access.field(body, "target")?;
+        if !access.same(target_ref, &target)? {
+            continue;
+        }
+        if basis.replace(row).is_some() {
+            return Err(SourceCommandError::Conflict(
+                "multiple selected manual bases target the exact Claim",
+            ));
+        }
+    }
+    let basis = basis.ok_or(SourceCommandError::Unsupported(
+        "exact source manual basis is not selected",
+    ))?;
+    let basis_ref = access.reference(basis)?;
+    access.add(&basis_ref, sources, required)?;
+    let payload = access.field(basis, "payload")?;
+    let body = access.field(payload, "body")?;
+    let procedure = access.field(body, "procedure")?;
+    access.add(procedure, sources, required)?;
+    // Reserve the fixed borrowed walker stack BEFORE recursion. The closed
+    // registered body grammar determines which leaves can be exact refs.
+    let fixed = std::mem::size_of::<JsonValue>()
+        .checked_add(8 * std::mem::size_of::<usize>())
+        .and_then(|n| n.checked_mul(tos_foundation::JsonLimits::default().max_depth + 1))
+        .and_then(|n| n.checked_mul(16))
+        .ok_or(SourceCommandError::Unsupported(
+            "manual closure fixed state overflow",
+        ))?;
+    access.budget.charge_bytes(fixed)?;
+    let finding = access.field(body, "basis")?;
+    access.walk(finding, sources, required, 0)
 }
 
 pub(crate) fn resolve_required_sources(
