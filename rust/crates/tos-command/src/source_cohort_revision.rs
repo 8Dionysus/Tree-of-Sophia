@@ -11,6 +11,18 @@ use crate::source_revisions::ReadonlyRecordFiles;
 use postgres::IsolationLevel;
 use std::sync::atomic::AtomicBool;
 
+#[path = "source_native_pg_query_data.rs"]
+mod query_data;
+
+const FRESHNESS_SETUP_SQL: &str = "SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'";
+const FRESHNESS_AUDIT_SQL: &str = "SELECT generation,maintenance_state FROM cmd2_audit_fence
+             WHERE domain=$1 FOR SHARE";
+const FRESHNESS_DOMAIN_SQL: &str = "SELECT source_definition_digest,rights_allowed,source_complete,
+                    rights_version,rule_version,head_seq,source_generation,
+                    source_epoch,contract_digest
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE";
+const FRESHNESS_JOB_SQL: &str = "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2";
+
 const MAX_CHILDREN: usize = 64;
 const MAX_RETAINED_STATE_BYTES: usize = 64 * 1024 * 1024;
 const MAX_CLAIM_DEPENDENCY_LOOKUPS: usize = 4_096;
@@ -3106,23 +3118,51 @@ impl SourceRevisionReadSession<'_> {
     /// Native held callers may borrow this primitive; no readset is finalized
     /// or manufactured here. Cutoff refusal can precede the physical queries.
     pub(crate) fn verify_fresh(
+        &mut self, deadline: Instant, cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        self.verify_fresh_using_query_data(None, deadline, cancelled)
+    }
+
+    /// Prospective selected-query DATA/Row admission only, using the ACTUAL
+    /// original operation. Driver wire/errors/transport and STO admission are
+    /// separate obligations; this primitive does not certify complete funding.
+    pub(crate) fn verify_fresh_with_query_data_admission(
         &mut self,
-        deadline: Instant,
-        cancelled: &AtomicBool,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant, cancelled: &AtomicBool,
+    ) -> DurableResult<()> {
+        self.verify_fresh_using_query_data(Some(budget), deadline, cancelled)
+    }
+
+    fn verify_fresh_using_query_data(
+        &mut self,
+        mut budget: Option<&mut crate::source_native_cli::private_assessment::OperationBudget>,
+        deadline: Instant, cancelled: &AtomicBool,
     ) -> DurableResult<()> {
         active(deadline, cancelled)?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::begin(budget, deadline, cancelled).map_err(DurableError::Source)?;
+        }
         let mut tx = self.coordinator.client.transaction()?;
-        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(budget, FRESHNESS_SETUP_SQL, &[],
+                query_data::RowShape::None, deadline, cancelled).map_err(DurableError::Source)?;
+        }
+        tx.batch_execute(FRESHNESS_SETUP_SQL)?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(budget, FRESHNESS_AUDIT_SQL, &[self.selection.cohort.domain.len()],
+                query_data::RowShape::Audit, deadline, cancelled).map_err(DurableError::Source)?;
+        }
         let fence = tx.query_one(
-            "SELECT generation,maintenance_state FROM cmd2_audit_fence
-             WHERE domain=$1 FOR SHARE",
+            FRESHNESS_AUDIT_SQL,
             &[&self.selection.cohort.domain],
         )?;
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(budget, FRESHNESS_DOMAIN_SQL, &[self.selection.cohort.domain.len()],
+                query_data::RowShape::Domain, deadline, cancelled).map_err(DurableError::Source)?;
+        }
         let row = tx.query_one(
-            "SELECT source_definition_digest,rights_allowed,source_complete,
-                    rights_version,rule_version,head_seq,source_generation,
-                    source_epoch,contract_digest
-             FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+            FRESHNESS_DOMAIN_SQL,
             &[&self.selection.cohort.domain],
         )?;
         super::require_current_source_definition(parse_hex(
@@ -3152,8 +3192,12 @@ impl SourceRevisionReadSession<'_> {
                 "bounded source revision read epoch changed",
             ));
         }
+        if let Some(budget) = budget.as_deref_mut() {
+            query_data::statement(budget, FRESHNESS_JOB_SQL, &[self.selection.cohort.domain.len(), self.selection.job_id.len()],
+                query_data::RowShape::Job, deadline, cancelled).map_err(DurableError::Source)?;
+        }
         let job = tx.query_one(
-            "SELECT fence_epoch FROM cmd2_job WHERE domain=$1 AND job_id=$2",
+            FRESHNESS_JOB_SQL,
             &[&self.selection.cohort.domain, &self.selection.job_id],
         )?;
         if as_u64(job.get(0))? != self.selection.job_fence {
