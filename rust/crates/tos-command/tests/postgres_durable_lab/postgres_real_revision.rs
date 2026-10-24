@@ -2863,8 +2863,25 @@ fn assert_source_text_disclosure_lease_blocks_revoke(
         }
         thread::sleep(Duration::from_millis(10));
     }
+    let ready_marker = fs::read(&ready);
+    if !matches!(ready_marker.as_deref(), Ok(bytes) if bytes == b"current page and disclosure lease held") {
+        // Preserve the exact assertion while always retiring the guard child
+        // and its pipe readers on a malformed or unreadable barrier.
+        unsafe {
+            libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
+        }
+        let _ = child.kill();
+        let _ = child.wait();
+        let _ = stdout_reader.join();
+        let _ = stderr_reader.join();
+        assert_eq!(
+            ready_marker.unwrap(),
+            b"current page and disclosure lease held"
+        );
+        unreachable!("mismatched ready marker cannot pass the exact assertion");
+    }
     assert_eq!(
-        fs::read(&ready).unwrap(),
+        ready_marker.unwrap(),
         b"current page and disclosure lease held"
     );
     let revoke_attempt = invoke_local_rights_command(

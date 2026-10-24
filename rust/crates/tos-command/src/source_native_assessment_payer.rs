@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn swallowed_mapped_or_loan_resource_refusal_cannot_finish_successfully() {
         let cancel = AtomicBool::new(false);
-        for lane in 0..4 {
+        for lane in 0..5 {
             // Separate invocations, not a replacement ledger inside a callback.
             let deadline = Instant::now() + Duration::from_secs(30);
             let mut original = OperationBudget::new(
@@ -254,6 +254,16 @@ mod tests {
                         });
                         assert!(refused.is_err());
                         drop(refused); // swallowing that refusal must not clear it
+                    }
+                    4 => {
+                        let refused = payer.with_operation(|_| {
+                            // Admission cannot reenter the exclusive original loan.
+                            let mapped = payer.error(SourceAdmission::inspect(payer, 1).unwrap_err());
+                            drop(mapped);
+                            Ok(())
+                        });
+                        assert!(refused.is_err());
+                        drop(refused);
                     }
                     _ => {
                         let negative: SourceCommandResult<()> = payer.with_operation(|_| {
