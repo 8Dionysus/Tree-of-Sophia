@@ -18,7 +18,10 @@ pub use identity::{
     JointWorld, Query, SameEdge, ViewBasis, ViewLayer,
 };
 pub use producer::CheckedPreservedCandidate;
-pub use qualification::{BasisSlot, DispatchRow, Kind, PreparedAccount, QualifiedAccount};
+pub use qualification::{
+    BasisSlot, DispatchRow, Kind, PreparedAccount, PreservedBasis, QualifiedAccount,
+    UnresolvedBasisSlot,
+};
 pub use source::{CheckedMetadata, RegistryDescriptor, ResolvedBasis, ResolvedSlot, SuppliedExact};
 
 pub const SINGLE_VALUE_SCHEMA: &str = "urn:tos:pwe:application:values:1.1.0";

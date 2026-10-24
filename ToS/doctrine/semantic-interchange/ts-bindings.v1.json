@@ -1,0 +1,28 @@
+{
+  "schema_version": "tos_ts_native_bindings_v1",
+  "registry_id": "tos.ts.native-bindings",
+  "registry_version": 1,
+  "role_bindings": [
+    {
+      "role": "ts-definition",
+      "type_id": "tos.entity.ts-native-definition",
+      "record_type": "ts-native-definition",
+      "schema_version": "tos_ts_native_definition_record_v1",
+      "schema_ref": "ToS/contracts/ts-native-definition.schema.json"
+    },
+    {
+      "role": "ts-value-profile",
+      "type_id": "tos.entity.ts-native-value-profile",
+      "record_type": "ts-native-value-profile",
+      "schema_version": "tos_ts_native_value_profile_record_v1",
+      "schema_ref": "ToS/contracts/ts-native-value-profile.schema.json"
+    },
+    {
+      "role": "ts-operation-result",
+      "type_id": "tos.entity.ts-native-operation-result",
+      "record_type": "ts-native-operation-result",
+      "schema_version": "tos_ts_native_operation_result_record_v1",
+      "schema_ref": "ToS/contracts/ts-native-operation-result.schema.json"
+    }
+  ]
+}

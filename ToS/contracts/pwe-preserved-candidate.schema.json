@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-preserved-candidate.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "values",
+    "semantic_resolution_executed"
+  ],
+  "properties": {
+    "kind": {
+      "const": "PreservedCandidate"
+    },
+    "values": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 4096,
+      "items": {
+        "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json"
+      }
+    },
+    "semantic_resolution_executed": {
+      "const": false
+    }
+  }
+}

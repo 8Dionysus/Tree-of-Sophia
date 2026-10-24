@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/pwe-signature.schema.json",
+  "title": "PWE selected native pwe-signature",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/source-metadata-record.schema.json"
+    },
+    {
+      "required": [
+        "body"
+      ],
+      "properties": {
+        "record_type": {
+          "const": "pwe-signature"
+        },
+        "schema_version": {
+          "const": "tos_pwe_signature_v1"
+        },
+        "body": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "predicates"
+          ],
+          "properties": {
+            "predicates": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 3,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "https://tree-of-sophia.local/ToS/contracts/pwe-values.schema.json#/$defs/typedRef"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$comment": "Candidate native source route. Authored instances, exact pins, current protected assessment and registration are separate inputs. A declaration issues neither source truth nor admission nor coverage."
+}

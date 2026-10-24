@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TS native role registry full-file candidate contract",
+  "description": "Domain full-file shape for ts-bindings.v1.json. No native authority or registration is granted. Shared native-role-bindings validates rows against the maintained entity-profile grammar; the actual common resolver checks selected identities, uniqueness, routes and currentness.",
+  "allOf": [
+    {"$ref": "https://tree-of-sophia.local/ToS/contracts/native-role-bindings.schema.json"}
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "registry_version", "role_bindings"],
+  "properties": {
+    "schema_version": {"const": "tos_ts_native_bindings_v1"},
+    "registry_id": {"const": "tos.ts.native-bindings"},
+    "registry_version": {"type": "integer", "minimum": 1},
+    "role_bindings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "properties": {
+          "role": {"enum": ["ts-definition", "ts-value-profile", "ts-operation-result"]}
+        }
+      }
+    }
+  }
+}
