@@ -186,6 +186,11 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         "source-link",
         "claim-display-fields",
         "tos-corpus-index",
+        // Creation information and complete inventory validate both registries
+        // and the native annotation carrier independently of profile routes.
+        "semantic-entity-type-registry",
+        "semantic-relation-type-registry",
+        "semantic-annotation-packet-v2",
     ]
     .into_iter()
     .map(|name| format!("ToS/contracts/{name}.schema.json"))
