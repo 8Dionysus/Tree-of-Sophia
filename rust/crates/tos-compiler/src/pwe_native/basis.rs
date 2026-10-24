@@ -830,8 +830,13 @@ mod source_work_tests {
     }
     fn limits() -> Limits {
         Limits {
-            max_input_bytes: 8, max_nodes: 1, max_work: 16, max_refs: 1,
-            max_depth: 8, max_items: 1, max_state_bytes: 4,
+            max_input_bytes: 8,
+            max_nodes: 1,
+            max_work: 16,
+            max_refs: 1,
+            max_depth: 8,
+            max_items: 1,
+            max_state_bytes: 4,
             deadline: Instant::now() + Duration::from_secs(30),
         }
     }
@@ -848,7 +853,10 @@ mod source_work_tests {
         s.admit_source_work(5).unwrap();
         s.admit_source_work(2).unwrap();
         s.admit_source_work(0).unwrap();
-        assert_eq!(s.charges(), (before.0, before.1, before.2 + 7, before.3, before.4));
+        assert_eq!(
+            s.charges(),
+            (before.0, before.1, before.2 + 7, before.3, before.4)
+        );
         assert_eq!((payer.input.get(), payer.state.get()), (8, 4));
         let spent = s.charges();
         assert_eq!(s.admit_source_work(1), Err(Error::ResourceLimit));
@@ -862,7 +870,10 @@ mod source_work_tests {
         let cancelled = AtomicBool::new(false);
         let mut plain = Session::new(limits(), &cancelled).unwrap();
         let before = plain.charges();
-        assert_eq!(plain.admit_source_work(0), Err(Error::NeedsBinding("original source payer")));
+        assert_eq!(
+            plain.admit_source_work(0),
+            Err(Error::NeedsBinding("original source payer"))
+        );
         assert_eq!(plain.charges(), before);
         let payer = ByteProbe::default();
         let mut s = Session::new_source(limits(), &cancelled, &payer).unwrap();
