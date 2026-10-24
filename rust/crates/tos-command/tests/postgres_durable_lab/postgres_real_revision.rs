@@ -2864,7 +2864,10 @@ fn assert_source_text_disclosure_lease_blocks_revoke(
         thread::sleep(Duration::from_millis(10));
     }
     let ready_marker = fs::read(&ready);
-    if !matches!(ready_marker.as_deref(), Ok(bytes) if bytes == b"current page and disclosure lease held") {
+    if !matches!(
+        ready_marker.as_deref(),
+        Ok(bytes) if bytes == b"current page and disclosure lease held"
+    ) {
         // Preserve the exact assertion while always retiring the guard child
         // and its pipe readers on a malformed or unreadable barrier.
         unsafe {

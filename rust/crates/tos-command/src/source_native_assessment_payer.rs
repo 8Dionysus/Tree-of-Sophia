@@ -258,7 +258,8 @@ mod tests {
                     4 => {
                         let refused = payer.with_operation(|_| {
                             // Admission cannot reenter the exclusive original loan.
-                            let mapped = payer.error(SourceAdmission::inspect(payer, 1).unwrap_err());
+                            let mapped =
+                                payer.error(SourceAdmission::inspect(payer, 1).unwrap_err());
                             drop(mapped);
                             Ok(())
                         });
