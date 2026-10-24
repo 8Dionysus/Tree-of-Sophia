@@ -3843,7 +3843,7 @@ mod protected_pg_grant_read_admission_tests {
             max_state_bytes: 1_048_576,
             deadline,
         };
-        let before_work = original.work_remaining;
+        let before_work = original.test_work_remaining();
         with_original_pwe_session(&mut original, limits, &cancelled, |payer, same| {
             payer.recheck_current_pg_grant_source(same, &grant)?;
             assert_eq!(same.charges().0, 2 * 65_536);
@@ -3853,6 +3853,6 @@ mod protected_pg_grant_read_admission_tests {
             Ok(())
         })
         .unwrap();
-        assert_eq!(original.work_remaining, before_work - limits.max_work);
+        assert_eq!(original.test_work_remaining(), before_work - limits.max_work);
     }
 }
