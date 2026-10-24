@@ -1,0 +1,1853 @@
+{
+  "conditionals": [
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/X.d",
+      "target": "etc/apparmor.d/abstractions/X.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/base.d",
+      "target": "etc/apparmor.d/abstractions/base.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/consoles.d",
+      "target": "etc/apparmor.d/abstractions/consoles.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/crypto.d",
+      "target": "etc/apparmor.d/abstractions/crypto.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/dbus-accessibility-strict.d",
+      "target": "etc/apparmor.d/abstractions/dbus-accessibility-strict.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/dbus-network-manager-strict.d",
+      "target": "etc/apparmor.d/abstractions/dbus-network-manager-strict.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/dbus-session-strict.d",
+      "target": "etc/apparmor.d/abstractions/dbus-session-strict.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/dbus-session.d",
+      "target": "etc/apparmor.d/abstractions/dbus-session.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/dbus-strict.d",
+      "target": "etc/apparmor.d/abstractions/dbus-strict.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/dconf.d",
+      "target": "etc/apparmor.d/abstractions/dconf.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/dri-common.d",
+      "target": "etc/apparmor.d/abstractions/dri-common.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/fonts.d",
+      "target": "etc/apparmor.d/abstractions/fonts.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/freedesktop.org.d",
+      "target": "etc/apparmor.d/abstractions/freedesktop.org.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/gnome.d",
+      "target": "etc/apparmor.d/abstractions/gnome.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/kerberosclient.d",
+      "target": "etc/apparmor.d/abstractions/kerberosclient.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/ldapclient.d",
+      "target": "etc/apparmor.d/abstractions/ldapclient.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/likewise.d",
+      "target": "etc/apparmor.d/abstractions/likewise.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/mdns.d",
+      "target": "etc/apparmor.d/abstractions/mdns.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/nameservice.d",
+      "target": "etc/apparmor.d/abstractions/nameservice.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/nis.d",
+      "target": "etc/apparmor.d/abstractions/nis.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/nss-systemd.d",
+      "target": "etc/apparmor.d/abstractions/nss-systemd.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/openssl.d",
+      "target": "etc/apparmor.d/abstractions/openssl.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/qt5-settings-write.d",
+      "target": "etc/apparmor.d/abstractions/qt5-settings-write.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/qt5.d",
+      "target": "etc/apparmor.d/abstractions/qt5.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/ssl_certs.d",
+      "target": "etc/apparmor.d/abstractions/ssl_certs.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/transmission-common.d",
+      "target": "etc/apparmor.d/abstractions/transmission-common.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/user-tmp.d",
+      "target": "etc/apparmor.d/abstractions/user-tmp.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/wayland.d",
+      "target": "etc/apparmor.d/abstractions/wayland.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/winbind.d",
+      "target": "etc/apparmor.d/abstractions/winbind.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "abstractions/xdg-desktop.d",
+      "target": "etc/apparmor.d/abstractions/xdg-desktop.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/1password",
+      "target": "etc/apparmor.d/local/1password"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/Discord",
+      "target": "etc/apparmor.d/local/Discord"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/MongoDB_Compass",
+      "target": "etc/apparmor.d/local/MongoDB_Compass"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/QtWebEngineProcess",
+      "target": "etc/apparmor.d/local/QtWebEngineProcess"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/balena-etcher",
+      "target": "etc/apparmor.d/local/balena-etcher"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/brave",
+      "target": "etc/apparmor.d/local/brave"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/buildah",
+      "target": "etc/apparmor.d/local/buildah"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/cam",
+      "target": "etc/apparmor.d/local/cam"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/ch-checkns",
+      "target": "etc/apparmor.d/local/ch-checkns"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/ch-run",
+      "target": "etc/apparmor.d/local/ch-run"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/chrome",
+      "target": "etc/apparmor.d/local/chrome"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/code",
+      "target": "etc/apparmor.d/local/code"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/crun",
+      "target": "etc/apparmor.d/local/crun"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/devhelp",
+      "target": "etc/apparmor.d/local/devhelp"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/element-desktop",
+      "target": "etc/apparmor.d/local/element-desktop"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/epiphany",
+      "target": "etc/apparmor.d/local/epiphany"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/evolution",
+      "target": "etc/apparmor.d/local/evolution"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/firefox",
+      "target": "etc/apparmor.d/local/firefox"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/flatpak",
+      "target": "etc/apparmor.d/local/flatpak"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/foliate",
+      "target": "etc/apparmor.d/local/foliate"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/geary",
+      "target": "etc/apparmor.d/local/geary"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/github-desktop",
+      "target": "etc/apparmor.d/local/github-desktop"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/goldendict",
+      "target": "etc/apparmor.d/local/goldendict"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/ipa_verify",
+      "target": "etc/apparmor.d/local/ipa_verify"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/kchmviewer",
+      "target": "etc/apparmor.d/local/kchmviewer"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/keybase",
+      "target": "etc/apparmor.d/local/keybase"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lc-compliance",
+      "target": "etc/apparmor.d/local/lc-compliance"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/libcamerify",
+      "target": "etc/apparmor.d/local/libcamerify"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/linux-sandbox",
+      "target": "etc/apparmor.d/local/linux-sandbox"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/loupe",
+      "target": "etc/apparmor.d/local/loupe"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lxc-attach",
+      "target": "etc/apparmor.d/local/lxc-attach"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lxc-create",
+      "target": "etc/apparmor.d/local/lxc-create"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lxc-destroy",
+      "target": "etc/apparmor.d/local/lxc-destroy"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lxc-execute",
+      "target": "etc/apparmor.d/local/lxc-execute"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lxc-stop",
+      "target": "etc/apparmor.d/local/lxc-stop"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lxc-unshare",
+      "target": "etc/apparmor.d/local/lxc-unshare"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/lxc-usernsexec",
+      "target": "etc/apparmor.d/local/lxc-usernsexec"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/microsoft-edge-stable",
+      "target": "etc/apparmor.d/local/microsoft-edge-stable"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/mmdebstrap",
+      "target": "etc/apparmor.d/local/mmdebstrap"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/msedge",
+      "target": "etc/apparmor.d/local/msedge"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/nautilus",
+      "target": "etc/apparmor.d/local/nautilus"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/notepadqq",
+      "target": "etc/apparmor.d/local/notepadqq"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/obsidian",
+      "target": "etc/apparmor.d/local/obsidian"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/opam",
+      "target": "etc/apparmor.d/local/opam"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/opera",
+      "target": "etc/apparmor.d/local/opera"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/pageedit",
+      "target": "etc/apparmor.d/local/pageedit"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/plasmashell",
+      "target": "etc/apparmor.d/local/plasmashell"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/podman",
+      "target": "etc/apparmor.d/local/podman"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/polypane",
+      "target": "etc/apparmor.d/local/polypane"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/privacybrowser",
+      "target": "etc/apparmor.d/local/privacybrowser"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/qcam",
+      "target": "etc/apparmor.d/local/qcam"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/qmapshack",
+      "target": "etc/apparmor.d/local/qmapshack"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/qutebrowser",
+      "target": "etc/apparmor.d/local/qutebrowser"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/rootlesskit",
+      "target": "etc/apparmor.d/local/rootlesskit"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/rpm",
+      "target": "etc/apparmor.d/local/rpm"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/rssguard",
+      "target": "etc/apparmor.d/local/rssguard"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/runc",
+      "target": "etc/apparmor.d/local/runc"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild",
+      "target": "etc/apparmor.d/local/sbuild"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-abort",
+      "target": "etc/apparmor.d/local/sbuild-abort"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-adduser",
+      "target": "etc/apparmor.d/local/sbuild-adduser"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-apt",
+      "target": "etc/apparmor.d/local/sbuild-apt"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-checkpackages",
+      "target": "etc/apparmor.d/local/sbuild-checkpackages"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-clean",
+      "target": "etc/apparmor.d/local/sbuild-clean"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-createchroot",
+      "target": "etc/apparmor.d/local/sbuild-createchroot"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-destroychroot",
+      "target": "etc/apparmor.d/local/sbuild-destroychroot"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-distupgrade",
+      "target": "etc/apparmor.d/local/sbuild-distupgrade"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-hold",
+      "target": "etc/apparmor.d/local/sbuild-hold"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-unhold",
+      "target": "etc/apparmor.d/local/sbuild-unhold"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-update",
+      "target": "etc/apparmor.d/local/sbuild-update"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/sbuild-upgrade",
+      "target": "etc/apparmor.d/local/sbuild-upgrade"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/scide",
+      "target": "etc/apparmor.d/local/scide"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/signal-desktop",
+      "target": "etc/apparmor.d/local/signal-desktop"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/slack",
+      "target": "etc/apparmor.d/local/slack"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/slirp4netns",
+      "target": "etc/apparmor.d/local/slirp4netns"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/steam",
+      "target": "etc/apparmor.d/local/steam"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/stress-ng",
+      "target": "etc/apparmor.d/local/stress-ng"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/surfshark",
+      "target": "etc/apparmor.d/local/surfshark"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/systemd-coredump",
+      "target": "etc/apparmor.d/local/systemd-coredump"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/thunderbird",
+      "target": "etc/apparmor.d/local/thunderbird"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/toybox",
+      "target": "etc/apparmor.d/local/toybox"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/transmission",
+      "target": "etc/apparmor.d/local/transmission"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/transmission-cli",
+      "target": "etc/apparmor.d/local/transmission-cli"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/transmission-daemon",
+      "target": "etc/apparmor.d/local/transmission-daemon"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/transmission-gtk",
+      "target": "etc/apparmor.d/local/transmission-gtk"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/transmission-qt",
+      "target": "etc/apparmor.d/local/transmission-qt"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/trinity",
+      "target": "etc/apparmor.d/local/trinity"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/tup",
+      "target": "etc/apparmor.d/local/tup"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/tuxedo-control-center",
+      "target": "etc/apparmor.d/local/tuxedo-control-center"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/unix-chkpwd",
+      "target": "etc/apparmor.d/local/unix-chkpwd"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/userbindmount",
+      "target": "etc/apparmor.d/local/userbindmount"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/usr.bin.sbuild-shell",
+      "target": "etc/apparmor.d/local/usr.bin.sbuild-shell"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": false,
+      "selector": "local/usr.bin.tcpdump",
+      "target": "etc/apparmor.d/local/usr.bin.tcpdump"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": false,
+      "selector": "local/usr.sbin.rsyslogd",
+      "target": "etc/apparmor.d/local/usr.sbin.rsyslogd"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/uwsgi-core",
+      "target": "etc/apparmor.d/local/uwsgi-core"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/vdens",
+      "target": "etc/apparmor.d/local/vdens"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/virtiofsd",
+      "target": "etc/apparmor.d/local/virtiofsd"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/vivaldi-bin",
+      "target": "etc/apparmor.d/local/vivaldi-bin"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/vpnns",
+      "target": "etc/apparmor.d/local/vpnns"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/wike",
+      "target": "etc/apparmor.d/local/wike"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "local/wpcom",
+      "target": "etc/apparmor.d/local/wpcom"
+    },
+    {
+      "evidence_state": "candidate_directory_contents_only",
+      "known_public_children": [
+        "etc/apparmor.d/rsyslog.d/README"
+      ],
+      "optional": true,
+      "selector": "rsyslog.d",
+      "target": "etc/apparmor.d/rsyslog.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/alias.d",
+      "target": "etc/apparmor.d/tunables/alias.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/etc.d",
+      "target": "etc/apparmor.d/tunables/etc.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/global.d",
+      "target": "etc/apparmor.d/tunables/global.d"
+    },
+    {
+      "evidence_state": "candidate_directory_contents_only",
+      "known_public_children": [
+        "etc/apparmor.d/tunables/home.d/site.local"
+      ],
+      "optional": true,
+      "selector": "tunables/home.d",
+      "target": "etc/apparmor.d/tunables/home.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/kernelvars.d",
+      "target": "etc/apparmor.d/tunables/kernelvars.d"
+    },
+    {
+      "evidence_state": "candidate_directory_contents_only",
+      "known_public_children": [
+        "etc/apparmor.d/tunables/multiarch.d/site.local"
+      ],
+      "optional": true,
+      "selector": "tunables/multiarch.d",
+      "target": "etc/apparmor.d/tunables/multiarch.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/proc.d",
+      "target": "etc/apparmor.d/tunables/proc.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/run.d",
+      "target": "etc/apparmor.d/tunables/run.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/share.d",
+      "target": "etc/apparmor.d/tunables/share.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/system.d",
+      "target": "etc/apparmor.d/tunables/system.d"
+    },
+    {
+      "evidence_state": "not_in_verified_public_source_set",
+      "known_public_children": [],
+      "optional": true,
+      "selector": "tunables/xdg-user-dirs.d",
+      "target": "etc/apparmor.d/tunables/xdg-user-dirs.d"
+    }
+  ],
+  "config": {
+    "bytes": 2270,
+    "path": "/etc/apparmor/parser.conf",
+    "sha256": "f8586f1c3bfd7abac6a182c1b45d22a8397c0db5a737b54bc8f9fc48da53d5bd"
+  },
+  "executables": [
+    {
+      "bytes": 1629848,
+      "path": "/usr/sbin/apparmor_parser",
+      "sha256": "ad542ad50c2ccd43cf1b1e8d242bc0329b6375cd49ff3bec1233b6ededfed94e"
+    },
+    {
+      "bytes": 43624,
+      "path": "/usr/bin/unshare",
+      "sha256": "a23c8863860669003dc4660039fe642f5795c8c2195898ebc5d01afa1ac3d11c"
+    }
+  ],
+  "features": {
+    "absolute_root": "/sys/kernel/security/apparmor/features",
+    "aggregate_content_cap": 65536,
+    "depth_cap": 16,
+    "file_count_cap": 256,
+    "output": "bounded feature metadata/canonical digest; never raw_data or private policy source",
+    "per_file_content_cap": 4096,
+    "purpose": "actual kernel feature ABI for future supported offline reproduction; not policy rules",
+    "regular_root_owned_nonwritable_no_symlink": true
+  },
+  "policy_inventory_sha256": "1dd8785d50f8f24a20aa87e01ffec73b3344d766863f098bce3ceb7b7ce0d39b",
+  "raw_selectors": [
+    "0073c7d33283492e45dd1d33c27e1b349cee1f813e6fc20b26f8e4e2505629d7",
+    "02427e4c73fdb9c6290eae70cbe6190eb3fc961b8cfd1d4adf8fcd81603313f2",
+    "093329b4558bdf71aa3a7151e837dbbe5cc835222e7121e7783a22b8be8acbd3",
+    "0b838734779599cc77d8906500dfc5dbad7d6e288a25b72458456b9fd89215cc",
+    "0d0ed27e97c037cecfeed72db850e0545642aa1f8f2cc4ce1699aed08671acc7",
+    "0d75ae06cfc4f6d906170999a2009290cbaac079309fa214de444191fe25817c",
+    "10b66fcacd8a3ac148d25ddecca03ef79d98024b79f4a534344595f93b2d9c9f",
+    "117b46a8a565210d1c54a24a029846e44f27e80d95ef1cd01642c5ce5d7b1e4a",
+    "13256ab2c2f82cade3ef25b9be0ee1cff4ffbff291c1876f8cc93702be17a5de",
+    "1af4d1cac9eb5ff126d334f3032e1b7cf3d1d08e491e4e0b5e2b45890000d208",
+    "1c673c41a59af15fada794a15bcf0d8180b78ee6adc5ef0f3c74ea549a68cebc",
+    "28a91067fc2ec6bd74fb33e25c61423e0fc467bf4639d92b48af441be764344c",
+    "29e698910c85a5b09b1f9ea19132bc66ab9ed30e2f5939b728b538bc45a564ff",
+    "2a2fdd478d5e3817019675eda34ae91661463b7748a9b146915d62c40060edf9",
+    "2a95e24ef46a0b188f55da44f7a26d4cfec0b0cebb537d3dfcae302848365bea",
+    "2bcb6d6de3b69dac70c92a1cf201fdab67800867d42a5f38dc21a83b278369ba",
+    "2d35f5e072e8094f52fade26834c8c850798076e3addf0faaea4a892f4fefad8",
+    "2e67a008ce205083228f35a9512ce0d2a3994e334e4f89862ecd7abaa919bd82",
+    "2f1e110f2caf281f8b66d2cf95262706a9d5285e2ce26088a811dd87383f1bca",
+    "323d45122342cb38d896eaff639d973d62aa65262afcddbd002b75e479a74310",
+    "34feec7b652931834488bf0bb75903072bed98ec8378cf67da1edf2812ec180b",
+    "3b57dd07466d2bf5e7db8af10b3bcff7f9ed15fbb3cb72f46fbeffbdfa7951f8",
+    "3e62c0ba6a8ba3f1a3ac816276ae9f37f10de5c66fb9bf7d0f0db3e1eea5a7c2",
+    "3f695889f5ba39772761d1f22b1e588d797c066f540389463f18b67fe7b15b31",
+    "4097d71a4a0045be3d1560727c675e5f636f6769e76e2e988077aa6f300e17de",
+    "410fe6b742b1f033a103986989457ec971373b6cae9b3b56e7b2508d2305af7b",
+    "419c67a8447e505b99d95c42a2ee9dae5a0297fd57c6086fae8bb2cc0008b73f",
+    "41e6fbd26c942da64a294c8afea27c2608abcac31ea8dda166187fedb098b46c",
+    "508a889275bcefcf4384a6081feab6cd48ba857512bd8a78780deb874fe40a11",
+    "52fb785c5a00204cc9caff83a4394cf576f7b59a388ce58c75c194bc10b0bd43",
+    "5960eae0542ed71d4185ca5d463657f0addf0ae3c0988d435a29fa024135f330",
+    "5a179fef17905630ef0702aed15975c13f2adce52076220603d07e7ae9716193",
+    "5a45b0e93dc592f55b3c91fdd4f9e6be0cc150ce92b6303e5d1d73498c779f12",
+    "5bc4a9dbe7a49947e763579f456605e68011b82fcb1b28b3686bf4cc884278f8",
+    "5f0646640ab6cf57e1f64db1e33e1fd741b5472afed0eb93ab57c3cbc1a4e44d",
+    "5fd48b82ca0377fa2460d0dacd46dbfaebd4ccb181de99f7ef88c66b50bb12d3",
+    "614a45b423b3815f23f73cb9315c555eebcc22ffeaa775cbc44e73ead29bdc1f",
+    "614fd34769b9b3838788c17d23b3c2d395c742d29f3f20bb2337dc8c7edb92dc",
+    "6533b54643dccba7b80049c30c5ace767fc3bcbb555997e7571111664aea391e",
+    "679f2fe20745cdc86db1a34f427f6453e8fad9f76c49f766a1996d4d2f09a71d",
+    "6d5823cf431e074de5b58e9b18f1f514f82044fb9f2de28bcbc0d5ce6ff75c94",
+    "6e396c7e45d4b49920ce4a7a3dd3edd54aa4b4a277c781721bc34980a0cef7e1",
+    "784b2320722a2cd6a77783f00364405aeabb3173ea4083ee113075a47ad1e3e6",
+    "7c252b021ff6b4935b121f072e46a0d7cd0ccd1c2f54118fd771b3bb0db128af",
+    "805d247a5c368e1de78d0c425c2d66166970518a543298a6a5c8558fc4c9ab51",
+    "826e2afc57ed4c8079999dd981cb535c4525cd117156bff4958fbb2c50c3422a",
+    "84d7ab2e025f593ee747274315dfb07963a831eff5b50ee6ef0f70768dab2e24",
+    "86b7912be05beb0762529908901004e725cd09b152eb7ec80e8304164d6cf0f5",
+    "8fba22f6b2a533fcb5ad2ba1def065c4020b2e511b7d86911bf8d0a04997f169",
+    "9059964990d3b1a9b5c9989adaa976bdd07d5ec44c4f55daa628df062bc822d5",
+    "91ba686d20defc7c0734712d3a3238a0f1c0a80aefb3db3855ce304ce1a89abf",
+    "91cce0e2d309342b375f5dd8ebf8dd24cca11c933a1ddf7cb38779e00ba1dd50",
+    "92669841367a0ff6e00253ca59efd1fcee0162a7240bdabb85b1625494722b98",
+    "934efea55f096a95e69fc57494b8629fda37b04381cbf7ec9576f039de046c7d",
+    "95d8e9cd6ac310a4db9743d542638956e6f1c895f7784f2980ce1754befe31bb",
+    "97aea382be66d54252dfcb5f281dcf38099cd47ff0e45a3f9c73ccfe73bcc405",
+    "9892c42ebc21b31be24a850ba1f5e73de973b701733b777b4d346b4a8ae1bf67",
+    "9e9733c4df5384fea19e6a4c53b8f59f40be9e8aca428310088613c55f417aa9",
+    "a12b7fbcfdd9d093fc051d7709bac06b888df66b8a4754890ddb9664b72880ee",
+    "a19b177f8d78ace6dbebe8021f03fdd7ef678bf6585355a036513d71bdaec1d1",
+    "a260db2c55bbb677249627c0b96962b4ad31251aa51a62caecf7a395a6f45efe",
+    "a4d475a5970fb5bea8abb6c980e263b56505640ca7f79c4312e31f59f4827af6",
+    "a710a6ff52edda6ecefb208d2bac47cb6aa4fcbae4c67b1848a75a9943ee3169",
+    "aa1bc61a0cf1af1dcc0978682823aef4278d840b508eddb6e52ab993c35e693a",
+    "ac33665c13c33c022fea813f7cc3905674b609f3066eb51d12b7073c6312e28a",
+    "acc4e59ad30477b9460789d9789b949e1af36c0e75177851da67d9519f25385a",
+    "ad97361b4094b0a8880208746cd1ca1cecaa64f2bfe56bb3779e407b0a630171",
+    "b0ff68010e8ffda159d50e0ec105d767c8b26b80d3da869defee320231b04e0f",
+    "b52dcc1f78bcf27d9b7898a7a0936797dd632c517d1488d7d2fec158315891f4",
+    "b710b8ba2879bd85acdb86d5302a98ee9cd518ac65f5fd6575fdd156e5eb96cb",
+    "be04696edb16afecd20aff00ca29fd3fec33d49217cfb6d3a1c47ab25bd21ad4",
+    "bf9f0f502afe03568bc937a535d2fdfba8c16174c77e5b3ea5e1ab16306e9aa9",
+    "c32168c04e7ef213731fb6a3c413d1acca5f7ee79807d256b896e31345610993",
+    "c4b4535df376014857e9ddcab4c180cf0094d75e9a44b2cae9c835d32c3d164d",
+    "c4e6f678bed80ec72646048d0b79967d8771b2d1a45974c383dd09d9e64195ea",
+    "c623f25bfd932425f448885c853fb48d58ac4e1ceb971a714327a8bf624863cc",
+    "c881c246229132289898ed86b8eb69e9b114ebea7b1abc9e3836b983e9f0744b",
+    "c8c6e45f11dd013d08479b267d2a91e4f7425fd2e9f4ee4edddb0cf0c131763a",
+    "c9b74ce05fe9a01940b260ccd4f81def3f2e0b3a1c1432cf4cb5642cbd5ad6e8",
+    "cc2987b6e52492c8f7e6570173ca8c52dc755b00f8a8c4920f70692c2440088f",
+    "cce871932168fe20ca40622db4891835b20e0af299fd9354561b6578dc77b364",
+    "ce0192592fbb2544bd58c481d61c688f9b102bd041c5170564fd943fd8c3e28a",
+    "d1c02faec9328f5fad620108bd2ddf3f52b04ee1c914f0b52948d9d512d61613",
+    "d20f64f4cf473bd2f4d2aeafec38174c9700b8aa59c2f84d3cfe1da80298e680",
+    "d2603770f5c3cfc823bbc00f4aa3225078c87d782ec93473dd0e5096c64e6643",
+    "d29925bb4958161b0f100eeb39d0ae578d35a986cb02f5a84a0332abf8a12e0a",
+    "d5729959103ca251d6188e4a04c2d1845bbf5fc6694bee4d428f89dd4cbd6229",
+    "d60d8a5922474cb43bb1801b60faf831ea82647168391a1568a2f93175845ef9",
+    "debbc99df2700fe2f8093181773db4576999748aa534e0213a84c0f0f0b58994",
+    "dfd003ab373bc0d605bff45220fbd81e38542b87d3168e0b88914f519172404e",
+    "e9afcacc64d89d17bced6257c951910187c7cae3926184c31ee8a83a9b017136",
+    "eb9480b04be5a039992e7b21f9903f5d60591598b438afa94a55aa5c5614cbd0",
+    "ec127025dbdebbb1dd5f8f0ac06ac51701c9322f427ffcc65dad0358beea3919",
+    "eff821d2ec2e91ac072a6da0cb6fe0b966acd56554a18dcc3c2d01b84dc68c2f",
+    "f924a25f28768216bba3d22031e4e05d259d021c6dd3b4dccac1bcd0097c7c7c",
+    "fabf71b7a44af00c880cd16ce15408ace8c43d93b4dd455a49faaa3180a8ae75",
+    "ffbbf870b942a4e7654c8cf9c4c32f325777c9a884188750a653bfb0e003a18b"
+  ],
+  "sources": [
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/1password",
+      "sha256": "022d73b67bcd43d59dc45edabe5e478560b69575a5019344e28778f599a106ea"
+    },
+    {
+      "bytes": 352,
+      "path": "/etc/apparmor.d/Discord",
+      "sha256": "9f0193936c82a661bdce0e76e96bf0815026523bb73863ab22e65e0804a6bcfa"
+    },
+    {
+      "bytes": 386,
+      "path": "/etc/apparmor.d/MongoDB_Compass",
+      "sha256": "464735b26bce21f0e6484852e61b39011394381a9b3079b3d8735c1bb82babe7"
+    },
+    {
+      "bytes": 404,
+      "path": "/etc/apparmor.d/QtWebEngineProcess",
+      "sha256": "d67ace181194517324f5969e7e76e59cbebfb72d74b3ae9e6de1cd8667e9d185"
+    },
+    {
+      "bytes": 1925,
+      "path": "/etc/apparmor.d/abi/3.0",
+      "sha256": "a786a2fde512336f885805b557b0fc4df6e0c2e21e336bba8d6f9b3c8d637a66"
+    },
+    {
+      "bytes": 2205,
+      "path": "/etc/apparmor.d/abi/4.0",
+      "sha256": "e510bb8f6788b45e48de2f859a6f94a7b8416cbac5a1051814cfce925fa911bd"
+    },
+    {
+      "bytes": 1989,
+      "path": "/etc/apparmor.d/abstractions/X",
+      "sha256": "a65f7f8c6fd8691d48d1c0357c13c176d609decebb440c8a36465bc942e6cf14"
+    },
+    {
+      "bytes": 7093,
+      "path": "/etc/apparmor.d/abstractions/base",
+      "sha256": "bd5e82954361fb71ac6a41ed85c329e65610cb6f2c07a46151ac7a6a9660657b"
+    },
+    {
+      "bytes": 903,
+      "path": "/etc/apparmor.d/abstractions/consoles",
+      "sha256": "e19ba1dc743bbbb07540df9dd9b607b0b68d51d6b398d05808d12cc41560e12c"
+    },
+    {
+      "bytes": 992,
+      "path": "/etc/apparmor.d/abstractions/crypto",
+      "sha256": "40f5b40b043144fa6d5af50a57967115f36bea47c9fa27f6d4e5b00716298c40"
+    },
+    {
+      "bytes": 760,
+      "path": "/etc/apparmor.d/abstractions/dbus-accessibility-strict",
+      "sha256": "07456d4dd3580f40fca348f3158cc2adcf938f9751c463db386c79ad82e64318"
+    },
+    {
+      "bytes": 1403,
+      "path": "/etc/apparmor.d/abstractions/dbus-network-manager-strict",
+      "sha256": "29105c359ca7e30521197c41d7c78fa8b7333f3d888513e52331f99d747036a6"
+    },
+    {
+      "bytes": 747,
+      "path": "/etc/apparmor.d/abstractions/dbus-session",
+      "sha256": "76f27a50620a28b2502388a2316c2c77a8a7a182739afd6bb62161eca4f9dd58"
+    },
+    {
+      "bytes": 1261,
+      "path": "/etc/apparmor.d/abstractions/dbus-session-strict",
+      "sha256": "0f3136d2ee3ba149697bc86b586822ae6b34ff0c23cf235636a7b71b633aba35"
+    },
+    {
+      "bytes": 781,
+      "path": "/etc/apparmor.d/abstractions/dbus-strict",
+      "sha256": "1c6023fa3ab21b9792a513161869ac8209de9ad1b34cc7fcba2c02dd6b1c3a89"
+    },
+    {
+      "bytes": 344,
+      "path": "/etc/apparmor.d/abstractions/dconf",
+      "sha256": "b107bb20b44650d4462cf1fc6b4021e7dae42bc0899255a736dea8a56d68165b"
+    },
+    {
+      "bytes": 542,
+      "path": "/etc/apparmor.d/abstractions/dri-common",
+      "sha256": "3ed180295557bd99d33972cdd125577652a6f45e28b36b1022a9b053d51f91da"
+    },
+    {
+      "bytes": 2280,
+      "path": "/etc/apparmor.d/abstractions/fonts",
+      "sha256": "2d37951f12e1c95b4e2e57fca8628801c1fa877c8b1e26cd7f9964b1afdf8fb7"
+    },
+    {
+      "bytes": 1684,
+      "path": "/etc/apparmor.d/abstractions/freedesktop.org",
+      "sha256": "c273e9fdc663d6592525302e68ca279b05d9da1da5d38f8a740d7052cd794a8d"
+    },
+    {
+      "bytes": 3815,
+      "path": "/etc/apparmor.d/abstractions/gnome",
+      "sha256": "2cafe3969e29cc73b929e2990e02b14b04de16c9a96faa5757d71c9cc98e8133"
+    },
+    {
+      "bytes": 1476,
+      "path": "/etc/apparmor.d/abstractions/kerberosclient",
+      "sha256": "20a69d2b402a5670e2a43e9648bafecec6919288c921665f083a7571a0f6c5f3"
+    },
+    {
+      "bytes": 856,
+      "path": "/etc/apparmor.d/abstractions/ldapclient",
+      "sha256": "8f89e367342affc5b096390886aacef98ca02af6e8472018485d0bee66452e71"
+    },
+    {
+      "bytes": 595,
+      "path": "/etc/apparmor.d/abstractions/likewise",
+      "sha256": "ec7a4c5c6310e15350dbb15bab345afab3ad9f01dbbca9185c56ffa6c8be3938"
+    },
+    {
+      "bytes": 554,
+      "path": "/etc/apparmor.d/abstractions/mdns",
+      "sha256": "f8b039ce5ebed7dbffdce062f6c1a9306d4946cca0a647d310643c491ec5628e"
+    },
+    {
+      "bytes": 4563,
+      "path": "/etc/apparmor.d/abstractions/nameservice",
+      "sha256": "18f6327cb843079d18828f0d6693cfeea1f04ca1132450f732b0081539070780"
+    },
+    {
+      "bytes": 625,
+      "path": "/etc/apparmor.d/abstractions/nis",
+      "sha256": "920b31479a4b735b1a416790692c481829a7ba2aa20355d33a292bb56d12db05"
+    },
+    {
+      "bytes": 1248,
+      "path": "/etc/apparmor.d/abstractions/nss-systemd",
+      "sha256": "3c3a8615b2023b47643f8864d0cf3a55fd4088fe45c0342d46d03944b2f36005"
+    },
+    {
+      "bytes": 642,
+      "path": "/etc/apparmor.d/abstractions/openssl",
+      "sha256": "d4622d9de854fd68e870232aad98d4491e7e401cf9fb833566d3b28b16b4bf66"
+    },
+    {
+      "bytes": 1171,
+      "path": "/etc/apparmor.d/abstractions/passt",
+      "sha256": "196e0106d905202f0592a6e2e6af4a2fd9104512a734d34de16f95bdbe90a7ba"
+    },
+    {
+      "bytes": 863,
+      "path": "/etc/apparmor.d/abstractions/qt5",
+      "sha256": "7648157600edb83ed30eeb62f69a93b414362947eb363b8e9c295863cbfc5fc0"
+    },
+    {
+      "bytes": 514,
+      "path": "/etc/apparmor.d/abstractions/qt5-settings-write",
+      "sha256": "d258ba488fd1fe831715da16950e54dbfb7fcbd17c068630a1232ec99afe5f84"
+    },
+    {
+      "bytes": 1522,
+      "path": "/etc/apparmor.d/abstractions/ssl_certs",
+      "sha256": "719005856dd42c37fbcd4305962d44e9a4f0dc4fcf55ba806d45023ec50f583f"
+    },
+    {
+      "bytes": 4379,
+      "path": "/etc/apparmor.d/abstractions/transmission-common",
+      "sha256": "877e490ab38b7f7e730d481cba9c36855e03f329df84d784463367aece465b2f"
+    },
+    {
+      "bytes": 760,
+      "path": "/etc/apparmor.d/abstractions/user-tmp",
+      "sha256": "167c651bfae8e979dc2435624e7b7b2656700ea50d440c9b1242d4c78e682553"
+    },
+    {
+      "bytes": 713,
+      "path": "/etc/apparmor.d/abstractions/wayland",
+      "sha256": "97572a7ab4c2cd16400960acd0f2685d22a00dfea934ce701a1dd6bcb3b17d59"
+    },
+    {
+      "bytes": 882,
+      "path": "/etc/apparmor.d/abstractions/winbind",
+      "sha256": "7b8d0d4be6b424813feb37b119243cb125837acad63941386e1f9dda6f2ee704"
+    },
+    {
+      "bytes": 782,
+      "path": "/etc/apparmor.d/abstractions/xdg-desktop",
+      "sha256": "b0d091fc936122cfd5935cf7ae5d55c89e157bcac6babd9b48fb54603eb8312f"
+    },
+    {
+      "bytes": 374,
+      "path": "/etc/apparmor.d/balena-etcher",
+      "sha256": "1d9368cc563ec187b28b7ae8ba60134070264cb46c4eb2bde52d069df085f300"
+    },
+    {
+      "bytes": 348,
+      "path": "/etc/apparmor.d/brave",
+      "sha256": "eebe51af71198110e28a5257155e49ab3f605123a0801cf31ceda5d605d39e38"
+    },
+    {
+      "bytes": 342,
+      "path": "/etc/apparmor.d/buildah",
+      "sha256": "0a33a10c7a6f9e0c20142e846d0ed180231719b58357330afc310785926eb5e7"
+    },
+    {
+      "bytes": 330,
+      "path": "/etc/apparmor.d/cam",
+      "sha256": "ee77ef109bc454260ec3060ade62c03a16d51e1e8fe8424327445f371d07d827"
+    },
+    {
+      "bytes": 351,
+      "path": "/etc/apparmor.d/ch-checkns",
+      "sha256": "f8edbc87d5d2194bb3aad0a3097777f6de85e2f02a3ed47c2c14c110028e286e"
+    },
+    {
+      "bytes": 339,
+      "path": "/etc/apparmor.d/ch-run",
+      "sha256": "878b4558789115665ea7656564efa6958168be4fe22802fce7b1b0b977043d1b"
+    },
+    {
+      "bytes": 349,
+      "path": "/etc/apparmor.d/chrome",
+      "sha256": "9da127c4af5d1639aa4102387a29a04548299a832c5f9e803a6b0c2cfb79ef76"
+    },
+    {
+      "bytes": 349,
+      "path": "/etc/apparmor.d/code",
+      "sha256": "9fd4a3cc5f3bf64aefbed6ff4cab30fd60563d655ae2896197f152d07b726e9a"
+    },
+    {
+      "bytes": 333,
+      "path": "/etc/apparmor.d/crun",
+      "sha256": "bda038f71140a5196c48112b0e73ba91d761245bf3eb2445357b7250c56d3511"
+    },
+    {
+      "bytes": 342,
+      "path": "/etc/apparmor.d/devhelp",
+      "sha256": "d50b5f99200076f4f8d663816924a8bee1335213df0675eebc85ffcf3c507029"
+    },
+    {
+      "bytes": 368,
+      "path": "/etc/apparmor.d/element-desktop",
+      "sha256": "a08cf4b246e56ec9ea7e1606935e87ecfd98b8516da334e58ff6ccc7c2f43a62"
+    },
+    {
+      "bytes": 356,
+      "path": "/etc/apparmor.d/epiphany",
+      "sha256": "5251e560340781565cb97ab49f38e3952baaf26cd3fdc0d5f0de2bed32e40264"
+    },
+    {
+      "bytes": 348,
+      "path": "/etc/apparmor.d/evolution",
+      "sha256": "7712cbee87dc8ca995e394e533a9f5d3d97215d14fdc1e0aae541d8fabd7b2b7"
+    },
+    {
+      "bytes": 410,
+      "path": "/etc/apparmor.d/firefox",
+      "sha256": "e58d09fe9e3032daadaa4dc423beffa402d7618183a4f186c4300cd8770df384"
+    },
+    {
+      "bytes": 342,
+      "path": "/etc/apparmor.d/flatpak",
+      "sha256": "11b8a9f19702fe3f68bb553e5de88a891f20c500ff4e62114260eaee28955a93"
+    },
+    {
+      "bytes": 342,
+      "path": "/etc/apparmor.d/foliate",
+      "sha256": "e718e0623ddb2fc175c61c4a46f184adef8221bb6381524e8893cc449caa8c5b"
+    },
+    {
+      "bytes": 336,
+      "path": "/etc/apparmor.d/geary",
+      "sha256": "06b5b5927cd323ac4277391b17319ace8bcacaaffbf55d68e6e4a8dee8a1059e"
+    },
+    {
+      "bytes": 378,
+      "path": "/etc/apparmor.d/github-desktop",
+      "sha256": "f722eb99e4e3e946eb42901c23233abb9f21887ef23c2765f7e052cb7f1a556c"
+    },
+    {
+      "bytes": 353,
+      "path": "/etc/apparmor.d/goldendict",
+      "sha256": "040b36200d6c7c709cc1c38bf9c50e40e4b7139da9fd03da6bec4dc39f136045"
+    },
+    {
+      "bytes": 351,
+      "path": "/etc/apparmor.d/ipa_verify",
+      "sha256": "02de3f31456c774adca8814a6d2ae56fc63536b63d33f9aea44a458f9c8fd50a"
+    },
+    {
+      "bytes": 353,
+      "path": "/etc/apparmor.d/kchmviewer",
+      "sha256": "850442c69f31a766b4ee94c30720043366cd28fb117aea7e8a249cc9f21e6104"
+    },
+    {
+      "bytes": 346,
+      "path": "/etc/apparmor.d/keybase",
+      "sha256": "091156df85ca5024d705c609ab326d672c1d0af62466a566d08459cd9a0d37cd"
+    },
+    {
+      "bytes": 360,
+      "path": "/etc/apparmor.d/lc-compliance",
+      "sha256": "8af339f6050cc3f13e0efabf9c39a2a8404e1cf420df4e5b7198eb29239aed44"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/libcamerify",
+      "sha256": "97705b64faa9abd08edc63a3e575785fd5d6bd33bbe421d3c65b391937172009"
+    },
+    {
+      "bytes": 383,
+      "path": "/etc/apparmor.d/linux-sandbox",
+      "sha256": "a027ab58875225bfef6f2a6b2f53fc54d0da44aa93ea73f6461cf63811f4d282"
+    },
+    {
+      "bytes": 336,
+      "path": "/etc/apparmor.d/loupe",
+      "sha256": "0aba75c07b9ce7f38d3d0db1570bc4181e973bb5ba0f242312cbc36ee121e430"
+    },
+    {
+      "bytes": 351,
+      "path": "/etc/apparmor.d/lxc-attach",
+      "sha256": "e8a544ba49a860e8d106fad43c8853ca1a91280cbbb39039515c4b7b72aab25d"
+    },
+    {
+      "bytes": 351,
+      "path": "/etc/apparmor.d/lxc-create",
+      "sha256": "e90732fe95486d6e91cb7c22db0037834c1625ee6e0ee8b8d5d344a78ea447c6"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/lxc-destroy",
+      "sha256": "f6ce1d91654234237e546dde5141c350aa3360d34e718ca613d9256bc7fd3a70"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/lxc-execute",
+      "sha256": "4358cd33b26a832a3ea94b47914e808856d2e47ed70b6351dc6f88012001da3c"
+    },
+    {
+      "bytes": 345,
+      "path": "/etc/apparmor.d/lxc-stop",
+      "sha256": "52c958393c4999012ad2eb239f4663546c510a2391208b2ffdc0ba48973dd442"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/lxc-unshare",
+      "sha256": "6a98ca452ede57fd1b3ebbf35e72a3c40fb3c4a05a8db4cc731978293d3dbc01"
+    },
+    {
+      "bytes": 363,
+      "path": "/etc/apparmor.d/lxc-usernsexec",
+      "sha256": "5c9a1f2992fcf5ec5ee7c94a0f82e7b3f37a5c1539be9384c690b78eef3c7a33"
+    },
+    {
+      "bytes": 351,
+      "path": "/etc/apparmor.d/mmdebstrap",
+      "sha256": "c0a1830c313e8947018e11a4941b341ce860346901493d1a401a247fef442495"
+    },
+    {
+      "bytes": 352,
+      "path": "/etc/apparmor.d/msedge",
+      "sha256": "682f4b6e0d7c039353a0b657365bbf07640d3332f5c77141cd14e8c504f0afa6"
+    },
+    {
+      "bytes": 346,
+      "path": "/etc/apparmor.d/nautilus",
+      "sha256": "617ea2552c349e79534a7b915d017bb4dbf0026cdf363bd2a84be546a6159425"
+    },
+    {
+      "bytes": 402,
+      "path": "/etc/apparmor.d/notepadqq",
+      "sha256": "52a6240f8fb97e340f5d39bc36489b9dc9e76ed120d17b50e43943ac297462a9"
+    },
+    {
+      "bytes": 350,
+      "path": "/etc/apparmor.d/obsidian",
+      "sha256": "ad8d4cf6c68e91513626510218a5daa8c5ce8052b65b21655bcc4a68444b3a87"
+    },
+    {
+      "bytes": 333,
+      "path": "/etc/apparmor.d/opam",
+      "sha256": "03b0c182f5f807ddbe2366e86fbcd1c2ac3637bb83d3b65794c84f0421f392ac"
+    },
+    {
+      "bytes": 355,
+      "path": "/etc/apparmor.d/opera",
+      "sha256": "ba6abbc9b513824dea76e0281df09037fb258911929a914583d4f246c19d59d1"
+    },
+    {
+      "bytes": 347,
+      "path": "/etc/apparmor.d/pageedit",
+      "sha256": "345329f8dcb5ef4fceb567b6ca8a80f0c25ddbf51946fc9f58866599805a8157"
+    },
+    {
+      "bytes": 680,
+      "path": "/etc/apparmor.d/plasmashell",
+      "sha256": "7d63cffe72c111bc465911417698f6cdb64d0e70178a526947d85e67d2d1e62b"
+    },
+    {
+      "bytes": 339,
+      "path": "/etc/apparmor.d/podman",
+      "sha256": "561be6615630ccda5b92d8e540e051774fab92b0de8598856ec84aca341bbf73"
+    },
+    {
+      "bytes": 350,
+      "path": "/etc/apparmor.d/polypane",
+      "sha256": "90aab2e3c43467a8065b3247eb63346b5652b680e577251119e7934154372188"
+    },
+    {
+      "bytes": 365,
+      "path": "/etc/apparmor.d/privacybrowser",
+      "sha256": "a0fc38ed4ee37c5603d7cdc92fa399d74905241191f43c411e0ee7a8c57c2b1a"
+    },
+    {
+      "bytes": 333,
+      "path": "/etc/apparmor.d/qcam",
+      "sha256": "a10e3dfea00b93c7fdd1070a71e722dccb94ed1dd94c25bea68a84a569ebba6e"
+    },
+    {
+      "bytes": 348,
+      "path": "/etc/apparmor.d/qmapshack",
+      "sha256": "a5f3fb1014272dbefcc0c1a67f34a424712cd769583b473bf1c23ce29678fc5b"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/qutebrowser",
+      "sha256": "99d109fa5108bdefe1b7c5fa561517009d2be63696dacd20670017df344160da"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/rootlesskit",
+      "sha256": "a6a1a760d88312275d64f195e6b2f51627e8cabfdf4e355262c86f0578c66d80"
+    },
+    {
+      "bytes": 330,
+      "path": "/etc/apparmor.d/rpm",
+      "sha256": "2d0cdba24fa2badd2a110f79cd27125feaad942ddbcd942bf5da30a8c4ec7d86"
+    },
+    {
+      "bytes": 347,
+      "path": "/etc/apparmor.d/rssguard",
+      "sha256": "12b67ae2077a7d4535bfcb9bf9f440437deabd39720366311c8f230414755d65"
+    },
+    {
+      "bytes": 691,
+      "path": "/etc/apparmor.d/rsyslog.d/README",
+      "sha256": "1255f6311ba489918c292e38c9dea0d2c9a498f65d091d80965b200b3c355396"
+    },
+    {
+      "bytes": 334,
+      "path": "/etc/apparmor.d/runc",
+      "sha256": "e97400404d8b8e85ce3e458558105ec218276efab10b355c7a6086a90ad0b4c6"
+    },
+    {
+      "bytes": 339,
+      "path": "/etc/apparmor.d/sbuild",
+      "sha256": "22f6b307db1fb7d710d103d3067df6ee23c0917791216dcf126c658eef4791ee"
+    },
+    {
+      "bytes": 357,
+      "path": "/etc/apparmor.d/sbuild-abort",
+      "sha256": "0c715bf0118037ecda85f34313038311a4de72287e083061267043f8f129c6f0"
+    },
+    {
+      "bytes": 364,
+      "path": "/etc/apparmor.d/sbuild-adduser",
+      "sha256": "bf8a1782e24a6a747adc649ae19a860a6c8017f280830ee7005e0d96e7ab01dc"
+    },
+    {
+      "bytes": 351,
+      "path": "/etc/apparmor.d/sbuild-apt",
+      "sha256": "95b36b3779ada292b18c936ba86800f3301c66a956e46d8fd9754b07d87ec90d"
+    },
+    {
+      "bytes": 381,
+      "path": "/etc/apparmor.d/sbuild-checkpackages",
+      "sha256": "febe7649cba7170159b0226b632a9c7aea76fc9103c92cc9109bf5d5b5ceb550"
+    },
+    {
+      "bytes": 357,
+      "path": "/etc/apparmor.d/sbuild-clean",
+      "sha256": "15d672102d88a0adcd917116557ca2373044df7692ba9e692742d34b18c7943f"
+    },
+    {
+      "bytes": 378,
+      "path": "/etc/apparmor.d/sbuild-createchroot",
+      "sha256": "fe6c55d3fe9e420d40d3207b9ef55f7be1976c5dccdafd2268e815560618bb64"
+    },
+    {
+      "bytes": 382,
+      "path": "/etc/apparmor.d/sbuild-destroychroot",
+      "sha256": "e76ba8fe529ce40135b4e7eb5bc5575f20b4a74a83cce15bbb8327295380481a"
+    },
+    {
+      "bytes": 375,
+      "path": "/etc/apparmor.d/sbuild-distupgrade",
+      "sha256": "d96899d90e6bf2c697a5412df6750d4ca63c5855d1130ef852873e8dfb8e92b1"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/sbuild-hold",
+      "sha256": "52735a9a1e21d6584ad0d3556da17bee80525b0f0ba63b003ef93fd90bc66926"
+    },
+    {
+      "bytes": 365,
+      "path": "/etc/apparmor.d/sbuild-shell",
+      "sha256": "5dba112895c6567523a9c859cb03aaa3be53d4cb1c20dab9919f91e412e581bb"
+    },
+    {
+      "bytes": 360,
+      "path": "/etc/apparmor.d/sbuild-unhold",
+      "sha256": "c8b44b9b426189c0bdcb926ecdc52b086e16d38d4e63d886d25fd53c02b4e648"
+    },
+    {
+      "bytes": 360,
+      "path": "/etc/apparmor.d/sbuild-update",
+      "sha256": "446efea6d9be4e8581bca8840946226d481262d03aa83991d094a593ffc5abf4"
+    },
+    {
+      "bytes": 363,
+      "path": "/etc/apparmor.d/sbuild-upgrade",
+      "sha256": "2d5bc1f16627cb5eff45079e56d903b9f97533c7d8c7e00e813caed534b1d1ee"
+    },
+    {
+      "bytes": 355,
+      "path": "/etc/apparmor.d/scide",
+      "sha256": "b2e3a0c59a4e9e7d04d8ab33e0d2f727ffe7c9f5eb69c88f8ce5b5f92cabb994"
+    },
+    {
+      "bytes": 366,
+      "path": "/etc/apparmor.d/signal-desktop",
+      "sha256": "e2d77b1e71b88d42aaef3f204914c21f381b3cb0fafc8db46b9426d69dbc43a6"
+    },
+    {
+      "bytes": 342,
+      "path": "/etc/apparmor.d/slack",
+      "sha256": "1f0ffd6666bcc926642900b51c886870465172c5c8aba986bb6d460cfe9267e4"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/slirp4netns",
+      "sha256": "60e27c03630e90c849a7086176c903d08a5c4c67e3124ae05212a28f408120da"
+    },
+    {
+      "bytes": 363,
+      "path": "/etc/apparmor.d/steam",
+      "sha256": "68b43391cecdfaddda046d8764861b63a040e9571b6082f7682e57f567b53e02"
+    },
+    {
+      "bytes": 348,
+      "path": "/etc/apparmor.d/stress-ng",
+      "sha256": "19f03df37d84aca6bbf5385f088ca4b3b13cae5df554182a154c19318b852496"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/surfshark",
+      "sha256": "4cbf0c07ef947beaf8c00ad46c6d647b7ac020502c29793533125f077e1cf154"
+    },
+    {
+      "bytes": 377,
+      "path": "/etc/apparmor.d/systemd-coredump",
+      "sha256": "fed4dc3a7d882483142b93fd00950c18ad8725a25e98b9f1e179587d9482188e"
+    },
+    {
+      "bytes": 354,
+      "path": "/etc/apparmor.d/thunderbird",
+      "sha256": "f6333ba73f1565971920813fe8753c0ebc14b1e259f2182f127d696b0e5cbbcf"
+    },
+    {
+      "bytes": 335,
+      "path": "/etc/apparmor.d/toybox",
+      "sha256": "136519e890ceb2abe409d074bb47940be477fc7824566bcadb0a635cb5e6d472"
+    },
+    {
+      "bytes": 2400,
+      "path": "/etc/apparmor.d/transmission",
+      "sha256": "f300395b821e5e575a1178a77d5eff7e1ba55caa544139136cbda4038d202dc2"
+    },
+    {
+      "bytes": 342,
+      "path": "/etc/apparmor.d/trinity",
+      "sha256": "1f0ad641d3d0e3fb5732ee939ea80ad8d41ce8706325b8f5cf4bc31a0ed7a14e"
+    },
+    {
+      "bytes": 734,
+      "path": "/etc/apparmor.d/tunables/alias",
+      "sha256": "e7b8b278db3f7aca74e0176f22cbd3adc3c89212cc9e66a90a2787b3ceee8030"
+    },
+    {
+      "bytes": 1256,
+      "path": "/etc/apparmor.d/tunables/etc",
+      "sha256": "4211a2db7a81c3edea6a657f8eacdae4322235c1d766ac95a592cb6f1b43f7ee"
+    },
+    {
+      "bytes": 897,
+      "path": "/etc/apparmor.d/tunables/global",
+      "sha256": "2c1d72013b53bf103fb8abe2199ce5775f8493df1acd3ef497046156c09fdf7c"
+    },
+    {
+      "bytes": 974,
+      "path": "/etc/apparmor.d/tunables/home",
+      "sha256": "806a4e80696e3870d46d1ae99ac7fe7099680b39040c2183094a44671d83218e"
+    },
+    {
+      "bytes": 634,
+      "path": "/etc/apparmor.d/tunables/home.d/site.local",
+      "sha256": "f6f9d209f8015196f2e391ea02debcebecbf8022ececfee3a08e3973c3bb06d4"
+    },
+    {
+      "bytes": 1511,
+      "path": "/etc/apparmor.d/tunables/kernelvars",
+      "sha256": "a2fa754e93a435722ea4b8b03e2bdf52bf4c029c66397b773f5e4321d6f66ea5"
+    },
+    {
+      "bytes": 607,
+      "path": "/etc/apparmor.d/tunables/multiarch",
+      "sha256": "0d35e0680f4dd9085a1c64911be21e95a65d12db045bde4b4ecae22915ce53ff"
+    },
+    {
+      "bytes": 645,
+      "path": "/etc/apparmor.d/tunables/multiarch.d/site.local",
+      "sha256": "731ad52936633b9a0c738605a2a08aad2357df91ca8fbe3bd2c3427d7aac240b"
+    },
+    {
+      "bytes": 548,
+      "path": "/etc/apparmor.d/tunables/proc",
+      "sha256": "d6a8ac6910ecdde3930916dcb44d7b3d3bf1cfe5a8f54728f1f599e32a26ece7"
+    },
+    {
+      "bytes": 129,
+      "path": "/etc/apparmor.d/tunables/run",
+      "sha256": "cbe2d9c99a82124d6206bfdd377895fa3dec48ee255923d2c31b71be53ab9bdd"
+    },
+    {
+      "bytes": 929,
+      "path": "/etc/apparmor.d/tunables/share",
+      "sha256": "5389ddceeb78d2012f528037e5c8205535f145c906cf6266ba400d9bafea26b7"
+    },
+    {
+      "bytes": 5055,
+      "path": "/etc/apparmor.d/tunables/system",
+      "sha256": "84dfeb5a2239e9cb7626b8008275c5aa0602d671303f4b43b7db0eff4688b828"
+    },
+    {
+      "bytes": 844,
+      "path": "/etc/apparmor.d/tunables/xdg-user-dirs",
+      "sha256": "1d92b108e04a4067333224c4dbfd19df8ca0f0deef7a28b153995e22fe8cedb7"
+    },
+    {
+      "bytes": 330,
+      "path": "/etc/apparmor.d/tup",
+      "sha256": "37e36dce9ef62f26b1d20f3de4699ddf358b8fe123d161d360b7a9fddb9374b0"
+    },
+    {
+      "bytes": 400,
+      "path": "/etc/apparmor.d/tuxedo-control-center",
+      "sha256": "9b833587e43f5fd3d8747c0ae4522829a2c799557c8071a484922d9710e5037f"
+    },
+    {
+      "bytes": 881,
+      "path": "/etc/apparmor.d/unix-chkpwd",
+      "sha256": "495022dab9f96f59cc979a818ece2d2b8d09d6170496455c3c34a0796270db4a"
+    },
+    {
+      "bytes": 360,
+      "path": "/etc/apparmor.d/userbindmount",
+      "sha256": "e861ac2308074f291759fa0848fb9eb05e48e5482f6bfdae4d767c30cba44432"
+    },
+    {
+      "bytes": 676,
+      "path": "/etc/apparmor.d/usr.bin.passt",
+      "sha256": "55ca90126af1e74e367e6be92b66d6f4cf76adff1eab3ffd6389b97ac92945b3"
+    },
+    {
+      "bytes": 1687,
+      "path": "/etc/apparmor.d/usr.bin.tcpdump",
+      "sha256": "a75adb4fcb533acbee1d9e611ae0c72056c21213ff8394e3bcf3ac6837d27e20"
+    },
+    {
+      "bytes": 1872,
+      "path": "/etc/apparmor.d/usr.sbin.rsyslogd",
+      "sha256": "161bd176be6bde54100423fe188e32b1b2e7510f6ae563dc9b4c44d5a9682b94"
+    },
+    {
+      "bytes": 351,
+      "path": "/etc/apparmor.d/uwsgi-core",
+      "sha256": "af6dec105f0f35e67d46fe2d70dc29229d8bc08876d933cbee62dcff3271dfd8"
+    },
+    {
+      "bytes": 336,
+      "path": "/etc/apparmor.d/vdens",
+      "sha256": "24a8b9ea5915d5de7f61469c441dc0ed442ede904952cce67e40f4c730e50516"
+    },
+    {
+      "bytes": 352,
+      "path": "/etc/apparmor.d/virtiofsd",
+      "sha256": "377cfb227babd5b010a06df8b28971ae3ffb4a3770c6a12ba62a2b1ad34eb86b"
+    },
+    {
+      "bytes": 358,
+      "path": "/etc/apparmor.d/vivaldi-bin",
+      "sha256": "0849b46d03bbed9989c3c214530b377a0a6b97f86ad70a773ce5dc58c3d0dbab"
+    },
+    {
+      "bytes": 336,
+      "path": "/etc/apparmor.d/vpnns",
+      "sha256": "f41dfa6d9e8d3b200d7c262a87524bbbc5f980829d3fb864cd7b82ae1642e461"
+    },
+    {
+      "bytes": 333,
+      "path": "/etc/apparmor.d/wike",
+      "sha256": "bd982ac79f7a9e9f4a2d4db60e541204ee6cb2943653e64bec5a66ea4f688208"
+    },
+    {
+      "bytes": 346,
+      "path": "/etc/apparmor.d/wpcom",
+      "sha256": "59b795822094c6721eb95883cb9dfe2cdc2babaa34483a4541dc24113d1c181a"
+    },
+    {
+      "bytes": 473,
+      "path": "/opt/microsoft/msedge/apparmor.d/microsoft-edge-stable",
+      "sha256": "60b66aee954501f99f8e6ace26bc7384fb9e11d22711dbcbe65ba480ab89f45c"
+    }
+  ]
+}
