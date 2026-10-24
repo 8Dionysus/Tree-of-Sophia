@@ -4,7 +4,7 @@
 use super::OperationBudget;
 use crate::source_command::{SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::active;
-use std::{cell::RefCell, mem::size_of, sync::atomic::AtomicBool, time::Instant};
+use std::{cell::{Cell, RefCell}, mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_compiler::pwe_native::{Error, Limits, Session, SourceAdmission};
 
 #[path = "source_original_read_session.rs"]
@@ -15,6 +15,7 @@ pub(crate) struct OriginalAssessmentPayer<'budget, 'cancel> {
     deadline: Instant,
     cancelled: &'cancel AtomicBool,
     refusal: RefCell<Option<SourceCommandError>>,
+    failed: Cell<bool>,
 }
 
 /// Facts from the cumulative operation, NOT the smaller per-report input
@@ -63,6 +64,7 @@ pub(crate) fn with_original_pwe_session<T>(
         deadline,
         cancelled,
         refusal: RefCell::new(None),
+        failed: Cell::new(false),
     };
     let mut session =
         Session::new_source(limits, cancelled, &payer).map_err(|error| payer.error(error))?;
@@ -95,7 +97,6 @@ impl OriginalAssessmentPayer<'_, '_> {
 
     pub(crate) fn remaining(&self) -> SourceCommandResult<AssessmentRemainder> {
         self.with_operation(|operation| {
-            operation.limits()?;
             Ok(AssessmentRemainder {
                 bytes: operation.bytes_remaining,
                 work: operation.work_remaining,
@@ -111,16 +112,37 @@ impl OriginalAssessmentPayer<'_, '_> {
         &self,
         run: impl FnOnce(&mut OperationBudget) -> SourceCommandResult<T>,
     ) -> SourceCommandResult<T> {
-        active(self.deadline, self.cancelled)?;
+        active(self.deadline, self.cancelled).map_err(|error| {
+            self.failed.set(true);
+            error
+        })?;
         let mut operation = self.operation.try_borrow_mut().map_err(|_| {
+            self.failed.set(true);
             SourceCommandError::Invalid("original Assessment payer already borrowed")
         })?;
-        run(&mut operation)
+        if self.failed.get() || operation.resource_refused.get() {
+            self.failed.set(true);
+            return Err(SourceCommandError::Unsupported(
+                "original Assessment payer resource refusal persists",
+            ));
+        }
+        let result = run(&mut operation);
+        if operation.resource_refused.get() {
+            self.failed.set(true);
+            return match result {
+                Err(error) => Err(error),
+                Ok(_) => Err(SourceCommandError::Unsupported(
+                    "original Assessment payer resource refusal persists",
+                )),
+            };
+        }
+        result
     }
 
     fn debit(&self, bytes: usize) -> tos_compiler::pwe_native::Result<()> {
         self.with_operation(|operation| operation.charge_bytes(bytes))
             .map_err(|error| {
+                self.failed.set(true);
                 let mut first = self.refusal.borrow_mut();
                 if first.is_none() {
                     *first = Some(error);
@@ -130,6 +152,9 @@ impl OriginalAssessmentPayer<'_, '_> {
     }
 
     pub(crate) fn error(&self, error: Error) -> SourceCommandError {
+        if matches!(error, Error::Cancelled | Error::Deadline | Error::ResourceLimit) {
+            self.failed.set(true);
+        }
         if let Some(original) = self.refusal.borrow_mut().take() {
             return original;
         }
@@ -146,6 +171,13 @@ impl OriginalAssessmentPayer<'_, '_> {
     fn finish(&self) -> SourceCommandResult<()> {
         if let Some(original) = self.refusal.borrow_mut().take() {
             return Err(original);
+        }
+        if self.failed.get()
+            || self.operation.try_borrow().map_or(true, |operation| operation.resource_refused.get())
+        {
+            return Err(SourceCommandError::Unsupported(
+                "original Assessment payer resource refusal persists",
+            ));
         }
         active(self.deadline, self.cancelled)
     }
@@ -165,6 +197,65 @@ impl SourceAdmission for OriginalAssessmentPayer<'_, '_> {
 mod tests {
     use super::*;
     use std::time::Duration;
+
+    #[test]
+    fn swallowed_mapped_or_loan_resource_refusal_cannot_finish_successfully() {
+        let cancel = AtomicBool::new(false);
+        for lane in 0..4 {
+            // Separate invocations, not a replacement ledger inside a callback.
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let mut original = OperationBudget::new(
+                &serde_json::json!({"budgets":{
+                    "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+                }}), deadline,
+            ).unwrap();
+            let before_work = original.work_remaining;
+            let limits = Limits {
+                max_input_bytes:128,max_nodes:32,max_work:64,max_refs:8,
+                max_depth:8,max_items:8,max_state_bytes:128,deadline,
+            };
+            let result = with_original_pwe_session(&mut original, limits, &cancel, |payer, _| {
+                match lane {
+                    0 | 3 => {
+                        let error = SourceAdmission::inspect(payer, usize::MAX).unwrap_err();
+                        let mapped = payer.error(error); // takes the owned first error
+                        assert!(matches!(&mapped, SourceCommandError::Invalid(
+                            "assessment cumulative byte budget"
+                        )));
+                        if lane == 3 { return Err(mapped); }
+                        drop(mapped); // exact reported bypass: swallow then Ok
+                    }
+                    1 => {
+                        let refused = payer.with_operation(|budget| {
+                            let _ = budget.charge_work(usize::MAX);
+                            Ok(()) // swallow inside the short original loan
+                        });
+                        assert!(refused.is_err());
+                        drop(refused); // swallowing that refusal must not clear it
+                    }
+                    _ => {
+                        let negative: SourceCommandResult<()> = payer.with_operation(|_| {
+                            Err(SourceCommandError::Denied("subject-level negative"))
+                        });
+                        assert!(negative.is_err()); // no resource debit failed
+                    }
+                }
+                Ok(())
+            });
+            if lane == 2 {
+                assert!(result.is_ok(), "handled subject result is not resource failure");
+            } else if lane == 3 {
+                assert!(matches!(result, Err(SourceCommandError::Invalid(
+                    "assessment cumulative byte budget"
+                ))), "normal propagation preserves the original error");
+            } else {
+                assert!(matches!(result, Err(SourceCommandError::Unsupported(
+                    "original Assessment payer resource refusal persists"
+                ))));
+            }
+            assert_eq!(original.work_remaining, before_work - limits.max_work);
+        }
+    }
 
     #[test]
     fn original_assessment_session_keeps_failed_prefix_and_work_reservation() {

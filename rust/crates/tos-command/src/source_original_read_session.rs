@@ -291,7 +291,7 @@ mod tests {
             max_input_bytes:1_048_576,max_nodes:8192,max_work:1_048_576,max_refs:64,
             max_depth:16,max_items:64,max_state_bytes:8_388_608,deadline,
         };
-        with_original_pwe_session(&mut operation, limits, &cancel, |payer, session| {
+        let result: SourceCommandResult<()> = with_original_pwe_session(&mut operation, limits, &cancel, |payer, session| {
             let mut read = OriginalImmutableReads::new(&cut, session, payer, deadline, &cancel)?;
             let alpha = RelativePath::parse("ToS/source-witnesses/fixture/records/alpha.txt").unwrap();
             assert_eq!(read.member(current, &alpha, 20).unwrap().raw, b"A\xc3\xa9+\xce\xa9\r\n");
@@ -311,10 +311,14 @@ mod tests {
             let rest = read.session.source_allowance().map_err(|e| payer.error(e))?.state_bytes;
             read.session.retain_source_state(rest).map_err(|e| payer.error(e))?;
             let spent = read.session.charges();
-            assert!(matches!(read.member(current, &alpha, 20), Err(OriginalReadError::Admission(_))));
+            let refusal = match read.member(current, &alpha, 20) {
+                Err(OriginalReadError::Admission(error)) => error,
+                _ => panic!("exhausted original Session must refuse before another read"),
+            };
             assert_eq!(read.session.charges().4, spent.4);
             assert!(read.session.charges().0 >= spent.0);
-            Ok(())
-        }).unwrap();
+            Err(refusal)
+        });
+        assert!(matches!(result, Err(SourceCommandError::Unsupported("PWE Assessment Session exhausted"))));
     }
 }

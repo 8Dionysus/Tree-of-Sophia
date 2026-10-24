@@ -219,6 +219,9 @@ pub(crate) struct OperationBudget {
     worker_cpu_seconds: u64,
     worker_address_space_bytes: u64,
     deadline: Instant,
+    // Sticky resource failure, including a failed debit swallowed inside a
+    // temporary native loan. It never records subject-level negative results.
+    resource_refused: std::cell::Cell<bool>,
 }
 
 /// Transport-neutral, collision-checked owner/source rows used by the
@@ -410,6 +413,7 @@ impl OperationBudget {
                 1_073_741_824,
             )?,
             deadline,
+            resource_refused: std::cell::Cell::new(false),
         })
     }
 
@@ -450,10 +454,12 @@ impl OperationBudget {
         self.bytes_remaining =
             self.bytes_remaining
                 .checked_sub(bytes)
-                .ok_or(SourceCommandError::Invalid(
-                    "assessment cumulative byte budget",
-                ))?;
+                .ok_or_else(|| {
+                    self.resource_refused.set(true);
+                    SourceCommandError::Invalid("assessment cumulative byte budget")
+                })?;
         if Instant::now() >= self.deadline {
+            self.resource_refused.set(true);
             return Err(SourceCommandError::Denied("assessment operation deadline"));
         }
         Ok(())
@@ -461,7 +467,12 @@ impl OperationBudget {
 
     pub(crate) fn limits(&self) -> SourceCommandResult<AssessmentLimits> {
         let remaining = self.deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() || self.work_remaining == 0 || self.bytes_remaining == 0 {
+        if self.resource_refused.get()
+            || remaining.is_zero()
+            || self.work_remaining == 0
+            || self.bytes_remaining == 0
+        {
+            self.resource_refused.set(true);
             return Err(SourceCommandError::Denied(
                 "assessment operation budget expired",
             ));
@@ -488,12 +499,14 @@ impl OperationBudget {
         self.bytes_remaining = self
             .bytes_remaining
             .checked_sub(report.input_bytes_used())
-            .ok_or(SourceCommandError::Invalid(
-                "assessment cumulative input budget",
-            ))?;
-        self.work_remaining = self.work_remaining.checked_sub(report.work_used()).ok_or(
-            SourceCommandError::Invalid("assessment cumulative work budget"),
-        )?;
+            .ok_or_else(|| {
+                self.resource_refused.set(true);
+                SourceCommandError::Invalid("assessment cumulative input budget")
+            })?;
+        self.work_remaining = self.work_remaining.checked_sub(report.work_used()).ok_or_else(|| {
+            self.resource_refused.set(true);
+            SourceCommandError::Invalid("assessment cumulative work budget")
+        })?;
         Ok(())
     }
 
@@ -501,9 +514,10 @@ impl OperationBudget {
         self.work_remaining =
             self.work_remaining
                 .checked_sub(work)
-                .ok_or(SourceCommandError::Invalid(
-                    "assessment cumulative work budget",
-                ))?;
+                .ok_or_else(|| {
+                    self.resource_refused.set(true);
+                    SourceCommandError::Invalid("assessment cumulative work budget")
+                })?;
         Ok(())
     }
 }
