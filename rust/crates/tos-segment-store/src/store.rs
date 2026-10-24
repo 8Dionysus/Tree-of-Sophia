@@ -3115,6 +3115,319 @@ impl SegmentStore {
         Ok((bytes, placement, work))
     }
 
+    /// Original-payer counterpart of `read_selected_fenced`.
+    ///
+    /// `admission` is borrowed from the existing lexical caller. Its arguments
+    /// are requested physical read bytes, cumulative new heap bytes, live
+    /// fixed workspace bytes, hash/inspection/copy byte work, and native work
+    /// units, respectively. These are source measures, not currency tariffs.
+    /// The caller must fund callback/argument construction before calling.
+    /// A callback may only admit against that same payer and preserve its
+    /// deadline/cancellation/first error; it must not read, seek, clone a file,
+    /// decode source bytes, reenter this store or acquire authority.
+    ///
+    /// Outer `Err(E)` preserves the original admission failure. Inner errors
+    /// retain the store error. No new ledger, Send/Sync requirement, fallback,
+    /// refund, reset, or source authority is introduced. Successful work counters
+    /// remain observations, not payment. This does not fund the caller's PG IO.
+    #[allow(clippy::too_many_arguments)]
+    pub fn read_selected_fenced_admitted<E, A>(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        receipt_id: Digest256,
+        binding: &OwnerBinding,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut A,
+    ) -> std::result::Result<Result<(Vec<u8>, PlacementV1, SelectedFrameReadWorkV1)>, E>
+    where
+        A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+    {
+        admission(0, 0, selected_original_fixed_state::<E, A>(), 0, 1)?;
+        match self.read_selected_fenced_original(
+            prepare_id,
+            attempt_fence,
+            receipt_id,
+            binding,
+            max_bytes,
+            deadline,
+            cancelled,
+            admission,
+        ) {
+            Ok(value) => Ok(Ok(value)),
+            Err(SelectedOriginalFault::Store(error)) => Ok(Err(error)),
+            Err(SelectedOriginalFault::Admission(error)) => Err(error),
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn read_selected_fenced_original<E, A>(
+        &self,
+        prepare_id: &[u8],
+        attempt_fence: u64,
+        receipt_id: Digest256,
+        binding: &OwnerBinding,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut A,
+    ) -> SelectedOriginalResult<(Vec<u8>, PlacementV1, SelectedFrameReadWorkV1), E>
+    where
+        A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+    {
+        check_generation(deadline, cancelled)?;
+        if attempt_fence == 0 || max_bytes == 0 {
+            return Err(
+                SegmentError::new(Code::InvalidReceipt, "selected fenced read bounds").into(),
+            );
+        }
+        let _pin_lock = self.lock_pin_dir(FlockOperation::NonBlockingLockShared)?;
+        let intent = self
+            .read_intent_raw_original(prepare_id, admission)?
+            .ok_or_else(|| {
+                SegmentError::new(Code::InvalidReceipt, "selected fenced intent absent")
+            })?;
+        let intent_work = (intent.len() as u64).checked_mul(2).ok_or_else(|| {
+            SegmentError::new(Code::BudgetExceeded, "selected intent work charge overflow")
+        })?;
+        selected_original_charge(admission, 0, 0, 0, intent_work, 1)?;
+        let pin_id = decode_attempt_intent_fenced(
+            &intent,
+            self.inner.store_id,
+            self.inner.domain_digest,
+            prepare_id,
+            attempt_fence,
+            0,
+        )?;
+        let (journal, pin_bytes) = self.read_pin_original(pin_id, admission)?;
+        if journal.state != PinState::Sealed || journal.prepare_id != prepare_id {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "selected pin is not sealed for attempt",
+            )
+            .into());
+        }
+        let mut selected = None;
+        for (candidate_index, candidate_frame) in journal.frames.iter().enumerate() {
+            // receipt_id allocates and hashes exactly 16+16+8+32+4 bytes.
+            selected_original_charge(admission, 0, 76, 0, 184, 1)?;
+            if self.receipt_id(&journal, candidate_index as u32) == receipt_id {
+                selected = Some((candidate_index, candidate_frame));
+                break;
+            }
+        }
+        let (index, frame) = selected.ok_or_else(|| {
+            SegmentError::new(Code::InvalidReceipt, "selected receipt absent from pin")
+        })?;
+        let binding_bytes = frame
+            .binding
+            .profile_id
+            .len()
+            .checked_add(frame.binding.profile_version.len())
+            .and_then(|n| n.checked_add(frame.binding.subject_key.len()))
+            .ok_or_else(|| {
+                SegmentError::new(Code::BudgetExceeded, "selected binding charge overflow")
+            })?;
+        selected_original_charge(admission, 0, 0, 0, binding_bytes as u64, 1)?;
+        if frame.binding != *binding {
+            return Err(
+                SegmentError::new(Code::InvalidReceipt, "selected owner binding differs").into(),
+            );
+        }
+        let placement = PlacementV1 {
+            store_id: self.inner.store_id,
+            domain_digest: self.inner.domain_digest,
+            pin_id,
+            fence_epoch: journal.fence_epoch,
+            receipt_id,
+            segment_digest: journal.segment_digest.ok_or_else(|| {
+                SegmentError::new(Code::InvalidReceipt, "selected sealed pin has no segment")
+            })?,
+            segment_size: journal.segment_size,
+            frame_index: index as u32,
+            coordinate: frame.coordinate,
+        };
+        // This closed path has 25 metadata/open/clone/identity call groups.
+        // Names and all typed fixed holders are paid before construction/use.
+        selected_original_charge(admission, 0, 64, 0, 64, 25)?;
+        let root_before = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat selected store root", error))?;
+        let directory_before =
+            self.inner.segments.metadata().map_err(|error| {
+                SegmentError::io("cannot stat selected segment directory", error)
+            })?;
+        require_segment_root_and_directory(&root_before, &directory_before)?;
+        let named_directory = open_directory(&self.inner._root, "segments")?;
+        if !same_directory(
+            &directory_before,
+            &named_directory
+                .metadata()
+                .map_err(|error| SegmentError::io("cannot stat named segment directory", error))?,
+        ) {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "selected segment directory changed",
+            )
+            .into());
+        }
+        let name = placement.segment_digest.to_hex();
+        let file = open_regular(&self.inner.segments, &name)?;
+        let before = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat selected segment", error))?;
+        require_packed_segment_file(&before, placement.segment_size, directory_before.dev())?;
+        let mut bytes = Vec::new();
+        selected_frame_original(
+            file.try_clone()
+                .map_err(|error| SegmentError::io("cannot retain selected segment", error))?,
+            placement.segment_size,
+            placement.coordinate,
+            self.inner.domain_digest,
+            journal.frames.len() as u32,
+            placement.frame_index,
+            max_bytes.min(self.inner.limits.max_frame_bytes),
+            &mut bytes,
+            admission,
+        )?;
+        check_generation(deadline, cancelled)?;
+        let after = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat selected segment", error))?;
+        let named_after = open_regular(&self.inner.segments, &name)?
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat selected segment name", error))?;
+        let root_after = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat selected store root", error))?;
+        let directory_after =
+            self.inner.segments.metadata().map_err(|error| {
+                SegmentError::io("cannot restat selected segment directory", error)
+            })?;
+        let named_directory_after = open_directory(&self.inner._root, "segments")?
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat named segment directory", error))?;
+        require_segment_root_and_directory(&root_after, &directory_after)?;
+        if !same_directory(&root_before, &root_after)
+            || !same_directory(&directory_before, &directory_after)
+            || !same_directory(&directory_after, &named_directory_after)
+            || !same_packed_segment(&before, &after)
+            || !same_packed_segment(&after, &named_after)
+        {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "selected frame custody changed during read",
+            )
+            .into());
+        }
+        let work = SelectedFrameReadWorkV1 {
+            custody_metadata_bytes_read: (intent.len() as u64).checked_add(pin_bytes).ok_or_else(
+                || SegmentError::new(Code::BudgetExceeded, "selected metadata byte overflow"),
+            )?,
+            segment_bytes_read: placement
+                .coordinate
+                .size_bytes
+                .checked_add(format::HEADER_BYTES + format::FRAME_HEADER_BYTES + format::END_BYTES)
+                .ok_or_else(|| {
+                    SegmentError::new(Code::BudgetExceeded, "selected segment byte overflow")
+                })?,
+        };
+        Ok((bytes, placement, work))
+    }
+
+    fn read_intent_raw_original<E, A>(
+        &self,
+        prepare_id: &[u8],
+        admission: &mut A,
+    ) -> SelectedOriginalResult<Option<Vec<u8>>, E>
+    where
+        A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+    {
+        if prepare_id.is_empty() || prepare_id.len() > u16::MAX as usize {
+            return Err(SegmentError::new(Code::InvalidReceipt, "invalid prepare ID").into());
+        }
+        let attempts = self.inner.attempts.as_ref().ok_or_else(|| {
+            SegmentError::new(Code::InvalidRoot, "store lacks durable attempt intents")
+        })?;
+        selected_original_charge(admission, 0, 64, 0, (prepare_id.len() as u64) + 64, 2)?;
+        let file = match open_regular(attempts, &attempt_name(prepare_id)) {
+            Ok(file) => file,
+            Err(error) if is_missing(&error) => return Ok(None),
+            Err(error) => return Err(error.into()),
+        };
+        let cap = u64::try_from(self.inner.limits.max_journal_bytes)
+            .ok()
+            .and_then(|n| n.checked_add(141))
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "intent read cap overflow"))?;
+        selected_original_bounded(file, cap, "cannot read attempt intent", admission).map(Some)
+    }
+
+    fn read_pin_original<E, A>(
+        &self,
+        pin_id: [u8; 16],
+        admission: &mut A,
+    ) -> SelectedOriginalResult<(PinJournal, u64), E>
+    where
+        A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+    {
+        selected_original_charge(admission, 0, 32, 0, 32, 1)?;
+        let file = open_regular(&self.inner.pins, &hex_id(pin_id))?;
+        let cap = (self.inner.limits.max_journal_bytes as u64)
+            .checked_add(1)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "pin read cap overflow"))?;
+        let raw = selected_original_bounded(file, cap, "cannot read pin journal", admission)?;
+        // Decode remains the original implementation. All nested allocations,
+        // checksum/cursor/digest work and Err prefixes are prepaid conservatively.
+        let count = (raw.len() / 60).min(self.inner.limits.max_frames as usize);
+        let heap = count
+            .checked_mul(std::mem::size_of::<JournalFrame>())
+            .and_then(|n| n.checked_add(raw.len()))
+            .and_then(|n| {
+                count
+                    .checked_add(2)
+                    .and_then(|k| k.checked_mul(64))
+                    .and_then(|k| n.checked_add(k))
+            })
+            .ok_or_else(|| {
+                SegmentError::new(Code::BudgetExceeded, "pin decode heap charge overflow")
+            })?;
+        let bytes = (raw.len() as u64)
+            .checked_mul(16)
+            .and_then(|n| {
+                (count as u64)
+                    .checked_mul(128)
+                    .and_then(|k| n.checked_add(k))
+            })
+            .ok_or_else(|| {
+                SegmentError::new(Code::BudgetExceeded, "pin decode work charge overflow")
+            })?;
+        let units = (count as u64)
+            .checked_mul(32)
+            .and_then(|n| n.checked_add(32))
+            .ok_or_else(|| {
+                SegmentError::new(Code::BudgetExceeded, "pin decode unit charge overflow")
+            })?;
+        selected_original_charge(admission, 0, heap, 0, bytes, units)?;
+        let journal = PinJournal::decode(&raw, self.inner.limits)?;
+        if journal.pin_id != pin_id
+            || journal.store_id != self.inner.store_id
+            || journal.domain_digest != self.inner.domain_digest
+        {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "pin store/domain identity differs",
+            )
+            .into());
+        }
+        Ok((journal, raw.len() as u64))
+    }
+
     /// Read one content-addressed frame through the exact held store root.
     /// The extent row supplies the pack and frame coordinates; the frame's
     /// ordinal, envelope, and content digest are checked before any bytes are
@@ -3958,6 +4271,613 @@ fn crash_test_barrier(phase: &str, _pin_id: [u8; 16]) {
         .status()
         .expect("send SIGKILL");
     panic!("SIGKILL did not terminate crash child");
+}
+
+// Closed original-payer selected-read port. No observer/ledger adapter or IO
+// error side channel is used: admission E is propagated by value.
+#[derive(Debug)]
+enum SelectedOriginalFault<E> {
+    Store(SegmentError),
+    Admission(E),
+}
+type SelectedOriginalResult<T, E> = std::result::Result<T, SelectedOriginalFault<E>>;
+impl<E> From<SegmentError> for SelectedOriginalFault<E> {
+    fn from(error: SegmentError) -> Self {
+        Self::Store(error)
+    }
+}
+
+fn selected_original_charge<E, A>(
+    admission: &mut A,
+    requested: u64,
+    owned: usize,
+    workspace: usize,
+    byte_work: u64,
+    units: u64,
+) -> SelectedOriginalResult<(), E>
+where
+    A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+{
+    admission(requested, owned, workspace, byte_work, units)
+        .map_err(SelectedOriginalFault::Admission)
+}
+
+// One actual Result, Try branch and residual carrier for a syntactic call site.
+// Summing all sites over-encloses phases; no return-place/capture coalescing is assumed.
+macro_rules! selected_original_try_slots {
+    ($error:ty; $($output:ty),* $(,)?) => {
+        ($( (std::result::Result<$output, $error>,
+             std::ops::ControlFlow<std::result::Result<std::convert::Infallible, $error>, $output>,
+             std::result::Result<std::convert::Infallible, $error>), )*)
+    };
+}
+
+// Additive actual-type scope envelope; no numeric 32/16/4/4 scalar proxy.
+// All source scopes and all Try sites are summed, even when sequential. The
+// original caller still owns callback/calculator/outer argument bootstrap.
+fn selected_original_fixed_state<E, A>() -> usize {
+    std::mem::size_of::<(
+        // outer_entry
+        (
+            &SegmentStore,
+            &[u8],
+            u64,
+            Digest256,
+            &OwnerBinding,
+            u64,
+            Instant,
+            &AtomicBool,
+            &mut A,
+            (usize, usize),
+            (Vec<u8>, PlacementV1, SelectedFrameReadWorkV1),
+            SegmentError,
+            E,
+        ),
+        // selected_inner
+        (
+            &SegmentStore,
+            &[u8],
+            u64,
+            Digest256,
+            &OwnerBinding,
+            u64,
+            Instant,
+            &AtomicBool,
+            &mut A,
+            PinDirectoryLease,
+            Vec<u8>,
+            u64,
+            [u8; 16],
+            (PinJournal, u64),
+            Option<(usize, &JournalFrame)>,
+            (
+                std::iter::Enumerate<std::slice::Iter<JournalFrame>>,
+                std::iter::Enumerate<std::slice::Iter<JournalFrame>>,
+            ),
+            Option<(usize, &JournalFrame)>,
+            (usize, &JournalFrame),
+            (usize, &JournalFrame),
+            usize,
+            PlacementV1,
+            std::fs::Metadata,
+            std::fs::Metadata,
+            File,
+            std::fs::Metadata,
+            String,
+            File,
+            std::fs::Metadata,
+            Vec<u8>,
+            std::fs::Metadata,
+            std::fs::Metadata,
+            std::fs::Metadata,
+            std::fs::Metadata,
+            std::fs::Metadata,
+            SelectedFrameReadWorkV1,
+            (Vec<u8>, PlacementV1, SelectedFrameReadWorkV1),
+        ),
+        // intent_helper
+        (
+            &SegmentStore,
+            &[u8],
+            &mut A,
+            &File,
+            String,
+            File,
+            u64,
+            (Vec<u8>, Option<Vec<u8>>),
+        ),
+        // pin_helper
+        (
+            &SegmentStore,
+            [u8; 16],
+            &mut A,
+            String,
+            File,
+            u64,
+            Vec<u8>,
+            usize,
+            usize,
+            u64,
+            u64,
+            PinJournal,
+            (PinJournal, u64),
+        ),
+        // charge_helper
+        (
+            &mut A,
+            u64,
+            usize,
+            usize,
+            u64,
+            u64,
+            (u64, usize, usize, u64, u64),
+            E,
+            SelectedOriginalFault<E>,
+        ),
+        // bounded_reader
+        (
+            File,
+            u64,
+            &'static str,
+            &mut A,
+            usize,
+            Vec<u8>,
+            usize,
+            [u8; BLOCK_BYTES],
+            usize,
+            usize,
+            usize,
+            std::io::Error,
+        ),
+        // fixed_fill
+        (
+            &mut File,
+            &mut [u8],
+            &'static str,
+            &mut A,
+            usize,
+            std::io::Error,
+        ),
+        // frame_reader
+        (
+            File,
+            u64,
+            FrameCoordinate,
+            Digest256,
+            u32,
+            u32,
+            u64,
+            &mut Vec<u8>,
+            &mut A,
+            usize,
+            Vec<u8>,
+            u64,
+            [u8; 48],
+            [u8; 48],
+            [u8; 8],
+            [u8; 40],
+            [u8; 40],
+            Digest256Hasher,
+            u64,
+            [u8; BLOCK_BYTES],
+            usize,
+            usize,
+            Digest256,
+            std::io::Error,
+        ),
+        // decode_fields
+        (
+            (&[u8], SegmentLimits),
+            (&[u8], &[u8]),
+            PinState,
+            bool,
+            ([u8; 16], [u8; 16]),
+            u64,
+            Digest256,
+            &[u8],
+            Option<Digest256>,
+            u64,
+            u32,
+            usize,
+            Vec<u8>,
+            Vec<JournalFrame>,
+            (std::ops::Range<u32>, std::ops::Range<u32>),
+            (Option<u32>, u32),
+            u64,
+            u64,
+            Digest256,
+            usize,
+            Vec<u8>,
+            usize,
+            Vec<u8>,
+            usize,
+            Vec<u8>,
+            u32,
+            OwnerBinding,
+            FrameCoordinate,
+            JournalFrame,
+            PinJournal,
+            Digest256,
+        ),
+        // cursor_nested_helpers
+        (
+            (&[u8], usize, usize),
+            usize,
+            &[u8],
+            (&[u8], usize, usize),
+            (&[u8], usize),
+            ([u8; 2], [u8; 4], [u8; 8]),
+            ([u8; 16], [u8; 16]),
+        ),
+        // digest_conversion
+        (
+            &[u8],
+            String,
+            (&u8, std::slice::Iter<u8>),
+            (char, char),
+            (&str, &[u8]),
+            [u8; 32],
+            (
+                std::iter::Enumerate<std::slice::ChunksExact<u8>>,
+                std::iter::Enumerate<std::slice::ChunksExact<u8>>,
+            ),
+            (Option<(usize, &[u8])>, usize, &[u8]),
+            (u8, u8, u8, u8),
+            Digest256,
+            tos_foundation::FoundationError,
+        ),
+        // receipt_name_and_hash_helpers
+        (
+            (&SegmentStore, &PinJournal, u32),
+            Vec<u8>,
+            ([u8; 8], [u8; 4]),
+            Digest256,
+            (&[u8], Digest256Hasher, Digest256),
+            (Digest256, String, std::array::IntoIter<u8, 32>),
+            (Option<u8>, u8, char, char),
+            ([u8; 16], String, std::array::IntoIter<u8, 16>),
+            (Option<u8>, u8, char, char),
+            (&[u8], Digest256),
+        ),
+        // checked_option_intermediates
+        (
+            Option<u64>,
+            (Option<usize>, Option<usize>),
+            (Option<u64>, Option<u64>),
+            Option<u64>,
+            (
+                Option<usize>,
+                Option<usize>,
+                Option<usize>,
+                Option<usize>,
+                Option<usize>,
+                Option<usize>,
+            ),
+            (Option<u64>, Option<u64>, Option<u64>),
+            (Option<u64>, Option<u64>),
+            Option<usize>,
+            (Option<u64>, Option<u64>),
+            (Option<u64>, Option<u64>),
+            (Option<usize>, Option<&[u8]>),
+        ),
+        // checked_capture_enclosures
+        (
+            &Vec<u8>,
+            &Vec<u8>,
+            &usize,
+            &usize,
+            &usize,
+            &u64,
+            &u64,
+            (usize, usize, usize, usize, u64, u64, u64, u64),
+            (),
+        ),
+        // conversion_and_from_transport
+        (
+            std::result::Result<u64, std::num::TryFromIntError>,
+            std::result::Result<usize, std::num::TryFromIntError>,
+            std::result::Result<usize, std::num::TryFromIntError>,
+            (SegmentError, SelectedOriginalFault<E>),
+            std::result::Result<[u8; 16], std::array::TryFromSliceError>,
+            &[u8],
+        ),
+        // fenced_intent_decode: additive actual frame, distinct from PinJournal::decode.
+        (
+            // six_formals
+            (&[u8], [u8; 16], Digest256, &[u8], u64, u32),
+            // forwarded_argument_packet
+            (&[u8], [u8; 16], Digest256, &[u8], u64, u32),
+            // expected_len_and_length_arithmetic
+            (
+                usize,
+                usize,
+                usize,
+                usize,
+                usize,
+                usize,
+                usize,
+                usize,
+                usize,
+                usize,
+            ),
+            // source_slice_receivers
+            (
+                &[u8],
+                &[u8],
+                &[u8],
+                &[u8],
+                &[u8],
+                &[u8],
+                &[u8],
+                &[u8],
+                &[u8],
+            ),
+            // comparison_borrows
+            (&[u8], &[u8], &[u8; 8], &[u8; 32], &[u8; 32], &[u8; 16]),
+            // fixed_conversion_inputs_and_values
+            ([u8; 8], [u8; 4], [u8; 2], [u8; 16], u64, u32, u16),
+            // fence_conversion
+            std::result::Result<[u8; 8], std::array::TryFromSliceError>,
+            // slot_conversion
+            std::result::Result<[u8; 4], std::array::TryFromSliceError>,
+            // pin_conversion
+            std::result::Result<[u8; 16], std::array::TryFromSliceError>,
+            // conversion_expect_receivers
+            (&str, &str, &str),
+            // hash_call_args_state_and_return
+            (&[u8], Digest256Hasher, Digest256),
+            // hash_digest_borrow
+            &Digest256,
+            // as_bytes_return
+            &[u8; 32],
+            // store_error_constructor_and_return
+            (Code, &str, SegmentError, Result<[u8; 16]>),
+            // successful_return_array
+            [u8; 16],
+        ),
+        // Actual noncoalesced return positions, including unrestricted generic E.
+        (
+            std::result::Result<Result<(Vec<u8>, PlacementV1, SelectedFrameReadWorkV1)>, E>,
+            SelectedOriginalResult<(Vec<u8>, PlacementV1, SelectedFrameReadWorkV1), E>,
+            SelectedOriginalResult<Option<Vec<u8>>, E>,
+            SelectedOriginalResult<(PinJournal, u64), E>,
+            SelectedOriginalResult<(), E>,
+            SelectedOriginalResult<Vec<u8>, E>,
+            SelectedOriginalResult<(), E>,
+            SelectedOriginalResult<u64, E>,
+            std::result::Result<(), E>,
+            std::result::Result<(), E>,
+            SelectedOriginalResult<Vec<u8>, E>,
+            SelectedOriginalResult<Option<Vec<u8>>, E>,
+        ),
+        // Every actual E-bearing ? call site; repeated output types are intentional.
+        selected_original_try_slots!(SelectedOriginalFault<E>; (), (), (), (), Option<Vec<u8>>, (PinJournal,u64), u64, (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), Vec<u8>),
+        // Direct callback ? and private callback/map_err transport.
+        selected_original_try_slots!(E; (), ()),
+        // inner_store_tries
+        selected_original_try_slots!(SegmentError; (), PinDirectoryLease, [u8;16], (usize,&JournalFrame), usize, std::fs::Metadata, std::fs::Metadata, std::fs::Metadata, std::fs::Metadata, std::fs::Metadata, std::fs::Metadata, std::fs::Metadata, std::fs::Metadata, std::fs::Metadata, File, File, File, File, (), (), u64, u64),
+        // intent_store_tries
+        selected_original_try_slots!(SegmentError; &File, u64),
+        // pin_store_tries
+        selected_original_try_slots!(SegmentError; File, u64, usize, u64, u64, PinJournal),
+        // bounded_store_tries
+        selected_original_try_slots!(SegmentError; usize, usize, ()),
+        // frame_store_tries
+        selected_original_try_slots!(SegmentError; usize, (), u64, u64, u64, (), ()),
+        // decoder_store_tries
+        selected_original_try_slots!(SegmentError; &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], &[u8], u16, u16, u16, u32, u32, u32, u64, u64, u64, u64, Digest256, Digest256, Digest256),
+        // cursor_nested_store_tries
+        selected_original_try_slots!(SegmentError; usize, &[u8], &[u8], &[u8], &[u8], &[u8]),
+        selected_original_try_slots!(std::io::Error; usize, usize, usize, (), u64, u64, std::fs::Metadata),
+        selected_original_try_slots!(std::collections::TryReserveError; (), (), ()),
+        selected_original_try_slots!(OpenError; File, File),
+        selected_original_try_slots!(tos_foundation::FoundationError; Digest256, u8, u8),
+        (
+            std::result::Result<[u8; 2], std::array::TryFromSliceError>,
+            std::result::Result<[u8; 4], std::array::TryFromSliceError>,
+            std::result::Result<[u8; 8], std::array::TryFromSliceError>,
+            std::result::Result<[u8; 16], std::array::TryFromSliceError>,
+        ),
+        // Source field enclosure for private journal::Cursor (no repr/align attributes):
+        // sum(size+align) for raw slice and offset bounds any order and padding.
+        [u8; std::mem::size_of::<&[u8]>()
+            + std::mem::align_of::<&[u8]>()
+            + std::mem::size_of::<usize>()
+            + std::mem::align_of::<usize>()],
+    )>()
+}
+
+fn selected_original_bounded<E, A>(
+    mut file: File,
+    cap: u64,
+    detail: &'static str,
+    admission: &mut A,
+) -> SelectedOriginalResult<Vec<u8>, E>
+where
+    A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+{
+    let capacity = usize::try_from(cap).map_err(|_| {
+        SegmentError::new(
+            Code::BudgetExceeded,
+            "selected metadata exceeds address space",
+        )
+    })?;
+    let mut raw = Vec::new();
+    let mut remaining = capacity;
+    let mut block = [0u8; BLOCK_BYTES];
+    while remaining != 0 {
+        let request = remaining.min(block.len());
+        selected_original_charge(admission, request as u64, 0, 0, 0, 1)?;
+        let count = match file.read(&mut block[..request]) {
+            Ok(0) => break,
+            Ok(count) => count,
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(SegmentError::io(detail, error).into()),
+        };
+        let required = raw.len().checked_add(count).ok_or_else(|| {
+            SegmentError::new(Code::BudgetExceeded, "selected metadata growth overflow")
+        })?;
+        if required > raw.capacity() {
+            // Global try_reserve_exact requests exactly the checked new capacity.
+            // Retain old+new overlap, cumulative allocation and relocation work.
+            selected_original_charge(admission, 0, required, raw.capacity(), required as u64, 2)?;
+            raw.try_reserve_exact(count).map_err(|_| {
+                SegmentError::new(Code::BudgetExceeded, "selected metadata allocation failed")
+            })?;
+        } else {
+            selected_original_charge(admission, 0, 0, 0, count as u64, 1)?;
+        }
+        raw.extend_from_slice(&block[..count]);
+        remaining -= count;
+    }
+    Ok(raw)
+}
+
+fn selected_original_fill<E, A>(
+    file: &mut File,
+    mut buffer: &mut [u8],
+    detail: &'static str,
+    admission: &mut A,
+) -> SelectedOriginalResult<(), E>
+where
+    A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+{
+    while !buffer.is_empty() {
+        selected_original_charge(admission, buffer.len() as u64, 0, 0, 0, 1)?;
+        match file.read(buffer) {
+            Ok(0) => {
+                return Err(SegmentError::io(
+                    detail,
+                    std::io::Error::from(std::io::ErrorKind::UnexpectedEof),
+                )
+                .into());
+            }
+            Ok(count) => {
+                buffer = &mut buffer[count..];
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(error) => return Err(SegmentError::io(detail, error).into()),
+        }
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn selected_frame_original<E, A>(
+    mut file: File,
+    segment_size: u64,
+    coordinate: FrameCoordinate,
+    domain_digest: Digest256,
+    expected_count: u32,
+    frame_index: u32,
+    max_bytes: u64,
+    sink: &mut Vec<u8>,
+    admission: &mut A,
+) -> SelectedOriginalResult<u64, E>
+where
+    A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+{
+    if coordinate.size_bytes > max_bytes {
+        return Err(
+            SegmentError::new(Code::BudgetExceeded, "selected frame exceeds read limit").into(),
+        );
+    }
+    let capacity = usize::try_from(coordinate.size_bytes).map_err(|_| {
+        SegmentError::new(Code::BudgetExceeded, "selected frame exceeds address space")
+    })?;
+    let mut verified = Vec::new();
+    selected_original_charge(admission, 0, capacity, 0, 0, 1)?;
+    verified
+        .try_reserve_exact(capacity)
+        .map_err(|_| SegmentError::new(Code::BudgetExceeded, "selected frame allocation failed"))?;
+    let end = coordinate
+        .header_offset
+        .checked_add(format::FRAME_HEADER_BYTES)
+        .and_then(|at| at.checked_add(coordinate.size_bytes))
+        .ok_or_else(|| SegmentError::new(Code::InvalidReceipt, "frame coordinate overflow"))?;
+    if end > segment_size.saturating_sub(format::END_BYTES) {
+        return Err(
+            SegmentError::new(Code::InvalidReceipt, "frame coordinate exceeds segment").into(),
+        );
+    }
+    if frame_index >= expected_count || coordinate.header_offset < format::HEADER_BYTES {
+        return Err(
+            SegmentError::new(Code::InvalidReceipt, "frame index or offset differs").into(),
+        );
+    }
+    let mut head = [0u8; format::HEADER_BYTES as usize];
+    selected_original_fill(
+        &mut file,
+        &mut head,
+        "cannot read selected segment header",
+        admission,
+    )?;
+    selected_original_charge(admission, 0, 0, 0, format::HEADER_BYTES * 2, 1)?;
+    if head != format::header(domain_digest, expected_count) {
+        return Err(
+            SegmentError::new(Code::CorruptBytes, "selected segment header differs").into(),
+        );
+    }
+    selected_original_charge(admission, 0, 0, 0, 0, 1)?;
+    file.seek(SeekFrom::End(-(format::END_BYTES as i64)))
+        .map_err(|error| SegmentError::io("cannot seek segment trailer", error))?;
+    let mut trailer = [0u8; format::END_BYTES as usize];
+    selected_original_fill(
+        &mut file,
+        &mut trailer,
+        "cannot read segment trailer",
+        admission,
+    )?;
+    selected_original_charge(admission, 0, 0, 0, format::END_BYTES, 1)?;
+    if &trailer != format::END {
+        return Err(
+            SegmentError::new(Code::CorruptBytes, "selected segment trailer differs").into(),
+        );
+    }
+    selected_original_charge(admission, 0, 0, 0, 0, 1)?;
+    file.seek(SeekFrom::Start(coordinate.header_offset))
+        .map_err(|error| SegmentError::io("cannot seek selected frame", error))?;
+    let mut envelope = [0u8; format::FRAME_HEADER_BYTES as usize];
+    selected_original_fill(
+        &mut file,
+        &mut envelope,
+        "cannot read selected frame header",
+        admission,
+    )?;
+    selected_original_charge(admission, 0, 0, 0, format::FRAME_HEADER_BYTES * 2, 1)?;
+    if envelope != format::frame_header(coordinate.size_bytes, coordinate.sha256) {
+        return Err(SegmentError::new(Code::CorruptBytes, "selected frame header differs").into());
+    }
+    let mut hasher = Digest256Hasher::new();
+    let mut remaining = coordinate.size_bytes;
+    let mut block = [0u8; BLOCK_BYTES];
+    while remaining > 0 {
+        let request = usize::try_from(remaining.min(BLOCK_BYTES as u64)).expect("bounded block");
+        selected_original_charge(admission, request as u64, 0, 0, 0, 1)?;
+        let count = file
+            .read(&mut block[..request])
+            .map_err(|error| SegmentError::io("cannot read selected frame", error))?;
+        if count == 0 {
+            return Err(SegmentError::new(Code::CorruptBytes, "selected frame truncated").into());
+        }
+        selected_original_charge(admission, 0, 0, 0, (count as u64) * 2, 2)?;
+        hasher.update(&block[..count]);
+        verified.extend_from_slice(&block[..count]);
+        remaining -= count as u64;
+    }
+    selected_original_charge(admission, 0, 0, 0, 32, 1)?;
+    if hasher.finalize() != coordinate.sha256 {
+        return Err(SegmentError::new(Code::CorruptBytes, "selected frame digest differs").into());
+    }
+    // Keep the legacy verified-buffer -> returned-Vec copy and both live heaps.
+    // Explicit exact reserve avoids hidden amortized sink growth and is fallible.
+    selected_original_charge(admission, 0, capacity, 0, capacity as u64, 2)?;
+    sink.try_reserve_exact(capacity).map_err(|_| {
+        SegmentError::new(Code::BudgetExceeded, "selected output allocation failed")
+    })?;
+    sink.write_all(&verified)
+        .map_err(|error| SegmentError::io("cannot write verified selected frame", error))?;
+    Ok(coordinate.size_bytes)
 }
 
 #[cfg(test)]
@@ -5690,4 +6610,236 @@ mod tests {
         assert_eq!(still_same_placement, expected_placement);
         assert!(store.recover_sealed(expected_placement.pin_id()).is_err());
     }
+
+    // BEGIN original-payer selected-read protocol cases (not native funding).
+    #[test]
+    fn selected_original_short_reads_charge_every_actual_request() {
+        use std::os::fd::OwnedFd;
+        use std::os::unix::net::UnixDatagram;
+        let (sender, receiver) = UnixDatagram::pair().unwrap();
+        for byte in [1u8, 2, 3, 4] {
+            sender.send(&[byte]).unwrap();
+        }
+        let fd: OwnedFd = receiver.into();
+        let mut file = File::from(fd);
+        let mut requests = Vec::new();
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            requests.push(request);
+            Ok(())
+        };
+        let mut buffer = [0u8; 4];
+        selected_original_fill(&mut file, &mut buffer, "test fixed fill", &mut admission).unwrap();
+        assert_eq!(buffer, [1, 2, 3, 4]);
+        assert_eq!(requests, [4, 3, 2, 1]);
+    }
+
+    #[test]
+    fn selected_original_refusal_retains_error_and_unread_fd() {
+        struct OriginalFailure(Box<u8>);
+        let root = PrivateRoot::new();
+        let path = root.0.join("original-source");
+        fs::write(&path, b"abcd").unwrap();
+        let file = File::open(path).unwrap();
+        let mut observer = file.try_clone().unwrap();
+        let token = OriginalFailure(Box::new(73));
+        let address = (&*token.0) as *const u8;
+        let mut token = Some(token);
+        let mut charged_owned = 0;
+        let mut requests = Vec::new();
+        let mut admission = |request, owned, _, _, _| {
+            charged_owned += owned;
+            if request != 0 {
+                requests.push(request);
+                return Err(token.take().unwrap());
+            }
+            Ok(())
+        };
+        let error = match selected_original_bounded(file, 4, "test metadata", &mut admission) {
+            Err(SelectedOriginalFault::Admission(error)) => error,
+            _ => panic!("original admission error must survive"),
+        };
+        assert_eq!((&*error.0) as *const u8, address);
+        assert_eq!(*error.0, 73);
+        assert_eq!(charged_owned, 0);
+        assert_eq!(requests, [4]);
+        assert_eq!(observer.stream_position().unwrap(), 0);
+    }
+
+    #[test]
+    fn selected_original_eof_request_is_paid_before_io_error() {
+        let root = PrivateRoot::new();
+        let path = root.0.join("truncated-source");
+        fs::write(&path, b"ab").unwrap();
+        let mut file = File::open(path).unwrap();
+        let mut requests = Vec::new();
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            requests.push(request);
+            Ok(())
+        };
+        let mut buffer = [0u8; 4];
+        let error = match selected_original_fill(
+            &mut file,
+            &mut buffer,
+            "test truncated",
+            &mut admission,
+        ) {
+            Err(SelectedOriginalFault::Store(error)) => error,
+            _ => panic!("truncated read must remain a store IO error"),
+        };
+        assert_eq!(requests, [4, 2]);
+        assert_eq!(error.code, Code::Io);
+        assert_eq!(error.detail, "test truncated");
+        assert_eq!(
+            error.source.unwrap().kind(),
+            std::io::ErrorKind::UnexpectedEof
+        );
+    }
+
+    #[test]
+    fn selected_fenced_original_preserves_selection_and_error_classes() {
+        let root = PrivateRoot::new();
+        let prepare = b"original-selected-read";
+        let payload = b"original selected payload";
+        let selected_binding = binding(0);
+        let mut reader = Cursor::new(payload);
+        let mut frames = [FrameInput {
+            binding: selected_binding.clone(),
+            declared_size: payload.len() as u64,
+            declared_sha256: Digest256::of_bytes(payload),
+            reader: &mut reader,
+        }];
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let receipts = store
+            .seal_segment_fenced(prepare, 7, 0, &mut frames)
+            .unwrap();
+        let receipt = receipts[0].receipt_id();
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let expected = store
+            .read_selected_fenced(
+                prepare,
+                7,
+                receipt,
+                &selected_binding,
+                payload.len() as u64,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        let mut requests = Vec::new();
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            if request != 0 {
+                requests.push(request);
+            }
+            Ok(())
+        };
+        let actual = store
+            .read_selected_fenced_admitted(
+                prepare,
+                7,
+                receipt,
+                &selected_binding,
+                payload.len() as u64,
+                deadline,
+                &cancelled,
+                &mut admission,
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(actual, expected);
+        assert!(!requests.is_empty());
+        let wrong = store
+            .read_selected_fenced_admitted(
+                prepare,
+                8,
+                receipt,
+                &selected_binding,
+                payload.len() as u64,
+                deadline,
+                &cancelled,
+                &mut admission,
+            )
+            .unwrap()
+            .unwrap_err();
+        assert_eq!(wrong.code, Code::InvalidReceipt);
+        assert_eq!(wrong.detail, "fenced attempt intent differs");
+        let mut deny =
+            |_, _, _, _, _| -> std::result::Result<(), &'static str> { Err("original-payer") };
+        match store.read_selected_fenced_admitted(
+            prepare,
+            7,
+            receipt,
+            &selected_binding,
+            payload.len() as u64,
+            deadline,
+            &cancelled,
+            &mut deny,
+        ) {
+            Err(error) => assert_eq!(error, "original-payer"),
+            _ => panic!("admission must not become store error or successful fallback"),
+        }
+    }
+
+    #[test]
+    fn selected_original_held_file_growth_keeps_the_requested_cap() {
+        let root = PrivateRoot::new();
+        let path = root.0.join("growing-metadata");
+        fs::write(&path, b"ab").unwrap();
+        let file = File::open(&path).unwrap();
+        let held_identity = file.metadata().unwrap();
+        let mut writer = OpenOptions::new().append(true).open(&path).unwrap();
+        writer.write_all(b"cdef").unwrap();
+        drop(writer);
+        let grown = file.metadata().unwrap();
+        assert_eq!(
+            (held_identity.dev(), held_identity.ino()),
+            (grown.dev(), grown.ino())
+        );
+        assert_eq!(grown.len(), 6);
+        let mut requests = Vec::new();
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            if request != 0 {
+                requests.push(request);
+            }
+            Ok(())
+        };
+        let raw =
+            selected_original_bounded(file, 4, "test growing metadata", &mut admission).unwrap();
+        assert_eq!(raw, b"abcd");
+        assert_eq!(requests, [4]);
+        // This helper's cap is not the outer selected-read identity certificate.
+    }
+
+    #[test]
+    fn selected_original_late_refusal_does_not_consume_next_datagram() {
+        use std::os::fd::OwnedFd;
+        use std::os::unix::net::UnixDatagram;
+        let (sender, receiver) = UnixDatagram::pair().unwrap();
+        sender.send(&[1]).unwrap();
+        sender.send(&[2]).unwrap();
+        let fd: OwnedFd = receiver.into();
+        let file = File::from(fd);
+        let mut observer = file.try_clone().unwrap();
+        let mut requests = Vec::new();
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            if request != 0 {
+                requests.push(request);
+                if requests.len() == 2 {
+                    return Err("late-original-payer");
+                }
+            }
+            Ok(())
+        };
+        match selected_original_bounded(file, 4, "test short metadata", &mut admission) {
+            Err(SelectedOriginalFault::Admission(error)) => {
+                assert_eq!(error, "late-original-payer")
+            }
+            _ => panic!("second request must refuse before consuming its source"),
+        }
+        assert_eq!(requests, [4, 3]);
+        let mut next = [0u8; 4];
+        assert_eq!(observer.read(&mut next).unwrap(), 1);
+        assert_eq!(next[0], 2);
+    }
+    // END original-payer selected-read protocol cases.
 }
