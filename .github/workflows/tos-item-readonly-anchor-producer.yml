@@ -1,0 +1,183 @@
+name: ToS Immutable Read-only Producer
+on:
+  workflow_call:
+    inputs:
+      expected_producer_commit:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify immutable platform binding before privileged host I/O
+        env:
+          TOS_EXPECTED_PRODUCER_COMMIT: ${{ inputs.expected_producer_commit }}
+          TOS_REPOSITORY: ${{ github.repository }}
+          TOS_EVENT_NAME: ${{ github.event_name }}
+          TOS_REF: ${{ github.ref }}
+          TOS_CALLER_COMMIT: ${{ github.sha }}
+          TOS_CALLER_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          TOS_CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
+          TOS_ACTUAL_PRODUCER_SHA: ${{ job.workflow_sha }}
+          TOS_ACTUAL_PRODUCER_REF: ${{ job.workflow_ref }}
+          TOS_ACTUAL_PRODUCER_REPOSITORY: ${{ job.workflow_repository }}
+          TOS_RUNNER_ENVIRONMENT: ${{ runner.environment }}
+          TOS_RUNNER_OS: ${{ runner.os }}
+          TOS_RUNNER_ARCH: ${{ runner.arch }}
+        run: |
+          /usr/bin/python3 -I -S - <<'PYPRECHECK'
+          """Platform coherence before host I/O. External owner selection is separate."""
+          import os
+          import re
+          
+          REPOSITORY = '8Dionysus/Tree-of-Sophia'
+          PRODUCER_PATH = '.github/workflows/tos-item-readonly-anchor-producer.yml'
+          CALLER_PATH = '.github/workflows/tos-item-readonly-anchor-caller.yml'
+          BRANCH_PREFIX = 'codex/tos-item-readonly-anchor-'
+          
+          
+          def checked_binding(values):
+              producer = values.get('TOS_EXPECTED_PRODUCER_COMMIT', '')
+              caller = values.get('TOS_CALLER_COMMIT', '')
+              if not re.fullmatch('[0-9a-f]{40}', producer) or not re.fullmatch('[0-9a-f]{40}', caller):
+                  raise RuntimeError('immutable object identity absent')
+              ref = 'refs/heads/' + BRANCH_PREFIX + caller
+              expected = {
+                  'TOS_REPOSITORY': REPOSITORY,
+                  'TOS_EVENT_NAME': 'push',
+                  'TOS_REF': ref,
+                  'TOS_CALLER_WORKFLOW_SHA': caller,
+                  'TOS_CALLER_WORKFLOW_REF': REPOSITORY + '/' + CALLER_PATH + '@' + ref,
+                  'TOS_ACTUAL_PRODUCER_SHA': producer,
+                  'TOS_ACTUAL_PRODUCER_REF': REPOSITORY + '/' + PRODUCER_PATH + '@' + producer,
+                  'TOS_ACTUAL_PRODUCER_REPOSITORY': REPOSITORY,
+                  'TOS_RUNNER_ENVIRONMENT': 'github-hosted',
+                  'TOS_RUNNER_OS': 'Linux',
+                  'TOS_RUNNER_ARCH': 'X64',
+                  'ImageOS': 'ubuntu24',
+              }
+              mismatches = [name for name, value in expected.items() if values.get(name) != value]
+              if mismatches:
+                  raise RuntimeError('source/platform launch binding mismatch before host I/O: '
+                                     + ','.join(mismatches))
+              return {'binding_check': 'platform-coherent', 'producer_commit': producer,
+                      'producer_workflow': expected['TOS_ACTUAL_PRODUCER_REF'],
+                      'caller_commit': caller, 'caller_workflow': expected['TOS_CALLER_WORKFLOW_REF'],
+                      'activation_ref': ref,
+                      'authority': 'external owner review and exact create-only ref selection; not this record',
+                      'operational_admission': False}
+          
+          checked_binding(os.environ)
+          print('Platform source binding coherent; no host diagnostic I/O in this step.')
+          PYPRECHECK
+      - name: Read bounded metadata from the immutable producer
+        env:
+          TOS_EXPECTED_PRODUCER_COMMIT: ${{ inputs.expected_producer_commit }}
+          TOS_REPOSITORY: ${{ github.repository }}
+          TOS_EVENT_NAME: ${{ github.event_name }}
+          TOS_REF: ${{ github.ref }}
+          TOS_CALLER_COMMIT: ${{ github.sha }}
+          TOS_CALLER_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          TOS_CALLER_WORKFLOW_REF: ${{ github.workflow_ref }}
+          TOS_ACTUAL_PRODUCER_SHA: ${{ job.workflow_sha }}
+          TOS_ACTUAL_PRODUCER_REF: ${{ job.workflow_ref }}
+          TOS_ACTUAL_PRODUCER_REPOSITORY: ${{ job.workflow_repository }}
+          TOS_RUNNER_ENVIRONMENT: ${{ runner.environment }}
+          TOS_RUNNER_OS: ${{ runner.os }}
+          TOS_RUNNER_ARCH: ${{ runner.arch }}
+        run: |
+          set +e
+          sudo -n --preserve-env=ImageOS,ImageVersion,TOS_EXPECTED_PRODUCER_COMMIT,TOS_REPOSITORY,TOS_EVENT_NAME,TOS_REF,TOS_CALLER_COMMIT,TOS_CALLER_WORKFLOW_SHA,TOS_CALLER_WORKFLOW_REF,TOS_ACTUAL_PRODUCER_SHA,TOS_ACTUAL_PRODUCER_REF,TOS_ACTUAL_PRODUCER_REPOSITORY,TOS_RUNNER_ENVIRONMENT,TOS_RUNNER_OS,TOS_RUNNER_ARCH \
+            /usr/bin/python3 -I -S - \
+            > "$RUNNER_TEMP/tos-anchor-metadata.json" \
+            2> "$RUNNER_TEMP/tos-anchor-producer.log" <<'PYPRODUCER'
+          """Platform coherence before host I/O. External owner selection is separate."""
+          import os
+          import re
+          
+          REPOSITORY = '8Dionysus/Tree-of-Sophia'
+          PRODUCER_PATH = '.github/workflows/tos-item-readonly-anchor-producer.yml'
+          CALLER_PATH = '.github/workflows/tos-item-readonly-anchor-caller.yml'
+          BRANCH_PREFIX = 'codex/tos-item-readonly-anchor-'
+          
+          
+          def checked_binding(values):
+              producer = values.get('TOS_EXPECTED_PRODUCER_COMMIT', '')
+              caller = values.get('TOS_CALLER_COMMIT', '')
+              if not re.fullmatch('[0-9a-f]{40}', producer) or not re.fullmatch('[0-9a-f]{40}', caller):
+                  raise RuntimeError('immutable object identity absent')
+              ref = 'refs/heads/' + BRANCH_PREFIX + caller
+              expected = {
+                  'TOS_REPOSITORY': REPOSITORY,
+                  'TOS_EVENT_NAME': 'push',
+                  'TOS_REF': ref,
+                  'TOS_CALLER_WORKFLOW_SHA': caller,
+                  'TOS_CALLER_WORKFLOW_REF': REPOSITORY + '/' + CALLER_PATH + '@' + ref,
+                  'TOS_ACTUAL_PRODUCER_SHA': producer,
+                  'TOS_ACTUAL_PRODUCER_REF': REPOSITORY + '/' + PRODUCER_PATH + '@' + producer,
+                  'TOS_ACTUAL_PRODUCER_REPOSITORY': REPOSITORY,
+                  'TOS_RUNNER_ENVIRONMENT': 'github-hosted',
+                  'TOS_RUNNER_OS': 'Linux',
+                  'TOS_RUNNER_ARCH': 'X64',
+                  'ImageOS': 'ubuntu24',
+              }
+              mismatches = [name for name, value in expected.items() if values.get(name) != value]
+              if mismatches:
+                  raise RuntimeError('source/platform launch binding mismatch before host I/O: '
+                                     + ','.join(mismatches))
+              return {'binding_check': 'platform-coherent', 'producer_commit': producer,
+                      'producer_workflow': expected['TOS_ACTUAL_PRODUCER_REF'],
+                      'caller_commit': caller, 'caller_workflow': expected['TOS_CALLER_WORKFLOW_REF'],
+                      'activation_ref': ref,
+                      'authority': 'external owner review and exact create-only ref selection; not this record',
+                      'operational_admission': False}
+          
+          import base64,hashlib,sys,zlib
+          binding=checked_binding(os.environ)
+          if os.geteuid()!=0 or not sys.flags.isolated or not sys.flags.no_site:
+              raise RuntimeError('isolated system root interpreter required before host I/O')
+          packed=base64.b64decode('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',validate=True)
+          decoder=zlib.decompressobj()
+          raw=decoder.decompress(packed,262144)
+          if not decoder.eof or decoder.unconsumed_tail or decoder.unused_data or hashlib.sha256(raw).hexdigest()!='54bfeeca9148d74c0639d6b564f986d11d386950f9f763e7431a72cef1d0040d':
+              raise RuntimeError('immutable producer payload differs; no host I/O')
+          scope={'__name__':'_immutable_producer_payload'}
+          exec(compile(raw,'<immutable-producer-payload>','exec'),scope)
+          raise SystemExit(scope['run'](binding))
+          
+          PYPRODUCER
+          diagnostic_code=$?
+          set -e
+          /usr/bin/python3 -I -S - "$diagnostic_code" "$RUNNER_TEMP/tos-anchor-metadata.json" "$RUNNER_TEMP/tos-anchor-producer.log" <<'PYVERIFY'
+          import hashlib,json,re,sys
+          with open(sys.argv[3],'rb') as stream: pin=stream.read(8193)
+          assert len(pin)<=8192
+          print(pin.decode('utf-8'),end='',flush=True)
+          assert sys.argv[1]=='79', 'bounded diagnostic did not complete'
+          match=re.fullmatch(rb'TOS_ANCHORED_DIAGNOSTIC_SHA256 ([0-9a-f]{64}) bytes=([0-9]+)\n',pin)
+          assert match
+          with open(sys.argv[2],'rb') as stream: wire=stream.read(524289)
+          assert len(wire)<=524288 and len(wire)==int(match[2]) and hashlib.sha256(wire).hexdigest()==match[1].decode()
+          value=json.loads(wire)
+          assert value['outcome']=='diagnostic-only' and value['diagnostic_exit_code']==79
+          for field in ('ticket_issued','namespace_attempted','policy_changed','source_closure_proven','attachment_admission','policy_source_bytes_exported'):
+              assert value[field] is False
+          assert value['immutable_launch_binding']['binding_check']=='platform-coherent'
+          print('Completed metadata-only read; external authority separate; PG NOTRUN.')
+          PYVERIFY
+      - name: Preserve metadata and producer digest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tos-item-readonly-anchor-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/tos-anchor-metadata.json
+            ${{ runner.temp }}/tos-anchor-producer.log
+      - name: Keep operational admission closed
+        if: always()
+        run: exit 125

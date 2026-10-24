@@ -1,8 +1,0 @@
-{
-  "schema_version": "tos_web_actions_v1",
-  "owner": "Tree-of-Sophia/access/web",
-  "status": "superseded",
-  "superseded_by": ["query-operations.v1.json", "page-commands.v1.json"],
-  "compatibility_note": "The six tos.* operation IDs remain available through query-operations.v1; browser actuation moved to revisioned page commands.",
-  "authority_limit": "This file is a migration marker and no longer owns an executable browser ABI."
-}
