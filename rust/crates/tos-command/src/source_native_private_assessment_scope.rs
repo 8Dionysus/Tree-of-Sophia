@@ -20,7 +20,7 @@ pub(super) struct ScopeAccess<'a> {
 }
 struct Ledger<'a> {
     operation: &'a mut OperationBudget,
-    whole: &'a Rc<RefCell<ClaimCallBudget>>,
+    whole: Option<&'a Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
@@ -40,11 +40,18 @@ impl ScopeAccess<'_> {
         ScopeAccess {
             ledger: Some(Ledger {
                 operation,
-                whole,
+                whole: Some(whole),
                 deadline,
                 cancelled,
             }),
         }
+    }
+    pub(super) fn admitted_operation<'a>(
+        operation: &'a mut OperationBudget,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> ScopeAccess<'a> {
+        ScopeAccess { ledger: Some(Ledger { operation, whole: None, deadline, cancelled }) }
     }
     pub(super) fn inspect(&mut self, bytes: usize, visits: usize) -> Result<()> {
         if let Some(ledger) = &mut self.ledger {
@@ -53,22 +60,23 @@ impl ScopeAccess<'_> {
                 .operation
                 .charge_work(bytes.checked_add(visits).ok_or_else(exhausted)?)?;
             ledger.operation.charge_bytes(bytes)?;
-            ledger
-                .whole
-                .try_borrow_mut()
-                .map_err(|_| exhausted())?
-                .read(u64::try_from(bytes).map_err(|_| exhausted())?)?;
+            if let Some(whole) = ledger.whole {
+                whole.try_borrow_mut().map_err(|_| exhausted())?
+                    .read(u64::try_from(bytes).map_err(|_| exhausted())?)?;
+            }
         }
         Ok(())
     }
     fn retain(&mut self, bytes: usize) -> Result<()> {
         if let Some(ledger) = &mut self.ledger {
             active(ledger.deadline, ledger.cancelled)?;
-            ledger
-                .whole
-                .try_borrow_mut()
-                .map_err(|_| exhausted())?
-                .retain(bytes)?;
+            if let Some(whole) = ledger.whole {
+                whole.try_borrow_mut().map_err(|_| exhausted())?.retain(bytes)?;
+            } else {
+                // Assessment has ONE original byte currency. Pay holders
+                // before construction, not against a fabricated Claim wallet.
+                ledger.operation.charge_bytes(bytes)?;
+            }
         }
         Ok(())
     }
@@ -257,13 +265,17 @@ impl ScopeAccess<'_> {
         Ok(left == right)
     }
     fn canonical(&mut self, value: &JsonValue) -> Result<Vec<u8>> {
+        if self.ledger.as_ref().is_some_and(|ledger| ledger.whole.is_none()) {
+            return self.canonical_operation(value);
+        }
         let Some(ledger) = &mut self.ledger else {
             return cmd::canonical(value);
         };
         active(ledger.deadline, ledger.cancelled)?;
         let remaining = ledger.operation.limits()?;
+        let whole = ledger.whole.ok_or_else(exhausted)?;
         let (read, live) = {
-            let whole = ledger.whole.try_borrow().map_err(|_| exhausted())?;
+            let whole = whole.try_borrow().map_err(|_| exhausted())?;
             (whole.remaining_read()?, whole.remaining_live()?)
         };
         let limits = JsonLimits {
@@ -288,8 +300,7 @@ impl ScopeAccess<'_> {
                     .operation
                     .charge_work(bytes.checked_add(visits).ok_or_else(exhausted)?)?;
                 ledger.operation.charge_bytes(bytes)?;
-                ledger
-                    .whole
+                whole
                     .try_borrow_mut()
                     .map_err(|_| exhausted())?
                     .read(u64::try_from(bytes).map_err(|_| exhausted())?)
@@ -312,12 +323,99 @@ impl ScopeAccess<'_> {
                 .or_else(|| active(deadline, cancelled).err())
                 .unwrap_or_else(exhausted)
         })?;
-        ledger
-            .whole
+        whole
             .try_borrow_mut()
             .map_err(|_| exhausted())?
             .retain(raw.capacity())?;
         Ok(raw)
+    }
+    // Borrowed output envelope only, never a replacement canonical grammar.
+    // Every node/key/string/number is paid before its future codec traversal.
+    fn operation_envelope(
+        &mut self, value: &JsonValue, depth: usize, nodes: &mut usize,
+    ) -> Result<usize> {
+        self.inspect(0, 1)?;
+        let limits = JsonLimits::default();
+        if depth > limits.max_depth || *nodes >= limits.max_visits { return Err(exhausted()); }
+        *nodes += 1;
+        let add = |a: usize, b: usize| a.checked_add(b).ok_or_else(exhausted);
+        match value {
+            JsonValue::Null | JsonValue::Bool(_) => Ok(5),
+            JsonValue::Number(number) => {
+                self.inspect(number.lexeme.len(), 1)?;
+                number.lexeme.len().checked_mul(8)
+                    .and_then(|n| n.checked_add(limits.max_integer_digits)).ok_or_else(exhausted)
+            }
+            JsonValue::String(text) => {
+                self.prepay_string(text, false)?;
+                text.units().len().checked_mul(6).and_then(|n| n.checked_add(2)).ok_or_else(exhausted)
+            }
+            JsonValue::Array(values) => {
+                let mut output = add(values.len(), 2)?;
+                for child in values { output = add(output, self.operation_envelope(child, depth + 1, nodes)?)?; }
+                Ok(output)
+            }
+            JsonValue::Object(fields) => {
+                let mut output = fields.len().checked_mul(2).and_then(|n| n.checked_add(2)).ok_or_else(exhausted)?;
+                for (key, child) in fields {
+                    self.prepay_string(key, false)?;
+                    let key = key.units().len().checked_mul(6).and_then(|n| n.checked_add(2)).ok_or_else(exhausted)?;
+                    output = add(output, add(key, self.operation_envelope(child, depth + 1, nodes)?)?)?;
+                }
+                Ok(output)
+            }
+        }
+    }
+    fn canonical_operation(&mut self, value: &JsonValue) -> Result<Vec<u8>> {
+        let defaults = JsonLimits::default();
+        // Additive logical frame slots for this borrowed prepass. The actual
+        // codec's private ABI-sized fixed scratch is quoted by Foundation.
+        type WalkFrame<'a> = (&'a JsonValue, JsonLimits, usize, &'a mut usize,
+            std::slice::Iter<'a, JsonValue>, std::slice::Iter<'a, (JsonString, JsonValue)>,
+            Option<&'a JsonString>, Option<&'a JsonValue>, usize, Result<usize>);
+        let prepass = defaults.max_depth.checked_add(1)
+            .and_then(|n| n.checked_mul(size_of::<WalkFrame<'_>>())).ok_or_else(exhausted)?;
+        self.retain(prepass)?;
+        let mut nodes = 0;
+        let output = self.operation_envelope(value, 0, &mut nodes)?;
+        let fixed = tos_foundation::canonical_incremental_fixed_state(defaults).map_err(|_| exhausted())?;
+        let state = nodes.checked_mul(size_of::<(usize, &(JsonString, JsonValue))>())
+            .and_then(|n| output.checked_mul(2).and_then(|output| n.checked_add(output)))
+            .and_then(|n| n.checked_add(fixed)).ok_or_else(exhausted)?;
+        // ONE currency: reserve overlapping output/sort/numeric scratch BEFORE
+        // count/sort/emission. Keep it spent on every later Err; never refund.
+        self.retain(state)?;
+        let ledger = self.ledger.as_mut().ok_or_else(exhausted)?;
+        if ledger.whole.is_some() { return Err(exhausted()); }
+        active(ledger.deadline, ledger.cancelled)?;
+        // Recompute AFTER all holder debits, not from an obsolete allowance.
+        let remaining = ledger.operation.limits()?;
+        let limits = JsonLimits {
+            max_bytes: 8_388_608usize.min(remaining.max_input_bytes),
+            max_visits: defaults.max_visits.min(remaining.max_work),
+            ..defaults
+        };
+        let deadline = ledger.deadline;
+        let cancelled = ledger.cancelled;
+        let mut refusal = None;
+        let mut cutoff = || active(deadline, cancelled).map_err(|_| {
+            FoundationError::new(FoundationErrorCode::BudgetExceeded, "scope codec cutoff")
+        });
+        let mut admit = |bytes: usize, visits: usize| {
+            let result = (|| -> Result<()> {
+                active(deadline, cancelled)?;
+                ledger.operation.charge_work(bytes.checked_add(visits).ok_or_else(exhausted)?)?;
+                ledger.operation.charge_bytes(bytes)
+            })();
+            result.map_err(|error| {
+                if refusal.is_none() { refusal = Some(error); }
+                FoundationError::new(FoundationErrorCode::BudgetExceeded, "scope codec admission")
+            })
+        };
+        canonical_bytes_v1_with_state_budget_and_visits_and_admission(
+            value, CanonicalProfile::SourceCommandInputV1, limits, state, &mut cutoff, &mut admit,
+        ).map(|(raw, _)| raw).map_err(|_| refusal
+            .or_else(|| active(deadline, cancelled).err()).unwrap_or_else(exhausted))
     }
     pub(super) fn same(&mut self, left: &JsonValue, right: &JsonValue) -> Result<bool> {
         if self.ledger.is_none() {

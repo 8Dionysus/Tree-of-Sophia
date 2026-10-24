@@ -34,6 +34,7 @@ pub use json::{
     canonical_bytes_v1_with_state_budget_and_visits_and_admission,
     canonical_bytes_v1_with_state_budget_and_visits_and_check, canonical_bytes_v1_with_visits,
     canonical_count_v1, canonical_digest_v1, canonical_feed_digest_v1,
+    canonical_incremental_fixed_state,
     canonical_feed_digest_v1_with_check, canonical_raw_bytes_profile, canonical_raw_bytes_v1,
     canonical_source_command_into_reuse, emit_json_profile, emit_preserved_json,
     emit_python_compact_json, emit_python_compact_json_with_state_budget_and_visits_and_check,

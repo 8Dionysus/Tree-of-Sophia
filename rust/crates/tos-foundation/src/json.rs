@@ -1700,16 +1700,14 @@ pub fn emit_python_pretty_sorted_json_with_state_budget(
     )
 }
 
-fn write_with_state_budget_and_visits(
-    value: &JsonValue,
-    style: WriteStyle,
-    mut limits: JsonLimits,
-    available: usize,
-    mut check: Option<&mut dyn FnMut() -> Result<()>>,
-    mut admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
-    incremental_admission: bool,
-) -> Result<(Vec<u8>, usize)> {
-    let scratch_slots = limits
+/// Exact private fixed scratch used by the incremental checked canonical
+/// writer. This is a logical quote, not a native stack/RSS or access grant.
+pub fn canonical_incremental_fixed_state(limits: JsonLimits) -> Result<usize> {
+    canonical_fixed_scratch(limits, true)
+}
+
+fn canonical_fixed_scratch(limits: JsonLimits, checked: bool) -> Result<usize> {
+    limits
         .max_depth
         .checked_add(1)
         .and_then(|depth| {
@@ -1719,13 +1717,25 @@ fn write_with_state_budget_and_visits(
         .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
         .and_then(|n| n.checked_add(std::mem::size_of::<FormatCount>()))
         .and_then(|n| {
-            n.checked_add(if check.is_some() {
+            n.checked_add(if checked {
                 2 * std::mem::size_of::<JsonOutput>()
             } else {
                 0
             })
         })
-        .ok_or_else(state_error)?;
+        .ok_or_else(state_error)
+}
+
+fn write_with_state_budget_and_visits(
+    value: &JsonValue,
+    style: WriteStyle,
+    mut limits: JsonLimits,
+    available: usize,
+    mut check: Option<&mut dyn FnMut() -> Result<()>>,
+    mut admit: Option<&mut dyn FnMut(usize, usize) -> Result<()>>,
+    incremental_admission: bool,
+) -> Result<(Vec<u8>, usize)> {
+    let scratch_slots = canonical_fixed_scratch(limits, check.is_some())?;
     if scratch_slots > available {
         return Err(state_error());
     }

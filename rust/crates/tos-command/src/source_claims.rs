@@ -11742,6 +11742,27 @@ mod retained_history_reader_regression {
         assert_eq!(actual, expected);
         assert!(operation.limits().unwrap().max_work < work_before);
         assert!(whole.borrow().read_bytes > 0 && whole.borrow().live_state_bytes > 0);
+        // Separate actual Assessment invocation: no Claim wallet is constructed
+        // or supplied. The same maintained selector preserves data and scope.
+        let mut actual_operation =
+            assessment::OperationBudget::new(&numeric_invocation, deadline).unwrap();
+        actual_operation.lower_remaining(1_048_576, 262_144).unwrap();
+        let before = actual_operation.limits().unwrap();
+        let selected = assessment::select_current_scope_with_operation_admission(
+            &config, &request, &rows, &mut actual_operation, deadline, &cancelled,
+        ).unwrap();
+        assert_eq!(selected, expected);
+        let after = actual_operation.limits().unwrap();
+        assert!(after.max_work < before.max_work);
+        assert!(after.max_input_bytes < before.max_input_bytes);
+        actual_operation.lower_remaining(after.max_input_bytes.min(100_000), 65).unwrap();
+        for _ in 0..2 {
+            assert!(assessment::select_current_scope_with_operation_admission(
+                &config, &request, &rows, &mut actual_operation, deadline, &cancelled,
+            ).is_err());
+            assert_eq!(actual_operation.test_work_remaining(), 1);
+            assert!(actual_operation.limits().is_err());
+        }
         let remaining_input = operation.limits().unwrap().max_input_bytes.min(100_000);
         operation.lower_remaining(remaining_input, 65).unwrap();
         assert!(

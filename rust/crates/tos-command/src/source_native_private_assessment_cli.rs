@@ -2786,6 +2786,20 @@ pub(crate) fn select_current_scope_with_admission(
     )
 }
 
+/// The installed Assessment route borrows its actual OperationBudget only.
+/// Selection rules are shared with the genuine Claim route; no wallet/grant.
+pub(crate) fn select_current_scope_with_operation_admission(
+    config: &JsonValue,
+    request: &ParsedRequest,
+    all_by_id: &BTreeMap<String, JsonValue>,
+    budget: &mut OperationBudget,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, JsonValue)> {
+    select_current_scope_using(config, request, all_by_id,
+        &mut ScopeAccess::admitted_operation(budget, deadline, cancelled))
+}
+
 fn select_current_scope_using(
     config: &JsonValue,
     request: &ParsedRequest,
