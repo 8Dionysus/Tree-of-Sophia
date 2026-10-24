@@ -6,6 +6,7 @@ mod budget;
 mod carrier;
 mod frames;
 mod owner;
+mod pg_frame;
 mod producer;
 mod reader;
 mod registry;
@@ -19,6 +20,7 @@ pub(crate) use owner::{
     ApplicationCheckedTicket, CheckedPweParent, NativeAccount, NativeAssessmentHost,
     NativeConsumerOwner,
 };
+pub(crate) use pg_frame::{PgPayloadHost, PgPayloadMember, PgPayloadViews, with_pg_payload_host};
 pub(crate) use producer::NativePreservedCandidate;
 pub(crate) use reader::{
     ClaimDependencies, NativeExactSlot, NativeUnresolvedSlot, check_description_revision,
