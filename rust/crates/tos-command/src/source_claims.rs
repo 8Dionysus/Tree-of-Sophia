@@ -9441,8 +9441,19 @@ fn exact_selected_catalog_entry(
         let (raw, newly_read) =
             selected
                 .borrow_mut()
-                .route(catalog_path, max_bytes, allowance, deadline, cancelled)?;
-        read.debit(newly_read as u64, newly_read)?;
+                .route(
+                    catalog_path,
+                    max_bytes,
+                    allowance,
+                    read.whole_call.as_ref(),
+                    deadline,
+                    cancelled,
+                )?;
+        // The descriptor-bound source route pays before its reads and holders,
+        // including failed prefixes. Keep the legacy local-only path's fee.
+        if read.whole_call.is_none() {
+            read.debit(newly_read as u64, newly_read)?;
+        }
         Some(raw)
     } else {
         None
@@ -10984,6 +10995,41 @@ fn identifier_tail(value: &str, prefix: &str) -> bool {
 #[cfg(test)]
 mod mixed_inventory_boundary_tests {
     use super::*;
+
+    #[test]
+    fn claim_catalog_read_spends_original_prefix_and_preserves_fd_guards() {
+        use crate::source_creation_store::read_claim_catalog_at;
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let temporary = tempfile::tempdir().unwrap();
+        let path = temporary.path().join("rows.jsonl");
+        std::fs::write(&path, b"abc").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let parent = std::fs::File::open(temporary.path()).unwrap();
+        let uid = parent.metadata().unwrap().uid();
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let whole = Rc::new(RefCell::new(ClaimCallBudget::new(0, 0).unwrap()));
+        assert_eq!(read_claim_catalog_at(&parent, "rows.jsonl", uid, 3,
+            Some(&whole), deadline, &cancelled).unwrap().unwrap(), b"abc");
+        assert_eq!(whole.borrow().read_bytes, 4); // includes the EOF/growth probe
+        assert!(whole.borrow().live_state_bytes >= 2 * 4 + 8192);
+        let spent = Rc::new(RefCell::new(ClaimCallBudget::new(CLAIM_COMPLETE_BYTES - 2, 0).unwrap()));
+        assert!(read_claim_catalog_at(&parent, "rows.jsonl", uid, 3,
+            Some(&spent), deadline, &cancelled).is_err());
+        assert_eq!(spent.borrow().remaining_read().unwrap(), 2);
+        assert_eq!(spent.borrow().live_state_bytes, 0);
+        let no_state = Rc::new(RefCell::new(ClaimCallBudget::new(0, CLAIM_COMPLETE_BYTES as usize).unwrap()));
+        assert!(read_claim_catalog_at(&parent, "rows.jsonl", uid, 3,
+            Some(&no_state), deadline, &cancelled).is_err());
+        assert_eq!(no_state.borrow().read_bytes, 4); // a failed holder debit does not refund
+        std::os::unix::fs::symlink("rows.jsonl", temporary.path().join("alias")).unwrap();
+        assert!(read_claim_catalog_at(&parent, "alias", uid, 3,
+            Some(&whole), deadline, &cancelled).is_err());
+        assert_eq!(whole.borrow().read_bytes, 4);
+        assert!(read_claim_catalog_at(&parent, "rows.jsonl", uid, 2,
+            Some(&whole), deadline, &cancelled).is_err());
+        assert_eq!(whole.borrow().read_bytes, 4);
+    }
 
     #[test]
     fn bootstrap_contract_native_profile_epoch_preserves_metadata_bounds_and_fixity() {

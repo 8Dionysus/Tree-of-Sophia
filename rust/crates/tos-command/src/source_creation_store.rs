@@ -498,6 +498,110 @@ pub(crate) struct ClaimCatalogCapture {
     uid: u32,
 }
 
+/// The live Claim route admits the SAME opened descriptor before its first
+/// payload read. A separate stat followed by read_at would admit another file
+/// if the name were replaced between those calls. Legacy local-only readers
+/// retain their existing path; no payer or allowance is created here.
+pub(crate) fn read_claim_catalog_at(
+    parent: &File,
+    name: &str,
+    uid: u32,
+    limit: usize,
+    whole_call: Option<&Rc<RefCell<crate::source_claims::ClaimCallBudget>>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<Vec<u8>>> {
+    let Some(whole_call) = whole_call else {
+        return work_transaction::read_at(parent, name, uid, limit, deadline, cancelled);
+    };
+    active(deadline, cancelled)?;
+    let mut file: File = match rustix::fs::openat(
+        parent,
+        name,
+        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+        Mode::empty(),
+    ) {
+        Ok(fd) => fd.into(),
+        Err(Errno::NOENT) => return Ok(None),
+        Err(_) => return Err(SourceCommandError::Denied("selected metadata file unsafe")),
+    };
+    let before = owned(&file, uid, false)?;
+    if before.mode() & 0o7000 != 0 {
+        return Err(SourceCommandError::Denied(
+            "selected metadata special file mode",
+        ));
+    }
+    let size = usize::try_from(before.len())
+        .map_err(|_| SourceCommandError::Unsupported("Claim catalog member size overflow"))?;
+    if size > limit {
+        return Err(SourceCommandError::Invalid(
+            "selected metadata file byte budget",
+        ));
+    }
+    // One extra byte detects growth without copying an unpaid suffix. The Vec
+    // and its later Arc copy overlap; keep their admitted logical holders and
+    // a fixed stack chunk in the original cumulative state ledger, even on Err.
+    let capacity = size
+        .checked_add(1)
+        .ok_or(SourceCommandError::Unsupported("Claim catalog read size overflow"))?;
+    let state = capacity
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(8192 + 128))
+        .ok_or(SourceCommandError::Unsupported("Claim catalog holder size overflow"))?;
+    {
+        let mut budget = whole_call
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("Claim catalog original payer borrowed"))?;
+        budget.read(
+            u64::try_from(capacity)
+                .map_err(|_| SourceCommandError::Unsupported("Claim catalog read conversion"))?,
+        )?;
+        budget.retain(state)?;
+    }
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(capacity)
+        .map_err(|_| SourceCommandError::Unsupported("Claim catalog read reservation"))?;
+    if raw.capacity() > capacity {
+        return Err(SourceCommandError::Unsupported(
+            "Claim catalog admitted capacity",
+        ));
+    }
+    let mut chunk = [0u8; 8192];
+    loop {
+        active(deadline, cancelled)?;
+        let room = capacity - raw.len();
+        if room == 0 {
+            return Err(SourceCommandError::Conflict("selected metadata file grew"));
+        }
+        let chunk_limit = room.min(chunk.len());
+        let n = match file.read(&mut chunk[..chunk_limit]) {
+            Ok(n) => n,
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => return Err(SourceCommandError::Invalid("Claim catalog descriptor read")),
+        };
+        if n == 0 {
+            break;
+        }
+        raw.extend_from_slice(&chunk[..n]);
+    }
+    let again: File = rustix::fs::openat(
+        parent,
+        name,
+        OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+        Mode::empty(),
+    )
+    .map(File::from)
+    .map_err(|_| SourceCommandError::Conflict("selected metadata file replaced"))?;
+    let current = owned(&again, uid, false)?;
+    if raw.len() != size
+        || stamp(&before) != stamp(&current)
+        || stamp(&before) != stamp(&owned(&file, uid, false)?)
+    {
+        return Err(SourceCommandError::Conflict("selected metadata file changed"));
+    }
+    Ok(Some(raw))
+}
+
 impl ClaimCatalogCapture {
     fn canonical_index(
         &self,
@@ -611,6 +715,7 @@ impl ClaimCatalogCapture {
         path: &str,
         max_route_bytes: usize,
         max_new_bytes: usize,
+        whole_call: Option<&Rc<RefCell<crate::source_claims::ClaimCallBudget>>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<(Arc<[u8]>, usize)> {
@@ -629,11 +734,12 @@ impl ClaimCatalogCapture {
         ))?;
         let mut newly_read = 0usize;
         if self.manifest.is_none() {
-            let raw = work_transaction::read_at(
+            let raw = read_claim_catalog_at(
                 catalog,
                 "catalog.manifest.json",
                 self.uid,
                 2_097_152.min(max_new_bytes),
+                whole_call,
                 deadline,
                 cancelled,
             )?
@@ -649,11 +755,12 @@ impl ClaimCatalogCapture {
                 .ok_or(SourceCommandError::Unsupported(
                     "Claim generated catalog read budget",
                 ))?;
-        let raw = work_transaction::read_at(
+        let raw = read_claim_catalog_at(
             catalog,
             name,
             self.uid,
             remaining.min(max_route_bytes),
+            whole_call,
             deadline,
             cancelled,
         )?
