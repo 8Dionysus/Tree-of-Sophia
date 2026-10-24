@@ -13,6 +13,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, Digest256Hasher};
 
+#[path = "source_native_pg_private_archive_data.rs"]
+mod claim_archive_data;
+
 pub(crate) const PRIVATE_SCHEMA_PROFILE: &str =
     super::durable_compatibility::PRIVATE_PACKAGE_ABI_PROFILE_V4;
 const MAX_TARGET_REF_BYTES: usize = 4096;
@@ -1875,10 +1878,23 @@ fn read_archive_snapshot(
     archive_ref: &str,
     private_generation: u64,
 ) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+    // Explicit legacy route: no original-payer funding claim is made here.
+    read_archive_snapshot_before_queries(
+        client, scope, target_ref, archive_ref, private_generation, &mut |_| Ok(()),
+    )
+}
+
+fn read_archive_snapshot_before_queries(
+    client: &mut impl GenericClient,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    archive_ref: &str,
+    private_generation: u64,
+    before: &mut impl FnMut(claim_archive_data::ArchiveQuery) -> DurableResult<()>,
+) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+    before(claim_archive_data::ArchiveQuery::Header)?;
     let Some(row) = client.query_opt(
-        "SELECT family,source_revision,package_digest,member_count,total_bytes
-         FROM cmd2_private_package_archive
-         WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND archive_ref=$4",
+        claim_archive_data::HEADER_SQL,
         &[&scope.domain, &scope.owner_scope, &target_ref, &archive_ref],
     )?
     else {
@@ -1889,11 +1905,9 @@ fn read_archive_snapshot(
     let digest = parse_hex(row.get(2))?;
     let count: i32 = row.get(3);
     let total = as_u64(row.get(4))?;
+    before(claim_archive_data::ArchiveQuery::Members)?;
     let rows = client.query(
-        "SELECT member_name,member_bytes,member_digest
-         FROM cmd2_private_package_archive_member
-         WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND archive_ref=$4
-         ORDER BY member_name COLLATE \"C\" LIMIT 66",
+        claim_archive_data::MEMBERS_SQL,
         &[&scope.domain, &scope.owner_scope, &target_ref, &archive_ref],
     )?;
     if count <= 0 || rows.len() != count as usize {
@@ -1944,6 +1958,109 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
 
     pub(crate) fn private_audit_generation(&self) -> u64 {
         self.private_audit_generation
+    }
+
+    /// Claim-only archive on the ACTUAL owner RR session. The original
+    /// operation pays selected query DATA before transfer, including no-row
+    /// and query-error exits. This does not admit transaction bootstrap,
+    /// driver capacities/errors/transport or the semantic/hash/native frames.
+    /// Callers still owe actual protected read selection and exit fences.
+    pub(crate) fn read_claim_archive_with_query_data_admission(
+        &mut self,
+        target_ref: &str,
+        archive_ref: &str,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+        check_private_history_deadline(deadline, cancelled)?;
+        if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
+            return Err(DurableError::Refused(
+                "private Claim archive cutoff exceeds original operation",
+            ));
+        }
+        let path_work = claim_archive_data::add(target_ref.len(), archive_ref.len())
+            .map_err(DurableError::Source)?;
+        budget.charge_work(path_work).map_err(DurableError::Source)?;
+        validate_target_ref(target_ref)?;
+        validate_target_ref(archive_ref)?;
+        let Self { transaction, scope, private_audit_generation, .. } = self;
+        let tx = transaction.as_mut().ok_or(DurableError::Corrupt(
+            "private owner read session is closed",
+        ))?;
+        let parameter_bytes = claim_archive_data::add(
+            claim_archive_data::add(scope.domain.len(), scope.owner_scope.len())
+                .map_err(DurableError::Source)?,
+            path_work,
+        ).map_err(DurableError::Source)?;
+        // bool1, three int4 header lengths, count int4, total int8,
+        // four aggregate bigint8 counters and two int4 maxima: 65 bytes.
+        claim_archive_data::reserve_query(
+            budget, claim_archive_data::ENVELOPE_SQL, parameter_bytes,
+            12, 1, 65, 0, 0, 0,
+        ).map_err(DurableError::Source)?;
+        let Some(envelope) = tx.query_opt(
+            claim_archive_data::ENVELOPE_SQL,
+            &[&scope.domain, &scope.owner_scope, &target_ref, &archive_ref],
+        )? else {
+            return Ok(None);
+        };
+        check_private_history_deadline(deadline, cancelled)?;
+        if !envelope.get::<_, bool>(0) {
+            return Err(DurableError::Refused("selected archive is not a Claim package"));
+        }
+        let count = envelope.get::<_, i32>(1);
+        let declared_total = as_u64(envelope.get(2))?;
+        let family_bytes = envelope.get::<_, i32>(3);
+        let source_digest_bytes = envelope.get::<_, i32>(4);
+        let package_digest_bytes = envelope.get::<_, i32>(5);
+        let observed_count = as_u64(envelope.get(6))?;
+        let raw_bytes = as_u64(envelope.get(7))?;
+        let name_bytes = as_u64(envelope.get(8))?;
+        let digest_bytes = as_u64(envelope.get(9))?;
+        let max_name_bytes = envelope.get::<_, i32>(10);
+        let max_digest_bytes = envelope.get::<_, i32>(11);
+        // Includes the real archive manifest (MAX_MEMBERS+1). Never filter or
+        // truncate a payload set to fit: the complete aggregate must fit first.
+        if count <= 0 || count as usize > MAX_MEMBERS + 1
+            || observed_count != count as u64
+            || raw_bytes != declared_total || raw_bytes > MAX_ARCHIVE_BYTES as u64
+            || !(0..=10).contains(&family_bytes)
+            || !(0..=64).contains(&source_digest_bytes)
+            || !(0..=64).contains(&package_digest_bytes)
+            || !(0..=MAX_MEMBER_NAME_BYTES as i32).contains(&max_name_bytes)
+            || !(0..=64).contains(&max_digest_bytes)
+            || name_bytes > observed_count * MAX_MEMBER_NAME_BYTES as u64
+            || digest_bytes > observed_count * 64
+        {
+            return Err(DurableError::Corrupt("private Claim archive data envelope"));
+        }
+        let count = count as usize;
+        // All conversions follow the finite complete-envelope checks above.
+        let header_payload = family_bytes as usize + source_digest_bytes as usize
+            + package_digest_bytes as usize + 4 + 8;
+        let header_decoded = header_payload - 4 - 8;
+        let payload = (raw_bytes + name_bytes + digest_bytes) as usize;
+        // Reuse the unchanged semantic checks on the SAME RR snapshot: member
+        // count, hashes, bounded identity/size and complete package digest.
+        // These metadata values cannot drift between envelope and payload.
+        read_archive_snapshot_before_queries(
+            tx, scope, target_ref, archive_ref, *private_audit_generation,
+            &mut |query| {
+                check_private_history_deadline(deadline, cancelled)?;
+                match query {
+                    claim_archive_data::ArchiveQuery::Header => claim_archive_data::reserve_query(
+                        budget, claim_archive_data::HEADER_SQL, parameter_bytes,
+                        5, 1, header_payload, header_decoded, 3, 0,
+                    ),
+                    claim_archive_data::ArchiveQuery::Members => claim_archive_data::reserve_query(
+                        budget, claim_archive_data::MEMBERS_SQL, parameter_bytes,
+                        3, count, payload, payload, 2 * count, count,
+                    ),
+                }.map_err(DurableError::Source)?;
+                check_private_history_deadline(deadline, cancelled)
+            },
+        )
     }
 
     pub(crate) fn current_header(
