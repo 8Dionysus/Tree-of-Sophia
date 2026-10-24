@@ -16,8 +16,14 @@ fn mul(a: usize, b: usize) -> SourceCommandResult<usize> {
     a.checked_mul(b).ok_or_else(exhausted)
 }
 
+// PostgreSQL char(64) counts characters, not encoded bytes. Even a malformed
+// non-ASCII digest must be transferred before parse_hex can refuse it. A UTF-8
+// scalar occupies at most four bytes; do not assume a private writer emitted
+// lowercase ASCII merely from the column's char(64) declaration.
+const CHAR64_UTF8_MAX_BYTES: usize = 64 * 4;
+
 /// The real Row payload shapes from durable_schema.sql: bigint8, bool1,
-/// char(64)64 and maintenance_state constrained to normal/active (max6).
+/// char(64)<=256 UTF-8 bytes and normal/active maintenance_state (max6).
 /// Null fields need no more payload. This is not a configurable source grant.
 pub(super) enum RowShape {
     None,
@@ -30,7 +36,17 @@ impl RowShape {
         match self {
             Self::None => &[],
             Self::Audit => &[8, 6],
-            Self::Domain => &[64, 1, 1, 8, 8, 8, 8, 8, 64],
+            Self::Domain => &[
+                CHAR64_UTF8_MAX_BYTES,
+                1,
+                1,
+                8,
+                8,
+                8,
+                8,
+                8,
+                CHAR64_UTF8_MAX_BYTES,
+            ],
             Self::Job => &[8],
         }
     }
@@ -39,7 +55,9 @@ impl RowShape {
             // Actual get::<String> copies, plus two expected digest hex
             // Strings in the domain comparisons. No post-query measurement.
             Self::Audit => (6, 1),
-            Self::Domain => (5 * 64, 5),
+            // source_definition_digest is copied twice, contract_digest once;
+            // the two expected Digest256::to_hex values are always ASCII64.
+            Self::Domain => (3 * CHAR64_UTF8_MAX_BYTES + 2 * 64, 5),
             Self::None | Self::Job => (0, 0),
         }
     }
@@ -112,4 +130,23 @@ pub(super) fn statement(
         add(decoded_bytes, fields.len())?,
     )?)?;
     budget.charge_bytes(add(input, holders)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn digest_row_quote_covers_non_ascii_char64_before_hex_refusal() {
+        let field = "\u{1f642}".repeat(64);
+        assert_eq!(field.chars().count(), 64);
+        assert_eq!(field.len(), 256);
+        assert!(tos_foundation::Digest256::from_hex(&field).is_err());
+        let fields = RowShape::Domain.fields();
+        assert!(fields[0] >= field.len());
+        assert!(fields[8] >= field.len());
+        let (copies, strings) = RowShape::Domain.decoded();
+        assert!(copies >= 3 * field.len() + 2 * 64);
+        assert_eq!(strings, 5);
+    }
 }
