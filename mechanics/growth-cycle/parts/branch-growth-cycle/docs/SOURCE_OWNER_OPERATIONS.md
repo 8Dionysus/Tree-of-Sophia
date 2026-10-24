@@ -152,7 +152,11 @@ use and read the recalculated current result. Raw source creation remains
 unreviewed; retaining an assertion is not positive transfer readiness.
 
 Each exact citation must already be in the actual owner's required closure and
-in assessment evidence with the same locator. Missing source selection refuses;
+in assessment evidence with the same locator. The v1 implementation checks
+`json-pointer:/...` against an existing field of that selected Record body.
+A repeated but nonexistent locator refuses. Original file/scan/cell reading is
+a separate source-owner obligation; no adapter for those locator forms is issued
+here. Missing source selection refuses;
 neither copying a Claim into a request nor adding a claimed `complete` flag fixes
 it. Source-backed historical uncertainty and unfinished agent work have distinct
 dispositions. Existing negative/defer/withdraw routes remain available under

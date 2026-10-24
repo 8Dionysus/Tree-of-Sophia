@@ -101,7 +101,14 @@ unread sources and unsupported operations are not historical findings.
 
 The native admission rule requires every cited exact record to belong to the
 actual owner-selected required closure and every citation to appear with its
-exact locator in the qualified assessment. Missing, stale, foreign-question or
+exact locator in the qualified assessment. The implemented v1 locator is
+`json-pointer:/...`, resolved against the actual selected Record body with
+RFC 6901 escapes. An absent field refuses even when the submitted basis and
+assessment repeat the same locator. This checks a selected JSON field; it does
+not prove reading an underlying scan, spreadsheet or text file. Those original
+source representations and their read extent require their actual owner adapters
+and a competent substantive assessment. Other locator adapters are not installed
+by this rule. Missing, stale, foreign-question or
 empty grounds refuse positive manual use. Source-owned criteria and competent
 assessment still judge incompatibility, relevance and adequacy: different values,
 nonempty prose and a schema pass do not establish those judgments. Existing
