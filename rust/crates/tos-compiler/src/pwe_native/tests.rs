@@ -97,6 +97,115 @@ fn k0() -> OperationBindingLimits {
         max_refs: 1000,
     }
 }
+
+/// Resource/numeric regression only. No native owner, grant, profile or
+/// completeness witness is constructed. I is the unchanged SOURCE ceiling.
+#[test]
+fn source_numeric_canonical_and_revision_share_original_allowance() {
+    use std::cell::Cell;
+    const I: usize = 33_554_432;
+    struct Original {
+        read: Cell<usize>, live: Cell<usize>, fail_after: Cell<Option<usize>>,
+    }
+    impl SourceAdmission for Original {
+        fn inspect(&self, n: usize) -> Result<()> {
+            if let Some(left) = self.fail_after.get() {
+                if left == 0 {
+                    self.fail_after.set(None);
+                    return Err(Error::Upstream("original numeric payer refusal"));
+                }
+                self.fail_after.set(Some(left - 1));
+            }
+            self.read.set(self.read.get().checked_sub(n).ok_or(Error::ResourceLimit)?);
+            Ok(())
+        }
+        fn retain(&self, n: usize) -> Result<()> {
+            self.live.set(self.live.get().checked_sub(n).ok_or(Error::ResourceLimit)?);
+            Ok(())
+        }
+    }
+    let original = Original { read: Cell::new(I), live: Cell::new(I), fail_after: Cell::new(None) };
+    let cancel = AtomicBool::new(false);
+    let limits = Limits { max_input_bytes: I, max_work: I, max_nodes: 1_000_000,
+        max_refs: 4096, max_items: 4096, max_depth: 96, max_state_bytes: I,
+        deadline: Instant::now() + Duration::from_secs(30) };
+    let mut s = Session::new_source(limits, &cancel, &original).unwrap();
+    // Versions 1/2 and their number equality pass with max_work == max_input;
+    // neither count nor digest can request the original I after prior spend.
+    s.admit_source_prefix(7, 1).unwrap();
+    s.admit(&json!(1)).unwrap();
+    s.admit(&json!(2)).unwrap();
+    assert!(s.equal(&json!(1), &json!(1)).unwrap());
+    assert!(!s.equal(&json!(1), &json!(2)).unwrap());
+    let one_point_zero: Value = serde_json::from_str("1.0").unwrap();
+    assert_eq!(s.equal(&json!(1), &one_point_zero).unwrap(), json!(1) == one_point_zero);
+    let pin = exact("numeric.bound");
+    s.admit(&pin).unwrap();
+    assert_eq!(s.exact(&pin).unwrap().version(), 1);
+    let mut pin2 = pin.clone(); pin2["version"] = json!(2);
+    s.admit(&pin2).unwrap();
+    assert_eq!(s.exact(&pin2).unwrap().version(), 2);
+    let mut bound_v2 = typed("numeric.bound");
+    bound_v2["record"]["version"] = json!(2);
+    s.admit(&bound_v2).unwrap();
+    assert_eq!(s.typed(&bound_v2).unwrap().1.version(), 2);
+    for input in ["1", "2", "1.0", "1e15", "1e-4", "-0.0", "18446744073709551616", "{\"z\":[1,2,0.5],\"a\":\"Ж\\n\"}"] {
+        let value: Value = serde_json::from_str(input).unwrap();
+        let expected = crate::source_bibliographic_render::encode(&value, I).unwrap();
+        let before = s.charges();
+        let before_read = original.read.get();
+        let actual = s.source_canonical(&value).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(s.digest(&value).unwrap(), tos_foundation::Digest256::of_bytes(&expected));
+        assert!(s.charges().2 > before.2 && original.read.get() < before_read);
+    }
+    let prepared: Value = serde_json::from_str(include_str!("fixtures/prepared-pwe-values.json")).unwrap();
+    let object = prepared["body"]["values"][0].clone();
+    let old = json!({"schema_version":"tos_pwe_name_assignment_claim_v1",
+        "claim_id":"tos.claim.numeric-source", "claim_type":"relation",
+        "assertion_layer":"bibliographic_assertion", "subject_ref":object["subject"]["record"]["id"],
+        "predicate":"pwe_name_assignment", "object":object, "evidence_refs":["numeric.original"],
+        "maker":{"maker_type":"software","agent_ref":"numeric.original"},
+        "provenance_event_ref":"numeric.original", "epistemic_status":"reported",
+        "review_status":"unreviewed", "claim_version":1, "visibility":"public_metadata_only"});
+    let mut new = old.clone(); new["claim_version"] = json!(2);
+    new["object"]["limitations"] = json!("Numeric resource regression; description only.");
+    let p = s.prepare(&old["object"]).unwrap();
+    s.check_claim_content(&p, &old).unwrap();
+    let occurrences = s.preserved_basis(&p).unwrap();
+    assert!(!occurrences.slots.is_empty());
+    let p2 = s.prepare(&new["object"]).unwrap();
+    s.check_claim_content(&p2, &new).unwrap();
+    assert_eq!(s.source_canonical(&old).unwrap(), crate::source_bibliographic_render::encode(&old, I).unwrap());
+    assert_eq!(s.source_canonical(&new).unwrap(), crate::source_bibliographic_render::encode(&new, I).unwrap());
+    let old_ref = json!({"id":old["claim_id"],"version":1,"digest":s.digest(&old).unwrap().to_prefixed()});
+    let new_ref = json!({"id":new["claim_id"],"version":2,"digest":s.digest(&new).unwrap().to_prefixed()});
+    for _ in 0..2 {
+        let before = s.charges();
+        s.description_revision(&old, &old_ref, &new, &new_ref).unwrap();
+        assert!(s.charges().2 > before.2 && s.charges().4 > before.4);
+    }
+    let mut changed = new.clone(); changed["evidence_refs"] = json!(["numeric.changed"]);
+    let changed_ref = json!({"id":changed["claim_id"],"version":2,"digest":s.digest(&changed).unwrap().to_prefixed()});
+    assert!(matches!(s.description_revision(&old, &old_ref, &changed, &changed_ref), Err(Error::Malformed(_))));
+    // A SOURCE digest cannot pay the opaque legacy descriptor helper as well.
+    let null = Value::Null;
+    let registry = RegistryDescriptor { value: &null, reference: s.exact(&pin).unwrap() };
+    assert!(matches!(s.metadata(&null, &null, &null, &registry), Err(Error::NeedsBinding(_))));
+    // Three successful prepass/wire debits precede the first parser prefix.
+    // Its original error must survive the generic foundation error wrapper.
+    let before = s.charges(); original.fail_after.set(Some(3));
+    assert_eq!(s.digest(&json!(1)), Err(Error::Upstream("original numeric payer refusal")));
+    assert!(s.charges().2 > before.2); // spent prepass prefix is retained
+    let before_retry = s.charges(); s.admit(&json!(2)).unwrap();
+    assert!(s.charges().2 > before_retry.2); // SAME Session, no refill
+    let mut exhausted_limits = limits; exhausted_limits.max_work = 2;
+    let mut exhausted = Session::new_source(exhausted_limits, &cancel, &original).unwrap();
+    assert_eq!(exhausted.admit(&json!(12)), Err(Error::ResourceLimit));
+    assert_eq!(exhausted.charges().2, 1);
+    assert_eq!(exhausted.admit(&json!(12)), Err(Error::ResourceLimit));
+    assert_eq!(exhausted.charges().2, 2);
+}
 fn native(v: &Value) -> tos_foundation::JsonValue {
     parse_json(
         &serde_json::to_vec(v).unwrap(),

@@ -87,6 +87,16 @@ impl Session<'_> {
         reference: &'v Value,
         registry: &RegistryDescriptor<'v>,
     ) -> Result<CheckedMetadata<'v>> {
+        self.check()?;
+        // The legacy owner's descriptor helper performs its own additional
+        // serialization/clone work. A SOURCE digest now pays only its actual
+        // codec, so it cannot serve as payment for that opaque foreign call.
+        // Keep this route closed until its original-payer port is supplied.
+        // Common's current source-preservation caller does not call metadata;
+        // its native exact metadata reader retains its independent owner gate.
+        if self.source_mode() {
+            return Err(Error::NeedsBinding("source-admitted metadata descriptor owner"));
+        }
         for value in [entry, record, reference, registry.value] {
             self.admit(value)?;
         }

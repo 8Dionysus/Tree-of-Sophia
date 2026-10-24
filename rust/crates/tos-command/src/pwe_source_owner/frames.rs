@@ -718,6 +718,20 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
         plan: &AssessmentEvaluationPlan<'_>,
     ) -> SourceCommandResult<AssessmentMechanicsReport> {
         self.verify()?;
+        let result = self.assess_current(plan);
+        // Fence the protected resources after every attempted assessment,
+        // including selection, history and evaluator refusals. Preserve the
+        // original error and every spent prefix if the final fence also fails.
+        let fenced = self.verify();
+        match (result, fenced) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(report), Ok(())) => Ok(report),
+        }
+    }
+    fn assess_current(
+        &mut self,
+        plan: &AssessmentEvaluationPlan<'_>,
+    ) -> SourceCommandResult<AssessmentMechanicsReport> {
         let grant = self.grant;
         if !self.same(plan.config, grant.configuration())? {
             return Err(SourceCommandError::Conflict(
@@ -767,7 +781,6 @@ impl<'a, 'scope> HeldFrames<'a, 'scope> {
             self.cancelled,
             &mut evaluator,
         )?;
-        self.verify()?;
         Ok(result.current_report)
     }
 }
