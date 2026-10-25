@@ -668,4 +668,51 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn metadata_request_floor_exhausts_selected_pg_profile_before_fourth_request() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancel = AtomicBool::new(false);
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets": {
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
+        let work_before = original.work_remaining;
+        // Same profile as the three selected_pg_payload fixtures. These are
+        // numeric source measures, not a native grant or a simulated PG pass.
+        let limits = Limits {
+            max_input_bytes: 4_194_304,
+            max_nodes: 1024,
+            max_work: 262_144,
+            max_refs: 64,
+            max_depth: 16,
+            max_items: 64,
+            max_state_bytes: 8_388_608,
+            deadline,
+        };
+        let result: SourceCommandResult<()> =
+            with_original_pwe_session(&mut original, limits, &cancel, |payer, session| {
+                // A valid nonempty intent and pin each need at least two
+                // actual 65536-byte requested slices under their 1MiB caps.
+                // Omit all other strictly-positive lower work: even this
+                // smaller real-bridge sequence cannot admit request four.
+                for _ in 0..3 {
+                    payer.charge_sto_source_measures(session, 65_536, 0, 0, 0, 1)?;
+                }
+                assert_eq!(session.charges(), (196_608, 0, 196_611, 0, 0));
+                let failure = payer
+                    .charge_sto_source_measures(session, 65_536, 0, 0, 0, 1)
+                    .unwrap_err();
+                assert_eq!(session.charges(), (196_608, 0, 196_611, 0, 0));
+                Err(failure)
+            });
+        assert!(matches!(result, Err(SourceCommandError::Unsupported(
+            "PWE Assessment Session exhausted"
+        ))));
+        assert_eq!(original.work_remaining, work_before - 262_144);
+        assert!(original.limits().is_err());
+    }
 }
