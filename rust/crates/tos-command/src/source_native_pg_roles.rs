@@ -22,6 +22,12 @@ use tos_validation::item_rules::ItemLimits;
 #[path = "source_native_pg_private_schema.rs"]
 mod private_schema;
 pub(crate) use private_schema::with_pg_private_schema_kernel;
+#[path = "source_native_pg_private_selected_source.rs"]
+mod private_selected_source;
+pub(crate) use private_selected_source::{
+    PgPrivateSelectedSourceCause, PgPrivateSelectedSourceFailure,
+    with_pg_private_selected_source_kernel,
+};
 
 /// Exact mechanically resolved source/history/descriptor result. PG identity
 /// remains PG identity, never its embedded filesystem bootstrap revision.

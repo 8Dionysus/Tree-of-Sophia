@@ -88,7 +88,7 @@ where
     }
 }
 
-fn run_private<W, R, T>(
+pub(super) fn run_private<W, R, T>(
     worker: &mut W,
     reader: &R,
     run: impl FnOnce(&mut dyn PrivateSelectedSchemaExecutor) -> Result<T>,
@@ -101,7 +101,7 @@ where
     run(&mut private)
 }
 
-fn context_identity(
+pub(super) fn context_identity(
     ctx: &CommandContext,
     bootstrap: tos_foundation::SourceRevision,
     uid: u64,
@@ -117,7 +117,7 @@ fn context_identity(
     Ok(())
 }
 
-fn admitted_context_is_tos(
+pub(super) fn admitted_context_is_tos(
     file: &crate::source_command::SourceFile,
     budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
     deadline: Instant,

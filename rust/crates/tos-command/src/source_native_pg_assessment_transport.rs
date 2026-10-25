@@ -104,10 +104,14 @@ fn native_resource_refusal(error: &AssessmentRefusal) -> bool {
         AssessmentRefusal::Budget | AssessmentRefusal::Cancelled | AssessmentRefusal::Deadline => {
             true
         }
-        AssessmentRefusal::Schema(
-            ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } | ItemRefusal::Deadline,
-        ) => true,
-        AssessmentRefusal::Schema(ItemRefusal::Executor(evidence)) => matches!(
+        AssessmentRefusal::Schema(error) => schema_resource_refusal(error),
+        _ => false,
+    }
+}
+fn schema_resource_refusal(error: &ItemRefusal) -> bool {
+    match error {
+        ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } | ItemRefusal::Deadline => true,
+        ItemRefusal::Executor(evidence) => matches!(
             evidence.reason,
             ExecutorFailure::InputBudget
                 | ExecutorFailure::ResourceLimitUnknown
@@ -119,6 +123,14 @@ fn native_resource_refusal(error: &AssessmentRefusal) -> bool {
     }
 }
 impl OriginalAssessmentPayer<'_, '_> {
+    /// Borrowed source/schema visitor counterpart of the existing Assessment
+    /// latch. Classification is shared exactly; no cloning/wrapping/consuming
+    /// the original ItemRefusal and no error-category transport substitution.
+    pub(crate) fn latch_native_schema_refusal(&self, original: &ItemRefusal) {
+        if schema_resource_refusal(original) {
+            self.failed.set(true);
+        }
+    }
     /// Monotonic latch ONLY: does not consume stored refusal, map/replace an
     /// error, manufacture a budget failure, debit/refund, borrow OperationBudget
     /// or touch source/permission state. The actual caller retains the owned E
@@ -166,6 +178,43 @@ mod tests {
             max_items: 8,
             max_state_bytes: 4096,
             deadline,
+        }
+    }
+    #[test]
+    fn borrowed_schema_latch_keeps_owned_detail_and_does_not_poison_semantic_source_error() {
+        for (original, resource) in [
+            (
+                ItemRefusal::BudgetCheck {
+                    check: "actual visitor bound",
+                    used: Some(11),
+                    limit: Some(10),
+                },
+                true,
+            ),
+            (ItemRefusal::Deadline, true),
+            (
+                ItemRefusal::Source("original owned visitor detail".to_owned()),
+                false,
+            ),
+        ] {
+            let d = Instant::now() + Duration::from_secs(30);
+            let c = AtomicBool::new(false);
+            let mut operation = operation(d);
+            let pointer = if let ItemRefusal::Source(text) = &original {
+                Some(text.as_ptr())
+            } else {
+                None
+            };
+            let result =
+                with_original_pwe_session(&mut operation, limits(d), &c, |payer, _same| {
+                    payer.latch_native_schema_refusal(&original);
+                    assert_eq!(payer.failed.get(), resource);
+                    Ok(())
+                });
+            assert_eq!(result.is_err(), resource);
+            if let ItemRefusal::Source(text) = original {
+                assert_eq!(Some(text.as_ptr()), pointer);
+            }
         }
     }
     #[test]

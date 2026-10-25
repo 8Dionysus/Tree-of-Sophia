@@ -81,6 +81,28 @@ pub(crate) fn with_original_pwe_session_durable<T>(
     )
 }
 
+/// ONE original resource Session around the actual private joint-read lane.
+/// Its Operation/Release/OperationAndRelease value is retained losslessly;
+/// the control mapping applies only to this wrapper's own resource errors.
+/// This grants no source access and does not fund the query/driver enclosure.
+pub(crate) fn with_original_pwe_session_private_read<T>(
+    operation: &mut OperationBudget,
+    limits: Limits,
+    cancelled: &AtomicBool,
+    run: impl FnOnce(
+        &OriginalAssessmentPayer<'_, '_>,
+        &mut Session<'_>,
+    ) -> crate::durable_private_packages::PrivateOwnerReadResult<T>,
+) -> crate::durable_private_packages::PrivateOwnerReadResult<T> {
+    with_original_session_result(
+        operation,
+        limits,
+        cancelled,
+        |error| crate::DurableError::Source(error).into(),
+        run,
+    )
+}
+
 fn with_original_session_result<T, E>(
     operation: &mut OperationBudget,
     limits: Limits,
@@ -453,6 +475,88 @@ impl SourceAdmission for OriginalAssessmentPayer<'_, '_> {
 mod tests {
     use super::*;
     use std::time::Duration;
+
+    #[test]
+    fn private_read_original_session_keeps_operation_and_release_fault_after_resource_exit() {
+        use crate::durable_private_packages::PrivateOwnerReadFailure;
+        let c = AtomicBool::new(false);
+        let d = Instant::now() + Duration::from_secs(30);
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            d,
+        )
+        .unwrap();
+        let before = original.test_work_remaining();
+        let limits = Limits {
+            max_input_bytes: 128,
+            max_nodes: 8,
+            max_work: 64,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 128,
+            deadline: d,
+        };
+        let result = with_original_pwe_session_private_read::<()>(
+            &mut original,
+            limits,
+            &c,
+            |payer, _same| {
+                let _refused = payer.inspect(usize::MAX, 0);
+                Err(PrivateOwnerReadFailure::OperationAndRelease {
+                    operation: crate::DurableError::Refused("first actual private body error"),
+                    release: crate::DurableError::Conflict("actual private release failure"),
+                })
+            },
+        );
+        assert!(matches!(
+            result,
+            Err(PrivateOwnerReadFailure::OperationAndRelease {
+                operation: crate::DurableError::Refused("first actual private body error"),
+                release: crate::DurableError::Conflict("actual private release failure"),
+            })
+        ));
+        assert_eq!(original.test_work_remaining(), before - 64);
+        assert!(original.limits().is_err());
+    }
+
+    #[test]
+    fn private_read_original_session_denies_ok_after_actual_resource_refusal() {
+        use crate::durable_private_packages::PrivateOwnerReadFailure;
+        let c = AtomicBool::new(false);
+        let d = Instant::now() + Duration::from_secs(30);
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            d,
+        )
+        .unwrap();
+        let limits = Limits {
+            max_input_bytes: 128,
+            max_nodes: 8,
+            max_work: 64,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 128,
+            deadline: d,
+        };
+        let result =
+            with_original_pwe_session_private_read(&mut original, limits, &c, |payer, _same| {
+                let _refused = payer.inspect(usize::MAX, 0);
+                Ok(())
+            });
+        assert!(matches!(
+            result,
+            Err(PrivateOwnerReadFailure::Operation(
+                crate::DurableError::Source(_)
+            ))
+        ));
+        assert!(original.limits().is_err());
+    }
 
     #[test]
     fn swallowed_mapped_or_loan_resource_refusal_cannot_finish_successfully() {

@@ -5,20 +5,25 @@ implemented shapes; a separately selected current grant authorizes execution.
 Access remains read-only. Source review, rights, custody, exact bytes, currentness,
 transaction recovery, cancellation and deadlines retain their existing owners.
 
-| Operation | Current contract |
+| Operation / exact discovery handler → mutation | Current contract |
 | --- | --- |
 | Discover an implemented command | [Discovery](docs/SOURCE_COMMAND_DISCOVERY.md) |
 | Carry an authorized command over HTTP | [Command transport](docs/SOURCE_COMMAND_HTTP.md) |
-| Create a standalone Agent / Place / Organization / Work or bare Collection | [Standalone identities](docs/SOURCE_OWNER_OPERATIONS.md#native-standalone-identities) |
-| Work / Expression / Edition growth | [Work and Expression](docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [Edition](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md) |
+| Create a standalone Agent / Place / Organization / Work or bare Collection (`native-corpus-create` → `source.create`) | [Standalone identities](docs/SOURCE_OWNER_OPERATIONS.md#native-standalone-identities) |
+| Work / Expression / Edition growth (`native-work-expression` → `work.expression.create`; `native-expression-edition` → `expression.edition.create`) | [Work and Expression](docs/NATIVE_WORK_EXPRESSION_GROWTH.md), [Edition](docs/NATIVE_EXPRESSION_EDITION_GROWTH.md) |
 | Retain a local File and adopt an Item | [Item adoption](docs/NATIVE_ITEM_ADOPTION.md) |
-| Attach an existing Work to a Collection | [Collection growth](docs/NATIVE_COLLECTION_GROWTH.md) |
-| Create a Link and its qualified association to an existing object | [Object-Link growth](docs/NATIVE_OBJECT_LINK_GROWTH.md) |
+| Attach an existing Work to a Collection (`native-collection-membership` → `collection.work.attach`) | [Collection growth](docs/NATIVE_COLLECTION_GROWTH.md) |
+| Create a Link and its qualified association to an existing object (`native-object-link-create` → `object.link.create`) | [Object-Link growth](docs/NATIVE_OBJECT_LINK_GROWTH.md) |
 | Construct or assess a TextLayer | [Construction](docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md), [assessment](docs/NATIVE_TEXT_LAYER_ASSESSMENT.md) |
 | Assess an image/OCR layer | [Image/OCR assessment](docs/NATIVE_IMAGE_OCR_ASSESSMENT.md) |
 | Create a translation Alignment | [Alignment](docs/NATIVE_TRANSLATION_ALIGNMENT.md) |
 | Check native assertion coverage | [Coverage](docs/NATIVE_BEHAVIOR_COVERAGE.md) |
 | Grow a branch from source pressure | [Growth structure](docs/GROWTH_STRUCTURE.md), [curation](docs/HUMAN_CURATED_EXPANSION.md), [soil](docs/PRE_EXPANSION_SOIL.md) |
+
+Use the [manual planting runbook](docs/MANUAL_PLANTING_RUNBOOK.md) for current
+data/owner selection, exact request comparison, identity reuse, readback,
+correction and recovery. It records the pinned descriptor/handler drift and
+backend-specific unavailable verbs; it grants no stage admission.
 
 ## Detailed operations and prior anchors
 

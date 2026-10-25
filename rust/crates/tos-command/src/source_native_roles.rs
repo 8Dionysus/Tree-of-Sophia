@@ -25,6 +25,10 @@ mod pg_roles;
 pub(crate) use pg_roles::{
     NativePgRoleDocument, NativePgRoleRecord, resolve_native_pg_role, with_pg_private_schema_kernel,
 };
+pub(crate) use pg_roles::{
+    PgPrivateSelectedSourceCause, PgPrivateSelectedSourceFailure,
+    with_pg_private_selected_source_kernel,
+};
 
 use crate::{
     source_command::{

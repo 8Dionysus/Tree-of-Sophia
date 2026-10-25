@@ -63,6 +63,12 @@ pub(super) struct PgRoleControl<
 impl<'loan, 'call, 'owner, 'view, 'store, 'budget, 'cancel, 'pure>
     PgRoleControl<'_, 'loan, 'call, 'owner, 'view, 'store, 'budget, 'cancel, 'pure>
 {
+    /// Internal ordering observation only, never a permission/worker stamp.
+    /// A source visitor's owned error must not replace an EARLIER retained
+    /// host failure that the visitor merely received through an Err relay.
+    pub(super) fn has_retained_failure(&self) -> bool {
+        self.first.borrow().is_some()
+    }
     pub(super) fn with_owner<T>(
         &self,
         run: impl FnOnce(

@@ -11,10 +11,16 @@ use crate::source_revisions::ReadonlyRecordFiles;
 use postgres::IsolationLevel;
 use std::sync::atomic::AtomicBool;
 
+#[path = "source_native_pg_directory_data.rs"]
+mod admitted_directory;
 #[path = "source_native_pg_presence.rs"]
 mod admitted_presence;
+#[path = "source_native_pg_epoch_original_pwe.rs"]
+mod original_pwe_epoch;
 #[path = "source_native_pg_query_data.rs"]
 mod query_data;
+pub(crate) use admitted_directory::physical_prefix_excludes_publication_virtuals;
+pub(crate) use admitted_directory::publication_prefix_discriminator_work;
 
 const FRESHNESS_SETUP_SQL: &str = "SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'";
 const FRESHNESS_AUDIT_SQL: &str = "SELECT generation,maintenance_state FROM cmd2_audit_fence
