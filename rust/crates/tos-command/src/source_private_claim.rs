@@ -23,7 +23,16 @@ use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
 #[path = "source_private_claim_current_read.rs"]
 mod current_read;
-pub(crate) use current_read::{CurrentClaimReadScope, with_current_pg_claim_read_scope};
+pub(crate) use current_read::{
+    CurrentClaimReadScope, with_current_pg_claim_read_scope,
+    with_current_pg_claim_read_scope_exact_source,
+};
+
+#[path = "source_private_pwe_claim.rs"]
+mod pwe_read;
+pub(crate) use pwe_read::{
+    ParsedPrivatePweClaim, PrivatePweClaimFamily, parse_selected_claim_stream,
+};
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
@@ -349,6 +358,147 @@ struct ClaimPackageReadPolicy<'a> {
     // Assessment reader must bind them to genuine retained policy evidence,
     // separately from its actual protected read selection and paid read host.
     declared: &'a JsonValue,
+}
+
+/// Predicate on the actual producer's parsed result. This returns no policy,
+/// source/role/target witness or current permission when used on caller JSON.
+/// The only new policy issuer consumes the private-constructed PG owner type.
+pub(crate) fn validate_pg_claim_producer_policy(
+    declared: &JsonValue,
+    selected: &CurrentClaimReadScope<'_>,
+    access: &mut crate::source_native_cli::private_assessment::scope_admission::ScopeAccess<'_>,
+) -> SourceCommandResult<()> {
+    for (key, expected) in [
+        ("schema_version", "tos_local_source_command_result_v1"),
+        ("authentication", "local-unix-account"),
+        ("visibility", "local_only"),
+        ("source_path", selected.path()),
+    ] {
+        let actual = access.text(declared, key)?;
+        if !access.text_equal(actual, expected)? {
+            return Err(SourceCommandError::Conflict(
+                "Claim producer read-policy protocol differs",
+            ));
+        }
+    }
+    for (key, expected) in [
+        ("target_exists", true),
+        ("publication_authorized", false),
+        ("grants_admission", false),
+    ] {
+        if access.field(declared, key)?.as_bool() != Some(expected) {
+            return Err(SourceCommandError::Conflict(
+                "Claim producer read-policy posture differs",
+            ));
+        }
+    }
+    // This is the producer's compound semantic configuration commitment.
+    // Validate its syntax; NEVER compare it to broker raw grant hash or the
+    // normalized CONFIG_FILE hash. Their distinct provenance is not collapsed.
+    let compound = access.text(declared, "owner_configuration")?;
+    access.inspect(compound.len(), 1)?;
+    Digest256::from_prefixed(compound)
+        .map_err(|_| SourceCommandError::Invalid("Claim producer configuration commitment"))?;
+    let claims = access
+        .field(declared, "allowed_claim_ids")?
+        .as_array()
+        .ok_or(SourceCommandError::Invalid(
+            "Claim producer declared identities",
+        ))?;
+    if claims.is_empty() || claims.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "Claim producer declared identity count",
+        ));
+    }
+    let mut selected_found = false;
+    for (index, value) in claims.iter().enumerate() {
+        access.inspect(0, 1)?;
+        let id = value.as_str().ok_or(SourceCommandError::Invalid(
+            "Claim producer declared identity",
+        ))?;
+        access.inspect(id.len(), 1)?;
+        if !claim_id(id) {
+            return Err(SourceCommandError::Invalid(
+                "Claim producer declared identity",
+            ));
+        }
+        for previous in &claims[..index] {
+            let previous = previous.as_str().ok_or(SourceCommandError::Invalid(
+                "Claim producer declared identity",
+            ))?;
+            if access.text_equal(id, previous)? {
+                return Err(SourceCommandError::Invalid(
+                    "Claim producer repeats declared identity",
+                ));
+            }
+        }
+        selected_found |= access.text_equal(id, selected.claim_id())?;
+    }
+    if !selected_found {
+        return Err(SourceCommandError::Denied(
+            "selected Claim is outside producer declaration",
+        ));
+    }
+    let forms = access
+        .field(declared, "allowed_form_ids")?
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("Claim producer declared forms"))?;
+    if forms.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "Claim producer declared form count",
+        ));
+    }
+    for (index, value) in forms.iter().enumerate() {
+        access.inspect(0, 1)?;
+        let id = value
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("Claim producer declared form"))?;
+        access.inspect(id.len(), 1)?;
+        if !form_id(id) {
+            return Err(SourceCommandError::Invalid("Claim producer declared form"));
+        }
+        for previous in &forms[..index] {
+            let previous = previous
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Claim producer declared form"))?;
+            if access.text_equal(id, previous)? {
+                return Err(SourceCommandError::Invalid(
+                    "Claim producer repeats declared form",
+                ));
+            }
+        }
+    }
+    let requested = access
+        .field(selected.assessment_selection(), "form_ids")?
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("current Claim selected forms"))?;
+    if requested.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "current Claim selected form count",
+        ));
+    }
+    for value in requested {
+        let id = value
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("current Claim selected form"))?;
+        access.inspect(id.len(), 1)?;
+        if !form_id(id) {
+            return Err(SourceCommandError::Invalid("current Claim selected form"));
+        }
+        let mut found = false;
+        for value in forms {
+            let allowed = value
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Claim producer declared form"))?;
+            found |= access.text_equal(id, allowed)?;
+        }
+        if !found {
+            return Err(SourceCommandError::Denied(
+                "current Claim form outside producer declaration",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn digest(raw: &[u8]) -> String {

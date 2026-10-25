@@ -7,6 +7,7 @@ mod carrier;
 mod frames;
 mod owner;
 mod pg_frame;
+mod pg_application;
 mod producer;
 mod reader;
 mod registry;
@@ -21,6 +22,10 @@ pub(crate) use owner::{
     NativeConsumerOwner,
 };
 pub(crate) use pg_frame::{PgPayloadHost, PgPayloadMember, PgPayloadViews, with_pg_payload_host};
+pub(crate) use pg_application::{
+    PgPublicApplication, PgPublicRoles, PgReportComparison, PgReportCoordinates,
+    with_pg_public_application,
+};
 pub(crate) use producer::NativePreservedCandidate;
 pub(crate) use reader::{
     ClaimDependencies, NativeExactSlot, NativeUnresolvedSlot, check_description_revision,
@@ -86,3 +91,10 @@ fn exact_match(
     }
     Ok(())
 }
+
+#[cfg(test)]
+pub(crate) use pg_application::{
+    fixture_body_error_and_cancelled_exit, fixture_cancelled_comparison,
+    fixture_cumulative_comparison_twice, fixture_scope_exit_after_original_work_drain,
+    OriginalWorkDrainPhase,
+};

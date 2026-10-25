@@ -18,13 +18,26 @@ pub(crate) mod immutable_read;
 #[path = "source_original_protected_read.rs"]
 pub(crate) mod protected_read;
 
+#[path = "source_native_pg_assessment_transport.rs"]
+pub(crate) mod pg_assessment_transport;
+
 pub(crate) struct OriginalAssessmentPayer<'budget, 'cancel> {
     operation: RefCell<&'budget mut OperationBudget>,
     deadline: Instant,
     cancelled: &'cancel AtomicBool,
     refusal: RefCell<Option<SourceCommandError>>,
     failed: Cell<bool>,
+    // One physical buffer for this original payer's single lexical Session.
+    // Private and never lent without checking that same Session's payer.
+    protected_scratch: RefCell<Option<Vec<u8>>>,
 }
+
+/// Mechanical fingerprint paired with the exact immutable evaluator-input
+/// borrow that was hashed. It is NOT a selected-source/Claim/dispatch ticket,
+/// report provenance, read permission or complete-basis witness. The protected
+/// caller must retain those real owner/epoch/worker/target predicates.
+pub(crate) type PinnedAssessmentReadInput<'input> =
+    tos_validation::assessment::AssessmentInputBinding<'input>;
 
 /// Facts from the cumulative operation, NOT the smaller per-report input
 /// ceiling returned by OperationBudget::limits for the assessment engine.
@@ -103,6 +116,7 @@ fn with_original_session_result<T, E>(
         cancelled,
         refusal: RefCell::new(None),
         failed: Cell::new(false),
+        protected_scratch: RefCell::new(None),
     };
     let mut session = Session::new_source(limits, cancelled, &payer)
         .map_err(|error| control(payer.error(error)))?;
@@ -202,6 +216,56 @@ impl OriginalAssessmentPayer<'_, '_> {
                 );
                 self.error(error)
             })
+    }
+
+    /// Pre-evaluation pin of the SAME actual AssessmentReadInput, using the
+    /// native evaluator's one maintained recipe. A digest alone is no target,
+    /// report provenance, complete basis or permission; its protected caller
+    /// must supply the genuine plan-selected input and retain actual fences.
+    pub(crate) fn pin_assessment_input_source<'input>(
+        &self,
+        session: &mut Session<'_>,
+        input: &'input tos_validation::assessment::AssessmentReadInput,
+    ) -> SourceCommandResult<PinnedAssessmentReadInput<'input>> {
+        self.charge_sto_source_measures(session, 0, 0, 0, 0, 0)?;
+        // Logical hash/Result/reference/length/flag slots, before the native
+        // visitor. Complete activation/allocator/native instruction cost is
+        // an independent funding obligation, not certified by this quote.
+        let holders = size_of::<tos_foundation::Digest256Hasher>()
+            .checked_add(size_of::<PinnedAssessmentReadInput<'_>>())
+            .and_then(|n| {
+                n.checked_add(size_of::<SourceCommandResult<PinnedAssessmentReadInput<'_>>>())
+            })
+            .and_then(|n| {
+                n.checked_add(size_of::<SourceCommandResult<tos_foundation::Digest256>>())
+            })
+            .and_then(|n| n.checked_add(size_of::<SourceCommandResult<()>>()))
+            .and_then(|n| {
+                n.checked_add(size_of::<&tos_validation::assessment::AssessmentReadInput>())
+            })
+            .and_then(|n| {
+                n.checked_add(size_of::<&mut dyn FnMut(usize) -> SourceCommandResult<()>>())
+            })
+            .and_then(|n| n.checked_add(size_of::<&[u8]>()))
+            .and_then(|n| n.checked_add(size_of::<[u8; 8]>()))
+            .and_then(|n| n.checked_add(size_of::<[u8; 3]>()))
+            .ok_or_else(|| self.error(Error::ResourceLimit))?;
+        self.charge_sto_source_measures(session, 0, holders, 0, 0, 1)?;
+        let body = tos_validation::assessment::assessment_input_binding_with_admission(
+            input,
+            &mut |bytes| {
+                let work = u64::try_from(bytes).map_err(|_| self.error(Error::ResourceLimit))?;
+                // Already retained bytes are inspected/hash-read, not fetched
+                // as new input or cloned into a second source carrier. One
+                // source event accompanies each real hash-update operand.
+                self.charge_sto_source_measures(session, 0, 0, 0, work, 1)
+            },
+        );
+        let exit = self.charge_sto_source_measures(session, 0, 0, 0, 0, 0);
+        match (body, exit) {
+            (Err(original), _) | (Ok(_), Err(original)) => Err(original),
+            (Ok(binding), Ok(())) => Ok(binding),
+        }
     }
 
     /// Concrete current PG->STO source-measure bridge, using the ACTUAL held
@@ -715,5 +779,175 @@ mod tests {
             ))
         ));
         assert_eq!(original.work_remaining, work_before - 262_144);
+    }
+}
+
+#[cfg(test)]
+mod assessment_input_binding_source_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_validation::assessment::{
+        AssessmentReadInput, AssessmentRecordInput, AssessmentSourceRoute,
+    };
+
+    // Raw hash-protocol input, deliberately not schema-valid source records
+    // or a genuine protected plan/Claim/Assessment/report/authority fixture.
+    fn operand() -> AssessmentReadInput {
+        AssessmentReadInput {
+            source_revision: None,
+            source_input_identity: tos_foundation::Digest256::of_bytes(b"selected input operand"),
+            policy: AssessmentRecordInput {
+                envelope: b"policy".to_vec(),
+            },
+            authorities: Vec::new(),
+            competencies: Vec::new(),
+            records: Vec::new(),
+            source_records: Vec::new(),
+            native_records: Vec::new(),
+            source_route: AssessmentSourceRoute::SourceBoundClaim,
+            subject_id: "subject:π".to_owned(),
+            configured_scope: b"scope".to_vec(),
+            required_source_refs: Vec::new(),
+            required_admission_bases: Vec::new(),
+            layer_quality: None,
+            reviews: Vec::new(),
+            trusted_history: Vec::new(),
+            observed_now: "2026-10-25T00:00:00Z".to_owned(),
+        }
+    }
+    fn operation(deadline: Instant) -> OperationBudget {
+        OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap()
+    }
+    fn profile(deadline: Instant) -> Limits {
+        Limits {
+            max_input_bytes: 64,
+            max_nodes: 32,
+            max_work: 4096,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 8192,
+            deadline,
+        }
+    }
+
+    #[test]
+    fn evaluator_input_pin_keeps_same_input_and_one_cumulative_original_session() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let input = operand();
+        let mut original = operation(deadline);
+        let before_work = original.work_remaining;
+        let limits = profile(deadline);
+        with_original_pwe_session(&mut original, limits, &cancelled, |payer, same| {
+            let first = payer.pin_assessment_input_source(same, &input)?;
+            assert!(
+                std::ptr::eq(first.input(), &input),
+                "pin holds this exact immutable input, not a clone or report digest"
+            );
+            let spent = same.charges();
+            let second = payer.pin_assessment_input_source(same, &input)?;
+            assert_eq!(first.sha256(), second.sha256());
+            assert!(std::ptr::eq(first.input(), second.input()));
+            assert!(
+                same.charges().2 > spent.2,
+                "each actual second hash is paid again"
+            );
+            assert!(
+                same.charges().4 > spent.4,
+                "new logical control/result holders remain additive"
+            );
+            assert_eq!(
+                same.charges().0,
+                0,
+                "retained input hash is not a new physical fetch"
+            );
+            assert_eq!(same.charges().1, 0, "native work is not nodes");
+            assert_eq!(same.charges().3, 0);
+            assert!(same.has_source_payer(payer));
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            original.work_remaining,
+            before_work - limits.max_work,
+            "one original prepaid ceiling, no replacement Session or refund"
+        );
+    }
+
+    #[test]
+    fn evaluator_input_pin_refusal_keeps_original_prefix_and_sticky_denial() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let input = operand();
+        let mut original = operation(deadline);
+        let before_work = original.work_remaining;
+        let mut limits = profile(deadline);
+        limits.max_work = 1;
+        let result = with_original_pwe_session(&mut original, limits, &cancelled, |payer, same| {
+            let body = payer.pin_assessment_input_source(same, &input);
+            assert!(matches!(
+                body,
+                Err(SourceCommandError::Unsupported(
+                    "PWE Assessment Session exhausted"
+                ))
+            ));
+            let prefix = same.charges();
+            assert_eq!(
+                prefix.2, 1,
+                "entry paid, following initialization event refused before hasher creation"
+            );
+            assert_eq!(prefix.0, 0);
+            assert_eq!(prefix.1, 0);
+            assert_eq!(prefix.3, 0);
+            assert!(
+                prefix.4 > 0,
+                "prospective logical holders remain spent after refusal"
+            );
+            assert!(payer.with_operation(|_| Ok(())).is_err());
+            assert_eq!(same.charges(), prefix);
+            Ok(()) // swallowed source refusal cannot authorize successful finish
+        });
+        assert!(result.is_err());
+        assert_eq!(original.work_remaining, before_work - limits.max_work);
+    }
+
+    #[test]
+    fn evaluator_input_pin_uses_original_cancellation_before_hashing() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let input = operand();
+        let mut original = operation(deadline);
+        let result: SourceCommandResult<()> = with_original_pwe_session(
+            &mut original,
+            profile(deadline),
+            &cancelled,
+            |payer, same| {
+                cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+                let prefix = same.charges();
+                let result = payer.pin_assessment_input_source(same, &input);
+                assert_eq!(
+                    same.charges(),
+                    prefix,
+                    "original cancellation rejects before holder/hash work"
+                );
+                match result {
+                    Err(error) => Err(error),
+                    Ok(_) => panic!("cancelled source operation issued a pin"),
+                }
+            },
+        );
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Denied(
+                "creation filesystem cancelled or expired"
+            ))
+        ));
     }
 }

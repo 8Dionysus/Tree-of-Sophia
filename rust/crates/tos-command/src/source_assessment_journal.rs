@@ -419,7 +419,7 @@ impl ProtectedAssessmentPgGrant {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        self.verify_current_using_read_admission(deadline, cancelled, None)
+        self.verify_current_using_read_admission(deadline, cancelled, None, false)
     }
 
     /// Recheck the SAME selected protected grant through the existing
@@ -433,7 +433,18 @@ impl ProtectedAssessmentPgGrant {
         cancelled: &AtomicBool,
         admission: &mut dyn crate::source_creation_store::CreationReadAdmission,
     ) -> SourceCommandResult<()> {
-        self.verify_current_using_read_admission(deadline, cancelled, Some(admission))
+        self.verify_current_using_read_admission(deadline, cancelled, Some(admission), false)
+    }
+
+    /// Explicit resource profile for already-selected exact protected bytes.
+    /// The legacy and generic admitted APIs above retain their old requests.
+    pub(crate) fn verify_current_with_exact_read_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn crate::source_creation_store::CreationReadAdmission,
+    ) -> SourceCommandResult<()> {
+        self.verify_current_using_read_admission(deadline, cancelled, Some(admission), true)
     }
 
     fn verify_current_using_read_admission(
@@ -441,6 +452,7 @@ impl ProtectedAssessmentPgGrant {
         deadline: Instant,
         cancelled: &AtomicBool,
         admission: Option<&mut dyn crate::source_creation_store::CreationReadAdmission>,
+        exact_requests: bool,
     ) -> SourceCommandResult<()> {
         active(deadline, cancelled)?;
         if rustix::process::getuid().as_raw() != self.uid
@@ -458,13 +470,18 @@ impl ProtectedAssessmentPgGrant {
         // existing reader. Admission precedes each full requested read on
         // this descriptor, including EOF/Err/short-read prefixes, and each
         // Begin/Retain event. No pathname-only or cached-length substitute.
-        if crate::source_creation_store::raw_with_length_limit_and_admission(
-            &mut current,
-            ReadLength::Legacy(8_388_608),
-            deadline,
-            cancelled,
-            admission,
-        )? != self.configuration_raw
+        let current_raw = match (admission, exact_requests) {
+            (Some(admission), true) => crate::source_creation_store::raw_exact_with_original_admission(
+                &mut current, self.configuration_raw.len(), deadline, cancelled, admission,
+            )?,
+            (None, true) => return Err(SourceCommandError::Unsupported(
+                "exact PG grant read has no original admission",
+            )),
+            (admission, false) => crate::source_creation_store::raw_with_length_limit_and_admission(
+                &mut current, ReadLength::Legacy(8_388_608), deadline, cancelled, admission,
+            )?,
+        };
+        if current_raw != self.configuration_raw
             || inode(
                 &current.metadata().map_err(|_| {
                     SourceCommandError::Invalid("assessment PG current grant identity")
@@ -3858,4 +3875,47 @@ mod protected_pg_grant_read_admission_tests {
             before_work - limits.max_work
         );
     }
+    #[test]
+    fn actual_exact_grant_profile_keeps_byte_and_named_inode_guards() {
+        use crate::source_native_cli::private_assessment::OperationBudget;
+        use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session;
+        use tos_compiler::pwe_native::Limits;
+        use std::os::unix::fs::PermissionsExt;
+        for lane in 0..3 {
+            let fixture = Fixture::new();
+            let grant = fixture.selected();
+            // Genuine selected protected descriptors; the fixture exercises
+            // physical guard/resource law only, not grant/schema/role issuance.
+            if lane == 1 {
+                std::fs::write(&grant.configuration_path, b"[]").unwrap();
+            } else if lane == 2 {
+                let replacement = fixture.0.join("replacement");
+                std::fs::write(&replacement, &grant.configuration_raw).unwrap();
+                std::fs::set_permissions(&replacement, std::fs::Permissions::from_mode(0o600)).unwrap();
+                std::fs::rename(replacement, &grant.configuration_path).unwrap();
+            }
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let cancelled = AtomicBool::new(false);
+            let mut original = OperationBudget::new(&serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}), deadline).unwrap();
+            let profile = Limits {
+                max_input_bytes:262_144,max_nodes:32,max_work:262_144,max_refs:8,
+                max_depth:8,max_items:8,max_state_bytes:1_048_576,deadline,
+            };
+            let result = with_original_pwe_session(&mut original, profile, &cancelled, |payer, same| {
+                let body = payer.recheck_current_pg_grant_exact_source(same, &grant);
+                assert_eq!(same.charges().0, 3 + 1);
+                assert_eq!(same.charges().1, 0);
+                assert!(same.has_source_payer(payer));
+                body
+            });
+            if lane == 0 {
+                result.unwrap();
+            } else {
+                assert!(matches!(result, Err(SourceCommandError::Conflict("assessment PG grant changed"))));
+            }
+        }
+    }
+
 }

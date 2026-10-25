@@ -4,11 +4,15 @@
 //! the maintained protected PG owner may select its read policy and semantic
 //! admission route. No buffer, schema verdict or epoch becomes such a grant.
 //! The filesystem HeldFrames/full-byte verifier remains an independent lane.
+#[path = "pg_frame_assessment_completion.rs"]
+mod assessment_completion;
+
 use crate::source_cohort::ManagedCurrentMember;
 use crate::source_cohort::revision::{PgRecordRevisionIdentity, SourceRevisionReadSession};
 use crate::source_command::SourceCommandError;
 use crate::source_native_cli::PgCurrentPayloadLoan;
 use crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer;
+use crate::source_native_roles::PgRoleSchemaAccess;
 use crate::{DurableError, DurableResult};
 use std::{
     cmp::Ordering as CmpOrdering,
@@ -16,6 +20,7 @@ use std::{
 };
 use tos_compiler::pwe_native::{Error, Session};
 use tos_foundation::{CutPreparedSchemaExecutionBinding, Digest256, RelativePath};
+use tos_validation::FormatProfile;
 use tos_validation::source_cut::{CandidateCutWorkerSchemaExecutor, CutSchemaExecutor};
 use tos_validation::source_foundation_schema::SourceFoundationSelectedSchemaResource;
 
@@ -218,6 +223,79 @@ impl<'view, 'store, 'budget, 'cancel, 'pure> PgPayloadHost<'view, 'store, 'budge
     }
 }
 
+/// Closed operations on the actual private-constructed host. This impl is not
+/// a role issuer: native current/retained selection, origin/history, permission
+/// and formal-role eligibility remain Common's independent owner obligations.
+impl PgRoleSchemaAccess for PgPayloadHost<'_, '_, '_, '_, '_> {
+    fn check_record_bytes(
+        &mut self,
+        source_path: &str,
+        raw: &[u8],
+        schema_path: &str,
+    ) -> DurableResult<bool> {
+        self.frame.with_current(self.session, |frame, _same| {
+            let names = source_path
+                .len()
+                .checked_add(schema_path.len())
+                .ok_or(overflow())?;
+            let bytes = raw.len().checked_add(names).ok_or(overflow())?;
+            // Native reader supplied its current/retained canonical instance.
+            // Do not reconstruct it, read a file, or select another executor.
+            inspect(frame.payer, bytes, 1)?;
+            // Preserve a real executor Err, including its original reason.
+            // Prepay both possible owned diagnostic path strings BEFORE the
+            // execution; successful/false outcomes receive no refund.
+            frame.payer.reserve(names).map_err(DurableError::Source)?;
+            inspect(frame.payer, names, 1)?;
+            let (deadline, cancelled) = frame.payer.source_cutoff();
+            // Fresh execution is permitted by the contract; no scalar-reuse
+            // receipt is promised. map_err preserves BOTH Ok(true)/Ok(false).
+            frame
+                .worker
+                .check(source_path, raw, schema_path, deadline, cancelled)
+                .map_err(|reason| {
+                    DurableError::Source(SourceCommandError::SchemaExecution {
+                        path: source_path.to_owned(),
+                        root: schema_path.to_owned(),
+                        reason,
+                    })
+                })
+        })
+    }
+
+    fn selected_schema_contract_digest(
+        &mut self,
+        schema_path: &str,
+    ) -> DurableResult<Option<Digest256>> {
+        self.frame.with_current(self.session, |frame, _same| {
+            frame.prepared_contract_digest(schema_path)
+        })
+    }
+
+    fn schema_validation_binding(
+        &mut self,
+    ) -> DurableResult<(FormatProfile, CutPreparedSchemaExecutionBinding)> {
+        self.frame.with_current(self.session, |frame, _same| {
+            let work = size_of::<CutPreparedSchemaExecutionBinding>()
+                .checked_add(2 * size_of::<FormatProfile>())
+                .and_then(|n| n.checked_add(1))
+                .ok_or(overflow())?;
+            inspect(frame.payer, 0, work)?;
+            // Read the same actual executor, not the cached guard pins or an
+            // allegedly selected payload. This is a read-only configuration
+            // snapshot, never an instance-continuity/role factory token.
+            let profile = frame.worker.profile();
+            let binding = frame.worker.prepared_execution_binding();
+            if binding.schema_profile != profile {
+                return Err(DurableError::Conflict(
+                    "PWE PG schema profile/binding differs",
+                ));
+            }
+            Ok((profile, binding))
+        })
+    }
+}
+
 impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'cancel> {
     /// Map the result immediately at the real Session boundary, BEFORE an
     /// exit fence can observe the sticky refusal. Genuine semantic negatives
@@ -389,6 +467,45 @@ impl<'view, 'store, 'budget, 'cancel> PgPayloadFrame<'view, 'store, 'budget, 'ca
                 })),
             }
         })
+    }
+
+    /// Point lookup on the actual prepared contract table. Candidate exposes
+    /// no admitted map getter, so first pay a conservative key-comparison
+    /// envelope from its immutable selected-resource census. Constructor
+    /// from_schema_set proves a one-to-one path/digest correspondence between
+    /// this census, selected_contracts, and the inner prepared root table.
+    /// No payload digest is substituted for the actual table lookup result.
+    fn prepared_contract_digest(&self, schema_path: &str) -> DurableResult<Option<Digest256>> {
+        // Pay the query/fragment scan before contract_digest's split_once.
+        inspect(self.payer, schema_path.len(), 1)?;
+        let carriers = size_of::<[usize; 4]>()
+            .checked_add(size_of::<Option<SourceFoundationSelectedSchemaResource<'_>>>())
+            .and_then(|n| n.checked_add(size_of::<Option<Digest256>>()))
+            .ok_or(overflow())?;
+        self.payer.reserve(carriers).map_err(DurableError::Source)?;
+        let mut resources = self.worker.source_resources();
+        loop {
+            // Before next(): iterator/control work and the fixed metadata
+            // copy. The envelope walks schema METADATA only, never raw bytes.
+            inspect(
+                self.payer,
+                0,
+                size_of::<Option<SourceFoundationSelectedSchemaResource<'_>>>() + 8,
+            )?;
+            let Some(resource) = resources.next() else {
+                break;
+            };
+            let bytes = schema_path
+                .len()
+                .checked_add(resource.path.len())
+                .ok_or(overflow())?;
+            // Full query dominates the base before '#'. Paying every table
+            // key + query operand dominates the unique keys on a BTreeMap
+            // search path, before any of those map comparisons can execute.
+            inspect(self.payer, bytes, 8)?;
+        }
+        inspect(self.payer, 0, size_of::<Option<Digest256>>())?;
+        Ok(self.worker.contract_digest(schema_path))
     }
 
     fn bind_worker_resources(

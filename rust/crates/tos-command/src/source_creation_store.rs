@@ -403,6 +403,26 @@ pub(crate) trait CreationReadAdmission {
         descriptor: &File,
         stage: CreationReadStage,
     ) -> SourceCommandResult<()>;
+
+    /// Optional sequential loan of an actually prepaid buffer. The physical
+    /// reader retains its OWN result; the lender receives only a unit callback
+    /// and returns resource status, never payload bytes or a replacement Err.
+    /// None means no callback was invoked; the owner verifies this protocol.
+    fn with_creation_read_workspace(
+        &mut self,
+        _run: &mut dyn FnMut(&mut [u8], &mut dyn CreationReadAdmission),
+    ) -> Option<SourceCommandResult<()>> { None }
+
+    /// Exact profile's metadata/type/length entry, before its first syscall.
+    fn before_creation_exact_read_init(&mut self) -> SourceCommandResult<()> {
+        Err(SourceCommandError::Unsupported("exact creation read initialization is not admitted"))
+    }
+
+    /// New exact-request arithmetic, before inspecting the next remainder.
+    /// Legacy admission implementations have no such quote and fail closed.
+    fn before_creation_exact_request_plan(&mut self) -> SourceCommandResult<()> {
+        Err(SourceCommandError::Unsupported("exact creation request plan is not admitted"))
+    }
 }
 
 pub(crate) fn raw(
@@ -428,7 +448,34 @@ pub(crate) fn raw_with_length_limit_and_admission(
     length: ReadLength,
     deadline: Instant,
     cancelled: &AtomicBool,
+    admission: Option<&mut dyn CreationReadAdmission>,
+) -> SourceCommandResult<Vec<u8>> {
+    raw_with_request_profile(file, length, deadline, cancelled, admission, false)
+}
+
+/// Exact protected bytes, with each ACTUAL FD slice bounded by the remaining
+/// selected length plus one overrun/EOF probe. This is a new explicit profile;
+/// legacy callers retain their full-block read pattern above. Exact metadata,
+/// final stamp/length checks and original Begin/Retain/error law are unchanged.
+/// Growth is refused, never silently truncated; EOF and Err requests are paid.
+pub(crate) fn raw_exact_with_original_admission(
+    file: &mut File,
+    expected: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    admission: &mut dyn CreationReadAdmission,
+) -> SourceCommandResult<Vec<u8>> {
+    admission.before_creation_exact_read_init()?;
+    raw_with_request_profile(file, ReadLength::Exact(expected), deadline, cancelled, Some(admission), true)
+}
+
+fn raw_with_request_profile(
+    file: &mut File,
+    length: ReadLength,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     mut admission: Option<&mut dyn CreationReadAdmission>,
+    exact_requests: bool,
 ) -> SourceCommandResult<Vec<u8>> {
     let cap = match length {
         ReadLength::Legacy(cap) | ReadLength::AtMost(cap) | ReadLength::Exact(cap) => cap,
@@ -449,6 +496,59 @@ pub(crate) fn raw_with_length_limit_and_admission(
         }
     }
     if let Some(payer) = admission.as_deref_mut() {
+        let mut physical = None;
+        let mut invoked = false;
+        let mut repeated = false;
+        let loan = payer.with_creation_read_workspace(&mut |buffer, same| {
+            if invoked { repeated = true; return; }
+            invoked = true;
+            // This FD/metadata/loop result never crosses the lender boundary.
+            physical = Some(raw_with_borrowed_workspace(file, length, deadline, cancelled, Some(same), exact_requests, buffer, &before));
+        });
+        if let Some(result) = complete_workspace_read(physical, invoked, repeated, loan) {
+            return result;
+        }
+    }
+    raw_with_owned_workspace(file, length, deadline, cancelled, admission, exact_requests, &before)
+}
+
+/// Settle only the physical owner's captured outcome. An admission lender
+/// never receives that value. Genuine None/no-invocation preserves fallback;
+/// no other protocol anomaly can yield bytes or run a second physical loop.
+pub(crate) fn complete_workspace_read(
+    physical: Option<SourceCommandResult<Vec<u8>>>,
+    invoked: bool,
+    repeated: bool,
+    loan: Option<SourceCommandResult<()>>,
+) -> Option<SourceCommandResult<Vec<u8>>> {
+    match (physical, invoked, repeated, loan) {
+        (Some(Err(original)), _, _, _) => Some(Err(original)),
+        (_, _, _, Some(Err(original))) => Some(Err(original)),
+        (Some(Ok(bytes)), true, false, Some(Ok(()))) => Some(Ok(bytes)),
+        (None, false, false, None) => None,
+        (None, false, false, Some(Ok(()))) => Some(Err(SourceCommandError::Conflict(
+            "protected workspace lender omitted physical reader",
+        ))),
+        _ => Some(Err(SourceCommandError::Conflict(
+            "protected workspace lender changed physical-read protocol",
+        ))),
+    }
+}
+
+#[inline(never)]
+fn raw_with_owned_workspace(
+    file: &mut File,
+    length: ReadLength,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut admission: Option<&mut dyn CreationReadAdmission>,
+    exact_requests: bool,
+    before: &Metadata,
+) -> SourceCommandResult<Vec<u8>> {
+    let cap = match length {
+        ReadLength::Legacy(cap) | ReadLength::AtMost(cap) | ReadLength::Exact(cap) => cap,
+    };
+    if let Some(payer) = admission.as_deref_mut() {
         payer.before_creation_read(
             file,
             CreationReadStage::Begin {
@@ -462,17 +562,31 @@ pub(crate) fn raw_with_length_limit_and_admission(
     let mut buffer = [0u8; 65536];
     loop {
         active(deadline, cancelled)?;
+        if exact_requests {
+            admission.as_deref_mut()
+                .ok_or(SourceCommandError::Unsupported("exact creation request plan has no payer"))?
+                .before_creation_exact_request_plan()?;
+        }
+        let requested = if exact_requests {
+            cap.checked_add(1)
+                .and_then(|limit| limit.checked_sub(bytes.len()))
+                .filter(|remaining| *remaining != 0)
+                .ok_or(SourceCommandError::Conflict("creation input length changed"))?
+                .min(buffer.len())
+        } else {
+            buffer.len()
+        };
         if let Some(payer) = admission.as_deref_mut() {
             payer.before_creation_read(
                 file,
                 CreationReadStage::Read {
-                    requested_bytes: buffer.len(),
+                    requested_bytes: requested,
                 },
             )?;
             active(deadline, cancelled)?;
         }
         let n = file
-            .read(&mut buffer)
+            .read(&mut buffer[..requested])
             .map_err(|_| SourceCommandError::Invalid("creation descriptor read"))?;
         if n == 0 {
             break;
@@ -501,7 +615,97 @@ pub(crate) fn raw_with_length_limit_and_admission(
     let after = file
         .metadata()
         .map_err(|_| SourceCommandError::Invalid("creation readback metadata"))?;
-    if bytes.len() as u64 != before.len() || stamp(&before) != stamp(&after) {
+    if bytes.len() as u64 != before.len() || stamp(before) != stamp(&after) {
+        return Err(SourceCommandError::Conflict(
+            "creation input changed during read",
+        ));
+    }
+    Ok(bytes)
+}
+
+fn raw_with_borrowed_workspace(
+    file: &mut File,
+    length: ReadLength,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut admission: Option<&mut dyn CreationReadAdmission>,
+    exact_requests: bool,
+    buffer: &mut [u8],
+    before: &Metadata,
+) -> SourceCommandResult<Vec<u8>> {
+    if buffer.len() != 65536 {
+        return Err(SourceCommandError::Invalid("protected read workspace size"));
+    }
+    let cap = match length {
+        ReadLength::Legacy(cap) | ReadLength::AtMost(cap) | ReadLength::Exact(cap) => cap,
+    };
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_creation_read(
+            file,
+            CreationReadStage::Begin {
+                payload_cap: cap,
+                scratch_bytes: 0,
+            },
+        )?;
+        active(deadline, cancelled)?;
+    }
+    let mut bytes = Vec::new();
+    loop {
+        active(deadline, cancelled)?;
+        if exact_requests {
+            admission.as_deref_mut()
+                .ok_or(SourceCommandError::Unsupported("exact creation request plan has no payer"))?
+                .before_creation_exact_request_plan()?;
+        }
+        let requested = if exact_requests {
+            cap.checked_add(1)
+                .and_then(|limit| limit.checked_sub(bytes.len()))
+                .filter(|remaining| *remaining != 0)
+                .ok_or(SourceCommandError::Conflict("creation input length changed"))?
+                .min(buffer.len())
+        } else {
+            buffer.len()
+        };
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                CreationReadStage::Read {
+                    requested_bytes: requested,
+                },
+            )?;
+            active(deadline, cancelled)?;
+        }
+        let n = file
+            .read(&mut buffer[..requested])
+            .map_err(|_| SourceCommandError::Invalid("creation descriptor read"))?;
+        if n == 0 {
+            break;
+        }
+        if bytes.len().checked_add(n).is_none_or(|size| size > cap) {
+            return Err(match length {
+                ReadLength::Exact(_) => {
+                    SourceCommandError::Conflict("creation input length changed")
+                }
+                _ => SourceCommandError::Invalid("creation read exceeds byte budget"),
+            });
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                CreationReadStage::Retain {
+                    length: bytes.len(),
+                    capacity: bytes.capacity(),
+                    additional: n,
+                },
+            )?;
+            active(deadline, cancelled)?;
+        }
+        bytes.extend_from_slice(&buffer[..n]);
+    }
+    let after = file
+        .metadata()
+        .map_err(|_| SourceCommandError::Invalid("creation readback metadata"))?;
+    if bytes.len() as u64 != before.len() || stamp(before) != stamp(&after) {
         return Err(SourceCommandError::Conflict(
             "creation input changed during read",
         ));
@@ -5626,5 +5830,128 @@ mod prospective_publication_raw_fixtures {
         assert_eq!(payer.calls, ["begin"]);
         assert_eq!(payer.requested, 0);
         assert_eq!(file.stream_position().unwrap(), 0);
+    }
+}
+
+// Adversarial resource-lender instrumentation only. No protected owner, source
+// identity, read permission or semantic report can be constructed by this type.
+#[cfg(test)]
+pub(crate) mod workspace_protocol_test_support {
+    use super::*;
+    use crate::source_text_owner::ProtectedContextReadAdmission;
+
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) enum Mode { NoneBefore, Omit, Once, Twice, NoneAfter, ErrorAfter, RefuseBefore }
+    pub(crate) struct Probe {
+        pub(crate) mode: Mode,
+        pub(crate) reads: usize,
+        pub(crate) callbacks: usize,
+    }
+    struct PhysicalMeter<'a> { reads: &'a mut usize }
+    impl CreationReadAdmission for PhysicalMeter<'_> {
+        fn before_creation_read(&mut self, _fd: &File, stage: CreationReadStage) -> SourceCommandResult<()> {
+            if matches!(stage, CreationReadStage::Read { .. }) { *self.reads += 1; }
+            Ok(())
+        }
+    }
+    impl ProtectedContextReadAdmission for PhysicalMeter<'_> {
+        fn before_protected_context_work(&mut self, _bytes: usize) -> SourceCommandResult<()> { Ok(()) }
+    }
+    impl Probe {
+        pub(crate) fn new(mode: Mode) -> Self { Self { mode, reads: 0, callbacks: 0 } }
+        fn lend(&mut self, mut run: impl FnMut(&mut [u8], &mut PhysicalMeter<'_>)) -> Option<SourceCommandResult<()>> {
+            match self.mode {
+                Mode::NoneBefore => return None,
+                Mode::Omit => return Some(Ok(())),
+                Mode::RefuseBefore => return Some(Err(SourceCommandError::Denied("original resource loan refusal"))),
+                _ => (),
+            }
+            let mut scratch = vec![0u8; 65536]; // test instrumentation, not a native cost receipt
+            let mut meter = PhysicalMeter { reads: &mut self.reads };
+            self.callbacks += 1;
+            run(&mut scratch, &mut meter);
+            if matches!(self.mode, Mode::Twice) {
+                self.callbacks += 1;
+                run(&mut scratch, &mut meter);
+            }
+            match self.mode {
+                Mode::NoneAfter => None,
+                Mode::ErrorAfter => Some(Err(SourceCommandError::Denied("original resource loan exit refusal"))),
+                _ => Some(Ok(())),
+            }
+        }
+    }
+    impl CreationReadAdmission for Probe {
+        fn before_creation_read(&mut self, _fd: &File, stage: CreationReadStage) -> SourceCommandResult<()> {
+            if matches!(stage, CreationReadStage::Read { .. }) { self.reads += 1; }
+            Ok(())
+        }
+        fn with_creation_read_workspace(&mut self, run: &mut dyn FnMut(&mut [u8], &mut dyn CreationReadAdmission)) -> Option<SourceCommandResult<()>> {
+            self.lend(|scratch, meter| run(scratch, meter))
+        }
+    }
+    impl ProtectedContextReadAdmission for Probe {
+        fn before_protected_context_work(&mut self, _bytes: usize) -> SourceCommandResult<()> { Ok(()) }
+        fn with_protected_context_workspace(&mut self, run: &mut dyn FnMut(&mut [u8], &mut dyn ProtectedContextReadAdmission)) -> Option<SourceCommandResult<()>> {
+            self.lend(|scratch, meter| run(scratch, meter))
+        }
+    }
+
+    pub(crate) struct Fixture(pub(crate) PathBuf);
+    impl Fixture {
+        pub(crate) fn new() -> Self {
+            let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+            let path = std::env::temp_dir().join(format!("tos-workspace-result-custody-{}-{stamp}", std::process::id()));
+            std::fs::create_dir(&path).unwrap();
+            std::fs::write(path.join("input"), b"xy").unwrap();
+            Self(path)
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+    }
+}
+
+#[cfg(test)]
+mod workspace_result_custody_tests {
+    use super::*;
+    use super::workspace_protocol_test_support::{Fixture, Mode, Probe};
+    use std::io::Seek;
+
+    #[test]
+    fn raw_workspace_requires_one_physical_callback_and_only_pre_call_none_falls_back() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        for mode in [Mode::NoneBefore, Mode::Omit, Mode::Once, Mode::Twice, Mode::NoneAfter, Mode::ErrorAfter, Mode::RefuseBefore] {
+            let mut file = File::open(fixture.0.join("input")).unwrap();
+            let mut lender = Probe::new(mode);
+            let result = raw_with_length_limit_and_admission(&mut file, ReadLength::Exact(2), deadline, &cancelled, Some(&mut lender));
+            match mode {
+                Mode::NoneBefore | Mode::Once => assert_eq!(result.unwrap(), b"xy"),
+                Mode::Omit => assert!(matches!(result, Err(SourceCommandError::Conflict("protected workspace lender omitted physical reader")))),
+                Mode::Twice | Mode::NoneAfter => assert!(matches!(result, Err(SourceCommandError::Conflict("protected workspace lender changed physical-read protocol")))),
+                Mode::ErrorAfter => assert!(matches!(result, Err(SourceCommandError::Denied("original resource loan exit refusal")))),
+                Mode::RefuseBefore => assert!(matches!(result, Err(SourceCommandError::Denied("original resource loan refusal")))),
+            }
+            let read = !matches!(mode, Mode::Omit | Mode::RefuseBefore);
+            assert_eq!(lender.reads, if read { 2 } else { 0 }, "payload and actual EOF only, no second loop/fallback: {mode:?}");
+            assert_eq!(file.stream_position().unwrap(), if read { 2 } else { 0 });
+            assert_eq!(lender.callbacks, match mode { Mode::NoneBefore | Mode::Omit | Mode::RefuseBefore => 0, Mode::Twice => 2, _ => 1 });
+        }
+    }
+
+    #[test]
+    fn raw_workspace_retains_actual_io_error_despite_lender_status_or_repeat() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        for mode in [Mode::Once, Mode::ErrorAfter, Mode::NoneAfter, Mode::Twice] {
+            let mut file = std::fs::OpenOptions::new().write(true).open(fixture.0.join("input")).unwrap();
+            let mut lender = Probe::new(mode);
+            let result = raw_with_length_limit_and_admission(&mut file, ReadLength::Exact(2), deadline, &cancelled, Some(&mut lender));
+            assert!(matches!(result, Err(SourceCommandError::Invalid("creation descriptor read"))));
+            assert_eq!(lender.reads, 1, "genuine failed syscall paid once, no repeated read");
+        }
     }
 }

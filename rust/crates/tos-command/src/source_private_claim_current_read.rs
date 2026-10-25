@@ -191,16 +191,73 @@ pub(crate) fn with_current_pg_claim_read_scope<'pure, T>(
     content_requested: bool,
     run: impl for<'read> FnOnce(CurrentClaimReadScope<'read>, &'read mut Session<'pure>) -> Result<T>,
 ) -> Result<T> {
+    with_current_pg_claim_read_scope_using(
+        payer,
+        same,
+        grant,
+        owner,
+        path,
+        claim,
+        content_requested,
+        false,
+        run,
+    )
+}
+
+/// Same actual selector/permission/fences, using the already maintained exact
+/// physical request profile. This grants no new source/form/content scope.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn with_current_pg_claim_read_scope_exact_source<'pure, T>(
+    payer: &OriginalAssessmentPayer<'_, '_>,
+    same: &mut Session<'pure>,
+    grant: &ProtectedAssessmentPgGrant,
+    owner: &OwnerTextContext,
+    path: &str,
+    claim: &str,
+    content_requested: bool,
+    run: impl for<'read> FnOnce(CurrentClaimReadScope<'read>, &'read mut Session<'pure>) -> Result<T>,
+) -> Result<T> {
+    with_current_pg_claim_read_scope_using(
+        payer,
+        same,
+        grant,
+        owner,
+        path,
+        claim,
+        content_requested,
+        true,
+        run,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn with_current_pg_claim_read_scope_using<'pure, T>(
+    payer: &OriginalAssessmentPayer<'_, '_>,
+    same: &mut Session<'pure>,
+    grant: &ProtectedAssessmentPgGrant,
+    owner: &OwnerTextContext,
+    path: &str,
+    claim: &str,
+    content_requested: bool,
+    exact_requests: bool,
+    run: impl for<'read> FnOnce(CurrentClaimReadScope<'read>, &'read mut Session<'pure>) -> Result<T>,
+) -> Result<T> {
     payer.charge_sto_source_measures(same, 0, 0, 0, 0, 0)?;
     let carriers = size_of::<CurrentClaimReadScope<'_>>()
         .checked_add(size_of::<Result<CurrentClaimReadScope<'_>>>())
         .and_then(|n| n.checked_add(size_of::<Result<T>>()))
         .and_then(|n| n.checked_add(3 * size_of::<Result<()>>()))
         .and_then(|n| n.checked_add(std::mem::size_of_val(&run)))
+        .and_then(|n| n.checked_add(size_of::<bool>()))
         .ok_or_else(overflow)?;
     payer.reserve(carriers)?;
-    payer.recheck_current_pg_grant_source(same, grant)?;
-    payer.recheck_owner_context_source(same, owner)?;
+    if exact_requests {
+        payer.recheck_current_pg_grant_exact_source(same, grant)?;
+        payer.recheck_owner_context_exact_source(same, owner)?;
+    } else {
+        payer.recheck_current_pg_grant_source(same, grant)?;
+        payer.recheck_owner_context_source(same, owner)?;
+    }
     let (deadline, cancelled) = payer.source_cutoff();
     let result = (|| {
         let selected = payer.with_operation(|operation| {
@@ -234,8 +291,16 @@ pub(crate) fn with_current_pg_claim_read_scope<'pure, T>(
     })();
     // Attempt BOTH actual protected exits even after body Err; sticky or
     // cancellation may deny physical I/O. Never claim unconditional I/O on Err.
-    let grant_exit = payer.recheck_current_pg_grant_source(same, grant);
-    let owner_exit = payer.recheck_owner_context_source(same, owner);
+    let grant_exit = if exact_requests {
+        payer.recheck_current_pg_grant_exact_source(same, grant)
+    } else {
+        payer.recheck_current_pg_grant_source(same, grant)
+    };
+    let owner_exit = if exact_requests {
+        payer.recheck_owner_context_exact_source(same, owner)
+    } else {
+        payer.recheck_owner_context_source(same, owner)
+    };
     let cutoff = payer.charge_sto_source_measures(same, 0, 0, 0, 0, 0);
     match (result, grant_exit, owner_exit, cutoff) {
         (Err(original), _, _, _)
@@ -304,6 +369,100 @@ mod tests {
         )?;
         Ok((selected.content_requested(), selected.path().to_owned()))
     }
+    fn producer_policy(config: &JsonValue, declared: &JsonValue) -> Result<()> {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancel = AtomicBool::new(false);
+        let mut original = OperationBudget::new(
+            &json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )?;
+        let mut access = ScopeAccess::admitted_operation(&mut original, deadline, &cancel);
+        let selected = selected_scope(
+            &mut access,
+            config,
+            17,
+            "/selected/context.json",
+            PREFIX,
+            PATH,
+            CLAIM,
+            false,
+        )?;
+        crate::source_native_cli::private_owner::claim::validate_pg_claim_producer_policy(
+            declared,
+            &selected,
+            &mut access,
+        )
+    }
+    fn declared(claims: Value, forms: Value) -> JsonValue {
+        cmd::parse(&serde_json::to_vec(&json!({
+            "schema_version":"tos_local_source_command_result_v1", "authentication":"local-unix-account",
+            "visibility":"local_only", "source_path":PATH, "target_exists":true,
+            "publication_authorized":false,"grants_admission":false,
+            "owner_configuration":format!("sha256:{}", "1".repeat(64)),
+            "allowed_claim_ids":claims,"allowed_form_ids":forms
+        })).unwrap()).unwrap()
+    }
+    #[test]
+    fn producer_policy_predicate_keeps_historical_declaration_separate_from_current_scope() {
+        // Private predicate operands only: no native producer/owner factory.
+        let current = config(vec![row("metadata_only", false)]);
+        assert!(producer_policy(&current, &declared(json!([CLAIM]), json!([]))).is_ok());
+        assert!(matches!(
+            producer_policy(&current, &declared(json!(["tos.claim.other"]), json!([]))),
+            Err(Error::Denied(
+                "selected Claim is outside producer declaration"
+            ))
+        ));
+        assert!(matches!(
+            producer_policy(&current, &declared(json!([CLAIM, CLAIM]), json!([]))),
+            Err(Error::Invalid("Claim producer repeats declared identity"))
+        ));
+    }
+    #[test]
+    fn producer_policy_predicate_rejects_admission_posture_and_foreign_source() {
+        let current = config(vec![row("metadata_only", false)]);
+        let good = declared(json!([CLAIM]), json!([]));
+        for key in ["publication_authorized", "grants_admission"] {
+            let mut bad = good.clone();
+            cmd::set(&mut bad, key, JsonValue::Bool(true)).unwrap();
+            assert!(producer_policy(&current, &bad).is_err());
+        }
+        let mut bad = good;
+        cmd::set(
+            &mut bad,
+            "source_path",
+            cmd::string("foreign/source-claims.jsonl"),
+        )
+        .unwrap();
+        assert!(matches!(
+            producer_policy(&current, &bad),
+            Err(Error::Conflict(
+                "Claim producer read-policy protocol differs"
+            ))
+        ));
+    }
+    #[test]
+    fn producer_policy_predicate_requires_actual_selected_form_in_independent_declaration() {
+        let mut selected = row("metadata_only", false);
+        selected["form_ids"] = json!(["tos.form.selected"]);
+        let current = config(vec![selected]);
+        assert!(
+            producer_policy(
+                &current,
+                &declared(json!([CLAIM]), json!(["tos.form.selected"]))
+            )
+            .is_ok()
+        );
+        assert!(matches!(
+            producer_policy(&current, &declared(json!([CLAIM]), json!([]))),
+            Err(Error::Denied(
+                "current Claim form outside producer declaration"
+            ))
+        ));
+    }
+
     #[test]
     fn metadata_scope_does_not_promote_historical_or_unreviewed_content_access() {
         let metadata = config(vec![row("metadata_only", false)]);
