@@ -170,13 +170,40 @@ impl OriginalAssessmentPayer<'_, '_> {
         // A later refusal never restores an earlier successful debit.
         session
             .retain_source_state(retained)
-            .map_err(|error| self.error(error))?;
+            .map_err(|error| {
+                #[cfg(test)]
+                eprintln!(
+                    "COMMON_STO_SESSION_REFUSAL_V1 component=state spent={:?} event={:?} error={:?}",
+                    session.charges(),
+                    (requested, new_owned, workspace, byte_work, native_units),
+                    error,
+                );
+                self.error(error)
+            })?;
         session
             .admit_source_prefix(requested, 0)
-            .map_err(|error| self.error(error))?;
+            .map_err(|error| {
+                #[cfg(test)]
+                eprintln!(
+                    "COMMON_STO_SESSION_REFUSAL_V1 component=requested-input-and-work spent={:?} event={:?} error={:?}",
+                    session.charges(),
+                    (requested, new_owned, workspace, byte_work, native_units),
+                    error,
+                );
+                self.error(error)
+            })?;
         session
             .admit_source_work(work)
-            .map_err(|error| self.error(error))
+            .map_err(|error| {
+                #[cfg(test)]
+                eprintln!(
+                    "COMMON_STO_SESSION_REFUSAL_V1 component=byte-work-and-units spent={:?} event={:?} error={:?}",
+                    session.charges(),
+                    (requested, new_owned, workspace, byte_work, native_units),
+                    error,
+                );
+                self.error(error)
+            })
     }
 
     /// Concrete current PG->STO source-measure bridge, using the ACTUAL held
