@@ -3,6 +3,9 @@
 #[path = "source_native_pg_role_schema.rs"]
 mod pg_schema;
 pub(crate) use pg_schema::PgRoleSchemaAccess;
+#[path = "source_native_pg_role_owner.rs"]
+mod pg_owner;
+pub(crate) use pg_owner::{CurrentPgRoleOwner, with_current_pg_role_owner};
 
 use crate::{
     source_command::{
