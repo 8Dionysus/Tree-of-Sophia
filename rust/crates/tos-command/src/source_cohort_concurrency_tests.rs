@@ -1974,7 +1974,7 @@ fn admitted_physical_presence_records_only_real_absence_without_reading_payloads
     assert_eq!(readset.work.exact_source_members_read, 0);
     assert!(readset.observations().is_empty(), "presence is not a payload/content observation");
     assert_eq!(readset.reads.reads.iter().filter(|read| matches!(read,
-        tos_validation::PredicateRead::Absent { namespace, key }
+        crate::PredicateRead::Absent { namespace, key }
             if namespace == "source" && key == missing.as_str()
     )).count(), 1, "the same actual absence is retained once");
 }

@@ -8,7 +8,7 @@ use crate::source_native_cli::private_assessment::OperationBudget;
 use crate::{DurableError, DurableResult};
 use std::{mem::size_of, sync::atomic::AtomicBool, time::Instant};
 use tos_foundation::RelativePath;
-use tos_validation::PredicateRead;
+use crate::PredicateRead;
 
 const EXISTS: &str = "SELECT EXISTS(SELECT 1 FROM cmd2_current WHERE domain=$1 AND subject=$2)";
 const SETUP: &str = "SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'";
