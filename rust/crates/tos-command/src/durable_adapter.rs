@@ -3498,6 +3498,110 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
         verify_selection: impl FnOnce(&postgres::Row) -> DurableResult<()>,
     ) -> DurableResult<(postgres::Row, Vec<u8>, PlacementV1, CommittedSourceReadWork)> {
+        match self.read_committed_source_selected_enclosed::<std::convert::Infallible>(
+            store,
+            domain,
+            subject,
+            revision,
+            max_bytes,
+            deadline,
+            cancelled,
+            verify_selection,
+            |store, prepare, fence, receipt, binding, max_bytes, deadline, cancelled| {
+                // Explicit legacy route; no original-payer funding is claimed.
+                Ok(store.read_selected_fenced(
+                    prepare, fence, receipt, binding, max_bytes, deadline, cancelled,
+                ))
+            },
+        )? {
+            std::ops::ControlFlow::Continue(value) => Ok(value),
+            std::ops::ControlFlow::Break(never) => match never {},
+        }
+    }
+
+    /// The same actual SQL/rights/receipt/placement path with the lower STO
+    /// ORIGINAL-admission callback. Only the STO leg is admitted by this port;
+    /// query DATA/driver/outer bootstrap still require their own original payer.
+    /// No observation counter is converted into post-read admission.
+    ///
+    /// Outer Err preserves admission E by value. Inner errors preserve the
+    /// existing store/PG/source cause. An interrupted admission releases the
+    /// real RR transaction/custody guards without emitting any source tuple;
+    /// its enclosing source epoch must still attempt its actual Err exit fence.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn read_committed_source_selected_with_sto_admission<E, A>(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        subject: &str,
+        revision: Option<u64>,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        verify_selection: impl FnOnce(&postgres::Row) -> DurableResult<()>,
+        admission: &mut A,
+    ) -> std::result::Result<
+        DurableResult<(postgres::Row, Vec<u8>, PlacementV1, CommittedSourceReadWork)>,
+        E,
+    >
+    where
+        A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+    {
+        match self.read_committed_source_selected_enclosed(
+            store,
+            domain,
+            subject,
+            revision,
+            max_bytes,
+            deadline,
+            cancelled,
+            verify_selection,
+            |store, prepare, fence, receipt, binding, max_bytes, deadline, cancelled| {
+                store.read_selected_fenced_admitted(
+                    prepare, fence, receipt, binding, max_bytes, deadline, cancelled, admission,
+                )
+            },
+        ) {
+            Err(source) => Ok(Err(source)),
+            Ok(std::ops::ControlFlow::Break(original)) => Err(original),
+            Ok(std::ops::ControlFlow::Continue(value)) => Ok(Ok(value)),
+        }
+    }
+
+    /// Closed outcome transport, not an authority/result factory. SQL guards
+    /// and commit order are shared verbatim. Break contains ONLY an admission
+    /// error and cannot be observed as a successful source tuple by a caller.
+    #[allow(clippy::too_many_arguments)]
+    fn read_committed_source_selected_enclosed<E>(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        subject: &str,
+        revision: Option<u64>,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        verify_selection: impl FnOnce(&postgres::Row) -> DurableResult<()>,
+        load: impl FnOnce(
+            &SegmentStore,
+            &[u8],
+            u64,
+            Digest256,
+            &OwnerBinding,
+            u64,
+            Instant,
+            &AtomicBool,
+        ) -> std::result::Result<
+            tos_segment_store::Result<(
+                Vec<u8>,
+                PlacementV1,
+                tos_segment_store::SelectedFrameReadWorkV1,
+            )>,
+            E,
+        >,
+    ) -> DurableResult<
+        std::ops::ControlFlow<E, (postgres::Row, Vec<u8>, PlacementV1, CommittedSourceReadWork)>,
+    > {
         if store.custody_domain() != domain.as_bytes()
             || max_bytes == 0
             || cancelled.load(Ordering::Relaxed)
@@ -3630,7 +3734,8 @@ impl DurablePgCoordinator {
                 "selected source owner metadata differs from committed member",
             ));
         }
-        let (raw, placement, work) = store.read_selected_fenced(
+        let (raw, placement, work) = match load(
+            store,
             &prepare_id,
             as_u64(attempt.get("attempt_fence"))?,
             Digest256::from_hex(&row.get::<_, String>("sto_receipt_id"))
@@ -3639,7 +3744,10 @@ impl DurablePgCoordinator {
             max_bytes,
             deadline,
             cancelled,
-        )?;
+        ) {
+            Ok(result) => result?,
+            Err(original) => return Ok(std::ops::ControlFlow::Break(original)),
+        };
         check_history_placement(
             &row,
             &placement,
@@ -3675,7 +3783,7 @@ impl DurablePgCoordinator {
             ));
         }
         tx.commit()?;
-        Ok((
+        Ok(std::ops::ControlFlow::Continue((
             current.unwrap_or(row),
             raw,
             placement,
@@ -3684,7 +3792,7 @@ impl DurablePgCoordinator {
                 segment_bytes_read: work.segment_bytes_read,
                 committed_member_rows_examined: member_count + 1,
             },
-        ))
+        )))
     }
 
     /// Current local rights stay locked through selected frame verification

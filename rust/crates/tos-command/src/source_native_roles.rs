@@ -1,5 +1,36 @@
 //! Source-backed formal-role records over the maintained native Record reader.
 //! No role row, descriptor, exact pin or returned value grants current use.
+#[path = "source_native_pg_role_schema.rs"]
+mod pg_schema;
+pub(crate) use pg_schema::PgRoleSchemaAccess;
+#[path = "source_native_pg_role_owner.rs"]
+mod pg_owner;
+pub(crate) use pg_owner::{
+    CurrentPgRoleOwner, PgClaimProducerReadPolicy, PgPrivatePweClaimSyntax,
+    with_current_pg_role_owner,
+};
+pub(crate) use pg_owner::{
+    PgPrivatePweArchiveData, PgPrivatePweArchivedFiles, PgPrivatePweStreamHistory,
+    PrivatePweArchivedFile,
+};
+pub(crate) use pg_owner::{
+    PgPrivatePweCreationReceipt, PgPrivatePweCreationSource, PgPrivatePweInitialForms,
+};
+pub(crate) use pg_owner::{PgPrivatePweSourceMaterial, PgPrivatePweSourceMaterialFailure};
+#[path = "source_native_pg_role_kernel_schema.rs"]
+mod pg_kernel_schema;
+pub(crate) use pg_kernel_schema::{PgRoleKernelSchema, with_pg_role_kernel_schema};
+
+#[path = "source_native_pg_roles.rs"]
+mod pg_roles;
+pub(crate) use pg_roles::{
+    NativePgRoleDocument, NativePgRoleRecord, resolve_native_pg_role, with_pg_private_schema_kernel,
+};
+pub(crate) use pg_roles::{
+    PgPrivateSelectedSourceCause, PgPrivateSelectedSourceFailure,
+    with_pg_private_selected_source_kernel,
+};
+
 use crate::{
     source_command::{
         self as cmd, CommandContext, SourceCommandError as Error, SourceCommandResult as Result,

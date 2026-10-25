@@ -15,7 +15,7 @@ use tos_foundation::{
     JsonValue, canonical_bytes_v1_with_state_budget_and_visits_and_admission,
 };
 
-pub(super) struct ScopeAccess<'a> {
+pub(crate) struct ScopeAccess<'a> {
     ledger: Option<Ledger<'a>>,
 }
 struct Ledger<'a> {
@@ -46,7 +46,7 @@ impl ScopeAccess<'_> {
             }),
         }
     }
-    pub(super) fn admitted_operation<'a>(
+    pub(crate) fn admitted_operation<'a>(
         operation: &'a mut OperationBudget,
         deadline: Instant,
         cancelled: &'a AtomicBool,
@@ -60,7 +60,7 @@ impl ScopeAccess<'_> {
             }),
         }
     }
-    pub(super) fn inspect(&mut self, bytes: usize, visits: usize) -> Result<()> {
+    pub(crate) fn inspect(&mut self, bytes: usize, visits: usize) -> Result<()> {
         if let Some(ledger) = &mut self.ledger {
             active(ledger.deadline, ledger.cancelled)?;
             ledger
@@ -92,7 +92,7 @@ impl ScopeAccess<'_> {
         }
         Ok(())
     }
-    pub(super) fn text_equal(&mut self, left: &str, right: &str) -> Result<bool> {
+    pub(crate) fn text_equal(&mut self, left: &str, right: &str) -> Result<bool> {
         self.inspect(
             left.len().checked_add(right.len()).ok_or_else(exhausted)?,
             1,
@@ -135,7 +135,7 @@ impl ScopeAccess<'_> {
             "assessment subject has no exact selected current record",
         ))
     }
-    pub(super) fn get<'v>(
+    pub(crate) fn get<'v>(
         &mut self,
         value: &'v JsonValue,
         key: &str,
@@ -158,7 +158,7 @@ impl ScopeAccess<'_> {
         Ok(None)
     }
     #[track_caller]
-    pub(super) fn field<'v>(&mut self, value: &'v JsonValue, key: &str) -> Result<&'v JsonValue> {
+    pub(crate) fn field<'v>(&mut self, value: &'v JsonValue, key: &str) -> Result<&'v JsonValue> {
         if self.ledger.is_none() {
             return cmd::field(value, key);
         }
@@ -171,12 +171,12 @@ impl ScopeAccess<'_> {
             }
         })
     }
-    pub(super) fn text<'v>(&mut self, value: &'v JsonValue, key: &str) -> Result<&'v str> {
+    pub(crate) fn text<'v>(&mut self, value: &'v JsonValue, key: &str) -> Result<&'v str> {
         self.field(value, key)?
             .as_str()
             .ok_or(Error::Invalid("expected text field"))
     }
-    pub(super) fn exact_keys(&mut self, value: &JsonValue, keys: &[&str]) -> Result<()> {
+    pub(crate) fn exact_keys(&mut self, value: &JsonValue, keys: &[&str]) -> Result<()> {
         if self.ledger.is_none() {
             return cmd::exact_keys(value, keys);
         }
@@ -269,13 +269,13 @@ impl ScopeAccess<'_> {
         }
         Ok(())
     }
-    pub(super) fn copied(&mut self, value: &JsonValue) -> Result<JsonValue> {
+    pub(crate) fn copied(&mut self, value: &JsonValue) -> Result<JsonValue> {
         if self.ledger.is_some() {
             self.prepay_value(value, 0, &mut 0, true)?;
         }
         Ok(value.clone())
     }
-    pub(super) fn optional_equal(
+    pub(crate) fn optional_equal(
         &mut self,
         left: Option<&JsonValue>,
         right: Option<&JsonValue>,
@@ -532,7 +532,7 @@ impl ScopeAccess<'_> {
                 .unwrap_or_else(exhausted)
         })
     }
-    pub(super) fn same(&mut self, left: &JsonValue, right: &JsonValue) -> Result<bool> {
+    pub(crate) fn same(&mut self, left: &JsonValue, right: &JsonValue) -> Result<bool> {
         if self.ledger.is_none() {
             return cmd::same(left, right);
         }

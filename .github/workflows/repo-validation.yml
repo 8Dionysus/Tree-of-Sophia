@@ -111,6 +111,7 @@ jobs:
             /ToS/contracts/
             /ToS/doctrine/semantic-interchange/definitions/
             /ToS/doctrine/semantic-interchange/entity-types.v1.json
+            /ToS/doctrine/semantic-interchange/pwe-bindings.v1.json
             /ToS/doctrine/semantic-interchange/relation-types.v1.json
             /ToS/doctrine/semantic-interchange/query-vocabulary.v1.json
             /ToS/doctrine/semantic-interchange/assessment-policy.v1.json
@@ -903,6 +904,9 @@ jobs:
           cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture --test-threads=1
           # Run the maintained opt-in regressions on this already isolated PG
           # service after the durable integration suite has finished.
+          cargo test -p tos-command --features postgres-lab --lib --locked \
+            durable_adapter::source_cohort::concurrency_tests::selected_pg_payload_ \
+            -- --nocapture --test-threads=1
           cargo test -p tos-command --features postgres-lab --lib --locked \
             durable_adapter::durable_projection::durable_navigation_event::bounded_batch_pg_tests \
             -- --ignored --nocapture --test-threads=1

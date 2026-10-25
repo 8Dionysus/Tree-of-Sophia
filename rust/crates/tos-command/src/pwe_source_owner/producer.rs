@@ -59,16 +59,49 @@ impl NativePreservedCandidate {
     }
     /// Inputs are exact records returned by the maintained owner. Their source
     /// closure/schema/currentness is rechecked here; transport is not authority.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn check<R: ExactDependencyReader>(
         resolver: &mut R,
         frames: &mut HeldFrames<'_, '_>,
         session: &mut Session<'_>,
+        payer: &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>,
+        envelope: &JsonValue,
+        limits: OperationBindingLimits,
+        profile: &ResolvedDependency,
+        output: &ResolvedDependency,
+    ) -> SourceCommandResult<Self> {
+        Self::check_with_original_payer(
+            resolver, frames, session, payer, envelope, limits, profile, output,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn check_claim<R: ExactDependencyReader>(
+        resolver: &mut R,
+        frames: &mut HeldFrames<'_, '_>,
+        session: &mut Session<'_>,
+        payer: &super::source_budget::SourcePayer<'_>,
+        envelope: &JsonValue,
+        limits: OperationBindingLimits,
+        profile: &ResolvedDependency,
+        output: &ResolvedDependency,
+    ) -> SourceCommandResult<Self> {
+        Self::check_with_original_payer(
+            resolver, frames, session, payer, envelope, limits, profile, output,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn check_with_original_payer<R: ExactDependencyReader>(
+        resolver: &mut R,
+        frames: &mut HeldFrames<'_, '_>,
+        session: &mut Session<'_>,
+        payer: &dyn super::source_budget::OriginalPayer,
         envelope: &JsonValue,
         limits: OperationBindingLimits,
         profile: &ResolvedDependency,
         output: &ResolvedDependency,
     ) -> SourceCommandResult<Self> {
         frames.verify()?;
+        frames.check_session_payer(session, payer)?;
         if !frames.text_equal(profile.identity_field, "record_id")?
             || !frames.text_equal(profile.version_field, "record_version")?
             || !frames.text_equal(output.identity_field, "record_id")?
@@ -102,14 +135,15 @@ impl NativePreservedCandidate {
                 .output_ref()
                 .ok_or(invalid("PWE output ref absent"))?,
         )?;
-        resolver.verify_closure(profile, frames)?;
-        resolver.verify_closure(output, frames)?;
+        resolver.verify_closure(profile, frames, session)?;
+        resolver.verify_closure(output, frames, session)?;
         profile.verify_contents(&pr, frames)?;
         output.verify_contents(&or, frames)?;
-        frames.exact_match(&pr, &profile.document, "record_id", "record_version")?;
-        frames.exact_match(&or, &output.document, "record_id", "record_version")?;
-        frames.check_schema(&profile.source_path, &profile.document, PROFILE)?;
-        frames.check_schema(&output.source_path, &output.document, SCHEMAS[0])?;
+        // verify_contents just checked these SAME exact refs/documents and
+        // their selected source schemas. Reuse only that lexical result, not
+        // a cached epoch/authority. A different required schema still runs.
+        check_required_schema_after_contents(profile, PROFILE, frames)?;
+        check_required_schema_after_contents(output, SCHEMAS[0], frames)?;
         let body = frames.native_field(&output.document, "body")?;
         frames.check_schema(&output.source_path, body, SCHEMAS[1])?;
         let profile_body = frames.native_field(&profile.document, "body")?;
@@ -147,13 +181,28 @@ impl NativePreservedCandidate {
             .as_array()
             .ok_or(invalid("PWE projected items"))?;
         for item in projected {
-            session
-                .prepare(item)
-                .map_err(|_| invalid("PWE individual preserved value"))?;
+            super::owner::host_session_result(
+                session.prepare(item),
+                payer,
+                invalid("PWE individual preserved value"),
+            )?;
         }
         frames.verify()?;
         Ok(Self { record })
     }
+}
+
+/// Called only after this invocation's successful verify_contents on the
+/// same immutable dependency. No result is retained across a reader/fence.
+fn check_required_schema_after_contents(
+    dependency: &ResolvedDependency,
+    required: &str,
+    frames: &mut HeldFrames<'_, '_>,
+) -> SourceCommandResult<()> {
+    if !frames.text_equal(&dependency.schema_path, required)? {
+        frames.check_schema(&dependency.source_path, &dependency.document, required)?;
+    }
+    Ok(())
 }
 
 fn match_text(

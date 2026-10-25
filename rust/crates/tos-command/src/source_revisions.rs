@@ -1244,6 +1244,19 @@ pub(crate) trait RecordRead {
         None
     }
     fn check(&self) -> SourceCommandResult<()>;
+    /// Visit the actual selected carriers without requiring a second owned
+    /// raw-buffer table. The default retains the legacy files order. A scoped
+    /// PG adapter may lend its genuine retained members instead; this method
+    /// attests neither global identity uniqueness nor history completeness.
+    fn visit_files(
+        &self,
+        visit: &mut dyn FnMut(&RelativePath, &[u8]) -> SourceCommandResult<()>,
+    ) -> SourceCommandResult<()> {
+        for file in self.files() {
+            visit(&file.path, &file.raw)?;
+        }
+        Ok(())
+    }
     fn file(&self, path: &RelativePath) -> SourceCommandResult<Option<&[u8]>> {
         let mut selected = self.files().iter().filter(|file| file.path == *path);
         let raw = selected.next().map(|file| file.raw.as_slice());
@@ -5840,20 +5853,20 @@ pub(crate) fn package(
     let mut result = Package::new();
     let mut total_bytes = 0usize;
     let mut state_bytes = std::mem::size_of::<Package>();
-    for file in ctx.files() {
-        if let Some(name) = file.path.as_str().strip_prefix(&prefix) {
+    ctx.visit_files(&mut |path, raw| {
+        if let Some(name) = path.as_str().strip_prefix(&prefix) {
             if ctx.writer().is_none() && name != base && name != HISTORY {
-                continue;
+                return Ok(());
             }
             if !name.contains('/') && (!selected || selected_names.iter().any(|s| s == name)) {
                 total_bytes = total_bytes
-                    .checked_add(file.raw.len())
+                    .checked_add(raw.len())
                     .filter(|total| *total <= 8_388_608)
                     .ok_or(SourceCommandError::Unsupported(
                         "record package state or byte budget",
                     ))?;
                 state_bytes = state_bytes
-                    .checked_add(file.raw.len())
+                    .checked_add(raw.len())
                     .and_then(|total| total.checked_add(name.len()))
                     .and_then(|total| total.checked_add(std::mem::size_of::<(String, Vec<u8>)>()))
                     .filter(|total| {
@@ -5862,19 +5875,20 @@ pub(crate) fn package(
                     .ok_or(SourceCommandError::Unsupported(
                         "record package state or byte budget",
                     ))?;
-                if result.len() >= 64 || file.raw.len() > 2_097_152 {
+                if result.len() >= 64 || raw.len() > 2_097_152 {
                     return Err(SourceCommandError::Invalid(
                         "record package presence or budget",
                     ));
                 }
-                result.insert(name.into(), file.raw.clone());
+                result.insert(name.into(), raw.to_vec());
             } else if !selected && name.contains('/') {
                 return Err(SourceCommandError::Denied(
                     "flat revision package has descendants",
                 ));
             }
         }
-    }
+        Ok(())
+    })?;
     if !result.contains_key(base)
         || result.is_empty()
         || result.len() > 64
@@ -7577,17 +7591,47 @@ pub(crate) fn public_profile_candidate_for_creation<I: Copy + Eq>(
     )
 }
 
-fn public_profile_candidate_with_native_content<I: Copy + Eq>(
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+/// Selected read-only counterpart for a closed owner-worker adapter. It uses
+/// the maintained candidate profile law and never opts into creation's native
+/// content route or supplies writer authority. The caller still proves the
+/// actual owner/identity/history and current read permission independently.
+pub(crate) fn public_profile_selected_readonly<W, C>(
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead<Identity = I>,
+    ctx: &C,
+    config: &JsonValue,
+    record: &JsonValue,
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
+    if ctx.writer().is_some() {
+        return Err(SourceCommandError::Denied(
+            "selected readonly profile cannot use writer authority",
+        ));
+    }
+    public_profile_candidate_with_native_content(
+        worker, deadline, cancelled, ctx, config, record, false,
+    )
+}
+
+fn public_profile_candidate_with_native_content<W, C>(
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &C,
     config: &JsonValue,
     record: &JsonValue,
     creation_native_content_check: bool,
-) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
-    let registry = validate_source_profile_registry_candidate(worker, deadline, cancelled, ctx)?;
+    let registry = validate_source_profile_registry_for_worker(worker, deadline, cancelled, ctx)?;
     let entities = cmd::array(&registry, "types")?
         .iter()
         .map(|entry| Ok((cmd::text(entry, "type_id")?, entry)))
@@ -9444,5 +9488,153 @@ mod retained_typed_history_prefix_tests {
                 "typed verifier must confirm the retained predecessor prefix: {source_path}"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod borrowed_package_visit_tests {
+    use super::*;
+
+    // These are package-copy operands only. Both check/schema methods refuse
+    // semantic use; neither test type is a source owner or role issuer.
+    struct Owned<'a>(&'a [SourceFile]);
+    struct Borrowed<'a> {
+        entries: &'a [(&'a RelativePath, &'a [u8])],
+        late_failure: bool,
+    }
+    impl RecordRead for Owned<'_> {
+        type Identity = tos_foundation::SourceRevision;
+        fn files(&self) -> &[SourceFile] {
+            self.0
+        }
+        fn input_identity(&self) -> Self::Identity {
+            tos_foundation::SourceRevision(Digest256::of_bytes(b"package-copy-only"))
+        }
+        fn schema_source_path(&self) -> SourceCommandResult<String> {
+            Err(SourceCommandError::Unsupported(
+                "package operand has no schema owner",
+            ))
+        }
+        fn check(&self) -> SourceCommandResult<()> {
+            Err(SourceCommandError::Unsupported(
+                "package operand has no live owner",
+            ))
+        }
+    }
+    impl RecordRead for Borrowed<'_> {
+        type Identity = tos_foundation::SourceRevision;
+        fn files(&self) -> &[SourceFile] {
+            panic!("borrowed package visit must not request an owned raw table")
+        }
+        fn input_identity(&self) -> Self::Identity {
+            tos_foundation::SourceRevision(Digest256::of_bytes(b"package-copy-only"))
+        }
+        fn schema_source_path(&self) -> SourceCommandResult<String> {
+            Err(SourceCommandError::Unsupported(
+                "package operand has no schema owner",
+            ))
+        }
+        fn check(&self) -> SourceCommandResult<()> {
+            Err(SourceCommandError::Unsupported(
+                "package operand has no live owner",
+            ))
+        }
+        fn visit_files(
+            &self,
+            visit: &mut dyn FnMut(&RelativePath, &[u8]) -> SourceCommandResult<()>,
+        ) -> SourceCommandResult<()> {
+            for (path, raw) in self.entries {
+                visit(path, raw)?;
+                if self.late_failure {
+                    return Err(SourceCommandError::Conflict(
+                        "borrowed package traversal interrupted",
+                    ));
+                }
+            }
+            Ok(())
+        }
+    }
+    fn sources() -> Vec<SourceFile> {
+        [
+            (
+                "ToS/source-witnesses/fixture/agent.json".to_owned(),
+                b"record".as_slice(),
+            ),
+            (
+                format!("ToS/source-witnesses/fixture/{HISTORY}"),
+                b"history".as_slice(),
+            ),
+            (
+                "ToS/source-witnesses/fixture/agent.human-forms.json".to_owned(),
+                b"unselected form".as_slice(),
+            ),
+            (
+                "ToS/source-witnesses/other/agent.json".to_owned(),
+                b"other owner".as_slice(),
+            ),
+        ]
+        .into_iter()
+        .map(|(name, raw)| SourceFile {
+            path: RelativePath::parse(&name).unwrap(),
+            raw: raw.to_vec(),
+        })
+        .collect()
+    }
+
+    #[test]
+    fn borrowed_package_matches_default_visit_without_an_owned_raw_table() {
+        let files = sources();
+        let entries = files
+            .iter()
+            .map(|f| (&f.path, f.raw.as_slice()))
+            .collect::<Vec<_>>();
+        let borrowed = Borrowed {
+            entries: &entries,
+            late_failure: false,
+        };
+        let owner_path = "ToS/source-witnesses/fixture/agent.json";
+        let expected = package(&Owned(&files), owner_path, false, None).unwrap();
+        let actual = package(&borrowed, owner_path, false, None).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.len(), 2);
+        assert_eq!(actual["agent.json"], b"record");
+        assert_eq!(actual[HISTORY], b"history");
+    }
+
+    #[test]
+    fn borrowed_package_preserves_state_boundary_and_rejects_partial_traversal() {
+        let files = sources();
+        let entries = files
+            .iter()
+            .map(|f| (&f.path, f.raw.as_slice()))
+            .collect::<Vec<_>>();
+        let mut borrowed = Borrowed {
+            entries: &entries,
+            late_failure: false,
+        };
+        let owner_path = "ToS/source-witnesses/fixture/agent.json";
+        let expected = package(&Owned(&files), owner_path, false, None).unwrap();
+        let needed = expected
+            .iter()
+            .fold(std::mem::size_of::<Package>(), |n, (name, raw)| {
+                n + name.len() + raw.len() + std::mem::size_of::<(String, Vec<u8>)>()
+            });
+        assert_eq!(
+            package(&borrowed, owner_path, false, Some(needed)).unwrap(),
+            expected
+        );
+        assert!(matches!(
+            package(&borrowed, owner_path, false, Some(needed - 1)),
+            Err(SourceCommandError::Unsupported(
+                "record package state or byte budget"
+            ))
+        ));
+        borrowed.late_failure = true;
+        assert!(matches!(
+            package(&borrowed, owner_path, false, None),
+            Err(SourceCommandError::Conflict(
+                "borrowed package traversal interrupted"
+            ))
+        ));
     }
 }

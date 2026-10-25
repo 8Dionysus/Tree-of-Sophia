@@ -10,7 +10,7 @@ mod owner_inputs;
 #[path = "source_native_pg_growth_sign.rs"]
 mod sign;
 
-pub(crate) use input::PgGrowthCurrentInput;
+pub(crate) use input::{PgCurrentPayloadLoan, PgCurrentPayloadRef, PgGrowthCurrentInput};
 pub(super) use owner_inputs::PgGrowthSelectedInputs;
 pub(crate) use owner_inputs::context_with_pg_exact_reads;
 

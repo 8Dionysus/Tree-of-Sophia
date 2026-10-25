@@ -15,13 +15,29 @@ use tos_compiler::pwe_native::{Error, Limits, Session, SourceAdmission};
 #[path = "source_original_read_session.rs"]
 pub(crate) mod immutable_read;
 
+#[path = "source_original_protected_read.rs"]
+pub(crate) mod protected_read;
+
+#[path = "source_native_pg_assessment_transport.rs"]
+pub(crate) mod pg_assessment_transport;
+
 pub(crate) struct OriginalAssessmentPayer<'budget, 'cancel> {
     operation: RefCell<&'budget mut OperationBudget>,
     deadline: Instant,
     cancelled: &'cancel AtomicBool,
     refusal: RefCell<Option<SourceCommandError>>,
     failed: Cell<bool>,
+    // One physical buffer for this original payer's single lexical Session.
+    // Private and never lent without checking that same Session's payer.
+    protected_scratch: RefCell<Option<Vec<u8>>>,
 }
+
+/// Mechanical fingerprint paired with the exact immutable evaluator-input
+/// borrow that was hashed. It is NOT a selected-source/Claim/dispatch ticket,
+/// report provenance, read permission or complete-basis witness. The protected
+/// caller must retain those real owner/epoch/worker/target predicates.
+pub(crate) type PinnedAssessmentReadInput<'input> =
+    tos_validation::assessment::AssessmentInputBinding<'input>;
 
 /// Facts from the cumulative operation, NOT the smaller per-report input
 /// ceiling returned by OperationBudget::limits for the assessment engine.
@@ -43,26 +59,78 @@ pub(crate) fn with_original_pwe_session<T>(
     cancelled: &AtomicBool,
     run: impl FnOnce(&OriginalAssessmentPayer<'_, '_>, &mut Session<'_>) -> SourceCommandResult<T>,
 ) -> SourceCommandResult<T> {
-    active(operation.deadline, cancelled)?;
-    operation.limits()?;
+    with_original_session_result(operation, limits, cancelled, |error| error, run)
+}
+
+/// The same ONE resource Session for a PG/owner body with real Durable errors.
+/// The control mapper is only an error constructor, never a payer or retry.
+/// Body Err retains its original owned cause even if the resource exit also
+/// refuses; successful bodies cannot escape a failed original cutoff.
+pub(crate) fn with_original_pwe_session_durable<T>(
+    operation: &mut OperationBudget,
+    limits: Limits,
+    cancelled: &AtomicBool,
+    run: impl FnOnce(&OriginalAssessmentPayer<'_, '_>, &mut Session<'_>) -> crate::DurableResult<T>,
+) -> crate::DurableResult<T> {
+    with_original_session_result(
+        operation,
+        limits,
+        cancelled,
+        crate::DurableError::Source,
+        run,
+    )
+}
+
+/// ONE original resource Session around the actual private joint-read lane.
+/// Its Operation/Release/OperationAndRelease value is retained losslessly;
+/// the control mapping applies only to this wrapper's own resource errors.
+/// This grants no source access and does not fund the query/driver enclosure.
+pub(crate) fn with_original_pwe_session_private_read<T>(
+    operation: &mut OperationBudget,
+    limits: Limits,
+    cancelled: &AtomicBool,
+    run: impl FnOnce(
+        &OriginalAssessmentPayer<'_, '_>,
+        &mut Session<'_>,
+    ) -> crate::durable_private_packages::PrivateOwnerReadResult<T>,
+) -> crate::durable_private_packages::PrivateOwnerReadResult<T> {
+    with_original_session_result(
+        operation,
+        limits,
+        cancelled,
+        |error| crate::DurableError::Source(error).into(),
+        run,
+    )
+}
+
+fn with_original_session_result<T, E>(
+    operation: &mut OperationBudget,
+    limits: Limits,
+    cancelled: &AtomicBool,
+    control: fn(SourceCommandError) -> E,
+    run: impl FnOnce(&OriginalAssessmentPayer<'_, '_>, &mut Session<'_>) -> std::result::Result<T, E>,
+) -> std::result::Result<T, E> {
+    active(operation.deadline, cancelled).map_err(control)?;
+    operation.limits().map_err(control)?;
     if limits.deadline > operation.deadline
         || limits.max_input_bytes > operation.bytes_remaining
         || limits.max_state_bytes > operation.bytes_remaining
         || limits.max_work > operation.work_remaining
     {
-        return Err(SourceCommandError::Invalid(
+        return Err(control(SourceCommandError::Invalid(
             "PWE Session exceeds original Assessment remainder",
-        ));
+        )));
     }
     let carriers = size_of::<OriginalAssessmentPayer<'_, '_>>()
         .checked_add(size_of::<Session<'_>>())
-        .and_then(|n| n.checked_add(size_of::<SourceCommandResult<T>>()))
+        .and_then(|n| n.checked_add(size_of::<std::result::Result<T, E>>()))
         .and_then(|n| n.checked_add(size_of::<Error>()))
         .ok_or(SourceCommandError::Unsupported(
             "PWE original payer carriers",
-        ))?;
-    operation.charge_bytes(carriers)?;
-    operation.charge_work(limits.max_work)?;
+        ))
+        .map_err(control)?;
+    operation.charge_bytes(carriers).map_err(control)?;
+    operation.charge_work(limits.max_work).map_err(control)?;
     let deadline = operation.deadline;
     let payer = OriginalAssessmentPayer {
         operation: RefCell::new(operation),
@@ -70,13 +138,14 @@ pub(crate) fn with_original_pwe_session<T>(
         cancelled,
         refusal: RefCell::new(None),
         failed: Cell::new(false),
+        protected_scratch: RefCell::new(None),
     };
-    let mut session =
-        Session::new_source(limits, cancelled, &payer).map_err(|error| payer.error(error))?;
+    let mut session = Session::new_source(limits, cancelled, &payer)
+        .map_err(|error| control(payer.error(error)))?;
     let result = run(&payer, &mut session);
     // Check on Err too. This is a resource cutoff, not the PG owner's freshness
     // fence; the actual read epoch must additionally perform its own exit.
-    let cutoff = payer.finish();
+    let cutoff = payer.finish().map_err(control);
     match (result, cutoff) {
         (Err(error), _) | (Ok(_), Err(error)) => Err(error),
         (Ok(value), Ok(())) => Ok(value),
@@ -84,6 +153,12 @@ pub(crate) fn with_original_pwe_session<T>(
 }
 
 impl OriginalAssessmentPayer<'_, '_> {
+    /// Borrow the real resource cutoff; no caller-selected replacement token.
+    /// This exposes neither the ledger nor source/assessment authority.
+    pub(crate) fn source_cutoff(&self) -> (Instant, &AtomicBool) {
+        (self.deadline, self.cancelled)
+    }
+
     /// Native frame/codec work outside the pure Session has its own
     /// prospective debit on the same operation. It does not spend a new Claim
     /// allowance or borrow work back from the prepaid pure Session envelope.
@@ -92,6 +167,198 @@ impl OriginalAssessmentPayer<'_, '_> {
             operation.charge_work(work)?;
             operation.charge_bytes(bytes)
         })
+    }
+
+    /// Pay one actual STO event's source measures on the SAME source Session.
+    /// This is only the currency mapping, not a source/rights grant or a native
+    /// fit receipt. The concrete caller must separately prepay its own incoming
+    /// captures, activation/control/Result/Try and dispatch work before entering
+    /// the lower port. SQL/driver/metadata/native outer costs are not priced here.
+    /// No callback I/O, FD cloning, decoder, second ledger or refund is involved.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn charge_sto_source_measures(
+        &self,
+        session: &mut Session<'_>,
+        requested: u64,
+        new_owned: usize,
+        workspace: usize,
+        byte_work: u64,
+        native_units: u64,
+    ) -> SourceCommandResult<()> {
+        if !session.has_source_payer(self) {
+            return Err(SourceCommandError::Conflict(
+                "STO source Session uses a different original payer",
+            ));
+        }
+        // Also reject an already-sticky original resource refusal, including
+        // an event with all zero measures. This short loan ends before hooks.
+        self.with_operation(|_| Ok(()))?;
+        let requested = usize::try_from(requested).map_err(|_| self.error(Error::ResourceLimit))?;
+        let retained = new_owned
+            .checked_add(workspace)
+            .ok_or_else(|| self.error(Error::ResourceLimit))?;
+        let work = byte_work
+            .checked_add(native_units)
+            .and_then(|work| usize::try_from(work).ok())
+            .ok_or_else(|| self.error(Error::ResourceLimit))?;
+        // Every event is additive. In particular new_owned is NOT a high-water
+        // observation; repeated allocation events each retain their full size.
+        // A later refusal never restores an earlier successful debit.
+        session.retain_source_state(retained).map_err(|error| {
+            #[cfg(test)]
+            eprintln!(
+                "COMMON_STO_SESSION_REFUSAL_V1 component=state spent={:?} event={:?} error={:?}",
+                session.charges(),
+                (requested, new_owned, workspace, byte_work, native_units),
+                error,
+            );
+            self.error(error)
+        })?;
+        session
+            .admit_source_prefix(requested, 0)
+            .map_err(|error| {
+                #[cfg(test)]
+                eprintln!(
+                    "COMMON_STO_SESSION_REFUSAL_V1 component=requested-input-and-work spent={:?} event={:?} error={:?}",
+                    session.charges(),
+                    (requested, new_owned, workspace, byte_work, native_units),
+                    error,
+                );
+                self.error(error)
+            })?;
+        session
+            .admit_source_work(work)
+            .map_err(|error| {
+                #[cfg(test)]
+                eprintln!(
+                    "COMMON_STO_SESSION_REFUSAL_V1 component=byte-work-and-units spent={:?} event={:?} error={:?}",
+                    session.charges(),
+                    (requested, new_owned, workspace, byte_work, native_units),
+                    error,
+                );
+                self.error(error)
+            })
+    }
+
+    /// Pre-evaluation pin of the SAME actual AssessmentReadInput, using the
+    /// native evaluator's one maintained recipe. A digest alone is no target,
+    /// report provenance, complete basis or permission; its protected caller
+    /// must supply the genuine plan-selected input and retain actual fences.
+    pub(crate) fn pin_assessment_input_source<'input>(
+        &self,
+        session: &mut Session<'_>,
+        input: &'input tos_validation::assessment::AssessmentReadInput,
+    ) -> SourceCommandResult<PinnedAssessmentReadInput<'input>> {
+        self.charge_sto_source_measures(session, 0, 0, 0, 0, 0)?;
+        // Logical hash/Result/reference/length/flag slots, before the native
+        // visitor. Complete activation/allocator/native instruction cost is
+        // an independent funding obligation, not certified by this quote.
+        let holders = size_of::<tos_foundation::Digest256Hasher>()
+            .checked_add(size_of::<PinnedAssessmentReadInput<'_>>())
+            .and_then(|n| {
+                n.checked_add(size_of::<SourceCommandResult<PinnedAssessmentReadInput<'_>>>())
+            })
+            .and_then(|n| {
+                n.checked_add(size_of::<SourceCommandResult<tos_foundation::Digest256>>())
+            })
+            .and_then(|n| n.checked_add(size_of::<SourceCommandResult<()>>()))
+            .and_then(|n| {
+                n.checked_add(size_of::<&tos_validation::assessment::AssessmentReadInput>())
+            })
+            .and_then(|n| {
+                n.checked_add(size_of::<&mut dyn FnMut(usize) -> SourceCommandResult<()>>())
+            })
+            .and_then(|n| n.checked_add(size_of::<&[u8]>()))
+            .and_then(|n| n.checked_add(size_of::<[u8; 8]>()))
+            .and_then(|n| n.checked_add(size_of::<[u8; 3]>()))
+            .ok_or_else(|| self.error(Error::ResourceLimit))?;
+        self.charge_sto_source_measures(session, 0, holders, 0, 0, 1)?;
+        let body = tos_validation::assessment::assessment_input_binding_with_admission(
+            input,
+            &mut |bytes| {
+                let work = u64::try_from(bytes).map_err(|_| self.error(Error::ResourceLimit))?;
+                // Already retained bytes are inspected/hash-read, not fetched
+                // as new input or cloned into a second source carrier. One
+                // source event accompanies each real hash-update operand.
+                self.charge_sto_source_measures(session, 0, 0, 0, work, 1)
+            },
+        );
+        let exit = self.charge_sto_source_measures(session, 0, 0, 0, 0, 0);
+        match (body, exit) {
+            (Err(original), _) | (Ok(_), Err(original)) => Err(original),
+            (Ok(binding), Ok(())) => Ok(binding),
+        }
+    }
+
+    /// Concrete current PG->STO source-measure bridge, using the ACTUAL held
+    /// read epoch and original source Session. This grants no source authority.
+    /// Its enclosing protected caller still owes query/driver/control/metadata
+    /// funding and entry/exit freshness fences on ordinary Ok and Err paths.
+    /// Only the lower STO events are mapped here; observations stay with source.
+    pub(crate) fn read_current_member_sto_source(
+        &self,
+        session: &mut Session<'_>,
+        source: &mut crate::source_cohort::revision::SourceRevisionReadSession<'_>,
+        selected: &crate::source_cohort::revision::PgRecordRevisionIdentity,
+        path: &tos_foundation::RelativePath,
+        max_bytes: u64,
+    ) -> crate::DurableResult<crate::source_cohort::ManagedCurrentMember> {
+        if !session.has_source_payer(self) {
+            return Err(crate::DurableError::Source(SourceCommandError::Conflict(
+                "STO source Session uses a different original payer",
+            )));
+        }
+        self.with_operation(|_| Ok(()))
+            .map_err(crate::DurableError::Source)?;
+        let remaining = session
+            .source_allowance()
+            .map_err(|error| crate::DurableError::Source(self.error(error)))?;
+        if remaining.work == 0 || remaining.input_bytes == 0 || remaining.state_bytes == 0 {
+            return Err(crate::DurableError::Source(
+                self.error(Error::ResourceLimit),
+            ));
+        }
+        // End this original operation loan before any Session source hook.
+        // The owner identity hashes domain/job bytes; it is not a free copy.
+        let actual = self
+            .with_operation(|budget| {
+                source.selection().identity_with_data_admission(
+                    budget,
+                    self.deadline,
+                    self.cancelled,
+                )
+            })
+            .map_err(crate::DurableError::Source)?;
+        if actual != *selected {
+            return Err(crate::DurableError::Conflict(
+                "STO source read epoch differs from protected selection",
+            ));
+        }
+        let result = match source.read_current_member_with_sto_admission(
+            path,
+            max_bytes,
+            self.deadline,
+            self.cancelled,
+            &mut |requested, owned, workspace, byte_work, units| {
+                self.charge_sto_source_measures(
+                    session, requested, owned, workspace, byte_work, units,
+                )
+            },
+        ) {
+            Err(original) => Err(crate::DurableError::Source(original)),
+            Ok(source) => source,
+        };
+        // Recheck this same Session on BOTH outcomes without converting a
+        // failed source read into success or replacing its original cause.
+        // This is a resource cutoff, NOT the caller-owned PG freshness fence.
+        let cutoff = session
+            .source_allowance()
+            .map(|_| ())
+            .map_err(|error| crate::DurableError::Source(self.error(error)));
+        match (result, cutoff) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(member), Ok(())) => Ok(member),
+        }
     }
 
     /// Retained native frame/codec holders consume the original operation's
@@ -208,6 +475,88 @@ impl SourceAdmission for OriginalAssessmentPayer<'_, '_> {
 mod tests {
     use super::*;
     use std::time::Duration;
+
+    #[test]
+    fn private_read_original_session_keeps_operation_and_release_fault_after_resource_exit() {
+        use crate::durable_private_packages::PrivateOwnerReadFailure;
+        let c = AtomicBool::new(false);
+        let d = Instant::now() + Duration::from_secs(30);
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            d,
+        )
+        .unwrap();
+        let before = original.test_work_remaining();
+        let limits = Limits {
+            max_input_bytes: 128,
+            max_nodes: 8,
+            max_work: 64,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 128,
+            deadline: d,
+        };
+        let result = with_original_pwe_session_private_read::<()>(
+            &mut original,
+            limits,
+            &c,
+            |payer, _same| {
+                let _refused = payer.inspect(usize::MAX, 0);
+                Err(PrivateOwnerReadFailure::OperationAndRelease {
+                    operation: crate::DurableError::Refused("first actual private body error"),
+                    release: crate::DurableError::Conflict("actual private release failure"),
+                })
+            },
+        );
+        assert!(matches!(
+            result,
+            Err(PrivateOwnerReadFailure::OperationAndRelease {
+                operation: crate::DurableError::Refused("first actual private body error"),
+                release: crate::DurableError::Conflict("actual private release failure"),
+            })
+        ));
+        assert_eq!(original.test_work_remaining(), before - 64);
+        assert!(original.limits().is_err());
+    }
+
+    #[test]
+    fn private_read_original_session_denies_ok_after_actual_resource_refusal() {
+        use crate::durable_private_packages::PrivateOwnerReadFailure;
+        let c = AtomicBool::new(false);
+        let d = Instant::now() + Duration::from_secs(30);
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            d,
+        )
+        .unwrap();
+        let limits = Limits {
+            max_input_bytes: 128,
+            max_nodes: 8,
+            max_work: 64,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 128,
+            deadline: d,
+        };
+        let result =
+            with_original_pwe_session_private_read(&mut original, limits, &c, |payer, _same| {
+                let _refused = payer.inspect(usize::MAX, 0);
+                Ok(())
+            });
+        assert!(matches!(
+            result,
+            Err(PrivateOwnerReadFailure::Operation(
+                crate::DurableError::Source(_)
+            ))
+        ));
+        assert!(original.limits().is_err());
+    }
 
     #[test]
     fn swallowed_mapped_or_loan_resource_refusal_cannot_finish_successfully() {
@@ -362,5 +711,347 @@ mod tests {
         );
         assert!(refused.is_err());
         assert_eq!(original.work_remaining, spent_work);
+    }
+
+    #[test]
+    fn sto_source_measures_keep_native_work_out_of_nodes_and_preserve_failed_prefix() {
+        for swallow in [false, true] {
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let cancel = AtomicBool::new(false);
+            let mut original = OperationBudget::new(
+                &serde_json::json!({"budgets": {
+                    "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+                }}),
+                deadline,
+            )
+            .unwrap();
+            let work_before = original.work_remaining;
+            let bytes_at_callback = Cell::new(0);
+            let limits = Limits {
+                max_input_bytes: 128,
+                max_nodes: 16,
+                max_work: 64,
+                max_refs: 8,
+                max_depth: 8,
+                max_items: 8,
+                max_state_bytes: 256,
+                deadline,
+            };
+            let result: SourceCommandResult<()> =
+                with_original_pwe_session(&mut original, limits, &cancel, |payer, session| {
+                    bytes_at_callback.set(payer.remaining()?.bytes);
+                    payer.charge_sto_source_measures(session, 7, 11, 13, 17, 19)?;
+                    assert_eq!(session.charges(), (7, 0, 43, 0, 24));
+                    // Actual receipt-search emissions use repeated new_owned=76.
+                    // Each is paid; a zero later event creates no credit.
+                    for _ in 0..2 {
+                        payer.charge_sto_source_measures(session, 0, 76, 0, 0, 1)?;
+                    }
+                    payer.charge_sto_source_measures(session, 0, 0, 0, 0, 0)?;
+                    assert_eq!(session.charges(), (7, 0, 45, 0, 176));
+                    let error = payer
+                        .charge_sto_source_measures(session, 0, 5, 0, 20, 0)
+                        .unwrap_err();
+                    assert_eq!(session.charges(), (7, 0, 45, 0, 181));
+                    assert!(matches!(
+                        error,
+                        SourceCommandError::Unsupported("PWE Assessment Session exhausted")
+                    ));
+                    if swallow {
+                        drop(error);
+                        Ok(())
+                    } else {
+                        Err(error)
+                    }
+                });
+            assert!(matches!(result, Err(SourceCommandError::Unsupported(_))));
+            assert_eq!(original.work_remaining, work_before - 64);
+            // Same original byte payer, no work proxy, replacement or refill.
+            assert_eq!(original.bytes_remaining, bytes_at_callback.get() - 188);
+        }
+    }
+
+    #[test]
+    fn durable_session_keeps_body_fault_and_denies_failed_resource_exit() {
+        use crate::DurableError;
+        for lane in 0..3 {
+            let deadline = Instant::now() + Duration::from_secs(30);
+            let cancelled = AtomicBool::new(false);
+            let mut original = OperationBudget::new(
+                &serde_json::json!({"budgets": {
+                    "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+                }}),
+                deadline,
+            )
+            .unwrap();
+            let work_before = original.work_remaining;
+            let limits = Limits {
+                max_input_bytes: 128,
+                max_nodes: 16,
+                max_work: 64,
+                max_refs: 8,
+                max_depth: 8,
+                max_items: 8,
+                max_state_bytes: 128,
+                deadline,
+            };
+            let result: crate::DurableResult<()> = with_original_pwe_session_durable(
+                &mut original,
+                limits,
+                &cancelled,
+                |payer, _same| {
+                    if lane == 2 {
+                        return payer.reserve(usize::MAX).map_err(DurableError::Source);
+                    }
+                    cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+                    if lane == 0 {
+                        Err(DurableError::Conflict("durable original body fault"))
+                    } else {
+                        Ok(())
+                    }
+                },
+            );
+            match lane {
+                0 => assert!(matches!(
+                    result,
+                    Err(DurableError::Conflict("durable original body fault"))
+                )),
+                1 => assert!(matches!(
+                    result,
+                    Err(DurableError::Source(SourceCommandError::Denied(_)))
+                )),
+                _ => assert!(matches!(
+                    result,
+                    Err(DurableError::Source(SourceCommandError::Invalid(
+                        "assessment cumulative byte budget"
+                    )))
+                )),
+            }
+            assert_eq!(
+                original.work_remaining,
+                work_before - 64,
+                "one Session work reservation; no replacement or refund"
+            );
+        }
+    }
+
+    #[test]
+    fn metadata_request_floor_exhausts_selected_pg_profile_before_fourth_request() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancel = AtomicBool::new(false);
+        let mut original = OperationBudget::new(
+            &serde_json::json!({"budgets": {
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
+        let work_before = original.work_remaining;
+        // Same profile as the three selected_pg_payload fixtures. These are
+        // numeric source measures, not a native grant or a simulated PG pass.
+        let limits = Limits {
+            max_input_bytes: 4_194_304,
+            max_nodes: 1024,
+            max_work: 262_144,
+            max_refs: 64,
+            max_depth: 16,
+            max_items: 64,
+            max_state_bytes: 8_388_608,
+            deadline,
+        };
+        let result: SourceCommandResult<()> =
+            with_original_pwe_session(&mut original, limits, &cancel, |payer, session| {
+                // A valid nonempty intent and pin each need at least two
+                // actual 65536-byte requested slices under their 1MiB caps.
+                // Omit all other strictly-positive lower work: even this
+                // smaller real-bridge sequence cannot admit request four.
+                for _ in 0..3 {
+                    payer.charge_sto_source_measures(session, 65_536, 0, 0, 0, 1)?;
+                }
+                assert_eq!(session.charges(), (196_608, 0, 196_611, 0, 0));
+                let failure = payer
+                    .charge_sto_source_measures(session, 65_536, 0, 0, 0, 1)
+                    .unwrap_err();
+                assert_eq!(session.charges(), (196_608, 0, 196_611, 0, 0));
+                assert!(payer.with_operation(|_| Ok(())).is_err());
+                Err(failure)
+            });
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Unsupported(
+                "PWE Assessment Session exhausted"
+            ))
+        ));
+        assert_eq!(original.work_remaining, work_before - 262_144);
+    }
+}
+
+#[cfg(test)]
+mod assessment_input_binding_source_tests {
+    use super::*;
+    use std::time::Duration;
+    use tos_validation::assessment::{
+        AssessmentReadInput, AssessmentRecordInput, AssessmentSourceRoute,
+    };
+
+    // Raw hash-protocol input, deliberately not schema-valid source records
+    // or a genuine protected plan/Claim/Assessment/report/authority fixture.
+    fn operand() -> AssessmentReadInput {
+        AssessmentReadInput {
+            source_revision: None,
+            source_input_identity: tos_foundation::Digest256::of_bytes(b"selected input operand"),
+            policy: AssessmentRecordInput {
+                envelope: b"policy".to_vec(),
+            },
+            authorities: Vec::new(),
+            competencies: Vec::new(),
+            records: Vec::new(),
+            source_records: Vec::new(),
+            native_records: Vec::new(),
+            source_route: AssessmentSourceRoute::SourceBoundClaim,
+            subject_id: "subject:π".to_owned(),
+            configured_scope: b"scope".to_vec(),
+            required_source_refs: Vec::new(),
+            required_admission_bases: Vec::new(),
+            layer_quality: None,
+            reviews: Vec::new(),
+            trusted_history: Vec::new(),
+            observed_now: "2026-10-25T00:00:00Z".to_owned(),
+        }
+    }
+    fn operation(deadline: Instant) -> OperationBudget {
+        OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap()
+    }
+    fn profile(deadline: Instant) -> Limits {
+        Limits {
+            max_input_bytes: 64,
+            max_nodes: 32,
+            max_work: 4096,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 8192,
+            deadline,
+        }
+    }
+
+    #[test]
+    fn evaluator_input_pin_keeps_same_input_and_one_cumulative_original_session() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let input = operand();
+        let mut original = operation(deadline);
+        let before_work = original.work_remaining;
+        let limits = profile(deadline);
+        with_original_pwe_session(&mut original, limits, &cancelled, |payer, same| {
+            let first = payer.pin_assessment_input_source(same, &input)?;
+            assert!(
+                std::ptr::eq(first.input(), &input),
+                "pin holds this exact immutable input, not a clone or report digest"
+            );
+            let spent = same.charges();
+            let second = payer.pin_assessment_input_source(same, &input)?;
+            assert_eq!(first.sha256(), second.sha256());
+            assert!(std::ptr::eq(first.input(), second.input()));
+            assert!(
+                same.charges().2 > spent.2,
+                "each actual second hash is paid again"
+            );
+            assert!(
+                same.charges().4 > spent.4,
+                "new logical control/result holders remain additive"
+            );
+            assert_eq!(
+                same.charges().0,
+                0,
+                "retained input hash is not a new physical fetch"
+            );
+            assert_eq!(same.charges().1, 0, "native work is not nodes");
+            assert_eq!(same.charges().3, 0);
+            assert!(same.has_source_payer(payer));
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            original.work_remaining,
+            before_work - limits.max_work,
+            "one original prepaid ceiling, no replacement Session or refund"
+        );
+    }
+
+    #[test]
+    fn evaluator_input_pin_refusal_keeps_original_prefix_and_sticky_denial() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let input = operand();
+        let mut original = operation(deadline);
+        let before_work = original.work_remaining;
+        let mut limits = profile(deadline);
+        limits.max_work = 1;
+        let result = with_original_pwe_session(&mut original, limits, &cancelled, |payer, same| {
+            let body = payer.pin_assessment_input_source(same, &input);
+            assert!(matches!(
+                body,
+                Err(SourceCommandError::Unsupported(
+                    "PWE Assessment Session exhausted"
+                ))
+            ));
+            let prefix = same.charges();
+            assert_eq!(
+                prefix.2, 1,
+                "entry paid, following initialization event refused before hasher creation"
+            );
+            assert_eq!(prefix.0, 0);
+            assert_eq!(prefix.1, 0);
+            assert_eq!(prefix.3, 0);
+            assert!(
+                prefix.4 > 0,
+                "prospective logical holders remain spent after refusal"
+            );
+            assert!(payer.with_operation(|_| Ok(())).is_err());
+            assert_eq!(same.charges(), prefix);
+            Ok(()) // swallowed source refusal cannot authorize successful finish
+        });
+        assert!(result.is_err());
+        assert_eq!(original.work_remaining, before_work - limits.max_work);
+    }
+
+    #[test]
+    fn evaluator_input_pin_uses_original_cancellation_before_hashing() {
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let input = operand();
+        let mut original = operation(deadline);
+        let result: SourceCommandResult<()> = with_original_pwe_session(
+            &mut original,
+            profile(deadline),
+            &cancelled,
+            |payer, same| {
+                cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+                let prefix = same.charges();
+                let result = payer.pin_assessment_input_source(same, &input);
+                assert_eq!(
+                    same.charges(),
+                    prefix,
+                    "original cancellation rejects before holder/hash work"
+                );
+                match result {
+                    Err(error) => Err(error),
+                    Ok(_) => panic!("cancelled source operation issued a pin"),
+                }
+            },
+        );
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Denied(
+                "creation filesystem cancelled or expired"
+            ))
+        ));
     }
 }

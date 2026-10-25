@@ -868,6 +868,7 @@ pub fn evaluate_current_assessment(
         },
         limits,
         cancelled,
+        None,
     )
 }
 
@@ -876,6 +877,50 @@ pub fn evaluate_current_assessment(
 /// complete-cut route while leaving the caller's identity opaque.
 pub fn evaluate_current_assessment_selected<I: Copy + Eq>(
     input: &AssessmentReadInput,
+    input_identity: &I,
+    input_identity_digest: Digest256,
+    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    limits: AssessmentLimits,
+    cancelled: &AtomicBool,
+) -> Result<AssessmentMechanicsReport> {
+    evaluate_current_assessment_selected_using(
+        input,
+        None,
+        input_identity,
+        input_identity_digest,
+        schemas,
+        limits,
+        cancelled,
+    )
+}
+
+/// The actual selected-worker evaluator, using a precomputed binding of its
+/// SAME immutable input. The token is issued only by the maintained hash
+/// routine, so this avoids a second hash without accepting a caller digest.
+/// Input/source identity, asserted-worker schema and all mechanics still run.
+/// No target/Claim/basis/read/application authority is created by this entry.
+pub fn evaluate_current_assessment_selected_bound<I: Copy + Eq>(
+    binding: &AssessmentInputBinding<'_>,
+    input_identity: &I,
+    input_identity_digest: Digest256,
+    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    limits: AssessmentLimits,
+    cancelled: &AtomicBool,
+) -> Result<AssessmentMechanicsReport> {
+    evaluate_current_assessment_selected_using(
+        binding.input,
+        Some(binding.sha256),
+        input_identity,
+        input_identity_digest,
+        schemas,
+        limits,
+        cancelled,
+    )
+}
+
+fn evaluate_current_assessment_selected_using<I: Copy + Eq>(
+    input: &AssessmentReadInput,
+    prebound_input_sha256: Option<Digest256>,
     input_identity: &I,
     input_identity_digest: Digest256,
     schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
@@ -899,6 +944,7 @@ pub fn evaluate_current_assessment_selected<I: Copy + Eq>(
         },
         limits,
         cancelled,
+        prebound_input_sha256,
     )
 }
 
@@ -908,6 +954,7 @@ fn evaluate_current_assessment_inner<S: CutSchemaExecutor>(
     schema_binding: AssessmentSchemaBindingV1,
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
+    prebound_input_sha256: Option<Digest256>,
 ) -> Result<AssessmentMechanicsReport> {
     if limits.max_input_bytes == 0 || limits.max_work == 0 {
         return Err(AssessmentRefusal::Budget);
@@ -1189,7 +1236,7 @@ fn evaluate_current_assessment_inner<S: CutSchemaExecutor>(
     let admission =
         engine.evaluate(&context, &reviews, &history, &input.observed_now, &mut work)?;
     work.tick(1)?;
-    let input_binding = input_binding(input);
+    let input_binding = prebound_input_sha256.unwrap_or_else(|| input_binding(input));
     work.tick(1)?;
     Ok(AssessmentMechanicsReport {
         admission,
@@ -1628,68 +1675,127 @@ fn codec(error: tos_foundation::FoundationError) -> AssessmentRefusal {
     }
 }
 
-/// Length-framed raw inputs, including trusted history purpose and native
-/// source classification. This is an observation binding, not a grant.
-fn input_binding(input: &AssessmentReadInput) -> Digest256 {
-    fn push(hash: &mut Digest256Hasher, raw: &[u8]) {
-        hash.update(&(raw.len() as u64).to_be_bytes());
+/// Hash evidence for this exact immutable evaluator-input borrow. Only the
+/// maintained hash port constructs it. This authenticates no owner/source and
+/// grants no read/dispatch/application authority; source/worker checks remain
+/// separate. There is no constructor from a digest or an Assessment report.
+pub struct AssessmentInputBinding<'input> {
+    input: &'input AssessmentReadInput,
+    sha256: Digest256,
+}
+impl<'input> AssessmentInputBinding<'input> {
+    pub fn input(&self) -> &'input AssessmentReadInput {
+        self.input
+    }
+    pub fn sha256(&self) -> Digest256 {
+        self.sha256
+    }
+}
+
+/// Fingerprint the exact maintained evaluator input. The caller admits each
+/// actual hash-update operand before it is read, plus initialization/finalize
+/// events of size0. Errors are caller-owned and propagate without rewriting.
+/// This computes no report and grants no source/currentness/use authority.
+/// The caller separately prepays hash/control holders and owns input custody.
+pub fn assessment_input_binding_with_admission<'input, E>(
+    input: &'input AssessmentReadInput,
+    admit: &mut dyn FnMut(usize) -> std::result::Result<(), E>,
+) -> std::result::Result<AssessmentInputBinding<'input>, E> {
+    admit(0)?;
+    let mut hash = Digest256Hasher::new();
+    visit_input_binding::<E>(input, &mut |raw| {
+        admit(raw.len())?;
         hash.update(raw);
+        Ok::<(), E>(())
+    })?;
+    admit(0)?;
+    Ok(AssessmentInputBinding {
+        input,
+        sha256: hash.finalize(),
+    })
+}
+
+fn input_binding(input: &AssessmentReadInput) -> Digest256 {
+    match assessment_input_binding_with_admission(input, &mut |_| {
+        Ok::<(), std::convert::Infallible>(())
+    }) {
+        Ok(binding) => binding.sha256,
+        Err(impossible) => match impossible {},
     }
-    fn records(hash: &mut Digest256Hasher, inputs: &[AssessmentRecordInput]) {
-        hash.update(&(inputs.len() as u64).to_be_bytes());
+}
+
+fn visit_input_binding<E>(
+    input: &AssessmentReadInput,
+    emit: &mut dyn FnMut(&[u8]) -> std::result::Result<(), E>,
+) -> std::result::Result<(), E> {
+    fn push<E>(
+        emit: &mut dyn FnMut(&[u8]) -> std::result::Result<(), E>,
+        raw: &[u8],
+    ) -> std::result::Result<(), E> {
+        emit(&(raw.len() as u64).to_be_bytes())?;
+        emit(raw)
+    }
+    fn records<E>(
+        emit: &mut dyn FnMut(&[u8]) -> std::result::Result<(), E>,
+        inputs: &[AssessmentRecordInput],
+    ) -> std::result::Result<(), E> {
+        emit(&(inputs.len() as u64).to_be_bytes())?;
         for input in inputs {
-            push(hash, &input.envelope);
+            push(emit, &input.envelope)?;
         }
+        Ok(())
     }
-    fn submissions(hash: &mut Digest256Hasher, inputs: &[AssessmentSubmissionInput]) {
-        hash.update(&(inputs.len() as u64).to_be_bytes());
+    fn submissions<E>(
+        emit: &mut dyn FnMut(&[u8]) -> std::result::Result<(), E>,
+        inputs: &[AssessmentSubmissionInput],
+    ) -> std::result::Result<(), E> {
+        emit(&(inputs.len() as u64).to_be_bytes())?;
         for input in inputs {
-            push(hash, &input.assessment);
-            push(hash, input.principal_id.as_bytes());
-            push(hash, &input.execution_profile);
-            hash.update(&[u8::from(input.committed_scope.is_some())]);
+            push(emit, &input.assessment)?;
+            push(emit, input.principal_id.as_bytes())?;
+            push(emit, &input.execution_profile)?;
+            emit(&[u8::from(input.committed_scope.is_some())])?;
             if let Some(scope) = &input.committed_scope {
-                push(hash, scope);
+                push(emit, scope)?;
             }
         }
+        Ok(())
     }
-    let mut hash = Digest256Hasher::new();
-    hash.update(match input.source_route {
+    emit(match input.source_route {
         AssessmentSourceRoute::LayerQuality => b"tos-current-assessment-input-v2\0",
         AssessmentSourceRoute::SelectedSource | AssessmentSourceRoute::SourceBoundClaim => {
             b"tos-current-assessment-input-v1\0"
         }
-    });
-    hash.update(input.source_input_identity.as_bytes());
-    push(&mut hash, &input.policy.envelope);
-    records(&mut hash, &input.authorities);
-    records(&mut hash, &input.competencies);
-    records(&mut hash, &input.records);
-    records(&mut hash, &input.source_records);
-    records(&mut hash, &input.native_records);
-    hash.update(&[match input.source_route {
+    })?;
+    emit(input.source_input_identity.as_bytes())?;
+    push(emit, &input.policy.envelope)?;
+    records(emit, &input.authorities)?;
+    records(emit, &input.competencies)?;
+    records(emit, &input.records)?;
+    records(emit, &input.source_records)?;
+    records(emit, &input.native_records)?;
+    emit(&[match input.source_route {
         AssessmentSourceRoute::SelectedSource => 0,
         AssessmentSourceRoute::SourceBoundClaim => 1,
         AssessmentSourceRoute::LayerQuality => 2,
-    }]);
-    push(&mut hash, input.subject_id.as_bytes());
-    push(&mut hash, &input.configured_scope);
-    hash.update(&(input.required_source_refs.len() as u64).to_be_bytes());
+    }])?;
+    push(emit, input.subject_id.as_bytes())?;
+    push(emit, &input.configured_scope)?;
+    emit(&(input.required_source_refs.len() as u64).to_be_bytes())?;
     for reference in &input.required_source_refs {
-        push(&mut hash, reference);
+        push(emit, reference)?;
     }
-    records(&mut hash, &input.required_admission_bases);
+    records(emit, &input.required_admission_bases)?;
     if let Some(observation) = input.layer_quality {
-        hash.update(&[
+        emit(&[
             u8::from(observation.source_comparison_required),
             u8::from(observation.source_comparison_present),
             u8::from(observation.positive_use_allowed),
-        ]);
+        ])?;
     }
-    submissions(&mut hash, &input.reviews);
-    submissions(&mut hash, &input.trusted_history);
-    push(&mut hash, input.observed_now.as_bytes());
-    hash.finalize()
+    submissions(emit, &input.reviews)?;
+    submissions(emit, &input.trusted_history)?;
+    push(emit, input.observed_now.as_bytes())
 }
 
 // Python's exact-ref dictionary equality is numeric equality (1 == 1.0),
@@ -3311,5 +3417,127 @@ mod manual_authoring {
                 Err(AssessmentRefusal::Cancelled)
             ));
         }
+    }
+}
+
+#[cfg(test)]
+mod input_binding_port_tests {
+    use super::*;
+
+    // Hash-byte protocol operands only: intentionally not schema-valid owner
+    // records, an Assessment report, a selected Claim or authority fixture.
+    fn operand(route: AssessmentSourceRoute) -> AssessmentReadInput {
+        let record = |raw: &[u8]| AssessmentRecordInput {
+            envelope: raw.to_vec(),
+        };
+        AssessmentReadInput {
+            source_revision: None,
+            source_input_identity: Digest256::of_bytes(b"identity operand"),
+            policy: record(b"policy\0"),
+            authorities: vec![record(b"authorityA"), record(b"authorityB")],
+            competencies: vec![record(b"competence")],
+            records: vec![record(b"record")],
+            source_records: vec![record(b"source")],
+            native_records: vec![record(b"native")],
+            source_route: route,
+            subject_id: "subject:π".to_owned(),
+            configured_scope: b"{scope}".to_vec(),
+            required_source_refs: vec![b"refA".to_vec(), b"refB".to_vec()],
+            required_admission_bases: vec![record(b"required")],
+            layer_quality: (route == AssessmentSourceRoute::LayerQuality).then_some(
+                AssessmentLayerQualityObservation {
+                    source_comparison_required: true,
+                    source_comparison_present: false,
+                    positive_use_allowed: true,
+                },
+            ),
+            reviews: vec![AssessmentSubmissionInput {
+                assessment: b"review".to_vec(),
+                principal_id: "principal:é".to_owned(),
+                execution_profile: b"execution".to_vec(),
+                committed_scope: Some(b"scope".to_vec()),
+            }],
+            trusted_history: vec![AssessmentSubmissionInput {
+                assessment: b"history".to_vec(),
+                principal_id: "trusted".to_owned(),
+                execution_profile: b"profile".to_vec(),
+                committed_scope: None,
+            }],
+            observed_now: "2026-10-25T00:00:00Z".to_owned(),
+        }
+    }
+
+    #[test]
+    fn admitted_input_binding_preserves_all_three_legacy_golden_vectors() {
+        for (route, expected) in [
+            (
+                AssessmentSourceRoute::SelectedSource,
+                "6fdf785077fa1d03050de1959241471a60c51d132a634abff73acc75ebb03687",
+            ),
+            (
+                AssessmentSourceRoute::SourceBoundClaim,
+                "1996225d532f867f7fb0d4c7140a5736ec365cff949ee3c5e7deeefed47eef76",
+            ),
+            (
+                AssessmentSourceRoute::LayerQuality,
+                "372d652e44d7b44128ccf2239998c6409f0fb0cb069f2c24e856a08d5f3eae9f",
+            ),
+        ] {
+            let input = operand(route);
+            let mut bytes = 0;
+            let actual = assessment_input_binding_with_admission(&input, &mut |n| {
+                bytes += n;
+                Ok::<(), ()>(())
+            })
+            .unwrap();
+            assert_eq!(actual.sha256().to_hex(), expected);
+            assert_eq!(
+                input_binding(&input),
+                actual.sha256(),
+                "actual report generator uses the same one recipe"
+            );
+            assert!(bytes > input.policy.envelope.len());
+        }
+    }
+
+    #[test]
+    fn admitted_input_binding_keeps_owned_callback_error_before_payload_update() {
+        let input = operand(AssessmentSourceRoute::SourceBoundClaim);
+        let mut calls = 0;
+        let owned = String::from("original callback refusal, not a schema or Claim error");
+        let mut error = Some(owned);
+        let result = assessment_input_binding_with_admission(&input, &mut |n| {
+            calls += 1;
+            // init0, domain, actual identity, length word, then policy bytes.
+            if calls == 5 {
+                assert_eq!(n, input.policy.envelope.len());
+                return Err(error.take().unwrap());
+            }
+            Ok(())
+        });
+        match result {
+            Err(original) => assert_eq!(
+                original,
+                "original callback refusal, not a schema or Claim error"
+            ),
+            Ok(_) => panic!("refused hash operand issued an input binding"),
+        }
+        assert_eq!(
+            calls, 5,
+            "no later hash operand/finalize after refused update"
+        );
+        assert!(error.is_none());
+    }
+
+    #[test]
+    fn input_binding_keeps_order_and_committed_scope_distinct() {
+        let mut input = operand(AssessmentSourceRoute::SourceBoundClaim);
+        let original = input_binding(&input);
+        input.authorities.reverse();
+        assert_ne!(input_binding(&input), original);
+        input.authorities.reverse();
+        assert_eq!(input_binding(&input), original);
+        input.reviews[0].committed_scope = None;
+        assert_ne!(input_binding(&input), original);
     }
 }

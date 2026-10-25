@@ -3,7 +3,7 @@
 use super::{HeldFrames, invalid, unsupported};
 use crate::source_command::{SourceCommandResult, SourceDependency};
 use serde_json::Value;
-use tos_compiler::pwe_native::BasisSlot;
+use tos_compiler::pwe_native::{BasisSlot, Session};
 use tos_foundation::{Digest256, JsonValue};
 
 pub(crate) struct ResolvedDependency {
@@ -20,15 +20,19 @@ pub(crate) struct ResolvedDependency {
 pub(crate) trait ExactDependencyReader {
     /// Recheck the ACTUAL retained source/history/catalogue/publication
     /// closure through its native owner. No successful default or caller bool.
+    /// Borrow the caller's SAME original source Session; neither method may
+    /// create a replacement Session/payer or retain this mutable loan.
     fn verify_closure(
         &mut self,
         resolved: &ResolvedDependency,
         frames: &mut HeldFrames<'_, '_>,
+        session: &mut Session<'_>,
     ) -> SourceCommandResult<()>;
     fn basis(
         &mut self,
         slot: &BasisSlot<'_>,
         frames: &mut HeldFrames<'_, '_>,
+        session: &mut Session<'_>,
     ) -> SourceCommandResult<ResolvedDependency>;
 }
 impl ResolvedDependency {

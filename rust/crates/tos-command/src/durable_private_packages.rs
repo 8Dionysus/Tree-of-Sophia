@@ -13,6 +13,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, Digest256Hasher};
 
+#[path = "source_native_pg_private_archive_data.rs"]
+mod claim_archive_data;
+
 pub(crate) const PRIVATE_SCHEMA_PROFILE: &str =
     super::durable_compatibility::PRIVATE_PACKAGE_ABI_PROFILE_V4;
 const MAX_TARGET_REF_BYTES: usize = 4096;
@@ -184,6 +187,277 @@ pub(crate) struct PrivateOwnerReadSession<'connection> {
     current_headers: BTreeMap<String, Option<PrivateOwnerPackageCurrentHeaderV1>>,
 }
 
+/// Lexical archive lane of the exact history targets selected by the owner.
+/// It lends neither the raw transaction nor a wider owner-scope reader.
+/// Only the joint history guard constructs it; it issues no read permission.
+pub(crate) struct PrivateOwnerSelectedHistoryRead<'loan, 'connection, 'targets> {
+    session: &'loan mut PrivateOwnerReadSession<'connection>,
+    targets: &'loan BTreeSet<&'targets str>,
+    // Only the joint guard supplies this map, after read_package_history has
+    // checked receipts, current head, all members and the complete history.
+    histories: &'loan BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+}
+
+/// Borrowed producer output from the actual selected owner RR guard, NOT a
+/// caller-authored history struct or a policy/authority constructor. Only this
+/// module issues it. Its lifetime is that of the authentic immutable map in
+/// the live guard; archive reads can continue through the same mutable reader.
+pub(crate) struct SelectedPrivateProducerResponse<'history> {
+    history: &'history PrivateOwnerPackageHistoryV1,
+    entry: &'history PrivateOwnerPackageHistoryEntryV1,
+}
+
+/// Initial producer DATA from the same authentic complete selected history.
+/// Distinct from the current-producer type: consumers cannot silently use the
+/// current revision's request/grant hashes as original creation evidence.
+/// This does not prove claims.create, grant eligibility, semantic creation,
+/// current read permission, a Claim target or admission. Only this module's
+/// genuine selected-history factory constructs it; no raw history/JSON input.
+pub(crate) struct SelectedPrivateInitialProducerResponse<'history> {
+    current: SelectedPrivateProducerResponse<'history>,
+    initial: &'history PrivateOwnerPackageHistoryEntryV1,
+}
+impl SelectedPrivateInitialProducerResponse<'_> {
+    pub(crate) fn current(&self) -> &SelectedPrivateProducerResponse<'_> {
+        &self.current
+    }
+    pub(crate) fn initial_entry(&self) -> &PrivateOwnerPackageHistoryEntryV1 {
+        self.initial
+    }
+}
+
+fn check_initial_producer_header(
+    revision: u64,
+    has_previous: bool,
+    initial_family: PrivateOwnerPackageFamilyV1,
+    current_family: PrivateOwnerPackageFamilyV1,
+) -> DurableResult<()> {
+    if revision != 1 || has_previous || initial_family != current_family {
+        return Err(DurableError::Corrupt(
+            "selected initial producer history differs",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod selected_initial_header_tests {
+    use super::*;
+    #[test]
+    fn initial_producer_requires_first_unlinked_row_of_the_same_family() {
+        let family = PrivateOwnerPackageFamilyV1::Claim;
+        assert!(check_initial_producer_header(1, false, family, family).is_ok());
+        assert!(check_initial_producer_header(2, false, family, family).is_err());
+        assert!(check_initial_producer_header(1, true, family, family).is_err());
+        assert!(
+            check_initial_producer_header(1, false, PrivateOwnerPackageFamilyV1::Text, family)
+                .is_err()
+        );
+        // This is only a header predicate, not a constructor: no raw history,
+        // owner scope or caller bool can mint the sealed selected response.
+    }
+}
+
+impl SelectedPrivateProducerResponse<'_> {
+    pub(crate) fn scope(&self) -> &PrivateOwnerScopeV1 {
+        &self.history.scope
+    }
+    pub(crate) fn target_ref(&self) -> &str {
+        &self.history.target_ref
+    }
+    pub(crate) fn private_audit_generation(&self) -> u64 {
+        self.history.private_audit_generation
+    }
+    pub(crate) fn entry(&self) -> &PrivateOwnerPackageHistoryEntryV1 {
+        self.entry
+    }
+}
+
+impl<'loan, 'connection, 'targets> PrivateOwnerSelectedHistoryRead<'loan, 'connection, 'targets> {
+    /// Recheck this exact selected target/current head/scope/generation using
+    /// the maintained current-producer factory, then borrow its FIRST actual
+    /// immutable entry. The prior RR hydration/SQL/driver/native enclosure is
+    /// not claimed paid by the local typed header/Result prices here.
+    pub(crate) fn initial_producer_response_with_data_admission(
+        &self,
+        target_ref: &str,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SelectedPrivateInitialProducerResponse<'loan>> {
+        use std::mem::size_of;
+        check_private_history_deadline(deadline, cancelled)?;
+        if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
+            return Err(DurableError::Refused(
+                "initial producer cutoff exceeds original operation",
+            ));
+        }
+        budget
+            .charge_bytes(
+                size_of::<SelectedPrivateInitialProducerResponse<'_>>()
+                    + size_of::<DurableResult<SelectedPrivateInitialProducerResponse<'_>>>(),
+            )
+            .map_err(DurableError::Source)?;
+        let current = self.current_producer_response_with_data_admission(
+            target_ref, budget, deadline, cancelled,
+        )?;
+        // The Vec/header/entry operands are paid BEFORE first()/field reads.
+        budget
+            .charge_work(
+                size_of::<Vec<PrivateOwnerPackageHistoryEntryV1>>()
+                    + size_of::<PrivateOwnerPackageHistoryEntryV1>()
+                    + size_of::<PrivateOwnerPackageFamilyV1>(),
+            )
+            .map_err(DurableError::Source)?;
+        let history = current.history;
+        let initial = history.history.first().ok_or(DurableError::Corrupt(
+            "selected initial producer history empty",
+        ))?;
+        check_initial_producer_header(
+            initial.revision,
+            initial.previous_digest.is_some(),
+            initial.family,
+            current.entry.family,
+        )?;
+        check_private_history_deadline(deadline, cancelled)?;
+        Ok(SelectedPrivateInitialProducerResponse { current, initial })
+    }
+
+    /// Issue no new read or permission: borrow the already authenticated
+    /// CURRENT producer receipt of one actual selected target. Consumers must
+    /// still check the family/response protocol and protected read selection.
+    /// In particular a raw grant digest is not a normalized config digest;
+    /// neither is equated to the producer's compound configuration basis.
+    /// This pays local lookup/data carriers only. The guard's prior SQL,
+    /// history hydration and driver/native costs retain their existing debt.
+    pub(crate) fn current_producer_response_with_data_admission(
+        &self,
+        target_ref: &str,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SelectedPrivateProducerResponse<'loan>> {
+        use std::mem::size_of;
+        check_private_history_deadline(deadline, cancelled)?;
+        if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
+            return Err(DurableError::Refused(
+                "producer witness cutoff exceeds original operation",
+            ));
+        }
+        let overflow = || DurableError::Refused("producer witness data reservation overflow");
+        let work = target_ref
+            .len()
+            .checked_add(1)
+            .and_then(|n| n.checked_mul(2))
+            .and_then(|n| {
+                self.targets
+                    .len()
+                    .checked_add(self.histories.len())
+                    .and_then(|entries| n.checked_mul(entries))
+            })
+            .and_then(|n| n.checked_add(target_ref.len()))
+            .ok_or_else(overflow)?;
+        let holders = size_of::<SelectedPrivateProducerResponse<'_>>()
+            .checked_add(size_of::<DurableResult<SelectedPrivateProducerResponse<'_>>>())
+            .and_then(|n| n.checked_add(size_of::<tos_foundation::RelativePath>()))
+            .and_then(|n| n.checked_add(target_ref.len()))
+            .ok_or_else(overflow)?;
+        budget.charge_work(work).map_err(DurableError::Source)?;
+        budget.charge_bytes(holders).map_err(DurableError::Source)?;
+        validate_target_ref(target_ref)?;
+        if !self.targets.contains(target_ref) {
+            return Err(DurableError::Refused(
+                "producer witness target outside selected histories",
+            ));
+        }
+        // Copy only this immutable reference. The returned witness borrows
+        // the guard's map, not `&self` or its mutable SQL-session field.
+        let histories = self.histories;
+        let history = histories.get(target_ref).ok_or(DurableError::Corrupt(
+            "producer witness selected history is absent",
+        ))?;
+        let scope_work = history
+            .scope
+            .domain
+            .len()
+            .checked_add(history.scope.owner_scope.len())
+            .and_then(|n| n.checked_add(self.session.scope.domain.len()))
+            .and_then(|n| n.checked_add(self.session.scope.owner_scope.len()))
+            .and_then(|n| n.checked_add(history.target_ref.len()))
+            .and_then(|n| n.checked_add(target_ref.len()))
+            .and_then(|n| n.checked_add(2 * size_of::<Digest256>() + 2 * size_of::<u64>()))
+            .ok_or_else(overflow)?;
+        budget
+            .charge_work(scope_work)
+            .map_err(DurableError::Source)?;
+        if history.scope != self.session.scope
+            || history.target_ref != target_ref
+            || history.private_audit_generation != self.session.private_audit_generation
+        {
+            return Err(DurableError::Conflict(
+                "producer witness owner snapshot differs",
+            ));
+        }
+        // read_package_history already verified that this last receipt and
+        // its package are exactly the current head on this SAME RR snapshot.
+        if history.current.is_none() {
+            return Err(DurableError::Refused(
+                "producer witness has no current package",
+            ));
+        }
+        let entry = history.history.last().ok_or(DurableError::Corrupt(
+            "producer witness current history is empty",
+        ))?;
+        check_private_history_deadline(deadline, cancelled)?;
+        Ok(SelectedPrivateProducerResponse { history, entry })
+    }
+}
+
+impl PrivateOwnerSelectedHistoryRead<'_, '_, '_> {
+    pub(crate) fn scope(&self) -> &PrivateOwnerScopeV1 {
+        self.session.scope()
+    }
+
+    pub(crate) fn private_audit_generation(&self) -> u64 {
+        self.session.private_audit_generation()
+    }
+
+    pub(crate) fn read_claim_archive_with_query_data_admission(
+        &mut self,
+        target_ref: &str,
+        archive_ref: &str,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+        check_private_history_deadline(deadline, cancelled)?;
+        // Pay both operands' possible common prefix before the selected-set
+        // lookup. This bounds every entry, never a top-N subset or scan of the
+        // corpus. Other callback/native holders are still a separate enclosure.
+        let work = target_ref
+            .len()
+            .checked_add(1)
+            .and_then(|n| n.checked_mul(2))
+            .and_then(|n| n.checked_mul(self.targets.len()))
+            .ok_or(DurableError::Refused(
+                "selected archive target lookup overflow",
+            ))?;
+        budget.charge_work(work).map_err(DurableError::Source)?;
+        if !self.targets.contains(target_ref) {
+            return Err(DurableError::Refused(
+                "archive target outside selected histories",
+            ));
+        }
+        self.session.read_claim_archive_with_query_data_admission(
+            target_ref,
+            archive_ref,
+            budget,
+            deadline,
+            cancelled,
+        )
+    }
+}
+
 /// Session-scoped shared advisory lock acquired before the RR transaction.
 /// Taking an xact advisory lock as the first statement of an RR transaction
 /// can establish the MVCC snapshot before a lock wait completes. This guard
@@ -260,6 +534,69 @@ impl Drop for PrivateOwnerSharedReadLock<'_> {
     }
 }
 
+/// Exit of the joint read lane, retaining BOTH faults without converting the
+/// original owner/payer error into a cleanup error. No successful value escapes
+/// a failed release. This private type is not a new public error protocol.
+#[derive(Debug)]
+pub(crate) enum PrivateOwnerReadFailure {
+    Operation(DurableError),
+    Release(DurableError),
+    OperationAndRelease {
+        operation: DurableError,
+        release: DurableError,
+    },
+}
+
+pub(crate) type PrivateOwnerReadResult<T> = Result<T, PrivateOwnerReadFailure>;
+
+impl From<DurableError> for PrivateOwnerReadFailure {
+    fn from(error: DurableError) -> Self {
+        Self::Operation(error)
+    }
+}
+
+impl PrivateOwnerReadFailure {
+    /// Compatibility projection for pre-existing callers only: historically
+    /// release failure takes precedence. The new held reader keeps this type
+    /// intact and must not use this lossy projection for original-payer errors.
+    pub(crate) fn legacy_error(self) -> DurableError {
+        match self {
+            Self::Operation(error) | Self::Release(error) => error,
+            Self::OperationAndRelease { release, .. } => release,
+        }
+    }
+}
+
+fn complete_private_owner_read<T>(
+    operation: DurableResult<T>,
+    release: DurableResult<()>,
+) -> PrivateOwnerReadResult<T> {
+    match (operation, release) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(operation), Ok(())) => Err(PrivateOwnerReadFailure::Operation(operation)),
+        (Ok(_), Err(release)) => Err(PrivateOwnerReadFailure::Release(release)),
+        (Err(operation), Err(release)) => {
+            Err(PrivateOwnerReadFailure::OperationAndRelease { operation, release })
+        }
+    }
+}
+
+fn with_private_owner_shared_read_lock_complete<T>(
+    client: &mut Client,
+    scope: &PrivateOwnerScopeV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    operation: impl FnOnce(&mut Client) -> DurableResult<T>,
+) -> PrivateOwnerReadResult<T> {
+    let lock = PrivateOwnerSharedReadLock::acquire(client, scope, deadline, cancelled)?;
+    let result = check_private_history_deadline(deadline, cancelled)
+        .and_then(|()| operation(&mut *lock.client));
+    // release still runs exactly once on every ordinary body Result. Its own
+    // existing Drop retry on query error is unchanged; both error facts survive.
+    let released = lock.release();
+    complete_private_owner_read(result, released)
+}
+
 fn with_private_owner_shared_read_lock<T>(
     client: &mut Client,
     scope: &PrivateOwnerScopeV1,
@@ -267,14 +604,8 @@ fn with_private_owner_shared_read_lock<T>(
     cancelled: &AtomicBool,
     operation: impl FnOnce(&mut Client) -> DurableResult<T>,
 ) -> DurableResult<T> {
-    let lock = PrivateOwnerSharedReadLock::acquire(client, scope, deadline, cancelled)?;
-    let result = check_private_history_deadline(deadline, cancelled)
-        .and_then(|()| operation(&mut *lock.client));
-    let released = lock.release();
-    match released {
-        Ok(()) => result,
-        Err(error) => Err(error),
-    }
+    with_private_owner_shared_read_lock_complete(client, scope, deadline, cancelled, operation)
+        .map_err(PrivateOwnerReadFailure::legacy_error)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1875,10 +2206,28 @@ fn read_archive_snapshot(
     archive_ref: &str,
     private_generation: u64,
 ) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+    // Explicit legacy route: no original-payer funding claim is made here.
+    read_archive_snapshot_before_queries(
+        client,
+        scope,
+        target_ref,
+        archive_ref,
+        private_generation,
+        &mut |_| Ok(()),
+    )
+}
+
+fn read_archive_snapshot_before_queries(
+    client: &mut impl GenericClient,
+    scope: &PrivateOwnerScopeV1,
+    target_ref: &str,
+    archive_ref: &str,
+    private_generation: u64,
+    before: &mut impl FnMut(claim_archive_data::ArchiveQuery) -> DurableResult<()>,
+) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+    before(claim_archive_data::ArchiveQuery::Header)?;
     let Some(row) = client.query_opt(
-        "SELECT family,source_revision,package_digest,member_count,total_bytes
-         FROM cmd2_private_package_archive
-         WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND archive_ref=$4",
+        claim_archive_data::HEADER_SQL,
         &[&scope.domain, &scope.owner_scope, &target_ref, &archive_ref],
     )?
     else {
@@ -1889,11 +2238,9 @@ fn read_archive_snapshot(
     let digest = parse_hex(row.get(2))?;
     let count: i32 = row.get(3);
     let total = as_u64(row.get(4))?;
+    before(claim_archive_data::ArchiveQuery::Members)?;
     let rows = client.query(
-        "SELECT member_name,member_bytes,member_digest
-         FROM cmd2_private_package_archive_member
-         WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND archive_ref=$4
-         ORDER BY member_name COLLATE \"C\" LIMIT 66",
+        claim_archive_data::MEMBERS_SQL,
         &[&scope.domain, &scope.owner_scope, &target_ref, &archive_ref],
     )?;
     if count <= 0 || rows.len() != count as usize {
@@ -1944,6 +2291,152 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
 
     pub(crate) fn private_audit_generation(&self) -> u64 {
         self.private_audit_generation
+    }
+
+    /// Claim-only archive on the ACTUAL owner RR session. The original
+    /// operation pays selected query DATA before transfer, including no-row
+    /// and query-error exits. This does not admit transaction bootstrap,
+    /// driver capacities/errors/transport or the semantic/hash/native frames.
+    /// Callers still owe actual protected read selection and exit fences.
+    pub(crate) fn read_claim_archive_with_query_data_admission(
+        &mut self,
+        target_ref: &str,
+        archive_ref: &str,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PrivateOwnerArchiveSnapshotV1>> {
+        check_private_history_deadline(deadline, cancelled)?;
+        if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
+            return Err(DurableError::Refused(
+                "private Claim archive cutoff exceeds original operation",
+            ));
+        }
+        let path_work = claim_archive_data::add(target_ref.len(), archive_ref.len())
+            .map_err(DurableError::Source)?;
+        budget
+            .charge_work(path_work)
+            .map_err(DurableError::Source)?;
+        validate_target_ref(target_ref)?;
+        validate_target_ref(archive_ref)?;
+        let Self {
+            transaction,
+            scope,
+            private_audit_generation,
+            ..
+        } = self;
+        let tx = transaction.as_mut().ok_or(DurableError::Corrupt(
+            "private owner read session is closed",
+        ))?;
+        let parameter_bytes = claim_archive_data::add(
+            claim_archive_data::add(scope.domain.len(), scope.owner_scope.len())
+                .map_err(DurableError::Source)?,
+            path_work,
+        )
+        .map_err(DurableError::Source)?;
+        // bool1, three int4 header lengths, count int4, total int8,
+        // four aggregate bigint8 counters and two int4 maxima: 65 bytes.
+        claim_archive_data::reserve_query(
+            budget,
+            claim_archive_data::ENVELOPE_SQL,
+            parameter_bytes,
+            12,
+            1,
+            65,
+            0,
+            0,
+            0,
+        )
+        .map_err(DurableError::Source)?;
+        let Some(envelope) = tx.query_opt(
+            claim_archive_data::ENVELOPE_SQL,
+            &[&scope.domain, &scope.owner_scope, &target_ref, &archive_ref],
+        )?
+        else {
+            return Ok(None);
+        };
+        check_private_history_deadline(deadline, cancelled)?;
+        if !envelope.get::<_, bool>(0) {
+            return Err(DurableError::Refused(
+                "selected archive is not a Claim package",
+            ));
+        }
+        let count = envelope.get::<_, i32>(1);
+        let declared_total = as_u64(envelope.get(2))?;
+        let family_bytes = envelope.get::<_, i32>(3);
+        let source_digest_bytes = envelope.get::<_, i32>(4);
+        let package_digest_bytes = envelope.get::<_, i32>(5);
+        let observed_count = as_u64(envelope.get(6))?;
+        let raw_bytes = as_u64(envelope.get(7))?;
+        let name_bytes = as_u64(envelope.get(8))?;
+        let digest_bytes = as_u64(envelope.get(9))?;
+        let max_name_bytes = envelope.get::<_, i32>(10);
+        let max_digest_bytes = envelope.get::<_, i32>(11);
+        // Includes the real archive manifest (MAX_MEMBERS+1). Never filter or
+        // truncate a payload set to fit: the complete aggregate must fit first.
+        if count <= 0
+            || count as usize > MAX_MEMBERS + 1
+            || observed_count != count as u64
+            || raw_bytes != declared_total
+            || raw_bytes > MAX_ARCHIVE_BYTES as u64
+            || !(0..=10).contains(&family_bytes)
+            || !(0..=64).contains(&source_digest_bytes)
+            || !(0..=64).contains(&package_digest_bytes)
+            || !(0..=MAX_MEMBER_NAME_BYTES as i32).contains(&max_name_bytes)
+            || !(0..=64).contains(&max_digest_bytes)
+            || name_bytes > observed_count * MAX_MEMBER_NAME_BYTES as u64
+            || digest_bytes > observed_count * 64
+        {
+            return Err(DurableError::Corrupt("private Claim archive data envelope"));
+        }
+        let count = count as usize;
+        // All conversions follow the finite complete-envelope checks above.
+        let header_payload = family_bytes as usize
+            + source_digest_bytes as usize
+            + package_digest_bytes as usize
+            + 4
+            + 8;
+        let header_decoded = header_payload - 4 - 8;
+        let payload = (raw_bytes + name_bytes + digest_bytes) as usize;
+        // Reuse the unchanged semantic checks on the SAME RR snapshot: member
+        // count, hashes, bounded identity/size and complete package digest.
+        // These metadata values cannot drift between envelope and payload.
+        read_archive_snapshot_before_queries(
+            tx,
+            scope,
+            target_ref,
+            archive_ref,
+            *private_audit_generation,
+            &mut |query| {
+                check_private_history_deadline(deadline, cancelled)?;
+                match query {
+                    claim_archive_data::ArchiveQuery::Header => claim_archive_data::reserve_query(
+                        budget,
+                        claim_archive_data::HEADER_SQL,
+                        parameter_bytes,
+                        5,
+                        1,
+                        header_payload,
+                        header_decoded,
+                        3,
+                        0,
+                    ),
+                    claim_archive_data::ArchiveQuery::Members => claim_archive_data::reserve_query(
+                        budget,
+                        claim_archive_data::MEMBERS_SQL,
+                        parameter_bytes,
+                        3,
+                        count,
+                        payload,
+                        payload,
+                        2 * count,
+                        count,
+                    ),
+                }
+                .map_err(DurableError::Source)?;
+                check_private_history_deadline(deadline, cancelled)
+            },
+        )
     }
 
     pub(crate) fn current_header(
@@ -2540,19 +3033,51 @@ impl DurablePgCoordinator {
             &AtomicBool,
         ) -> DurableResult<T>,
     ) -> DurableResult<T> {
+        // Legacy consumers retain their exact map-only interface. Only the
+        // closed joint counterpart lends the actual RR session for archives.
+        self.with_private_owner_package_histories_and_read_session_guard(
+            scope,
+            target_refs,
+            max_total_rows,
+            max_total_bytes,
+            deadline,
+            cancelled,
+            |histories, _session, deadline, cancelled| callback(histories, deadline, cancelled),
+        )
+        .map_err(PrivateOwnerReadFailure::legacy_error)
+    }
+
+    /// Selected histories and their genuine archive reader share ONE owner
+    /// lock, context binding, audit generation and RR transaction. The lexical
+    /// callback cannot replace this with a historical byte map or a new owner.
+    /// No writer capability is selected or issued. Query/worker/native funding
+    /// remains caller-owned; this is not a completeness or resource receipt.
+    pub(crate) fn with_private_owner_package_histories_and_read_session_guard<T>(
+        &mut self,
+        scope: &PrivateOwnerScopeV1,
+        target_refs: &[String],
+        max_total_rows: usize,
+        max_total_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        callback: impl FnOnce(
+            &BTreeMap<String, PrivateOwnerPackageHistoryV1>,
+            &mut PrivateOwnerSelectedHistoryRead<'_, '_, '_>,
+            Instant,
+            &AtomicBool,
+        ) -> DurableResult<T>,
+    ) -> PrivateOwnerReadResult<T> {
         validate_scope(scope)?;
         if target_refs.is_empty() || target_refs.len() > MAX_PACKAGE_HISTORY_TARGETS {
-            return Err(DurableError::Invalid(
-                "private package history target count",
-            ));
+            return Err(DurableError::Invalid("private package history target count").into());
         }
         let mut ordered_targets = BTreeSet::new();
         for target_ref in target_refs {
             validate_target_ref(target_ref)?;
             if !ordered_targets.insert(target_ref.as_str()) {
-                return Err(DurableError::Invalid(
-                    "duplicate private package history target",
-                ));
+                return Err(
+                    DurableError::Invalid("duplicate private package history target").into(),
+                );
             }
         }
         if max_total_rows == 0
@@ -2560,13 +3085,11 @@ impl DurablePgCoordinator {
             || max_total_bytes == 0
             || max_total_bytes > MAX_PACKAGE_HISTORY_BYTES
         {
-            return Err(DurableError::Invalid(
-                "private package aggregate history budget",
-            ));
+            return Err(DurableError::Invalid("private package aggregate history budget").into());
         }
         check_private_history_deadline(deadline, cancelled)?;
         require_private_schema(&mut self.client)?;
-        with_private_owner_shared_read_lock(
+        with_private_owner_shared_read_lock_complete(
             &mut self.client,
             scope,
             deadline,
@@ -2583,7 +3106,7 @@ impl DurablePgCoordinator {
                 let mut histories = BTreeMap::new();
                 let mut total_rows = 0usize;
                 let mut total_bytes = 0usize;
-                for target_ref in ordered_targets {
+                for &target_ref in &ordered_targets {
                     check_private_history_deadline(deadline, cancelled)?;
                     let remaining_rows = max_total_rows.saturating_sub(total_rows);
                     let remaining_bytes = max_total_bytes.saturating_sub(total_bytes);
@@ -2628,10 +3151,32 @@ impl DurablePgCoordinator {
                     histories.insert(target_ref.to_owned(), history);
                 }
                 check_private_history_deadline(deadline, cancelled)?;
-                let result = callback(&histories, deadline, cancelled)?;
-                check_private_history_deadline(deadline, cancelled)?;
+                let mut session = PrivateOwnerReadSession {
+                    transaction: Some(tx),
+                    scope: scope.clone(),
+                    private_audit_generation: generation,
+                    current_headers: BTreeMap::new(),
+                };
+                let result = {
+                    let mut selected = PrivateOwnerSelectedHistoryRead {
+                        session: &mut session,
+                        targets: &ordered_targets,
+                        histories: &histories,
+                    };
+                    callback(&histories, &mut selected, deadline, cancelled)
+                };
+                // Attempt cutoff on Err too. Preserve the body's first error;
+                // a failed body/fence drops its readonly transaction and lock.
+                let fenced = check_private_history_deadline(deadline, cancelled);
+                let value = match (result, fenced) {
+                    (Err(error), _) | (Ok(_), Err(error)) => return Err(error),
+                    (Ok(value), Ok(())) => value,
+                };
+                let tx = session.transaction.take().ok_or(DurableError::Corrupt(
+                    "private owner read session is closed",
+                ))?;
                 tx.commit()?;
-                Ok(result)
+                Ok(value)
             },
         )
     }
@@ -3432,4 +3977,39 @@ fn validate_write(write: &PrivateOwnerPackageWriteV1) -> DurableResult<()> {
         return Err(DurableError::Invalid("private source binding identity"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod read_completion_tests {
+    use super::*;
+    use crate::source_command::SourceCommandError;
+
+    #[test]
+    fn original_operation_and_release_faults_remain_distinct() {
+        let original = SourceCommandError::Denied("original payer cancellation");
+        let dual = complete_private_owner_read::<()>(
+            Err(DurableError::Source(original.clone())),
+            Err(DurableError::Corrupt("release failed")),
+        );
+        match dual {
+            Err(PrivateOwnerReadFailure::OperationAndRelease {
+                operation: DurableError::Source(error),
+                release: DurableError::Corrupt("release failed"),
+            }) => assert_eq!(error, original),
+            _ => panic!("both original operation and cleanup faults must survive"),
+        }
+        assert!(matches!(
+            complete_private_owner_read(Ok(7), Err(DurableError::Refused("release failed"))),
+            Err(PrivateOwnerReadFailure::Release(DurableError::Refused(
+                "release failed"
+            )))
+        ));
+        assert!(matches!(
+            complete_private_owner_read::<()>(Err(DurableError::Conflict("body")), Ok(())),
+            Err(PrivateOwnerReadFailure::Operation(DurableError::Conflict(
+                "body"
+            )))
+        ));
+        assert_eq!(complete_private_owner_read(Ok(7), Ok(())).unwrap(), 7);
+    }
 }

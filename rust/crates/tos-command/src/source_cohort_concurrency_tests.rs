@@ -13,6 +13,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_segment_store::{SegmentLimits, SegmentStore};
 
+use crate::source_command::SourceCommandError;
 use crate::source_creation_store::native_owner_test_support as fixture;
 
 const CONTRACT: &[u8] = b"cmd2.private.shadow.contract.v1";
@@ -952,6 +953,350 @@ fn lab_fixture(deadline: Instant, cancelled: &AtomicBool) -> Fixture {
 }
 
 #[test]
+fn selected_pg_payload_loan_reads_each_member_once_and_fences_body_and_success_exits() {
+    use crate::source_native_cli::PgGrowthCurrentInput;
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session_durable;
+    use tos_compiler::pwe_native::Limits;
+
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    // Existing real source/cohort/STO fixture setup is outside this selected
+    // invocation. No new issuer, profile, security grant or production data.
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let path = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
+    let paths = std::collections::BTreeSet::from([
+        path.clone(),
+        RelativePath::parse(&fixture.targets[1].source_path).unwrap(),
+    ]);
+    let expected = fixture
+        .original_cut
+        .read_member(
+            fixture.initial_revision,
+            &path,
+            8_388_608,
+            deadline,
+            &cancelled,
+        )
+        .unwrap()
+        .raw;
+    let expected_digest = Digest256::of_bytes(&expected);
+    let inspection = expected
+        .len()
+        .checked_mul(2)
+        .and_then(|n| {
+            path.as_str()
+                .len()
+                .checked_mul(2)
+                .and_then(|p| n.checked_add(p))
+        })
+        .and_then(|n| {
+            n.checked_add(2 * std::mem::size_of::<Digest256>() + 2 * std::mem::size_of::<u64>())
+        })
+        .unwrap();
+    let database_url = std::env::var("TOS_CMD_POSTGRES_URL").unwrap();
+    let mut conflicting = DurablePgCoordinator::connect(&database_url).unwrap();
+    let domain = fixture.domain.clone();
+    let mut job_fence = 1;
+    for lane in 0..3 {
+        let mut budget = OperationBudget::new(
+            &json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
+        let limits = Limits {
+            max_input_bytes: 4_194_304,
+            max_nodes: 1024,
+            max_work: 262_144,
+            max_refs: 64,
+            max_depth: 16,
+            max_items: 64,
+            max_state_bytes: 8_388_608,
+            deadline,
+        };
+        let result = fixture
+            .coordinator
+            .with_source_revision_session_with_exit_data_admission(
+                &fixture.store,
+                &domain,
+                JOB_ID,
+                job_fence,
+                deadline,
+                &cancelled,
+                &mut budget,
+                |epoch, original| {
+                    let input = PgGrowthCurrentInput::new(epoch, 64, 8_388_608)
+                        .map_err(|_| DurableError::Invalid("payload test selected input"))?;
+                    with_original_pwe_session_durable(
+                        original,
+                        limits,
+                        &cancelled,
+                        |payer, session| {
+                            input.with_current_payload_loan(
+                                payer,
+                                session,
+                                &paths,
+                                8_388_608,
+                                |loan| {
+                                    if lane == 0 {
+                                        let unselected = RelativePath::parse(
+                                    "ToS/contracts/semantic-entity-type-registry.schema.json"
+                                ).unwrap();
+                                        assert!(matches!(loan.with_bytes(&unselected, |_, _| -> std::result::Result<(), DurableError> {
+                                    panic!("existing but unselected payload must not be exposed")
+                                }), Err(DurableError::Refused(
+                                    "PG payload path outside selected loan"
+                                ))));
+                                    }
+                                    let mut first_input_charge = None;
+                                    for round in 0..2 {
+                                        loan.with_bytes(&path, |payload, same| {
+                                            // Assertions inspect the actual borrowed
+                                            // bytes; pay that work on this SAME Session.
+                                            same.admit_source_work(inspection).map_err(
+                                                |error| DurableError::Source(payer.error(error)),
+                                            )?;
+                                            assert_eq!(payload.member().raw, expected);
+                                            assert_eq!(payload.member().path, path);
+                                            assert_eq!(
+                                                payload.member().current_generation,
+                                                payload.selected().head_seq
+                                            );
+                                            assert_eq!(
+                                                payload.member().metadata.sha256,
+                                                expected_digest
+                                            );
+                                            if let Some(before) = first_input_charge {
+                                                assert_eq!(
+                                                    same.charges().0,
+                                                    before,
+                                                    "repeat borrowing is not another payload read"
+                                                );
+                                            } else {
+                                                first_input_charge = Some(same.charges().0);
+                                            }
+                                            if lane != 0 && round == 0 {
+                                                conflicting.set_job_epoch(
+                                                    &domain,
+                                                    JOB_ID,
+                                                    job_fence + 1,
+                                                )?;
+                                                if lane == 1 {
+                                                    return Err(DurableError::Source(
+                                                        SourceCommandError::Denied(
+                                                            "payload test original body fault",
+                                                        ),
+                                                    ));
+                                                }
+                                            }
+                                            Ok(())
+                                        })?;
+                                    }
+                                    Ok(())
+                                },
+                            )
+                        },
+                    )
+                },
+            );
+        match lane {
+            0 => {
+                let ((), readset) = result.unwrap();
+                assert_eq!(readset.work.exact_source_members_read, paths.len() as u64);
+                assert_eq!(readset.observations().len(), paths.len());
+            }
+            1 => assert!(matches!(
+                result,
+                Err(DurableError::Source(SourceCommandError::Denied(
+                    "payload test original body fault"
+                )))
+            )),
+            _ => assert!(matches!(
+                result,
+                Err(DurableError::Conflict(
+                    "bounded source revision job lease changed"
+                ))
+            )),
+        }
+        if lane != 0 {
+            job_fence += 1;
+        }
+    }
+}
+
+// This is the positive simultaneous-borrow gate for the Common splitter,
+// not a PWE role/worker/semantic admission fixture. It requires postgres-lab.
+#[test]
+fn selected_pg_payload_split_keeps_multiple_borrows_and_five_epoch_checks() {
+    use crate::source_native_cli::PgGrowthCurrentInput;
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session_durable;
+    use std::sync::atomic::Ordering;
+    use tos_compiler::pwe_native::Limits;
+
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let paths = std::collections::BTreeSet::from([
+        RelativePath::parse(&fixture.targets[0].source_path).unwrap(),
+        RelativePath::parse(&fixture.targets[1].source_path).unwrap(),
+    ]);
+    // Expected bytes come from the independent original fixture cut. Fixture
+    // setup is outside the measured source invocation, as in the prior test.
+    let expected: Vec<_> = paths
+        .iter()
+        .map(|path| {
+            let member = fixture
+                .original_cut
+                .read_member(
+                    fixture.initial_revision,
+                    path,
+                    8_388_608,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            (path, member.raw)
+        })
+        .collect();
+    let inspect = expected
+        .iter()
+        .try_fold(0usize, |sum, (path, raw)| {
+            raw.len()
+                .checked_add(path.as_str().len())
+                .and_then(|n| n.checked_mul(2))
+                .and_then(|n| sum.checked_add(n))
+        })
+        .unwrap();
+    let database_url = std::env::var("TOS_CMD_POSTGRES_URL").unwrap();
+    let mut conflicting = DurablePgCoordinator::connect(&database_url).unwrap();
+    let domain = fixture.domain.clone();
+    let mut job_fence = 1;
+    // Success; body fault + epoch conflict; successful body + epoch conflict;
+    // swallowed mapped resource refusal; cancellation at callback exit.
+    for lane in 0..5 {
+        let mut budget = OperationBudget::new(
+            &json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap();
+        let limits = Limits {
+            max_input_bytes: 4_194_304,
+            max_nodes: 1024,
+            max_work: 262_144,
+            max_refs: 64,
+            max_depth: 16,
+            max_items: 64,
+            max_state_bytes: 8_388_608,
+            deadline,
+        };
+        let result = fixture.coordinator.with_source_revision_session_with_exit_data_admission(
+            &fixture.store, &domain, JOB_ID, job_fence, deadline, &cancelled,
+            &mut budget, |epoch, original| {
+                let input = PgGrowthCurrentInput::new(epoch, 64, 8_388_608)
+                    .map_err(|_| DurableError::Invalid("split test selected input"))?;
+                with_original_pwe_session_durable(original, limits, &cancelled, |payer, session| {
+                    input.with_current_payload_loan(
+                        payer, session, &paths, 8_388_608, |loan| {
+                            loan.with_selected_payloads(|identity, members, epoch, same_payer, same| {
+                                same_payer.inspect(
+                                    2 * std::mem::size_of::<&crate::source_cohort::ManagedCurrentMember>()
+                                        + std::mem::size_of::<crate::source_cohort::revision::PgRecordRevisionIdentity>(),
+                                    0,
+                                ).map_err(DurableError::Source)?;
+                                assert!(std::ptr::eq(payer, same_payer));
+                                assert!(same.has_source_payer(same_payer));
+                                assert_eq!(members.len(), paths.len());
+                                // Both member references and their raw slices
+                                // stay live across all five mutable epoch and
+                                // sequential SAME Session uses below.
+                                let first = &members[0];
+                                let second = &members[1];
+                                let input_before = same.charges().0;
+                                for _ in 0..5 {
+                                    same.admit_source_work(inspect)
+                                        .map_err(|error| DurableError::Source(same_payer.error(error)))?;
+                                    assert_eq!(&first.path, expected[0].0);
+                                    assert_eq!(&second.path, expected[1].0);
+                                    assert_eq!(first.raw.as_slice(), expected[0].1.as_slice());
+                                    assert_eq!(second.raw.as_slice(), expected[1].1.as_slice());
+                                    assert_eq!(first.current_generation, identity.head_seq);
+                                    assert_eq!(second.current_generation, identity.head_seq);
+                                    // Same genuine epoch and original payer;
+                                    // no whole-loan reentry or second Session.
+                                    same_payer.reserve(
+                                        std::mem::size_of::<Option<DurableError>>()
+                                            + std::mem::size_of::<DurableResult<()>>(),
+                                    ).map_err(DurableError::Source)?;
+                                    let mut foreign = None;
+                                    same_payer.with_operation(|operation| {
+                                        match epoch.verify_fresh_with_query_data_admission(
+                                            operation, deadline, &cancelled,
+                                        ) {
+                                            Ok(()) => Ok(()),
+                                            Err(DurableError::Source(error)) => Err(error),
+                                            Err(error) => { foreign = Some(error); Ok(()) },
+                                        }
+                                    }).map_err(DurableError::Source)?;
+                                    if let Some(error) = foreign { return Err(error); }
+                                }
+                                assert_eq!(same.charges().0, input_before,
+                                    "five epoch checks do not reread retained payloads");
+                                if lane == 1 || lane == 2 {
+                                    conflicting.set_job_epoch(&domain, JOB_ID, job_fence + 1)?;
+                                    if lane == 1 {
+                                        return Err(DurableError::Source(SourceCommandError::Denied(
+                                            "split test original body fault",
+                                        )));
+                                    }
+                                } else if lane == 3 {
+                                    let refused = same.admit_source_work(usize::MAX).unwrap_err();
+                                    // Mapping may consume the original error,
+                                    // but cannot clear its sticky refusal.
+                                    let _mapped = same_payer.error(refused);
+                                } else if lane == 4 {
+                                    cancelled.store(true, Ordering::SeqCst);
+                                }
+                                Ok(())
+                            })
+                        },
+                    )
+                })
+            },
+        );
+        cancelled.store(false, Ordering::SeqCst);
+        match lane {
+            0 => {
+                let ((), readset) = result.unwrap();
+                assert_eq!(readset.work.exact_source_members_read, paths.len() as u64);
+                assert_eq!(readset.observations().len(), paths.len());
+            }
+            1 => assert!(matches!(
+                result,
+                Err(DurableError::Source(SourceCommandError::Denied(
+                    "split test original body fault"
+                )))
+            )),
+            2 => assert!(matches!(
+                result,
+                Err(DurableError::Conflict(
+                    "bounded source revision job lease changed"
+                ))
+            )),
+            3 | 4 => assert!(matches!(result, Err(DurableError::Source(_)))),
+            _ => unreachable!(),
+        }
+        if lane == 1 || lane == 2 {
+            job_fence += 1;
+        }
+    }
+}
+
+#[test]
 fn prepared_and_attached_revisions_allow_disjoint_writes_and_conflict_on_same_record() {
     let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);
@@ -1473,4 +1818,312 @@ fn private_owner_read_waits_for_writer_commit_before_repeatable_read_snapshot() 
     assert_eq!(selected_member.private_audit_generation, generation);
     assert_eq!(selected_member.bytes, b"new accepted private bytes");
     assert_ne!(selected_member.bytes, b"old accepted private bytes");
+}
+
+/// Real PG/STO source -> retained PWE host -> selected native schema worker.
+/// This proves the runtime transport/validation lane, not a formal-role issuer,
+/// current-use grant, qualified Assessment or whole-route native funding.
+#[test]
+fn selected_pg_payload_host_validates_native_records_with_the_same_worker() {
+    use crate::pwe_source_owner::with_pg_payload_host;
+    use crate::source_native_cli::PgGrowthCurrentInput;
+    use crate::source_native_cli::private_assessment::{
+        OperationBudget, original_payer::with_original_pwe_session_durable,
+        scope_admission::ScopeAccess, selected_assessment_candidate_worker,
+    };
+    use tos_compiler::pwe_native::Limits;
+
+    const SCHEMA: &str = "ToS/contracts/corpus-record.schema.json";
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let first_path = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
+    let second_path = RelativePath::parse(&fixture.targets[1].source_path).unwrap();
+    let schema_path = RelativePath::parse(SCHEMA).unwrap();
+    let paths = std::collections::BTreeSet::from([
+        first_path.clone(),
+        second_path.clone(),
+        schema_path.clone(),
+    ]);
+    let first_id = fixture.targets[0].record_id.clone();
+    let second_id = fixture.targets[1].record_id.clone();
+    let worker_path = std::env::var_os("TOS_SCHEMA_WORKER_PATH")
+        .map(PathBuf::from)
+        .expect("actual PG host runtime requires the pinned native schema worker")
+        .canonicalize()
+        .unwrap();
+    let invocation = json!({
+        "schema_worker":{
+            "absolute_path":worker_path,
+            "sha256":Digest256::of_bytes(&fs::read(&worker_path).unwrap()).to_prefixed()
+        },
+        "budgets":{
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1_073_741_824,
+            "max_schema_receipts":128,"max_schema_receipt_bytes":262_144
+        }
+    });
+    let domain = fixture.domain.clone();
+    let mut original = OperationBudget::new(
+        &json!({"budgets":{
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1_073_741_824
+        }}),
+        deadline,
+    )
+    .unwrap();
+    let ((), readset) = fixture
+        .coordinator
+        .with_source_revision_session_with_exit_data_admission(
+            &fixture.store,
+            &domain,
+            JOB_ID,
+            1,
+            deadline,
+            &cancelled,
+            &mut original,
+            |epoch, operation| {
+                let identity = epoch.selection().identity();
+                // Native preparation reads the selected schema through the REAL
+                // PG epoch. Its one physical read remains in the final readset;
+                // setup/worker bootstrap is NOT claimed funded by the inner loan.
+                // corpus-record.schema.json has only local fragment references;
+                // the actual candidate preparation rejects missing resources.
+                let mut worker = selected_assessment_candidate_worker(
+                    &invocation,
+                    epoch,
+                    identity,
+                    &[SCHEMA.to_owned()],
+                    deadline,
+                    &cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                assert_eq!(worker.input_identity(), &identity);
+                assert_eq!(worker.source_resource_count(), 1);
+                let input = PgGrowthCurrentInput::new(epoch, 64, 8_388_608)
+                    .map_err(|_| DurableError::Invalid("PG host runtime selected input"))?;
+                // Same unchanged source limits as the maintained selected-loan
+                // regression, not a raised cap to obtain a positive schema verdict.
+                let limits = Limits {
+                    max_input_bytes: 4_194_304,
+                    max_nodes: 1024,
+                    max_work: 262_144,
+                    max_refs: 64,
+                    max_depth: 16,
+                    max_items: 64,
+                    max_state_bytes: 8_388_608,
+                    deadline,
+                };
+                let body = with_original_pwe_session_durable(
+                    operation,
+                    limits,
+                    &cancelled,
+                    |payer, same| {
+                        input.with_current_payload_loan(payer, same, &paths, 8_388_608, |loan| {
+                            with_pg_payload_host(loan, &mut worker, |views, host| {
+                                // All THREE actual payload references remain live
+                                // while the private same-instance worker is used and
+                                // the independent source/resource guards run.
+                                let first = views.member(host, &first_path)?;
+                                let second = views.member(host, &second_path)?;
+                                let schema = views.member(host, &schema_path)?;
+                                host.verify()?;
+                                host.check_schema(&first, &schema)?;
+                                host.check_schema(&second, &schema)?;
+                                // A schema document is not an Agent record. Demand an
+                                // actual negative verdict from the same real executor;
+                                // a true-only schema stub cannot pass this fixture.
+                                assert!(matches!(
+                                    host.check_schema(&schema, &schema),
+                                    Err(DurableError::Refused(
+                                        "PWE PG selected schema rejected payload"
+                                    ))
+                                ));
+                                host.verify()?;
+                                host.with_source_epoch(
+                                    |_same_epoch, original_payer, _same_session| {
+                                        // Decode genuine selected bytes through the actual
+                                        // prospectively admitted strict parser, then inspect
+                                        // their native metadata identities on the original
+                                        // operation. No copied JSON is an authority factory.
+                                        for (member, expected_id) in
+                                            [(&first, &first_id), (&second, &second_id)]
+                                        {
+                                            let document = original_payer
+                                                .with_operation(|budget| {
+                                                    crate::source_native_roles::admitted_document(
+                                                        member.raw(),
+                                                        budget,
+                                                        deadline,
+                                                        &cancelled,
+                                                    )
+                                                })
+                                                .map_err(DurableError::Source)?;
+                                            original_payer
+                                                .with_operation(|budget| {
+                                                    let mut access =
+                                                        ScopeAccess::admitted_operation(
+                                                            budget, deadline, &cancelled,
+                                                        );
+                                                    let kind = access
+                                                        .text(document.root(), "record_type")?;
+                                                    let id = access
+                                                        .text(document.root(), "record_id")?;
+                                                    let version = access
+                                                        .text(document.root(), "schema_version")?;
+                                                    assert!(access.text_equal(kind, "agent")?);
+                                                    assert!(access.text_equal(id, expected_id)?);
+                                                    assert!(access.text_equal(
+                                                        version,
+                                                        "tos_corpus_record_v1"
+                                                    )?);
+                                                    Ok(())
+                                                })
+                                                .map_err(DurableError::Source)?;
+                                        }
+                                        Ok(())
+                                    },
+                                )?;
+                                host.verify()?;
+                                Ok(())
+                            })
+                        })
+                    },
+                );
+                // Real final executor exit on BOTH host/body outcomes. First body
+                // failure remains primary; a successful body cannot mask FINAL.
+                let finished = crate::source_sign::finish_worker(&mut worker, deadline, &cancelled)
+                    .map_err(DurableError::Source);
+                match (body, finished) {
+                    (Err(original), _) | (Ok(_), Err(original)) => Err(original),
+                    (Ok(value), Ok(())) => Ok(value),
+                }
+            },
+        )
+        .expect("actual selected PG payloads pass the real native schema worker and all exits");
+    // One schema acquisition during worker preparation plus exactly the three
+    // initial loan acquisitions. Repeated guards/schema calls add no raw reads.
+    assert_eq!(
+        readset.work.exact_source_members_read,
+        1 + paths.len() as u64
+    );
+    assert_eq!(readset.observations().len(), paths.len());
+}
+
+#[test]
+fn admitted_physical_presence_records_only_real_absence_without_reading_payloads() {
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let present = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
+    let missing = RelativePath::parse(
+        "ToS/source-witnesses/agents/parmenides-of-elea/no-such-selected-metadata.json",
+    )
+    .unwrap();
+    let mut original = OperationBudget::new(
+        &json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}),
+        deadline,
+    )
+    .unwrap();
+    let domain = fixture.domain.clone();
+    let ((), readset) = fixture
+        .coordinator
+        .with_source_revision_session_with_exit_data_admission(
+            &fixture.store,
+            &domain,
+            JOB_ID,
+            1,
+            deadline,
+            &cancelled,
+            &mut original,
+            |epoch, same| {
+                assert!(epoch.has_current_metadata_with_data_admission(
+                    &present, same, deadline, &cancelled
+                )?);
+                assert!(!epoch.has_current_metadata_with_data_admission(
+                    &missing, same, deadline, &cancelled
+                )?);
+                assert!(!epoch.has_current_metadata_with_data_admission(
+                    &missing, same, deadline, &cancelled
+                )?);
+                Ok(())
+            },
+        )
+        .expect("actual bounded PG existence and absence retain the same owner epoch");
+    assert_eq!(readset.work.metadata_member_lookups, 3);
+    assert_eq!(readset.work.exact_source_members_read, 0);
+    assert!(
+        readset.observations().is_empty(),
+        "presence is not a payload/content observation"
+    );
+    assert_eq!(
+        readset
+            .reads
+            .reads
+            .iter()
+            .filter(|read| matches!(read,
+                crate::PredicateRead::Absent { namespace, key }
+                    if namespace == "source" && key == missing.as_str()
+            ))
+            .count(),
+        1,
+        "the same actual absence is retained once"
+    );
+}
+
+#[test]
+fn admitted_physical_presence_refusal_preserves_original_prefix_and_blocks_epoch_success() {
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let present = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
+    let mut original = OperationBudget::new(
+        &json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}),
+        deadline,
+    )
+    .unwrap();
+    let domain = fixture.domain.clone();
+    let result = fixture
+        .coordinator
+        .with_source_revision_session_with_exit_data_admission(
+            &fixture.store,
+            &domain,
+            JOB_ID,
+            1,
+            deadline,
+            &cancelled,
+            &mut original,
+            |epoch, same| {
+                let bytes = same.limits().map_err(DurableError::Source)?.max_input_bytes;
+                same.lower_remaining(bytes, 1)
+                    .map_err(DurableError::Source)?;
+                let refused = epoch
+                    .has_current_metadata_with_data_admission(&present, same, deadline, &cancelled);
+                assert!(matches!(
+                    &refused,
+                    Err(DurableError::Source(SourceCommandError::Invalid(
+                        "assessment cumulative work budget"
+                    )))
+                ));
+                // Observe without operational re-admission or sticky-latch reset.
+                assert_eq!(same.test_work_remaining(), 1);
+                assert!(same.limits().is_err());
+                refused.map(|_| ())
+            },
+        );
+    assert!(
+        matches!(
+            result,
+            Err(DurableError::Source(SourceCommandError::Invalid(
+                "assessment cumulative work budget"
+            )))
+        ),
+        "the real epoch Err exit must preserve its first resource failure"
+    );
+    assert_eq!(original.test_work_remaining(), 1);
+    assert!(original.limits().is_err());
 }

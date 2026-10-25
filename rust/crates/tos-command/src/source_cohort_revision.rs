@@ -11,12 +11,27 @@ use crate::source_revisions::ReadonlyRecordFiles;
 use postgres::IsolationLevel;
 use std::sync::atomic::AtomicBool;
 
+#[path = "source_native_pg_directory_data.rs"]
+mod admitted_directory;
+#[path = "source_native_pg_presence.rs"]
+mod admitted_presence;
+#[path = "source_native_pg_epoch_original_pwe.rs"]
+mod original_pwe_epoch;
 #[path = "source_native_pg_query_data.rs"]
 mod query_data;
+pub(crate) use admitted_directory::physical_prefix_excludes_publication_virtuals;
+pub(crate) use admitted_directory::publication_prefix_discriminator_work;
 
 const FRESHNESS_SETUP_SQL: &str = "SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'";
 const FRESHNESS_AUDIT_SQL: &str = "SELECT generation,maintenance_state FROM cmd2_audit_fence
              WHERE domain=$1 FOR SHARE";
+// Use the actual binary type sender, including character padding and the
+// connection's encoding conversion. Keep its row lock until the following
+// full domain-row query finishes; a byte envelope from another cut is invalid.
+const FRESHNESS_DOMAIN_LENGTHS_SQL: &str = "SELECT
+             COALESCE(octet_length(pg_catalog.bpcharsend(source_definition_digest)),0),
+             COALESCE(octet_length(pg_catalog.bpcharsend(contract_digest)),0)
+             FROM cmd2_domain WHERE domain=$1 FOR SHARE";
 const FRESHNESS_DOMAIN_SQL: &str = "SELECT source_definition_digest,rights_allowed,source_complete,
                     rights_version,rule_version,head_seq,source_generation,
                     source_epoch,contract_digest
@@ -612,6 +627,66 @@ impl PgRecordRevisionIdentity {
 impl SourceRevisionSelection {
     pub(crate) fn identity(&self) -> PgRecordRevisionIdentity {
         PgRecordRevisionIdentity::from_selection(self)
+    }
+
+    /// The same opaque identity, with its variable hash operands and logical
+    /// carriers paid BEFORE construction on the original operation. This is
+    /// selected-data accounting, not a SQL/driver/native-stack or freshness
+    /// certificate. No source permission or new read epoch is issued here.
+    pub(crate) fn identity_with_data_admission(
+        &self,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<PgRecordRevisionIdentity> {
+        use std::mem::size_of;
+
+        crate::source_creation_store::active(deadline, cancelled)?;
+        if deadline > budget.limits()?.deadline {
+            return Err(SourceCommandError::Conflict(
+                "PG source identity cutoff exceeds original operation",
+            ));
+        }
+        // from_selection has exactly nine length-prefixed cohort parts. Its
+        // other two SHA256 inputs are the domain and job UTF-8 bytes. Keep the
+        // unchanged constructor as the sole source of the identity value.
+        let fixed_hash_data = 9 * size_of::<u64>()
+            + b"tos-pg-record-revision-cohort-identity-v1".len()
+            + 16
+            + 32
+            + 8
+            + 32
+            + 8
+            + 32
+            + 8;
+        let hash_data = self
+            .cohort
+            .domain
+            .len()
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(self.job_id.len()))
+            .and_then(|n| n.checked_add(fixed_hash_data))
+            .ok_or(SourceCommandError::Unsupported(
+                "PG source identity hash operand overflow",
+            ))?;
+        let holders = (3 * size_of::<Digest256Hasher>())
+            .checked_add(size_of::<PgRecordRevisionIdentity>())
+            .and_then(|n| n.checked_add(size_of::<SourceCommandResult<PgRecordRevisionIdentity>>()))
+            .ok_or(SourceCommandError::Unsupported(
+                "PG source identity result holders overflow",
+            ))?;
+        let work = hash_data
+            .checked_add(2 * size_of::<PgRecordRevisionIdentity>())
+            .ok_or(SourceCommandError::Unsupported(
+                "PG source identity comparison work overflow",
+            ))?;
+        // Includes the complete fixed-size returned identity comparison in
+        // the caller. No successful debit is restored after a later refusal.
+        budget.charge_work(work)?;
+        budget.charge_bytes(holders)?;
+        let identity = self.identity();
+        crate::source_creation_store::active(deadline, cancelled)?;
+        Ok(identity)
     }
 }
 
@@ -2129,6 +2204,37 @@ impl SourceRevisionReadSession<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceRevisionIdentityClosure> {
+        self.lookup_source_identities_using_data(tokens, None, deadline, cancelled)
+    }
+
+    /// Same complete five-kind point lookup, with logical query DATA paid on
+    /// the original operation BEFORE each actual payload query. Driver/native
+    /// map/control costs remain separate; returned counters are not admission.
+    pub(crate) fn lookup_source_identities_with_data_admission(
+        &mut self,
+        tokens: &BTreeSet<String>,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SourceRevisionIdentityClosure> {
+        let result = self.lookup_source_identities_using_data(
+            tokens,
+            Some(&mut *budget),
+            deadline,
+            cancelled,
+        );
+        finish_source_revision_epoch(result, || {
+            self.verify_fresh_with_query_data_admission(budget, deadline, cancelled)
+        })
+    }
+
+    fn lookup_source_identities_using_data(
+        &mut self,
+        tokens: &BTreeSet<String>,
+        mut budget: Option<&mut crate::source_native_cli::private_assessment::OperationBudget>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SourceRevisionIdentityClosure> {
         if tokens.len() > MAX_SOURCE_IDENTITY_LOOKUPS {
             return Err(DurableError::Refused(
                 "bounded source identity lookup count exceeded",
@@ -2141,13 +2247,61 @@ impl SourceRevisionReadSession<'_> {
             return Err(DurableError::Invalid("bounded source identity token bound"));
         }
         if tokens.is_empty() {
+            let selection_identity = match budget.as_deref_mut() {
+                Some(budget) => self
+                    .selection
+                    .identity_with_data_admission(budget, deadline, cancelled)
+                    .map_err(DurableError::Source)?,
+                None => self.selection.identity(),
+            };
             return Ok(SourceRevisionIdentityClosure {
-                selection_identity: self.selection.identity(),
+                selection_identity,
                 owners: BTreeMap::new(),
                 generations: BTreeMap::new(),
             });
         }
         active(deadline, cancelled)?;
+
+        let token_bytes = tokens
+            .iter()
+            .try_fold(0usize, |n, t| n.checked_add(t.len()))
+            .ok_or(DurableError::Refused("identity input DATA overflow"))?;
+        let kind_bytes = PG_AGENT_INDEX_KINDS.iter().map(|k| k.len()).sum::<usize>();
+        let array_bytes = |count: usize, bytes: usize| {
+            count
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(bytes))
+                .and_then(|n| n.checked_add(20))
+                .ok_or(DurableError::Refused("identity binary array DATA overflow"))
+        };
+        let kinds_wire = array_bytes(PG_AGENT_INDEX_KINDS.len(), kind_bytes)?;
+        let tokens_wire = array_bytes(tokens.len(), token_bytes)?;
+        if let Some(budget) = budget.as_deref_mut() {
+            // Two actual String Vecs, initial owner keys and all five default
+            // generation key payloads. Native BTree nodes/control are NOT
+            // inferred from these logical data/entry carriers.
+            let text = token_bytes
+                .checked_mul(2 + PG_AGENT_INDEX_KINDS.len())
+                .and_then(|n| {
+                    kind_bytes
+                        .checked_mul(1 + tokens.len())
+                        .and_then(|k| n.checked_add(k))
+                })
+                .ok_or(DurableError::Refused("identity cloned DATA overflow"))?;
+            let slots = tokens
+                .len()
+                .checked_mul(1 + PG_AGENT_INDEX_KINDS.len())
+                .and_then(|n| n.checked_add(PG_AGENT_INDEX_KINDS.len()))
+                .and_then(|n| {
+                    n.checked_mul(
+                        std::mem::size_of::<(String, String)>() + std::mem::size_of::<u64>(),
+                    )
+                })
+                .and_then(|n| n.checked_add(text))
+                .ok_or(DurableError::Refused("identity DATA holders overflow"))?;
+            budget.charge_work(text).map_err(DurableError::Source)?;
+            budget.charge_bytes(slots).map_err(DurableError::Source)?;
+        }
 
         let kinds = PG_AGENT_INDEX_KINDS
             .iter()
@@ -2155,8 +2309,39 @@ impl SourceRevisionReadSession<'_> {
             .collect::<Vec<_>>();
         let token_values = tokens.iter().cloned().collect::<Vec<_>>();
         let (identities, generations) = {
+            if let Some(budget) = budget.as_deref_mut() {
+                query_data::begin(budget, deadline, cancelled).map_err(DurableError::Source)?;
+            }
             let mut tx = self.coordinator.client.transaction()?;
+            if let Some(budget) = budget.as_deref_mut() {
+                const SNAPSHOT: &str = "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ";
+                query_data::statement(
+                    budget,
+                    SNAPSHOT,
+                    &[],
+                    query_data::RowShape::None,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                tx.batch_execute(SNAPSHOT)?;
+                query_data::statement(
+                    budget,
+                    FRESHNESS_SETUP_SQL,
+                    &[],
+                    query_data::RowShape::None,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+            }
             tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+            if let Some(budget) = budget.as_deref_mut() {
+                query_data::statement(budget,
+                    "SELECT generation,maintenance_state FROM cmd2_audit_fence\n                 WHERE domain=$1 FOR SHARE",
+                    &[self.selection.cohort.domain.len()], query_data::RowShape::Audit, deadline, cancelled)
+                    .map_err(DurableError::Source)?;
+            }
             let fence = tx.query_one(
                 "SELECT generation,maintenance_state FROM cmd2_audit_fence
                  WHERE domain=$1 FOR SHARE",
@@ -2168,6 +2353,29 @@ impl SourceRevisionReadSession<'_> {
                 return Err(DurableError::Conflict(
                     "bounded source identity batch audit fence changed",
                 ));
+            }
+            if let Some(budget) = budget.as_deref_mut() {
+                query_data::statement(
+                    budget,
+                    FRESHNESS_DOMAIN_LENGTHS_SQL,
+                    &[self.selection.cohort.domain.len()],
+                    query_data::RowShape::DomainLengths,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                let lengths = tx.query_one(
+                    FRESHNESS_DOMAIN_LENGTHS_SQL,
+                    &[&self.selection.cohort.domain],
+                )?;
+                let definition = usize::try_from(lengths.get::<_, i32>(0))
+                    .map_err(|_| DurableError::Corrupt("identity definition sender length"))?;
+                let contract = usize::try_from(lengths.get::<_, i32>(1))
+                    .map_err(|_| DurableError::Corrupt("identity contract sender length"))?;
+                query_data::statement(budget,
+                    "SELECT rights_allowed,rights_version,source_complete,source_generation,\n                        source_epoch,contract_digest,source_definition_digest\n                 FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+                    &[self.selection.cohort.domain.len()], query_data::RowShape::lookup_domain(definition, contract), deadline, cancelled)
+                    .map_err(DurableError::Source)?;
             }
             let gate = tx.query_one(
                 "SELECT rights_allowed,rights_version,source_complete,source_generation,
@@ -2193,6 +2401,45 @@ impl SourceRevisionReadSession<'_> {
                 ));
             }
 
+            if let Some(budget) = budget.as_deref_mut() {
+                const ENVELOPE: &str = "SELECT count(*)::bigint,COALESCE(sum(\n                    octet_length(pg_catalog.textsend(kind))+octet_length(pg_catalog.textsend(token))+\n                    octet_length(pg_catalog.textsend(path))+octet_length(pg_catalog.bpcharsend(definition_digest))),0)::bigint,\n                    COALESCE(sum(octet_length(pg_catalog.textsend(path))),0)::bigint\n                    FROM cmd2_source_index WHERE domain=$1 AND kind=ANY($2) AND token=ANY($3)";
+                let params = [self.selection.cohort.domain.len(), kinds_wire, tokens_wire];
+                query_data::statement(
+                    budget,
+                    ENVELOPE,
+                    &params,
+                    query_data::RowShape::IndexEnvelope,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                // This transaction's actual repeatable-read snapshot binds
+                // the envelope and full rows, including phantom insertions.
+                // It is NOT a continuous transaction across the outer epoch.
+                let envelope = tx.query_one(
+                    ENVELOPE,
+                    &[&self.selection.cohort.domain, &kinds, &token_values],
+                )?;
+                let rows = usize::try_from(envelope.get::<_, i64>(0))
+                    .map_err(|_| DurableError::Corrupt("identity row count"))?;
+                let bytes = usize::try_from(envelope.get::<_, i64>(1))
+                    .map_err(|_| DurableError::Corrupt("identity row DATA"))?;
+                let paths = usize::try_from(envelope.get::<_, i64>(2))
+                    .map_err(|_| DurableError::Corrupt("identity path DATA"))?;
+                if rows > tokens.len() * PG_AGENT_INDEX_KINDS.len() {
+                    return Err(DurableError::Corrupt(
+                        "identity index cardinality exceeds fixed uniqueness domain",
+                    ));
+                }
+                let decoded = rows
+                    .checked_mul(64)
+                    .and_then(|n| n.checked_add(bytes))
+                    .and_then(|n| n.checked_add(paths))
+                    .ok_or(DurableError::Refused("identity decoded DATA overflow"))?;
+                query_data::table_statement(budget,
+                    "SELECT kind,token,path,definition_digest FROM cmd2_source_index\n                 WHERE domain=$1 AND kind=ANY($2) AND token=ANY($3)\n                 ORDER BY token COLLATE \"C\",kind COLLATE \"C\"",
+                    &params, rows, 4, bytes, decoded, rows * 6, deadline, cancelled).map_err(DurableError::Source)?;
+            }
             let rows = tx.query(
                 "SELECT kind,token,path,definition_digest FROM cmd2_source_index
                  WHERE domain=$1 AND kind=ANY($2) AND token=ANY($3)
@@ -2234,6 +2481,50 @@ impl SourceRevisionReadSession<'_> {
                 *slot = Some((kind, path));
             }
 
+            if let Some(budget) = budget.as_deref_mut() {
+                const ENVELOPE: &str = "SELECT count(*)::bigint,COALESCE(sum(\n                    octet_length(pg_catalog.textsend(scope))+octet_length(pg_catalog.textsend(token))+\n                    octet_length(pg_catalog.textsend(definition_version))),0)::bigint\n                    FROM cmd2_predicate WHERE domain=$1 AND kind='unique' AND owner=$2\n                    AND scope=ANY($3) AND token=ANY($4)";
+                let params = [
+                    self.selection.cohort.domain.len(),
+                    OWNER.len(),
+                    kinds_wire,
+                    tokens_wire,
+                ];
+                query_data::statement(
+                    budget,
+                    ENVELOPE,
+                    &params,
+                    query_data::RowShape::PredicateEnvelope,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                let envelope = tx.query_one(
+                    ENVELOPE,
+                    &[&self.selection.cohort.domain, &OWNER, &kinds, &token_values],
+                )?;
+                let rows = usize::try_from(envelope.get::<_, i64>(0))
+                    .map_err(|_| DurableError::Corrupt("identity predicate row count"))?;
+                let text = usize::try_from(envelope.get::<_, i64>(1))
+                    .map_err(|_| DurableError::Corrupt("identity predicate DATA"))?;
+                if rows > tokens.len() * PG_AGENT_INDEX_KINDS.len() {
+                    return Err(DurableError::Corrupt(
+                        "identity predicate cardinality exceeds fixed uniqueness domain",
+                    ));
+                }
+                let payload = rows
+                    .checked_mul(9)
+                    .and_then(|n| n.checked_add(text))
+                    .ok_or(DurableError::Refused("identity predicate payload overflow"))?;
+                let decoded = rows
+                    .checked_mul(64)
+                    .and_then(|n| n.checked_add(text))
+                    .ok_or(DurableError::Refused(
+                        "identity predicate decoded DATA overflow",
+                    ))?;
+                query_data::table_statement(budget,
+                    "SELECT scope,token,generation,complete,definition_version\n                 FROM cmd2_predicate\n                 WHERE domain=$1 AND kind='unique' AND owner=$2\n                   AND scope=ANY($3) AND token=ANY($4)\n                 ORDER BY token COLLATE \"C\",scope COLLATE \"C\"",
+                    &params, rows, 5, payload, decoded, rows * 4, deadline, cancelled).map_err(DurableError::Source)?;
+            }
             let predicate_rows = tx.query(
                 "SELECT scope,token,generation,complete,definition_version
                  FROM cmd2_predicate
@@ -2276,11 +2567,40 @@ impl SourceRevisionReadSession<'_> {
                     .get(&(kind.to_owned(), token.clone()))
                     .copied()
                     .unwrap_or(0);
+                if let Some(budget) = budget.as_deref_mut() {
+                    // Actual record_predicate owns two three-String keys and
+                    // one four-String read. Pay all possible owned text before
+                    // it clones/inserts; BTree nodes/native control stay open.
+                    let text = token
+                        .len()
+                        .checked_mul(3)
+                        .and_then(|n| n.checked_add(kind.len() * 3))
+                        .and_then(|n| n.checked_add(2 * "unique".len() + OWNER.len() + 64))
+                        .ok_or(DurableError::Refused("identity predicate text overflow"))?;
+                    let holders = text
+                        .checked_add(2 * std::mem::size_of::<(String, String, String)>())
+                        .and_then(|n| n.checked_add(std::mem::size_of::<PredicateRead>()))
+                        .ok_or(DurableError::Refused("identity predicate holders overflow"))?;
+                    budget
+                        .charge_work(
+                            text.checked_add(32)
+                                .ok_or(DurableError::Refused("identity predicate work overflow"))?,
+                        )
+                        .map_err(DurableError::Source)?;
+                    budget.charge_bytes(holders).map_err(DurableError::Source)?;
+                }
                 self.record_predicate("unique", kind, &token, generation);
             }
         }
+        let selection_identity = match budget.as_deref_mut() {
+            Some(budget) => self
+                .selection
+                .identity_with_data_admission(budget, deadline, cancelled)
+                .map_err(DurableError::Source)?,
+            None => self.selection.identity(),
+        };
         Ok(SourceRevisionIdentityClosure {
-            selection_identity: self.selection.identity(),
+            selection_identity,
             owners: identities,
             generations,
         })
@@ -3441,11 +3761,31 @@ impl SourceRevisionReadSession<'_> {
         }
         let fence = tx.query_one(FRESHNESS_AUDIT_SQL, &[&self.selection.cohort.domain])?;
         if let Some(budget) = budget.as_deref_mut() {
+            // Fetch only two int4 lengths first. No digest string/body enters
+            // the client until its complete sender payload is paid. This is
+            // the SAME transaction and domain row lock as the full read.
+            query_data::statement(
+                budget,
+                FRESHNESS_DOMAIN_LENGTHS_SQL,
+                &[self.selection.cohort.domain.len()],
+                query_data::RowShape::DomainLengths,
+                deadline,
+                cancelled,
+            )
+            .map_err(DurableError::Source)?;
+            let lengths = tx.query_one(
+                FRESHNESS_DOMAIN_LENGTHS_SQL,
+                &[&self.selection.cohort.domain],
+            )?;
+            let definition_bytes = usize::try_from(lengths.get::<_, i32>(0))
+                .map_err(|_| DurableError::Corrupt("source definition sender length"))?;
+            let contract_bytes = usize::try_from(lengths.get::<_, i32>(1))
+                .map_err(|_| DurableError::Corrupt("source contract sender length"))?;
             query_data::statement(
                 budget,
                 FRESHNESS_DOMAIN_SQL,
                 &[self.selection.cohort.domain.len()],
-                query_data::RowShape::Domain,
+                query_data::RowShape::domain(definition_bytes, contract_bytes),
                 deadline,
                 cancelled,
             )
@@ -3529,6 +3869,62 @@ impl SourceRevisionReadSession<'_> {
             cancelled,
             |row| cohort_matches(row, &self.selection.cohort, true),
         )?;
+        self.record_selected_current_member(path, row, raw, placement, work)
+    }
+
+    /// The same actual source epoch and required readset observations, with
+    /// the original-admission STO leg. SQL, metadata/record clones and full
+    /// native caller enclosure are NOT certified by this lower-only port.
+    /// Admission E remains distinct from the existing PG/store/source error.
+    /// The enclosing held epoch still owns its Ok/Err exit freshness check.
+    pub(crate) fn read_current_member_with_sto_admission<E, A>(
+        &mut self,
+        path: &RelativePath,
+        max_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut A,
+    ) -> std::result::Result<DurableResult<ManagedCurrentMember>, E>
+    where
+        A: FnMut(u64, usize, usize, u64, u64) -> std::result::Result<(), E>,
+    {
+        if let Err(error) = active(deadline, cancelled) {
+            return Ok(Err(error));
+        }
+        if !path.as_str().starts_with("ToS/") {
+            return Ok(Err(DurableError::Refused(
+                "bounded source revision path outside authored namespace",
+            )));
+        }
+        match self
+            .coordinator
+            .read_committed_source_selected_with_sto_admission(
+                self.store,
+                &self.selection.cohort.domain,
+                path.as_str(),
+                None,
+                max_bytes,
+                deadline,
+                cancelled,
+                |row| cohort_matches(row, &self.selection.cohort, true),
+                admission,
+            ) {
+            Err(original) => Err(original),
+            Ok(Err(source)) => Ok(Err(source)),
+            Ok(Ok((row, raw, placement, work))) => {
+                Ok(self.record_selected_current_member(path, row, raw, placement, work))
+            }
+        }
+    }
+
+    fn record_selected_current_member(
+        &mut self,
+        path: &RelativePath,
+        row: postgres::Row,
+        raw: Vec<u8>,
+        placement: PlacementV1,
+        work: crate::durable_adapter::CommittedSourceReadWork,
+    ) -> DurableResult<ManagedCurrentMember> {
         let (metadata, dependency_claims) = expose_metadata(&row, path)?;
         let locator = metadata_locator_digest(&row);
         let member = ManagedCurrentMember {
@@ -4311,6 +4707,91 @@ fn finish_source_revision_epoch<T>(
 #[cfg(test)]
 mod epoch_exit_tests {
     use super::*;
+
+    // Pure identity/accounting operands. These values issue no PG selection,
+    // owner authority, retained closure, or current-use grant.
+    fn identity_selection(domain: &str, job: &str) -> SourceRevisionSelection {
+        SourceRevisionSelection {
+            cohort: ManagedSourceCohort {
+                domain: domain.to_owned(),
+                store_id: [7; 16],
+                initial_revision: SourceRevision(Digest256::of_bytes(b"hash-test-bootstrap")),
+                initial_membership: SourceMembershipV1 {
+                    count: 7,
+                    digest: Digest256::of_bytes(b"hash-test-membership"),
+                },
+                epoch: 11,
+                definition: Digest256::of_bytes(b"hash-test-definition"),
+                generation: 13,
+            },
+            contract: Digest256::of_bytes(b"hash-test-contract"),
+            epoch: 17,
+            source_generation: 19,
+            head_seq: 23,
+            audit_generation: 29,
+            rights_version: 31,
+            rule_version: 37,
+            job_id: job.to_owned(),
+            job_fence: 41,
+        }
+    }
+
+    fn identity_budget(
+        deadline: Instant,
+    ) -> crate::source_native_cli::private_assessment::OperationBudget {
+        crate::source_native_cli::private_assessment::OperationBudget::new(
+            &serde_json::json!({"budgets": {
+                "worker_cpu_seconds": 1, "worker_address_space_bytes": 1048576
+            }}),
+            deadline,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn admitted_pg_identity_preserves_value_and_prices_utf8_operands_before_construction() {
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut fees = Vec::new();
+        for (domain, job) in [("A", "B"), ("Ж", "猫")] {
+            let selected = identity_selection(domain, job);
+            let mut budget = identity_budget(deadline);
+            let before = budget.test_work_remaining();
+            let actual = selected
+                .identity_with_data_admission(&mut budget, deadline, &cancelled)
+                .unwrap();
+            assert_eq!(actual, selected.identity());
+            fees.push(before - budget.test_work_remaining());
+        }
+        // Domain bytes are hashed twice (cohort and domain digest); job bytes
+        // once. Equal character counts must not conceal UTF-8 byte costs.
+        assert_eq!(
+            fees[1] - fees[0],
+            2 * ("Ж".len() - "A".len()) + "猫".len() - "B".len()
+        );
+    }
+
+    #[test]
+    fn refused_pg_identity_keeps_original_remainder_and_sticky_denial() {
+        let deadline = Instant::now() + std::time::Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let selected = identity_selection("A", "B");
+        let mut budget = identity_budget(deadline);
+        budget.lower_remaining(1_048_576, 1).unwrap();
+        assert!(
+            selected
+                .identity_with_data_admission(&mut budget, deadline, &cancelled)
+                .is_err()
+        );
+        assert_eq!(budget.test_work_remaining(), 1);
+        assert!(budget.limits().is_err());
+        assert!(
+            selected
+                .identity_with_data_admission(&mut budget, deadline, &cancelled)
+                .is_err()
+        );
+        assert_eq!(budget.test_work_remaining(), 1);
+    }
 
     #[test]
     fn refused_body_attempts_exit_and_keeps_first_error() {

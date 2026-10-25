@@ -16,37 +16,101 @@ fn mul(a: usize, b: usize) -> SourceCommandResult<usize> {
     a.checked_mul(b).ok_or_else(exhausted)
 }
 
-/// The real Row payload shapes from durable_schema.sql: bigint8, bool1,
-/// char(64)64 and maintenance_state constrained to normal/active (max6).
+/// Payloads of the selected binary queries, not a private-writer promise.
+/// Domain digest lengths come from the actual bpcharsend envelope under the
+/// same row lock before the full row is fetched. char(64) is NOT byte64.
 /// Null fields need no more payload. This is not a configurable source grant.
 pub(super) enum RowShape {
     None,
     Audit,
-    Domain,
+    DomainLengths,
+    Domain([usize; 9]),
     Job,
+    Presence,
+    LookupDomain([usize; 7]),
+    IndexEnvelope,
+    PredicateEnvelope,
 }
 impl RowShape {
-    fn fields(&self) -> &'static [usize] {
+    pub(super) fn domain(definition_bytes: usize, contract_bytes: usize) -> Self {
+        Self::Domain([definition_bytes, 1, 1, 8, 8, 8, 8, 8, contract_bytes])
+    }
+    pub(super) fn lookup_domain(definition_bytes: usize, contract_bytes: usize) -> Self {
+        Self::LookupDomain([1, 8, 1, 8, 8, contract_bytes, definition_bytes])
+    }
+    fn fields(&self) -> &[usize] {
         match self {
             Self::None => &[],
             Self::Audit => &[8, 6],
-            Self::Domain => &[64, 1, 1, 8, 8, 8, 8, 8, 64],
+            Self::DomainLengths => &[4, 4],
+            Self::Domain(fields) => fields,
             Self::Job => &[8],
+            Self::Presence => &[1],
+            Self::LookupDomain(fields) => fields,
+            Self::IndexEnvelope => &[8, 8, 8],
+            Self::PredicateEnvelope => &[8, 8],
         }
     }
-    fn decoded(&self) -> (usize, usize) {
-        match self {
-            // Actual get::<String> copies, plus two expected digest hex
-            // Strings in the domain comparisons. No post-query measurement.
+    fn decoded(&self) -> SourceCommandResult<(usize, usize)> {
+        Ok(match self {
             Self::Audit => (6, 1),
-            Self::Domain => (5 * 64, 5),
-            Self::None | Self::Job => (0, 0),
-        }
+            // The real caller copies definition twice and contract once.
+            // Only the two expected Digest256::to_hex values are ASCII64.
+            Self::Domain(fields) => (add(add(mul(2, fields[0])?, fields[8])?, 2 * 64)?, 5),
+            Self::LookupDomain(fields) => (add(add(mul(2, fields[6])?, fields[5])?, 2 * 64)?, 5),
+            Self::None
+            | Self::DomainLengths
+            | Self::Job
+            | Self::Presence
+            | Self::IndexEnvelope
+            | Self::PredicateEnvelope => (0, 0),
+        })
     }
 }
 
-/// Reserve actual inline transaction/three returned Row carriers before BEGIN,
-/// and all three possible transaction-control SQL inputs before cleanup can
+/// Selected index query DATA from the actual locked sender-length projection.
+/// This bounds logical rows, decoded strings and nominal Row/range/Vec
+/// carriers. It does not infer actual foreign driver capacity or price all
+/// caller map/comparison/activation work. Call before the full payload query.
+pub(super) fn table_statement(
+    budget: &mut OperationBudget,
+    sql: &'static str,
+    parameters: &[usize],
+    rows: usize,
+    fields: usize,
+    payload: usize,
+    decoded_bytes: usize,
+    strings: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(deadline, cancelled)?;
+    let input = parameters.iter().try_fold(sql.len(), |n, p| add(n, *p))?;
+    let data_rows = add(mul(rows, add(7, mul(fields, 4)?)?)?, payload)?;
+    let ranges = mul(
+        mul(rows, add(mul(fields, 3)?, 4)?)?,
+        size_of::<Option<Range<usize>>>(),
+    )?;
+    // Cumulative non-u8 Vec push layouts: 4+8+...+C < 4*N+4.
+    // Driver-owned non-Vec allocations are expressly outside this DATA quote.
+    let row_slots = mul(add(mul(rows, 4)?, 4)?, size_of::<postgres::Row>())?;
+    let holders = add(
+        add(data_rows, ranges)?,
+        add(
+            row_slots,
+            add(decoded_bytes, mul(strings, size_of::<String>())?)?,
+        )?,
+    )?;
+    budget.charge_work(add(
+        add(input, data_rows)?,
+        add(decoded_bytes, mul(rows, fields)?)?,
+    )?)?;
+    budget.charge_bytes(add(input, holders)?)
+}
+
+/// Reserve the actual transaction/four Row carriers and five statement-shape
+/// holders before BEGIN, plus the two decoded length scalars. Also reserve
+/// all three possible transaction-control SQL inputs before cleanup can
 /// be needed. No claimed bound for foreign driver-owned error payloads.
 pub(super) fn begin(
     budget: &mut OperationBudget,
@@ -61,7 +125,13 @@ pub(super) fn begin(
     }
     let carriers = add(
         size_of::<postgres::Transaction<'_>>(),
-        mul(3, size_of::<postgres::Row>())?,
+        add(
+            mul(4, size_of::<postgres::Row>())?,
+            add(
+                mul(5, size_of::<RowShape>())?,
+                mul(2, size_of::<i32>() + size_of::<usize>())?,
+            )?,
+        )?,
     )?;
     let transaction_sql = add(
         add("START TRANSACTION".len(), "COMMIT".len())?,
@@ -102,7 +172,7 @@ pub(super) fn statement(
             size_of::<Option<Range<usize>>>(),
         )?
     };
-    let (decoded_bytes, decoded_strings) = shape.decoded();
+    let (decoded_bytes, decoded_strings) = shape.decoded()?;
     let holders = add(
         add(data_row, ranges)?,
         add(decoded_bytes, mul(decoded_strings, size_of::<String>())?)?,
@@ -112,4 +182,31 @@ pub(super) fn statement(
         add(decoded_bytes, fields.len())?,
     )?)?;
     budget.charge_bytes(add(input, holders)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn digest_row_quote_uses_sender_bytes_before_hex_refusal() {
+        let field = "\u{1f642}".repeat(64);
+        assert_eq!(field.chars().count(), 64);
+        assert_eq!(field.len(), 256);
+        assert!(tos_foundation::Digest256::from_hex(&field).is_err());
+        let shape = RowShape::domain(field.len(), field.len());
+        let fields = shape.fields();
+        assert_eq!(fields[0], field.len());
+        assert_eq!(fields[8], field.len());
+        let (copies, strings) = shape.decoded().unwrap();
+        assert!(copies >= 3 * field.len() + 2 * 64);
+        assert_eq!(strings, 5);
+        // The actual sender envelope, not a character-count heuristic,
+        // supplies these lengths. Never clamp a larger observation to 256.
+        let converted = RowShape::domain(384, 384);
+        assert_eq!(converted.fields()[0], 384);
+        assert_eq!(converted.fields()[8], 384);
+        assert_eq!(converted.decoded().unwrap(), (3 * 384 + 2 * 64, 5));
+        assert!(RowShape::domain(usize::MAX, 1).decoded().is_err());
+    }
 }

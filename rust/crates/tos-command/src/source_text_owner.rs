@@ -17,6 +17,10 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_validation::record_biblio_cut::SourceCutInput;
 use tos_validation::source_cut::CutSchemaExecutor;
 
+#[path = "source_text_owner_scope_binding.rs"]
+mod scope_binding;
+pub(crate) use scope_binding::PrivateScopeBindingAdmission;
+
 const CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const CONTEXT_SCHEMA_ID: &str =
     "https://tree-of-sophia.local/ToS/contracts/owner-local-source-context.schema.json";
@@ -94,6 +98,123 @@ fn read_held_fd_with_io(
     cancelled: &AtomicBool,
     io: Option<&tos_source_store::PinnedSqliteIoBudget>,
 ) -> SourceCommandResult<Vec<u8>> {
+    read_held_fd_with_policies(file, max, deadline, cancelled, io, None)
+}
+
+/// Original resource port only; the actual owner still selects the FD,
+/// verifies its custody and applies read policy. Work has no input/state proxy.
+pub(crate) trait ProtectedContextReadAdmission:
+    crate::source_creation_store::CreationReadAdmission
+{
+    /// The physical owner captures its own output and original Err. The
+    /// lender only splits prepaid scratch/admission for one unit callback;
+    /// it cannot issue or replace the reader's payload/result.
+    fn with_protected_context_workspace(
+        &mut self,
+        _run: &mut dyn FnMut(&mut [u8], &mut dyn ProtectedContextReadAdmission),
+    ) -> Option<SourceCommandResult<()>> {
+        None
+    }
+
+    fn before_protected_context_work(&mut self, bytes: usize) -> SourceCommandResult<()>;
+}
+
+fn read_held_fd_with_policies(
+    file: &File,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    admission: Option<&mut dyn ProtectedContextReadAdmission>,
+) -> SourceCommandResult<Vec<u8>> {
+    read_held_fd_with_limit_policy(
+        file,
+        max,
+        deadline,
+        cancelled,
+        io,
+        admission,
+        HeldReadLimit::Budget,
+    )
+}
+
+// Only the physical reader selects this policy. Callback errors propagate
+// directly through `?`; their variant/text never selects a reader outcome.
+#[derive(Clone, Copy)]
+enum HeldReadLimit {
+    Budget,
+    Selected,
+}
+impl HeldReadLimit {
+    fn exceeded(self) -> SourceCommandError {
+        match self {
+            Self::Budget => SourceCommandError::Invalid("owner-local file byte budget"),
+            Self::Selected => {
+                SourceCommandError::Conflict("owner-local configuration or contract changed")
+            }
+        }
+    }
+}
+
+fn read_held_fd_with_limit_policy(
+    file: &File,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    mut admission: Option<&mut dyn ProtectedContextReadAdmission>,
+    limit_policy: HeldReadLimit,
+) -> SourceCommandResult<Vec<u8>> {
+    if let Some(payer) = admission.as_deref_mut() {
+        let mut physical = None;
+        let mut invoked = false;
+        let mut repeated = false;
+        let loan = payer.with_protected_context_workspace(&mut |block, same| {
+            if invoked {
+                repeated = true;
+                return;
+            }
+            invoked = true;
+            physical = Some(read_held_fd_with_borrowed_workspace(
+                file,
+                max,
+                deadline,
+                cancelled,
+                io,
+                Some(same),
+                limit_policy,
+                block,
+            ));
+        });
+        if let Some(result) =
+            crate::source_creation_store::complete_workspace_read(physical, invoked, repeated, loan)
+        {
+            return result;
+        }
+    }
+    read_held_fd_with_owned_workspace(file, max, deadline, cancelled, io, admission, limit_policy)
+}
+
+#[inline(never)]
+fn read_held_fd_with_owned_workspace(
+    file: &File,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    mut admission: Option<&mut dyn ProtectedContextReadAdmission>,
+    limit_policy: HeldReadLimit,
+) -> SourceCommandResult<Vec<u8>> {
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_creation_read(
+            file,
+            crate::source_creation_store::CreationReadStage::Begin {
+                payload_cap: max,
+                scratch_bytes: 65_536,
+            },
+        )?;
+        active(deadline, cancelled)?;
+    }
     let mut raw = Vec::new();
     let mut offset = 0u64;
     let mut block = [0u8; 65_536];
@@ -101,15 +222,24 @@ fn read_held_fd_with_io(
         active(deadline, cancelled)?;
         let limit = max
             .checked_add(1)
-            .ok_or(SourceCommandError::Invalid("owner-local file byte budget"))?
+            .ok_or(limit_policy.exceeded())?
             .saturating_sub(raw.len())
             .min(block.len());
         if limit == 0 {
-            return Err(SourceCommandError::Invalid("owner-local file byte budget"));
+            return Err(limit_policy.exceeded());
         }
         if let Some(io) = io {
             io.charge_read(limit as u64)
                 .map_err(|_| SourceCommandError::Denied("owner-local retained read permit"))?;
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                crate::source_creation_store::CreationReadStage::Read {
+                    requested_bytes: limit,
+                },
+            )?;
+            active(deadline, cancelled)?;
         }
         let count = file
             .read_at(&mut block[..limit], offset)
@@ -121,6 +251,17 @@ fn read_held_fd_with_io(
         if count == 0 {
             break;
         }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                crate::source_creation_store::CreationReadStage::Retain {
+                    length: raw.len(),
+                    capacity: raw.capacity(),
+                    additional: count,
+                },
+            )?;
+            active(deadline, cancelled)?;
+        }
         raw.extend_from_slice(&block[..count]);
         offset = offset
             .checked_add(count as u64)
@@ -128,7 +269,89 @@ fn read_held_fd_with_io(
                 "owner-local file size overflow",
             ))?;
         if raw.len() > max {
-            return Err(SourceCommandError::Invalid("owner-local file byte budget"));
+            return Err(limit_policy.exceeded());
+        }
+    }
+    Ok(raw)
+}
+
+fn read_held_fd_with_borrowed_workspace(
+    file: &File,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    mut admission: Option<&mut dyn ProtectedContextReadAdmission>,
+    limit_policy: HeldReadLimit,
+    block: &mut [u8],
+) -> SourceCommandResult<Vec<u8>> {
+    if block.len() != 65_536 {
+        return Err(SourceCommandError::Invalid("protected read workspace size"));
+    }
+    if let Some(payer) = admission.as_deref_mut() {
+        payer.before_creation_read(
+            file,
+            crate::source_creation_store::CreationReadStage::Begin {
+                payload_cap: max,
+                scratch_bytes: 0,
+            },
+        )?;
+        active(deadline, cancelled)?;
+    }
+    let mut raw = Vec::new();
+    let mut offset = 0u64;
+    loop {
+        active(deadline, cancelled)?;
+        let limit = max
+            .checked_add(1)
+            .ok_or(limit_policy.exceeded())?
+            .saturating_sub(raw.len())
+            .min(block.len());
+        if limit == 0 {
+            return Err(limit_policy.exceeded());
+        }
+        if let Some(io) = io {
+            io.charge_read(limit as u64)
+                .map_err(|_| SourceCommandError::Denied("owner-local retained read permit"))?;
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                crate::source_creation_store::CreationReadStage::Read {
+                    requested_bytes: limit,
+                },
+            )?;
+            active(deadline, cancelled)?;
+        }
+        let count = file
+            .read_at(&mut block[..limit], offset)
+            .map_err(|_| SourceCommandError::Denied("owner-local retained file read"))?;
+        if let Some(io) = io {
+            io.record_read_returned(count as u64)
+                .map_err(|_| SourceCommandError::Denied("owner-local retained read return"))?;
+        }
+        if count == 0 {
+            break;
+        }
+        if let Some(payer) = admission.as_deref_mut() {
+            payer.before_creation_read(
+                file,
+                crate::source_creation_store::CreationReadStage::Retain {
+                    length: raw.len(),
+                    capacity: raw.capacity(),
+                    additional: count,
+                },
+            )?;
+            active(deadline, cancelled)?;
+        }
+        raw.extend_from_slice(&block[..count]);
+        offset = offset
+            .checked_add(count as u64)
+            .ok_or(SourceCommandError::Invalid(
+                "owner-local file size overflow",
+            ))?;
+        if raw.len() > max {
+            return Err(limit_policy.exceeded());
         }
     }
     Ok(raw)
@@ -272,6 +495,27 @@ fn verify_held_file_with_optional_io(
     cancelled: &AtomicBool,
     io: Option<&tos_source_store::PinnedSqliteIoBudget>,
 ) -> SourceCommandResult<()> {
+    verify_held_file_with_policies(held, uid, deadline, cancelled, io, None)
+}
+
+pub(crate) fn verify_held_file_with_read_admission(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    admission: &mut dyn ProtectedContextReadAdmission,
+) -> SourceCommandResult<()> {
+    verify_held_file_with_policies(held, uid, deadline, cancelled, None, Some(admission))
+}
+
+fn verify_held_file_with_policies(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    mut admission: Option<&mut dyn ProtectedContextReadAdmission>,
+) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
     let parent_meta = checked_directory(&held.parent, uid, held.confidential)?;
     if identity(&parent_meta) != held.parent_identity {
@@ -302,8 +546,42 @@ fn verify_held_file_with_optional_io(
     let named_current_meta = named_current
         .metadata()
         .map_err(|_| SourceCommandError::Conflict("owner-local file identity changed"))?;
-    let retained_raw = read_held_fd_with_io(&held.file, held.size, deadline, cancelled, io)?;
-    let current_raw = read_held_fd_with_io(&current, held.size, deadline, cancelled, io)?;
+    // Reborrow disjointly for each physical read; neither Result carries the
+    // payer reference and no long mutable operation loan spans these calls.
+    let retained_raw = match admission.as_mut() {
+        Some(payer) => read_held_fd_with_policies(
+            &held.file,
+            held.size,
+            deadline,
+            cancelled,
+            io,
+            Some(&mut **payer),
+        )?,
+        None => read_held_fd_with_io(&held.file, held.size, deadline, cancelled, io)?,
+    };
+    let current_raw = match admission.as_mut() {
+        Some(payer) => read_held_fd_with_policies(
+            &current,
+            held.size,
+            deadline,
+            cancelled,
+            io,
+            Some(&mut **payer),
+        )?,
+        None => read_held_fd_with_io(&current, held.size, deadline, cancelled, io)?,
+    };
+    if let Some(payer) = admission.as_deref_mut() {
+        // Two equality operands and the actual current hash input, paid before
+        // either bulk comparison or Digest256 inspection, not after the hash.
+        let work = retained_raw
+            .len()
+            .checked_add(current_raw.len())
+            .and_then(|n| n.checked_add(current_raw.len()))
+            .ok_or(SourceCommandError::Unsupported(
+                "held owner byte work overflow",
+            ))?;
+        payer.before_protected_context_work(work)?;
+    }
     if held_file_identity(&current_meta) != held.file_identity
         || held_file_identity(&current_meta) != held_file_identity(&named_current_meta)
         || retained_raw != current_raw
@@ -2468,6 +2746,126 @@ impl OwnerTextContext {
         Ok(Digest256::of_bytes(&cmd::canonical(&binding)?))
     }
 
+    /// Actual owner-context rechecks with original physical-read admission.
+    /// No context/scope is constructed from caller JSON and no pinned SQLite
+    /// I/O wallet is manufactured. Legacy verify_context_base is unchanged.
+    /// The caller must still fund outer path/metadata/control/held-owner state.
+    pub(crate) fn verify_context_base_with_read_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn ProtectedContextReadAdmission,
+    ) -> SourceCommandResult<()> {
+        self.verify_context_base_using_read_admission(deadline, cancelled, admission, false)
+    }
+
+    /// Same guards and error ordering, with only the redundant retained
+    /// config/schema reread constrained to their ACTUAL selected exact sizes.
+    pub(crate) fn verify_context_base_with_exact_read_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn ProtectedContextReadAdmission,
+    ) -> SourceCommandResult<()> {
+        self.verify_context_base_using_read_admission(deadline, cancelled, admission, true)
+    }
+
+    fn verify_context_base_using_read_admission(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        admission: &mut dyn ProtectedContextReadAdmission,
+        exact_requests: bool,
+    ) -> SourceCommandResult<()> {
+        verify_held_file_with_read_admission(
+            &self.configuration_held,
+            self.uid,
+            deadline,
+            cancelled,
+            admission,
+        )?;
+        if let Some(schema) = &self.schema_held {
+            verify_held_file_with_read_admission(schema, self.uid, deadline, cancelled, admission)?;
+        }
+        {
+            let configuration = read_held_fd_with_limit_policy(
+                &self.configuration_held.file,
+                if exact_requests {
+                    self.configuration_raw.len()
+                } else {
+                    MAX_CONTEXT_BYTES
+                },
+                deadline,
+                cancelled,
+                None,
+                Some(&mut *admission),
+                if exact_requests {
+                    HeldReadLimit::Selected
+                } else {
+                    HeldReadLimit::Budget
+                },
+            )?;
+            let comparison = configuration
+                .len()
+                .checked_add(self.configuration_raw.len())
+                .ok_or(SourceCommandError::Unsupported(
+                    "owner configuration comparison overflow",
+                ))?;
+            admission.before_protected_context_work(comparison)?;
+            if configuration != self.configuration_raw {
+                return Err(SourceCommandError::Conflict(
+                    "owner-local configuration or contract changed",
+                ));
+            }
+        }
+        if let Some(schema) = &self.schema_held {
+            // Propagate the actual admission/I/O error. The legacy is_some_and
+            // branch intentionally remains legacy; this new route cannot map
+            // an original resource refusal into a generic conflict.
+            let raw = read_held_fd_with_limit_policy(
+                &schema.file,
+                if exact_requests {
+                    self.schema_raw.len()
+                } else {
+                    MAX_CONTEXT_BYTES
+                },
+                deadline,
+                cancelled,
+                None,
+                Some(&mut *admission),
+                if exact_requests {
+                    HeldReadLimit::Selected
+                } else {
+                    HeldReadLimit::Budget
+                },
+            )?;
+            let comparison = raw.len().checked_add(self.schema_raw.len()).ok_or(
+                SourceCommandError::Unsupported("owner schema comparison overflow"),
+            )?;
+            admission.before_protected_context_work(comparison)?;
+            if raw != self.schema_raw {
+                return Err(SourceCommandError::Conflict(
+                    "owner-local configuration or contract changed",
+                ));
+            }
+        }
+        let public = self.public_root_handle()?;
+        let private = self.private_root_handle()?;
+        if identity(&checked_directory(&public, self.uid, false)?) != self.public_identity
+            || identity(&checked_directory(&private, self.uid, true)?) != self.private_identity
+            || self
+                .public_root
+                .join(OWNER_HOME.trim_end_matches('/'))
+                .symlink_metadata()
+                .is_ok()
+        {
+            return Err(SourceCommandError::Conflict(
+                "owner-local context root changed",
+            ));
+        }
+        Ok(())
+    }
+
     fn verify_context_base(
         &self,
         deadline: Instant,
@@ -2545,5 +2943,528 @@ impl crate::source_sign_native::SignNativeRead for OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Option<String>> {
         Ok(Some(self.snapshot(deadline, cancelled)?.to_prefixed()))
+    }
+}
+
+#[cfg(test)]
+mod original_owner_context_read_tests {
+    use super::*;
+    use crate::source_native_cli::private_assessment::OperationBudget;
+    use crate::source_native_cli::private_assessment::original_payer::with_original_pwe_session;
+    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use tos_compiler::pwe_native::Limits;
+
+    // Real held FD/root mechanics fixture only. It bypasses the schema
+    // selector in TEST code and therefore proves no production context,
+    // authority, grant, selected PG identity or semantic eligibility.
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let stamp = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "tos-original-owner-context-{}-{stamp}",
+                std::process::id(),
+            ));
+            std::fs::DirBuilder::new()
+                .mode(0o700)
+                .create(&path)
+                .unwrap();
+            for name in ["public", "private"] {
+                std::fs::DirBuilder::new()
+                    .mode(0o700)
+                    .create(path.join(name))
+                    .unwrap();
+            }
+            use std::io::Write;
+            for name in ["config", "schema"] {
+                let mut file = std::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .mode(0o600)
+                    .open(path.join(name))
+                    .unwrap();
+                file.write_all(b"{}").unwrap();
+            }
+            Self(path)
+        }
+        fn context(&self, deadline: Instant, cancelled: &AtomicBool) -> OwnerTextContext {
+            let uid = rustix::process::getuid().as_raw();
+            let (configuration_held, configuration_raw) = select_held_file(
+                &self.0.join("config"),
+                uid,
+                true,
+                MAX_CONTEXT_BYTES,
+                deadline,
+                cancelled,
+            )
+            .unwrap();
+            let (schema_held, schema_raw) = select_held_file(
+                &self.0.join("schema"),
+                uid,
+                true,
+                MAX_CONTEXT_BYTES,
+                deadline,
+                cancelled,
+            )
+            .unwrap();
+            let public = File::open(self.0.join("public")).unwrap();
+            let private = File::open(self.0.join("private")).unwrap();
+            OwnerTextContext {
+                configuration_path: self.0.join("config"),
+                configuration_raw,
+                configuration_held,
+                schema_raw,
+                schema_held: Some(schema_held),
+                public_root: self.0.join("public"),
+                private_root: self.0.join("private"),
+                private_prefix: "ToS/source-witnesses/owner-local/fixture/".to_owned(),
+                public_identity: identity(&public.metadata().unwrap()),
+                private_identity: identity(&private.metadata().unwrap()),
+                public_root_file: public,
+                private_root_file: private,
+                uid,
+                held_reads: RefCell::new(BTreeMap::new()),
+                pg_selected_members: RefCell::new(None),
+                pg_publication: RefCell::new(None),
+                pg_identity_snapshot: RefCell::new(None),
+            }
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    fn budget(deadline: Instant) -> OperationBudget {
+        OperationBudget::new(
+            &serde_json::json!({"budgets":{
+                "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+            }}),
+            deadline,
+        )
+        .unwrap()
+    }
+    fn limits(deadline: Instant) -> Limits {
+        Limits {
+            max_input_bytes: 524_288,
+            max_nodes: 32,
+            max_work: 524_288,
+            max_refs: 8,
+            max_depth: 8,
+            max_items: 8,
+            max_state_bytes: 1_048_576,
+            deadline,
+        }
+    }
+    #[test]
+    fn exact_context_preserves_callback_error_colliding_with_reader_limit() {
+        struct Collision {
+            begins: usize,
+        }
+        impl crate::source_creation_store::CreationReadAdmission for Collision {
+            fn before_creation_read(
+                &mut self,
+                _file: &File,
+                stage: crate::source_creation_store::CreationReadStage,
+            ) -> SourceCommandResult<()> {
+                if matches!(
+                    stage,
+                    crate::source_creation_store::CreationReadStage::Begin { .. }
+                ) {
+                    self.begins += 1;
+                    if self.begins == 3 {
+                        return Err(SourceCommandError::Invalid("owner-local file byte budget"));
+                    }
+                }
+                Ok(())
+            }
+        }
+        impl ProtectedContextReadAdmission for Collision {
+            fn before_protected_context_work(&mut self, _bytes: usize) -> SourceCommandResult<()> {
+                Ok(())
+            }
+        }
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let mut owner = fixture.context(deadline, &cancelled);
+        owner.schema_held = None;
+        let mut admission = Collision { begins: 0 };
+        let result = owner.verify_context_base_with_exact_read_admission(
+            deadline,
+            &cancelled,
+            &mut admission,
+        );
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Invalid("owner-local file byte budget"))
+        ));
+        assert_eq!(
+            admission.begins, 3,
+            "two actual custody reads precede the refused redundant config read"
+        );
+    }
+
+    #[test]
+    fn exact_context_own_overrun_uses_private_selected_limit_policy() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let file = File::open(fixture.0.join("config")).unwrap();
+        let result = read_held_fd_with_limit_policy(
+            &file,
+            1,
+            deadline,
+            &cancelled,
+            None,
+            None,
+            HeldReadLimit::Selected,
+        );
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Conflict(
+                "owner-local configuration or contract changed"
+            ))
+        ));
+        let legacy = read_held_fd_with_policies(&file, 1, deadline, &cancelled, None, None);
+        assert!(matches!(
+            legacy,
+            Err(SourceCommandError::Invalid("owner-local file byte budget"))
+        ));
+    }
+
+    #[test]
+    fn original_private_scope_binding_matches_legacy_and_pays_both_exact_fd_exits() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = fixture.context(deadline, &cancelled);
+        let expected = owner
+            .private_owner_scope_binding(deadline, &cancelled)
+            .unwrap();
+        let mut original = budget(deadline);
+        let before_work = original.test_work_remaining();
+        let profile = limits(deadline);
+        with_original_pwe_session(&mut original, profile, &cancelled, |payer, same| {
+            assert_eq!(
+                payer.private_owner_scope_binding_source(same, &owner)?,
+                expected
+            );
+            let first = same.charges();
+            assert_eq!(
+                first.0,
+                2 * 6 * (3 + 1),
+                "before/after actual six-read exact guards; hash uses no fake input"
+            );
+            assert_eq!(first.1, 0);
+            assert_eq!(first.3, 0);
+            assert_eq!(
+                payer.private_owner_scope_binding_source(same, &owner)?,
+                expected
+            );
+            assert_eq!(same.charges().0, 2 * first.0);
+            assert!(same.charges().2 > first.2);
+            assert!(same.charges().4 > first.4);
+            assert!(same.charges().4 < profile.max_state_bytes);
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            original.test_work_remaining(),
+            before_work - profile.max_work
+        );
+        // Actual FD/error protocol only: this meter is not a grant/payer or a
+        // native issuer fixture. Refuse the hash AFTER six real entry reads,
+        // then test both successful and failing attempted physical exits.
+        struct HashExit {
+            begins: usize,
+            fail_exit: bool,
+        }
+        impl crate::source_creation_store::CreationReadAdmission for HashExit {
+            fn before_creation_read(
+                &mut self,
+                _: &File,
+                stage: crate::source_creation_store::CreationReadStage,
+            ) -> SourceCommandResult<()> {
+                if matches!(
+                    stage,
+                    crate::source_creation_store::CreationReadStage::Begin { .. }
+                ) {
+                    self.begins += 1;
+                    if self.fail_exit && self.begins == 7 {
+                        return Err(SourceCommandError::Conflict(
+                            "later owner scope exit refusal",
+                        ));
+                    }
+                }
+                Ok(())
+            }
+            fn before_creation_exact_read_init(&mut self) -> SourceCommandResult<()> {
+                Ok(())
+            }
+            fn before_creation_exact_request_plan(&mut self) -> SourceCommandResult<()> {
+                Ok(())
+            }
+        }
+        impl ProtectedContextReadAdmission for HashExit {
+            fn before_protected_context_work(&mut self, _: usize) -> SourceCommandResult<()> {
+                Ok(())
+            }
+        }
+        impl PrivateScopeBindingAdmission for HashExit {
+            fn retain_private_scope_binding(&mut self, _: usize) -> SourceCommandResult<()> {
+                Ok(())
+            }
+            fn inspect_private_scope_binding(
+                &mut self,
+                bytes: usize,
+                _: usize,
+            ) -> SourceCommandResult<()> {
+                if bytes == 0 {
+                    return Err(SourceCommandError::Invalid(
+                        "first owner scope hash refusal",
+                    ));
+                }
+                Ok(())
+            }
+        }
+        for fail_exit in [false, true] {
+            let mut meter = HashExit {
+                begins: 0,
+                fail_exit,
+            };
+            let result = owner
+                .private_owner_scope_binding_with_exact_admission(deadline, &cancelled, &mut meter);
+            assert!(matches!(
+                result,
+                Err(SourceCommandError::Invalid(
+                    "first owner scope hash refusal"
+                ))
+            ));
+            assert_eq!(meter.begins, if fail_exit { 7 } else { 12 });
+        }
+    }
+
+    #[test]
+    fn original_private_scope_binding_uses_original_cancelled_cutoff() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = fixture.context(deadline, &cancelled);
+        let mut original = budget(deadline);
+        let result = with_original_pwe_session(
+            &mut original,
+            limits(deadline),
+            &cancelled,
+            |payer, same| {
+                cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+                let prefix = same.charges();
+                let result = payer.private_owner_scope_binding_source(same, &owner);
+                assert_eq!(same.charges(), prefix);
+                result.map(|_| ())
+            },
+        );
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Denied(
+                "creation filesystem cancelled or expired"
+            ))
+        ));
+    }
+
+    #[test]
+    fn original_owner_context_lends_one_scratch_across_six_real_fd_reads() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = fixture.context(deadline, &cancelled);
+        let mut original = budget(deadline);
+        with_original_pwe_session(
+            &mut original,
+            limits(deadline),
+            &cancelled,
+            |payer, same| {
+                payer.recheck_owner_context_source(same, &owner)?;
+                assert_eq!(same.charges().0, 4 * (3 + 1) + 4 * 65536);
+                assert!(same.charges().4 >= 65536);
+                assert!(
+                    same.charges().4 < 2 * 65536,
+                    "one scratch plus still-additive actual holders/output backing"
+                );
+                Ok(())
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn original_owner_context_prices_all_six_actual_fd_reads_and_hashes() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = fixture.context(deadline, &cancelled);
+        let mut original = budget(deadline);
+        with_original_pwe_session(
+            &mut original,
+            limits(deadline),
+            &cancelled,
+            |payer, same| {
+                payer.recheck_owner_context_source(same, &owner)?;
+                // Each retained/current2B read requests3+1. The final independent
+                // config/schema rereads use the real1MiB cap and request65536 twice.
+                assert_eq!(same.charges().0, 4 * (3 + 1) + 4 * 65_536);
+                assert_eq!(same.charges().1, 0);
+                assert!(
+                    same.charges().2 > same.charges().0,
+                    "hash/compare work is separately paid"
+                );
+                assert_eq!(same.charges().3, 0);
+                assert!(same.has_source_payer(payer));
+                Ok(())
+            },
+        )
+        .unwrap();
+    }
+    #[test]
+    fn original_schema_reread_refusal_is_not_masked_as_context_conflict() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        let owner = fixture.context(deadline, &cancelled);
+        let mut original = budget(deadline);
+        let mut limited = limits(deadline);
+        // Allow both held-file double rereads and final config reread, then
+        // refuse specifically the final schema read formerly inside is_some_and.
+        limited.max_input_bytes = 4 * (3 + 1) + 2 * 65_536;
+        let result =
+            with_original_pwe_session(&mut original, limited, &cancelled, |payer, same| {
+                let body = payer.recheck_owner_context_source(same, &owner);
+                assert_eq!(same.charges().0, limited.max_input_bytes);
+                assert!(matches!(
+                    &body,
+                    Err(SourceCommandError::Unsupported(
+                        "PWE Assessment Session exhausted"
+                    ))
+                ));
+                body
+            });
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Unsupported(
+                "PWE Assessment Session exhausted"
+            ))
+        ));
+    }
+}
+
+#[cfg(test)]
+mod context_workspace_result_custody_tests {
+    use super::*;
+    use crate::source_creation_store::workspace_protocol_test_support::{Fixture, Mode, Probe};
+    use std::time::Duration;
+
+    #[test]
+    fn read_at_workspace_requires_one_physical_callback_and_only_pre_call_none_falls_back() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        for mode in [
+            Mode::NoneBefore,
+            Mode::Omit,
+            Mode::Once,
+            Mode::Twice,
+            Mode::NoneAfter,
+            Mode::ErrorAfter,
+            Mode::RefuseBefore,
+        ] {
+            let file = File::open(fixture.0.join("input")).unwrap();
+            let mut lender = Probe::new(mode);
+            let result = read_held_fd_with_limit_policy(
+                &file,
+                2,
+                deadline,
+                &cancelled,
+                None,
+                Some(&mut lender),
+                HeldReadLimit::Selected,
+            );
+            match mode {
+                Mode::NoneBefore | Mode::Once => assert_eq!(result.unwrap(), b"xy"),
+                Mode::Omit => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Conflict(
+                        "protected workspace lender omitted physical reader"
+                    ))
+                )),
+                Mode::Twice | Mode::NoneAfter => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Conflict(
+                        "protected workspace lender changed physical-read protocol"
+                    ))
+                )),
+                Mode::ErrorAfter => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Denied(
+                        "original resource loan exit refusal"
+                    ))
+                )),
+                Mode::RefuseBefore => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Denied("original resource loan refusal"))
+                )),
+            }
+            assert_eq!(
+                lender.reads,
+                if matches!(mode, Mode::Omit | Mode::RefuseBefore) {
+                    0
+                } else {
+                    2
+                },
+                "one actual payload/EOF loop, no repeated read/fallback: {mode:?}"
+            );
+            assert_eq!(
+                lender.callbacks,
+                match mode {
+                    Mode::NoneBefore | Mode::Omit | Mode::RefuseBefore => 0,
+                    Mode::Twice => 2,
+                    _ => 1,
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn read_at_workspace_retains_actual_io_error_despite_lender_status_or_repeat() {
+        let fixture = Fixture::new();
+        let deadline = Instant::now() + Duration::from_secs(30);
+        let cancelled = AtomicBool::new(false);
+        for mode in [Mode::Once, Mode::ErrorAfter, Mode::NoneAfter, Mode::Twice] {
+            let file = std::fs::OpenOptions::new()
+                .write(true)
+                .open(fixture.0.join("input"))
+                .unwrap();
+            let mut lender = Probe::new(mode);
+            let result = read_held_fd_with_limit_policy(
+                &file,
+                2,
+                deadline,
+                &cancelled,
+                None,
+                Some(&mut lender),
+                HeldReadLimit::Selected,
+            );
+            assert!(matches!(
+                result,
+                Err(SourceCommandError::Denied("owner-local retained file read"))
+            ));
+            assert_eq!(
+                lender.reads, 1,
+                "genuine failed read_at paid once, no repeated read"
+            );
+        }
     }
 }

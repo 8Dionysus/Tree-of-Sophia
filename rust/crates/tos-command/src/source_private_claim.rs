@@ -21,6 +21,27 @@ use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
 use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 
+#[path = "source_private_claim_current_read.rs"]
+mod current_read;
+pub(crate) use current_read::{
+    CurrentClaimReadScope, with_current_pg_claim_read_scope,
+    with_current_pg_claim_read_scope_exact_source,
+};
+
+#[path = "source_private_pwe_claim.rs"]
+mod pwe_read;
+pub(crate) use pwe_read::check_private_pwe_initial_declaration;
+pub(crate) use pwe_read::{
+    ParsedPrivatePweClaim, PrivatePweClaimFamily, parse_selected_claim_stream,
+};
+pub(crate) use pwe_read::{
+    PrivatePweArchivePlan, PrivatePweArchiveRequest, parse_selected_archive_requests,
+};
+pub(crate) use pwe_read::{
+    PrivatePweStreamRevision, advance_private_pwe_claim, inspect_private_pwe_stream,
+    reconstruct_private_pwe_stream_revision, replace_private_pwe_claim_row,
+};
+
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";
 pub(crate) const CLAIM_STREAM: &str = "source-claims.jsonl";
@@ -333,6 +354,159 @@ struct Grant {
     context_snapshot: String,
     source_path: RelativePath,
     home: String,
+}
+
+/// Read-only data view of Claim delegation fields used by package/history
+/// integrity. It grants no operation, has no writer plan or publication API,
+/// and never substitutes for the actual protected Assessment read selection.
+/// Legacy writers project their already-validated Grant into this same view.
+struct ClaimPackageReadPolicy<'a> {
+    // Preserve the independently declared source/Claim/form scope checks.
+    // Never synthesize these lists from the package being checked. A future
+    // Assessment reader must bind them to genuine retained policy evidence,
+    // separately from its actual protected read selection and paid read host.
+    declared: &'a JsonValue,
+}
+
+/// Predicate on the actual producer's parsed result. This returns no policy,
+/// source/role/target witness or current permission when used on caller JSON.
+/// The only new policy issuer consumes the private-constructed PG owner type.
+pub(crate) fn validate_pg_claim_producer_policy(
+    declared: &JsonValue,
+    selected: &CurrentClaimReadScope<'_>,
+    access: &mut crate::source_native_cli::private_assessment::scope_admission::ScopeAccess<'_>,
+) -> SourceCommandResult<()> {
+    for (key, expected) in [
+        ("schema_version", "tos_local_source_command_result_v1"),
+        ("authentication", "local-unix-account"),
+        ("visibility", "local_only"),
+        ("source_path", selected.path()),
+    ] {
+        let actual = access.text(declared, key)?;
+        if !access.text_equal(actual, expected)? {
+            return Err(SourceCommandError::Conflict(
+                "Claim producer read-policy protocol differs",
+            ));
+        }
+    }
+    for (key, expected) in [
+        ("target_exists", true),
+        ("publication_authorized", false),
+        ("grants_admission", false),
+    ] {
+        if access.field(declared, key)?.as_bool() != Some(expected) {
+            return Err(SourceCommandError::Conflict(
+                "Claim producer read-policy posture differs",
+            ));
+        }
+    }
+    // This is the producer's compound semantic configuration commitment.
+    // Validate its syntax; NEVER compare it to broker raw grant hash or the
+    // normalized CONFIG_FILE hash. Their distinct provenance is not collapsed.
+    let compound = access.text(declared, "owner_configuration")?;
+    access.inspect(compound.len(), 1)?;
+    Digest256::from_prefixed(compound)
+        .map_err(|_| SourceCommandError::Invalid("Claim producer configuration commitment"))?;
+    let claims = access
+        .field(declared, "allowed_claim_ids")?
+        .as_array()
+        .ok_or(SourceCommandError::Invalid(
+            "Claim producer declared identities",
+        ))?;
+    if claims.is_empty() || claims.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "Claim producer declared identity count",
+        ));
+    }
+    let mut selected_found = false;
+    for (index, value) in claims.iter().enumerate() {
+        access.inspect(0, 1)?;
+        let id = value.as_str().ok_or(SourceCommandError::Invalid(
+            "Claim producer declared identity",
+        ))?;
+        access.inspect(id.len(), 1)?;
+        if !claim_id(id) {
+            return Err(SourceCommandError::Invalid(
+                "Claim producer declared identity",
+            ));
+        }
+        for previous in &claims[..index] {
+            let previous = previous.as_str().ok_or(SourceCommandError::Invalid(
+                "Claim producer declared identity",
+            ))?;
+            if access.text_equal(id, previous)? {
+                return Err(SourceCommandError::Invalid(
+                    "Claim producer repeats declared identity",
+                ));
+            }
+        }
+        selected_found |= access.text_equal(id, selected.claim_id())?;
+    }
+    if !selected_found {
+        return Err(SourceCommandError::Denied(
+            "selected Claim is outside producer declaration",
+        ));
+    }
+    let forms = access
+        .field(declared, "allowed_form_ids")?
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("Claim producer declared forms"))?;
+    if forms.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "Claim producer declared form count",
+        ));
+    }
+    for (index, value) in forms.iter().enumerate() {
+        access.inspect(0, 1)?;
+        let id = value
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("Claim producer declared form"))?;
+        access.inspect(id.len(), 1)?;
+        if !form_id(id) {
+            return Err(SourceCommandError::Invalid("Claim producer declared form"));
+        }
+        for previous in &forms[..index] {
+            let previous = previous
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Claim producer declared form"))?;
+            if access.text_equal(id, previous)? {
+                return Err(SourceCommandError::Invalid(
+                    "Claim producer repeats declared form",
+                ));
+            }
+        }
+    }
+    let requested = access
+        .field(selected.assessment_selection(), "form_ids")?
+        .as_array()
+        .ok_or(SourceCommandError::Invalid("current Claim selected forms"))?;
+    if requested.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "current Claim selected form count",
+        ));
+    }
+    for value in requested {
+        let id = value
+            .as_str()
+            .ok_or(SourceCommandError::Invalid("current Claim selected form"))?;
+        access.inspect(id.len(), 1)?;
+        if !form_id(id) {
+            return Err(SourceCommandError::Invalid("current Claim selected form"));
+        }
+        let mut found = false;
+        for value in forms {
+            let allowed = value
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Claim producer declared form"))?;
+            found |= access.text_equal(id, allowed)?;
+        }
+        if !found {
+            return Err(SourceCommandError::Denied(
+                "current Claim form outside producer declaration",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn digest(raw: &[u8]) -> String {
@@ -1075,6 +1249,26 @@ fn read_archive(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(PrivatePackage, JsonValue)> {
+    read_archive_using_read_policy(
+        &ClaimPackageReadPolicy {
+            declared: &grant.value,
+        },
+        context,
+        archives,
+        receipt,
+        deadline,
+        cancelled,
+    )
+}
+
+fn read_archive_using_read_policy(
+    policy: &ClaimPackageReadPolicy<'_>,
+    context: &JsonValue,
+    archives: &mut (impl PrivateArchiveReader + ?Sized),
+    receipt: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(PrivatePackage, JsonValue)> {
     let subject = cmd::field(receipt, "previous_source")?;
     let previous_revision = cmd::text(receipt, "previous_revision")?;
     let logical = archive_ref(cmd::text(subject, "id")?, previous_revision, context)?;
@@ -1101,7 +1295,7 @@ fn read_archive(
         ],
     )?;
     if cmd::text(&manifest, "schema_version")? != "tos_source_package_archive_v1"
-        || cmd::text(&manifest, "source_path")? != cmd::text(&grant.value, "source_path")?
+        || cmd::text(&manifest, "source_path")? != cmd::text(policy.declared, "source_path")?
         || cmd::field(&manifest, "source")? != subject
         || cmd::text(&manifest, "revision")? != previous_revision
     {
@@ -6562,9 +6756,9 @@ fn validate_receipt_ref_files(
     Ok(())
 }
 
-fn verify_creation_integrity(
+fn verify_creation_integrity_using_read_policy(
     ctx: &CommandContext,
-    grant: &Grant,
+    policy: &ClaimPackageReadPolicy<'_>,
     owner: &OwnerTextContext,
     cut: &dyn PrivateSelectedSourceInput,
     context: &JsonValue,
@@ -6601,13 +6795,13 @@ fn verify_creation_integrity(
     let request_expected = encode(&request)?;
     if cmd::text(receipt, "schema_version")? != "tos_local_claim_create_receipt_v1"
         || cmd::field(receipt, "grants_admission")? != &JsonValue::Bool(false)
-        || cmd::text(&retained, "source_path")? != cmd::text(&grant.value, "source_path")?
+        || cmd::text(&retained, "source_path")? != cmd::text(policy.declared, "source_path")?
         || !exact_list(&retained, "allowed_operations", 4)?.contains(&"claims.create")
         || request_expected != request_raw
         || cmd::text(&request, "operation")? != "claims.create"
         || cmd::text(&request, "command_id")? != cmd::text(receipt, "command_id")?
         || cmd::text(receipt, "request_digest")? != &cmd::record_digest(&request)?.to_prefixed()
-        || cmd::text(receipt, "source_path")? != cmd::text(&grant.value, "source_path")?
+        || cmd::text(receipt, "source_path")? != cmd::text(policy.declared, "source_path")?
         || cmd::text(receipt, "principal_id")? != cmd::text(&retained, "principal_id")?
         || cmd::text(receipt, "authority_ref")? != cmd::text(&retained, "authority_ref")?
         || cmd::field(receipt, "owner_configuration")?
@@ -6757,9 +6951,9 @@ fn required_package_file<'a>(
         ))
 }
 
-fn package_state(
+fn package_state_using_read_policy(
     ctx: &CommandContext,
-    grant: &Grant,
+    policy: &ClaimPackageReadPolicy<'_>,
     context: &JsonValue,
     files: &PrivatePackage,
     archives: &mut dyn PrivateArchiveReader,
@@ -6788,7 +6982,7 @@ fn package_state(
     if records.is_empty()
         || records.len() > 32
         || records.keys().any(|identity| {
-            !exact_list(&grant.value, "allowed_claim_ids", 32)
+            !exact_list(policy.declared, "allowed_claim_ids", 32)
                 .is_ok_and(|allowed| allowed.contains(&identity.as_str()))
         })
     {
@@ -6819,14 +7013,14 @@ fn package_state(
             ),
             (
                 "source_path",
-                cmd::string(cmd::text(&grant.value, "source_path")?),
+                cmd::string(cmd::text(policy.declared, "source_path")?),
             ),
             ("receipts", JsonValue::Array(Vec::new())),
         ]),
     };
     cmd::exact_keys(&history, &["schema_version", "source_path", "receipts"])?;
     if cmd::text(&history, "schema_version")? != "tos_claim_revision_history_v1"
-        || cmd::text(&history, "source_path")? != cmd::text(&grant.value, "source_path")?
+        || cmd::text(&history, "source_path")? != cmd::text(policy.declared, "source_path")?
         || cmd::array(&history, "receipts")?.len() > MAX_REVISIONS
     {
         return Err(SourceCommandError::Conflict(
@@ -6841,7 +7035,7 @@ fn package_state(
         super::profile::validate_form_set(
             ctx,
             worker,
-            cmd::text(&grant.value, "source_path")?,
+            cmd::text(policy.declared, "source_path")?,
             &payload,
             deadline,
             cancelled,
@@ -6866,7 +7060,7 @@ fn package_state(
             .map(|form| cmd::text(form, "form_id"))
             .collect::<SourceCommandResult<BTreeSet<_>>>()?;
         for id in selected_form_ids {
-            if !exact_list(&grant.value, "allowed_form_ids", 32)?.contains(&id)
+            if !exact_list(policy.declared, "allowed_form_ids", 32)?.contains(&id)
                 || !form_ids.insert(id.to_owned())
             {
                 return Err(SourceCommandError::Denied(
@@ -7003,7 +7197,9 @@ fn package_state(
             ));
         }
         crate::source_command::validate_instant(cmd::text(receipt, "recorded_at")?)?;
-        let (package, _) = read_archive(grant, context, archives, receipt, deadline, cancelled)?;
+        let (package, _) = read_archive_using_read_policy(
+            policy, context, archives, receipt, deadline, cancelled,
+        )?;
         for name in [
             CONFIG_FILE,
             CREATE_REQUEST,
@@ -8102,9 +8298,14 @@ pub(crate) fn prepare(
         "private Claim target package is absent",
     ))?;
     let _archive_refs = required_archives(package, &grant.value, context_config)?;
-    let state = package_state(
+    // Integrity consumes recorded policy fields, never writer publication
+    // authority. The real writer grant remains live for grounding and commit.
+    let read_policy = ClaimPackageReadPolicy {
+        declared: &grant.value,
+    };
+    let state = package_state_using_read_policy(
         ctx,
-        &grant,
+        &read_policy,
         context_config,
         package,
         archive_reader,
@@ -8112,9 +8313,9 @@ pub(crate) fn prepare(
         deadline,
         cancelled,
     )?;
-    let creation_reads = verify_creation_integrity(
+    let creation_reads = verify_creation_integrity_using_read_policy(
         ctx,
-        &grant,
+        &read_policy,
         owner,
         cut,
         context_config,

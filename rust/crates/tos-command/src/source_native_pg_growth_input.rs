@@ -23,6 +23,10 @@ const MAX_PREFIX_TOTAL_BYTES: usize = 33_554_432;
 const MAX_PREFIX_MEMBER_BYTES: usize = 8_388_608;
 const MAX_PREFIX_DEPTH: usize = 64;
 
+#[path = "source_native_pg_payload_loan.rs"]
+mod payload_loan;
+pub(crate) use payload_loan::{PgCurrentPayloadLoan, PgCurrentPayloadRef};
+
 /// A borrowed view of one fenced PG source epoch. Reads are recorded by the
 /// underlying `SourceRevisionReadSession`; `SourceRevisionReadSet` remains the
 /// authority used by the owner package's precommit validator.
@@ -107,7 +111,16 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
         let mut session = self.session.try_borrow_mut().map_err(|_| {
             crate::DurableError::Conflict("selected PG source session already borrowed")
         })?;
-        if session.selection().identity() != self.identity {
+        // The short original-operation loan pays the actual variable hash
+        // operands before construction; it ends before source Session hooks.
+        let actual = payer
+            .with_operation(|budget| {
+                session
+                    .selection()
+                    .identity_with_data_admission(budget, deadline, cancelled)
+            })
+            .map_err(crate::DurableError::Source)?;
+        if actual != self.identity {
             return Err(crate::DurableError::Conflict(
                 "selected PG source session identity differs",
             ));
@@ -119,6 +132,43 @@ impl<'session, 'store> PgGrowthCurrentInput<'session, 'store> {
             (Err(error), _) | (Ok(_), Err(error)) => Err(error),
             (Ok(value), Ok(())) => Ok(value),
         }
+    }
+
+    /// Lend a nested selected-input view of the ACTUAL held session. Calling
+    /// the parent input's read methods from its session callback would try to
+    /// borrow the same RefCell twice. This view borrows the existing session
+    /// instead; it owns no readset, transaction, source identity or ledger.
+    /// The callback cannot retain this view after the loan. Both freshness
+    /// checks still belong to the parent epoch, including the Err exit.
+    ///
+    /// The same original payer admits this view's inline carrier before its
+    /// construction. Query DATA admission is the existing bounded contract;
+    /// actual member I/O and semantic-verifier work still need their own
+    /// prospective ports. This method does not certify that work as funded.
+    pub(crate) fn with_selected_input_with_query_data_admission<T>(
+        &self,
+        payer: &crate::source_native_cli::private_assessment::original_payer::OriginalAssessmentPayer<'_, '_>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        run: impl FnOnce(&PgGrowthCurrentInput<'_, 'store>) -> crate::DurableResult<T>,
+    ) -> crate::DurableResult<T> {
+        self.with_selected_read_epoch_with_query_data_admission(
+            payer,
+            deadline,
+            cancelled,
+            |session| {
+                payer
+                    .reserve(std::mem::size_of::<PgGrowthCurrentInput<'_, '_>>())
+                    .map_err(crate::DurableError::Source)?;
+                let selected = PgGrowthCurrentInput {
+                    session: RefCell::new(session),
+                    identity: self.identity,
+                    max_prefix_members: self.max_prefix_members,
+                    max_member_bytes: self.max_member_bytes,
+                };
+                run(&selected)
+            },
+        )
     }
 
     /// Resolve annotation owner IDs through the selected PG index while this

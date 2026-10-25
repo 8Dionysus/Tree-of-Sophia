@@ -60,7 +60,8 @@ mod pg_growth;
 mod pg_item_adoption;
 pub(crate) use pg_growth::context_with_pg_exact_reads;
 pub(crate) use pg_growth::{
-    PgGrowthCurrentInput, PgGrowthFamily, expected_growth_revision_indexes,
+    PgCurrentPayloadLoan, PgCurrentPayloadRef, PgGrowthCurrentInput, PgGrowthFamily,
+    expected_growth_revision_indexes,
 };
 
 /// Bounded mixed-inventory adapter for the current captured Historical Claim

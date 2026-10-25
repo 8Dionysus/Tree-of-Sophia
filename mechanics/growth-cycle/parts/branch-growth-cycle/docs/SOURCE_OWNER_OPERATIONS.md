@@ -32,6 +32,11 @@ unperformed; do not infer absence or create a replacement identity from it.
 For manual registry uncertainty, follow [reason-specific admission](#reason-specific-manual-authoring-admission);
 an unperformed or unread lookup is not source-backed historical unknown.
 
+For the complete operator chain and pinned catalog/actual-handler differences,
+see [manual planting](MANUAL_PLANTING_RUNBOOK.md). A descriptor entry is not
+proof that its keys or every backend information verb match the implementation.
+Keep known drift on HOLD pending owner reconciliation.
+
 ### Explicit Claim display fields
 
 `public-source-forms` also exposes `tos_local_claim_form_owner_v2`, selected by
