@@ -1,5 +1,9 @@
 //! Source-backed formal-role records over the maintained native Record reader.
 //! No role row, descriptor, exact pin or returned value grants current use.
+#[path = "source_native_pg_role_schema.rs"]
+mod pg_schema;
+pub(crate) use pg_schema::PgRoleSchemaAccess;
+
 use crate::{
     source_command::{
         self as cmd, CommandContext, SourceCommandError as Error, SourceCommandResult as Result,

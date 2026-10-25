@@ -1819,3 +1819,132 @@ fn private_owner_read_waits_for_writer_commit_before_repeatable_read_snapshot() 
     assert_eq!(selected_member.bytes, b"new accepted private bytes");
     assert_ne!(selected_member.bytes, b"old accepted private bytes");
 }
+
+/// Real PG/STO source -> retained PWE host -> selected native schema worker.
+/// This proves the runtime transport/validation lane, not a formal-role issuer,
+/// current-use grant, qualified Assessment or whole-route native funding.
+#[test]
+fn selected_pg_payload_host_validates_native_records_with_the_same_worker() {
+    use crate::pwe_source_owner::with_pg_payload_host;
+    use crate::source_native_cli::PgGrowthCurrentInput;
+    use crate::source_native_cli::private_assessment::{
+        OperationBudget, original_payer::with_original_pwe_session_durable,
+        scope_admission::ScopeAccess, selected_assessment_candidate_worker,
+    };
+    use tos_compiler::pwe_native::Limits;
+
+    const SCHEMA: &str = "ToS/contracts/corpus-record.schema.json";
+    let deadline = Instant::now() + Duration::from_secs(900);
+    let cancelled = AtomicBool::new(false);
+    let mut fixture = lab_fixture(deadline, &cancelled);
+    let first_path = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
+    let second_path = RelativePath::parse(&fixture.targets[1].source_path).unwrap();
+    let schema_path = RelativePath::parse(SCHEMA).unwrap();
+    let paths = std::collections::BTreeSet::from([
+        first_path.clone(), second_path.clone(), schema_path.clone(),
+    ]);
+    let first_id = fixture.targets[0].record_id.clone();
+    let second_id = fixture.targets[1].record_id.clone();
+    let worker_path = std::env::var_os("TOS_SCHEMA_WORKER_PATH")
+        .map(PathBuf::from)
+        .expect("actual PG host runtime requires the pinned native schema worker")
+        .canonicalize().unwrap();
+    let invocation = json!({
+        "schema_worker":{
+            "absolute_path":worker_path,
+            "sha256":Digest256::of_bytes(&fs::read(&worker_path).unwrap()).to_prefixed()
+        },
+        "budgets":{
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1_073_741_824,
+            "max_schema_receipts":128,"max_schema_receipt_bytes":262_144
+        }
+    });
+    let domain = fixture.domain.clone();
+    let mut original = OperationBudget::new(&json!({"budgets":{
+        "worker_cpu_seconds":3,"worker_address_space_bytes":1_073_741_824
+    }}), deadline).unwrap();
+    let ((), readset) = fixture.coordinator.with_source_revision_session_with_exit_data_admission(
+        &fixture.store, &domain, JOB_ID, 1, deadline, &cancelled, &mut original,
+        |epoch, operation| {
+            let identity = epoch.selection().identity();
+            // Native preparation reads the selected schema through the REAL
+            // PG epoch. Its one physical read remains in the final readset;
+            // setup/worker bootstrap is NOT claimed funded by the inner loan.
+            // corpus-record.schema.json has only local fragment references;
+            // the actual candidate preparation rejects missing resources.
+            let mut worker = selected_assessment_candidate_worker(
+                &invocation, epoch, identity, &[SCHEMA.to_owned()], deadline, &cancelled,
+            ).map_err(DurableError::Source)?;
+            assert_eq!(worker.input_identity(), &identity);
+            assert_eq!(worker.source_resource_count(), 1);
+            let input = PgGrowthCurrentInput::new(epoch, 64, 8_388_608)
+                .map_err(|_| DurableError::Invalid("PG host runtime selected input"))?;
+            // Same unchanged source limits as the maintained selected-loan
+            // regression, not a raised cap to obtain a positive schema verdict.
+            let limits = Limits {
+                max_input_bytes: 4_194_304, max_nodes: 1024, max_work: 262_144,
+                max_refs: 64, max_depth: 16, max_items: 64,
+                max_state_bytes: 8_388_608, deadline,
+            };
+            let body = with_original_pwe_session_durable(operation, limits, &cancelled, |payer, same| {
+                input.with_current_payload_loan(payer, same, &paths, 8_388_608, |loan| {
+                    with_pg_payload_host(loan, &mut worker, |views, host| {
+                        // All THREE actual payload references remain live
+                        // while the private same-instance worker is used and
+                        // the independent source/resource guards run.
+                        let first = views.member(host, &first_path)?;
+                        let second = views.member(host, &second_path)?;
+                        let schema = views.member(host, &schema_path)?;
+                        host.verify()?;
+                        host.check_schema(&first, &schema)?;
+                        host.check_schema(&second, &schema)?;
+                        // A schema document is not an Agent record. Demand an
+                        // actual negative verdict from the same real executor;
+                        // a true-only schema stub cannot pass this fixture.
+                        assert!(matches!(host.check_schema(&schema, &schema),
+                            Err(DurableError::Refused("PWE PG selected schema rejected payload"))));
+                        host.verify()?;
+                        host.with_source_epoch(|_same_epoch, original_payer, _same_session| {
+                            // Decode genuine selected bytes through the actual
+                            // prospectively admitted strict parser, then inspect
+                            // their native metadata identities on the original
+                            // operation. No copied JSON is an authority factory.
+                            for (member, expected_id) in [(&first, &first_id), (&second, &second_id)] {
+                                let document = original_payer.with_operation(|budget| {
+                                    crate::source_native_roles::admitted_document(
+                                        member.raw(), budget, deadline, &cancelled,
+                                    )
+                                }).map_err(DurableError::Source)?;
+                                original_payer.with_operation(|budget| {
+                                    let mut access = ScopeAccess::admitted_operation(budget, deadline, &cancelled);
+                                    let kind = access.text(document.root(), "record_type")?;
+                                    let id = access.text(document.root(), "record_id")?;
+                                    let version = access.text(document.root(), "schema_version")?;
+                                    assert!(access.text_equal(kind, "agent")?);
+                                    assert!(access.text_equal(id, expected_id)?);
+                                    assert!(access.text_equal(version, "tos_corpus_record_v1")?);
+                                    Ok(())
+                                }).map_err(DurableError::Source)?;
+                            }
+                            Ok(())
+                        })?;
+                        host.verify()?;
+                        Ok(())
+                    })
+                })
+            });
+            // Real final executor exit on BOTH host/body outcomes. First body
+            // failure remains primary; a successful body cannot mask FINAL.
+            let finished = crate::source_sign::finish_worker(&mut worker, deadline, &cancelled)
+                .map_err(DurableError::Source);
+            match (body, finished) {
+                (Err(original), _) | (Ok(_), Err(original)) => Err(original),
+                (Ok(value), Ok(())) => Ok(value),
+            }
+        },
+    ).expect("actual selected PG payloads pass the real native schema worker and all exits");
+    // One schema acquisition during worker preparation plus exactly the three
+    // initial loan acquisitions. Repeated guards/schema calls add no raw reads.
+    assert_eq!(readset.work.exact_source_members_read, 1 + paths.len() as u64);
+    assert_eq!(readset.observations().len(), paths.len());
+}

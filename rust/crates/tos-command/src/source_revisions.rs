@@ -7577,17 +7577,47 @@ pub(crate) fn public_profile_candidate_for_creation<I: Copy + Eq>(
     )
 }
 
-fn public_profile_candidate_with_native_content<I: Copy + Eq>(
-    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+/// Selected read-only counterpart for a closed owner-worker adapter. It uses
+/// the maintained candidate profile law and never opts into creation's native
+/// content route or supplies writer authority. The caller still proves the
+/// actual owner/identity/history and current read permission independently.
+pub(crate) fn public_profile_selected_readonly<W, C>(
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead<Identity = I>,
+    ctx: &C,
+    config: &JsonValue,
+    record: &JsonValue,
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
+    if ctx.writer().is_some() {
+        return Err(SourceCommandError::Denied(
+            "selected readonly profile cannot use writer authority",
+        ));
+    }
+    public_profile_candidate_with_native_content(
+        worker, deadline, cancelled, ctx, config, record, false,
+    )
+}
+
+fn public_profile_candidate_with_native_content<W, C>(
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    ctx: &C,
     config: &JsonValue,
     record: &JsonValue,
     creation_native_content_check: bool,
-) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
-    let registry = validate_source_profile_registry_candidate(worker, deadline, cancelled, ctx)?;
+    let registry = validate_source_profile_registry_for_worker(worker, deadline, cancelled, ctx)?;
     let entities = cmd::array(&registry, "types")?
         .iter()
         .map(|entry| Ok((cmd::text(entry, "type_id")?, entry)))
