@@ -4416,6 +4416,19 @@ fn selected_original_fixed_state<E, A>() -> usize {
         ),
         // bounded_reader
         (
+            // Additive same-FD size-hint metadata, receivers, predicates and
+            // arithmetic/Result/Try carriers; no reuse credit from older phases.
+            (
+                std::fs::Metadata,
+                &File,
+                &std::fs::Metadata,
+                &&'static str,
+                (u64, u64, u64),
+                (usize, usize, usize, usize, usize, usize),
+                (bool, bool),
+                selected_original_try_slots!(SegmentError; std::fs::Metadata),
+                std::result::Result<std::fs::Metadata, std::io::Error>,
+            ),
             File,
             u64,
             &'static str,
@@ -4652,6 +4665,19 @@ fn selected_original_fixed_state<E, A>() -> usize {
         ),
         // Every actual E-bearing ? call site; repeated output types are intentional.
         selected_original_try_slots!(SelectedOriginalFault<E>; (), (), (), (), Option<Vec<u8>>, (PinJournal,u64), u64, (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), Vec<u8>),
+        // R7 additions: two new syntactic original-admission ? sites.
+        // Each includes its own unrestricted E-bearing Result/Try/residual.
+        selected_original_try_slots!(SelectedOriginalFault<E>; (), ()),
+        // Metadata map_err -> SegmentError::io -> From<SegmentError> transport.
+        // Additive actual constructor arguments, Some/error and converted fault.
+        (
+            &'static str,
+            std::io::Error,
+            Option<std::io::Error>,
+            Code,
+            SegmentError,
+            SelectedOriginalFault<E>,
+        ),
         // Direct callback ? and private callback/map_err transport.
         selected_original_try_slots!(E; (), ()),
         // inner_store_tries
@@ -4702,11 +4728,34 @@ where
             "selected metadata exceeds address space",
         )
     })?;
+    if capacity == 0 {
+        return Ok(Vec::new());
+    }
+    // This stat is a same-FD advisory read-size hint, never an EOF certificate.
+    // Five declared groups: stat, regular predicate, length, clamp, conversion.
+    // Its error and work stay in the original paid prefix.
+    selected_original_charge(admission, 0, 0, 0, 0, 5)?;
+    let metadata = file
+        .metadata()
+        .map_err(|error| SegmentError::io(detail, error))?;
+    let observed = if metadata.is_file() {
+        // cap already fits usize, therefore min(len, cap) fits too.
+        metadata.len().min(cap) as usize
+    } else {
+        // Preserve the bounded helper's non-regular short-read protocol.
+        capacity
+    };
     let mut raw = Vec::new();
     let mut remaining = capacity;
     let mut block = [0u8; BLOCK_BYTES];
     while remaining != 0 {
-        let request = remaining.min(block.len());
+        // Four added groups before length/subtract/max/min hint arithmetic.
+        selected_original_charge(admission, 0, 0, 0, 0, 4)?;
+        // After the observed extent, a paid one-byte probe observes real EOF
+        // or growth. A stale hint cannot suppress bytes up to the original cap.
+        let request = remaining
+            .min(block.len())
+            .min(observed.saturating_sub(raw.len()).max(1));
         selected_original_charge(admission, request as u64, 0, 0, 0, 1)?;
         let count = match file.read(&mut block[..request]) {
             Ok(0) => break,
@@ -6848,5 +6897,115 @@ mod tests {
         assert_eq!(observer.read(&mut next).unwrap(), 1);
         assert_eq!(next[0], 2);
     }
+    #[test]
+    fn selected_original_regular_size_hint_pays_small_eof_and_empty_probe() {
+        let root = PrivateRoot::new();
+        for payload in [b"abc".as_slice(), b"".as_slice()] {
+            let path = root.0.join("small-metadata");
+            fs::write(&path, payload).unwrap();
+            let mut requests = Vec::new();
+            let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+                if request != 0 {
+                    requests.push(request);
+                }
+                Ok(())
+            };
+            let raw = selected_original_bounded(
+                File::open(&path).unwrap(),
+                131072,
+                "small metadata",
+                &mut admission,
+            )
+            .unwrap();
+            assert_eq!(raw, payload);
+            drop(admission);
+            if payload.is_empty() {
+                assert_eq!(requests, [1]);
+            } else {
+                assert_eq!(requests, [3, 1]);
+            }
+        }
+    }
+
+    #[test]
+    fn selected_original_stale_size_hint_does_not_truncate_growth() {
+        let root = PrivateRoot::new();
+        let path = root.0.join("growth-after-stat");
+        fs::write(&path, b"ab").unwrap();
+        let file = File::open(&path).unwrap();
+        let mut requests = Vec::new();
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            if request != 0 {
+                if requests.is_empty() {
+                    OpenOptions::new()
+                        .append(true)
+                        .open(&path)
+                        .unwrap()
+                        .write_all(b"cdef")
+                        .unwrap();
+                }
+                requests.push(request);
+            }
+            Ok(())
+        };
+        let raw = selected_original_bounded(file, 4, "stale hint", &mut admission).unwrap();
+        assert_eq!(raw, b"abcd");
+        drop(admission);
+        assert_eq!(requests, [2, 1, 1]);
+        assert_eq!(fs::read(&path).unwrap(), b"abcdef");
+    }
+
+    #[test]
+    fn selected_original_stale_size_hint_pays_truncated_read() {
+        let root = PrivateRoot::new();
+        let path = root.0.join("truncate-after-stat");
+        fs::write(&path, b"ab").unwrap();
+        let file = File::open(&path).unwrap();
+        let mut requests = Vec::new();
+        let mut admission = |request, _, _, _, _| -> std::result::Result<(), &'static str> {
+            if request != 0 {
+                OpenOptions::new()
+                    .write(true)
+                    .open(&path)
+                    .unwrap()
+                    .set_len(0)
+                    .unwrap();
+                requests.push(request);
+            }
+            Ok(())
+        };
+        let raw = selected_original_bounded(file, 4, "stale hint", &mut admission).unwrap();
+        assert!(raw.is_empty());
+        drop(admission);
+        assert_eq!(requests, [2]);
+    }
+
+    #[test]
+    fn selected_original_size_hint_refusal_and_zero_cap_do_not_read() {
+        let root = PrivateRoot::new();
+        let path = root.0.join("hint-refusal");
+        fs::write(&path, b"abcd").unwrap();
+        let file = File::open(&path).unwrap();
+        let mut observer = file.try_clone().unwrap();
+        let mut deny = |_, _, _, _, _| -> std::result::Result<(), &'static str> {
+            Err("size-hint-original-payer")
+        };
+        match selected_original_bounded(file, 4, "hint refusal", &mut deny) {
+            Err(SelectedOriginalFault::Admission(error)) => {
+                assert_eq!(error, "size-hint-original-payer");
+            }
+            _ => panic!("stat admission must preserve the original error"),
+        }
+        assert_eq!(observer.stream_position().unwrap(), 0);
+        let mut no_callback = |_, _, _, _, _| -> std::result::Result<(), &'static str> {
+            panic!("zero cap must retain the legacy no-read path")
+        };
+        let raw =
+            selected_original_bounded(File::open(&path).unwrap(), 0, "zero cap", &mut no_callback)
+                .unwrap();
+        assert!(raw.is_empty());
+        assert_eq!(fs::read(&path).unwrap(), b"abcd");
+    }
+
     // END original-payer selected-read protocol cases.
 }
