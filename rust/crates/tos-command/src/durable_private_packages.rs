@@ -207,6 +207,57 @@ pub(crate) struct SelectedPrivateProducerResponse<'history> {
     entry: &'history PrivateOwnerPackageHistoryEntryV1,
 }
 
+/// Initial producer DATA from the same authentic complete selected history.
+/// Distinct from the current-producer type: consumers cannot silently use the
+/// current revision's request/grant hashes as original creation evidence.
+/// This does not prove claims.create, grant eligibility, semantic creation,
+/// current read permission, a Claim target or admission. Only this module's
+/// genuine selected-history factory constructs it; no raw history/JSON input.
+pub(crate) struct SelectedPrivateInitialProducerResponse<'history> {
+    current: SelectedPrivateProducerResponse<'history>,
+    initial: &'history PrivateOwnerPackageHistoryEntryV1,
+}
+impl SelectedPrivateInitialProducerResponse<'_> {
+    pub(crate) fn current(&self) -> &SelectedPrivateProducerResponse<'_> {
+        &self.current
+    }
+    pub(crate) fn initial_entry(&self) -> &PrivateOwnerPackageHistoryEntryV1 {
+        self.initial
+    }
+}
+
+fn check_initial_producer_header(
+    revision: u64,
+    has_previous: bool,
+    initial_family: PrivateOwnerPackageFamilyV1,
+    current_family: PrivateOwnerPackageFamilyV1,
+) -> DurableResult<()> {
+    if revision != 1 || has_previous || initial_family != current_family {
+        return Err(DurableError::Corrupt(
+            "selected initial producer history differs",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod selected_initial_header_tests {
+    use super::*;
+    #[test]
+    fn initial_producer_requires_first_unlinked_row_of_the_same_family() {
+        let family = PrivateOwnerPackageFamilyV1::Claim;
+        assert!(check_initial_producer_header(1, false, family, family).is_ok());
+        assert!(check_initial_producer_header(2, false, family, family).is_err());
+        assert!(check_initial_producer_header(1, true, family, family).is_err());
+        assert!(
+            check_initial_producer_header(1, false, PrivateOwnerPackageFamilyV1::Text, family)
+                .is_err()
+        );
+        // This is only a header predicate, not a constructor: no raw history,
+        // owner scope or caller bool can mint the sealed selected response.
+    }
+}
+
 impl SelectedPrivateProducerResponse<'_> {
     pub(crate) fn scope(&self) -> &PrivateOwnerScopeV1 {
         &self.history.scope
@@ -223,6 +274,55 @@ impl SelectedPrivateProducerResponse<'_> {
 }
 
 impl<'loan, 'connection, 'targets> PrivateOwnerSelectedHistoryRead<'loan, 'connection, 'targets> {
+    /// Recheck this exact selected target/current head/scope/generation using
+    /// the maintained current-producer factory, then borrow its FIRST actual
+    /// immutable entry. The prior RR hydration/SQL/driver/native enclosure is
+    /// not claimed paid by the local typed header/Result prices here.
+    pub(crate) fn initial_producer_response_with_data_admission(
+        &self,
+        target_ref: &str,
+        budget: &mut crate::source_native_cli::private_assessment::OperationBudget,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<SelectedPrivateInitialProducerResponse<'loan>> {
+        use std::mem::size_of;
+        check_private_history_deadline(deadline, cancelled)?;
+        if deadline > budget.limits().map_err(DurableError::Source)?.deadline {
+            return Err(DurableError::Refused(
+                "initial producer cutoff exceeds original operation",
+            ));
+        }
+        budget
+            .charge_bytes(
+                size_of::<SelectedPrivateInitialProducerResponse<'_>>()
+                    + size_of::<DurableResult<SelectedPrivateInitialProducerResponse<'_>>>(),
+            )
+            .map_err(DurableError::Source)?;
+        let current = self.current_producer_response_with_data_admission(
+            target_ref, budget, deadline, cancelled,
+        )?;
+        // The Vec/header/entry operands are paid BEFORE first()/field reads.
+        budget
+            .charge_work(
+                size_of::<Vec<PrivateOwnerPackageHistoryEntryV1>>()
+                    + size_of::<PrivateOwnerPackageHistoryEntryV1>()
+                    + size_of::<PrivateOwnerPackageFamilyV1>(),
+            )
+            .map_err(DurableError::Source)?;
+        let history = current.history;
+        let initial = history.history.first().ok_or(DurableError::Corrupt(
+            "selected initial producer history empty",
+        ))?;
+        check_initial_producer_header(
+            initial.revision,
+            initial.previous_digest.is_some(),
+            initial.family,
+            current.entry.family,
+        )?;
+        check_private_history_deadline(deadline, cancelled)?;
+        Ok(SelectedPrivateInitialProducerResponse { current, initial })
+    }
+
     /// Issue no new read or permission: borrow the already authenticated
     /// CURRENT producer receipt of one actual selected target. Consumers must
     /// still check the family/response protocol and protected read selection.

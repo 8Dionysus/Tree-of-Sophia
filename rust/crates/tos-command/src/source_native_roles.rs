@@ -9,6 +9,13 @@ pub(crate) use pg_owner::{
     CurrentPgRoleOwner, PgClaimProducerReadPolicy, PgPrivatePweClaimSyntax,
     with_current_pg_role_owner,
 };
+pub(crate) use pg_owner::{
+    PgPrivatePweArchiveData, PgPrivatePweArchivedFiles, PgPrivatePweStreamHistory,
+    PrivatePweArchivedFile,
+};
+pub(crate) use pg_owner::{
+    PgPrivatePweCreationReceipt, PgPrivatePweCreationSource, PgPrivatePweInitialForms,
+};
 #[path = "source_native_pg_role_kernel_schema.rs"]
 mod pg_kernel_schema;
 pub(crate) use pg_kernel_schema::{PgRoleKernelSchema, with_pg_role_kernel_schema};

@@ -269,13 +269,13 @@ impl ScopeAccess<'_> {
         }
         Ok(())
     }
-    pub(super) fn copied(&mut self, value: &JsonValue) -> Result<JsonValue> {
+    pub(crate) fn copied(&mut self, value: &JsonValue) -> Result<JsonValue> {
         if self.ledger.is_some() {
             self.prepay_value(value, 0, &mut 0, true)?;
         }
         Ok(value.clone())
     }
-    pub(super) fn optional_equal(
+    pub(crate) fn optional_equal(
         &mut self,
         left: Option<&JsonValue>,
         right: Option<&JsonValue>,
@@ -532,7 +532,7 @@ impl ScopeAccess<'_> {
                 .unwrap_or_else(exhausted)
         })
     }
-    pub(super) fn same(&mut self, left: &JsonValue, right: &JsonValue) -> Result<bool> {
+    pub(crate) fn same(&mut self, left: &JsonValue, right: &JsonValue) -> Result<bool> {
         if self.ledger.is_none() {
             return cmd::same(left, right);
         }

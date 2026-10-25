@@ -28,6 +28,18 @@ pub(crate) use claim_producer_policy::PgClaimProducerReadPolicy;
 mod private_pwe_input;
 pub(crate) use private_pwe_input::PgPrivatePweClaimSyntax;
 
+#[path = "source_native_pg_private_pwe_creation_source.rs"]
+mod private_pwe_creation_source;
+pub(crate) use private_pwe_creation_source::{
+    PgPrivatePweCreationReceipt, PgPrivatePweCreationSource, PgPrivatePweInitialForms,
+};
+#[path = "source_native_pg_private_pwe_archive_read.rs"]
+mod private_pwe_archive_read;
+pub(crate) use private_pwe_archive_read::{
+    PgPrivatePweArchiveData, PgPrivatePweArchivedFiles, PgPrivatePweStreamHistory,
+    PrivatePweArchivedFile,
+};
+
 /// Private-constructed, non-Clone lexical evidence of the current protected
 /// account/context and actual PG host. The borrowed grant is the ACTUAL file-
 /// selected Assessment grant, not a historical producer grant or JSON factory.

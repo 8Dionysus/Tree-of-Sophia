@@ -14,6 +14,18 @@ use std::{
 use tos_foundation::{JsonDocument, JsonValue};
 use tos_validation::assessment::MAX_RECORD_BYTES;
 
+#[path = "source_private_pwe_archive_plan.rs"]
+mod archive_plan;
+pub(crate) use archive_plan::{
+    PrivatePweArchivePlan, PrivatePweArchiveRequest, parse_selected_archive_requests,
+};
+
+#[path = "source_private_pwe_revision_mechanics.rs"]
+mod revision_mechanics;
+pub(crate) use revision_mechanics::{
+    PrivatePweStreamRevision, advance_private_pwe_claim, inspect_private_pwe_stream,
+    reconstruct_private_pwe_stream_revision, replace_private_pwe_claim_row,
+};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PrivatePweClaimFamily {
     Name,

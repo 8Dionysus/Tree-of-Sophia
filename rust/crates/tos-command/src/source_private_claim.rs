@@ -33,6 +33,13 @@ mod pwe_read;
 pub(crate) use pwe_read::{
     ParsedPrivatePweClaim, PrivatePweClaimFamily, parse_selected_claim_stream,
 };
+pub(crate) use pwe_read::{
+    PrivatePweArchivePlan, PrivatePweArchiveRequest, parse_selected_archive_requests,
+};
+pub(crate) use pwe_read::{
+    PrivatePweStreamRevision, advance_private_pwe_claim, inspect_private_pwe_stream,
+    reconstruct_private_pwe_stream_revision, replace_private_pwe_claim_row,
+};
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
 pub(crate) const CONFIG_V2: &str = "tos_local_owner_claim_command_v2";

@@ -184,6 +184,57 @@ mod tests {
 impl<'store, 'budget, 'cancel, 'pure>
     CurrentPgRoleOwner<'_, '_, '_, 'store, 'budget, 'cancel, 'pure>
 {
+    /// Prepare exact archive request DATA for the actual selected package.
+    /// This is not an archive reader or a Claim integrity/target verdict.
+    /// No policy, budget, namespace or cutoff can be supplied by the caller.
+    pub(crate) fn private_pwe_archive_requests<'history>(
+        &mut self,
+        private: &PrivateOwnerSelectedHistoryRead<'history, '_, '_>,
+        source_path: &str,
+        claim_id: &str,
+    ) -> DurableResult<claim::PrivatePweArchivePlan<'history>> {
+        let body = (|| {
+            self.check_current()?;
+            self.with_source_epoch(|_, payer, same| {
+                let bytes = size_of::<claim::PrivatePweArchivePlan<'_>>()
+                    .checked_add(3 * size_of::<DurableResult<claim::PrivatePweArchivePlan<'_>>>())
+                    .ok_or(DurableError::Source(overflow()))?;
+                payer
+                    .charge_sto_source_measures(same, 0, bytes, 0, 0, 1)
+                    .map_err(DurableError::Source)
+            })?;
+            let producer =
+                self.claim_producer_read_policy(private, source_path, claim_id, false)?;
+            let grant = self.grant;
+            let owner = self.owner;
+            self.host.with_source_epoch(|_, payer, same| {
+                let (deadline, cancelled) = payer.source_cutoff();
+                claim::with_current_pg_claim_read_scope_exact_source(
+                    payer,
+                    same,
+                    grant,
+                    owner,
+                    source_path,
+                    claim_id,
+                    false,
+                    |selected, _same| {
+                        payer.with_operation(|budget| {
+                            claim::parse_selected_archive_requests(
+                                producer, &selected, budget, deadline, cancelled,
+                            )
+                        })
+                    },
+                )
+                .map_err(DurableError::Source)
+            })
+        })();
+        let exit = self.check_current();
+        match (body, exit) {
+            (Err(original), _) | (Ok(_), Err(original)) => Err(original),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+
     /// Read/parse/check the selected CURRENT private Claim using its actual
     /// producer and current protected read selection. All three PWE forms
     /// share this syntax lane. It never declares full Claim lineage or source
