@@ -33,6 +33,12 @@ mod private_pwe_creation_source;
 pub(crate) use private_pwe_creation_source::{
     PgPrivatePweCreationReceipt, PgPrivatePweCreationSource, PgPrivatePweInitialForms,
 };
+#[path = "source_native_pg_private_pwe_source_material.rs"]
+mod private_pwe_material;
+pub(crate) use private_pwe_material::{
+    PgPrivatePweSourceMaterial, PgPrivatePweSourceMaterialFailure,
+};
+
 #[path = "source_native_pg_private_pwe_archive_read.rs"]
 mod private_pwe_archive_read;
 pub(crate) use private_pwe_archive_read::{

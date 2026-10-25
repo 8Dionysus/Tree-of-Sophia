@@ -16,6 +16,7 @@ pub(crate) use pg_owner::{
 pub(crate) use pg_owner::{
     PgPrivatePweCreationReceipt, PgPrivatePweCreationSource, PgPrivatePweInitialForms,
 };
+pub(crate) use pg_owner::{PgPrivatePweSourceMaterial, PgPrivatePweSourceMaterialFailure};
 #[path = "source_native_pg_role_kernel_schema.rs"]
 mod pg_kernel_schema;
 pub(crate) use pg_kernel_schema::{PgRoleKernelSchema, with_pg_role_kernel_schema};
