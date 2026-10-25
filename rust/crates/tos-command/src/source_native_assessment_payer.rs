@@ -168,18 +168,16 @@ impl OriginalAssessmentPayer<'_, '_> {
         // Every event is additive. In particular new_owned is NOT a high-water
         // observation; repeated allocation events each retain their full size.
         // A later refusal never restores an earlier successful debit.
-        session
-            .retain_source_state(retained)
-            .map_err(|error| {
-                #[cfg(test)]
-                eprintln!(
-                    "COMMON_STO_SESSION_REFUSAL_V1 component=state spent={:?} event={:?} error={:?}",
-                    session.charges(),
-                    (requested, new_owned, workspace, byte_work, native_units),
-                    error,
-                );
-                self.error(error)
-            })?;
+        session.retain_source_state(retained).map_err(|error| {
+            #[cfg(test)]
+            eprintln!(
+                "COMMON_STO_SESSION_REFUSAL_V1 component=state spent={:?} event={:?} error={:?}",
+                session.charges(),
+                (requested, new_owned, workspace, byte_work, native_units),
+                error,
+            );
+            self.error(error)
+        })?;
         session
             .admit_source_prefix(requested, 0)
             .map_err(|error| {
@@ -710,9 +708,12 @@ mod tests {
                 assert!(payer.with_operation(|_| Ok(())).is_err());
                 Err(failure)
             });
-        assert!(matches!(result, Err(SourceCommandError::Unsupported(
-            "PWE Assessment Session exhausted"
-        ))));
+        assert!(matches!(
+            result,
+            Err(SourceCommandError::Unsupported(
+                "PWE Assessment Session exhausted"
+            ))
+        ));
         assert_eq!(original.work_remaining, work_before - 262_144);
     }
 }
