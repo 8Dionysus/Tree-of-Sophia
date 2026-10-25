@@ -707,12 +707,12 @@ mod tests {
                     .charge_sto_source_measures(session, 65_536, 0, 0, 0, 1)
                     .unwrap_err();
                 assert_eq!(session.charges(), (196_608, 0, 196_611, 0, 0));
+                assert!(payer.with_operation(|_| Ok(())).is_err());
                 Err(failure)
             });
         assert!(matches!(result, Err(SourceCommandError::Unsupported(
             "PWE Assessment Session exhausted"
         ))));
         assert_eq!(original.work_remaining, work_before - 262_144);
-        assert!(original.limits().is_err());
     }
 }
