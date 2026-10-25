@@ -26,6 +26,10 @@ pub(crate) use revision_mechanics::{
     PrivatePweStreamRevision, advance_private_pwe_claim, inspect_private_pwe_stream,
     reconstruct_private_pwe_stream_revision, replace_private_pwe_claim_row,
 };
+#[path = "source_private_pwe_creation_scope.rs"]
+mod creation_scope;
+pub(crate) use creation_scope::check_private_pwe_initial_declaration;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PrivatePweClaimFamily {
     Name,

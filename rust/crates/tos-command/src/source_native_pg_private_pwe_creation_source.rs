@@ -71,6 +71,37 @@ fn unchanged_initial(
 }
 
 impl CurrentPgRoleOwner<'_, '_, '_, '_, '_, '_, '_> {
+    /// Enforce the original request's retained declaration constraints on
+    /// all three PWE families after reselecting THIS actual current owner/RR
+    /// source. No token/Grant/permission is returned; normalized declaration
+    /// consistency still is not historical grant authentication/eligibility.
+    pub(crate) fn check_private_pwe_initial_declaration<'history>(
+        &mut self,
+        private: &PrivateOwnerSelectedHistoryRead<'history, '_, '_>,
+        path: &str,
+        claim: &str,
+    ) -> DurableResult<()> {
+        let body = (|| {
+            self.check_current()?;
+            let creation = self.private_pwe_creation_receipt(private, path, claim)?;
+            self.with_source_epoch(|_,payer,_same| {
+                let (d,c)=payer.source_cutoff();
+                payer.with_operation(|budget| {
+                    budget.charge_bytes(size_of::<ScopeAccess<'_>>()+2*size_of::<Result<()>>())?;
+                    crate::source_native_cli::private_owner::claim::check_private_pwe_initial_declaration(
+                        creation.request().root(),creation.normalized_configuration().root(),
+                        &mut ScopeAccess::admitted_operation(budget,d,c),
+                    )
+                }).map_err(DurableError::Source)
+            })
+        })();
+        let exit = self.check_current();
+        match (body, exit) {
+            (Err(original), _) | (Ok(_), Err(original)) => Err(original),
+            (Ok(value), Ok(())) => Ok(value),
+        }
+    }
+
     /// Bind initial request/receipt/stream to actual broker metadata. It still
     /// does NOT issue full creation integrity, permission or native inputs.
     pub(crate) fn private_pwe_creation_receipt<'history>(

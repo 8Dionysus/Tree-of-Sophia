@@ -30,6 +30,7 @@ pub(crate) use current_read::{
 
 #[path = "source_private_pwe_claim.rs"]
 mod pwe_read;
+pub(crate) use pwe_read::check_private_pwe_initial_declaration;
 pub(crate) use pwe_read::{
     ParsedPrivatePweClaim, PrivatePweClaimFamily, parse_selected_claim_stream,
 };
