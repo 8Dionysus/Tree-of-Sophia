@@ -11,10 +11,10 @@ use crate::source_revisions::ReadonlyRecordFiles;
 use postgres::IsolationLevel;
 use std::sync::atomic::AtomicBool;
 
-#[path = "source_native_pg_query_data.rs"]
-mod query_data;
 #[path = "source_native_pg_presence.rs"]
 mod admitted_presence;
+#[path = "source_native_pg_query_data.rs"]
+mod query_data;
 
 const FRESHNESS_SETUP_SQL: &str = "SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'";
 const FRESHNESS_AUDIT_SQL: &str = "SELECT generation,maintenance_state FROM cmd2_audit_fence
@@ -2211,7 +2211,12 @@ impl SourceRevisionReadSession<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<SourceRevisionIdentityClosure> {
-        let result = self.lookup_source_identities_using_data(tokens, Some(&mut *budget), deadline, cancelled);
+        let result = self.lookup_source_identities_using_data(
+            tokens,
+            Some(&mut *budget),
+            deadline,
+            cancelled,
+        );
         finish_source_revision_epoch(result, || {
             self.verify_fresh_with_query_data_admission(budget, deadline, cancelled)
         })
@@ -2237,7 +2242,9 @@ impl SourceRevisionReadSession<'_> {
         }
         if tokens.is_empty() {
             let selection_identity = match budget.as_deref_mut() {
-                Some(budget) => self.selection.identity_with_data_admission(budget, deadline, cancelled)
+                Some(budget) => self
+                    .selection
+                    .identity_with_data_admission(budget, deadline, cancelled)
                     .map_err(DurableError::Source)?,
                 None => self.selection.identity(),
             };
@@ -2249,25 +2256,43 @@ impl SourceRevisionReadSession<'_> {
         }
         active(deadline, cancelled)?;
 
-        let token_bytes = tokens.iter().try_fold(0usize, |n,t| n.checked_add(t.len()))
+        let token_bytes = tokens
+            .iter()
+            .try_fold(0usize, |n, t| n.checked_add(t.len()))
             .ok_or(DurableError::Refused("identity input DATA overflow"))?;
         let kind_bytes = PG_AGENT_INDEX_KINDS.iter().map(|k| k.len()).sum::<usize>();
-        let array_bytes = |count: usize, bytes: usize| count.checked_mul(4)
-            .and_then(|n| n.checked_add(bytes)).and_then(|n| n.checked_add(20))
-            .ok_or(DurableError::Refused("identity binary array DATA overflow"));
+        let array_bytes = |count: usize, bytes: usize| {
+            count
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(bytes))
+                .and_then(|n| n.checked_add(20))
+                .ok_or(DurableError::Refused("identity binary array DATA overflow"))
+        };
         let kinds_wire = array_bytes(PG_AGENT_INDEX_KINDS.len(), kind_bytes)?;
         let tokens_wire = array_bytes(tokens.len(), token_bytes)?;
         if let Some(budget) = budget.as_deref_mut() {
             // Two actual String Vecs, initial owner keys and all five default
             // generation key payloads. Native BTree nodes/control are NOT
             // inferred from these logical data/entry carriers.
-            let text = token_bytes.checked_mul(2 + PG_AGENT_INDEX_KINDS.len())
-                .and_then(|n| kind_bytes.checked_mul(1 + tokens.len()).and_then(|k| n.checked_add(k)))
+            let text = token_bytes
+                .checked_mul(2 + PG_AGENT_INDEX_KINDS.len())
+                .and_then(|n| {
+                    kind_bytes
+                        .checked_mul(1 + tokens.len())
+                        .and_then(|k| n.checked_add(k))
+                })
                 .ok_or(DurableError::Refused("identity cloned DATA overflow"))?;
-            let slots = tokens.len().checked_mul(1 + PG_AGENT_INDEX_KINDS.len())
+            let slots = tokens
+                .len()
+                .checked_mul(1 + PG_AGENT_INDEX_KINDS.len())
                 .and_then(|n| n.checked_add(PG_AGENT_INDEX_KINDS.len()))
-                .and_then(|n| n.checked_mul(std::mem::size_of::<(String,String)>() + std::mem::size_of::<u64>()))
-                .and_then(|n| n.checked_add(text)).ok_or(DurableError::Refused("identity DATA holders overflow"))?;
+                .and_then(|n| {
+                    n.checked_mul(
+                        std::mem::size_of::<(String, String)>() + std::mem::size_of::<u64>(),
+                    )
+                })
+                .and_then(|n| n.checked_add(text))
+                .ok_or(DurableError::Refused("identity DATA holders overflow"))?;
             budget.charge_work(text).map_err(DurableError::Source)?;
             budget.charge_bytes(slots).map_err(DurableError::Source)?;
         }
@@ -2284,11 +2309,25 @@ impl SourceRevisionReadSession<'_> {
             let mut tx = self.coordinator.client.transaction()?;
             if let Some(budget) = budget.as_deref_mut() {
                 const SNAPSHOT: &str = "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ";
-                query_data::statement(budget, SNAPSHOT, &[], query_data::RowShape::None, deadline, cancelled)
-                    .map_err(DurableError::Source)?;
+                query_data::statement(
+                    budget,
+                    SNAPSHOT,
+                    &[],
+                    query_data::RowShape::None,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
                 tx.batch_execute(SNAPSHOT)?;
-                query_data::statement(budget, FRESHNESS_SETUP_SQL, &[], query_data::RowShape::None, deadline, cancelled)
-                    .map_err(DurableError::Source)?;
+                query_data::statement(
+                    budget,
+                    FRESHNESS_SETUP_SQL,
+                    &[],
+                    query_data::RowShape::None,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
             }
             tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
             if let Some(budget) = budget.as_deref_mut() {
@@ -2310,10 +2349,19 @@ impl SourceRevisionReadSession<'_> {
                 ));
             }
             if let Some(budget) = budget.as_deref_mut() {
-                query_data::statement(budget, FRESHNESS_DOMAIN_LENGTHS_SQL,
-                    &[self.selection.cohort.domain.len()], query_data::RowShape::DomainLengths, deadline, cancelled)
-                    .map_err(DurableError::Source)?;
-                let lengths = tx.query_one(FRESHNESS_DOMAIN_LENGTHS_SQL, &[&self.selection.cohort.domain])?;
+                query_data::statement(
+                    budget,
+                    FRESHNESS_DOMAIN_LENGTHS_SQL,
+                    &[self.selection.cohort.domain.len()],
+                    query_data::RowShape::DomainLengths,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                let lengths = tx.query_one(
+                    FRESHNESS_DOMAIN_LENGTHS_SQL,
+                    &[&self.selection.cohort.domain],
+                )?;
                 let definition = usize::try_from(lengths.get::<_, i32>(0))
                     .map_err(|_| DurableError::Corrupt("identity definition sender length"))?;
                 let contract = usize::try_from(lengths.get::<_, i32>(1))
@@ -2350,19 +2398,37 @@ impl SourceRevisionReadSession<'_> {
             if let Some(budget) = budget.as_deref_mut() {
                 const ENVELOPE: &str = "SELECT count(*)::bigint,COALESCE(sum(\n                    octet_length(pg_catalog.textsend(kind))+octet_length(pg_catalog.textsend(token))+\n                    octet_length(pg_catalog.textsend(path))+octet_length(pg_catalog.bpcharsend(definition_digest))),0)::bigint,\n                    COALESCE(sum(octet_length(pg_catalog.textsend(path))),0)::bigint\n                    FROM cmd2_source_index WHERE domain=$1 AND kind=ANY($2) AND token=ANY($3)";
                 let params = [self.selection.cohort.domain.len(), kinds_wire, tokens_wire];
-                query_data::statement(budget, ENVELOPE, &params, query_data::RowShape::IndexEnvelope, deadline, cancelled)
-                    .map_err(DurableError::Source)?;
+                query_data::statement(
+                    budget,
+                    ENVELOPE,
+                    &params,
+                    query_data::RowShape::IndexEnvelope,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
                 // This transaction's actual repeatable-read snapshot binds
                 // the envelope and full rows, including phantom insertions.
                 // It is NOT a continuous transaction across the outer epoch.
-                let envelope = tx.query_one(ENVELOPE, &[&self.selection.cohort.domain, &kinds, &token_values])?;
-                let rows = usize::try_from(envelope.get::<_, i64>(0)).map_err(|_| DurableError::Corrupt("identity row count"))?;
-                let bytes = usize::try_from(envelope.get::<_, i64>(1)).map_err(|_| DurableError::Corrupt("identity row DATA"))?;
-                let paths = usize::try_from(envelope.get::<_, i64>(2)).map_err(|_| DurableError::Corrupt("identity path DATA"))?;
+                let envelope = tx.query_one(
+                    ENVELOPE,
+                    &[&self.selection.cohort.domain, &kinds, &token_values],
+                )?;
+                let rows = usize::try_from(envelope.get::<_, i64>(0))
+                    .map_err(|_| DurableError::Corrupt("identity row count"))?;
+                let bytes = usize::try_from(envelope.get::<_, i64>(1))
+                    .map_err(|_| DurableError::Corrupt("identity row DATA"))?;
+                let paths = usize::try_from(envelope.get::<_, i64>(2))
+                    .map_err(|_| DurableError::Corrupt("identity path DATA"))?;
                 if rows > tokens.len() * PG_AGENT_INDEX_KINDS.len() {
-                    return Err(DurableError::Corrupt("identity index cardinality exceeds fixed uniqueness domain"));
+                    return Err(DurableError::Corrupt(
+                        "identity index cardinality exceeds fixed uniqueness domain",
+                    ));
                 }
-                let decoded = rows.checked_mul(64).and_then(|n| n.checked_add(bytes)).and_then(|n| n.checked_add(paths))
+                let decoded = rows
+                    .checked_mul(64)
+                    .and_then(|n| n.checked_add(bytes))
+                    .and_then(|n| n.checked_add(paths))
                     .ok_or(DurableError::Refused("identity decoded DATA overflow"))?;
                 query_data::table_statement(budget,
                     "SELECT kind,token,path,definition_digest FROM cmd2_source_index\n                 WHERE domain=$1 AND kind=ANY($2) AND token=ANY($3)\n                 ORDER BY token COLLATE \"C\",kind COLLATE \"C\"",
@@ -2411,19 +2477,44 @@ impl SourceRevisionReadSession<'_> {
 
             if let Some(budget) = budget.as_deref_mut() {
                 const ENVELOPE: &str = "SELECT count(*)::bigint,COALESCE(sum(\n                    octet_length(pg_catalog.textsend(scope))+octet_length(pg_catalog.textsend(token))+\n                    octet_length(pg_catalog.textsend(definition_version))),0)::bigint\n                    FROM cmd2_predicate WHERE domain=$1 AND kind='unique' AND owner=$2\n                    AND scope=ANY($3) AND token=ANY($4)";
-                let params = [self.selection.cohort.domain.len(), OWNER.len(), kinds_wire, tokens_wire];
-                query_data::statement(budget, ENVELOPE, &params, query_data::RowShape::PredicateEnvelope, deadline, cancelled)
-                    .map_err(DurableError::Source)?;
-                let envelope = tx.query_one(ENVELOPE, &[&self.selection.cohort.domain, &OWNER, &kinds, &token_values])?;
-                let rows = usize::try_from(envelope.get::<_, i64>(0)).map_err(|_| DurableError::Corrupt("identity predicate row count"))?;
-                let text = usize::try_from(envelope.get::<_, i64>(1)).map_err(|_| DurableError::Corrupt("identity predicate DATA"))?;
+                let params = [
+                    self.selection.cohort.domain.len(),
+                    OWNER.len(),
+                    kinds_wire,
+                    tokens_wire,
+                ];
+                query_data::statement(
+                    budget,
+                    ENVELOPE,
+                    &params,
+                    query_data::RowShape::PredicateEnvelope,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(DurableError::Source)?;
+                let envelope = tx.query_one(
+                    ENVELOPE,
+                    &[&self.selection.cohort.domain, &OWNER, &kinds, &token_values],
+                )?;
+                let rows = usize::try_from(envelope.get::<_, i64>(0))
+                    .map_err(|_| DurableError::Corrupt("identity predicate row count"))?;
+                let text = usize::try_from(envelope.get::<_, i64>(1))
+                    .map_err(|_| DurableError::Corrupt("identity predicate DATA"))?;
                 if rows > tokens.len() * PG_AGENT_INDEX_KINDS.len() {
-                    return Err(DurableError::Corrupt("identity predicate cardinality exceeds fixed uniqueness domain"));
+                    return Err(DurableError::Corrupt(
+                        "identity predicate cardinality exceeds fixed uniqueness domain",
+                    ));
                 }
-                let payload = rows.checked_mul(9).and_then(|n| n.checked_add(text))
+                let payload = rows
+                    .checked_mul(9)
+                    .and_then(|n| n.checked_add(text))
                     .ok_or(DurableError::Refused("identity predicate payload overflow"))?;
-                let decoded = rows.checked_mul(64).and_then(|n| n.checked_add(text))
-                    .ok_or(DurableError::Refused("identity predicate decoded DATA overflow"))?;
+                let decoded = rows
+                    .checked_mul(64)
+                    .and_then(|n| n.checked_add(text))
+                    .ok_or(DurableError::Refused(
+                        "identity predicate decoded DATA overflow",
+                    ))?;
                 query_data::table_statement(budget,
                     "SELECT scope,token,generation,complete,definition_version\n                 FROM cmd2_predicate\n                 WHERE domain=$1 AND kind='unique' AND owner=$2\n                   AND scope=ANY($3) AND token=ANY($4)\n                 ORDER BY token COLLATE \"C\",scope COLLATE \"C\"",
                     &params, rows, 5, payload, decoded, rows * 4, deadline, cancelled).map_err(DurableError::Source)?;
@@ -2474,14 +2565,21 @@ impl SourceRevisionReadSession<'_> {
                     // Actual record_predicate owns two three-String keys and
                     // one four-String read. Pay all possible owned text before
                     // it clones/inserts; BTree nodes/native control stay open.
-                    let text = token.len().checked_mul(3)
+                    let text = token
+                        .len()
+                        .checked_mul(3)
                         .and_then(|n| n.checked_add(kind.len() * 3))
                         .and_then(|n| n.checked_add(2 * "unique".len() + OWNER.len() + 64))
                         .ok_or(DurableError::Refused("identity predicate text overflow"))?;
-                    let holders = text.checked_add(2 * std::mem::size_of::<(String,String,String)>())
+                    let holders = text
+                        .checked_add(2 * std::mem::size_of::<(String, String, String)>())
                         .and_then(|n| n.checked_add(std::mem::size_of::<PredicateRead>()))
                         .ok_or(DurableError::Refused("identity predicate holders overflow"))?;
-                    budget.charge_work(text.checked_add(32).ok_or(DurableError::Refused("identity predicate work overflow"))?)
+                    budget
+                        .charge_work(
+                            text.checked_add(32)
+                                .ok_or(DurableError::Refused("identity predicate work overflow"))?,
+                        )
                         .map_err(DurableError::Source)?;
                     budget.charge_bytes(holders).map_err(DurableError::Source)?;
                 }
@@ -2489,7 +2587,9 @@ impl SourceRevisionReadSession<'_> {
             }
         }
         let selection_identity = match budget.as_deref_mut() {
-            Some(budget) => self.selection.identity_with_data_admission(budget, deadline, cancelled)
+            Some(budget) => self
+                .selection
+                .identity_with_data_admission(budget, deadline, cancelled)
                 .map_err(DurableError::Source)?,
             None => self.selection.identity(),
         };

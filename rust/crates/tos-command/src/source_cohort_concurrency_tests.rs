@@ -2015,27 +2015,61 @@ fn admitted_physical_presence_records_only_real_absence_without_reading_payloads
     let cancelled = AtomicBool::new(false);
     let mut fixture = lab_fixture(deadline, &cancelled);
     let present = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
-    let missing = RelativePath::parse("ToS/source-witnesses/agents/parmenides-of-elea/no-such-selected-metadata.json").unwrap();
-    let mut original = OperationBudget::new(&json!({"budgets":{
-        "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-    }}), deadline).unwrap();
+    let missing = RelativePath::parse(
+        "ToS/source-witnesses/agents/parmenides-of-elea/no-such-selected-metadata.json",
+    )
+    .unwrap();
+    let mut original = OperationBudget::new(
+        &json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}),
+        deadline,
+    )
+    .unwrap();
     let domain = fixture.domain.clone();
-    let ((), readset) = fixture.coordinator.with_source_revision_session_with_exit_data_admission(
-        &fixture.store, &domain, JOB_ID, 1, deadline, &cancelled, &mut original,
-        |epoch, same| {
-            assert!(epoch.has_current_metadata_with_data_admission(&present, same, deadline, &cancelled)?);
-            assert!(!epoch.has_current_metadata_with_data_admission(&missing, same, deadline, &cancelled)?);
-            assert!(!epoch.has_current_metadata_with_data_admission(&missing, same, deadline, &cancelled)?);
-            Ok(())
-        },
-    ).expect("actual bounded PG existence and absence retain the same owner epoch");
+    let ((), readset) = fixture
+        .coordinator
+        .with_source_revision_session_with_exit_data_admission(
+            &fixture.store,
+            &domain,
+            JOB_ID,
+            1,
+            deadline,
+            &cancelled,
+            &mut original,
+            |epoch, same| {
+                assert!(epoch.has_current_metadata_with_data_admission(
+                    &present, same, deadline, &cancelled
+                )?);
+                assert!(!epoch.has_current_metadata_with_data_admission(
+                    &missing, same, deadline, &cancelled
+                )?);
+                assert!(!epoch.has_current_metadata_with_data_admission(
+                    &missing, same, deadline, &cancelled
+                )?);
+                Ok(())
+            },
+        )
+        .expect("actual bounded PG existence and absence retain the same owner epoch");
     assert_eq!(readset.work.metadata_member_lookups, 3);
     assert_eq!(readset.work.exact_source_members_read, 0);
-    assert!(readset.observations().is_empty(), "presence is not a payload/content observation");
-    assert_eq!(readset.reads.reads.iter().filter(|read| matches!(read,
-        crate::PredicateRead::Absent { namespace, key }
-            if namespace == "source" && key == missing.as_str()
-    )).count(), 1, "the same actual absence is retained once");
+    assert!(
+        readset.observations().is_empty(),
+        "presence is not a payload/content observation"
+    );
+    assert_eq!(
+        readset
+            .reads
+            .reads
+            .iter()
+            .filter(|read| matches!(read,
+                crate::PredicateRead::Absent { namespace, key }
+                    if namespace == "source" && key == missing.as_str()
+            ))
+            .count(),
+        1,
+        "the same actual absence is retained once"
+    );
 }
 
 #[test]
@@ -2045,28 +2079,51 @@ fn admitted_physical_presence_refusal_preserves_original_prefix_and_blocks_epoch
     let cancelled = AtomicBool::new(false);
     let mut fixture = lab_fixture(deadline, &cancelled);
     let present = RelativePath::parse(&fixture.targets[0].source_path).unwrap();
-    let mut original = OperationBudget::new(&json!({"budgets":{
-        "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
-    }}), deadline).unwrap();
+    let mut original = OperationBudget::new(
+        &json!({"budgets":{
+            "worker_cpu_seconds":1,"worker_address_space_bytes":1048576
+        }}),
+        deadline,
+    )
+    .unwrap();
     let domain = fixture.domain.clone();
-    let result = fixture.coordinator.with_source_revision_session_with_exit_data_admission(
-        &fixture.store, &domain, JOB_ID, 1, deadline, &cancelled, &mut original,
-        |epoch, same| {
-            let bytes = same.limits().map_err(DurableError::Source)?.max_input_bytes;
-            same.lower_remaining(bytes, 1).map_err(DurableError::Source)?;
-            let refused = epoch.has_current_metadata_with_data_admission(&present, same, deadline, &cancelled);
-            assert!(matches!(&refused, Err(DurableError::Source(SourceCommandError::Invalid(
+    let result = fixture
+        .coordinator
+        .with_source_revision_session_with_exit_data_admission(
+            &fixture.store,
+            &domain,
+            JOB_ID,
+            1,
+            deadline,
+            &cancelled,
+            &mut original,
+            |epoch, same| {
+                let bytes = same.limits().map_err(DurableError::Source)?.max_input_bytes;
+                same.lower_remaining(bytes, 1)
+                    .map_err(DurableError::Source)?;
+                let refused = epoch
+                    .has_current_metadata_with_data_admission(&present, same, deadline, &cancelled);
+                assert!(matches!(
+                    &refused,
+                    Err(DurableError::Source(SourceCommandError::Invalid(
+                        "assessment cumulative work budget"
+                    )))
+                ));
+                // Observe without operational re-admission or sticky-latch reset.
+                assert_eq!(same.test_work_remaining(), 1);
+                assert!(same.limits().is_err());
+                refused.map(|_| ())
+            },
+        );
+    assert!(
+        matches!(
+            result,
+            Err(DurableError::Source(SourceCommandError::Invalid(
                 "assessment cumulative work budget"
-            )))));
-            // Observe without operational re-admission or sticky-latch reset.
-            assert_eq!(same.test_work_remaining(), 1);
-            assert!(same.limits().is_err());
-            refused.map(|_| ())
-        },
+            )))
+        ),
+        "the real epoch Err exit must preserve its first resource failure"
     );
-    assert!(matches!(result, Err(DurableError::Source(SourceCommandError::Invalid(
-        "assessment cumulative work budget"
-    )))), "the real epoch Err exit must preserve its first resource failure");
     assert_eq!(original.test_work_remaining(), 1);
     assert!(original.limits().is_err());
 }

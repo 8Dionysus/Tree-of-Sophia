@@ -23,13 +23,15 @@ fn actual_counters(
     application.current.with_source_epoch(|_, payer, same| {
         {
             let mut ledger = source(SourceLedger::new(same, payer))?;
-            source(ledger.reserve(size_of::<ActualCounters>()
-                + size_of::<DurableResult<ActualCounters>>()))?;
+            source(ledger.reserve(
+                size_of::<ActualCounters>() + size_of::<DurableResult<ActualCounters>>(),
+            ))?;
             source(ledger.inspect(0, 8))?;
         }
         let original = source(payer.remaining())?;
         Ok(ActualCounters {
-            charges: same.charges(), original_bytes: original.bytes,
+            charges: same.charges(),
+            original_bytes: original.bytes,
             original_work: original.work,
         })
     })
@@ -68,19 +70,29 @@ fn assert_spent_prefix(before: &ActualCounters, after: &ActualCounters, report_w
 /// runner must additionally inspect its actual outer-operation final counters.
 pub(crate) fn fixture_cumulative_comparison_twice(
     current: &mut CurrentPgRoleOwner<'_, '_, '_, '_, '_, '_, '_>,
-    claim: &JsonValue, exact: &ExactRecordRef, roles: PgPublicRoles<'_>,
-    report: &AssessmentMechanicsReport, coordinates: PgReportCoordinates<'_>,
+    claim: &JsonValue,
+    exact: &ExactRecordRef,
+    roles: PgPublicRoles<'_>,
+    report: &AssessmentMechanicsReport,
+    coordinates: PgReportCoordinates<'_>,
 ) -> DurableResult<()> {
     with_pg_public_application(current, claim, exact, roles, |mut application| {
         let before = actual_counters(&mut application)?;
-        assert!(before.charges.2 > 0, "prepare/check/qualify already spent original A");
+        assert!(
+            before.charges.2 > 0,
+            "prepare/check/qualify already spent original A"
+        );
         let first_coordinates = copy_coordinates(&mut application, &coordinates)?;
-        assert_eq!(application.compare_native_report(report, first_coordinates)?,
-            PgReportComparison::MatchingMechanics);
+        assert_eq!(
+            application.compare_native_report(report, first_coordinates)?,
+            PgReportComparison::MatchingMechanics
+        );
         let first = actual_counters(&mut application)?;
         assert_spent_prefix(&before, &first, report.work_used());
-        assert_eq!(application.compare_native_report(report, coordinates)?,
-            PgReportComparison::MatchingMechanics);
+        assert_eq!(
+            application.compare_native_report(report, coordinates)?,
+            PgReportComparison::MatchingMechanics
+        );
         let second = actual_counters(&mut application)?;
         assert_spent_prefix(&first, &second, report.work_used());
         Ok(())
@@ -103,8 +115,11 @@ pub(crate) enum OriginalWorkDrainPhase {
 /// Separate comparison-entry/report-work exhaustion remains OPEN.
 pub(crate) fn fixture_scope_exit_after_original_work_drain(
     current: &mut CurrentPgRoleOwner<'_, '_, '_, '_, '_, '_, '_>,
-    claim: &JsonValue, exact: &ExactRecordRef, roles: PgPublicRoles<'_>,
-    report: &AssessmentMechanicsReport, coordinates: PgReportCoordinates<'_>,
+    claim: &JsonValue,
+    exact: &ExactRecordRef,
+    roles: PgPublicRoles<'_>,
+    report: &AssessmentMechanicsReport,
+    coordinates: PgReportCoordinates<'_>,
     phase: &Cell<OriginalWorkDrainPhase>,
 ) -> DurableResult<()> {
     // Reset only diagnostic reachability, never Session/ledger/cutoff state.
@@ -112,16 +127,23 @@ pub(crate) fn fixture_scope_exit_after_original_work_drain(
     phase.set(OriginalWorkDrainPhase::NotEntered);
     with_pg_public_application(current, claim, exact, roles, |mut application| {
         let first_coordinates = copy_coordinates(&mut application, &coordinates)?;
-        assert_eq!(application.compare_native_report(report, first_coordinates)?,
-            PgReportComparison::MatchingMechanics);
+        assert_eq!(
+            application.compare_native_report(report, first_coordinates)?,
+            PgReportComparison::MatchingMechanics
+        );
         let drained_scope = application.current.with_source_epoch(|_, payer, same| {
             phase.set(OriginalWorkDrainPhase::Entered);
             let before = same.charges();
             let remaining = source(same.source_allowance().map_err(|e| payer.error(e)))?.work;
-            source(same.admit_source_work(remaining).map_err(|e| payer.error(e)))?;
+            source(
+                same.admit_source_work(remaining)
+                    .map_err(|e| payer.error(e)),
+            )?;
             let after = same.charges();
-            assert_eq!((after.0, after.1, after.3, after.4),
-                (before.0, before.1, before.3, before.4));
+            assert_eq!(
+                (after.0, after.1, after.3, after.4),
+                (before.0, before.1, before.3, before.4)
+            );
             assert_eq!(after.2.checked_sub(before.2), Some(remaining));
             phase.set(OriginalWorkDrainPhase::Drained);
             Ok(())
@@ -143,14 +165,19 @@ pub(crate) fn fixture_scope_exit_after_original_work_drain(
 /// that route and retains its flag; this helper creates no replacement cutoff.
 pub(crate) fn fixture_cancelled_comparison(
     current: &mut CurrentPgRoleOwner<'_, '_, '_, '_, '_, '_, '_>,
-    claim: &JsonValue, exact: &ExactRecordRef, roles: PgPublicRoles<'_>,
-    report: &AssessmentMechanicsReport, coordinates: PgReportCoordinates<'_>,
+    claim: &JsonValue,
+    exact: &ExactRecordRef,
+    roles: PgPublicRoles<'_>,
+    report: &AssessmentMechanicsReport,
+    coordinates: PgReportCoordinates<'_>,
     actual_cancelled: &AtomicBool,
 ) -> DurableResult<()> {
     with_pg_public_application(current, claim, exact, roles, |mut application| {
         let first_coordinates = copy_coordinates(&mut application, &coordinates)?;
-        assert_eq!(application.compare_native_report(report, first_coordinates)?,
-            PgReportComparison::MatchingMechanics);
+        assert_eq!(
+            application.compare_native_report(report, first_coordinates)?,
+            PgReportComparison::MatchingMechanics
+        );
         actual_cancelled.store(true, Ordering::Relaxed);
         match application.compare_native_report(report, coordinates) {
             Err(original) => Err(original),
@@ -164,7 +191,9 @@ pub(crate) fn fixture_cancelled_comparison(
 /// cancelled outer exit and original payer finish; no report/role is issued.
 pub(crate) fn fixture_body_error_and_cancelled_exit(
     current: &mut CurrentPgRoleOwner<'_, '_, '_, '_, '_, '_, '_>,
-    claim: &JsonValue, exact: &ExactRecordRef, roles: PgPublicRoles<'_>,
+    claim: &JsonValue,
+    exact: &ExactRecordRef,
+    roles: PgPublicRoles<'_>,
     actual_cancelled: &AtomicBool,
     observed_strict_parser_failure: &Cell<bool>,
 ) -> DurableResult<()> {
@@ -178,9 +207,12 @@ pub(crate) fn fixture_body_error_and_cancelled_exit(
             }))
         });
         let original = parsed.expect_err("actual admitted parser must reject malformed bytes");
-        if !matches!(&original, DurableError::Source(SourceCommandError::Invalid(
-            "native role strict source document"
-        ))) {
+        if !matches!(
+            &original,
+            DurableError::Source(SourceCommandError::Invalid(
+                "native role strict source document"
+            ))
+        ) {
             return Err(original); // preserve a genuinely earlier funding/source failure
         }
         observed_strict_parser_failure.set(true); // test reachability only, never authority
@@ -191,7 +223,11 @@ pub(crate) fn fixture_body_error_and_cancelled_exit(
     match result {
         Err(error) => {
             if let Some(original) = original_detail {
-                assert_eq!(format!("{error:?}"), original, "body Err must survive paid Err exit");
+                assert_eq!(
+                    format!("{error:?}"),
+                    original,
+                    "body Err must survive paid Err exit"
+                );
             }
             // An earlier prepare/source refusal remains the real dependency;
             // it is not evidence that the intended body-error case executed.
@@ -213,10 +249,14 @@ fn actual_public_application_and_report(
 ) -> DurableResult<()> {
     with_pg_public_application(current, claim, exact, roles, |mut application| {
         assert_eq!(application.exact(), exact);
-        assert!(std::ptr::eq(application.claim().get("object").unwrap(),
-            application.qualified().value()));
-        assert_eq!(application.compare_native_report(report, coordinates)?,
-            PgReportComparison::MatchingMechanics);
+        assert!(std::ptr::eq(
+            application.claim().get("object").unwrap(),
+            application.qualified().value()
+        ));
+        assert_eq!(
+            application.compare_native_report(report, coordinates)?,
+            PgReportComparison::MatchingMechanics
+        );
         // Matching mechanics is intentionally NOT converted to NativeAccount,
         // an application ticket, parent witness, assessment or can_use grant.
         Ok(())
@@ -241,7 +281,10 @@ fn actual_reject_before_application_callback(
         Ok(())
     });
     let error = result.expect_err("actual incompatible public input must refuse");
-    assert!(!entered.get(), "failed public consistency must not invoke application body");
+    assert!(
+        !entered.get(),
+        "failed public consistency must not invoke application body"
+    );
     assert!(expected(&error), "wrong original/semantic error: {error:?}");
 }
 
@@ -261,7 +304,10 @@ fn actual_report_comparison_case(
 ) -> DurableResult<()> {
     with_pg_public_application(current, claim, exact, roles, |mut application| {
         let result = application.compare_native_report(report, coordinates);
-        assert!(expected(&result), "wrong actual report comparison: {result:?}");
+        assert!(
+            expected(&result),
+            "wrong actual report comparison: {result:?}"
+        );
         // Preserve the original Err through the real outer Err fence/finish.
         result.map(|_| ())
     })
@@ -281,5 +327,8 @@ fn actual_body_and_exit_error_case(
 ) {
     let result = with_pg_public_application(current, claim, exact, roles, |_| change());
     let error = result.expect_err("actual changed owner/cutoff must refuse at exit");
-    assert!(expected(&error), "original body/exit error changed: {error:?}");
+    assert!(
+        expected(&error),
+        "original body/exit error changed: {error:?}"
+    );
 }

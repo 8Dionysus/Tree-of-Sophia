@@ -9504,15 +9504,21 @@ mod borrowed_package_visit_tests {
     }
     impl RecordRead for Owned<'_> {
         type Identity = tos_foundation::SourceRevision;
-        fn files(&self) -> &[SourceFile] { self.0 }
+        fn files(&self) -> &[SourceFile] {
+            self.0
+        }
         fn input_identity(&self) -> Self::Identity {
             tos_foundation::SourceRevision(Digest256::of_bytes(b"package-copy-only"))
         }
         fn schema_source_path(&self) -> SourceCommandResult<String> {
-            Err(SourceCommandError::Unsupported("package operand has no schema owner"))
+            Err(SourceCommandError::Unsupported(
+                "package operand has no schema owner",
+            ))
         }
         fn check(&self) -> SourceCommandResult<()> {
-            Err(SourceCommandError::Unsupported("package operand has no live owner"))
+            Err(SourceCommandError::Unsupported(
+                "package operand has no live owner",
+            ))
         }
     }
     impl RecordRead for Borrowed<'_> {
@@ -9524,10 +9530,14 @@ mod borrowed_package_visit_tests {
             tos_foundation::SourceRevision(Digest256::of_bytes(b"package-copy-only"))
         }
         fn schema_source_path(&self) -> SourceCommandResult<String> {
-            Err(SourceCommandError::Unsupported("package operand has no schema owner"))
+            Err(SourceCommandError::Unsupported(
+                "package operand has no schema owner",
+            ))
         }
         fn check(&self) -> SourceCommandResult<()> {
-            Err(SourceCommandError::Unsupported("package operand has no live owner"))
+            Err(SourceCommandError::Unsupported(
+                "package operand has no live owner",
+            ))
         }
         fn visit_files(
             &self,
@@ -9536,7 +9546,9 @@ mod borrowed_package_visit_tests {
             for (path, raw) in self.entries {
                 visit(path, raw)?;
                 if self.late_failure {
-                    return Err(SourceCommandError::Conflict("borrowed package traversal interrupted"));
+                    return Err(SourceCommandError::Conflict(
+                        "borrowed package traversal interrupted",
+                    ));
                 }
             }
             Ok(())
@@ -9544,20 +9556,42 @@ mod borrowed_package_visit_tests {
     }
     fn sources() -> Vec<SourceFile> {
         [
-            ("ToS/source-witnesses/fixture/agent.json".to_owned(), b"record".as_slice()),
-            (format!("ToS/source-witnesses/fixture/{HISTORY}"), b"history".as_slice()),
-            ("ToS/source-witnesses/fixture/agent.human-forms.json".to_owned(), b"unselected form".as_slice()),
-            ("ToS/source-witnesses/other/agent.json".to_owned(), b"other owner".as_slice()),
-        ].into_iter().map(|(name, raw)| SourceFile {
-            path: RelativePath::parse(&name).unwrap(), raw: raw.to_vec(),
-        }).collect()
+            (
+                "ToS/source-witnesses/fixture/agent.json".to_owned(),
+                b"record".as_slice(),
+            ),
+            (
+                format!("ToS/source-witnesses/fixture/{HISTORY}"),
+                b"history".as_slice(),
+            ),
+            (
+                "ToS/source-witnesses/fixture/agent.human-forms.json".to_owned(),
+                b"unselected form".as_slice(),
+            ),
+            (
+                "ToS/source-witnesses/other/agent.json".to_owned(),
+                b"other owner".as_slice(),
+            ),
+        ]
+        .into_iter()
+        .map(|(name, raw)| SourceFile {
+            path: RelativePath::parse(&name).unwrap(),
+            raw: raw.to_vec(),
+        })
+        .collect()
     }
 
     #[test]
     fn borrowed_package_matches_default_visit_without_an_owned_raw_table() {
         let files = sources();
-        let entries = files.iter().map(|f| (&f.path, f.raw.as_slice())).collect::<Vec<_>>();
-        let borrowed = Borrowed { entries: &entries, late_failure: false };
+        let entries = files
+            .iter()
+            .map(|f| (&f.path, f.raw.as_slice()))
+            .collect::<Vec<_>>();
+        let borrowed = Borrowed {
+            entries: &entries,
+            late_failure: false,
+        };
         let owner_path = "ToS/source-witnesses/fixture/agent.json";
         let expected = package(&Owned(&files), owner_path, false, None).unwrap();
         let actual = package(&borrowed, owner_path, false, None).unwrap();
@@ -9570,18 +9604,37 @@ mod borrowed_package_visit_tests {
     #[test]
     fn borrowed_package_preserves_state_boundary_and_rejects_partial_traversal() {
         let files = sources();
-        let entries = files.iter().map(|f| (&f.path, f.raw.as_slice())).collect::<Vec<_>>();
-        let mut borrowed = Borrowed { entries: &entries, late_failure: false };
+        let entries = files
+            .iter()
+            .map(|f| (&f.path, f.raw.as_slice()))
+            .collect::<Vec<_>>();
+        let mut borrowed = Borrowed {
+            entries: &entries,
+            late_failure: false,
+        };
         let owner_path = "ToS/source-witnesses/fixture/agent.json";
         let expected = package(&Owned(&files), owner_path, false, None).unwrap();
-        let needed = expected.iter().fold(std::mem::size_of::<Package>(), |n,(name,raw)| {
-            n + name.len() + raw.len() + std::mem::size_of::<(String, Vec<u8>)>()
-        });
-        assert_eq!(package(&borrowed, owner_path, false, Some(needed)).unwrap(), expected);
-        assert!(matches!(package(&borrowed, owner_path, false, Some(needed - 1)),
-            Err(SourceCommandError::Unsupported("record package state or byte budget"))));
+        let needed = expected
+            .iter()
+            .fold(std::mem::size_of::<Package>(), |n, (name, raw)| {
+                n + name.len() + raw.len() + std::mem::size_of::<(String, Vec<u8>)>()
+            });
+        assert_eq!(
+            package(&borrowed, owner_path, false, Some(needed)).unwrap(),
+            expected
+        );
+        assert!(matches!(
+            package(&borrowed, owner_path, false, Some(needed - 1)),
+            Err(SourceCommandError::Unsupported(
+                "record package state or byte budget"
+            ))
+        ));
         borrowed.late_failure = true;
-        assert!(matches!(package(&borrowed, owner_path, false, None),
-            Err(SourceCommandError::Conflict("borrowed package traversal interrupted"))));
+        assert!(matches!(
+            package(&borrowed, owner_path, false, None),
+            Err(SourceCommandError::Conflict(
+                "borrowed package traversal interrupted"
+            ))
+        ));
     }
 }

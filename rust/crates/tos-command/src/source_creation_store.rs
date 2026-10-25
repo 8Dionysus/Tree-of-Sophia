@@ -411,17 +411,23 @@ pub(crate) trait CreationReadAdmission {
     fn with_creation_read_workspace(
         &mut self,
         _run: &mut dyn FnMut(&mut [u8], &mut dyn CreationReadAdmission),
-    ) -> Option<SourceCommandResult<()>> { None }
+    ) -> Option<SourceCommandResult<()>> {
+        None
+    }
 
     /// Exact profile's metadata/type/length entry, before its first syscall.
     fn before_creation_exact_read_init(&mut self) -> SourceCommandResult<()> {
-        Err(SourceCommandError::Unsupported("exact creation read initialization is not admitted"))
+        Err(SourceCommandError::Unsupported(
+            "exact creation read initialization is not admitted",
+        ))
     }
 
     /// New exact-request arithmetic, before inspecting the next remainder.
     /// Legacy admission implementations have no such quote and fail closed.
     fn before_creation_exact_request_plan(&mut self) -> SourceCommandResult<()> {
-        Err(SourceCommandError::Unsupported("exact creation request plan is not admitted"))
+        Err(SourceCommandError::Unsupported(
+            "exact creation request plan is not admitted",
+        ))
     }
 }
 
@@ -466,7 +472,14 @@ pub(crate) fn raw_exact_with_original_admission(
     admission: &mut dyn CreationReadAdmission,
 ) -> SourceCommandResult<Vec<u8>> {
     admission.before_creation_exact_read_init()?;
-    raw_with_request_profile(file, ReadLength::Exact(expected), deadline, cancelled, Some(admission), true)
+    raw_with_request_profile(
+        file,
+        ReadLength::Exact(expected),
+        deadline,
+        cancelled,
+        Some(admission),
+        true,
+    )
 }
 
 fn raw_with_request_profile(
@@ -500,16 +513,36 @@ fn raw_with_request_profile(
         let mut invoked = false;
         let mut repeated = false;
         let loan = payer.with_creation_read_workspace(&mut |buffer, same| {
-            if invoked { repeated = true; return; }
+            if invoked {
+                repeated = true;
+                return;
+            }
             invoked = true;
             // This FD/metadata/loop result never crosses the lender boundary.
-            physical = Some(raw_with_borrowed_workspace(file, length, deadline, cancelled, Some(same), exact_requests, buffer, &before));
+            physical = Some(raw_with_borrowed_workspace(
+                file,
+                length,
+                deadline,
+                cancelled,
+                Some(same),
+                exact_requests,
+                buffer,
+                &before,
+            ));
         });
         if let Some(result) = complete_workspace_read(physical, invoked, repeated, loan) {
             return result;
         }
     }
-    raw_with_owned_workspace(file, length, deadline, cancelled, admission, exact_requests, &before)
+    raw_with_owned_workspace(
+        file,
+        length,
+        deadline,
+        cancelled,
+        admission,
+        exact_requests,
+        &before,
+    )
 }
 
 /// Settle only the physical owner's captured outcome. An admission lender
@@ -563,15 +596,20 @@ fn raw_with_owned_workspace(
     loop {
         active(deadline, cancelled)?;
         if exact_requests {
-            admission.as_deref_mut()
-                .ok_or(SourceCommandError::Unsupported("exact creation request plan has no payer"))?
+            admission
+                .as_deref_mut()
+                .ok_or(SourceCommandError::Unsupported(
+                    "exact creation request plan has no payer",
+                ))?
                 .before_creation_exact_request_plan()?;
         }
         let requested = if exact_requests {
             cap.checked_add(1)
                 .and_then(|limit| limit.checked_sub(bytes.len()))
                 .filter(|remaining| *remaining != 0)
-                .ok_or(SourceCommandError::Conflict("creation input length changed"))?
+                .ok_or(SourceCommandError::Conflict(
+                    "creation input length changed",
+                ))?
                 .min(buffer.len())
         } else {
             buffer.len()
@@ -653,15 +691,20 @@ fn raw_with_borrowed_workspace(
     loop {
         active(deadline, cancelled)?;
         if exact_requests {
-            admission.as_deref_mut()
-                .ok_or(SourceCommandError::Unsupported("exact creation request plan has no payer"))?
+            admission
+                .as_deref_mut()
+                .ok_or(SourceCommandError::Unsupported(
+                    "exact creation request plan has no payer",
+                ))?
                 .before_creation_exact_request_plan()?;
         }
         let requested = if exact_requests {
             cap.checked_add(1)
                 .and_then(|limit| limit.checked_sub(bytes.len()))
                 .filter(|remaining| *remaining != 0)
-                .ok_or(SourceCommandError::Conflict("creation input length changed"))?
+                .ok_or(SourceCommandError::Conflict(
+                    "creation input length changed",
+                ))?
                 .min(buffer.len())
         } else {
             buffer.len()
@@ -5841,33 +5884,66 @@ pub(crate) mod workspace_protocol_test_support {
     use crate::source_text_owner::ProtectedContextReadAdmission;
 
     #[derive(Clone, Copy, Debug)]
-    pub(crate) enum Mode { NoneBefore, Omit, Once, Twice, NoneAfter, ErrorAfter, RefuseBefore }
+    pub(crate) enum Mode {
+        NoneBefore,
+        Omit,
+        Once,
+        Twice,
+        NoneAfter,
+        ErrorAfter,
+        RefuseBefore,
+    }
     pub(crate) struct Probe {
         pub(crate) mode: Mode,
         pub(crate) reads: usize,
         pub(crate) callbacks: usize,
     }
-    struct PhysicalMeter<'a> { reads: &'a mut usize }
+    struct PhysicalMeter<'a> {
+        reads: &'a mut usize,
+    }
     impl CreationReadAdmission for PhysicalMeter<'_> {
-        fn before_creation_read(&mut self, _fd: &File, stage: CreationReadStage) -> SourceCommandResult<()> {
-            if matches!(stage, CreationReadStage::Read { .. }) { *self.reads += 1; }
+        fn before_creation_read(
+            &mut self,
+            _fd: &File,
+            stage: CreationReadStage,
+        ) -> SourceCommandResult<()> {
+            if matches!(stage, CreationReadStage::Read { .. }) {
+                *self.reads += 1;
+            }
             Ok(())
         }
     }
     impl ProtectedContextReadAdmission for PhysicalMeter<'_> {
-        fn before_protected_context_work(&mut self, _bytes: usize) -> SourceCommandResult<()> { Ok(()) }
+        fn before_protected_context_work(&mut self, _bytes: usize) -> SourceCommandResult<()> {
+            Ok(())
+        }
     }
     impl Probe {
-        pub(crate) fn new(mode: Mode) -> Self { Self { mode, reads: 0, callbacks: 0 } }
-        fn lend(&mut self, mut run: impl FnMut(&mut [u8], &mut PhysicalMeter<'_>)) -> Option<SourceCommandResult<()>> {
+        pub(crate) fn new(mode: Mode) -> Self {
+            Self {
+                mode,
+                reads: 0,
+                callbacks: 0,
+            }
+        }
+        fn lend(
+            &mut self,
+            mut run: impl FnMut(&mut [u8], &mut PhysicalMeter<'_>),
+        ) -> Option<SourceCommandResult<()>> {
             match self.mode {
                 Mode::NoneBefore => return None,
                 Mode::Omit => return Some(Ok(())),
-                Mode::RefuseBefore => return Some(Err(SourceCommandError::Denied("original resource loan refusal"))),
+                Mode::RefuseBefore => {
+                    return Some(Err(SourceCommandError::Denied(
+                        "original resource loan refusal",
+                    )));
+                }
                 _ => (),
             }
             let mut scratch = vec![0u8; 65536]; // test instrumentation, not a native cost receipt
-            let mut meter = PhysicalMeter { reads: &mut self.reads };
+            let mut meter = PhysicalMeter {
+                reads: &mut self.reads,
+            };
             self.callbacks += 1;
             run(&mut scratch, &mut meter);
             if matches!(self.mode, Mode::Twice) {
@@ -5876,23 +5952,39 @@ pub(crate) mod workspace_protocol_test_support {
             }
             match self.mode {
                 Mode::NoneAfter => None,
-                Mode::ErrorAfter => Some(Err(SourceCommandError::Denied("original resource loan exit refusal"))),
+                Mode::ErrorAfter => Some(Err(SourceCommandError::Denied(
+                    "original resource loan exit refusal",
+                ))),
                 _ => Some(Ok(())),
             }
         }
     }
     impl CreationReadAdmission for Probe {
-        fn before_creation_read(&mut self, _fd: &File, stage: CreationReadStage) -> SourceCommandResult<()> {
-            if matches!(stage, CreationReadStage::Read { .. }) { self.reads += 1; }
+        fn before_creation_read(
+            &mut self,
+            _fd: &File,
+            stage: CreationReadStage,
+        ) -> SourceCommandResult<()> {
+            if matches!(stage, CreationReadStage::Read { .. }) {
+                self.reads += 1;
+            }
             Ok(())
         }
-        fn with_creation_read_workspace(&mut self, run: &mut dyn FnMut(&mut [u8], &mut dyn CreationReadAdmission)) -> Option<SourceCommandResult<()>> {
+        fn with_creation_read_workspace(
+            &mut self,
+            run: &mut dyn FnMut(&mut [u8], &mut dyn CreationReadAdmission),
+        ) -> Option<SourceCommandResult<()>> {
             self.lend(|scratch, meter| run(scratch, meter))
         }
     }
     impl ProtectedContextReadAdmission for Probe {
-        fn before_protected_context_work(&mut self, _bytes: usize) -> SourceCommandResult<()> { Ok(()) }
-        fn with_protected_context_workspace(&mut self, run: &mut dyn FnMut(&mut [u8], &mut dyn ProtectedContextReadAdmission)) -> Option<SourceCommandResult<()>> {
+        fn before_protected_context_work(&mut self, _bytes: usize) -> SourceCommandResult<()> {
+            Ok(())
+        }
+        fn with_protected_context_workspace(
+            &mut self,
+            run: &mut dyn FnMut(&mut [u8], &mut dyn ProtectedContextReadAdmission),
+        ) -> Option<SourceCommandResult<()>> {
             self.lend(|scratch, meter| run(scratch, meter))
         }
     }
@@ -5900,22 +5992,30 @@ pub(crate) mod workspace_protocol_test_support {
     pub(crate) struct Fixture(pub(crate) PathBuf);
     impl Fixture {
         pub(crate) fn new() -> Self {
-            let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
-            let path = std::env::temp_dir().join(format!("tos-workspace-result-custody-{}-{stamp}", std::process::id()));
+            let stamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "tos-workspace-result-custody-{}-{stamp}",
+                std::process::id()
+            ));
             std::fs::create_dir(&path).unwrap();
             std::fs::write(path.join("input"), b"xy").unwrap();
             Self(path)
         }
     }
     impl Drop for Fixture {
-        fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); }
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
     }
 }
 
 #[cfg(test)]
 mod workspace_result_custody_tests {
-    use super::*;
     use super::workspace_protocol_test_support::{Fixture, Mode, Probe};
+    use super::*;
     use std::io::Seek;
 
     #[test]
@@ -5923,21 +6023,64 @@ mod workspace_result_custody_tests {
         let fixture = Fixture::new();
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
-        for mode in [Mode::NoneBefore, Mode::Omit, Mode::Once, Mode::Twice, Mode::NoneAfter, Mode::ErrorAfter, Mode::RefuseBefore] {
+        for mode in [
+            Mode::NoneBefore,
+            Mode::Omit,
+            Mode::Once,
+            Mode::Twice,
+            Mode::NoneAfter,
+            Mode::ErrorAfter,
+            Mode::RefuseBefore,
+        ] {
             let mut file = File::open(fixture.0.join("input")).unwrap();
             let mut lender = Probe::new(mode);
-            let result = raw_with_length_limit_and_admission(&mut file, ReadLength::Exact(2), deadline, &cancelled, Some(&mut lender));
+            let result = raw_with_length_limit_and_admission(
+                &mut file,
+                ReadLength::Exact(2),
+                deadline,
+                &cancelled,
+                Some(&mut lender),
+            );
             match mode {
                 Mode::NoneBefore | Mode::Once => assert_eq!(result.unwrap(), b"xy"),
-                Mode::Omit => assert!(matches!(result, Err(SourceCommandError::Conflict("protected workspace lender omitted physical reader")))),
-                Mode::Twice | Mode::NoneAfter => assert!(matches!(result, Err(SourceCommandError::Conflict("protected workspace lender changed physical-read protocol")))),
-                Mode::ErrorAfter => assert!(matches!(result, Err(SourceCommandError::Denied("original resource loan exit refusal")))),
-                Mode::RefuseBefore => assert!(matches!(result, Err(SourceCommandError::Denied("original resource loan refusal")))),
+                Mode::Omit => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Conflict(
+                        "protected workspace lender omitted physical reader"
+                    ))
+                )),
+                Mode::Twice | Mode::NoneAfter => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Conflict(
+                        "protected workspace lender changed physical-read protocol"
+                    ))
+                )),
+                Mode::ErrorAfter => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Denied(
+                        "original resource loan exit refusal"
+                    ))
+                )),
+                Mode::RefuseBefore => assert!(matches!(
+                    result,
+                    Err(SourceCommandError::Denied("original resource loan refusal"))
+                )),
             }
             let read = !matches!(mode, Mode::Omit | Mode::RefuseBefore);
-            assert_eq!(lender.reads, if read { 2 } else { 0 }, "payload and actual EOF only, no second loop/fallback: {mode:?}");
+            assert_eq!(
+                lender.reads,
+                if read { 2 } else { 0 },
+                "payload and actual EOF only, no second loop/fallback: {mode:?}"
+            );
             assert_eq!(file.stream_position().unwrap(), if read { 2 } else { 0 });
-            assert_eq!(lender.callbacks, match mode { Mode::NoneBefore | Mode::Omit | Mode::RefuseBefore => 0, Mode::Twice => 2, _ => 1 });
+            assert_eq!(
+                lender.callbacks,
+                match mode {
+                    Mode::NoneBefore | Mode::Omit | Mode::RefuseBefore => 0,
+                    Mode::Twice => 2,
+                    _ => 1,
+                }
+            );
         }
     }
 
@@ -5947,11 +6090,26 @@ mod workspace_result_custody_tests {
         let deadline = Instant::now() + Duration::from_secs(30);
         let cancelled = AtomicBool::new(false);
         for mode in [Mode::Once, Mode::ErrorAfter, Mode::NoneAfter, Mode::Twice] {
-            let mut file = std::fs::OpenOptions::new().write(true).open(fixture.0.join("input")).unwrap();
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .open(fixture.0.join("input"))
+                .unwrap();
             let mut lender = Probe::new(mode);
-            let result = raw_with_length_limit_and_admission(&mut file, ReadLength::Exact(2), deadline, &cancelled, Some(&mut lender));
-            assert!(matches!(result, Err(SourceCommandError::Invalid("creation descriptor read"))));
-            assert_eq!(lender.reads, 1, "genuine failed syscall paid once, no repeated read");
+            let result = raw_with_length_limit_and_admission(
+                &mut file,
+                ReadLength::Exact(2),
+                deadline,
+                &cancelled,
+                Some(&mut lender),
+            );
+            assert!(matches!(
+                result,
+                Err(SourceCommandError::Invalid("creation descriptor read"))
+            ));
+            assert_eq!(
+                lender.reads, 1,
+                "genuine failed syscall paid once, no repeated read"
+            );
         }
     }
 }

@@ -58,8 +58,12 @@ impl RowShape {
             // Only the two expected Digest256::to_hex values are ASCII64.
             Self::Domain(fields) => (add(add(mul(2, fields[0])?, fields[8])?, 2 * 64)?, 5),
             Self::LookupDomain(fields) => (add(add(mul(2, fields[6])?, fields[5])?, 2 * 64)?, 5),
-            Self::None | Self::DomainLengths | Self::Job | Self::Presence
-            | Self::IndexEnvelope | Self::PredicateEnvelope => (0, 0),
+            Self::None
+            | Self::DomainLengths
+            | Self::Job
+            | Self::Presence
+            | Self::IndexEnvelope
+            | Self::PredicateEnvelope => (0, 0),
         })
     }
 }
@@ -81,16 +85,27 @@ pub(super) fn table_statement(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
-    let input = parameters.iter().try_fold(sql.len(), |n,p| add(n,*p))?;
-    let data_rows = add(mul(rows, add(7, mul(fields,4)?)?)?, payload)?;
-    let ranges = mul(mul(rows, add(mul(fields,3)?,4)?)?, size_of::<Option<Range<usize>>>())?;
+    let input = parameters.iter().try_fold(sql.len(), |n, p| add(n, *p))?;
+    let data_rows = add(mul(rows, add(7, mul(fields, 4)?)?)?, payload)?;
+    let ranges = mul(
+        mul(rows, add(mul(fields, 3)?, 4)?)?,
+        size_of::<Option<Range<usize>>>(),
+    )?;
     // Cumulative non-u8 Vec push layouts: 4+8+...+C < 4*N+4.
     // Driver-owned non-Vec allocations are expressly outside this DATA quote.
-    let row_slots = mul(add(mul(rows,4)?,4)?, size_of::<postgres::Row>())?;
-    let holders = add(add(data_rows,ranges)?, add(row_slots,
-        add(decoded_bytes,mul(strings,size_of::<String>())?)?)?)?;
-    budget.charge_work(add(add(input,data_rows)?, add(decoded_bytes,mul(rows,fields)?)?)?)?;
-    budget.charge_bytes(add(input,holders)?)
+    let row_slots = mul(add(mul(rows, 4)?, 4)?, size_of::<postgres::Row>())?;
+    let holders = add(
+        add(data_rows, ranges)?,
+        add(
+            row_slots,
+            add(decoded_bytes, mul(strings, size_of::<String>())?)?,
+        )?,
+    )?;
+    budget.charge_work(add(
+        add(input, data_rows)?,
+        add(decoded_bytes, mul(rows, fields)?)?,
+    )?)?;
+    budget.charge_bytes(add(input, holders)?)
 }
 
 /// Reserve the actual transaction/four Row carriers and five statement-shape
