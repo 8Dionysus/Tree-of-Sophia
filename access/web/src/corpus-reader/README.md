@@ -43,7 +43,15 @@ The reading mode supports a paged library, explicit versions, one or two text
 panes, local text selection, notebook and appearance controls. Text is inserted
 as text, including poetry and non-Latin scripts. The active source language is
 independent of interface language. Showing two supplied versions makes no
-alignment claim. Automatic parallel scrolling awaits source-supplied alignment.
+general alignment claim. Automatic parallel scrolling awaits source-supplied
+alignment.
+
+For the selected Meno 70 entry, the word panel may show two exact, unreviewed
+model-proposed correspondences. Each keeps both edition references and quotes;
+the reader opens the target only after it resolves exactly. A missing or stale
+target is shown as no mapping for that occurrence and does not change the
+morphology result. This small proposal set does not claim general word alignment
+or translation equivalence.
 
 Each pane loads at most forty text units. Moving between windows replaces the
 rendered window, preserving ordinary browser selection and copy in the loaded

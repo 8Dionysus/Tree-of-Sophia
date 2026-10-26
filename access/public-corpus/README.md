@@ -13,9 +13,13 @@ repository revision are identified in `acquisition-index.v1.json` and the
 individual source metadata snapshots. These are the selected electronic
 representations, without a claim to critical-edition or transcription accuracy.
 English and Greek sections can be compared by their supplied reference labels;
-this is navigation between independently identified versions, not word alignment
-or an assessment of translation equivalence. Editorial notes retained by the
-TEI extraction remain visible in the reading text.
+this is navigation between independently identified versions, not a general
+alignment or assessment of translation equivalence. The selected Meno 70 packet
+contains two source-bound model proposals for `διδακτὸν` / “can be
+taught” and `ἀρετή` / “virtue”. They describe only those exact spans and remain
+proposed after a bounded source-visible agent review for research use; formal
+alignment admission remains pending. Editorial notes retained by the TEI extraction remain
+visible in the reading text.
 
 ## Rebuild
 
@@ -66,8 +70,9 @@ not silently modernized. Candidate lists do not select a contextually correct
 lemma; truncation is explicit. Unrecognized, not processed, provider failure
 and unsupported language have different results. No candidate is an etymology.
 
-DWDS and Logeion links open the external dictionary for the exact selected
-form. They are navigation to an identified reference service; no dictionary
-entry or license to redistribute its contents is implied. The bounded review
+DWDS and Logeion search links use the exact selected form; candidate links use
+the supplied lemma where one is known. They are navigation to identified
+reference services; no dictionary entry or license to redistribute its contents
+is implied. The bounded review
 and known quality limitations are recorded in
 [`MORPHOLOGY-REVIEW.md`](../../ToS/research-packets/public-prototypes-20261026/MORPHOLOGY-REVIEW.md).

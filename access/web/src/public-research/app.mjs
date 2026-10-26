@@ -1,7 +1,7 @@
 import {mountCorpusEntry} from '../corpus-reader/host.mjs';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
 import {createPublicCorpusProvider} from '../corpus-reader/public-provider.mjs';
-import {decodeReadingRoute} from '../corpus-reader/route.mjs';
+import {decodeReadingRoute, encodeReadingRoute} from '../corpus-reader/route.mjs';
 import {mountPublicAgentBridge} from './agent-bridge.mjs';
 import {createPublicResearchOwners, mountPublicWorkspaceView} from './workspace-view.mjs';
 import {initializePublicReaderRules} from './bootstrap.mjs';
@@ -97,11 +97,8 @@ function validRoute(value) {
   try { decodeReadingRoute(value); return value; } catch { return null; }
 }
 
-function validProfileRoute(value, documentIds = profileDocumentIds) {
-  const route = validRoute(value);
-  if (!route || !documentIds.has(decodeReadingRoute(route).documentId)) return null;
-  return route;
-}
+// Profiles choose a catalog and keep their own last route. Explicit source
+// addresses, including an unavailable one, must reach the provider unchanged.
 
 function persistQuestion() {
   clearTimeout(saveTimer);
@@ -130,7 +127,7 @@ async function switchProfiles(event) {
   event.preventDefault();
   try {
     if (!(await persistQuestion())) return;
-    const currentRoute = validProfileRoute(location.hash);
+    const currentRoute = validRoute(location.hash);
     if (currentRoute) await notebook.setPreference(routeKey(profile), currentRoute);
     const nextRoute = validRoute(await notebook.getPreference(routeKey(targetProfile)));
     location.assign(`${alternate}${nextRoute ?? ''}`);
@@ -233,13 +230,19 @@ async function start() {
   profileInitialDocumentId = typeof profileInfo?.initialDocumentId === 'string' && profileDocumentIds.has(profileInfo.initialDocumentId)
     ? profileInfo.initialDocumentId
     : [...profileDocumentIds][0] ?? null;
-  let activeRoute = validProfileRoute(location.hash);
+  let activeRoute = validRoute(location.hash);
   if (!activeRoute) {
-    try { activeRoute = validProfileRoute(await notebook.getPreference(routeKey(profile))); }
+    try { activeRoute = validRoute(await notebook.getPreference(routeKey(profile))); }
     catch { saveState.textContent = english ? 'Notebook storage is unavailable. Your question may not persist.' : 'Блокнот недоступен. Вопрос может не сохраниться.'; }
   }
   if (location.hash !== (activeRoute ?? '')) history.replaceState(history.state, '', `${location.pathname}${location.search}${activeRoute ?? ''}`);
-  entry = mountCorpusEntry({root: readerRoot, provider, notebook, toolbar, locale: () => english ? 'en' : 'ru', route: true, dbName: DB_NAME});
+  entry = mountCorpusEntry({root: readerRoot, provider, notebook, toolbar, locale: () => english ? 'en' : 'ru', route: true, dbName: DB_NAME,
+    onReadingLocation(address) {
+      const saved = validRoute(encodeReadingRoute(address));
+      if (saved) void notebook.setPreference(routeKey(profile), saved).catch(() => {
+        saveState.textContent = english ? 'Could not save this reading position.' : 'Не удалось сохранить это место чтения.';
+      });
+    }});
   read.addEventListener('click', openReader, {once: true});
   window.tosPublicResearch = Object.freeze({profile, getQuestion: () => question.value, setQuestion, open: openAddress, reader: entry.reader, provider, notebook: entry.notebook});
   publicOwners = createPublicResearchOwners();

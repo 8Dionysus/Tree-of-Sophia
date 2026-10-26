@@ -32,7 +32,7 @@ function labels(locale) {
     empty: 'No personal hypotheses yet.', proposals: 'Source-linked proposals', history: 'Recent workspace history', graph: 'My research links',
     source: 'Exact source', open: 'Open exact text', review: 'Local proposal · pending review · not canon',
     export: 'Export complete research', exportDraft: 'Export unsaved draft', import: 'Import complete research', preview: 'Review import', apply: 'Apply owner imports',
-    question: 'Question', pick: 'Select at least two passages in the agent exchange above.',
+    add: 'Add selected passage', question: 'Question', pick: 'Open the reader, select a passage, and add it here. A thesis needs at least two exact grounds.',
     noProposal: 'No proposals yet.', emptyGrounds: 'Select exact passages above before saving.', undo: 'Undo', redo: 'Redo',
   } : {
     heading: 'Моё исследование', intro: 'Ваши вопросы и выводы остаются личными. Каждая ссылка открывает точную версию текста.',
@@ -40,7 +40,7 @@ function labels(locale) {
     empty: 'Личных гипотез пока нет.', proposals: 'Предложения с источниками', history: 'Последние действия', graph: 'Связи моего исследования',
     source: 'Точный источник', open: 'Открыть точный текст', review: 'Личное предложение · ожидает review · не канон',
     export: 'Экспорт полного исследования', exportDraft: 'Экспорт несохранённого черновика', import: 'Импорт полного исследования', preview: 'Проверить импорт', apply: 'Применить импорт владельцев',
-    question: 'Вопрос', pick: 'Сначала выберите не менее двух фрагментов в обмене с агентом выше.',
+    add: 'Добавить выбранный фрагмент', question: 'Вопрос', pick: 'Откройте чтение, выберите место и добавьте его здесь. Для тезиса нужны два точных основания.',
     noProposal: 'Предложений пока нет.', emptyGrounds: 'Перед сохранением выберите точные фрагменты.', undo: 'Отменить', redo: 'Вернуть',
   };
 }
@@ -111,6 +111,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   const intro = el('p', 'pr-workspace-intro', t().intro);
   const toolbar = el('div', 'pr-workspace-toolbar');
   const undo = btn(t().undo, 'pr-workspace-button'); const redo = btn(t().redo, 'pr-workspace-button');
+  const addSource = btn(t().add, 'pr-workspace-button'); addSource.disabled = true;
   const exportButton = btn(t().export, 'pr-workspace-button pr-workspace-primary');
   const draftExportButton = btn(t().exportDraft, 'pr-workspace-button'); draftExportButton.hidden = true;
   const importButton = btn(t().import, 'pr-workspace-button');
@@ -118,11 +119,12 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   const content = el('div', 'pr-workspace-content');
   const status = el('p', 'pr-workspace-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   const preview = el('div', 'pr-workspace-import-preview');
-  toolbar.append(undo, redo, exportButton, draftExportButton, importButton, importFile);
+  toolbar.append(undo, redo, addSource, exportButton, draftExportButton, importButton, importFile);
   section.append(title, intro, toolbar, content, preview, status);
   root.append(section);
 
   let sourceItems = [];
+  let sourcePicker = null;
   let proposalForm = null;
   let pendingImport = null;
   let importRevision = null;
@@ -156,6 +158,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     return action;
   };
   const subscribeSourceList = bridge => {
+    sourcePicker = bridge; addSource.disabled = !bridge?.addSelectedSource;
     unsubSources?.();
     unsubSources = bridge?.subscribeSources?.(sources => {
       sourceItems = sources;
@@ -260,15 +263,16 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     if (!nodes.length) { const empty = document.createElementNS('http://www.w3.org/2000/svg', 'text'); empty.setAttribute('class', 'pr-workspace-graph-empty'); empty.setAttribute('x', '18'); empty.setAttribute('y', '28'); empty.textContent = t().empty; graph.append(empty); }
     return graph;
   };
-  const referenceButton = locator => {
-    const button = btn(`${t().open} · ${locator.slice(0, 40)}`, 'pr-workspace-source-link');
+  const referenceButton = (locator, index) => {
+    const label = `${t().open} ${index + 1}`;
+    const button = btn(label, 'pr-workspace-source-link');
     button.addEventListener('click', () => void resolveSourceLocator(locator, shelf, api.provider).then(result => {
       if (result.status !== 'exact') throw new Error('This saved source is stale or unavailable. It was not retargeted.');
-      button.textContent = `${t().open} · ${result.reference.unitId}`;
+      button.textContent = label;
       return resolveAndOpen(result.reference);
     }).then(() => { button.dataset.state = 'exact'; }).catch(() => {
-      button.dataset.state = 'stale'; button.textContent = `${locator.slice(0, 32)} · stale source`;
-      message('This saved source is stale or unavailable. It was not retargeted.');
+      button.dataset.state = 'stale'; button.textContent = `${label} · ${String(locale()).startsWith('en') ? 'changed or unavailable' : 'изменился или недоступен'}`;
+      message(String(locale()).startsWith('en') ? 'This saved source is stale or unavailable. It was not retargeted.' : 'Сохранённый источник изменился или недоступен. Адрес не переназначен.');
     }));
     return button;
   };
@@ -294,7 +298,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
       const card = el('article', 'pr-workspace-card pr-workspace-proposal');
       card.append(el('h4', '', proposal.kind), el('p', '', proposal.statement), el('small', 'pr-workspace-muted', t().review));
       const refs = [...new Set([...proposal.sourceRefs, ...proposal.evidenceRefs])];
-      const links = el('div', 'pr-workspace-reference-list'); refs.forEach(ref => links.append(referenceButton(ref)));
+      const links = el('div', 'pr-workspace-reference-list'); refs.forEach((ref, index) => links.append(referenceButton(ref, index)));
       if (!refs.length) links.append(el('span', 'pr-workspace-muted', 'No source references.'));
       card.append(el('h5', '', t().source), links); proposals.append(card);
     }
@@ -393,6 +397,11 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     if (typeof questionValue === 'string' && !fresh.conflicts.notebook.length) await api.setQuestion(questionValue);
   };
 
+  addSource.addEventListener('click', () => {
+    const added = sourcePicker?.addSelectedSource?.();
+    const english = String(locale()).startsWith('en');
+    message(added ? (english ? 'Exact passage added to your grounds.' : 'Точный фрагмент добавлен к основаниям.') : (english ? 'Select a new passage in the reader before adding it.' : 'Чтобы добавить новое основание, выберите другой фрагмент в читателе.'));
+  });
   undo.addEventListener('click', () => { if (workspace.undo()) render(); });
   redo.addEventListener('click', () => { if (workspace.redo()) render(); });
   exportButton.addEventListener('click', () => void exportPacket().catch(error => message(error?.message ?? 'Export failed.')));

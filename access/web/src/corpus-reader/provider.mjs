@@ -58,7 +58,7 @@ function optionalString(value, name) {
 }
 
 function pageLimit(value, operation) {
-  const limit = value === undefined ? 25 : value;
+  const limit = value === undefined ? (operation === 'window' ? 40 : 25) : value;
   if (!Number.isInteger(limit) || limit < 1 || limit > CORPUS_LIMITS[operation]) {
     throw new CorpusProviderError(
       'invalid_request',
@@ -439,6 +439,22 @@ function validateAnalysisPage(value, args = {}) {
     responseString(page.analysisVersion, 'analyze.analysisVersion', 'analyze', 256);
     if (!Array.isArray(page.candidates) || page.candidates.length === 0 || page.candidates.length > 64) {
       throw new CorpusProviderError('invalid_response', 'analyze.candidates must contain 1 to 64 supplied candidates', 'analyze');
+    }
+  }
+  if (page.mappings !== undefined || page.mappingStatus !== undefined) {
+    if (!['available','none'].includes(page.mappingStatus) || !Array.isArray(page.mappings) || page.mappings.length > 8
+      || (page.mappingStatus === 'available') !== (page.mappings.length > 0)) {
+      throw new CorpusProviderError('invalid_response', 'analyze mappings must have an explicit bounded status', 'analyze');
+    }
+    for (const mapping of page.mappings) {
+      let sourceReference,targetReference;
+      try { sourceReference=validateReference(mapping.sourceReference); targetReference=validateReference(mapping.targetReference); }
+      catch { throw new CorpusProviderError('invalid_response', 'analyze mapping references are invalid', 'analyze'); }
+      if (referenceKey(sourceReference)!==referenceKey(reference)||targetReference.target.workId!==reference.target.workId
+        ||mapping.status!=='proposed'||mapping.reviewStatus!=='model_proposal_owner_review_pending'
+        ||typeof mapping.sourceQuote!=='string'||!mapping.sourceQuote||typeof mapping.targetQuote!=='string'||!mapping.targetQuote) {
+        throw new CorpusProviderError('invalid_response', 'analyze mapping is not bound to the requested exact occurrence', 'analyze');
+      }
     }
   }
   responseMetadata(page, 'analyze response', 'analyze', 16_384);

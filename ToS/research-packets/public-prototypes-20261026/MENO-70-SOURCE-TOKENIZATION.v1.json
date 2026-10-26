@@ -1,0 +1,32 @@
+{
+  "schema_version": "tos_public_meno70_selected_side_tokenization_v1",
+  "posture": "frozen_mechanical_token_spans_not_lexical_or_translation_truth",
+  "byte_digest_posture": "sha256_binds_exact_complete_utf8_file_bytes_including_final_newline; no normalized serialization is substituted",
+  "boundary_method": "Exact Unicode-code-point spans manually cross-checked against the frozen reading-layer bytes; token boundaries follow the displayed whitespace and punctuation around the requested occurrences.",
+  "side": {
+    "versionId": "perseus-burnet-1903-grc",
+    "textLayerSha256": "318789bd9af1fdf6d162d06f302c894b1dcc6bad05d2d9a224cd530f564c2e95",
+    "language": "grc",
+    "tokens": [
+      {
+        "form": "διδακτὸν",
+        "start": 39,
+        "end": 47,
+        "exactSha256": "dd09b3b753d51725597da283f8436bf1d91199efa8cb1213547eb137a1cbbb36"
+      },
+      {
+        "form": "ἡ",
+        "start": 48,
+        "end": 49,
+        "exactSha256": "cba1b3455dda7c16d9cb091ec4b7527c4af14f5589d259c82f30ce117a6100bd"
+      },
+      {
+        "form": "ἀρετή",
+        "start": 50,
+        "end": 55,
+        "exactSha256": "8529d54b6a607678b66c0865cce4164ee510464d8ae35d5410a8680045d6be88"
+      }
+    ]
+  },
+  "scope": "Only the exact Meno 70 opening question and four lexical token spans used by the two selected correspondences."
+}

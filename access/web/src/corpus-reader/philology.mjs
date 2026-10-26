@@ -11,6 +11,8 @@ const COPY = {
     concordance: 'Найти буквальные употребления', more: 'Ещё совпадения', noConcordance: 'Употреблений не найдено.',
     noSearch: 'Поиск по версии недоступен.', noExact: 'Совпадение не содержит точного адреса; перейти нельзя.',
     returnContext: 'Открыть это употребление в тексте',
+    mappings: 'Предложенные соответствия', noExactMapping: 'Для этого точного вхождения соответствие пока не подготовлено.',
+    proposal: 'Предложенное сопоставление · не канон', target: 'Точный фрагмент в другом издании', openTarget: 'Открыть точный фрагмент', reviewBasis: 'Основание предложения',
     reasons: {
       unrecognized:'Анализатор не распознал обработанную форму.',
       not_processed:'Эта форма ещё не включена в подготовленный набор.',
@@ -29,6 +31,8 @@ const COPY = {
     concordance: 'Find literal occurrences', more: 'More matches', noConcordance: 'No occurrences found.',
     noSearch: 'Version search is unavailable.', noExact: 'This match has no exact address and cannot be opened.',
     returnContext: 'Open this occurrence in the text',
+    mappings: 'Proposed correspondences', noExactMapping: 'No correspondence is prepared for this exact occurrence.',
+    proposal: 'Proposed correspondence · not canon', target: 'Exact passage in another edition', openTarget: 'Open exact passage', reviewBasis: 'Proposal basis',
     reasons: {
       unrecognized:'The analyzer did not recognize this processed form.',
       not_processed:'This form is not yet included in the prepared analysis set.',
@@ -103,19 +107,30 @@ export function philologyMarkIntervals(length, searchRanges = [], selectedRange 
 }
 
 /** Keep only analysis packets bound to this exact occurrence. */
-export function bindPhilologyResult(value, reference) {
+export function bindPhilologyResult(value, reference, form = null) {
   if (!object(value) || !object(value.reference)) return {status: 'unavailable', candidates: []};
+  let expected;
   try {
-    const expected = referenceKey(validateReference(reference));
+    expected = referenceKey(validateReference(reference));
     const returned = referenceKey(validateReference(value.reference));
     if (!expected || expected !== returned) return {status: 'mismatch', candidates: []};
   } catch { return {status: 'mismatch', candidates: []}; }
+  const mappings = (Array.isArray(value.mappings) ? value.mappings : []).filter(mapping => {
+    if (!object(mapping) || mapping.status !== 'proposed' || mapping.reviewStatus !== 'model_proposal_owner_review_pending'
+      || (form !== null && mapping.sourceQuote !== form)) return false;
+    try {
+      return referenceKey(validateReference(mapping.sourceReference)) === expected
+        && validateReference(mapping.targetReference).target.workId === validateReference(reference).target.workId
+        && typeof mapping.targetQuote === 'string' && mapping.targetQuote.length > 0;
+    } catch { return false; }
+  }).slice(0, 8);
+  const mappingFields = {mappings,mappingStatus:mappings.length?'available':'none'};
   const candidates = Array.isArray(value.candidates) ? value.candidates : [];
   const version = value.analysisVersion ?? value.version;
   if (value.status !== 'available' || typeof version !== 'string' || !version || !candidates.length) {
-    return {...value, status: 'unavailable', candidates: []};
+    return {...value, ...mappingFields, status: 'unavailable', candidates: []};
   }
-  return {...value, analysisVersion: version, candidates};
+  return {...value, ...mappingFields, analysisVersion: version, candidates};
 }
 
 function appendMetadata(parent, heading, value, locale, labels) {
@@ -175,7 +190,7 @@ function renderCandidate(parent, candidate, index, locale, words) {
 export function renderPhilology(body, {
   locale = 'ru', form = '', language = '', reference = null, version = null,
   result = null, busy = false, concordance = null, searchAvailable = false,
-  onConcordance, onMore, onOccurrence,
+  onConcordance, onMore, onOccurrence, onMappingTarget,
 } = {}) {
   const words = COPY[String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru'];
   body.append(element('h2', 'cr-inspector-title', words.title));
@@ -228,6 +243,30 @@ export function renderPhilology(body, {
     }
     body.append(section);
   }
+
+  const mappings = Array.isArray(result?.mappings) ? result.mappings : [];
+  if (mappings.length) {
+    const section=element('section','cr-philology-mappings');
+    section.append(element('h3','',words.mappings));
+    for(const mapping of mappings){
+      const card=element('article','cr-philology-mapping');
+      card.append(element('p','cr-philology-muted',words.proposal));
+      card.append(element('p','cr-philology-mapping-target',`${words.target}: ${localized(mapping.targetVersionLabel,locale)||mapping.targetVersionId||''} · ${mapping.targetLanguage||''}`));
+      card.append(element('blockquote','',mapping.targetQuote));
+      const targetReference=mapping.targetReference,targetScope=targetReference?.target;
+      if(targetScope&&targetReference.selector){
+        const address=[targetScope.workId,targetScope.expressionId,targetScope.editionId,targetScope.itemId,targetScope.fileId,targetScope.textLayerRef,targetScope.fileSha256,targetScope.textLayerSha256,
+          `${targetReference.selector.start}–${targetReference.selector.end} ${locale === 'en' ? 'code points' : 'символов'}`].filter(Boolean).join(' › ');
+        card.append(element('p','cr-philology-context-address',address));
+      }
+      if(mapping.reviewBasis)card.append(element('p','cr-philology-muted',`${words.reviewBasis}: ${mapping.reviewBasis}`));
+      for(const evidence of Array.isArray(mapping.evidence)?mapping.evidence:[]){if(typeof evidence?.description==='string')card.append(element('p','cr-philology-muted',evidence.description));}
+      const open=element('button','','');open.type='button';open.textContent=words.openTarget;
+      open.disabled=typeof onMappingTarget!=='function';open.addEventListener('click',()=>onMappingTarget?.(mapping));card.append(open);
+      section.append(card);
+    }
+    body.append(section);
+  } else if(form && !busy && result) body.append(element('p','cr-philology-muted',words.noExactMapping));
 
   const actions = element('div', 'cr-philology-actions');
   const search = element('button', '', words.concordance); search.type = 'button'; search.disabled = !form || !searchAvailable;

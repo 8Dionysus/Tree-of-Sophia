@@ -15,3 +15,6 @@
 .cr-philology-hit strong,.cr-philology-hit span{display:block}.cr-philology-hit strong{color:var(--cr-accent);font-size:10px}.cr-philology-hit span{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cr-muted);font:12px/1.5 Georgia,serif}
 .cr-unit mark.cr-selected-occurrence{position:relative;z-index:1;border-radius:3px;background:#f2cf77;color:#17140e;box-shadow:0 0 0 2px #f2cf77,0 0 10px #f2cf77aa;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .cr-philology-context-address{margin:9px 0 16px!important;color:var(--cr-muted);font-size:10px;line-height:1.6;overflow-wrap:anywhere}
+.cr-philology-mapping{margin:9px 0;padding:11px 12px;border:1px solid var(--cr-rule);border-radius:8px;background:var(--cr-panel-soft)}
+.cr-philology-mapping blockquote{margin:7px 0;padding:8px 10px;border-inline-start:2px solid var(--cr-accent);font:15px/1.6 Georgia,serif;white-space:pre-wrap}
+.cr-philology-mapping button{font-size:11px}

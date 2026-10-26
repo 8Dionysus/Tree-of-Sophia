@@ -189,11 +189,11 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   };
   const addSelectedSource = () => {
     const selected = api.reader?.selectedSource?.();
-    if (!selected || !selected.reference) { message(t().noSelection); return; }
+    if (!selected || !selected.reference) { message(t().noSelection); return false; }
     try {
       const checked = checkReference(selected.reference);
-      if (chosen.some(source => source.key === checked.key)) { message(english() ? 'That exact source is already selected.' : 'Этот точный источник уже выбран.'); return; }
-      if (chosen.length >= MAX_SOURCES) return;
+      if (chosen.some(source => source.key === checked.key)) { message(english() ? 'That exact source is already selected.' : 'Этот точный источник уже выбран.'); return false; }
+      if (chosen.length >= MAX_SOURCES) return false;
       const title = bounded(selected.title || selected.versionLabel || selected.reference.unitId, 512, 'Source title');
       const quote = boundedText(selected.quote || '', MAX_QUOTE, 'Selected text');
       const rawContext = Array.from(String(selected.text || ''));
@@ -201,8 +201,8 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       const source = {id: `s${++sourceSequence}`, key: checked.key, reference: checked.reference, title, quote, context,
         contextTruncated: rawContext.length > MAX_QUOTE,
         language: bounded(selected.language || '', 64, 'Language', {empty: true}), versionLabel: bounded(selected.versionLabel || '', 512, 'Edition label', {empty: true})};
-      chosen.push(source); renderSources(); notifySources(); message(t().exact);
-    } catch (error) { message(error?.message ?? t().invalid); }
+      chosen.push(source); renderSources(); notifySources(); message(t().exact); return true;
+    } catch (error) { message(error?.message ?? t().invalid); return false; }
   };
 
   const restoreTasks = async () => {

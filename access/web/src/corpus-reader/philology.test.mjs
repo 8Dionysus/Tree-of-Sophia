@@ -35,6 +35,17 @@ test('analysis presentation accepts only a versioned packet bound to the exact r
   expect(bindPhilologyResult({...response, analysisVersion:undefined}, reference).status).toBe('unavailable');
 });
 
+test('translation proposals stay on their exact source occurrence and preserve other analysis state', () => {
+  const reference=createReference({source,versionId:'de-v1',unitId:'unit-1',start:3,end:7});
+  const other=createReference({source,versionId:'de-v1',unitId:'unit-1',start:9,end:13});
+  const targetSource={...source,editionId:'en-v1',itemId:'item-en',fileId:'file-en',fileSha256:'c'.repeat(64),textLayerRef:'target.txt',textLayerSha256:'d'.repeat(64)};
+  const mapping={status:'proposed',reviewStatus:'model_proposal_owner_review_pending',sourceReference:reference,sourceQuote:'Gold',targetReference:createReference({source:targetSource,versionId:'en-v1',unitId:'target-unit',start:0,end:6}),targetQuote:'Golden',reviewBasis:'contextual proposal'};
+  const response={status:'available',reference,analysisVersion:'fixture-2',candidates:[{lemma:'gold'}],mappings:[mapping],mappingStatus:'available'};
+  expect(bindPhilologyResult(response,reference,'Gold')).toMatchObject({status:'available',mappingStatus:'available',mappings:[mapping]});
+  expect(bindPhilologyResult({...response,mappings:[{...mapping,sourceReference:other}]},reference,'Gold'))
+    .toMatchObject({status:'available',mappingStatus:'none',mappings:[],candidates:response.candidates});
+});
+
 test('the selected second occurrence owns its mark and search highlights do not overlap it', () => {
   const text = 'Gold · Gold';
   const intervals = philologyMarkIntervals(Array.from(text).length,[{start:0,end:4},{start:7,end:11}],{start:7,end:11},true);

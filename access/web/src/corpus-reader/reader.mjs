@@ -414,7 +414,7 @@ export function mountCorpusReader({
     try {
       const response = await provider.analyze({reference,form,language:version.language || unit.language || '',signal:controller.signal});
       if (controller.signal.aborted || selected?.reference !== reference) return;
-      philology = {busy:false,result:bindPhilologyResult(response,reference),concordance:null,error:null};
+      philology = {busy:false,result:bindPhilologyResult(response,reference,form),concordance:null,error:null};
     } catch (error) {
       if (controller.signal.aborted || error?.name === 'AbortError' || selected?.reference !== reference) return;
       philology = {busy:false,result:{status:'unavailable',candidates:[]},concordance:null,error};
@@ -470,7 +470,41 @@ export function mountCorpusReader({
     philology = {busy:false,result:null,concordance:null,error:null};
     currentTab = 'context';
     emitLocation(reference);
-    render();
+    render(); revealSelectedSource();
+  }
+
+  async function openPhilologyTarget(mapping) {
+    const target=exactReference(mapping?.targetReference),origin=selected?.reference,state=modelState();
+    if(!target||target.target.workId!==state.document?.id||!Number.isSafeInteger(target.selector.start)
+      ||!Number.isSafeInteger(target.selector.end)||target.selector.end<=target.selector.start)return;
+    try{
+      const resolved=await provider?.resolve?.({reference:target});
+      if(selected?.reference!==origin||resolved?.status!=='exact'||!sameReference(resolved.reference,target)){
+        if(selected?.reference===origin)announce(t('changedCurrent'));
+        return;
+      }
+      if(!(await flushNote())||selected?.reference!==origin)return;
+      capturePanePositions();
+      const opened=await model.open({documentId:target.target.workId,versionId:target.versionId,reference:target});
+      if(selected?.reference!==origin||!opened)return;
+      const current=modelState(),unit=current.windows[stateKey(target.target.workId,target.versionId)]?.units?.find(value=>(value.unitId||value.id)===target.unitId);
+      if(!unit||selectedPhilologyForm(unit.text,target)!==mapping.targetQuote){announce(t('changedCurrent'));return;}
+      selected={reference:target,unit,versionId:target.versionId,quote:mapping.targetQuote};
+      philology={busy:false,result:null,concordance:null,error:null};currentTab='context';emitLocation(target);render();revealSelectedSource();
+    }catch(error){if(selected?.reference===origin)announce(friendlyError(error));}
+  }
+
+  function revealSelectedSource() {
+    const reference = selected?.reference;
+    if (!reference || !opened || disposed || !root) return;
+    if (window.innerWidth <= 850 && (inspectorOpen || libraryOpen)) {
+      inspectorOpen = false; libraryOpen = false; render();
+    }
+    const pane = [...root.querySelectorAll('.cr-pane')].find(node => node.dataset.versionId === reference.versionId);
+    const row = pane && [...pane.querySelectorAll('.cr-unit')].find(node => node.dataset.unitId === reference.unitId);
+    if (!row) return;
+    const mark = row.querySelector('[data-selected-occurrence]');
+    (mark || row).scrollIntoView({block:mark?'center':'start',inline:'nearest'});
   }
 
   function markSelection() {
@@ -945,8 +979,13 @@ export function mountCorpusReader({
       const entry=button('',async()=>{
         if(!(await flushNote()))return;capturePanePositions();
         if(ref?.schemaVersion==='tos.corpus.reader.native-reference.v1'){await close();await onNativeReference?.(ref,item);return;}
-        try{if(!documentId)throw new Error('invalid-reference');await model.open({documentId,versionId:ref.versionId,reference:ref});await ensureVisiblePanes();
-          selected={reference:exactReference(ref),unit:currentWindow(ref.versionId)?.units?.find(unit=>unit.id===ref.unitId)||null,versionId:ref.versionId,quote:item.quote||''};render();}
+        try{if(!documentId)throw new Error('invalid-reference');const openedReference=exactReference(ref);if(!openedReference)throw new Error('invalid-reference');
+          const opened=await model.open({documentId,versionId:ref.versionId,reference:openedReference});
+          const represented=modelState().document?.id===documentId&&activeVersion(ref.versionId);
+          if(represented)emitLocation(openedReference);
+          if(!opened){selected={reference:openedReference,unit:null,versionId:ref.versionId,quote:item.quote||''};render();return;}
+          await ensureVisiblePanes();
+          selected={reference:openedReference,unit:currentWindow(ref.versionId)?.units?.find(unit=>unit.id===ref.unitId)||null,versionId:ref.versionId,quote:item.quote||''};render();revealSelectedSource();}
         catch(error){announce(t('error'));}
       },'cr-note-entry');entry.append(label,element('span','',item.text||item.quote||t('bookmark')));details.append(entry);
       if(documentId && (!catalogDocument || !catalogDocument.versions?.length)){
@@ -1028,6 +1067,7 @@ export function mountCorpusReader({
         onConcordance:value=>void findPhilologyConcordance(value),
         onMore:()=>void findPhilologyConcordance(form,philology.concordance?.nextCursor),
         onOccurrence:hit=>void openPhilologyOccurrence(hit),
+        onMappingTarget:mapping=>void openPhilologyTarget(mapping),
       });
       if (philology.error) body.append(element('p','cr-philology-muted',t('error')));
     } else renderContext(body, state);
@@ -1122,9 +1162,15 @@ export function mountCorpusReader({
       if (!state.document) { render(); return; }
       await ensureVisiblePanes();
       const stale = state.referenceStatus === 'changed' || state.referenceStatus === 'unavailable';
+      if (args.reference && !stale) {
+        const reference = exactReference(args.reference);
+        const unit = reference && currentWindow(reference.versionId)?.units?.find(value => (value.unitId || value.id) === reference.unitId);
+        if (reference && unit) { selected={reference,unit,versionId:reference.versionId,quote:selectedPhilologyForm(unit.text,reference)}; currentTab='context'; }
+      }
       const firstUnit = openedResult && !stale ? currentWindow(state.activeVersionId)?.units?.[0] : null;
       if (firstUnit) emitLocation(unitReference(firstUnit, activeVersion(state.activeVersionId), state.document, {}));
       render();
+      if (args.reference && !stale) revealSelectedSource();
     } catch (error) { announce(friendlyError(error)); render(); }
   }
 

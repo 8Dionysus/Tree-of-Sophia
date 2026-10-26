@@ -16,6 +16,23 @@ const MAX_UNITS_PER_VERSION: usize = 200_000;
 const MAX_TOTAL_UNITS: usize = 500_000;
 const MAX_TEXT_LAYER_BYTES: usize = 8 * 1024 * 1024;
 const MAX_SEARCH_INDEX_BYTES: usize = 8 * 1024 * 1024;
+const MAX_TRANSLATION_MAPPING_BYTES: usize = 1024 * 1024;
+
+#[derive(Clone)]
+struct SelectedVersionSource {
+    version_id: String,
+    label: String,
+    language: String,
+    packet_ref: String,
+    packet_sha256: String,
+    segmentation_ref: String,
+    rights_ref: String,
+    scope: Value,
+    text_layer_ref: String,
+    text_layer_sha256: String,
+    text: String,
+    unit_spans: Vec<(String, usize, usize, usize)>,
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Limits {
@@ -221,6 +238,332 @@ fn anchor_slice(
     Ok((start, end))
 }
 
+fn codepoint_slice(
+    text: &str,
+    start: usize,
+    end: usize,
+    deadline: Instant,
+) -> Result<String, String> {
+    if end <= start {
+        return Err("translation mapping selector is empty or reversed".into());
+    }
+    if end - start > 65_536 {
+        return Err("translation mapping span exceeds the public unit bound".into());
+    }
+    let mut value = String::new();
+    for (index, ch) in text.chars().enumerate().take(end) {
+        if index & 0xffff == 0 {
+            check_deadline(deadline)?;
+        }
+        if index >= start {
+            value.push(ch);
+        }
+    }
+    if value.chars().count() != end - start {
+        return Err("translation mapping selector lies outside its text layer".into());
+    }
+    Ok(value)
+}
+
+fn map_alignment_side(
+    side: &Value,
+    document_id: &str,
+    versions: &HashMap<String, SelectedVersionSource>,
+    deadline: Instant,
+) -> Result<HashMap<String, Value>, String> {
+    if side["work_ref"] != document_id
+        || side["visibility"] != "public"
+        || side["publication_authorized"] != true
+    {
+        return Err("translation mapping side is not selected public source material".into());
+    }
+    let mut matching = versions.values().filter(|version| {
+        side["expression_ref"] == version.scope["expression_ref"]
+            && side["edition_ref"] == version.scope["edition_ref"]
+            && side["item_ref"] == version.scope["item_ref"]
+            && side["file_ref"] == version.scope["file_ref"]
+            && side["file_sha256"] == version.scope["file_sha256"]
+            && side["text_layer_ref"] == version.text_layer_ref
+            && side["text_layer_sha256"] == version.text_layer_sha256
+            && side["language"] == version.language
+    });
+    let version = matching
+        .next()
+        .ok_or("translation mapping side does not match a selected exact version")?;
+    if matching.next().is_some() {
+        return Err("translation mapping side matches more than one selected version".into());
+    }
+    let segmentation = &side["segmentation"];
+    let expected_segmentation = format!(
+        "{}#segmentations/{}",
+        version.packet_ref, version.segmentation_ref
+    );
+    if segmentation["artifact_ref"] != expected_segmentation
+        || segmentation["sha256"] != version.packet_sha256
+        || segmentation["state"] != "frozen"
+    {
+        return Err("translation mapping segmentation binding is stale".into());
+    }
+    let rights_refs = arr(side, "rights_refs")?;
+    if !rights_refs
+        .iter()
+        .any(|reference| reference.as_str() == Some(version.rights_ref.as_str()))
+    {
+        return Err("translation mapping omits selected version rights".into());
+    }
+    let mut mapped = HashMap::new();
+    let mut last_ordinal = 0usize;
+    let mut last_start = None;
+    let anchors = arr(side, "anchors")?;
+    if anchors.len() > 512 {
+        return Err("translation mapping anchor count exceeds its fixed bound".into());
+    }
+    for anchor in anchors {
+        check_deadline(deadline)?;
+        let anchor_ref = s(anchor, "anchor_ref")?.to_owned();
+        if anchor["text_layer_ref"] != version.text_layer_ref
+            || anchor["text_layer_sha256"] != version.text_layer_sha256
+        {
+            return Err("translation mapping anchor names a different text layer".into());
+        }
+        let ordinal = anchor["ordinal"]
+            .as_u64()
+            .ok_or("mapping anchor ordinal invalid")? as usize;
+        if ordinal <= last_ordinal {
+            return Err("translation mapping anchors are not in source order".into());
+        }
+        last_ordinal = ordinal;
+        let selector = &anchor["selector"];
+        if selector["type"] != "text_position"
+            || selector["position_unit"] != "unicode_code_point"
+            || selector["interval"] != "half_open"
+        {
+            return Err("translation mapping selector is not a half-open code-point span".into());
+        }
+        let start = selector["start"].as_u64().ok_or("mapping start invalid")? as usize;
+        let end = selector["end"].as_u64().ok_or("mapping end invalid")? as usize;
+        if last_start.is_some_and(|previous| start < previous) {
+            return Err("translation mapping anchor positions are not in source order".into());
+        }
+        last_start = Some(start);
+        let quote = codepoint_slice(&version.text, start, end, deadline)?;
+        if digest(quote.as_bytes()) != s(anchor, "exact_sha256")? {
+            return Err("translation mapping exact-span hash mismatch".into());
+        }
+        let mut containing = version
+            .unit_spans
+            .iter()
+            .filter(|(_, _, unit_start, unit_end)| start >= *unit_start && end <= *unit_end);
+        let (unit_id, _, unit_start, _) = containing
+            .next()
+            .ok_or("translation mapping span is outside selected public units")?;
+        if containing.next().is_some() {
+            return Err(
+                "translation mapping span crosses or ambiguously overlaps selected units".into(),
+            );
+        }
+        let reference = json!({
+            "schemaVersion":"tos.corpus.reader.reference.v1",
+            "target":{
+                "workId":document_id,
+                "expressionId":version.scope["expression_ref"],
+                "editionId":version.scope["edition_ref"],
+                "itemId":version.scope["item_ref"],
+                "fileId":version.scope["file_ref"],
+                "fileSha256":version.scope["file_sha256"],
+                "textLayerRef":version.text_layer_ref,
+                "textLayerSha256":version.text_layer_sha256
+            },
+            "versionId":version.version_id,
+            "unitId":unit_id,
+            "selector":{
+                "type":"text_position",
+                "start":start-unit_start,
+                "end":end-unit_start,
+                "positionUnit":"unicode_code_point",
+                "interval":"half_open"
+            }
+        });
+        if mapped
+            .insert(
+                anchor_ref,
+                json!({
+                    "reference":reference,
+                    "quote":quote,
+                    "versionId":version.version_id,
+                    "versionLabel":version.label,
+                    "language":version.language,
+                    "revision":version.text_layer_sha256
+                }),
+            )
+            .is_some()
+        {
+            return Err("duplicate anchor in translation mapping packet".into());
+        }
+    }
+    if mapped.is_empty() {
+        return Err("translation mapping side has no exact anchors".into());
+    }
+    Ok(mapped)
+}
+
+fn build_translation_mappings(
+    source_root: &Path,
+    document: &Value,
+    versions: &HashMap<String, SelectedVersionSource>,
+    reference: &str,
+    expected_sha: &str,
+    input_spent: &mut usize,
+    output_spent: &mut usize,
+    limits: Limits,
+    deadline: Instant,
+    output: &Path,
+    staged: &mut Vec<(PathBuf, Vec<u8>)>,
+) -> Result<Value, String> {
+    let raw = read_ref(
+        source_root,
+        reference,
+        expected_sha,
+        limits.max_input_bytes,
+        input_spent,
+    )?;
+    if raw.len() > MAX_TRANSLATION_MAPPING_BYTES {
+        return Err("translation mapping packet exceeds its fixed byte limit".into());
+    }
+    let packet: Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+    if packet["schema_version"] != "tos_translation_alignment_packet_v1"
+        || packet["content_posture"] != "source_bound"
+        || packet["authority_boundary"]["alignment_is_claim_not_translation_truth"] != true
+        || packet["authority_boundary"]["machine_or_model_may_propose_not_accept"] != true
+        || packet["authority_boundary"]["lexical_equivalence_not_inferred"] != true
+        || packet["authority_boundary"]["canon_effect"] != false
+        || packet["rights_and_visibility"]["source_visibility"] != "public"
+        || packet["rights_and_visibility"]["target_visibility"] != "public"
+        || packet["rights_and_visibility"]["packet_visibility"] != "public"
+        || packet["rights_and_visibility"]["effective_visibility"] != "public"
+        || packet["rights_and_visibility"]["private_source_used"] != false
+        || packet["rights_and_visibility"]["publication_authorized"] != true
+    {
+        return Err("translation mapping packet posture or authority boundary is invalid".into());
+    }
+    let source_anchors = map_alignment_side(
+        &packet["source_side"],
+        s(document, "id")?,
+        versions,
+        deadline,
+    )?;
+    let target_anchors = map_alignment_side(
+        &packet["target_side"],
+        s(document, "id")?,
+        versions,
+        deadline,
+    )?;
+    let alignments = arr(&packet, "alignments")?;
+    if alignments.is_empty() || alignments.len() > 128 {
+        return Err("translation mapping count is outside fixed bounds".into());
+    }
+    let mut seen_ids = HashSet::new();
+    let mut entries = Vec::with_capacity(alignments.len());
+    for alignment in alignments {
+        check_deadline(deadline)?;
+        let alignment_id = s(alignment, "alignment_id")?;
+        if !seen_ids.insert(alignment_id.to_owned()) {
+            return Err("duplicate translation mapping identity".into());
+        }
+        if alignment["status"] != "proposed"
+            || alignment["maker"]["maker_kind"] != "model"
+            || alignment["maker"]["method_output_posture"] != "proposal_not_truth"
+            || !alignment["review_refs"]
+                .as_array()
+                .is_some_and(|rows| rows.is_empty())
+        {
+            return Err("public word mappings must remain unreviewed model proposals".into());
+        }
+        let source_refs = arr(alignment, "ordered_source_anchor_refs")?;
+        let target_refs = arr(alignment, "ordered_target_anchor_refs")?;
+        if alignment["correspondence_shape"] != "one_to_one"
+            || source_refs.len() != 1
+            || target_refs.len() != 1
+        {
+            return Err(
+                "public word mappings must identify one exact source and target span".into(),
+            );
+        }
+        let source_ref = source_refs[0]
+            .as_str()
+            .ok_or("source mapping anchor ref invalid")?;
+        let target_ref = target_refs[0]
+            .as_str()
+            .ok_or("target mapping anchor ref invalid")?;
+        let source = source_anchors
+            .get(source_ref)
+            .ok_or("translation mapping source anchor is absent")?;
+        let target = target_anchors
+            .get(target_ref)
+            .ok_or("translation mapping target anchor is absent")?;
+        let basis = s(alignment, "status_reason")?;
+        if basis.len() > 4096 {
+            return Err("translation mapping review basis exceeds its fixed limit".into());
+        }
+        let evidence = arr(alignment, "evidence")?;
+        if evidence.is_empty() || evidence.len() > 8 {
+            return Err("translation mapping evidence count is outside fixed bounds".into());
+        }
+        let evidence_summaries = evidence
+            .iter()
+            .map(|item| {
+                let description = s(item, "description")?;
+                if description.len() > 4096 {
+                    return Err("translation mapping evidence exceeds its fixed limit".into());
+                }
+                Ok(json!({"role":item["role"],"description":description}))
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        entries.push(json!({
+            "alignmentId":alignment_id,
+            "status":"proposed",
+            "reviewStatus":"model_proposal_owner_review_pending",
+            "granularity":packet["granularity"],
+            "orderPosture":alignment["order_posture"],
+            "translationTechniques":alignment["translation_techniques"],
+            "sourceReference":source["reference"],
+            "sourceQuote":source["quote"],
+            "sourceVersionId":source["versionId"],
+            "sourceVersionLabel":source["versionLabel"],
+            "sourceLanguage":source["language"],
+            "sourceRevision":source["revision"],
+            "targetReference":target["reference"],
+            "targetQuote":target["quote"],
+            "targetVersionId":target["versionId"],
+            "targetVersionLabel":target["versionLabel"],
+            "targetLanguage":target["language"],
+            "targetRevision":target["revision"],
+            "reviewBasis":basis,
+            "evidence":evidence_summaries,
+            "alignmentPacketRef":reference,
+            "alignmentPacketSha256":expected_sha
+        }));
+    }
+    let projection = json!({
+        "schema_version":"tos_public_translation_mappings_v1",
+        "documentId":document["id"],
+        "alignmentPacketRef":reference,
+        "alignmentPacketSha256":expected_sha,
+        "entries":entries
+    });
+    let projected = serde_json::to_vec(&projection).map_err(|e| e.to_string())?;
+    let sha = digest(&projected);
+    *output_spent = output_spent
+        .checked_add(projected.len())
+        .ok_or("output byte limit overflow")?;
+    if *output_spent > limits.max_output_bytes {
+        return Err("output byte limit exceeded".into());
+    }
+    let path = format!("mappings/{sha}.json");
+    staged.push((output.join(&path), projected.clone()));
+    Ok(json!({"path":path,"sha256":sha,"bytes":projected.len()}))
+}
+
 fn surface_delimiter(ch: char) -> bool {
     ch.is_whitespace()
         || ch.is_ascii_punctuation()
@@ -378,6 +721,7 @@ pub fn build(
         check_deadline(deadline)?;
         let mut versions = Vec::new();
         let mut version_ids = HashSet::new();
+        let mut selected_sources = HashMap::<String, SelectedVersionSource>::new();
         for version in arr(doc, "versions")? {
             check_deadline(deadline)?;
             if versions.len() >= MAX_VERSIONS {
@@ -529,6 +873,7 @@ pub fn build(
             let language = s(version, "language")?;
             let mut seen = HashSet::new();
             let mut units = Vec::new();
+            let mut mapping_unit_spans = Vec::<(String, usize, usize, usize)>::new();
             let mut index_terms = BTreeMap::<String, Vec<Value>>::new();
             let mut index_bytes = 0usize;
             let mut index_overflow = false;
@@ -541,6 +886,7 @@ pub fn build(
                     return Err("duplicate selected unit".into());
                 }
                 let (start, end) = anchor_slice(unit, &anchors, source_ref, &text, &byte_offsets)?;
+                mapping_unit_spans.push((id.clone(), i + 1, start, end));
                 let body = text
                     .get(byte_offsets[start]..byte_offsets[end])
                     .ok_or("source unit byte interval invalid")?
@@ -646,6 +992,23 @@ pub fn build(
             if scope["work_ref"] != doc["id"] {
                 return Err("document identity does not match source work".into());
             }
+            selected_sources.insert(
+                version_id.clone(),
+                SelectedVersionSource {
+                    version_id: version_id.clone(),
+                    label: s(version, "label")?.to_owned(),
+                    language: language.to_owned(),
+                    packet_ref: packet_ref.to_owned(),
+                    packet_sha256: s(version, "packetSha256")?.to_owned(),
+                    segmentation_ref: seg_ref.to_owned(),
+                    rights_ref: rights_ref.to_owned(),
+                    scope: scope.clone(),
+                    text_layer_ref: source_ref.to_owned(),
+                    text_layer_sha256: revision.clone(),
+                    text: text.clone(),
+                    unit_spans: mapping_unit_spans,
+                },
+            );
             let index_value = json!({"terms":index_terms.into_iter().map(|(form,occurrences)|json!({"form":form,"occurrences":occurrences})).collect::<Vec<_>>()});
             let index_raw = if index_overflow {
                 Vec::new()
@@ -705,9 +1068,32 @@ pub fn build(
                 };
             versions.push(json!({"id":version_id,"label":version["label"],"language":version["language"],"role":version["role"],"revision":revision,"unitCount":selected_refs.len(),"source":{"workId":scope["work_ref"],"expressionId":scope["expression_ref"],"editionId":scope["edition_ref"],"itemId":scope["item_ref"],"fileId":scope["file_ref"],"fileSha256":scope["file_sha256"],"textLayerRef":source_ref,"textLayerSha256":revision},"sourceUrl":version["sourceUrl"],"attribution":version["attribution"],"license":version["license"],"pages":pages,"units":unit_summaries,"structure":structure,"searchIndex":search_index,"analysis":analysis}));
         }
-        out_docs.push(
-            json!({"id":doc["id"],"title":doc["title"],"author":doc["author"],"versions":versions}),
-        );
+        let mapping_ref = doc.get("mappingsRef").and_then(Value::as_str);
+        let mapping_sha = doc.get("mappingsSha256").and_then(Value::as_str);
+        if mapping_ref.is_some() != mapping_sha.is_some() {
+            return Err(
+                "selected document translation mappings require both ref and digest".into(),
+            );
+        }
+        let mut output_doc =
+            json!({"id":doc["id"],"title":doc["title"],"author":doc["author"],"versions":versions});
+        if let (Some(reference), Some(sha)) = (mapping_ref, mapping_sha) {
+            let descriptor = build_translation_mappings(
+                source_root,
+                doc,
+                &selected_sources,
+                reference,
+                sha,
+                &mut input_spent,
+                &mut output_spent,
+                limits,
+                deadline,
+                output,
+                &mut staged,
+            )?;
+            output_doc["mappings"] = descriptor;
+        }
+        out_docs.push(output_doc);
     }
     // Authored routes stay with their ToS owner; delivery verifies only bounds
     // and exact targets, never the proposed interpretation.
@@ -920,6 +1306,103 @@ mod tests {
         let selection_raw = serde_json::to_vec(&selection).unwrap();
         fs::write(root.join("selection.json"), selection_raw).unwrap();
         (root.join("selection.json"), root.join("output"))
+    }
+    #[test]
+    fn translation_mapping_side_requires_exact_selected_span_and_unit() {
+        let packet_sha = "f".repeat(64);
+        let scope = json!({"expression_ref":"expression","edition_ref":"edition","item_ref":"item","file_ref":"file","file_sha256":"a".repeat(64)});
+        let version = SelectedVersionSource {
+            version_id: "v".into(),
+            label: "Edition".into(),
+            language: "en".into(),
+            packet_ref: "packet.json".into(),
+            packet_sha256: packet_sha.clone(),
+            segmentation_ref: "seg".into(),
+            rights_ref: "rights.json".into(),
+            scope,
+            text_layer_ref: "source.txt".into(),
+            text_layer_sha256: "b".repeat(64),
+            text: "Alpha beta".into(),
+            unit_spans: vec![("u1".into(), 1, 0, 10)],
+        };
+        let versions = HashMap::from([("v".into(), version)]);
+        let mut side = json!({
+            "work_ref":"d","expression_ref":"expression","edition_ref":"edition","item_ref":"item",
+            "file_ref":"file","file_sha256":"a".repeat(64),"text_layer_ref":"source.txt",
+            "text_layer_sha256":"b".repeat(64),"language":"en","visibility":"public","publication_authorized":true,
+            "segmentation":{"artifact_ref":"packet.json#segmentations/seg","sha256":packet_sha,"state":"frozen"},
+            "rights_refs":["rights.json"],"anchors":[{"anchor_ref":"alpha","ordinal":1,"text_layer_ref":"source.txt",
+                "text_layer_sha256":"b".repeat(64),"selector":{"type":"text_position","position_unit":"unicode_code_point","interval":"half_open","start":0,"end":5},"exact_sha256":digest(b"Alpha")}]
+        });
+        side["anchors"].as_array_mut().unwrap().push(json!({"anchor_ref":"beta","ordinal":2,"text_layer_ref":"source.txt",
+            "text_layer_sha256":"b".repeat(64),"selector":{"type":"text_position","position_unit":"unicode_code_point","interval":"half_open","start":6,"end":10},"exact_sha256":digest(b"beta")}));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mapped = map_alignment_side(&side, "d", &versions, deadline).unwrap();
+        assert_eq!(mapped["beta"]["reference"]["unitId"], "u1");
+        assert_eq!(mapped["beta"]["reference"]["selector"]["start"], 6);
+        assert_eq!(mapped["alpha"]["quote"], "Alpha");
+        assert_eq!(mapped["alpha"]["reference"]["unitId"], "u1");
+        assert_eq!(mapped["alpha"]["reference"]["selector"]["start"], 0);
+        let input = tempfile::tempdir().unwrap();
+        let packet = json!({"schema_version":"tos_translation_alignment_packet_v1","content_posture":"source_bound",
+            "authority_boundary":{"alignment_is_claim_not_translation_truth":true,"machine_or_model_may_propose_not_accept":true,"lexical_equivalence_not_inferred":true,"canon_effect":false},
+            "rights_and_visibility":{"source_visibility":"public","target_visibility":"public","packet_visibility":"public","effective_visibility":"public","private_source_used":false,"publication_authorized":true},
+            "source_side":side,"target_side":side,"granularity":"phrase","alignments":[{"alignment_id":"sample","status":"proposed","maker":{"maker_kind":"model","method_output_posture":"proposal_not_truth"},"review_refs":[],"correspondence_shape":"one_to_one","ordered_source_anchor_refs":["alpha"],"ordered_target_anchor_refs":["beta"],"status_reason":"Test-only correspondence","evidence":[{"role":"context","description":"Exact fixture spans"}]}]});
+        let projection_input = input.path().join("mapping.json");
+        let raw = serde_json::to_vec(&packet).unwrap();
+        fs::write(&projection_input, &raw).unwrap();
+        let limits = Limits {
+            max_input_bytes: 100_000,
+            max_output_bytes: 100_000,
+            max_seconds: 5,
+        };
+        let mut input_spent = 0;
+        let mut output_spent = 0;
+        let mut staged = Vec::new();
+        build_translation_mappings(
+            input.path(),
+            &json!({"id":"d"}),
+            &versions,
+            "mapping.json",
+            &digest(&raw),
+            &mut input_spent,
+            &mut output_spent,
+            limits,
+            deadline,
+            input.path(),
+            &mut staged,
+        )
+        .unwrap();
+        let result: Value = serde_json::from_slice(&staged[0].1).unwrap();
+        assert_eq!(result["entries"][0]["sourceQuote"], "Alpha");
+        assert_eq!(result["entries"][0]["targetQuote"], "beta");
+        let mut private_packet = packet.clone();
+        private_packet["rights_and_visibility"]["effective_visibility"] = json!("local_only");
+        let raw = serde_json::to_vec(&private_packet).unwrap();
+        fs::write(&projection_input, &raw).unwrap();
+        let mut input_spent = 0;
+        let mut output_spent = 0;
+        let mut staged = Vec::new();
+        assert!(
+            build_translation_mappings(
+                input.path(),
+                &json!({"id":"d"}),
+                &versions,
+                "mapping.json",
+                &digest(&raw),
+                &mut input_spent,
+                &mut output_spent,
+                limits,
+                deadline,
+                input.path(),
+                &mut staged
+            )
+            .is_err()
+        );
+        assert!(staged.is_empty());
+        let mut stale = side.clone();
+        stale["anchors"][0]["exact_sha256"] = json!(digest(b"wrong"));
+        assert!(map_alignment_side(&stale, "d", &versions, deadline).is_err());
     }
     #[test]
     fn refuses_a_journey_to_an_absent_unit_before_publishing() {
