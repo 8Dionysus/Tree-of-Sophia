@@ -235,7 +235,6 @@ jobs:
           cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
-            --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci \
             --bin tos-unicode-tables --bin tos-constructor-desktop \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --no-default-features --features mechanics -p tos-ops-mechanics-plan \
@@ -261,10 +260,15 @@ jobs:
           "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
             --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
             "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
+          # Reuse the already authenticated, same-source no-default products.
+          for executor in tos-release-check tos-validation-lanes tos-software-ci; do
+            cp "$RUNNER_TEMP/tos-ci-executors/$executor" "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/$executor"
+          done
           rustc +1.98.1 --version > "$RUNNER_TEMP/software-rustc-version.txt"
-          "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-software-ci" software-receipts \
+          "$TOS_SOFTWARE_CI_EXECUTOR" software-receipts \
             --repo-root "$GITHUB_WORKSPACE" --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" \
-            --receipt-root "$RUNNER_TEMP" --cargo-messages "$RUNNER_TEMP/software-cargo-messages.jsonl" \
+            --receipt-root "$RUNNER_TEMP" --executor-root "$RUNNER_TEMP/tos-ci-executors" \
+            --cargo-messages "$RUNNER_TEMP/software-cargo-messages.jsonl" \
             --rustc-version "$RUNNER_TEMP/software-rustc-version.txt" --github-env "$GITHUB_ENV"
           printf '%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" >> "$GITHUB_PATH"
           printf 'TOS_SCHEMA_WORKER_PATH=%s\n' \

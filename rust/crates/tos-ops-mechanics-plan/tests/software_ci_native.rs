@@ -456,6 +456,15 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     let reader = one_step(software, "--run software_reader");
     assert!(reader["if"].as_str().unwrap().contains("== 'reader'"));
     let receipts = run(one_step(software, "software-receipts"));
+    assert!(receipts.contains("\"$TOS_SOFTWARE_CI_EXECUTOR\" software-receipts"));
+    assert!(receipts.contains("--executor-root \"$RUNNER_TEMP/tos-ci-executors\""));
+    for name in [
+        "tos-release-check",
+        "tos-validation-lanes",
+        "tos-software-ci",
+    ] {
+        assert!(!receipts.contains(&format!("--bin {name}")));
+    }
     for line in receipts.lines().filter(|line| {
         line.trim().starts_with("cargo build")
             && !line.contains("--release")
