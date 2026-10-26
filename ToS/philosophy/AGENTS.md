@@ -1,51 +1,31 @@
 # AGENTS.md
 
-This file applies to the `ToS/philosophy/` domain tree.
+This card applies to the domain tree in `ToS/philosophy/`.
 
 ## Role
 
-`ToS/philosophy/` is the growing domain branch for philosophy inside Tree of
-Sophia. It holds the atlas, trunk, eras, regions, traditions, works, figures,
-concepts, corpora, archives, inscriptions, institutions, media, scripts,
-transmissions, controversies, sources, and local graph workbenches as
-branch-shaped topology.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| role | growing domain branch for philosophy |
-| input | master-table row, dossier index, era, explicit non-era frontier, region, tradition, corpus, archive, inscription, work, figure, concept, institution, medium, script, transmission, controversy, source-corpus, research packet, or branch-graph material |
-| output | tree-shaped philosophical branch surface with evidence posture and local graph route |
-| owner | `ToS/philosophy/AGENTS.md` and `ToS/philosophy/philosophy.manifest.json` |
-| next route | atlas row or source witness -> branch growth -> local graph workbench -> proposed nodes -> proposed relations -> relation pack -> canon promotion -> derived graph/export |
-| tools | trunk vocabularies, branch manifests, research packet contracts, source witness routes, graph view cards, local ledgers, canon route cards |
-| check | `rust/crates/tos-ops-mechanics-plan/src/philosophy_topology.rs` |
+The philosophy branch grows from atlas and trunk through eras, regions and
+traditions into works, figures, concepts and evidence infrastructure.
+`ToS/philosophy/philosophy.manifest.json` binds its topology.
 
 ## Boundary Routes
 
-- Name paths by philosophical branch identity.
-- Keep prepared master-table rows in `atlas/`; route their branch expansion
-  through the owning era, region, or tradition.
-- Keep the main shape tree-first: atlas -> trunk -> eras -> regions -> traditions ->
-  corpora, archives, inscriptions, works, figures, concepts, institutions,
-  media, scripts, transmissions, controversies, sources, graph fragments.
-- Use `frontiers/` only for an explicit non-era guardrail whose chronology,
-  geography, readability, or evidence posture cannot be represented honestly
-  as one era/region/tradition branch. A frontier remains pre-canon, states its unresolved boundary and follows
-branch review.
-- Treat corpora, archives, inscriptions, institutions, media, scripts,
-  transmissions, and controversies as first-class infrastructure for
-  philosophical growth.
-- Route AI-generated research scaffolds through
-  `ToS/research-packets/deep-research/philosophy/`; route prepared master-table
-  atlas rows through `ToS/philosophy/atlas/`.
-- Route provisional extraction through `ToS/candidate-intake/`.
-- Route reviewed authored nodes and relation packs through `ToS/canon/`.
-- Keep graph views as projections over source-rooted branch growth.
+- Name paths by philosophical identity. Prepared master-table rows live in
+  `atlas/`; expansion follows the owning era, region or tradition.
+- Corpora, archives, inscriptions, institutions, media, scripts, transmissions
+  and controversies are first-class branch material.
+- Use `frontiers/` for an explicit non-era boundary whose chronology, geography,
+  readability or evidence cannot honestly fit one era/region/tradition. State
+  the unresolved boundary and retain pre-canon branch review.
+- AI research scaffolds enter through
+  `ToS/research-packets/deep-research/philosophy/`; provisional extraction enters
+  through `ToS/candidate-intake/`. Reviewed authored nodes and relation packs
+  belong in `ToS/canon/`.
+- The graph workbench carries proposed nodes/relations, lenses and promotion
+  evidence. Graph views remain projections over source-rooted branch growth.
 
 ## Validation
 
-Select the `philosophy_topology` route in [`ToS/VALIDATION.md`](../VALIDATION.md)
-and the source-home or canon route when those owner surfaces change. Open
-`ToS/philosophy/README.md` only when its human branch explanation is relevant.
+Select `philosophy_topology` in [ToS/VALIDATION.md](../VALIDATION.md), adding
+source-home or canon checks when those owners change. Open the branch README
+for human orientation and the nearest workbench card for graph preparation.

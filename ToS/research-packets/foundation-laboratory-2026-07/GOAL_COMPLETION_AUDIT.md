@@ -1,9 +1,12 @@
-# Foundation Goal Completion Audit
+# Foundation Goal Completion Audit — 2026-08-12 snapshot
 
-Status: active requirement-by-requirement audit; the corpus mechanics are
-substantial, but the full foundation goal is not complete
+Snapshot status (2026-08-12): the requirement-by-requirement audit was active;
+the corpus mechanics were substantial, but the full foundation goal was not
+complete. This is retained audit evidence, not a current task-status report.
 
-Audit snapshot: 2026-08-12
+Current philosophy-tree growth is routed through the
+[philosophy README](../../philosophy/README.md) and
+[philosophy route card](../../philosophy/AGENTS.md).
 
 ## Purpose
 

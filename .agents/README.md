@@ -1,113 +1,63 @@
 # Tree-of-Sophia model-facing route
 
-This is the human entrypoint for the repository's model-facing companion
-surface. It maps selection and handoff to owner skills, ports, `AGENTS.md` contracts
-and AoA sources.
+This guide connects optional profile bindings, repository cards and local
+owner ports. The authored [manifest](agent-surface.manifest.json) holds exact
+bindings, task probes and budgets; `agent-surface.current.json` is rebuilt
+structural evidence.
 
-## Contributor validation and optional profile
+## Contributor route and optional profile
 
-Tree-of-Sophia has no repository-local projection of shared or sibling-owned
-skills. Default contributor validation checks portable declarations, owner
-references, duplicate boundaries, owner ports and task probes. It does not
-require a personal Codex profile, sibling repositories or installed profile
-tools, and it does not inspect the contributor's HOME or installation.
+ToS has no repository-local projection of shared or sibling-owned skills.
+Default validation checks portable declarations, owner references, boundaries,
+ports and task probes. It does not require a personal Codex profile, sibling
+checkout or installed tools, and does not inspect HOME or installation.
 
-The optional historical `os-user-default` binding is recorded in
-`agent-surface.manifest.json`. Its profile source and installer remain owned by
-`aoa-skills`. The checked-in binding records a possible explicit selection; it
-does not select, install or activate that profile for a contributor.
-
-This historical binding selects seven shared `aoa-skills` bundles, nine admitted owner-port
-bundles from `aoa-evals`, `aoa-memo`, `aoa-stats`, `aoa-kag`, `aoa-agents`,
-`abyss-machine`, and `abyss-stack`, plus two `.aoa` session-memory owner links.
-The profile uses Codex user scope and managed copies. The binding records selection and ownership. Installation, live visibility,
-invocation, runtime behavior and acceptance each require current evidence from
-their owner.
-
-Historical local projection names and their destinations remain with
+The manifest's historical `os-user-default` binding is optional. Its source and
+installer belong to `aoa-skills`; a declaration does not select, install or
+activate it. Installation, model visibility, invocation, runtime behavior and
+acceptance each require current owner evidence. Exact historical migration
+names remain at
 `aoa-skills@6eaeca11820adbbbe54f79a75c0ca5a54e0c4a15:capabilities/legacy-skill-migration.yaml`.
-This repository carries no copy of that completed migration.
 
-## Read by load moment
+## Load by need
 
-The profile carrier rows apply when that profile is explicitly selected.
-Contributor owner-port routes remain available without it.
+When a profile is explicitly selected, package description/activation metadata
+provide discovery; a triggered body provides procedure and authority boundaries;
+references and examples load on demand. Owner-provided helpers prove only their
+declared mechanical scope. Without a profile, the repository's owner routes
+remain usable through root and nearest `AGENTS.md`.
 
-| Moment | Carrier | What it owns | Next route |
-| --- | --- | --- | --- |
-| always discovered | the selected profile package description and activation metadata | short selection signal and display policy | trigger the selected profile bundle only when its boundary fits |
-| triggered | the selected profile package body | procedure, authority boundary, refusal/return semantics, and negative controls | nearest repository owner or stronger AoA owner named by the bundle |
-| on demand | references and examples in the selected profile package | schema, rationale, or a worked shape | return to the triggered body and its owner route |
-| executable or review | owner-provided helpers and checks | local helper or review aid with its declared mechanical scope | use the named owner validation lane |
-| owner port | `evals/`, `stats/`, and `memo/` | local intake and handoff pressure | the named sibling owner |
-| source export | `kag/` | portable ToS source-return artifact | native ToS verification; consumer integration stays outside ToS |
+| Local port | Owns here | Next owner |
+| --- | --- | --- |
+| [evals/PORT.yaml](../evals/PORT.yaml) | local eval pressure and packet shape | `aoa-evals` selection, proof and verdict |
+| [stats/port.manifest.json](../stats/port.manifest.json) | ToS measurement question and source-linked packet | `aoa-stats` shared grammar; exact measurement owner |
+| [kag/README.md](../kag/README.md) | standalone native source-return export and verification | consumer-owned import/indexing outside ToS |
+| [memo/PORT.yaml](../memo/PORT.yaml) | candidate-only reviewed memory handoff | `aoa-memo` durable admission |
 
-The machine map is `agent-surface.manifest.json`. The generated structural
-read model is `agent-surface.current.json`. The map is authored here; the
-currentness file is rebuilt, never hand-edited. The generated file records zero
-repository-local package entries, the 18 declared optional profile bindings,
-task-probe depth, and owner-port inputs. These counts do not prove installation
-or activation. Rebuild after the authored map and companion documents settle.
-The manifest is a machine validation and migration input; discovery starts from
-this entrypoint and reads the manifest on demand.
+A historical profile's `aoa-kag` selection is not a dependency of ToS exports
+or contributor validation. ToS completes at its verified artifact; consumers
+maintain their integrations.
 
-## Owner-port routes
-
-| Local port | Consumer and load moment | Canonical owner | Currentness and next organ |
-| --- | --- | --- | --- |
-| `evals/PORT.yaml` | eval pressure before suite or verdict work | `aoa-evals` | local packet/route shape; hand to central selection/proof/verdict owner |
-| `stats/port.manifest.json` | an owner-local measurement question or reference packet | `aoa-stats` for shared grammar; ToS for the question | source rows, route map, and reference packet; return to atlas and stats owners |
-| `kag/README.md` | a portable ToS source-return export is requested | Tree-of-Sophia | native export and verification; optional import belongs to the consumer outside ToS |
-| `memo/PORT.yaml` | reviewed evidence suggests a tree-local memory candidate | `aoa-memo` | candidate-only local route; reviewed handoff goes to the stronger memory owner |
-
-The historical profile may include `aoa-kag`, but that selection is not a ToS
-export dependency or a required validation step. Consumers choose and maintain
-their own indexing integrations; ToS completes at its verified artifact.
-
-Local ports carry references, candidates, generated views and receipts with
-explicit source and status. Live runtime state, central eval decisions, KAG
-substrate and durable memory return to their named owners.
-
-## Task probes
-
-Use the task-probe matrix in the machine map for the smallest chain below.
-
-| Task pressure | First route | Required chain | Negative control |
-| --- | --- | --- | --- |
-| source authority | `aoa-knowledge-stewardship` | canonical source -> named owner -> projection after source | retain the canonical source as the authority for meaning |
-| bounded context | deferred `aoa-skills` engineering-shape mode | contexts -> interfaces -> nearest owner contract -> narrow check | do not make a deferred mode look installed |
-| repository change | host-agent repository-change workflow | root/nearest card -> bounded diff -> focused validation -> report | verify the repository effect through its actual owner |
-| session diagnosis/repair | `aoa-session-recovery` | reviewed evidence -> diagnosis -> repair packet -> owner health check | do not diagnose live/unreviewed evidence or repair without a packet |
-| approval or dry-run | host runtime approval or target runtime preview | authority classification -> preview -> explicit confirmation -> owner carrier | obtain authorization from the responsible owner |
-| eval intake | `evals/PORT.yaml` -> `aoa-evals` | local pressure -> local validation -> central selection/proof/verdict | obtain verdicts from the central eval owner |
-| owner-local stats | `stats/port.manifest.json` -> `aoa-stats` | question -> measurement -> evidence-linked packet -> shared grammar | verify current state at the measurement source |
-| KAG source-export currentness | `kag/README.md` | ToS source contract -> immutable export -> native verification -> return artifact | no external checkout, skill, consumer index or import is required |
-| memo candidate | `memo/PORT.yaml` -> `aoa-memo` | candidate-only route -> local validation -> reviewed owner intake | admit durable memory through the reviewed memory route |
+The manifest's task-probe matrix names source-authority, context, repository
+change, session recovery, approval/preview, eval, stats, export and memo routes.
+Consult the relevant row instead of loading every route. Deferred modes stay
+deferred; host workflows and owner grants retain their actual authorization.
 
 ## Context and safety
 
-The map records a soft context budget: profile descriptions stay under 100
-words, triggered bodies stay under 2,000 words, and mandatory task-probe
-reading reaches at most five local route hops. These measurements signal context drift; completion requires assessment
-against the actual task.
+The manifest measures description/body size and mandatory route depth as soft
+context budgets. These measurements detect drift; they do not establish useful
+model behavior or task completion.
 
-Public authored model-facing docs do not carry host-local paths, secrets,
-session snapshots, provider internals, transient runtime claims, or operator
-evidence. Put those in task-local files, tool resources, owner status surfaces,
-or typed receipts owned by the relevant organ.
+Public guidance excludes host-local paths, secrets, session snapshots, provider
+internals, transient runtime claims and operator evidence. Keep such material
+in task-local or owner-controlled status and receipt surfaces.
 
 ## Validation
 
-Use the `agent_surface` lane in
-[`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
-through the command routes in [root validation](../VALIDATION.md).
-
-The builder proves parity for the authored map and generated read model. The
-default validator checks contributor declaration shape, zero local projections,
-owner-port inputs, task-probe negative controls, and public safety.
-`contributor_profile_binding_issues` checks portable shape and owner references;
-the separate `profile_binding_issues` API preserves the exact historical
-`os-user-default` v1 identity check for explicit callers. An exact declaration
-check still does not establish installation or runtime health.
-Profile installation, fresh-session discovery, model behavior, owner
-acceptance and release/runtime states require their own current checks.
+Use the `agent_surface` lane through [root validation](../VALIDATION.md).
+The builder proves map/read-model parity; the default validator checks portable
+shape, zero local projections, owner ports, task-probe controls and public
+safety. `contributor_profile_binding_issues` checks portable owner references;
+`profile_binding_issues` separately checks exact historical `os-user-default`
+v1 identity for explicit callers. Neither proves installation or runtime health.

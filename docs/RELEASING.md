@@ -10,8 +10,7 @@ KAG indexes, stats projections or documentation currentness carriers.
 
 1. Use a clean branch/worktree from the current remote `main`. Preserve other sessions' dirty work and coordinate through the exact changed
 owner surfaces.
-2. Install locked browser dependencies with `npm ci --prefix access/web` and
-   review the changed behavior and source contracts. Build the native release
+2. Review the changed source contracts. Build the native CI selector and lane
    executors from this exact checkout and bind absolute paths:
 
    ```sh
@@ -30,60 +29,27 @@ owner surfaces.
    same-run native executor directly. Native source-history tests cover
    selection, Unicode links, failure propagation and required-job outcomes.
    Workflow topology assertions remain separate checks.
-   Run `tos-release-check --repo-root "$PWD"`
-   to check contracts, build browser assets and run program fixture tests.
-   This command uses program fixtures and repository-owned dependencies.
-   Native immutable-file integration tests require fs-verity on the selected
-   temporary filesystem. CI supplies a job-owned ext4 image formatted with
-   `-O verity`, points `TMPDIR` at it and unmounts it after the tests; local
-   execution must likewise select a filesystem with fs-verity enabled.
-   The wrapper forwards explicit `--command-timeout-ms`, `--lane-timeout-ms`,
-   `--cleanup-grace-ms` and `--max-output-bytes` to the native executor.
-   Omitted limits retain its defaults. Select a phase with `--phase checks`
-   or `--phase tests` when the preceding phase already succeeded on the same
-   candidate. The tests phase executes the final authored `run tests` suffix;
-   that suffix may contain several named test-group commands, all of which run
-   in order and retain the same bounded command and lane deadlines. The public
-   assessment lifecycle and assessed-form batch fixtures likewise run as exact
-   individual commands; the source-derived Growth group excludes them, so each
-   assertion runs once. Their separate fifteen-minute bounds avoid charging
-   all seven owner-text scenarios to one command; the lane deadline is unchanged.
-   Set a longer command deadline only from the selected workload
-   cost; a timeout is incomplete validation, not a passing test result. These
-   flags do not change host resource admission or skip checks in that phase.
-   The Rust workspace lane and software release tests run the native
-   software/data release actions fixture as a separate command from their
-   remaining package tests. Its real captured corpus,
-   pair switching and revocation checks take about ten minutes in CI; each
-   command retains its own fifteen-minute bound within the same lane deadline.
-   The sequential Rust workspace lane has a three-hour aggregate CI budget
-   on the two-worker host. This includes the remaining cold recovery, install
-   and WASM checks after the source and package test groups; each command
-   keeps its separate limit from the validation manifest.
-   The isolated reader, mechanics installation and Node WASM host verifiers
-   each receive a one-hour outer command budget matching their nested lane
-   budget, including cold Cargo builds. Their individual child commands keep
-   the fifteen-minute limit; the aggregate Rust lane remains three hours.
-   The existing WASM foundation and validation type checks run immediately
-   after formatting, so portable-profile errors are found before native
-   code generation and the long fixture groups.
-   Conformance and Growth consume the pinned workspace images before package
-   tests can relink the shared Cargo binary paths with different feature sets.
-   The image digest checks remain active throughout those consumer steps.
-   Work37 retains an exact process-cold command in both the Rust workspace and
-   release-check lanes. The release-check command runs immediately before the
-   broad source and command package suite, which skips only Work37. CI supplies
-   the owner CLI and schema worker built earlier in that job; the fixture
-   records their digests and file identities across execution. This preserves
-   isolated coverage without changing the fixture's four-minute source
-   deadline or either lane's deadline.
-   Selecting and hashing prepared Cargo images gets a separate bounded phase
-   after successful compilation, using the same per-command allowance and
-   retaining the enclosing lane deadline and cancellation state.
-   The retained source-cut fixture also needs the exact commit named in
-   `tests/conformance/rust/retained-opening-source.txt` and its fourteen selected
-   metadata blobs. CI fetches that shallow commit and those blobs before the
-   native capture, which continues to disable lazy fetching and verify bytes.
+   Documentation-only work needs the selected documentation checks. For the
+   software suite, install locked browser dependencies with
+   `npm ci --prefix access/web` and run `tos-release-check --repo-root "$PWD"`.
+   The suite checks contracts, builds browser assets and runs program fixtures.
+   Its exact commands and order live in
+   [validation_lanes.json](validation/validation_lanes.json); the
+   [Rust workspace guide](../rust/README.md) describes native/WASM prerequisites.
+
+   Native immutable-file integration tests require an fs-verity-enabled
+   temporary filesystem. CI provides a job-owned ext4 image with `-O verity`;
+   local execution must select an equivalent filesystem. Retained-history
+   fixtures also need the commit and selected blobs named in
+   [retained-opening-source.txt](../tests/conformance/rust/retained-opening-source.txt).
+   The native reader disables lazy fetching, so prepare those inputs first.
+
+   The executors accept explicit command/lane timeouts, cleanup grace and
+   output bounds. Command and aggregate lane deadlines are separate; choose
+   changes from the workload and retain the manifest's per-step limits.
+   A timeout is incomplete validation. `--phase checks` or `--phase tests` can
+   select a phase when the preceding phase already passed on the same candidate.
+   The tests phase runs the complete ordered test suffix.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
    `tos-validation-lanes --repo-root "$PWD" --run software_browser`.
@@ -113,8 +79,8 @@ owner surfaces.
    --prefix access/deploy/cloudflare-worker` and `npm test --prefix
    access/deploy/cloudflare-worker`. These checks run against local fixtures;
    the Worker CI job prepares its own rules independently of the software job.
-5. Build and verify the native installable candidate from a clean reviewed
-   commit. Prepare the locked `tos-access` binary with the pinned toolchain and
+5. For software publication, build and verify the native installable candidate
+   from a clean reviewed commit. Prepare the locked `tos-access` binary with the pinned toolchain and
    its Cargo-derived `tos_native_access_build_v2` receipt from the same JSON
    artifact stream: the ten-field receipt carries the executable's observed
    dev `opt_level` (`0` or `1`) and exact SHA/size. Legacy nine-field v1
@@ -195,6 +161,8 @@ its surrounding implementation directory; `ToS/` source Markdown does not use
 the documentation-only shortcut. Source assessment/admission still belongs to
 its owner, not to a green software gate. This selector does not publish data.
 The Rust job uses its own sparse checkout and temporary Cargo cache. The
+host-program fixtures use the qualified Ubuntu 24.04 runner explicitly;
+changing its distribution is a separate validation step. The
 installed reader checks exact old/current bytes from a tiny synthetic store.
 The Worker job checks the shipped `tos-web-rules` WASM product with the matching
 `wasm-bindgen` CLI verified against its pinned release digest.

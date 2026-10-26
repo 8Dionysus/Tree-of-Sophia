@@ -1,1868 +1,59 @@
 # Tree of Sophia Access
 
-`access/` is the standalone, source-read-only product surface for Tree of
-Sophia. It gives native MCP, HTTP, CLI, the web application, and WebMCP one
-query core and one fingerprinted projection set. Page commands may change the
-browser presentation, but never ToS source, review, rights, or canon state.
+`access/` is ToS's standalone, source-read-only delivery product: native CLI,
+HTTP and MCP, the browser application, and WebMCP. Rust owns runtime query and
+transport behavior. The optional imported Python SDK is a thin caller of the
+installed native product; it does not ship a second query engine or a Python
+runtime fallback.
 
-Authored meaning stays under `ToS/`. This package reads allowlisted derived
-exports and always returns their `source_ref` routes; it never promotes canon,
-changes review state, or writes to the corpus.
+Authored meaning, source admission, rights, review and canon remain with their
+ToS owners. Access reads explicitly selected published data and returns
+`source_ref` routes. It does not write corpus state or turn a projection,
+capability packet, or successful validator into semantic acceptance.
 
-## Native installation
+## Choose a route
 
-The normal `tos` command comes from [native fresh-prefix installation](#native-fresh-prefix-installation).
-It requires an explicitly verified native software archive and no Python runtime.
-Data selection is separate from software installation.
+| Need | Route |
+| --- | --- |
+| Install or select native software | [Native fresh-prefix installation](#native-fresh-prefix-installation) and [release guidance](../docs/RELEASING.md) |
+| Run local CLI, HTTP or MCP | [Native runtime](#native-runtime) and the [Rust access guide](../rust/crates/tos-access/README.md) |
+| Select an offline prepared knowledge reader | [Explicit prepared local reader](#explicit-prepared-local-reader) |
+| Understand read packets and compatibility | [Contracts](contracts/README.md) and the [native semantics guide](shared/NATIVE_SEMANTICS.md) |
+| Use the browser and WebMCP | [Web client](web/README.md) |
+| Build or operate the public Cloudflare route | [Worker deployment guide](deploy/cloudflare-worker/README.md) |
+| Operate private source navigation or restore captures | [source-owner operations](#source-owner-operations) and [ToS source witnesses](../ToS/source-witnesses/README.md) |
+| Validate this product | Root [validation routes](../VALIDATION.md); the `standalone_access` lane owns command order |
 
-## Development and native runtime
+## Native runtime
 
-Rust owns runtime query semantics, managed-release lifecycle, and installed
-CLI/HTTP/MCP entrypoints. `access/src/tos_access/` retains a source-importable
-Python SDK bridge for external callers; it delegates to an explicitly selected
-native binary and has no Python query fallback or installable wheel.
-
-Native library consumers can omit source construction and CMD with
-`--no-default-features`; the installed product keeps its complete default
-profile. The [native access build profiles](../rust/crates/tos-access/README.md)
-define the optional source-owner, construction and research boundaries.
-
-Owned Python sessions use `NativeAccessCore.owned_ordinary_source_session` with
-the native READY capabilities and the caller's original transport, deadline,
-cancellation and receiving-state limits. The earlier GraphViews-only,
-selected-probe, lazy-selected and discovered-session prototype factories are
-retired, including their separate bounded OS path selector. Callers select their
-paths with `NativeCoreSnapshotSelection.discover` before entering the ordinary
-session; unsupported capabilities remain explicit refusals.
-
-Use the repository's native validation route after installing its declared
-development dependencies. Build browser assets with `npm ci --prefix access/web`
-and `npm run build --prefix access/web`. To read production data, explicitly
-select an admitted snapshot with `--root` or `TOS_DATA_ROOT`; managed software/data
-pairs use the native `--release-root` interface. No path searches parent
-directories for another dataset. Data compilation/admission remains a separate
-operation and software builds never claim corpus data.
-
-Rust compiler checks replace the retired Python full/incremental query-store
-builder suite: [full-model seal, cold read and restore](../rust/crates/tos-compiler/src/knowledge_full.rs),
-[staged-input atomicity, quotas and private-candidate refusal](../rust/crates/tos-compiler/src/knowledge_stage.rs),
-and [compressed-search bootstrap and rollback](../rust/crates/tos-compiler/tests/compressed_search_writer.rs).
-The old Python cache/delta scheduler and its test harness are not active runtime
-contracts; the native compiler publishes its owned full candidate and native
-search writers own their separate bounded bootstrap/delta routes.
-These full candidates remain the current export implementation. Under
-[TOS-D-0071](../docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md),
-ordinary central source updates move to PostgreSQL transactions and separately
-updated projections; a successful full export does not establish that migration.
-The initial private source-text projection and its explicit owner CLI are
-documented in the [`tos-command` README](../rust/crates/tos-command/README.md).
-It does not yet replace the full knowledge API or select data for this reader.
-`tos.source-text.search` requires an explicitly selected durable PostgreSQL
-consumer on native HTTP, CLI or MCP. The Cloudflare Worker can forward this
-operation when an explicit native HTTPS origin, outbound Cloudflare Access
-service token, and inbound Access issuer and application audience are
-configured. The Worker verifies the caller JWT; capability reports
-configuration only, while D1 remains unavailable as a source-text reader.
-The offline Rust source compiler offers an optional, explicitly located
-processing DAG/cache in [`PROCESSING_DEPENDENCIES.md`](PROCESSING_DEPENDENCIES.md).
-Callers opt in through `NativeFamilyInputs.processing_run`; the default build
-and installed CLI do not create a processing cache.
-It uses only the `tos_rust_processing_*` SQLite namespace and ignores the
-retired Python tables; cache metadata does not authorize source or publication.
-
-The installed `tos` command is loopback-only for HTTP by default and uses stdio
-for MCP unless an explicit loopback-only HTTP transport is selected. The
-software-only archive route lives in [RELEASING](../docs/RELEASING.md).
-
-The backend exposes two source-navigation operations over the selected native
-navigation product (or the corpus index in the legacy carrier mode).
-`tos.source.descend` / `GET /api/source/navigation/{node_id}` walks from
-an era, region, tradition, planting, or source object toward bibliographic
-objects and Links. `tos.dossier.inspect` /
-`GET /api/source/dossiers/{object_id}` returns a compact Work, Expression,
-Edition, Item, File, or Link dossier:
-the connected Work/Expression/Edition/Item/File chain, observed Links, scoped
-rights records, gaps, source refs, and a fail-closed `agent_summary`. A
-downloadable URL is reported as technical access only; legal openness requires
-an accepted human rights review.
-
-An explicitly pinned published SQLite reader uses that publication's native
-`source_navigation_*` tables and seek indexes for both operations. It shares
-the legacy traversal/dossier semantics, holds the selected snapshot through
-the whole operation, verifies full payloads against selection columns, and
-applies row, byte and SQLite-work budgets. Missing native navigation is an
-explicit unavailable-product error, not permission to read another corpus
-index. In particular, normalized knowledge rows alone do not provide the
-complete native header and scoped rights required by a source dossier; a
-prepared normalization product without those companions cannot serve one.
-
-Native navigation now requires per-row `source_navigation_row_digest` metadata
-for nodes, edges and rights, plus `source_navigation_header_digest` for the
-authority-bearing header. The Worker reader verifies exact emitted JSON
-(including hydrated chunks) before deriving a dossier. Full, initial-product and
-addressed delta producers maintain these companions. Missing checksums require
-explicit product migration; they are never generated by a reader from untrusted
-serving bytes. The installed native `tos edge-offline-capture --request ABS.json`
-command provides `source-navigation-integrity` for existing-product migration.
-Full mode compares all native rows and payloads with explicit immutable
-navigation/rights snapshots before emitting checksum-only forward/reverse SQL.
-Its `header_only` continuation checks the admitted header and existing row
-companion count without repeating or claiming a row audit; it leaves row
-companions intact. Neither mode rewrites corpus rows or grants rights. This
-native command replaces the former Python parity helper; reversing the
-migration requires a compatible older consumer, and the current reader refuses
-the checksum-less product. These checks detect persisted carrier drift, not a
-malicious publisher able to replace both rows and their checksums. Source,
-rights and publication admission remain independent.
-
-The selected native transport uses the same installed command with
-`--selected-request ABS.json`. It is a Linux supervised-host capability;
-the public reader and the direct v1/v2 capture entry remain portable within
-their declared profiles. The selected envelope has exactly `schema`
-(`tos_edge_selected_capture_request_v1`), `capture` (the original ordered v1
-request), `selected_prefix`, `scratch`, `transport_limits`, `installed_limits`,
-`work_timeout_ms`, `cleanup_timeout_ms`, `supervisor_unit`, and
-`supervisor_total_ms`. Prefix and
-scratch are explicit existing absolute directories. Work is at most
-1,200,000 ms and cleanup at most 10,000 ms, both measured from the original
-entry clock; neither scope renews a deadline. There are no limit defaults.
-The explicit outer supervisor total is at most 1,210,000 ms. Actual service
-RuntimeMax may not exceed it; actual TimeoutStop may not exceed the selected
-cleanup interval.
-
-`transport_limits` contains positive integers `frame_bytes`, `schema_bytes`,
-`request_state_bytes`, `result_state_bytes`, `stream_bytes`, `metadata_bytes`,
-`state_bytes`, `io_bytes`, `held_fds`, and `census_entries`. `installed_limits`
-contains `max_image_bytes`, `max_metadata_bytes`, `max_state_bytes`,
-`max_io_bytes`, and `max_held_fds`. Installed association reserves three
-transient descriptors for the running-image witness and component-safe opens.
-The entry reads a strict, bounded 10 MiB envelope with a 64 MiB Foundation
-parser state ceiling, verifies the selected Access image against
-`/proc/self/exe`, opens each selected database once read-only, and holds its
-SQLite transaction throughout the borrowed encoder, native child and normal
-anchored cleanup. The emitted result is an unapplied capture, never admission.
-The wrapper reserves the coexisting 64 MiB parser state, two 10 MiB raw/ordered
-buffers, 4 MiB owner-limit conversion and bounded platform state from the same
-transport state cap before giving its remainder to the native caller. Its
-bounded envelope/platform reads similarly consume the IO cap. FD preflight
-includes selected main/identity/WAL/SHM handles, frame handles, native internals,
-three association temporaries and six service-probe spawn descriptors. SQLite
-heap, allocator RSS and physical disk IO still require the host profile.
-
-The standalone capture runs in an explicitly selected finite user service:
+Install and select software separately from data. For an installed command:
 
 ```sh
-systemd-run --user --wait --collect --pipe --unit UNIT.service \
-  -p MemoryMax=MEMORY_BYTES -p MemorySwapMax=0 \
-  -p RuntimeMaxSec=ORIGINAL_TOTAL_SECONDS -p TimeoutStopSec=ORIGINAL_CLEANUP_SECONDS \
-  -p KillMode=control-group -- \
-  ABS_INSTALLED_PREFIX/bin/tos edge-offline-capture --selected-request ABS_SELECTED_REQUEST
+tos --help
+tos --root /absolute/selected-data doctor
+tos --root /absolute/selected-data verify --profile standalone
+tos --root /absolute/selected-data serve 127.0.0.1:8765
+tos --root /absolute/selected-data mcp
 ```
 
-The request selects that exact `UNIT.service`. The native entry verifies its
-actual InvocationID, finite lifetime, cleanup and kernel cgroup/process custody.
-An external hosting policy may wrap this command; no ecosystem broker is needed.
-
-If native child release cannot be proved within the original cleanup clock,
-the CLI exits 125 with no success/adoption, retains immutable frames and
-failure evidence, and reports the owned child and selected service. Process
-death closes this CLI's owned read transactions. PDEATHSIG requests child death;
-it is not evidence of release. The selected finite outer service owns residual
-cleanup and its census. Library callers retain the separate borrowed failure
-custody contract; a CLI exit does not transfer their live transactions.
-Both Worker source routes use the same revision/epoch guard as knowledge reads.
-A concurrent publication is reported as a snapshot conflict even when it
-interrupts row/checksum verification; stable carrier corruption remains an error.
-
-## Backend-defined knowledge construction
-
-The backend also exposes one normalized knowledge graph across the philosophy
-projection, authored canon node relations, canon relation packs, source
-navigation, reified source claims, semantic interchange routes, and indexed
-repository structure. Every node carries both its stable `entity_id` /
-`type_id` and its source-native identity and kind, plus a localized title, kind label, summary,
-epistemic posture, provenance, source references, query attributes, and a
-lossless public `source_record` with digest and field mapping.
-Absent an explicit source posture, only the `canon` carrier defaults to
-`authority_layer: canon`; other carriers, including `source-claims`, default
-to `derived-export`. This transport default never supplies a canon status or
-changes the recorded review posture.
-Every relation likewise carries a stable `relation_type_id` beside the exact
-source predicate, localized labels, a readable endpoint statement, an
-explanation, provenance, and the same return route to source. When source prose
-does not exist, the backend emits a deterministic metadata synthesis and marks
-it as such; it never presents generated wording as authored ToS meaning.
-Missing prose is reported with a short localized notice, not filled with
-repository paths, machine statuses, or internal review terminology. Those
-values remain available in structured attributes, provenance and source refs.
-Synthesized relationship statements use available localized endpoint and
-predicate labels; source-supplied prose and translations are preserved verbatim.
-Language/script keys are extensible (including `grc-Grek`, `zh-Hant` and
-private-use tags); the catalog exposes observed display fields and availability.
-Fallback preserves available source wording without pretending to translate it.
-The shared browser reader consumes the source-owned `tos_readable_context_v1`
-sidecar on full material reads. It checks exact material digests, field bindings
-and declared coverage before keeping a bounded reading snapshot. Owner labels
-and explanations describe governing context; technical fields stay in a
-disclosure, and unclassified fields retain their keys and literal values.
-Canonical numeric material preserves integer/float lexemes independently of
-JavaScript number rounding. A budget-limited or unavailable presentation stays
-an explicit gap with the original form context still accessible; it never
-becomes an empty successful explanation. This is transport verification, not
-independent verification of the vocabulary's judgment, semantic assessment,
-translation, rights or admission. Older responses without the sidecar keep
-their existing context reader rather than acquiring invented classification.
-For canonical corpus nodes, the retained authored `properties` record owns
-wording, not the outer index label: an ID-derived navigation label remains
-`identifier-fallback` with `source_title_available: false`, including when
-reading an older index. Its real `distilled_thesis` remains available separately.
-Unresolved relation endpoints likewise acquire no source name or description
-from their ID. This correction changes normalized display/provenance and requires
-an explicit prepared-reader migration; it is not an execution-only compatible
-profile update and does not activate an existing service.
-See the [language transport contract](contracts/README.md) for compatibility
-roles, fallback order and the still-distinct full Forms work.
-
-For an explicit migration diagnostic, run
-`tos-access coverage --root /absolute/selected-data --language en` using the
-verified installed executable. The selected data needs its completed immutable
-offline `knowledge.sqlite3` and the five exact source projection/registry inputs;
-a missing or stale store refuses the diagnostic, without building data implicitly.
-`TOS_QUERY_STORE_PATH` and the existing explicit input-path settings select data.
-The retired Python platform forwarder is not part of the access package. Use
-the installed command directly. Its JSON input is bounded to 16 MiB (4 MiB for
-one carrier); larger snapshots use the streaming root route. Native
-`coverage --graph /absolute/snapshot.json` (or `-` for stdin) observes a supplied
-normalized snapshot, and `coverage-row --input /absolute/carrier.json` observes
-one complete carrier. Root traversal defaults to 256 MiB cumulative decoded/input
-bytes, one million rows and 30 seconds; explicit `--max-input-bytes`, `--max-rows`
-and `--max-seconds` select a bounded envelope. Budget refusal never emits a
-terminal completion summary. Software selection requires an installed prefix
-and selected data cannot select code.
-This scans the existing normalized projection and reports per-source carrier
-counts, mapped/unmapped types, missing display wording, derivation, and each
-HumanForm role's delivery and candidate states. `--rows` streams one NDJSON
-observation per node/relation before the terminal summary. Without that final
-summary, an interrupted row stream is incomplete. Output contains references
-and mechanical states, not source wording; its visibility still follows the
-input snapshot and must not be treated as a public-safe derivative by default.
-
-The old `display_coverage` totals count transport fields, including notices;
-they do not measure substantive quality. This separate diagnostic excludes
-notices from available descriptions and distinguishes generated navigation
-from source-marked wording. The latter reports the projection's provenance,
-not independently verified source authorship. It does not score quality, assess rights or admit
-content. Rows retain both carrier and subject identity, so duplicate carriers
-do not inflate a claimed number of distinct subjects. An absent role requires
-its source owner's applicability review, not an invented description. Exact
-source return and next-action categories accompany each row. Objects absent
-from the projection, live source-byte parity, generated currentness and full
-corpus migration remain separate checks. The scan is explicitly offline, not
-a new HTTP/MCP/Worker operation or additional work on the hover/query path.
-
-Clients discover the construction vocabulary through `tos knowledge catalog`
-or `GET /api/knowledge/catalog`. The catalog reports current kinds,
-predicates, safe fields, observed `attributes.*` fields and value types,
-facets, operators, bounds, display coverage, stored lenses, and common entity
-routes for concepts, authors, works, words, traditions, places, and source
-objects. An entity route reports `not_projected` instead of pretending that a
-missing kind exists; `role_readiness` says whether a contextual role such as
-authorship is relation-confirmed or only a kind candidate, rather than guessing
-from a label. Lens counts keep global query matches, topology-eligible
-relations, returned relations, and selector truncation distinct. A human UI and
-an agent can therefore build the same `tos_lens_spec_v1` document rather than
-depending on browser-owned view logic. A LensSpec can select sources, start
-from nodes or relations, filter, traverse, close relation endpoints, group,
-sort, and provide presentation hints under explicit resource limits.
-
-The native Rust compiler owns exact catalog and semantic-index materialization.
-`tos prepare --attach-maintenance` can add those bounded indexes to the same
-private snapshot; it neither admits source meaning nor selects a consumer. The
-former Python catalog, semantic and prepared transaction APIs are retired. See
-the [native preparation route](OFFLINE_PREPARED_BOOTSTRAP.md) and the
-[Rust catalog owner](../rust/crates/tos-query/src/knowledge_catalog.rs).
-
-Registered properties can be queried without knowing their internal paths.
-For example, `{"property_id":"tos.property.time-role","op":"eq","value":"historical-time"}`
-is a node filter, also usable at a path step. Discover the actual descriptor
-and operators in `semantic_registries.properties`; an unknown property is an
-error, not an empty success. Values remain source-declared and type-scoped;
-missing values are not proven unequal. See the [property-filter contract](contracts/README.md)
-for exact string/array semantics and snapshot compatibility.
-
-The versioned ToS registries define the stable entity hierarchy and relation
-contracts consumed by this graph. They keep Agent roles as relations, separate
-Work/Expression/Edition/Item/File/Link, distinguish Place from a navigation
-Region, and keep dates as TemporalAssertions. Source assertions retain Claim,
-evidence, provenance, review, and supersession structure. Cross-layer
-`projects` and `grounded-in` routes are admitted only from shared declared ToS
-IDs or exact authored source references; `same-as` is never synthesized.
-
-An exact historical description or Claim has its own `record-version` carrier,
-not the current subject's ID. For supported public metadata families,
-`has_record_version` links the subject to references from its verified retained
-`record_history`; Sign's `promotion_basis_version` instead binds its exact birth
-Claim. Inspect or focus those ordinary graph IDs through the same read-only
-operations. Available versions quote their own source wording and language;
-compact results retain the complete historical qualifications. Unavailable
-versions expose a gap, never current wording or a new assessment/admission.
-The [source reader contract](../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#read-only-exact-metadata-versions)
-states supported families and record-only (not whole-package) verification.
-
-Exact source reading has a separate opt-in
-[transport contract](contracts/source-read.v1.schema.json). Discover it with
-`GET /api/source/contracts` or `tos_source_read_contract`; check the selected
-owner with `GET /api/source/capabilities` or `tos_source_read_capabilities`.
-The default native service selects no source owner and reports `available: false`.
-An embedding can supply `NativeSourceProvider.from_owner_readers(...)` for an
-owner-issued reader or `NativeSelectedSourceProvider.from_retained_bytes(...)`
-for an explicitly selected source vector. Rust parses and validates the retained
-vector and owns request admission, currentness and disclosure. The former Python
-`SourceReadService` and `SelectedSourceReadService` engines are retired.
-
-For an explicitly bound owner, `POST /api/source/handles` /
-`tos_source_handle_discover` accepts a typed catalog selector or exact
-owner-issued target. `POST /api/source/read` / `tos_source_read` accepts the
-returned handle and `representation: "record"`. The same core returns exact
-public metadata or Claim content without accepting filesystem paths, byte
-ranges or a latest-version fallback. A well-formed selector absent from the
-catalog returns `missing`, with no fabricated target, digest or handle.
-Reads recheck the owner epoch and source bytes; handles grant no use rights.
-Full node/relation inspection returns `source_read_targets`, keyed by the exact
-returned graph ID, only where a complete retained owner record supplies the
-target. This projection does not assert source-reader availability. The
-constructor's **Open source record** action follows that target through the
-same handle/read operations used by agents; it never guesses a filesystem path
-or substitutes the latest version. Selection changes and dialog closure cancel
-the read, with a 15-second overall deadline and a 2 MiB response ceiling.
-Original notes and explicit gaps remain distinct from technical fields, carrier
-text, assessment and use rights. An unconfigured owner reports unavailability.
-
-Authored relation CSVs use the separate `authored_csv_record` layer and issuer
-`Tree-of-Sophia/authored-corpus`, not a fabricated source-witness record/version.
-Its selector contains only `layer`, `pack_id` and `edge_id`. Exact targets also
-bind logical `source_row`, `source_file_sha256` and canonical parsed-cell
-`content_revision`; handles belong to the same selected source epoch.
-Activation requires an explicitly bootstrapped `authored-corpus` addressed root
-in that source vector. An older vector without it reports `unsupported`.
-The record preserves every original string/null cell; provenance returns raw
-CSV text, byte offset/count, raw-row hash and the distinct canon/intake owner
-posture. This is source disclosure, not semantic assessment or a rights grant.
-Native inspection projects the exact target; the human source reader and MCP
-use the same handle/read operations. A source-vector addition still
-needs matching prepared publication and separate live UI verification.
-
-For local source-owner selection, pass all four exact inputs:
-
-```bash
-tos --root /absolute/source-owner --prepared-read-model /absolute/snapshot.sqlite \
-  --prepared-binding /absolute/binding.json --source-inputs /absolute/inputs.raw \
-  serve --host 127.0.0.1 --port 8080
-```
-
-The source vector must match the prepared reader revision. The source mechanics
-come from the access implementation checkout, never from caller-selected source
-data. A portable bundle without those mechanics cannot activate this route.
-The native selected reader owns a private retained source vector and admits at
-most two source operations without a waiting queue. It rechecks the selected
-source state before disclosure; a source change requires explicit reselection.
-The same selection works with native `mcp` and the `source capabilities`,
-`source contracts`, `source discover REQUEST.json`, and `source read REQUEST.json`
-commands. Discovery/read accept `-` for bounded JSON input from stdin.
-
-The native selected source reader admits its installed executable and schema
-worker under one absolute 30-second startup budget. The prepared request budget
-remains five seconds, with the same probe retained through currentness checks
-and final disclosure. A long-lived HTTP/MCP reader does not inherit an expired
-startup deadline; each request receives its own processing budget.
-
-The selected source vector authenticates retained root bytes and their digests.
-Its namespace paths locate content-addressed parts; mutable projection pointer
-files may move or disappear without changing that retained selection. The native
-read-only reader pins each consumed regular part FD, verifies owner/mode, named
-inode identity and encoded/decoded hashes, and rechecks through final disclosure.
-Part and byte counters remain cumulative within each request. Authored source
-publication, record and local-condition currentness remain independently checked;
-selected-current mutation readers retain their existing pointer-file contract.
-
-Native artifact/composite metadata uses its schema-declared `artifact_id` or
-`composite_id`, not a fabricated `record_id`. Exact reads bind the existing
-metadata owner's native-witness descriptor, version, digest and public metadata
-scope; this does not expose scans, transcriptions or grant content-use rights.
-An explicitly selected local source owner also advertises
-`representation: "native_public_unit"` on the same read operation. It reopens
-the handle's exact metadata record, takes only its native TextUnit binding,
-and invokes the source owner's bounded public-span reader. This is not an
-upgrade of the metadata handle's authority: both native closure and recorded
-unconditional public rights are checked independently before text is returned.
-`tos_source_native_unit_read_result_v1` keeps `record: null`; `native_unit`
-contains ordered spans only on success, with separate `text_access`. Private
-or conditional gates return `access-restricted` and no text. The constructor
-offers this explicit action inside the source record, preserving the scene,
-selection, exact Unicode text and separated spans. Client validation binds the
-native IDs/versions and packet/layer digests back to the exact metadata record,
-and checks each span's code-point length and UTF-8 digest. The 15-second shared
-deadline includes both metadata and text requests. Local-reader conditional
-permission remains distinct and is not inferred from available metadata.
-
-For existing conditional local-reader permission, explicitly select
-`--source-local-text-selection /absolute/protected/selection.json` alongside
-`--source-inputs` and its prepared reader. The file follows
-`ToS/contracts/native-local-text-read.schema.json`, is owned by the current
-account with mode 0600, and pins the source root, exact binding and rights,
-current mandate, a reviewed explanation of the conditions, and exact license
-and attribution notices. Validity is at most one day. This records execution
-under existing permission, not new rights or a positive assessment. Never
-select a grant supplied by an untrusted source or a consumer request.
-
-The separately requested `native_local_unit` returns ordered exact spans with
-`local_conditions` and the complete selected notices. The constructor's
-"Read under local conditions" action retains those notices next to the text;
-agents must retain them with the return too. Public-declared native visibility
-is still mandatory: no private transport or original payload is enabled.
-Configuration, mandate, rights, closure and notice changes fail closed;
-revocation/expiry requires explicit owner reselection, never a public fallback.
-HTTP remains loopback-only. No remote Worker or external publication is enabled.
-
-The default observatory's Sources panel uses this same exact reader for a
-selected node or relation, not only bibliographic dossiers. Open the source
-record to see its unchanged fields and version-bound provenance. When it has
-a native-text binding, the panel discovers the selected owner's advertised
-public/local representations. Each explicit text request still rechecks its
-own access conditions; neither discovery nor metadata visibility is a grant.
-A text refusal leaves the metadata record readable. Local text retains the
-complete license and attribution notices alongside its separate spans.
-The panel never reconstructs a source path or substitutes another revision.
-
-Private source-owner reading is a separate lower-level contract:
-`ToS/contracts/native-private-text-read.schema.json` and
-`rust/crates/tos-command/src/source_native_text_read.rs` expose
-`PrivateTextReadSelection` and `read_private_native_unit`. The native owner
-command accepts `private-text-read --invocation /absolute/invocation.json`
-with a `tos_local_native_private_text_read_request_v1` request on standard
-input. The protected selection pins a distinct owner-local context, the current
-account and mandate, a maximum one-day
-validity, and each exact binding and rights-record digest. It permits only the
-already recorded unconditional local-research route, returns unchanged selected
-spans with complete rights records, and rechecks revocation and dependency
-fixity before returning. It does not read the original Item payload, assess
-translation or content, or change private visibility and redistribution rules.
-
-The same local command also dispatches protected PostgreSQL Text,
-Profile/Claim, Assessment and Alignment invocation profiles, including their
-explicitly granted writes. Their request and grant contracts remain separate
-from the native span-read profile described above; see the
-[private owner operation route](../rust/crates/tos-command/README.md#protected-private-owner-operations).
-
-This private return is **not yet connected to HTTP, MCP or the constructor**.
-Those adapters must supply their own explicit owner-local transport boundary
-and respect any recorded server-transfer prohibition. Neither a public metadata
-handle nor the existing `native_local_unit` request selects a private store or
-inherits this permission. Never turn its packet into a public source response.
-
-Historical Claim and review-ledger reading remain separate integration work.
-A build or mocked client test alone does not establish the live
-constructor-to-owner cycle.
-
-The read-only operations are available through all backend adapters:
-
-- `GET /api/knowledge/contracts` returns the operation map, exact JSON
-  Schemas, and semantic registries consumed by constructor clients, so neither
-  a UI nor an agent must infer LensSpec shape or type meaning from examples;
-- `GET /api/knowledge/search`, `/nodes/{id}`, and `/relations/{id}` search and
-  inspect the normalized graph. The default search remains the exact-count,
-  offset-based `tos_knowledge_search_v1` route. An explicit
-  `mode=indexed` request uses the source-revision-bound trigram carrier and
-  cursor continuation (`tos_knowledge_search_indexed_v2`); short queries and
-  over-budget candidate sets fail closed rather than silently falling back to a
-  full scan. The projection page keeps its separate `tos.page.search` v1
-  semantics. `tos.page.knowledge-search` checks the selected backend's search
-  capabilities and uses an available indexed or prepared compressed engine,
-  never an implicit legacy fallback. It returns `search_mode` alongside the
-  unchanged native cursor; keep both when continuing from another page session.
-  The observatory uses the same advertised engine selection for human typing
-  and agent search, not the legacy offset route. Its ordinary search keeps at
-  most 16 previous-page cursor bindings (up to 1 MiB), without caching result
-  rows. Unknown total counts stay unknown. The explicit knowledge-search tool
-  supports continuation independently of that local navigation history.
-  An explicitly compiled query store uses its
-  existing FTS5 trigram index directly, with snapshot/query-bound keyset
-  cursors and candidate/verification budgets; this route never reconstructs
-  the graph or creates another search index during a request. A scan-only
-  compiled store reports indexed search unavailable while retaining the
-  explicitly separate legacy search route.
-  The D1 indexed planner intersects up to three rare query trigrams before
-  the document-verification gate. Every used posting has a checked closure;
-  their combined closure count stays within the existing 50,000-candidate
-  budget. Additional membership tests use exact covering-index seeks. The
-  16,000,000-character verification cap, exact text match, ranking and
-  snapshot-bound continuation are unchanged. This reduces false-positive
-  candidates without treating a trigram hit as an actual text match.
-- `GET /api/knowledge/focus/{node_id}` resolves an exact normalized ID, a
-  stable entity ID, or one unambiguous native ID and returns a bounded radial neighborhood with an
-  explicit `focus` object. Ambiguous native IDs fail closed so the caller can
-  disambiguate through search;
-- `GET /api/knowledge/lenses/{lens_id}` executes a stored LensSpec;
-- `POST /api/knowledge/temporal/compare` compares the normalized date envelopes
-  of two exact source Claims selected from one snapshot. Discover the request
-  schema through `/api/knowledge/contracts`; unknown grounds remain unknown,
-  and the result keeps both full Claim contexts without accepting either;
-  the separately declared `catalogue-assigned-document-date` role compares
-  only with the same role after exact Document/profile/source/value binding.
-  It does not compare a letter's catalogue date as an event date. Unknown
-  calendar or year numbering returns `undetermined`, never an inferred date;
-  this new reader carries a source-owner canonical JSON companion in
-  `semantics.claim.source_canonical_json`, bounded to 262144 UTF-8 bytes.
-  This companion is available to full inspection and temporal comparison;
-  compact carriers omit it while retaining the other Claim semantics and refs.
-  Missing, over-budget or mismatched bytes return `undetermined`. Python and
-  the Worker bind the whole Claim, value and literal identity; the Worker
-  preserves number tokens from the actual D1 row instead of reconstructing
-  source hashes with `JSON.stringify`. Existing historical carriers do not
-  acquire the documentary role or require this companion;
-- `POST /api/knowledge/lenses/compile` executes an arbitrary validated
-  LensSpec. This `POST` carries structured query data only and creates no
-  server state;
-- native MCP exposes the corresponding `tos_knowledge_*` tools; CLI exposes
-  `tos knowledge catalog|contracts|search|node|relation|focus|temporal-compare` and
-  `tos lens open|compile`.
-
-The direct agent loop is `search -> focus -> inspect or refine`. For example,
-`tos knowledge search 'Ницше' --kind agent` returns the namespaced Nietzsche
-Agent, and `tos knowledge focus source-navigation:tos.agent.friedrich-nietzsche
---sources source-navigation --depth 1` constructs the author-to-works
-neighborhood. The same operation can be restricted by direction, predicates,
-node limit, and relation limit. A raw LensSpec can also set
-`seed.focus_node_id`; its result always repeats the resolved center separately
-from the ordinary node array.
-
-The default `overview` neighborhood does not traverse record-production
-relations (`tos.relation.made-by`, `tos.relation.generated-by`). A common maker
-or serialization event is not a semantic relationship between the recorded
-subjects. Exact node/relation inspection and `profile=all` retain those links;
-Claim subjects, objects and evidence remain available in overview. The catalog
-publishes exact exclusions. Unknown relations are not classified by their label
-or native predicate spelling. Exploration uses the same rule; its v2 execution
-version invalidates checkpoints from the earlier traversal semantics.
-
-Local search prepares JSON substring documents once for the current immutable
-knowledge snapshot. Repeated queries do not serialize the entire graph again;
-filters, exact/prefix ranking, metadata matches and pagination retain the same
-contract. A core instance retains only its current search index and replaces it
-when the graph snapshot changes. Preparation adds first-search cost and memory;
-substring scanning remains linear. The pure search function still works without
-an index. Callers must not mutate a core-owned snapshot in place.
-
-For example, save a LensSpec in `lens.json`, then run
-`tos lens compile lens.json`. The same document can be sent as JSON to
-`POST /api/knowledge/lenses/compile` or passed to the native MCP compile tool.
-The result includes the normalized items, groups, facets, source revision,
-per-item content revisions, and a deterministic fingerprint. The public
-schemas and operation map live under `access/contracts/`.
-
-Lens results and resumable exploration pages also deliver `scene`
-(`tos_knowledge_scene_v1`, defined in the knowledge-graph schema). This is a
-packet-local map, not a replacement graph: `vertices[].node_ids` partition
-the returned exact carrier IDs, grouping only an identical declared `tos.*`
-entity ID. Names, similarity, `same_as` and native-ID fallbacks never merge
-vertices. A Claim retains its own identity, distinct from its subject/object.
-`vertices[].id` stays stable when another carrier of that subject appears in
-a later lens/page; it is a presentation key, not an inspection or query ID.
-
-`representative_node_id` chooses only the default card/display carrier, in
-source-navigation, canon, source-claims, philosophy, candidate-intake,
-repository, semantic-interchange order, then Unicode code-point ID order.
-This is not a verdict on competing records or forms. Consumers inspect each
-original `node_id` and `content_revision`; they must not relabel or merge its
-content. `focus_vertex_id` locates the focused carrier in the scene.
-`arcs` point back to each exact `relation_id` with mapped scene endpoints.
-Only a typed `tos.relation.projects` link within the same vertex is omitted
-from arcs and listed in `collapsed_relation_ids`; it remains inspectable in
-`relations`. Other self-relations and parallel assertions remain distinct.
-
-The map is computed **after** source filtering and delivery pagination. It
-does not discover other carriers, widen a query, change admission or bypass a
-page budget. Its work/storage are bounded by the returned packet, with sorting
-at most O((nodes + relations) log(nodes + relations)). Older packets may lack
-`scene`; consumers must then preserve exact carrier vertices, not invent a
-grouping heuristic. Execution v5 introduced compact-path fingerprints; current
-v6 additionally binds typed origins. Older cached responses require a restart.
-UI adoption is separate.
-
-### Compact Claim paths
-
-`scene.compact` offers an alternative presentation of the **same returned
-packet**. Its `vertex_ids` select scene vertices; `relation_ids` select existing
-scene arcs. `claim_paths` add presentation lines from subject to object, each
-bound to one exact Claim carrier. They are not new normalized relations or
-new assertions. Consumers choose this view explicitly (normally for overview)
-and retain the full scene for technical inspection or expansion.
-
-A path requires a mapped predicate, explicit subject/object IDs and exactly one
-consistent typed `has-subject` / `has-object` leg present in the packet. The
-ordered `node_ids` and `relation_ids` decode that path. Claim-supported-by
-relations are retained as `detail_relation_ids`; their target records remain
-in the packet. Other incident edges prevent folding. An incomplete, ambiguous,
-unmapped, mixed-carrier or focused Claim stays a vertex with a reason in
-`retained_claims`. Focusing on its grounds also keeps the neighborhood explicit.
-Only isolated detail vertices fold, never an incomplete Claim used as grounds.
-An explicitly selected raw relation takes priority over coincident Claim-node
-focus: its Claim stays unfolded with `focus-relation`, keeping that exact edge
-visible and inspectable in both native and shared scene implementations.
-Self-relations between a subject and itself remain possible; a Claim cannot
-share its subject/object presentation identity. Competing Claims keep separate
-path IDs even when their subject, predicate and object coincide.
-
-`reading.node_id` and `content_revision` identify the exact Claim whose wording
-and context the line must expose. `wording_pointer` selects a complete ready
-source form (caption, statement, then hover), otherwise an available source
-summary/title; it never substitutes an ID or generic missing-description text.
-A null pointer is an explicit wording gap. Source-form context must travel with
-its `display_text`. Reading also requires the Claim's `context_pointers` and
-the semantics/epistemic context of `relation_context_ids`. Polarity, conditions,
-attribution, time, disagreement, assessment and unknown qualifiers must not be
-dropped. `standalone=false` forbids treating the predicate label or shortened
-wording as an unconditional fact. Exact inspection retains all source fields.
-
-No model call, assessment, source admission or new historical inference happens
-while constructing these lines. Human forms are reused through the existing
-source-bound selection contract; exploration pages now use its automatic
-language selection too. All original nodes, relations, content revisions and
-source refs remain unchanged. `folded_vertex_ids` names presentation omissions,
-not deletions. A partial page may retain a Claim until a later, sufficiently
-complete view; consumers must not infer missing legs from other snapshots.
-
-Explicit local assessed-form projections may carry the source-owned
-`assessment_snapshot` annotation. The shared graph constructor requires exact
-source and selected-packet parity between bibliographic and navigation carriers;
-it refuses a mixed pair instead of choosing one carrier's wording. Python and
-Worker form selection validate the annotation's transport shape, including the
-absence of publication/runtime authority. Neither performs a fresh assessment
-or authenticates a model invocation. The source owner controls currentness and
-publication; see [local assessed snapshots](../ToS/doctrine/HUMAN_FORMS.md#local-assessed-research-snapshots).
-
-The in-memory compatibility reader reuses snapshot-bound adjacency and lens
-plans for focus, supplied lenses and stored lenses. Plans retain references, not
-copies of full packets; at most four source scopes and two relation plans per
-scope are cached. Publication replaces the current index while an in-flight
-reader may finish with its borrowed old snapshot. Human-form delivery and
-pagination are still computed per request. These are plan-count bounds, not a
-hard byte ceiling; first-use planning and global selectors can still scan the
-in-memory snapshot. This optimization does not establish cold prepared-query
-performance or remove the compatibility reader's initial graph construction.
-
-## Explicit prepared local reader
-
-To build a fresh snapshot from an explicitly selected source tree, use the
-[offline prepared bootstrap](OFFLINE_PREPARED_BOOTSTRAP.md). It assembles the
-whole source graph; it neither switches consumers nor performs an incremental
-source update. Its explicit `--attach-maintenance` option adds the exact catalog
-and auxiliary semantic indexes before completion, under separate write budgets
-and unchanged reader binding; attachment remains disabled by default.
-
-The native [`tos prepare` command](OFFLINE_PREPARED_BOOTSTRAP.md) creates the
-local full-row/catalog/lens/search snapshot. Explicit selection remains a
-separate consumer action; it installs no public route or edge deployment.
-
-SDK callers can opt into the published SQLite read model already emitted by
-the edge producer, using both `ToSAccessCore.discover(...,
-published_read_model_path=..., published_read_model_expected=...)` arguments.
-The expected value is an independently owner-selected snapshot binding framed
-by `published_snapshot_binding(top, publication_epoch)`: read-model schema,
-source/data revisions, normalization binding, small-header checksum, and the
-actual `knowledge_exploration_clock` epoch. Merely trusting the database's own
-header does not establish current source or policy authority.
-
-The native prepared route supports catalog and full node/relation inspect,
-including identity aliases, exact incident counts and endpoint closure. It opens
-read-only query transactions, verifies the small header and selected-row emitted
-JSON checksums, and never builds a graph, normalizes sources, or creates an
-offline normalization cache. Catalog bytes are loaded and checked only for a
-catalog request. Full packets retain human forms, source pointers, provenance,
-unknown fields and typed false/zero values. No compact response substitutes for
-the full inspected record. Checksums detect accidental byte drift; they do not
-authenticate a writer holding the same producer/filesystem authority.
-
-Prepared temporal comparison uses the native Rust computation as the
-source-backed reader, over at most six exact Claim/value/document-subject
-lookups in one selected read snapshot. It has no identifier-alias fallback.
-Selected full rows retain `source_canonical_json` and exact JSON number types;
-source/content revision conflicts, missing Claims, damaged carriers and read
-budgets remain explicit refusals. Missing or unsupported date evidence retains
-the shared `undetermined` or `unsupported` states. Comparison does not adjudicate dates or
-establish new source, review, rights or canon authority.
-
-Publication must include the prepared metadata and row digests through the
-normal producer and apply the existing exploration-clock/seek-index migration.
-Missing, corrupt, stale or concurrently replaced publications refuse explicitly;
-there is no request-time migration, repair, revision reselection or full-graph
-fallback. Staleness is relative to the supplied expected binding: the reader
-does not rehash live source files or independently discover policy revocation.
-The serving owner must preserve or advance its clock across restore. Recreating
-identical header bytes with a reset clock is not distinguishable after restart.
-Row, byte and SQLite-work budgets refuse oversized exact inspections
-instead of returning approximate counts. Readers keep no connection or graph
-across requests/restarts. SQLite may use its ordinary WAL coordination sidecars;
-`mode=ro` and `query_only` prohibit database writes, not SQLite's filesystem
-coordination protocol.
-
-The distinct `tos_local_prepared_read_model_v1` profile may reuse these
-catalog/inspect, lens and exploration carriers without the edge-v9 compatibility
-search tables. It requires the same lens metadata and ordered indices, but an
-edge-v9 binding never implicitly selects it. The explicit offline publisher and
-joined compressed search are described below; source assembly and a live
-consumer selection remain separate responsibilities. The Cloudflare
-producer's v9 schema and capabilities are unchanged.
-
-Compressed search is available only through explicit `mode=compressed` on this
-local profile; [its contract](COMPRESSED_SEARCH_V3.md#local-adapters) covers
-capability discovery, bounded work, continuation and full-carrier joins.
-Lens/focus and exploration use the prepared services described below.
-Without these paired selectors, the SDK retains its native source-backed route.
-This is not completion of the broader
-cold-reader or addressed-source publication work, nor a production activation.
-
-The executable accepts the same explicit selection, including HTTP and MCP:
-
-```bash
-tos --root /path/to/runtime-data --prepared-read-model /path/to/selected.sqlite \
-  --prepared-binding /path/to/owner-selected-binding.json knowledge catalog
-tos --root /path/to/runtime-data --prepared-read-model /path/to/selected.sqlite \
-  --prepared-binding /path/to/owner-selected-binding.json \
-  --exploration-checkpoints /path/to/local-continuations.sqlite mcp
-```
-
-The Rust native candidate also accepts the paired prepared paths for
-`knowledge search QUERY --mode compressed`, `knowledge search-capabilities`,
-HTTP `/api/knowledge/search?mode=compressed`, and MCP `tos_knowledge_search`.
-This explicit local projection reader uses a 16 MiB logical response profile,
-64 KiB request/binding limits, and a separately checked complete MCP frame
-allowance. It observes the pathname/WAL and rechecks the binding in a fresh
-snapshot before delivery; it does not acquire managed-release custody or
-source-rights authority. The native prepared catalog route uses the same
-selected binding, request meter and final currentness fence through CLI
-`knowledge catalog`, HTTP `/api/knowledge/catalog` and MCP
-`tos_knowledge_catalog`. It returns the exact stored catalog, retaining source
-wording, field order and authority flags; catalogs exceeding the existing
-bounded carrier profile refuse explicitly. Native prepared node/relation inspection
-and lens compilation use that same selected snapshot and disclosure fence.
-The installed managed-release reader admits the same 16 MiB catalog and checked
-MCP frame limits, retaining its existing request deadline and release guards.
-Prepared exploration is wired to the shared Rust engine and metered SQLite
-producers; its composed build and functional acceptance are still pending.
-Source operations require their own selected source owner. The native candidate
-rejects combining explicit prepared and release options.
-
-For the native browser path, keep one HTTP process alive:
-
-```bash
-tos --prepared-read-model /path/to/selected.sqlite \
-  --prepared-binding /path/to/owner-selected-binding.json serve 127.0.0.1:44258
-```
-
-The installed software supplies browser assets. Open the service with
-`?focus=<URL-encoded node ID from the selected data>`; a representative snapshot
-need not contain the browser's default focus. Exploration discovery advertises
-the selected engine and its actual limits, not current data admission. Each
-page independently checks the supplied binding and final currentness fence.
-Native continuations are process-local by default. For restart survival, select
-`--exploration-checkpoints /absolute/private/continuations.sqlite` alongside the
-prepared model and binding, before `serve` or `mcp`. Its existing parent must be
-owner-selected; the file is private (0600), separate from the read model and its
-sidecars. The native checkpoint format binds its execution configuration and is
-not interchangeable with a Python checkpoint file. Incompatible or replaced
-stores fail without automatic reset. At default limits the database is capped
-at 97 MiB; a DELETE rollback journal may temporarily need another database cap
-plus SQLite headers. UTC clock rollback refuses changes. State and exact replay
-are committed only when the transport admits the response; neither grants
-source, rights, review or publication authority.
-
-The native candidate's `reading-search` uses an explicit absolute `--root`
-for local Zarathustra reading data. The same selection serves HTTP
-`/api/zarathustra/reading` and MCP `tos_zarathustra_reading_search`; an optional
-`--root` alongside the paired prepared selectors enables this independent
-local reading operation. Explicit data selection takes precedence over an
-inherited `TOS_RELEASE_ROOT`; `TOS_DATA_ROOT` is used only when no release is
-selected. Provider and result-schema software bytes are compiled into the
-product. Selected roots provide data and cannot replace those software bytes.
-The reading capability retains its v1 result shape, candidate status and
-authority flags, while software provenance names the actual Rust provider and
-its embedded schema. Its 1 MiB logical response and 64 KiB request limits
-remain unchanged. Retained data and directory pins are observed through
-response flush; they do not grant source rights, review or publication authority.
-Without local reading data the capability reports `available: false`.
-
-Use `serve` instead of `mcp` to start local HTTP. Binding JSON is limited to
-64 KiB and loaded from the separately chosen file; it is never recovered from
-the selected database after mismatch. The optional checkpoint path is a distinct
-local continuation store, not authored knowledge. Without it, exploration
-checkpoints remain process-local. `doctor` and `verify` still inspect the
-source-backed profile and reject prepared flags rather than claiming its health.
-
-The installed native Rust access product owns prepared knowledge focus and
-lens operations. `ToSAccessCore` forwards `knowledge_focus`,
-`compile_knowledge_lens`, and `stored_knowledge_lens` through the
-native MCP/HTTP owner; query planning, bounds, ordering, continuation,
-publication binding, and packet construction remain in that owner.
-No standalone Python lens or search service is shipped.
-
-The native v6 exploration operation uses the same pinned reader. Each page uses bounded identity and
-two-sided adjacency keyset windows; it does not load the catalog, build a graph,
-count the whole neighborhood or use offset scans. Its full stream preserves
-native query, ordering, work units, page limits, v2 origin closure and terminal
-status. The opaque snapshot hash is instead SHA256 of compact JSON containing
-`tos_published_exploration_snapshot_v1`, the native execution version and the
-complete selected publication binding. Random cursors and this runtime-specific
-hash are not portable identifiers.
-
-By default checkpoints remain bounded process memory and do not survive restart.
-An explicit constructor-only `checkpoint_path` selects a separate private 0600
-SQLite query-state file and reports `restart_survival: true`. The parent directory
-must already exist. The source read model and symlink paths are refused. A
-cross-process write transaction atomically commits replay and successor after
-the read-only source snapshot check; failures leave the previous state intact.
-Every replay rechecks the selected source binding and epoch. UTC wall-clock
-expiry persists across restart; backwards clock movement refuses without changes.
-Schema/execution mismatch, busy state or corruption fails closed without reset,
-migration or source revision reselection. The private execution configuration
-also binds scene implementation `selected-relation-first-v1`; older checkpoint
-files without that marker are incompatible, including stored replay responses.
-The owner must explicitly select a new checkpoint path and start a fresh query.
-Existing files are not deleted or migrated, and public execution/schema versions
-and publication snapshot framing remain unchanged by this presentation fix.
-
-Persistent capacity separately limits records, logical payload bytes and SQLite
-database pages. DELETE-journal mode avoids unbounded WAL growth; a transaction's
-rollback journal can temporarily add approximately one database cap plus SQLite
-headers. Expired and evicted records are pruned on successful transactions and
-free pages reused; this is disposable query state, not source history. Replay and
-successor must fit together. The capability response exposes the actual mode,
-limits, database cap, overhead and cleanup boundary. The explicitly selected
-prepared core routes `knowledge_explore` and its capability response to this
-same service. `ToSAccessCore.discover(..., published_exploration_checkpoint_path=...)`
-selects persistent checkpoints; without that additional constructor argument,
-the prepared core keeps process-local checkpoints. No environment variable,
-request field or default server configuration activates persistence. This wiring
-does not establish real-corpus performance or a deployed service.
-
-The installed Rust HTTP and MCP handlers use this same native exploration
-owner. The optional Python SDK consumer calls the installed `tos mcp` process;
-it does not host an independent HTTP or MCP server.
-
-In prepared mode `/health` checks only the selected publication header, binding
-and required indices. It returns `scope: selected-prepared-publication` and
-`verifies_all_rows: false` inside `read_model_status`; it does not scan corpus or
-philosophy sources, prove every item digest or check checkpoint-store readiness.
-An unavailable or changed selected publication returns health status 503.
-The default source-backed health checks remain unchanged. The prepared MCP
-factory is also tested over a real stdio handshake and tool discovery in separate
-server processes, replaying the same persistent continuation after restart.
-
-## Constructor boundaries
-
-Construction coverage is deliberately bounded: selectors, type ancestry,
-numeric temporal intersections, grouping, focus profiles and compact carriers
-are implemented. `detail=compact` affects delivery only; inspect by ID returns
-the full public record. `profile=all` includes text units and anchors;
-the default focus profile is a bibliographic/conceptual overview.
-
-`path_query` adds up to four conjunctive conditions over selector roots, each
-with one to four directed steps. Each step has independent typed `node_query`
-and `relation_query` filters. `exists` requires a matching walk; `not_exists`
-means absence **within the selected sources**, not absence in the world. Walks
-may revisit nodes. The focus remains explicitly included even if it does not
-match the selector. These conditions do not restrict subsequent neighborhood
-expansion; use `relation_query`/`traversal` for that. D1 executes correlated
-joins; local engines enforce a path-inspection safety ceiling and fail rather
-than interpreting exhaustion as absence. Arbitrary named-variable joins,
-universal quantification, and unbounded path expressions remain unsupported.
-
-`explain: true` returns recorded `inclusion` causes for returned nodes and
-relations: focus, selector, traversal, or endpoint closure. Selector causes
-include path witnesses or scoped absence. Referenced witness relations may be
-outside the visible result and can be inspected by exact ID. This describes
-query execution, **not** evidence acceptance or the truth of a relation.
-
-For example, this read query selects Works with an exact Nietzsche authorship
-path and records the matching relation IDs. Add a one-hop traversal if the
-author and its lines should also appear in the visible graph; path witnesses
-alone do not force their intermediate nodes into the scene.
-
-```json
-{
-  "schema_version": "tos_lens_spec_v1",
-  "lens_id": "works-by-nietzsche",
-  "sources": ["source-navigation"],
-  "detail": "compact",
-  "explain": true,
-  "node_query": {"filters": [
-    {"field": "type_id", "op": "eq", "value": "tos.entity.work"}
-  ]},
-  "path_query": [{"path_id": "author", "steps": [{
-    "direction": "outgoing",
-    "relation_query": {"filters": [
-      {"field": "relation_type_id", "op": "eq", "value": "tos.relation.authored-by"}
-    ]},
-    "node_query": {"filters": [
-      {"field": "id", "op": "eq", "value": "source-navigation:tos.agent.friedrich-nietzsche"}
-    ]}
-  }]}],
-  "pagination": {"nodes": 2, "relations": 2, "cursor": null}
-}
-```
-
-`pagination: {"nodes": 40, "relations": 80, "cursor": null}` enables delivery
-pages of the **bounded** LensResult. Reuse the same LensSpec with
-`page.next_cursor`; `page.has_more` refers only to that result, not to the entire
-corpus. A changed query, source revision, selected content, or execution version
-rejects the cursor with HTTP 409. There is no retained historical snapshot.
-Pages re-execute the bounded lens; they do not yet carry a graph traversal
-frontier beyond `limits`. Page sizes may change without invalidating the cursor.
-Tokens are public validated seek positions, not authorization credentials.
-
-Primary nodes and relations appear once over continuation; focus and endpoint
-context nodes may repeat and must be upserted by `id`. `page.primary_node_ids`
-and `context_node_ids` distinguish them. Up to two endpoints per returned
-relation plus the focus can supplement the primary-node page size. `counts`,
-`facets`, `source_refs`, `agent_summary`, and `fingerprint` describe the complete
-bounded result; `page.returned_nodes`/`returned_relations` describe this page.
-Group memberships and inclusion entries are limited to the page. Search keeps
-its independent offset pagination. Search and both inspection packets now
-include `source_revision`; inspection still reads the current snapshot, not a
-caller-selected historical one.
-
-The local core prepares identity and incident-relation indexes once per
-immutable normalized snapshot for node/relation inspection. Exact IDs retain
-priority over shared entity IDs and ambiguous native IDs. A single resolved
-node reads only the requested relation prefix; its total degree is already
-indexed. Shared identities combine their incident neighborhoods, so that work
-still grows with the matching carriers and their degree. A snapshot change
-replaces the core's index, including when source revision strings coincide.
-This avoids repeated whole-graph scans, not the initial normalization/index
-build. It does not add historical snapshot retention, change LensSpec/search
-execution, or materialize a Cloudflare/D1 index.
-
-For an owner that already has one immutable graph and one exact replacement
-carrier, `ToSAccessCore.knowledge_graph_addressed(...)` publishes a bounded
-in-memory successor for the replace-only case. The caller must provide the
-complete target `source_revision`; the core checks the graph's exact
-normalization binding (processor, registries, and configuration), rebuilds the
-changed node plus incident relations, and then reuses the result for ordinary
-`knowledge_search`, `knowledge_node`, `knowledge_relation`, and
-`knowledge_focus` calls. Additions, removals, dossier/Claim assembly, source
-writes, semantic assessment, and publication remain on their owner routes.
-The report distinguishes one submitted replacement from retained incident
-payload reads and the full normalized graph scan used for global validation.
-If any source input file changes, the in-memory successor is discarded and the
-next graph read returns to complete builder assembly.
-
-### Resumable neighborhood exploration
-
-Unlike delivery pagination, `POST /api/knowledge/explore` continues an actual
-BFS frontier beyond LensSpec result limits. Discover availability with
-`GET /api/knowledge/explore/capabilities` and schemas with
-`GET /api/knowledge/explore/contracts`. This is an optional extension;
-the one-shot CLI does not implement it. Cloudflare requires the additive D1
-migration and compatible read-model metadata; availability is checked live.
-Native MCP exposes
-`tos_knowledge_explore(request)` and `tos_knowledge_exploration_contracts()`.
-
-Start with:
-
-```json
-{
-  "focus_node_id": "source-navigation:tos.work.friedrich-nietzsche.also-sprach-zarathustra",
-  "sources": ["source-navigation", "source-claims"],
-  "direction": "either",
-  "profile": "overview",
-  "max_depth": 3,
-  "page_nodes": 40,
-  "page_relations": 80
-}
-```
-
-Continue by sending **only** `{"cursor": "<page.next_cursor>"}` to the same
-server. Query and page sizes stay fixed; changing filters starts a new walk.
-
-For an exact selected node or relation, use the additive v2 request instead:
-
-```json
-{
-  "schema_version": "tos_exploration_request_v2",
-  "source_revision": "<current graph source_revision>",
-  "origin": {
-    "kind": "relation",
-    "id": "<exact normalized relation id from the selected packet>",
-    "content_revision": "<selected relation content_revision>"
-  },
-  "profile": "overview",
-  "max_depth": 2,
-  "page_nodes": 40,
-  "page_relations": 80
-}
-```
-
-The revision placeholders stand for lowercase 64-hex digests, not arbitrary
-strings. `kind=node` selects an exact normalized node ID; v2 never guesses a
-native/entity alias. The original `focus_node_id` request and v1 result remain
-supported. Discovery keeps `request`/`result` for v1 and adds
-`request_v2`/`result_v2`; capabilities list both versions and origin kinds.
-The shared endpoint infers cursor-only continuation from its bound state.
-
-A relation origin is not a new node, Claim, or assertion of equivalence. Its
-exact `from` and `to` carriers are both depth-zero roots, irrespective of the
-direction for subsequent hops. Self-loops retain both endpoint roles with one
-carrier. The resolved `origin.endpoints` binds their IDs, entity IDs and content
-revisions to the snapshot. At depth zero only this closure is returned: there
-is no adjacency or identity expansion. The selected relation survives even
-when its predicate is excluded from subsequent traversal. A selected Claim leg
-remains an inspectable line and prevents folding that Claim into a different
-compact line; relation focus does not invent a scene vertex.
-
-In v2 every page repeats the origin roots as context and, for relation origins,
-the selected relation in `page.context_relation_ids`. New relations are listed
-in `page.primary_relation_ids`. Page budgets measure incremental discoveries,
-with at most two origin nodes and one origin relation additionally retained;
-ordinary endpoint context is still required. Total delivery is bounded by
-`page_nodes + 2 * page_relations + 2` nodes and `page_relations + 1` relations.
-`counts.discovered_nodes` includes roots; `counts.emitted_relations` excludes
-the origin relation, which counts once against the internal session limit.
-Repeated context never consumes a page's new-discovery budget.
-
-V2 rejects mixed legacy/origin requests (**400**), missing or ambiguous exact
-origins (**404**), source/content revision drift (**409**), source filters that
-exclude the origin or its endpoints (**400**), and corrupt/missing endpoint
-closure (**503**). It does not repair a prepared snapshot during delivery.
-Execution v6 invalidates older checkpoints without changing authored records.
-
-Relation IDs are ordered within each expanded carrier. In `overview`, before
-expanding a carrier below `max_depth`, other source-filtered carriers of the
-same declared `tos.*` entity are discovered at zero distance. The inclusion
-reason is `identity-carrier`, not an invented relation or accepted `same_as`.
-Names and fallback IDs never create this operation. It does not follow
-similarity, reviewer agreement or shared record production.
-
-Pending identity expansion is checkpointed and consumes the work budget.
-Each identity group is expanded once. Newly found carriers count against the
-same node/page/session limits and precede positive-distance steps. If an
-already queued carrier is found at a shorter depth, it is moved forward; a
-bounded context-node update reports the improved reason without repeating
-its primary discovery. `page_nodes` bounds primary discoveries plus these
-updates. An inclusion origin may name a carrier delivered on an earlier
-page; it is an exact ID in the bound snapshot. At `max_depth=0` no identity
-expansion occurs. `all` retains the exact-carrier BFS.
-
-Bounded overview lenses use the same zero-distance identity rule before each
-relation depth. Their ordinary raw-node limit remains in force; if identity
-expansion is cut off, `counts.identity_expansion_limited` and a warning say so.
-Use resumable exploration or narrower sources rather than treating the
-bounded result as exhaustive. Path-condition joins still follow exact
-declared relation steps; zero-distance identity does not silently alter a
-caller-authored path predicate or turn a Claim path into a direct assertion.
-
-Worker execution v4 and later additionally require `knowledge_nodes_identity_seek`
-from the idempotent exploration migration. It reads identities in bounded
-32-row indexed pages, using the same 24-query per-page ceiling as adjacency.
-Old cached states require a fresh query; applying the migration does not
-modify source records or grant deployment authority.
-
-Apart from an explicitly selected v2 origin relation, only edges expanded from nodes below `max_depth` belong to this neighborhood,
-not all possible edges between visible boundary nodes. `sources` applies to
-both endpoints and relations. `overview` uses the focus profile's exclusions.
-This extension does not yet accept LensSpec path conditions or arbitrary filters.
-
-`status` distinguishes `paused`, `complete` (within the requested scope/depth),
-and `limit_reached` (10,000 nodes or 20,000 relations; **not** complete).
-Only `paused` has a continuation. A page can contain no new nodes/relations
-while advancing through excluded edges: at most 512 edge inspections or queue
-advances occur per page. Counters are cumulative discoveries, not global totals.
-Use `page.primary_node_ids` for new nodes; upsert repeated focus/edge endpoints
-by `id`. The node budget excludes these context nodes, which can add at most
-two endpoints per returned relation plus the focus. No layout or camera reset
-is implied by a backend page. Inclusion explains traversal, not semantic truth.
-
-Checkpoints are opaque, immutable and replayable while retained. A retry returns
-the same page and next cursor. They expire 15 minutes after the initial request;
-expiry or bounded-cache eviction returns HTTP **410**. Local server restart
-also loses checkpoints; a Worker isolate restart does not lose D1 state. A graph
-change (including normalized content under an unchanged source revision) returns
-**409**, even for a cached page. Malformed or mixed continuation requests return
-**400**. Restart from focus on 409/410; no historical data is silently substituted.
-MCP communicates the corresponding errors as tool failures, not HTTP statuses.
-
-For partitioned corpus and bibliographic inputs, the local core reads an
-explicitly compiled SQLite snapshot through indexed identity and adjacency
-queries. Requests never assemble the complete graph or compile a missing store.
-Short substring and unindexed property selectors can scan disk rows; request
-state and returned packets still follow the declared limits. Checkpoint copying
-and serialization scale with visited state. The serialized checkpoint cache is
-bounded to 128 entries / 32 MiB. This is not multi-process durable checkpoint
-storage or production load qualification.
-No tree records, source payloads or review decisions are written. The local
-service does not write files. The Worker writes only a disposable D1 cache:
-128 checkpoints / 32 MiB total, at most 1 MiB per stored state or response.
-Oversized admission returns **413** before creating a successor; narrow depth,
-filters or page size. Missing migration/metadata returns **503**. At most 24
-adjacency queries and 512 work units are allowed per D1 page; a smaller SQL
-budget can cause earlier pauses than Python. Full graph lists are not loaded.
-Both runtimes preserve BFS discovery order, but page partitions, execution
-versions and snapshot digests are runtime-specific. Do not transfer cursors.
-D1 publications increment a monotonic clock to reject even A -> B -> A changes
-during a multi-query read. Concurrent continuations atomically select one replay
-response and successor. See the [edge route](deploy/cloudflare-worker/README.md).
-
-The retired Python `knowledge_compile` producer no longer builds the managed
-data product. Use the native source-only corpus owner with a bounded request:
-`tos-native-owner-command corpus-build < REQUEST_JSON`. Its
-`tos_native_corpus_build_request_v1` `mode=build` creates the private managed
-native Original data pair; `mode=check` requires absolute `comparison_root` and
-checks the six fixed runtime products without writing. Add `--preflight` to
-check the same request/family limits and current host admission before preparing
-data; execution repeats those checks. The general source-only request may omit
-external evidence references. If supplied, the three `admission`, `built` and
-`verified` references retain their exact custody checks; they do not grant
-source or publication authority. The historical `native-original-produce`
-entry still requires all three. The public Worker builder
-uses native `tos build-data`; its source selection, finite ceilings and artifact
-admission are documented in the [Worker route](deploy/cloudflare-worker/README.md).
-The selected authored cut retains its 64 MiB byte ceiling. Capture also includes
-the six generated products, so it uses the existing 512 MiB data allowance;
-sources, products, model and manifests must still fit that total candidate cap.
-Source bindings and manifest members share the 512 KiB aggregate path allowance.
-Catalog planning and raw staging use the catalog's 16 MiB file ceiling, while
-normalized graph rows retain their separate 8 MiB ceiling.
-The separate Site profile still requires a 512 MiB build and 256 MiB cold file.
-Managed NativeData preparation, status, promotion, rollback and revocation use
-the native actions in [native-managed-release.v1.md](contracts/native-managed-release.v1.md).
-A built candidate is not selected data until the native release writer verifies
-the pair and commits its exact pointer.
-
-The explicit external Python SDK keeps a compatibility selector for existing
-`tos_query_store_v1` data, but sends query execution and format validation to the
-installed Rust `core-snapshot` reader. That adapter is read-only: it does not
-compile, repair or relabel a legacy store. See the [native selected-snapshot
-contract](contracts/native-selected-snapshot-profile.v1.md).
-
-### Native backend and browser verification
-
-The Python normalization-cache profiler was retired with the Python graph
-builder. Source-query and prepared-publication checks run through the installed
-`tos-access` owners in the native source and prepared routes.
-
-To compare a live selected release across its installed CLI and an already
-running native HTTP service, use the small Node host adapter:
-
-```bash
-node access/packaging/verify_ui_backend.mjs \
-  --native-executable /absolute/prefix/bin/tos-access \
-  --root /absolute/selected/data \
-  --release-root /absolute/managed-release \
-  --http-base http://127.0.0.1:5429
-```
-
-It sends the same catalog and indexed-search requests through both routes and
-compares their native packets and selected source revision. The command does
-not start or authorize the service; both paths must already be explicitly
-bound to the selected release. The `software_browser` lane separately runs
-`node --test access/e2e/test_webmcp.mjs` against the real browser and site
-handlers using bounded synthetic fixtures; that fixture run is not a live
-selected-release deployment check.
-
-## Explicit research tools
-
-Source-selected research builders use `tos-research COMMAND [OPTIONS]`.
-Build the separate executable with
-`cargo build --locked --no-default-features -p tos-access --features research-tools --bin tos-research`.
-This also enables the historical laboratory and gold-set validation implementations.
-The installed `tos-research foundation` entry runs the existing protected foundation
-command, including its complete audit scope, with the same explicit root, invocation
-and resource contract. Ordinary source readers and selected-source validation omit
-these research implementations. A separately built owner command can enable them
-with `--features research`; a build without that feature refuses `FullAudit` before
-source capture. It never reports skipped districts as valid.
-Ordinary `tos-access` builds exclude these recipe modules and their command
-handlers. Select this binary for data validation lanes with
-`TOS_RESEARCH_EXECUTOR=/absolute/path/to/tos-research`.
-`tos-research COMMAND --help` documents each operation's exact source,
-resource and output contract. The options and source/provenance requirements are
-unchanged; existing automation invoking these commands must select this binary.
-The constructor library builder and online reading/query endpoints retain their
-existing entries.
-
-## Explicit SourceRoot SDK adapter
-
-The opt-in `NativeAccessCore.from_source_root` adapter selects native software,
-seven source carrier paths, and a separate legacy QueryStore path. It uses the
-native `core-snapshot` entry; the selected installation must contain the matching
-entry. This explicit-provider adapter retains its declared resource and source
-ownership. The public `ToSAccessCore.discover(tos_root=...)` source route uses
-ordinary native ownership when no admission provider is supplied.
-
-The following selections come from the caller's data and resource owners:
-
-```python
-from tos_access import NativeAccessCore
-from tos_access.native_core_snapshot import NativeCoreSnapshotSelection
-
-selection = NativeCoreSnapshotSelection(
-    tos_root=selected_root,
-    **selected_paths,
-    query_store_path=selected_query_store,
-    query_store_configured=query_store_was_explicit,
-)
-with NativeAccessCore.from_source_root(
-    selected_native_prefix, selection, admission_provider,
-) as core:
-    snapshot = core.knowledge_snapshot()
-```
-
-`selected_paths` contains `index_path`, `philosophy_graph_projection_path`,
-`bibliographic_graph_path`, `entity_type_registry_path`,
-`relation_type_registry_path`, `philosophy_post_planting_audit_path`, and
-`evidence_projection_path`, each an explicitly selected absolute path. A caller builds this selection from explicit paths. The adapter has no
-Reference Core or implicit in-memory graph to freeze. Search read-model and
-compressed-search selectors remain independent.
-
-`admission_provider(operation)` must return a `NativeCoreSnapshotAdmission` for
-that operation, with its original finite monotonic deadline, all source, JSON,
-whole-export, cold-reader and process limits, and an actual borrowed stage-ticket
-FD. The resource owner creates and holds that ticket, for example through its
-compatible generic private-stage controller. The SDK neither issues tickets nor
-infers quotas, raises limits, or requires a particular host CLI. It passes the
-borrowed FD without closing it and preserves one cutoff through setup, native
-work, disclosure and owned child cleanup. Root metadata queries additionally
-use `NativeCoreQueryProfile`, immutable JSON bytes containing the complete
-explicit native query/HTTP allowances. Reading, Word and SourceRead keep their
-independently selected native owner routes.
-
-The source adapter exposes index/existence, source navigation, bibliographic
-and Evidence carriers, corpus/knowledge headers, philosophy projection/audit,
-graph, snapshot, snapshot-once and addressed-source operations. Generic metadata
-tool calls use the native registry and request parser in the same held source
-capture/model/evidence context. A source-derived projection is not an authored
-Foundation publication epoch or a rights/canon grant.
-
-### Selected PostgreSQL source navigation
-
-The selected PostgreSQL source-navigation index has an explicit private
-maintenance entry through the existing native `source-projection` command. Use
-the protected `tos_local_source_navigation_owner_v1` JSON created by the
-selected source owner; it binds the CMD domain, source contract and live
-rule/rights/job fences, navigation consumer/profile, exact retained V2
-source proof and model expectation, bounded store/model settings, policy
-receipt, and a bounded nested producer selection (event/schema worker identity,
-dependency paths, event and aggregate limits). Bootstrap uses its event limits
-but does not execute the schema worker. Keep `TOS_SOURCE_PG_URL` in the private
-process environment.
-On installation or upgrade, first use the same native `source-projection`
-entry with a protected `tos_source_projection_selection_v1` selection for the
-same database and `{"operation":"init"}`. This installs or upgrades the derived
-tables without changing source state. Model preparation and policy installation
-do not replace this explicit schema step.
-Bootstrap the complete selected current model before advancing event ranges:
-
-```sh
-/absolute/prefix/bin/tos-native-owner-command source-projection \
-  --selection /absolute/protected/tos-local-source-navigation-owner.json \
-  < /absolute/requests/bootstrap-navigation.json \
-  > /absolute/receipts/navigation-bootstrap.json
-```
-
-The bootstrap request is `{"operation":"bootstrap-navigation"}` with an
-optional `"max_batches": N` in 1..256 (default 256). Its stdout is one compact JSON
-object followed by a newline; the command flushes stdout and does not create the
-receipt file. The `tos_source_navigation_bootstrap_result_v2` progress result binds
-domain, consumer, profile, selected source revision and membership, current
-source head, published sequence and bootstrap root, resolved source-member
-count/bytes, and whether the operation replayed. Repeat the same request and
-selection until both `completed` and `cleanup_complete` are true. Before
-publication the sequence and bootstrap root are null; `phase`, `after`, counts
-and `committed_batches` describe retained work. After publication, bounded
-cleanup removes private staging while preserving the exact selected source.
-Then advance bounded events
-with `{"operation":"advance-navigation","max_events":1}`; unsupported
-events remain pending. These maintenance operations publish only the private
-projection and issue no ToS admission, QRY disclosure, or canon grant. If a
-receipt write is lost after publication, repeating the exact bootstrap request
-is safe and reports `replayed: true`.
-
-Branch, planting and legacy Claim navigation edges identify their producing file with
-`source_ref` and its record with `record_id`. Evidence remains in `source_refs`; when an
-evidence value names a stable source-anchor ID, `source_ref_bindings` maps that
-ID to its exact catalog member. Bootstrap retains the evidence ID and checks
-the bound member in the selected generation before recording the dependency.
-It does not interpret the stable ID as a filename or select an arbitrary
-evidence reference as the carrier's owner.
-
-The initial native compiler selects `tos_knowledge_managed_navigation_v2`.
-This PostgreSQL bootstrap anchor retains complete authenticated Navigation
-Original carriers directly, together with their source proof and descriptor
-metadata. Raw, semantic and canonical identities remain separately checked.
-Shared projected rows compare the authenticated JSON payload across the Original
-packet framing (no final LF) and durable event framing (one final LF). All other
-bytes, visibility and edge endpoints must agree. Each physical carrier keeps its
-own exact digest; publication and queries select the lowest digest when both
-framings survive, so adjacency certificates bind the same physical carrier.
-It builds no normalized graph answers: the complete source node/edge counts
-live in the Original receipt; normalized metadata counts are zero because that
-capability is absent. PostgreSQL owns the published graph. The anchor omits
-offline search tables and the `search_index_root_sha256` field in both seal and
-selection expectation. Cold admission requires that exact absence under this
-ABI; a missing index in an older postings ABI remains corruption. Native text
-search uses the independently maintained PostgreSQL text projection and its
-published cursor. Offline indexed search is unavailable on this anchor.
-Portable full-model builders retain their declared search indexes and ABIs.
-Existing V1 and V6 anchors remain readable; preparing a new native anchor is an explicit
-derived rebuild, preserving source versions, command history and current rights.
-
-Initial and event-local SourceNavigation projections use the same reified
-renderer for `source-claims.jsonl` and bind maker evidence to the exact Claim source.
-Their `maker:claim:sha256:` node IDs identify each Claim's authorship declaration;
-`agent_ref` and an available `identity_node_id` retain the common author link.
-Two Claims by one author can therefore retain distinct evidence hashes. The
-older catalog-backed bibliographic profile retains its `maker:sha256:` IDs.
-Derived node IDs belong to their selected projection profile; stable source
-Claim and Agent IDs remain unchanged. Existing derived publications require
-their declared rebuild/migration route when switching producer profiles.
-Navigation nodes retain exact bibliographic transport fields under
-`properties.bibliographic_carrier`. Claim edges retain their typed source hash,
-source path and line, maker, provenance event and evidence-node references as
-a complete provenance group in the corpus-index schema. Authored properties
-and source Claim bytes keep their existing meaning. Initial bootstrap retains
-every Claim contribution
-to a shared evidence, identity or provenance carrier. Replacing one Claim cannot
-retire another Claim's contribution. Switching from the earlier raw event
-carriers requires an explicit navigation rebuild at the current source head;
-it does not migrate or rewrite authored records or command history.
-
-For a Claim with a resolved metadata subject, `has_source_claim` connects that
-metadata record to the reified Claim. This derived navigation edge retains the
-Claim's exact source reference and requires its subject identity and original
-`has_subject` edge. It does not assign the metadata record to the Claim's
-contribution; replacing the Claim retires its navigation edge, not the Work.
-
-Initial bootstrap cold-verifies the retained model and persists its complete
-Navigation Original receipt with the published binding. Ordinary queries and
-event advances authenticate that bounded receipt against the protected model
-expectation and hold the live PostgreSQL source-navigation lease. They do not
-open or scan the SQLite anchor, and still work when the artifact is offline.
-The artifact remains necessary for explicit bootstrap, rebuild and restoration.
-A publication from an earlier software version without this receipt requires
-an explicit rebuild into a new navigation consumer before switching selection;
-its source history, rights and existing publication remain intact. Missing or
-changed admission metadata is refused, with no automatic whole-model fallback.
-The query reads one verified coverage and adjacency publication while holding
-current CMD rights and the explicit source-owner navigation policy through
-delivery. A newer CMD head does not block an unrelated published answer. When
-publication lags, each disclosed node/edge resolves its bounded bootstrap or
-event owner contributions and dependency paths against current source metadata.
-A changed dependency, missing retained member, or changed owner makes that
-answer `publication_pending`; this conservative rule does not yet authorize old
-content from a changed scope merely because its visible fields appear public.
-Absent references that remain absent do not block reading. Dependency work is
-bounded and charged to the query; there is no full-source or backlog scan.
-In its binding, `source_cut`,
-`membership_root`, and `projection_root` keep their bootstrap-anchor meaning;
-`through_commit_seq` and `index_root` identify the current complete navigation
-publication. The additive `source_navigation_proof_v1` metadata reports the
-bootstrap root, anchor sequence and roots, and published sequence, coverage,
-adjacency, and index roots. `observed_source_head_commit_seq` separately reports
-the current CMD head as an exact decimal string, allowing clients to show the
-publication lag. It does not claim that the anchor membership root
-is the current full-source membership.
-
-CLI `source descend NODE_ID --at-least-commit-seq SEQUENCE`, the HTTP query
-parameter `at_least_commit_seq`, and the MCP/WebMCP argument of that name carry
-the sequence from a command receipt to the shared Rust read rule. JSON uses a
-canonical unsigned 64-bit decimal **string** so browser transports preserve
-values above JavaScript's exact-integer range. The Python SDK exposes the same
-optional keyword. A selected publication below that sequence returns
-`publication_pending` without disclosing a packet. This is an immediate check;
-the client may retry after processing progresses. It never grants rights or
-forces projection processing. The D1 export has no comparable CMD sequence and
-explicitly refuses the parameter; omission preserves its existing behavior.
-
-Publication atomically records a V2 verified-prefix checkpoint with the current
-cohort commitment, exact active manifests, coverage and adjacency roots. Reads
-verify that checkpoint, current cohorts and terminal coverage instead of
-scanning every event since bootstrap. Current-cohort and response budgets still
-apply; this removes the cumulative event-history limit, not the cost of reading
-the selected current metadata. An older checkpoint requires an explicit full
-source-backed bootstrap at the current head, which replaces only derived
-navigation state. Source history, receipts, rights and jobs remain owned by
-their existing tables. A missing bootstrap cannot be repaired by event replay.
-
-#### One-time model preparation and policy
-
-Preparing the initial model is a separate local-owner-only operation. Call
-`source-commands` with the generic `tos_local_native_source_invocation_v1`
-invocation referring to a protected
-`tos_local_source_navigation_model_prepare_owner_v1` owner. The prepare owner fixes the
-bootstrap invocation/request, model and final-owner leaves, selected
-`source_navigation` producer/profile, finite `model_limits`, and an explicit
-`policy_template`. Its request carries only
-`{"schema_version":"tos_local_source_navigation_model_prepare_request_v1","operation":"prepare-initial"}`;
-paths, proof, budgets, producer details and policy authority stay in the
-protected preparation owner. Run it through the local native command and save
-the one-line result yourself:
-
-```sh
-/absolute/prefix/bin/tos-native-owner-command source-commands \
-  --invocation /absolute/protected/tos-local-source-navigation-model-prepare-invocation.json \
-  < /absolute/requests/prepare-initial.json \
-  > /absolute/receipts/navigation-model-prepare.json
-```
-
-The prepare-owner fields are exactly `schema_version`, `uid`, `source_root`,
-`expires_at`, `host_export_stage_parent`, `bootstrap_invocation_path`,
-`bootstrap_request_path`, `model_leaf`, `final_owner_leaf`, `source_navigation`,
-`policy_template`, `model_limits`, and `launcher`. The model limits set total
-time, host export bytes/inodes, tmpfs bytes/inodes, working RAM, source
-member/byte ceilings, plan bytes/work, and maximum model bytes. Initial
-catalog compilation uses these model limits and the selected cold row limit;
-ordinary incremental event/window limits continue to apply to later advances.
-`model_limits.max_total_ms` bounds the complete initial operation, including
-source assessment, export, compilation and publication, and admits at most
-900,000 ms. The compiler child receives only the remaining budget after the
-host's 60,000 ms finalization reserve, capped at 600,000 ms including its
-shutdown grace. Select the initial budget from measured work for the chosen
-cut; this ceiling does not change ordinary transaction or query budgets.
-The result's `phase_ms.bootstrap` and `phase_ms.selected_cut_export` measure
-those completed phases separately. `catalog_and_plan` and `catalog_render`
-are nested within `model`; do not add them again to the model duration.
-
-The parent retains the protected owner and PostgreSQL connection. It reuses a
-current assessed source selection. After source changes or database restore,
-initial preparation runs the existing streamed source assessment under the
-retained bootstrap invocation's workspace, schema and index budgets. It does
-not repeat source commands. Invalid bindings and withdrawn rights still refuse;
-this explicit initial assessment does not run during ordinary event catch-up.
-It exports an exact selected cut under `host_export_stage_parent` and starts the compiler
-through the pinned private-stage issuer. `launcher` fixes `tos_access_path`,
-`tos_access_sha256`, `unshare_path`, `unshare_sha256`, `setup_cgroup`,
-`consumer_cgroup`, `scratch_parent`, `persistent_staging_root`, and
-`shutdown_grace_ms`. Digests use lowercase hex. The two empty delegated cgroups
-must have the selected finite memory limits and zero swap; the host parent
-remains outside them. The selected schema worker retains its exact image
-identity. The child receives the read-only export and produces a candidate
-in the separately selected persistent stage. After it exits, the parent
-rechecks the current generation and owner inputs before create-only model
-and final-owner publication. Only the compiler child enters the private
-namespace; PostgreSQL and protected-owner access remain on the host.
-The template schema is
-`tos_source_navigation_public_metadata_policy_template_v1`; it names one
-`issuer_ref`, `receipt_id`, `carrier_layer`, `intended_use`, `model_abi`,
-`selection_profile`, `policy_epoch`, `withdrawal_generation`, and `expires_at`.
-The `tos_local_source_navigation_model_prepare_result_v1` result carries the
-selected proof and prepared model together with the create-only final owner
-configuration path. The final
-`tos_local_source_navigation_owner_v1` configuration containing the derived
-`source_navigation.policy_receipt` retains the owner-selected producer
-selection. A template or prepared model alone does not install policy.
-This initial preparation is separate from routine bounded event catch-up:
-retain the model and use `advance-navigation` for ordinary selected-source
-updates rather than rerunning `prepare-initial`.
-
-Use the generated final owner for the separate, explicit policy operation. The
-generic native `source-projection` command selects the
-`tos_local_pg_source_navigation_policy_invocation_v1` invocation and accepts a
-strict `tos_local_source_navigation_policy_command_v1` request with exactly
-`schema_version`, `operation`, `command_id`, `expected_configuration`, and
-`expected_policy_version`. `operation` is `install` or `revoke`; use `null` for
-the first Install’s expected version and the current positive version for a
-later Install or Revoke. `expected_configuration` is the canonical SHA-256
-digest of the selected protected owner configuration. For example, the first
-Install request is:
-
-```json
-{
-  "schema_version": "tos_local_source_navigation_policy_command_v1",
-  "operation": "install",
-  "command_id": "navigation-policy-install-1",
-  "expected_configuration": "sha256:<protected-owner-digest>",
-  "expected_policy_version": null
-}
-```
-
-Use a stable `command_id` when retrying after a lost response. The
-`tos_local_pg_source_navigation_policy_result_v1` output separates the
-immutable command `receipt` (`policy_version`, `withdrawal_generation`,
-`allowed`, and `replayed`) from `current_policy`, which reports the current
-version and allow state plus whether its receipt and owner digests still match
-the selected configuration. On replay, `receipt` can describe an earlier
-Install while `current_policy.allowed` is false after a later Revoke. Revoke
-withdraws this navigation policy only; it does not change CMD rights or admit
-source. This mutation route is local CLI-only: HTTP, MCP and `private-text-read`
-do not expose policy Install or Revoke.
-
-An explicitly selected or discovered existing legacy QueryStore is authenticated
-against its five actual selected input digests and held read-only without a live
-journal. Its supported source paths are knowledge/corpus headers, fresh full
-Graph/Snapshot exports, and empty-argument `knowledge_catalog`; they require
-`NativeCoreQueryStoreLimits` on the operation admission. These seven explicit
-limits bound database bytes, input bytes, JSON bytes, rows, work, SQL VM steps and
-SQLite cache. Graph/Snapshot return a distinct `tos_query_store_v1` profile with
-an authenticated zero-FD reply, not a native producer-state descriptor or reuse
-verdict. They preserve the stored catalog and ordered rows without rebuilding
-sources. Other selected-store generic tools and addressed updates still refuse
-that selection explicitly.
-
-The public `ToSAccessCore` constructor delegates to the installed native Core.
-Explicit prepared/release selections, independent search readers and exploration
-checkpoint paths keep their own selection and currentness checks. Compatibility
-and consumer verification use the native conformance and installed-product
-routes; selecting a backend does not establish acceptance for a different pair.
-
-
-## Native software and managed releases
-
-The native software archive is built and verified by the installed Rust
-`tos-access software` commands. Repo Validation builds it twice and compares the
-archive and sidecar bytes, verifies the exact software closure, installs to a
-fresh prefix, and checks the installed `tos` entrypoint. No Python wheel or
-Python runtime is part of the software product.
-
-Managed release preparation, status, promotion, rollback and revocation use the
-native `native-release-*` actions documented in
-[native-managed-release.v1.md](contracts/native-managed-release.v1.md). The
-pair binds an exact native software archive to one native data snapshot. Readers
-select an existing pair through `--release-root`; source/data selection is
-separate from software installation. Rollback re-verifies the exact retained
-pair and cannot revive a revoked component. Revocation records are immutable.
-
-Data snapshot production remains owned by its explicit source/data builder.
-Software builds contain no corpus data and never admit a dataset. Selecting a
-released snapshot performs bounded native integrity and member-binding checks;
-`tos serve` and `tos mcp` use the installed Rust process for their lifetime.
-
-## Contracts
-
-- `contracts/runtime-manifest.v1.json` defines dual runtime posture.
-- `contracts/runtime-data.v1.json` is the data publication allowlist; the software archive has a separate code-only member contract.
-- `contracts/query-operations.v1.json` owns transport-neutral read operations.
-- Projection search returns `tos_corpus_mcp_search_v2` or
-  `tos_philosophy_mcp_search_v2`. Both normalize queries with the maintained
-  Python lower/strip profile and search JSON string values only, in owner
-  collection and source-ordinal order. Corpus search accepts an optional exact
-  `resource_kind`; the Worker applies one global bounded candidate and input
-  budget across all D1 pages and returns `413` when that profile is exceeded.
-  Search-bearing corpus and philosophy compositions use
-  `tos_corpus_mcp_packet_v2` and `tos_philosophy_mcp_packet_v2` respectively.
-  The D1 Worker admits these search and source-gap semantics only when the
-  bounded producer-profile metadata identifies `tos-rust-public-d1-full-v2`,
-  read-model v9, and the same `data_revision` as the published data. A missing
-  or older profile returns `503` until a matching publication is imported;
-  the producer-profile change also changes `data_revision`, so a same-schema
-  v9 baseline receives an ordinary delta instead of being mistaken for the
-  already-published target.
-- `contracts/knowledge-api.v1.json` maps the knowledge catalog, search,
-  inspection, stored-lens, and compile operations across HTTP, MCP, and CLI.
-- `contracts/source-text-gateway.v1.md` and
-  `contracts/source-text-gateway-capability.v1.schema.json` define the
-  optional Cloudflare-to-native PostgreSQL source-text transport and its
-  configuration-only capability packet.
-- `contracts/knowledge-graph.v1.schema.json` defines the normalized,
-  display-complete read model.
-- `contracts/lens-spec.v1.schema.json` defines the bounded declarative
-  constructor grammar.
-- `contracts/lens-result.v1.schema.json` defines its source-bound result.
-- `../ToS/contracts/semantic-entity-type-registry.schema.json` and
-  `semantic-relation-type-registry.schema.json`, with their ToS-owned registry
-  data under `../ToS/doctrine/semantic-interchange/`, define the stable machine
-  vocabulary without moving semantic authority into access.
-- `contracts/epistemic-packet.v1.schema.json` defines the projection-bounded
-  epistemic result and its fail-closed authority boundary.
-- `contracts/evidence-lens-packet.v1.schema.json` defines the joined page/API
-  result and its compact WebMCP `agent_summary`.
-- `contracts/page-commands.v1.json` owns revisioned browser context and shared
-  human/WebMCP actuation.
-- `contracts/research-workspace.v1.schema.json` defines the portable local
-  session packet for hypotheses, staged proposals, exclusions, route
-  comparisons, notes, and its action journal.
-- `contracts/web-actions.v1.json` is retained only as the v1 migration marker.
-- `profiles/standalone.v1.json` declares the ToS-owned installation profile.
-
-`tos doctor` and `tos verify` inspect ToS contracts and the selected data. They
-do not inspect neighboring source repositories or require an AbyssOS profile.
-
-## Cloudflare production deployment
-
-The permanent production route under
-[`deploy/cloudflare-worker/`](deploy/cloudflare-worker/README.md) builds from
-this repository after changes land in `main`. Workers Static Assets carry the
-web application and precomputed bounded packets; D1 carries a generated
-read-only query model. The public site therefore does not depend on an
-operator laptop or another always-on origin host.
-
-The v9 D1 row schema with content revision v5 retains oversized knowledge
-values in ordered `edge_meta` payload chunks. Empty inline JSON is an explicit
-overflow sentinel, never a reduced substitute for the source. The native
-reader reconstructs only within its existing 1 MiB row/request budgets and
-checks the emitted-row digest before use; exceeding a delivery budget is an
-explicit refusal, not a partial packet. Offline production admits at most
-8 MiB per overflow value and still bounds every SQL row and statement.
-Overlapping search fragments preserve substring matches across chunk seams,
-including Unicode lower-case expansion. Compact seeds keep their existing
-size and semantic limits independently of the retained full source value.
-These extra metadata rows participate in the existing atomic full/delta
-publication. Older readers are not a compatible overflow-delivery route.
-
-The older route under
-[`deploy/cloudflare-tunnel/`](deploy/cloudflare-tunnel/README.md) remains a
-temporary recovery and local-preview profile. It publishes the same
-loopback-only `tos serve` runtime through outbound Cloudflare Tunnel, but it is
-not the production availability architecture.
-
-The current `ToS` projection v1/v2 contracts remain source-owned. Their legacy
-`runtime_owner` field describes the existing downstream deployment contract;
-it does not override this product's standalone runtime manifest.
-
-## WebMCP posture
-
-The intended page agent is Codex in the ChatGPT desktop app's built-in browser.
-The site does not embed a model, call the OpenAI API, require an API key, or
-require users to install a separate MCP connection for this browser-native
-path. Codex discovers the page's registered site tools through WebMCP and acts
-on the same live page as the human. The native `tos mcp` server remains an
-optional off-page access path, not a prerequisite for WebMCP.
-
-The site feature-detects `document.modelContext` and remains fully usable when
-it is absent. Stable tools expose view, search,
-selection, focus, cancellation, page context, and the capability-gated
-Zarathustra word-analysis task. Word analysis returns a compact agent envelope
-and puts the complete task or explicit unavailable posture into the same page
-inspector. Selection-dependent tools are registered for the current work,
-passage, concept, source, node, edge, cluster, or other knowledge object and
-bind the captured context revision, so a delayed reference to “this edge” (or
-note for “this work”) fails closed after the human changes selection. Tool
-execution forwards the browser-provided `AbortSignal` through page commands to
-HTTP queries.
-
-The Evidence Lens command works on philosophy projection selections and on
-canonical relations in the corpus `route-graph`. Its first two curated scenes
-contrast a retained Zarathustra canon relation with open modern claim/evidence
-closure against the contested pre-canon Archaic Tribute reading. The page
-receives the full route packet; WebMCP receives a compact summary below 1,500
-characters with posture, bounded conclusion, route counts, gaps, and next
-actions. Projected `contested_by`, `uncertain_relation`, and
-`polemicizes_with` relations remain review leads rather than adjudicated
-counterevidence.
-
-The local research workspace lets the human and Codex work on the same
-temporary investigation: inspect the semantic identity and source posture of
-any selected object, compare projected readings, exclude a relation, save the
-direct and alternative routes, add context-bound notes, or draw a working
-hypothesis as a visibly distinct edge. Search and neighborhood tools return a
-bounded agent envelope with stable IDs while the complete result remains on
-the page.
-Every hypothesis is structurally fixed as `session_hypothesis: true`,
-`source: false`, `reviewed: false`, and `canon: false`. Undo/redo, browser-local
-persistence, and a validated JSON export/import packet are supported. Codex
-can also stage a typed relation, interpretation, metadata correction,
-source route, or concept-enrichment proposal. The proposal is bound to a
-parent hypothesis, the captured page/workspace revisions, explicit source and
-evidence references, actor origin, timestamp, projection fingerprint, and a
-deterministic trace digest. It is always local, `pending_review` with
-`review_requirement: human_or_authorized_agent`, and `canon: false` (older
-exported packets with `pending_human_review` remain readable). None of these
-actions writes to candidate intake, review ledgers, authored ToS source, or
-canon; export is the only handoff from this surface.
-
-The product shell makes this shared surface visible instead of assuming the
-Codex browser integration worked. Its header panel reports WebMCP availability,
-registered and selection-bound tool counts, the current context revision, and
-any registration failure. Without WebMCP it explains that the page should be
-opened in Codex's built-in browser; the atlas remains usable and `tos mcp` is
-shown only as optional off-page access. The same panel contains three
-bilingual, copyable prompts for the core demonstration loop: inspect evidence,
-reroute around a disputed edge, and move from comparison through a local
-hypothesis to a traceable proposal that remains pending scoped review.
-
-Every successful `Repo Validation` run builds and validates
-`tree-of-sophia-standalone.zip`, then uploads the archive and its external
-digest manifest as a downloadable workflow artifact. This is a source-bound
-release candidate, not an official ToS release or an AbyssOS artifact-admission
-verdict; official publication still follows `docs/RELEASING.md`.
-
-The implementation follows the WebMCP Community Group draft shape current at
-`webmachinelearning/webmcp@41d12f057167ccf5954dbcf49d99502cb6c84491`:
-`document.modelContext.registerTool()`, registration lifecycle by
-`AbortSignal`, and execution cancellation through callback options. This is an
-experimental browser surface, not a ToS authority or availability guarantee.
-
-## Partitioned projection transport
-
-Native Rust readers use the shared
-[`tos_partitioned_projection_v1` format](../ToS/contracts/partitioned-projection.schema.json)
-for bounded source-carrier access. The format transports immutable roots and
-content-addressed parts; it does not establish source admission, provenance,
-rights or semantic acceptance. Access ships no separate Python projection
-store, diff or mutation library.
-
-The access-only native software archive has the executable member
-`access/src/tos_access/tos-access`, beside its software-owned `web_dist`.
-The same archive optionally delivers a selected command subset through
-`software build --native-command-products /absolute/products.json`. This bounded
-JSON object selects a nonempty subset of the native roles declared in
-`tos-foundation::native_software_roles`: owner command, schema worker, reader,
-validation/release/CI commands, mechanics, constructor library/fragments,
-route cards/harness, KAG release/provider controls, stats release, source
-registry, open-work queue and explicit research tools. Every value contains only absolute `binary` and
-`receipt` paths. Each build-owned receipt uses
-`tos_native_software_command_build_v1`, the access receipt identity fields,
-and the exact role feature set. Mechanics, registry and queue require
-`["compiler-backed-validators", "default", "philosophy-library"]`; the schema worker requires
-`["default", "native"]`, and `tos-research` requires `["research-tools"]`.
-Other roles require `features: []`; the lightweight
-ops commands use `--no-default-features` so compiler validators do not leak
-into their receipts.
-Producer receipts check Cargo messages against the selected package manifests;
-archive and installed consumers enforce each role's profile. Every selected
-role must match the access source commit/tree, lock,
-toolchain and target. Their SHA/size and ELF headers are checked independently.
-The additive `native_commands` manifest closure binds these exact roles at
-`native/bin/NAME`; install creates corresponding relative `PREFIX/bin/NAME`
-links only for the selected roles. A role member without its declared proof is
-rejected. Selecting all declared roles delivers the complete command cohort; selecting
-only `tos-schema-worker` delivers the necessary selected-source companion.
-Omitting the selector preserves the access-only archive contract.
-Delivery supplies executables, not invocation files, owner grants or corpus
-data. Owner commands still require an explicit protected invocation and worker
-binding; installing these roles adds no HTTP write capability.
-The software builder accepts `--native-access-binary` and
-`--native-access-receipt` only together. The legacy nine-field
-`tos_native_access_build_v1` receipt remains accepted. The current producer
-can emit `tos_native_access_build_v2`, which adds the exact Cargo
-`profile.opt_level` for the Access executable (`0` or `1`) while binding its ELF
-SHA-256/size, Linux x86_64 target, clean source commit/tree, Cargo.lock
-SHA-256, pinned toolchain and debug profile. The receipt producer admits only
-Access O0/O1 and keeps native command images at O0. These fields are
-integrity/provenance evidence, not release admission.
-Rust owner sources participate in dirty-source detection for this profile;
-`--allow-dirty` cannot relabel a native product. Archive integrity validation
-checks the executable's exact 0755 mode without executing it. An extractor
-must retain that member's declared mode; the existing install probe restores
-the verified ELF member during native installation. The native archive is the
-sole installed software product; it has no Python runtime or wheel metadata,
-and its installed `bin/tos` is the supported entrypoint.
-
-Native `serve` uses the executable's installed software companion, never the
-selected data root, to serve `/` and `/static/…`. The manifest is bounded to
-1 MiB and each static member to 16 MiB, separately from query packet limits.
-Assembly verifies declared member SHA-256/size and the installed server checks
-its executable binding and required JS/CSS assets before accepting the site
-companion. Static requests use contained regular-file descriptors, verify the
-exact member before disclosure, retain its identity through final flush, and
-refuse undeclared, unsafe, changed or oversized members. GET and HEAD share
-status, MIME, cache/security headers and content length; HEAD omits the body.
-The current transport retains one verified bounded asset buffer. SHA checking
-does not make a second whole-body copy. These per-request bounds are not an
-aggregate process-memory or concurrency guarantee.
-
-The site shell takes default view IDs from held metadata projections of the
-actually selected corpus/philosophy components. It does not invoke full Views
-or CorpusSummary or prefetch graph rows. Missing selection or grants leave an
-empty default and an explicit false capability. Full maintained API responses
-remain separate. The software companion and every successful selected metadata
-packet remain held until the shell's final write/flush, with currentness and
-cancellation checked at the existing disclosure boundary. Software assembly,
-installed no-Python startup, kernel custody, activation and deployment remain
-separate acceptance steps.
-
-
-The native software tooling entrypoint is `tos-access software build`,
-`software verify`, and `software extract`. It runs before data-owner selection.
-Build requires the clean source root/ref, the admitted native ELF and its exact
-versioned build receipt, and an explicit `--web-dist` directory containing the real
-frontend build handoff. It does not write or discover a frontend under the
-source checkout. Each action requires positive `--max-total-bytes`,
-`--max-archive-bytes`, `--max-members`, and `--max-metadata-bytes` operation
-budgets. `max-total-bytes` includes the embedded manifest; metadata admission
-bounds reader buffers, directory scan bytes and retained typed/name structures,
-with manifest parsing independently bounded to 1 MiB. These limits do not
-promise allocator RSS, aggregate process memory or concurrent capacity.
-
-Build streams contained retained source FDs into the existing software-only
-ZIP member layout with fixed timestamps, sorted names, DEFLATE and exact member
-modes. The pinned Rust encoder has its own deterministic byte representation;
-compact manifest JSON and compressed ZIP bytes are not claimed identical to
-the Python encoder. Verification streams the complete expanded members through
-CRC, exact size and SHA-256 checks, validates local/central metadata and exact
-manifest/sidecar closure, and never executes an archive member. Extraction
-retains the verified archive object, rechecks its identity and whole digest,
-creates a fresh contained destination and files, preserves verified modes, and
-rechecks every extracted member and the archive before reporting success. A
-failure can leave an incomplete owned candidate, which is never startup or
-installation evidence and is not overwritten by another invocation.
-
-The native verifier does not execute archive members. Fresh-prefix startup and
-managed release use have separate evidence routes; archive integrity alone does
-not establish data custody or runtime health.
-
-Software source observations use the same retained source-directory descriptor
-as member reads, including the final Git check. Renaming or replacing the
-original directory pathname does not select another checkout for those
-observations. Changed HEAD/tree, a dirty selected closure, changed retained
-member identity/size/SHA, inaccessible retained Git state or a failed/bounded
-Git observation refuses the candidate. Git subdirectory and linked-worktree
-discovery is preserved; ambient Git directory/worktree/index overrides cannot
-select another source.
-
-
-### Restoring a selected source capture
-
-`tos capture-restore` restores an existing `tos_corpus_capture_v1` or `v2`
-capture (`capture.json`, `members.jsonl`, `source.tar.gz`) into a new directory.
-Choose the expected commit, tree and manifest SHA-256 from the retained owner
-record, independently of the archive supplied for restoration:
-
-```sh
-tos capture-restore --capture /absolute/capture --output /absolute/new-root \
-  --source-commit EXPECTED_COMMIT --source-tree EXPECTED_TREE \
-  --manifest-sha256 EXPECTED_MANIFEST_SHA256 \
-  --max-archive-bytes COMPRESSED_CAP --max-decoded-bytes TAR_STREAM_CAP \
-  --max-source-bytes FILE_BYTES_CAP --max-metadata-bytes INDEX_CAP \
-  --max-members MEMBER_CAP --max-seconds WHOLE_DEADLINE
-```
-
-All caps are explicit positive integers. The decoded cap includes tar headers,
-PAX extensions and padding, not just file bytes. Reserve filesystem allocation
-and directory overhead separately through the host storage route. Keep the
-capture and destination parent under exclusive owner control during the call.
-The command verifies archive and member digests, Git blob identities, paths and
-modes, and emits the existing `restore-receipt.json` after successful extraction.
-It refuses an existing output directory. Failure may leave partial output;
-that directory is not a completed restore and remains caller-owned cleanup.
-
-This restores selected bytes. It neither admits those sources nor selects them
-for readers, reconstructs a PostgreSQL journal, changes rights, or activates a
-publication. Those operations retain their existing owner routes. The installed
-`tos-native-owner-command source-capture capture-git|verify|restore|import-corpus` entry owns
-capture production and the matching explicit verification/restore route; its
-`--help` lists the required source selection and finite budgets.
-
-`source-capture import-corpus` carries one selected capture into a new immutable
-V1 corpus store. It takes the same exact capture selection and read budgets as
-`verify`, plus `--output` for a new child of a private owned directory and
-`--validator-sha256` for the executing native importer. It streams and verifies
-member bytes, stores shared digest objects once, writes the exact snapshot, and
-reopens that revision through the corpus reader. The `capture-import.json`
-receipt retains the Git selection, filters, revision and membership digest.
-Its validator identity describes byte-integrity checks performed by this
-importer; it does not establish semantic assessment or source admission.
-
-The imported store has no `current.json`. Consumers must select the returned
-exact revision explicitly and complete their own assessment and publication
-route. Import neither changes rights nor derives identity or dependency
-indexes. Capture-parser read counters cover that parser's logical reads;
-measure process and filesystem I/O separately, including object readback and
-snapshot verification. Reserve capture, stored objects, metadata and temporary
-space before running. A refusal can retain unselected partial custody at the
-new output path; a retry must not overwrite it.
+HTTP binds to loopback by default. MCP uses stdio unless a loopback-only
+Streamable HTTP transport is selected explicitly. `--root` or `TOS_DATA_ROOT`
+selects data; neither changes the installed software, browser assets, or API
+schemas. No command searches a parent directory or neighboring checkout for
+another dataset. `--release-root` selects an already admitted managed release;
+it does not install software or build data.
+
+`doctor` and `verify` inspect the selected source-backed profile. They do not
+compile data, start a server, grant source rights, or prove semantic acceptance.
+Prepared-reader flags belong to the explicit prepared route below and are
+refused by source-backed diagnostics. The installed product is the native
+software archive and its `bin/tos` entrypoint; there is no maintained Python
+wheel or CLI.
 
 ### Native fresh-prefix installation
 
-The native software archive installs without Python:
+The native software archive installs without Python. Begin with an archive and
+installer admitted through the release route, and pass finite positive budgets:
 
 ```sh
 /path/to/admitted/tos-access software install --archive /absolute/software.zip \
@@ -1871,186 +62,88 @@ The native software archive installs without Python:
   --max-members ADMITTED_MEMBER_COUNT --max-metadata-bytes ADMITTED_METADATA_BYTES
 /absolute/fresh-user-prefix/bin/tos --help
 /absolute/fresh-user-prefix/bin/tos --version
-/absolute/fresh-user-prefix/bin/tos serve 127.0.0.1:8765
-/absolute/fresh-user-prefix/bin/tos mcp
 ```
 
-`software install` composes the existing verified extraction into
-`PREFIX/software`. Only after extraction succeeds does the installer create
-`PREFIX/bin/tos`, a relative link to the manifest-bound native member in that
-software tree. This fixed installer link is outside the archive: archived
-symlinks remain forbidden. The native image is not copied a second time.
-The archive FD, extracted software directory, prefix and entry directory are
-retained/rechecked through completion. Existing prefixes, including dangling
-links, refuse without overwrite. A partial failure leaves an explicit incomplete
-candidate (possibly with a link if a final check fails); it reports failure and
-never starts its program. Do not select that
-candidate on PATH. No automatic cleanup or recursive uninstall is performed.
+The installer refuses an existing prefix and never starts the installed
+program. A failed extraction may leave an incomplete candidate; do not select
+it on `PATH`. Switching versions is an explicit choice of entrypoint, so a
+retained prior prefix remains available for rollback. Installation does not
+modify data releases, shell configuration, services, or publication state.
+Managed data is selected separately with `--release-root`.
 
-PATH selection and switching remain explicit user actions. A previous prefix
-stays untouched and provides rollback by choosing its entrypoint again. To
-uninstall, first deselect the owned prefix and stop its processes, then dispose
-of that explicitly selected software-only directory through the filesystem
-owner's normal route. Data releases and service state live outside this prefix;
-installation does not touch them. No systemwide install, shell edit, service
-restart, publication or activation occurs. Use `--release-root` only when
-explicitly selecting an admitted managed data release. Help/version do not
-open a data owner, and NoOwner HTTP/MCP remain truthfully unavailable for data.
-The version string identifies the package version; the manifest's
-versioned native receipt owns exact build identity.
+### Native software and managed releases
 
-The new install composition adds one final retained-archive hash to extraction:
-its reads are approximately `5Z + 2S` (including verification), with `S` written
-once and one small link created. The complete build→verify→install path is
-approximately `5S + 8Z`, plus the previously described bounded manifest/Git and
-startup reads. No new image staging copy or decompressed buffer is introduced.
-These bounds describe operation I/O, not an aggregate RSS guarantee.
+Use `tos-access software build`, `software verify`, `software extract`, and
+`software install` for the code-only archive. The archive contains the native
+entrypoint and its software-owned browser assets, not corpus data. Build inputs,
+budgets, archive verification and official release steps are in
+[`docs/RELEASING.md`](../docs/RELEASING.md).
 
-The installed `bin/tos` command invokes native operations directly.
-`tos mcp --transport streamable-http --host 127.0.0.1 --port 5429` selects the
-loopback MCP transport; software and selected data remain separate.
+Managed release preparation, status, promotion, rollback and revocation use
+the native `native-release-*` commands and the
+[`native-managed-release.v1.md`](contracts/native-managed-release.v1.md)
+contract. A release binds an exact native software archive to one data
+snapshot. Readers recheck the selected pair; rollback cannot revive a revoked
+component. Data snapshot production and admission remain with their explicit
+source/data owners.
 
-The optional imported Python SDK consumer can use the installed native MCP
-process directly: `NativeMCPServer(Path('/absolute/installed-prefix'),
-['--root', '/absolute/data', '--prepared-read-model',
-'/absolute/prepared.sqlite', '--prepared-binding', '/absolute/binding.json',
-'--source-inputs', '/absolute/inputs.raw'])`. Its bounded tool/resource methods
-spawn the selected native image; it does not implement an MCP server or a
-second query engine. Direct
-With an installation containing the Streamable HTTP transport, select
-`server.settings.host = '127.0.0.1'`, set `server.settings.port`, then call
-`server.run(transport='streamable-http')` from the external SDK adapter.
-Direct native selection is `tos mcp --transport streamable-http --host 127.0.0.1 --port 5429`.
-The explicitly associated imported server also exposes `await server.list_tools()`
-and `await server.call_tool(name, arguments)` through a bounded native child per
-call. The list contains only native session tools. Ordinary calls return the
-maintained `(content, structured)` pair; compressed knowledge search preserves
-its `CallToolResult`, and native refusals raise `ToolError`. Each child owns one
-absolute 50-second lifetime including cleanup, with a 45-second operation limit
-and five seconds for cleanup; native request deadlines remain five seconds.
-The explicit association also provides `list_resources()`,
-`list_resource_templates()`, `read_resource(uri)`, `list_prompts()` and
-`get_prompt(name, arguments)`. Resource reads retain the selected packet's
-currentness fence and return the maintained `ReadResourceContents` shape;
-prompts are software-owned templates and grant no source authority. Each API
-call retains the same child and request lifetime limits.
+## Read products and compatibility
 
-The local word-analysis tool can report the maintained unavailable packet only
-when the held installed software manifest and filesystem confirm provider
-absence. A supplied private provider requires a native task kernel and is
-explicitly unsupported; it is never represented as a public unavailable
-reading capability. The corresponding task is available only through the installed native provider.
+Access exposes bounded projection search, knowledge catalog/search/inspection,
+stored and compiled lenses, neighborhood exploration, source navigation,
+and selected local reading operations. Their transport-neutral operations are
+listed in [`query-operations.v1.json`](contracts/query-operations.v1.json),
+[`knowledge-api.v1.json`](contracts/knowledge-api.v1.json), and the schemas
+linked from the [contract index](contracts/README.md).
 
-The native archive and installed `bin/tos` are the maintained product route. This repository no longer publishes a Python wheel, Python CLI, or Python runtime fallback. Imported Python SDK adapters may frame calls to the installed native product; source preparation and fixture tools remain under their own owners and are not part of the installed product.
+Selection is explicit. Source-backed readers use `--root` or an admitted
+`--release-root`; an offline prepared knowledge reader requires both a prepared
+SQLite path and an owner-selected binding. A reader never creates a missing
+product, infers a binding from database contents, or falls back to a different
+dataset after a selected product fails. Prepared knowledge is a bounded
+projection, not source, rights, review, or publication authority.
 
-The current native verifier rejects older native archives containing Python
-runtime or wheel metadata. To roll back, select the retained previous prefix;
-its executable retains its own archive contract. Restore an older archive with
-that matching retained verifier. The native archive change does not claim
-backward compatibility with the previous mixed Python/native layout.
+Projection search retains its declared engine-specific behavior: legacy and
+indexed modes keep their own pagination and filters, while compressed search is
+available only for an explicitly selected prepared profile. The native
+consumer does not translate offsets into cursors or silently select another
+engine. See the [compressed-search contract](COMPRESSED_SEARCH_V3.md) and
+[native semantics](shared/NATIVE_SEMANTICS.md) for engine compatibility and
+work limits.
 
+Source navigation provides `tos.source.descend` and `tos.dossier.inspect` on
+the native source-navigation product (or the explicitly supported legacy
+carrier). A dossier can include the connected bibliographic chain, observed
+links, scoped rights records, gaps and source references. A downloadable URL
+is technical access only; it does not establish legal openness. A prepared
+reader without its declared navigation and rights companions is unavailable
+for dossiers rather than permission to consult another index.
 
-### Native private concept and WordAnalysis callers
+The native adapters expose:
 
-A matching installed native access image supports `concept-search` and
-`word-analysis` against an explicitly selected local source root. Select the
-software installation independently of that data:
+- `tos.source.descend` (`GET /api/source/navigation/{node_id}`) walks from a
+  selected navigation node toward bibliographic objects and links.
+- `tos.dossier.inspect` (`GET /api/source/dossiers/{object_id}`) returns a
+  bounded dossier with connected records, observed links, scoped rights,
+  source refs and gaps.
+
+### Local reading and the imported SDK
+
+Zarathustra concept and word-analysis tools use the selected native installation
+and local source root:
 
 ```sh
-/absolute/installed-prefix/bin/tos --root /absolute/source-root concept-search --query 'судьбы' --language ru --limit 20
-/absolute/installed-prefix/bin/tos --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
+tos --root /absolute/source-root concept-search --query 'судьбы' --language ru --limit 20
+tos --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
+tos --root /absolute/source-root word-analysis --validate-candidate /absolute/candidate.json
 ```
 
-These commands use the explicitly installed Rust image and an explicitly selected
-source root. Concept `--limit 0` returns coverage without cards. Word
-`--validate-candidate FILE` validates against the prepared source task without
-modifying either source or candidate. The native MCP tool
-`tos_zarathustra_prepare_word_analysis` returns the full task inside its existing
-capability envelope and retains candidate-only authority. Its API rank clamps
-to 1–100; the CLI uses a positive rank. The former script entrypoints are retired;
-use the installed commands above. A matching native installation is required.
+Candidate validation is read-only. The native `tos_zarathustra_prepare_word_analysis`
+tool returns a candidate-only task; a selected provider refusal is not replaced
+by a Python implementation. Reading/search capability availability describes
+the selected local data, not source admission or publication.
 
-Imported callers can select the same installation explicitly for the four
-source-read methods:
-
-```python
-from tos_access import NativeCore
-core = NativeCore('/absolute/installed-prefix', ['--root', '/absolute/data-root'])
-capabilities = core.source_read_capabilities()
-```
-
-`source_read_contract`, `source_handle_discover(request)` and `source_read(request)`
-keep their dictionary packet/request shapes. Each synchronous call joins one
-helper thread and uses the existing authenticated native MCP child with one
-50-second operation/cleanup deadline. The data arguments cannot select software.
-An absent source owner still raises `SourceReadError` for discovery/read. This
-source methods use the same installed native Core and retain the SDK package's
-selected software identity.
-
-The explicit `NativeCore.zarathustra_word_analysis_task` caller keeps the
-maintained query/language conversion, rank fallback/clamp and boolean conversion,
-then returns the complete native capability packet under its original50s clock.
-It uses the selected native Word provider; it does not load a Python provider.
-Native tool refusals remain `ToolError`, distinct from source-read `SourceReadError`.
-This connection awaits a matching positive Word image and selected local data;
-source mapping controls do not establish positive provider parity or default retirement.
-
-`NativeCore.knowledge_exploration_contracts()` returns the complete native
-exploration schema bundle without arguments, using the same authenticated child
-and 50-second deadline. Its `capabilities.available` reflects the selected
-exploration backend; software schemas remain readable when that backend is absent.
-Native refusals remain `ToolError`. This method uses the selected backend and
-leaves its data root and catalog identity unchanged.
-
-`NativeCore.knowledge_exploration_capabilities()` returns the `capabilities`
-object from that same contracts call. It preserves selected availability,
-limits and refusal behavior and does not create another backend or data selection.
-
-Imported `ToSAccessCore` callers can select native Word and Reading
-without replacing their other Core methods:
-
-```python
-from tos_access import ToSAccessCore
-core = ToSAccessCore.discover(
-    tos_root='/absolute/source-data',
-    native_prefix='/absolute/installed-prefix',
-    reading_analysis_root='/absolute/reading-output',
-)
-packet = core.zarathustra_reading_search('судьбы', limit=1)
-```
-
-These two methods use the existing authenticated `NativeCore` child and its
-original 50-second deadline. They return the complete native packet, including
-selected availability and authority boundaries. `tos_root` selects local data
-through the native RootFence; it does not turn a local carrier into a managed
-Original selection. The optional analysis root affects Reading only. Larger
-Reading inputs require the explicit paired `reading_max_file_bytes` and
-`reading_max_total_file_bytes`; all other native request limits remain unchanged.
-An older installed image may refuse these selectors. No Python fallback runs
-after a selected native refusal. Omitting `native_prefix` uses the installed
-native product-selection route and refuses if none is available.
-
-
-### Imported native query core
-
-Ordinary source SDK operations use the native ToS launcher. It creates and
-checks its finite Linux scope, private tmpfs stage and bounded consumers itself.
-`TOS_SDK_SCRATCH_ROOT` selects an existing scratch parent; otherwise the launcher
-uses `XDG_RUNTIME_DIR` or the standard temporary directory. No host broker,
-policy socket or neighboring checkout is discovered. A prepared explicit
-`TOS_SDK_STAGE_CONFIG` retains the separate caller-owned bootstrap route.
-
-When a search cache needs rebuilding, the native writer reserves its admitted
-capacity in the new unnamed inode before SQLite writes. The same file consumes
-those blocks throughout construction; unused allocation beyond EOF is released
-before publication. Existing valid caches remain read-only. Filesystem capacity
-checks and kernel allocation run without a host reservation registry.
-The new-build logical ceiling must fit its physical allocation ceiling.
-
-`NativeAccessCore` frames synchronous calls to the installed native MCP ABI.
-It returns the complete native packet. Rust owns query normalization, bounds,
-selected-source compatibility and disclosure fences; Python owns argv, the
-bounded child lifetime and typed packet delivery.
+Imported Python callers may frame the same installed native operations:
 
 ```python
 from tos_access import NativeAccessCore
@@ -2062,393 +155,272 @@ core = NativeAccessCore.discover(
 packet = core.knowledge_node("an-exact-owned-node-id")
 ```
 
-A local prepared reader instead takes `published_read_model_path` and
-`published_read_model_binding_path`, each an explicit absolute path. The latter
-is the owner-selected binding consumed by native `--prepared-binding`.
-`published_exploration_checkpoint_path` selects native persistent exploration
-checkpoints for either generic profile. Without that path, the first exploration
-call creates one private disposable store for this Core lifetime and reuses it
-across native child calls. `native_state_root` or `TOS_NATIVE_STATE_ROOT` selects
-the host scratch parent (otherwise the platform temporary parent). The directory
-is private, mode 0700. Use `close()` or a context manager for deterministic cleanup;
-the finalizer is best effort. Closing an instance refuses later calls and never
-removes an explicitly supplied checkpoint path. Stores never transfer source or
-rights authority. The native profile bounds encoded checkpoint residency to at
-most 32MiB and its SQLite file to at most 97MiB; a smaller selected owner budget
-narrows those bounds. Host execution must account for that disposable allocation. `source_inputs_path` and optional
-`source_local_text_selection_path` select the native exact-source descriptor;
-they require the prepared pair and a separately declared `tos_root`.
+The bridge retains the native packet and typed refusal; it has no independent
+query/server implementation or fallback. The [Rust access guide](../rust/crates/tos-access/README.md)
+owns the installed runtime and validation route.
 
-`tos_root` independently selects the private Reading/Word source root. Optional
-`reading_analysis_root` and the paired `reading_max_file_bytes` /
-`reading_max_total_file_bytes` apply to Reading only. The separate paired
-`concept_max_file_bytes` / `concept_max_total_file_bytes` select the root-only
-Concept/Word file budget for the Word child. They require an explicit `tos_root`
-and positive integers with file <= total; they never change Reading, SQL, work,
-output or clock budgets. The public native Core facade forwards these selectors
-only to its explicitly selected native Word delegate. The
-installed binary must support the matching concept budget flags.
-A generic release or
-prepared publication does not supply local source authority, and a local source
-root does not supply generic publication authority. Missing capabilities keep
-the native unavailable result. Python callback objects are not persisted native
-descriptors; the explicit embedded profile below retains their actual objects.
+`tos.source-text.search` requires an explicitly selected durable PostgreSQL
+consumer. The optional Worker gateway forwards it only when its native HTTPS
+origin and both outbound/inbound Cloudflare Access credentials are configured.
+D1 is not a source-text reader. See the
+[source-text gateway contract](contracts/source-text-gateway.v1.md).
 
-The native facade serves the established knowledge, corpus, philosophy, lens,
-evidence, bounded source-navigation and exact-source MCP operations plus native
-resource reads. The remaining graph/snapshot builders and complete carrier APIs
-use the native whole-Core source route in `ToSAccessCore`. The public `ToSAccessCore` SDK facade delegates to the installed native Core; no Python semantic engine is selected. Software selection follows explicit
-`native_prefix`, `TOS_NATIVE_PREFIX`, the bundled SDK layout, then the standard
-installed `tos` entrypoint on absolute `PATH` entries.
+### Backend-defined knowledge construction
 
-For the whole-Core SDK, `TOS_RELEASE_ROOT` with no data-root selection resolves
-the current managed release through native metadata and freezes its receipt
-at construction. Each ordinary operation rechecks that receipt, snapshot
-members and withdrawal under the native guard. Supplying an explicit snapshot
-root selects its `data/` child; pairing it with a managed release retains the
-same guard. Python frames paths and receipts without reading release pointers.
-The generic `NativeAccessCore` release adapter retains its separately selected
-ManagedRelease route.
+Knowledge packets preserve stable ToS IDs, source-native identity, provenance,
+source references, authority posture, and the recorded wording available in
+the selected projection. Deterministic display synthesis is labeled as
+synthesis; it is not authored ToS meaning. Missing translations are not
+invented, and identifier fallbacks do not become source titles. A normalized
+packet or successful transport check cannot assess truth, translation, rights,
+review, or canon.
 
-The additive `NativeCore.philosophy_projection()` uses the sole
-`full_projection: true` branch of the existing philosophy scale operation.
-Its matching native kernel returns the selected Original header and every base
-node/edge in receipt order as one complete carrier under one currentness fence
-and the existing work/output budget. This branch requires a matching operation
-descriptor and kernel; source preparation does not establish installed support.
+For the exact normalized packet shape, vocabulary, and language fallback rules,
+use [`knowledge-graph.v1.schema.json`](contracts/knowledge-graph.v1.schema.json),
+the [contract index](contracts/README.md), and the ToS-owned semantic registry
+under [`ToS/doctrine/semantic-interchange/`](../ToS/doctrine/semantic-interchange/).
+The browser's full-material context reader verifies the declared digest and
+field coverage before presentation; this proves transport binding, not the
+quality of the owner's assessment. See the
+[human-form delivery contract](contracts/human-form-delivery.md) for the
+separate rendering boundary.
 
-The additive embedded owner profile uses
-`tos_access.native_source_provider.NativeSourceProvider.from_owner_readers`
-with an explicit installed prefix and the actual metadata, claim or slot readers.
-`from_prepared_source` accepts the owner's immutable raw source-input bytes,
-actual catalog snapshot, readers, issuer and optional slot-descriptor callback.
-Both constructors initialize through Rust; they do not derive epochs or validate
-source policy in Python. Pass the resulting provider as
-`NativeAccessCore.discover(native_prefix=prefix, source_provider=provider)`.
-This requires an installed binary containing `source owner-provider-phase`;
-it does not imply that an earlier installed release supports that command.
+### Resumable neighborhood exploration
 
-The platform retains the same objects and calls only their fixed owner methods.
-Every native phase exits and joins before a synchronous callback begins. Rust
-validates observations, content, visibility and currentness, issues handles, and
-retains cumulative budgets in a native-produced sealed descriptor. A separate
-native-produced binding descriptor retains the initialized epoch for the provider
-lifetime: later calls compare fresh observations against that original binding.
-The platform keeps stable identities for the same retained readers and catalog;
-it never compares epochs. A wrapped reference binding supplies its original epoch
-only as an additional native-checked restriction. Custom owners
-support records only; this profile adds no native text rights. Currentness is
-checked at the last owner bookend before native rendering. Object retention is
-not an atomic publication lease.
+Exploration is a bounded query over the selected snapshot. By default its
+checkpoint is process-local. A caller may explicitly select a separate private
+checkpoint store for restart survival; the store is not a source database and
+does not grant source or publication authority. Replays recheck the selected
+binding and execution configuration. Incompatible or corrupt checkpoint state
+fails closed without automatic reset or migration.
 
-Existing synchronous owner callbacks may take an unbounded time. This profile
-has no hard end-to-end 50-second promise or callback preemption. It accumulates
-five seconds of Rust domain work and one 45-second work/50-second cleanup envelope
-across all phases, excluding only measured owner-method time. An optional
-`NativeSourceProvider.call(..., absolute_deadline=...)` checks the original
-whole deadline before and after callbacks and refuses expired output. The
-ordinary persisted selected/native profile keeps its whole-call 50-second bound.
-Selected byte limits are preserved, including zero; values above the supported
-16 KiB handle, 64 KiB request, 1 MiB record or 2 MiB response ceilings refuse
-explicitly and are never clamped.
+For the local prepared reader, provide the checkpoint path with
+`--exploration-checkpoints /absolute/private/continuations.sqlite`; the parent
+directory must already exist. Native limits, storage bounds, and transport
+fences are maintained by the Rust access owner and summarized in its
+[runtime guide](../rust/crates/tos-access/README.md). The selected capability
+reports configured availability; it does not prove real-corpus performance or
+deployment.
 
-The public `ToSAccessCore` and `NativeAccessCore` facades delegate runtime
-operations to the installed Rust product. Source-construction helpers remain
-separate maintainer APIs and do not supply an alternate runtime engine.
+## Explicit prepared local reader
 
-Run the installed Rust diagnostic with
-`tos --native-prefix /absolute/installed doctor --json`. `--root`, `--profile`,
-and `--require-mcp` select its source-backed checks. Readiness and failure
-status come from the native command; there is no Python doctor adapter or
-fallback.
+Use this route only when an owner has already prepared and selected a local
+knowledge publication with its binding. A minimal catalog query is:
 
-Data selection is independent of software: an explicit `tos_root` selects the
-source diagnostic, and omission uses the native installed runtime-data route.
-Rust's source byte/work/time bounds, embedded contracts, installed web assets,
-and built-in MCP readiness apply. This deliberately replaces repository auto
-search and Python dependency readiness in the historical diagnostic. No Python
-diagnostic rules or fallback are shipped; the adapter returns the installed
-Rust report unchanged.
+```sh
+tos --root /absolute/runtime-data \
+  --prepared-read-model /absolute/selected.sqlite \
+  --prepared-binding /absolute/owner-selected-binding.json \
+  knowledge catalog
+```
 
-`NativeAccessCore.philosophy_scale_rows` reads a complete table through the
-existing Rust scale-export operation in one held snapshot. It preserves table
-order and membership/provenance fields; a table exceeding the selected native
-response budget refuses rather than combining pages from different children.
+The same paired selectors apply to CLI, HTTP and MCP. For compressed search,
+use the explicit `knowledge search QUERY --mode compressed` operation; see
+[`COMPRESSED_SEARCH_V3.md`](COMPRESSED_SEARCH_V3.md#local-adapters) for its
+cursor, capability and bounded-work rules. A prepared selection cannot be
+combined with a managed release. It does not acquire managed-release custody
+or source-rights authority.
 
-The additive selected-source constructor is
-`tos_access.native_selected_source.NativeSelectedSourceProvider(prefix, source_root,
-inputs_path, expected_revision=revision, local_text_selection=optional_path)`.
-It retains a bounded sealed copy of the actual source-input bytes and initializes
-through the installed native `source selected-owner` command and verified schema
-worker. It neither constructs `PreparedSourceInputs` nor derives an epoch in
-Python. The required revision keyword and two concurrent slots without a queue
-preserve the selected-service contract. Each request keeps one original 50-second
-clock through retention, native admission, worker verification and final cleanup.
-Pass this provider to `NativeAccessCore.discover(..., source_provider=provider)`;
-the Core borrows it, and the caller closes it after use. Selecting this owner
-requires no Knowledge publication pair. The public Core default is the native
-SDK facade; historical reference implementations are retained under the test
-oracle owner and are not selected by this constructor.
+The selector pins an immutable publication and checks its binding at each
+disclosure boundary. Health reports only the selected header, binding and
+required indices; it does not scan every source row. `doctor` and `verify`
+remain source-backed diagnostics and do not claim prepared-reader health.
+Native and managed consumers retain their distinct release and request guards.
 
-The maintained borrowed Edge APIs (`NativeCaptureContext.run`, prepared
-delta/catchup and navigation bootstrap/integrity) use the installed Access
-`edge-offline-capture --borrowed-frames` engine transport before the existing
-v2 verifier. The original Python SQLite connections remain exclusively held
-through both children and cleanup; their uncommitted and WAL views are read
-directly. Rust owns the table registry, all SELECTs, schema rules and TOSLSNP1
-frames. Python performs only bounded cursor operations and lossless typed cell
-transport. Source DDL is never executed, paths are never reopened and no
-foreign SQLite handle enters the bundled Rust engine.
+## Source-owner operations
 
-`max_query_transport_bytes` selects a finite cumulative helper RPC IO cap.
-Omitting it derives the cap from the already selected schema allocation bound
-(or `max_snapshot_bytes * 128` when that bound was omitted), with checked
-64-bit bounds. Requests, replies, control and chunk bytes share this IO ledger.
-Schema/planner and adapter allocations debit one original cumulative schema
-ledger; the remaining budget is passed to the v2 importer. A maximum of eight
-scoped cursors and one current row per cursor exist. Before every RPC, Rust
-reserves both its bounded reply workspace and an explicit adapter allocation
-grant. Only unused allowance returns after a complete validated reply; an
-incomplete exchange forfeits it. Data rows use paired length/value cursors in
-the identical SQLite order and transaction; raw-cell space is reserved before
-Python fetches the value row. Length, row count and emitted type/byte totals
-must match. This streams both cursors without OFFSET rescans. Raw cells travel in
-64 KiB chunks; no whole BLOB hex packet or table buffer is built. The helper
-uses the parent's original monotonic work deadline and the existing five-second
-cleanup reserve. A deadline watchdog interrupts only the actively borrowed
-connection, without changing its progress hook or transaction policy.
+### Selected PostgreSQL source navigation
 
-Logical allocation bounds include transport buffers and typed row state.
-SQLite heap/sort work, Python allocator overhead, thread stack and process RSS
-remain physical admission and measurement obligations. The native encoder
-owns logical emission. If helper
-cleanup is unproven, `CaptureCustodyError.borrowed_custody` transfers the original
-views, frames and descriptors to the caller's outer holder. The caller must
-retain that custody until its exclusive supervisor proves cleanup; final v2
-capture does not start and no success or adoption is returned.
+This is a separate, private source-owner product. Use the protected
+`tos_local_source_navigation_owner_v1` selection and keep
+`TOS_SOURCE_PG_URL` in the private process environment. The owner selection
+binds the selected CMD domain, source proof, consumer/profile, finite model and
+event limits, and policy receipt. Neither a prepared model nor its receipt
+grants source rights, QRY disclosure, publication admission or canon.
+The current PostgreSQL anchor is `tos_knowledge_managed_navigation_v2`; it
+retains authenticated Navigation Original carriers and source proof, while
+PostgreSQL owns the published graph. It does not contain offline compressed
+search tables, so that search mode is unavailable on this anchor. Changing
+producer profile requires an explicit derived rebuild; source versions, rights
+and command history remain with their existing owners.
 
-The selected Owner role exposes the maintained Python-free source-command client:
+On a new installation or schema upgrade, initialize the derived tables first
+with the same native `source-projection` entry and a protected
+`tos_source_projection_selection_v1` selection for that database:
+
+```sh
+/absolute/prefix/bin/tos-native-owner-command source-projection \
+  --selection /absolute/protected/source-navigation-owner.json \
+  < /absolute/requests/init-navigation.json \
+  > /absolute/receipts/navigation-init.json
+```
+
+The init request is `{"operation":"init"}`. One-time model preparation is a
+separate local-owner operation. Its protected
+`tos_local_source_navigation_model_prepare_owner_v1` fixes the selected model,
+producer, policy template and finite resource bounds. Invoke it through the
+native source-command entry:
 
 ```sh
 /absolute/prefix/bin/tos-native-owner-command source-commands \
-  --invocation /absolute/protected-native-invocation.json < /absolute/request.json
+  --invocation /absolute/protected/navigation-model-prepare-invocation.json \
+  < /absolute/requests/prepare-initial.json \
+  > /absolute/receipts/navigation-model-prepare.json
 ```
 
-Discover the packaged implementation grammar without source or owner access:
+The request is
+`{"schema_version":"tos_local_source_navigation_model_prepare_request_v1","operation":"prepare-initial"}`.
+The protected invocation selects the installed native images, finite export and
+model budgets, private stage and delegated process limits; reserve model, stage
+and temporary storage through the host owner. The parent retains its PostgreSQL
+connection, while only the selected compiler child enters the private stage.
+Do not target another owner's live database or reuse a failed partial output.
+Only after preparation, bootstrap the complete selected current model before
+advancing events:
 
 ```sh
-/absolute/prefix/bin/tos-native-owner-command source-commands --discover
-/absolute/prefix/bin/tos-native-owner-command source-commands --discover --handler native-work-expression
+/absolute/prefix/bin/tos-native-owner-command source-projection \
+  --selection /absolute/protected/source-navigation-owner.json \
+  < /absolute/requests/bootstrap-navigation.json \
+  > /absolute/receipts/navigation-bootstrap.json
 ```
 
-CLI discovery and HTTP `GET /commands/catalog` use the same packaged descriptor.
-Discovery grants no authority; the HTTP route retains its existing authentication.
+The bootstrap request is `{"operation":"bootstrap-navigation"}` with
+optional `max_batches` from 1 to 256 (default 256). Repeat the same request
+until both `completed` and `cleanup_complete` are true. It publishes a private
+derived projection only; then advance bounded events with
+`{"operation":"advance-navigation","max_events":1}`. Unsupported events
+remain pending. Retain the returned receipts and their selected source/revision
+bindings. If a response is lost after publication, repeating the exact
+bootstrap request is safe.
 
-Its packaged [client contract](contracts/source-commands.v1.json) declares the
-explicit inputs and issuer boundary. The earlier `--invocation ABS` entry remains
-the same dispatcher. Requests use the existing family grammar; `describe` and
-`prepare` retain that family's selected source and authorization checks. No prior
-ToS checkout or Python is required on the consumer machine. The authorizing local
-account supplies the protected owner configuration and invocation, actual corpus
-and software captures, and selected worker bindings separately. Installation and
-a request grant no source, field, rights or publication authority. Host
-`private-stage-run`, when required by a selected receiver, supplies OS/resource
-isolation under its actual admitted profile; it is not this source-policy issuer.
+Policy install and revoke use their own protected invocation and owner
+configuration. They are separate local CLI operations; HTTP, MCP and
+`private-text-read` do not expose policy mutation. Revoke withdraws only this
+navigation policy; it does not change CMD rights. Do not treat a model, policy
+template or bootstrap receipt as a grant.
 
-The private foundation producers run through the separately built research CLI with explicit
-source and local payload roots:
+The reader verifies the selected publication and resolves each disclosed
+node/edge against the current source-owner metadata and rights. Changed
+dependencies or a publication that is behind the requested sequence produce
+`publication_pending`; the client may retry after source processing advances.
+Use `source descend NODE_ID --at-least-commit-seq SEQUENCE` (HTTP query field
+`at_least_commit_seq`, or the matching MCP argument) with the receipt's
+canonical unsigned 64-bit decimal string. The D1 export has no CMD sequence
+and refuses this parameter. Neither the check nor retry forces processing or
+grants rights. Complete model preparation, source review, rights and reader
+selection remain separate owner routes.
+
+### Restoring a selected source capture
+
+`tos capture-restore` restores an existing `tos_corpus_capture_v1` or `v2`
+capture into a new directory. Obtain the expected commit, tree and manifest
+digest from the retained owner record, not from the archive being restored:
 
 ```sh
-/absolute/path/to/tos-research source-text-foundation --source-root /absolute/source \
-  --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
-/absolute/path/to/tos-research target-text-foundation --source-root /absolute/source \
-  --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
-/absolute/path/to/tos-research opening-sentence-alignment --source-root /absolute/source \
-  --local-input-root /absolute/private-input --check
+tos capture-restore --capture /absolute/capture --output /absolute/new-root \
+  --source-commit EXPECTED_COMMIT --source-tree EXPECTED_TREE \
+  --manifest-sha256 EXPECTED_MANIFEST_SHA256 \
+  --max-archive-bytes COMPRESSED_CAP --max-decoded-bytes TAR_STREAM_CAP \
+  --max-source-bytes FILE_BYTES_CAP --max-metadata-bytes INDEX_CAP \
+  --max-members MEMBER_CAP --max-seconds WHOLE_DEADLINE
 ```
 
-Each command accepts an explicit source-relative `--plan`. A new `--build`
-requires `--event-id`, fresh plan-selected output paths and `--scratch-bytes`
-from the host's admitted remaining write capacity. Repeating a build preserves
-matching outputs and refuses differing ones. Checks do not write. Historical
-provenance remains unchanged; new events identify the native executor and its
-actual Unicode version. TEI extraction uses the Rust XML reader. PDF extraction
-uses the declared native Poppler `pdftotext` backend and verifies its selected
-version, payload and exact bbox output. Private text and bbox files stay ignored
-and mode 0600. Sentence and alignment records contain only selectors, hashes and
-source references; their proposal status grants no textual, translation, rights,
-publication or canon admission.
+Every cap is a positive integer. The decoded cap includes tar headers,
+extensions and padding. Keep capture and destination under exclusive owner
+control and reserve disk allocation separately. Restore verifies archive and
+member digests, Git blob identities, paths and modes. It refuses an existing
+output directory; failure may leave partial output for caller-owned cleanup.
+Restore does not admit sources, select data for readers, change rights, or
+publish a dataset. Production, verification and corpus import belong to the
+[source-witness owner route](../ToS/source-witnesses/README.md).
 
-Native transfer readiness uses the same explicit source selection:
+Offline edge capture is also explicit and emits unapplied local artifacts:
+`tos edge-offline-capture --request /absolute/request.json`. The Worker guide
+owns its operation-specific request schema, finite limits, custody requirements
+and outputs; capture does not import to D1, switch consumers, or publish
+remotely. See [native offline prepared-pair capture](deploy/cloudflare-worker/README.md#native-offline-prepared-pair-capture).
+
+#### Supervised Linux capture
+
+The outer envelope uses `schema: "tos_edge_selected_capture_request_v1"`
+and embeds the original ordered `tos_edge_offline_capture_request_v1` request
+under `capture`; use the [Worker capture example](deploy/cloudflare-worker/README.md#native-offline-prepared-pair-capture)
+for that inner object. Its other required fields are `selected_prefix`,
+`scratch`, `transport_limits`, `installed_limits`, `work_timeout_ms`,
+`cleanup_timeout_ms`, `supervisor_unit` and `supervisor_total_ms`.
+`transport_limits` contains `frame_bytes`, `schema_bytes`, `request_state_bytes`,
+`result_state_bytes`, `stream_bytes`, `metadata_bytes`, `state_bytes`, `io_bytes`,
+`held_fds` and `census_entries`; `installed_limits` contains `max_image_bytes`,
+`max_metadata_bytes`, `max_state_bytes`, `max_io_bytes` and `max_held_fds`.
+The [selected-entry owner](../rust/crates/tos-access/src/edge_offline_capture/selected_entry.rs)
+defines exact parsing, custody and accounting.
+
+The `--selected-request` entry is only for a supervised Linux host. Its
+request explicitly binds a selected prefix, scratch path, positive
+`transport_limits` and `installed_limits`, work/cleanup clocks, and one finite
+user service. The command verifies that service's actual invocation and
+process/cgroup custody. Prefix and scratch are existing absolute paths; limits
+have no defaults. Work is at most 1,200,000 ms, cleanup at most 10,000 ms, and
+the outer service at most 1,210,000 ms from the original entry clock; neither
+deadline is renewed. Run it under the selected
+outer service, with `RuntimeMaxSec` no greater than the request's supervisor
+total and `TimeoutStopSec` no greater than its cleanup interval:
 
 ```sh
-tos-research transfer-route-readiness --source-root /absolute/source --check
-tos-research transfer-route-readiness --source-root /absolute/source --build \
-  --output ToS/source-witnesses/transfer-readiness.native.json \
-  --event-id tos.event.native-projection.golden-kernel-transfer-route-readiness.example \
-  --scratch-bytes 4194304
+systemd-run --user --wait --collect --pipe --unit UNIT.service \
+  -p MemoryMax=MEMORY_BYTES -p MemorySwapMax=0 \
+  -p RuntimeMaxSec=ORIGINAL_TOTAL_SECONDS -p TimeoutStopSec=ORIGINAL_CLEANUP_SECONDS \
+  -p KillMode=control-group -- \
+  /absolute/prefix/bin/tos edge-offline-capture --selected-request /absolute/request.json
 ```
 
-The default check preserves the exact historical V1 projection and event.
-A fresh output uses the V2 contract and a distinct event; its source and target
-candidate frame is unchanged. Repeating the same build verifies its existing
-bytes. Earlier provenance journal bytes are retained, and a concurrent journal
-change refuses the write. This command reads only tracked candidate metadata;
-it grants no passage alignment, eligibility, gold or canon status.
+If native child release is not proved within the original cleanup clock, the
+CLI exits 125 without success or adoption and retains frames and failure
+evidence for owner-directed cleanup. The selected outer service owns residual
+cleanup; process death closes this CLI's owned read transactions. A library
+caller retains its separate borrowed-custody contract. This is not a public
+publication or authorization broker.
 
-Native target transfer passages use the frozen twenty-page, thirty-five-route frame:
+## Browser application and WebMCP
+
+The web client is the human presentation of the same selected, bounded read
+products. It supports source-linked search, evidence and route inspection,
+bounded lens construction, and a browser-local research workspace. Workspace
+hypotheses and proposals remain local, visibly unreviewed, and outside ToS
+source, review ledger, candidate intake and canon. Export is the handoff.
+Feature-specific behavior and development commands are in the
+[web guide](web/README.md).
+
+In supported browsers, WebMCP exposes page view/search/selection actions and
+the currently available research tools to an agent on the same page. The site
+does not embed a model or require an API key. It remains usable when
+`document.modelContext` is absent; WebMCP support is experimental and does not
+confer ToS authority or guarantee availability. The optional native `tos mcp`
+server is an off-page route, not a prerequisite for browser use.
+
+## Cloudflare delivery
+
+The repository's public deployment route is the
+[Cloudflare Worker package](deploy/cloudflare-worker/README.md). Static assets
+serve the web client, while generated read-only packets and D1 provide bounded
+projection access. Offline build/import steps and the production publication
+boundary live with that route. The older
+[Cloudflare Tunnel profile](deploy/cloudflare-tunnel/README.md) is for local
+preview or recovery, not the intended availability architecture.
+
+## Development
+
+Use the root [`standalone_access` validation route](../VALIDATION.md) after a
+specific contract or adapter changes; the repository lane manifest owns exact
+command order. Browser assets can be built locally with:
 
 ```sh
-tos-research transfer-target-passages --source-root /absolute/source --validate-tracked
-tos-research transfer-target-passages --source-root /absolute/source \
-  --local-input-root /absolute/private-input --local-output-root /absolute/private-output --check
-tos-research transfer-target-passages --source-root /absolute/source \
-  --local-input-root /absolute/private-input --local-output-root /absolute/private-output \
-  --build --generation native-r1 --event-id tos.event.native-segmentation.transfer-target.example \
-  --scratch-bytes 50331648
+npm ci --prefix access/web
+npm run build --prefix access/web
 ```
 
-Private input/output roots are repository roots containing `ToS/source-witnesses/`.
-The default `v1` check preserves exact historical descriptions, payload bytes and
-provenance. A fresh generation gets distinct candidate and output identities and
-records the compiled Rust producer. Replay preserves matching files and refuses
-changed metadata or content. Tracked validation checks schemas, source/rights
-bindings, anchors, provenance and the ignored private boundary without opening
-the PDF; an explicit output root additionally checks private fixity and mode.
-The 32 page intersections and three rejected nonintersections retain their
-candidate status and confer no alignment, accepted text, gold or publication.
-
-`tos-research transfer-source-passages --source-root ABS --validate-tracked` checks the
-tracked thirty-five German source passage candidates without reading private text.
-Use `--check --local-input-root ABS --local-output-root ABS` to reproduce the
-retained exact private layer bytes. The private roots contain repository-relative
-`ToS/...` paths. A fresh `--build` requires `--generation NAME --event-id ID` and
-an admitted `--scratch-bytes` quota; private output stays ignored and mode 0600.
-Native Poppler 26.01.0 extraction, streamed ABBYY/DjVuXML and authored PDF/JP2
-marker returns preserve their separate source/review and rights boundaries.
-
-`tos-research transfer-candidates --source-root ABS --validate-tracked` verifies the
-text-free candidate plan and provenance. `--selection-only --local-input-root
-ABS` reports the twenty selected pages and aggregate metrics. `--check` also
-requires explicit `--local-input-root ABS --local-output-root ABS` and checks
-the private page bytes. New output uses `--build --generation NAME --event-id
-ID --scratch-bytes RESERVED_BYTES --confirm-model-source-visible-review` with
-those explicit roots and a prior storage reservation. The confirmation belongs
-to the caller's actual source-visible assessment. A matching replay needs no
-new confirmation. Candidates remain ineligible; no target gold or textual
-acceptance is created. The default historical generation remains byte exact.
-
-
-`tos-research transfer-source-visible --source-root ABS --validate-tracked` checks the
-text-free receipt and current rights without opening private sources. Use
-`--check --local-input-root ABS` to verify the retained private bundle, exact
-PDFs, four page-render hashes, critical HTML selector and aggregate diagnostics.
-A fresh receipt uses `--build --generation NAME --scratch-bytes RESERVED_BYTES`
-with the explicit input root and a prior storage reservation. The input root
-contains repository-relative `ToS/...` paths; Poppler 26.01.0 renders are bounded
-in memory and are not retained. The default `v1` is an exact historical replay.
-New receipts preserve the original review authorship and timestamp and perform
-no new source-visible review, textual acceptance or publication decision.
-
-`tos-research german-triangulation --source-root ABS --check --local-input-root ABS`
-reproduces the retained twelve-paragraph eKGWB/DTA comparison and the exact
-Naumann OCR diagnostic shape. `--validate-tracked` checks metadata only. A new
-`--build --generation NAME --prepared-at RFC3339 --scratch-bytes RESERVED_BYTES`
-uses the same explicit private input root and writes separate text-free packet
-and alignment-event files. Historical discovery, acquisition and appended
-provenance remain unchanged; no source text or acceptance is produced.
-
-
-`tos-research bounded-translation-input --source-root ABS --check --local-input-root ABS
---local-output-root ABS` reproduces the exact local DTA opening sentence, its
-cross-witness corroboration and tracked text-free bindings. All three roots
-use repository-relative paths. `--validate-tracked` reads only metadata; add
-`--local-output-root ABS` to verify the existing private artifact as well.
-A fresh `--build --generation NAME --prepared-at RFC3339 --scratch-bytes
-RESERVED_BYTES` uses both explicit local roots and writes a separate mode0600
-artifact, packet and provenance event. The output quota must be reserved first.
-Historical `v1` and its appended journal stay exact. This operation prepares
-local calibration input without performing translation, source assessment or
-publication admission.
-
-
-`tos-research antonovsky-collation --source-root ABS --local-input-root ABS
---artifact-input-root ABS --local-output-root ABS --check` reconstructs the
-retained 2007/1911 proposal from exact witness bytes and the existing unattested
-Workbench observation. Source and local roots contain repository-relative
-paths; the artifact root contains the three plan-selected observation records.
-The historical plan and its five tracked and two private results remain exact.
-A fresh `--build --plan-ref REPO_PATH --event-id ID --scratch-bytes RESERVED_BYTES`
-requires a separate plan, output paths and opaque identities. Reserve its output
-bytes first. Matching repeats are idempotent; private artifacts remain mode0600.
-The command preserves the existing observation and creates no new human review,
-textual equivalence, translation relation, source acceptance or publication right.
-
-
-`tos-research synthetic-foundation-lab --source-root ABS --laboratory NAME --check`
-checks one generated public laboratory and its declared negative controls.
-`NAME` is `source-text-unit-v1`, `translation-alignment-v1`, or
-`semantic-annotation-v2`. `--build --scratch-bytes RESERVED_BYTES` refreshes
-that laboratory from its compiled native recipe and current contract/research
-bindings, committing its manifest last. Reserve the output bytes first.
-A deliberately invalid variant remains an expected negative example.
-
-
-`tos-research provenance-event-v2-lab --source-root ABS --check` verifies either the
-retained historical A/B/C records or a fresh native run. Historical builder
-and contract digests resolve only to their exact nonexecuted archives; the
-current schema still validates each record. To execute a new public synthetic
-run in a separate source root, supply the tracked plan, fixture and contract,
-then run `--prepare`, `--variant A`, `--variant B`, `--variant C`, and
-`--finalize` independently, with `--scratch-bytes RESERVED_BYTES` on each write.
-Reserve the output bytes first. C writes its failed event and returns 7.
-Finalization validates all three events and negative controls before committing
-the manifest. Matching finalization repeats are idempotent. Events record the
-actual executable, times and argv digest while withholding local paths; they
-remain unsigned evidence without human review or publication authority.
-
-`tos-research authored-canon-bridge --source-root ABS --local-input-root ABS
---local-output-root ABS --check` reconstructs the bounded DTA/authored route:
-twelve source paragraphs, twelve independent authored segments, 92 nodes and
-125 relations. Historical public records and all four private artifacts must
-match exactly; private files remain ignored with mode0600. A new
-`--plan-ref REPO_PATH --event-id ID --build --scratch-bytes RESERVED_BYTES`
-requires separate output paths, opaque identities and a new `bridge_id` in
-the plan. It records the actual native executable and invocation digest.
-This bridge preserves source/authored boundary differences and current
-rights; it performs no translation assessment, claim admission, publication
-or canon revision.
-
-`tos-research jenseits-label-correspondence --source-root ABS --check` reconstructs the
-retained text-free map and provenance exactly from the two numbered-unit maps
-and their rights files. It preserves the target ordering of 298 pairs and leaves
-source-only `237a` unpaired. This check does not replay the historical execution.
-
-A new build requires `--build --output-directory REL --map-id ID --event-id ID
---event-at RFC3339 --scratch-bytes RESERVED_BYTES`. Select a new subdirectory of
-the existing Jenseits alignment directory. The separate event names the Rust
-producer and its source digest; existing different bytes are refused. Repeating
-the same request preserves matching bytes, and the same selection with `--check`
-verifies the new result. Neither mode reads local payloads or admits a
-translation, rights change, or canon judgment.
-
-`tos-research nietzsche-transfer-source-routes --source-root ABS --check` reconstructs
-both retained hierarchical label maps, target-candidate source routes and
-provenance events for Genealogie and Antichrist. The maps pair 78 and 62
-series-qualified labels respectively, preserving target order. Historical
-checks retain the frozen event wording, timestamp and Python producer
-attribution without asserting another execution. `--build --generation NAME
---event-at RFC3339 --scratch-bytes RESERVED_BYTES` creates a separate
-`native-NAME` generation under each source-owned alignment directory, with
-new identities and Rust provenance. The same selection with `--check` verifies
-that generation. Existing different output bytes and historical outputs are
-preserved; repeated identical generation is idempotent. Inputs and source
-rights bindings are checked before any output. This route reads structural
-metadata only and keeps candidates ineligible for variant execution.
-
-`tos-research nietzsche-transfer-source-routes --source-root ABS --validate-tracked`
-also checks both German source maps against their schemas, source inventory
-resources, address/navigation page relation, proposed anchors, rights digests
-and input/output provenance. It requires the retained aggregate of 140 pairs,
-12 candidate pages and 20 source routes. This read-only mode covers the full
-source-validation scope separately from producer reconstruction.
+Those commands build frontend assets only. They do not compile or admit corpus
+data, create a Cloudflare publication, install software, or establish runtime
+acceptance. Rust build profiles and the native validation entrypoint are
+documented in the [Rust access guide](../rust/crates/tos-access/README.md).

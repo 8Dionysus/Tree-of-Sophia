@@ -1,136 +1,62 @@
 # ToS Agent-Surface Design
 
-## Role
+An `AGENTS.md` is inherited routing guidance. It identifies the local owner,
+action-changing invariants and the next source or verification route. Detailed
+procedures stay with the named owner and load on demand.
 
-This document names how agent-facing guidance should look inside
-`Tree-of-Sophia`.
+## Card shape
 
-An agent card is inherited prompt-visible route law: role, input, output,
-owner, next route, semantic stop-lines, and the name of an on-demand
-verification route. The named route owns the procedure body.
+A substantial card answers: what lives here, what input arrives, what may be
+produced, which source owns it, where to move next and how to select verification.
+Use prose or a table as appropriate. A small nested card needs only its local
+delta; do not repeat its parent's identity, boundaries or workflow.
 
-## Thesis
-
-Agents work better in ToS when each card tells them where they are in the tree,
-what authority they are touching, and where to move next without flattening
-source, branch, doctrine, mechanics, and generated companions into one pile.
-
-## Card Shape
-
-Use this shape when a substantial local `AGENTS.md` is needed:
-
-| Field | Meaning |
+| Surface | Responsibility |
 | --- | --- |
-| role | what this surface owns |
-| input | what kind of pressure arrives here |
-| output | what this surface may produce |
-| owner | the source, branch, mechanic, or route that keeps authority |
-| next route | where the agent goes after reading this card |
-| verification | the smallest useful `VALIDATION.md`, lane, or review owner, named without copying commands |
+| root `AGENTS.md` | repository identity, owner map and cross-surface boundaries |
+| `ToS/AGENTS.md` | authored source-home and branch routes |
+| branch cards | local source, canon, review, contract or public-entry invariant |
+| mechanics cards | package/part operation ownership |
+| scripts/tests cards | deterministic builder and check ownership |
+| docs cards | documentation and durable rationale ownership |
 
-Add local details only where they change action.
+[DESIGN.md](DESIGN.md) owns system architecture. The
+[model-facing guide](.agents/README.md) and its
+[manifest](.agents/agent-surface.manifest.json) own optional profile bindings
+and owner-port handoff. Human README files explain usage and provenance; they
+are read when relevant rather than preloaded as universal instructions.
 
-## Agent Topology
+## Progressive loading
 
-| Surface | Function |
-| --- | --- |
-| root `AGENTS.md` | repository route law and cross-surface orientation |
-| `ToS/AGENTS.md` | source-home route law for philosophical growth |
-| branch cards | local branch, doctrine, canon, review, or public-route guidance |
-| mechanics cards | operation-package and part-local machine law |
-| scripts/tests cards | deterministic check ownership |
-| docs cards | decision and documentation route law |
+Read root and nearest card, then the exact source or contract. Choose the
+smallest coherent change and its nearest `VALIDATION.md` route. Internal
+command membership and order live in
+[validation_lanes.json](docs/validation/validation_lanes.json).
 
-Executable procedure is loaded only after route selection. Root and district
-`VALIDATION.md` files are human on-demand maps;
-`docs/validation/validation_lanes.json` owns exact internal command membership
-and order. README files remain human/public explanation and are loaded only
-when that function is relevant.
+Specialized knowledge belongs in the owning source, contract, decision,
+README or skill. Keep executable commands out of active cards. Use concrete
+owner paths and durable names rather than temporary session/UI labels.
+Negative rules belong only where they protect an actual local boundary.
 
-The package-level model-facing route and owner-port map lives in
-[.agents/README](.agents/README.md), with its authored machine companion at
-[.agents/agent-surface.manifest.json](.agents/agent-surface.manifest.json).
-Those surfaces describe progressive loading and handoff to the nearer card and
-the responsible AoA owner.
+For golden-kernel work, expose the artifact class, source address, layer,
+authorship, review posture, uncertainty and lineage. The nearest owner defines
+promotion and regeneration. A deterministic or accepted output alone is not a
+gold slice; unresolved examples and transfer failure remain inspectable.
 
-The nearer card owns local risk. The root card owns repository identity and the
-route back to stronger owners.
+## Currentness and verification
 
-## Progressive disclosure and currentness
+[agents_route_inventory.json](docs/validation/agents_route_inventory.json)
+is the authored route map. `.agents/agents-route.current.json` records
+tracked/discovered parity, inheritance, hashes and context budgets. The native
+`route_harness.rs` evaluates declared task paths. These checks establish
+structure; model behavior, semantic assessment and time-to-owner need their
+own evidence.
 
-The root `AGENTS.md` is the universal map of repository identity, topology,
-owner routes, cross-surface boundaries, verification selection, and
-completion. A nested card adds only action-changing local owner, source
-authority, invariant, nearest validation owner, and escalation/return route.
-Specialized reference knowledge and executable procedure stay on demand in the
-owning source, contract, decision, skill, README, `VALIDATION.md`, or validator.
+[AGENTS_ROOT_REFERENCE.md](docs/AGENTS_ROOT_REFERENCE.md) locates historical
+guidance. Active inheritance starts at the current root card. When slimming a
+card, retain a unique operative rule at its smallest owner or link its exact
+source; historical prose must not become a competing current authority.
 
-The machine-readable route map is
-[`docs/validation/agents_route_inventory.json`](docs/validation/agents_route_inventory.json).
-The generated companion
-`.agents/agents-route.current.json` records tracked/discovered parity,
-inheritance stacks, hashes, and context budgets. The deterministic `rust/crates/tos-ops-mechanics-plan/src/route_harness.rs` evaluates declared task
-routes. Model behavior, semantic assessment and human time-to-owner require
-their own evaluations. `DESIGN.AGENTS.md` provides the shape reference;
-`docs/AGENTS_ROOT_REFERENCE.md` preserves historical law. Active inheritance
-begins at the root `AGENTS.md`.
-
-## Movement
-
-Good agent movement in ToS:
-
-1. read root and nearest local card;
-2. name the owner surface before editing;
-3. distinguish authored source, doctrine, canon, review, mechanic, generated,
-   and export surfaces;
-4. make the smallest coherent change;
-5. open and run the narrowest relevant on-demand validation or manual review route;
-6. report changed surfaces, validation, skipped checks, residual risk, and the
-   next route.
-
-## Golden-Kernel Work Cards
-
-Agent guidance for a Zarathustra gold slice must describe concrete operations. The nearest card should let the agent determine:
-
-| Field | Required answer |
-| --- | --- |
-| artifact class | witness, doctrine, contract, candidate, review receipt, canon object, mirror, or derived output |
-| authority input | exact source and stable address from which work begins |
-| output posture | observation, proposal, accepted, rejected, deferred, ambiguous, or derived |
-| authorship | what a human authored, what an agent proposed, and what remains unreviewed |
-| owner handoff | the next concrete owner path and the condition for entering it |
-| regeneration | which public, graph, KAG, or compact companions move only after authored input changes |
-| transfer probe | how unseen material may reject the vocabulary or expose a missing contract distinction |
-
-Cards must not call a payload gold merely because it is deterministic or
-accepted. Source anchors, layer posture, review rationale, uncertainty,
-negative or unresolved examples, and version lineage are part of the
-engineering route.
-
-## Writing Law
-
-- prefer route cards over essays;
-- name owners with concrete paths;
-- keep executable commands out of active cards and in on-demand validation or stronger operation owners;
-- treat README as human/public navigation, never an unconditional agent preload;
-- avoid old session labels as durable topology;
-- write what to do and where to go next;
-- keep negative rules only when a real boundary cannot be expressed as a
-  positive route.
-
-## Bad Signals
-
-- long inherited prohibition lists;
-- generic wisdom without owner paths;
-- validation commands copied into inherited cards;
-- README inventories loaded before the touched owner is known;
-- route names from temporary UI or session labels;
-- generated files, scripts, or validators made stronger than source-owned
-  meaning.
-
-## Relationship to DESIGN
-
-[DESIGN](DESIGN.md) names the form of the tree. This document names the form of
-the agent surfaces that help agents move through the tree.
-
-When they conflict, preserve source authority and route to the nearest owner.
+Closeout names the changed owners, checks, manual review, skipped coverage,
+residual risk and next route. Generated evidence stays subordinate to the
+source and review routes it exposes.

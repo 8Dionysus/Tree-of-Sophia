@@ -3689,6 +3689,34 @@ fn native_corpus_composition_case(installed: bool) {
     expected_raw.push(b'\n');
     let mut query_oracle: Value = crate::frozen_legacy_python_oracle("corpus-query-cases");
     reconcile_source_home_inputs(&mut query_oracle, &files);
+    // The recipe reads current route-card bytes. Keep the captured query's
+    // membership, order and roles, but bind fixity to the independent input
+    // rows above, never to the native result or rewritten historical evidence.
+    let resource_pointers = [
+        "/cases/search-filtered/results/0/item",
+        "/cases/search-filtered/results/1/item",
+        "/cases/resources/resources/0",
+    ];
+    reference.visit(resource_pointers.len() * 512).unwrap();
+    reference.charge(resource_pointers.len() * 192).unwrap();
+    for pointer in resource_pointers {
+        let resource = query_oracle.pointer_mut(pointer).unwrap();
+        let current = expected["resources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["path"] == resource["path"])
+            .expect("query resource belongs to the independently declared inputs");
+        for field in ["path", "resource_kind", "owner_branch", "authority_layer"] {
+            assert_eq!(
+                resource[field], current[field],
+                "unchanged resource {field}"
+            );
+        }
+        for field in ["sha256", "size_bytes"] {
+            resource[field] = current[field].clone();
+        }
+    }
     // CurrentDeclared counts derive from the independently frozen input recipe;
     // the historical query packets retain their own 337-resource source scope.
     // Preserve historical query fields, updating the nine resource and independently checked navigation count groups.

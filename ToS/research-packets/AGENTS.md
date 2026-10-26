@@ -1,40 +1,22 @@
 # AGENTS.md
 
-This file applies to non-authoritative research packets under
-`ToS/research-packets/`.
+This card applies to provisional research under `ToS/research-packets/`.
 
 ## Role
 
-`ToS/research-packets/` holds AI-assisted, secondary, or provisional research
-scaffolds for source investigation and philosophical growth. Source witnesses,
-doctrine, canon and graph assessment retain their corresponding authored owner
-routes.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| role | non-authoritative research packet holding area |
-| input | AI-generated research scaffold, secondary synthesis, capture metadata, or unpacking notes |
-| output | bounded packet metadata and reviewable leads for `ToS/philosophy/` |
-| owner | `ToS/research-packets/AGENTS.md` and the nearest packet `AGENTS.md` |
-| next route | packet -> philosophy branch review -> source anchoring -> graph workbench -> canon review |
-| tools | packet manifests and philosophy topology validator |
-| check | `philosophy_topology` lane in `ToS/VALIDATION.md` |
+Packets preserve AI-assisted or secondary research, capture metadata and
+reviewable leads. They provide evidence for investigation without acquiring
+witness, doctrine or canon authority.
 
 ## Boundary Routes
 
-- Classify these packets as research leads and anchor their claims in source
-witnesses.
-- Cite author, work, school, doctrine, and canon authority from source-owned
-  or reviewed surfaces.
-- Keep capture containers and UI titles as metadata only.
-- Route philosophical structure into `ToS/philosophy/` only after branch review.
-- Route authority claims to real source witnesses, published works, editions,
-  translations, or reviewed canon surfaces.
+Read the packet manifest and nearest card. Keep capture containers and UI titles
+as metadata; ground authority claims in actual witnesses, works, editions,
+translations or reviewed canon. Branch-shaped material enters `ToS/philosophy/`
+after branch review, then source anchoring, graph preparation and canon review.
+Preserve dated findings as snapshots and route current work to its active owner.
 
 ## Validation
 
-Select the `philosophy_topology` or `source_home` route from
-[`ToS/VALIDATION.md`](../VALIDATION.md) after the packet surface is known.
-The route owners retain the procedure and review boundary.
+Select `philosophy_topology` or `source_home` from
+[ToS/VALIDATION.md](../VALIDATION.md) for the touched packet bindings.

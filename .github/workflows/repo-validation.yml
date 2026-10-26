@@ -437,7 +437,9 @@ jobs:
     needs: plan
     if: ${{ needs.plan.outputs.rust == 'true' }}
     name: Rust Workspace, Reader and WebAssembly Host
-    runs-on: ubuntu-latest
+    # Native exec fixtures run host ELF programs through sealed memfds.
+    # Keep their qualified platform stable across ubuntu-latest migrations.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         # Docker Official Image, pinned to the verified upstream OCI index digest.

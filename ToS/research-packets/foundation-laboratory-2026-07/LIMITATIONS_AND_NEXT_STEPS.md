@@ -1,9 +1,11 @@
-# Foundation Limitations and Next Steps
+# Foundation Limitations and Next Steps — 2026-08-12 snapshot
 
-Status: mechanical foundation and triggered solo+AI assurance contract
-prepared on local owner branches; human-evidence phases remain
-question-specific
-Snapshot: 2026-08-12
+Snapshot status (2026-08-12): the mechanical foundation and triggered solo+AI
+assurance contract were prepared on local owner branches; human-evidence phases
+remained question-specific. This is preserved limitation evidence, not a
+current task queue. Current philosophy-tree growth is routed through the
+[philosophy README](../../philosophy/README.md) and
+[philosophy route card](../../philosophy/AGENTS.md).
 
 ## Honest boundary
 
