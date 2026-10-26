@@ -549,6 +549,33 @@ fn validate_manifest(actual: &Value, expected: &Value) -> io::Result<()> {
     }
     Ok(())
 }
+fn reused_executor_products(
+    artifacts: &Path,
+    images: &Path,
+    expected: &Value,
+    b: &Budget<'_>,
+) -> io::Result<BTreeMap<String, CargoProduct>> {
+    absolute(artifacts)?;
+    artifact_set(artifacts, true, b)?;
+    let actual = strict(&bytes(&artifacts.join("manifest.json"), META, b)?, META)?;
+    validate_manifest(&actual, expected)?;
+    let mut products = BTreeMap::new();
+    for name in EXECUTORS {
+        if actual["binaries"][name] != hash(&images.join(name), b)? {
+            return Err(bad(
+                "reused executor differs from authenticated plan product",
+            ));
+        }
+        products.insert(
+            name.to_owned(),
+            CargoProduct {
+                features: Vec::new(),
+                opt_level: "0".to_owned(),
+            },
+        );
+    }
+    Ok(products)
+}
 fn walk(
     depth: usize,
     dir: &Path,
@@ -671,6 +698,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             "--repo-root",
             "--image-root",
             "--receipt-root",
+            "--executor-root",
             "--cargo-messages",
             "--rustc-version",
             "--github-env",
@@ -747,17 +775,33 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             absolute(receipt_root)?;
             let mut names = vec!["tos-access"];
             names.extend(COMMANDS);
-            let product_metadata = cargo_products(
+            let built_names = names
+                .iter()
+                .copied()
+                .filter(|name| !EXECUTORS.contains(name))
+                .collect::<Vec<_>>();
+            let built_no_default = SOFTWARE_NO_DEFAULT_FEATURES
+                .iter()
+                .copied()
+                .filter(|name| built_names.contains(name))
+                .collect::<Vec<_>>();
+            let mut product_metadata = cargo_products(
                 root,
                 get("--cargo-messages"),
                 images,
-                &names,
-                &SOFTWARE_NO_DEFAULT_FEATURES,
+                &built_names,
+                &built_no_default,
                 get("--rustc-version"),
                 0,
                 true,
                 &b,
             )?;
+            product_metadata.extend(reused_executor_products(
+                get("--executor-root"),
+                images,
+                &manifest(root, get("--executor-root"), &b)?,
+                &b,
+            )?);
             let id = identity(root, &b)?;
             let mut products = serde_json::Map::new();
             for n in names {
@@ -884,6 +928,48 @@ mod tests {
         let path = root.join("rust/crates").join(package).join("Cargo.toml");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, source).unwrap();
+    }
+    #[test]
+    fn reused_executors_require_bound_manifest_and_exact_copied_bytes() {
+        let root = fixture();
+        let artifacts = root.join("executors");
+        let images = root.join(TARGET).join("debug");
+        fs::create_dir(&artifacts).unwrap();
+        fs::create_dir_all(&images).unwrap();
+        for (i, name) in EXECUTORS.iter().enumerate() {
+            fs::write(artifacts.join(name), vec![i as u8; 64]).unwrap();
+            fs::copy(artifacts.join(name), images.join(name)).unwrap();
+        }
+        let cancel = AtomicI32::new(0);
+        let b = Budget {
+            deadline: Instant::now() + Duration::from_secs(30),
+            cancel: &cancel,
+        };
+        let mut selected = json!({"source_commit":"a","source_tree":"b","lock_sha256":"c","toolchain":TOOLCHAIN,"target":TARGET,"profile":"debug","features":[],"binaries":{}});
+        for name in EXECUTORS {
+            selected["binaries"][name] = hash(&artifacts.join(name), &b).unwrap();
+        }
+        let manifest_path = artifacts.join("manifest.json");
+        json_write(&manifest_path, &selected, &b).unwrap();
+        let products = reused_executor_products(&artifacts, &images, &selected, &b).unwrap();
+        assert_eq!(products.len(), EXECUTORS.len());
+        assert!(
+            products
+                .values()
+                .all(|v| v.features.is_empty() && v.opt_level == "0")
+        );
+        fs::write(images.join(EXECUTORS[0]), [42u8; 64]).unwrap();
+        assert!(reused_executor_products(&artifacts, &images, &selected, &b).is_err());
+        fs::copy(artifacts.join(EXECUTORS[0]), images.join(EXECUTORS[0])).unwrap();
+        let mut changed = selected.clone();
+        changed["features"] = json!(["mechanics"]);
+        fs::write(&manifest_path, serde_json::to_vec(&changed).unwrap()).unwrap();
+        assert!(reused_executor_products(&artifacts, &images, &selected, &b).is_err());
+        fs::write(&manifest_path, serde_json::to_vec(&selected).unwrap()).unwrap();
+        changed = selected.clone();
+        changed["source_commit"] = json!("another commit");
+        assert!(reused_executor_products(&artifacts, &images, &changed, &b).is_err());
+        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn held_images_and_exports_refuse_symlinks_overbounds_and_overwrites() {
