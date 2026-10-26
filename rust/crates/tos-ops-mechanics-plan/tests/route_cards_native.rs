@@ -166,6 +166,14 @@ fn route_currentness_and_nested_consumers_preserve_owned_contracts() {
     assert_eq!(check_native.status.code(), Some(1));
     write("README.md", "changed source\n");
     assert!(compare(1).contains("generated AGENTS route currentness is stale"));
+    assert!(native(&["validate-source"]).status.success());
+    write("AGENTS.md", "not a route card\n");
+    let source_check = native(&["validate-source"]);
+    assert_eq!(source_check.status.code(), Some(1));
+    assert!(
+        String::from_utf8_lossy(&source_check.stdout).contains("missing '# AGENTS.md' heading")
+    );
+    write("AGENTS.md", clean);
     rebuild();
     compare(0);
     for (body, refusal_count) in [

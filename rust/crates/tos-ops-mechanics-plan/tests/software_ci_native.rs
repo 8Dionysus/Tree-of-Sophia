@@ -36,6 +36,10 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     git(&["config", "core.hooksPath", "/dev/null"]);
     fs::write(root.join("README.md"), "[old missing](missing-old.md)\n").unwrap();
     fs::write(root.join("access/src/tos_access/reader.py"), "# source\n").unwrap();
+    let integration =
+        "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md";
+    fs::create_dir_all(root.join(integration).parent().unwrap()).unwrap();
+    fs::write(root.join(integration), "Required Questbook source input.\n").unwrap();
     git(&["add", "."]);
     git(&["commit", "-m", "baseline"]);
     let base = git(&["rev-parse", "HEAD"]);
@@ -102,9 +106,9 @@ fn software_ci_actual_history_and_required_gate_are_native() {
             fs::read_to_string(root.join("native-output"))
                 .unwrap()
                 .ends_with(if full {
-                    "software_mode=full\nworker=true\nrust=true\n"
+                    "software_mode=full\nworker=true\nrust=true\nroute_docs=none\nagent_surface=false\ndocumentation_family=false\n"
                 } else {
-                    "software_mode=reader\nworker=true\nrust=false\n"
+                    "software_mode=reader\nworker=true\nrust=false\nroute_docs=none\nagent_surface=false\ndocumentation_family=false\n"
                 })
         );
         assert!(
@@ -120,7 +124,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     let diagnostic = String::from_utf8(native.stderr).unwrap();
     assert!(diagnostic.contains("README.md: unresolved merge marker"));
     assert!(diagnostic.contains("README.md: missing repository link target absent.md"));
-    let good = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":"reader","worker":"true","rust":"false"}}, "software":{"result":"success"},"worker":{"result":"success"},"rust":{"result":"skipped"}});
+    let good = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":"reader","worker":"true","rust":"false","route_docs":"none","agent_surface":"false","documentation_family":"false"}}, "software":{"result":"success"},"worker":{"result":"success"},"rust":{"result":"skipped"}});
     let native = invoke("gate", Some(&good.to_string()), false);
     assert_eq!(native.status.code(), Some(0));
     assert!(
@@ -149,6 +153,40 @@ fn software_ci_actual_history_and_required_gate_are_native() {
             .output()
             .is_err()
     );
+    // Real source history still validates changed Markdown when package jobs
+    // are omitted. A route card selects its source owner checks explicitly.
+    git(&["reset", "--hard", &base]);
+    fs::write(root.join("README.md"), "Human guide updated.\n").unwrap();
+    fs::write(
+        root.join("AGENTS.md"),
+        "# AGENTS.md\nThis card applies to the fixture.\n",
+    )
+    .unwrap();
+    git(&["add", "README.md", "AGENTS.md"]);
+    git(&["commit", "-m", "documentation only"]);
+    let native = invoke("plan", None, false);
+    assert!(
+        native.status.success(),
+        "{}",
+        String::from_utf8_lossy(&native.stderr)
+    );
+    let selection: serde_json::Value = serde_json::from_slice(&native.stdout).unwrap();
+    assert_eq!(selection["software_mode"], "none");
+    assert_eq!(selection["rust"], false);
+    assert_eq!(selection["worker"], false);
+    assert_eq!(selection["route_docs"], "source");
+    fs::write(root.join("README.md"), "[broken](absent.md)\n").unwrap();
+    assert_eq!(invoke("plan", None, false).status.code(), Some(1));
+    fs::write(root.join("README.md"), "Human guide updated.\n").unwrap();
+    fs::remove_file(root.join(integration)).unwrap();
+    git(&["add", "-A", "--", integration]);
+    git(&["commit", "-m", "delete required Questbook input"]);
+    let native = invoke("plan", None, false);
+    assert!(native.status.success());
+    let selection: serde_json::Value = serde_json::from_slice(&native.stdout).unwrap();
+    assert_eq!(selection["software_mode"], "none");
+    assert_eq!(selection["worker"], false);
+    assert_eq!(selection["rust"], true);
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -374,6 +412,17 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         plan.iter().position(|s| std::ptr::eq(s, build))
             < plan.iter().position(|s| std::ptr::eq(s, selection))
     );
+    let documentation = one_step(plan, "--documentation-family-build");
+    assert!(
+        documentation["if"]
+            .as_str()
+            .unwrap()
+            .contains("steps.select.outputs.route_docs")
+    );
+    assert!(run(documentation).contains("operation=validate-source"));
+    assert!(run(documentation).contains("operation=validate;"));
+    assert!(run(documentation).contains("tos-agents-route-harness"));
+    assert!(documentation["continue-on-error"].is_badvalue());
     for job in ["software", "rust", "required_gate"] {
         let st = steps(jobs, job);
         let binding = one_step(st, "executor-bind --repo-root");
