@@ -31,6 +31,8 @@ The KU Leuven Dayr al-Barsha project is especially useful here because it reject
 
 The source SHA-1 is `86c45037ada85634f7c205077f5cb393420d42cb`. The File is `tos.file.sha256.733eb290d36b4cc2b76e287e3772fa2c31e10d2da3b50e4f13877003157374f9`.
 
+The machine storage preflight returned `deny` because host storage automation treats `/srv/AbyssOS` as a protected project root, not because of capacity. The operator's explicit project-write and download directive governed the source-owned ToS write; the preflight remains recorded as `deny-protected-project-root` with scope `machine-owned-storage-automation-only`.
+
 ## Rights separation
 
 - physical-artifact metadata: public metadata only; no photograph or text license is inferred from the artifact record;
