@@ -381,6 +381,16 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     use std::collections::BTreeSet;
     let w = workflow("repo-validation.yml");
     let jobs = &w["jobs"];
+    for job in jobs.as_hash().unwrap().values() {
+        if let Some(env) = job["env"].as_hash() {
+            assert!(
+                env.values().all(|value| !value
+                    .as_str()
+                    .is_some_and(|s| s.contains("${{") && s.contains("runner."))),
+                "job env cannot reference the runner context"
+            );
+        }
+    }
     assert!(!w["on"]["workflow_dispatch"].is_badvalue());
     assert_eq!(
         jobs["required_gate"]["needs"]
@@ -459,13 +469,11 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     let production_target = one_step(software, "software-receipts")["env"]["CARGO_TARGET_DIR"]
         .as_str()
         .unwrap();
-    let test_target = jobs["software"]["env"]["CARGO_TARGET_DIR"]
-        .as_str()
-        .unwrap();
-    assert_ne!(
-        production_target, test_target,
-        "test features must not overwrite receipt-bound images"
-    );
+    let test_target = "software-test-cargo-target";
+    let configure = one_step(software, "CARGO_TARGET_DIR=%s/software-test-cargo-target");
+    assert!(run(configure).contains("\"$RUNNER_TEMP\" >> \"$GITHUB_ENV\""));
+    assert!(production_target.ends_with("/software-cargo-target"));
+    assert!(!production_target.contains(test_target));
     assert_eq!(
         one_step(software, "software-limits")["env"]["CARGO_TARGET_DIR"].as_str(),
         Some(production_target),

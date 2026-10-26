@@ -23,8 +23,6 @@ jobs:
     name: Select checks and validate changed documentation
     runs-on: ubuntu-latest
     env:
-      CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
-      CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
       CARGO_BUILD_JOBS: "2"
     outputs:
       software_mode: ${{ steps.select.outputs.software_mode }}
@@ -42,6 +40,8 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'CARGO_HOME=%s/plan-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'CARGO_TARGET_DIR=%s/plan-cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Restore optional plan Cargo cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
@@ -122,11 +122,6 @@ jobs:
     if: ${{ needs.plan.outputs.software_mode != 'none' }}
     name: Software Contracts, Browser and Installed Package
     runs-on: ubuntu-latest
-    env:
-      CARGO_HOME: ${{ runner.temp }}/software-cargo-home
-      # Tests keep a separate host target so their features cannot replace
-      # the production images already bound by package receipts.
-      CARGO_TARGET_DIR: ${{ runner.temp }}/software-test-cargo-target
     steps:
       - name: Checkout software and bounded test fixtures
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -208,6 +203,9 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'CARGO_HOME=%s/software-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          # Test features cannot replace images already bound by package receipts.
+          printf 'CARGO_TARGET_DIR=%s/software-test-cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Restore optional software Cargo cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
@@ -426,9 +424,6 @@ jobs:
     if: ${{ needs.plan.outputs.worker == 'true' }}
     name: Worker Software Contracts
     runs-on: ubuntu-latest
-    env:
-      CARGO_HOME: ${{ runner.temp }}/worker-cargo-home
-      CARGO_TARGET_DIR: ${{ runner.temp }}/worker-cargo-target
     steps:
       - name: Checkout Worker software
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -466,6 +461,8 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'CARGO_HOME=%s/worker-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'CARGO_TARGET_DIR=%s/worker-cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Restore optional Worker Cargo cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
@@ -521,8 +518,6 @@ jobs:
     # Keep their qualified platform stable across ubuntu-latest migrations.
     runs-on: ubuntu-24.04
     env:
-      CARGO_HOME: ${{ runner.temp }}/cargo-home
-      CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
       CARGO_BUILD_JOBS: "2"
     services:
       postgres:
@@ -866,6 +861,8 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'CARGO_HOME=%s/cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'CARGO_TARGET_DIR=%s/cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Restore optional Rust workspace Cargo cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
