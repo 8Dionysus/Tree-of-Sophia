@@ -1658,6 +1658,8 @@ pub const CANONICAL_REUSE_CORE_STATE: usize = std::mem::size_of::<[Parser<'_, '_
 /// Canonical bytes with the same state/visit limits and a prefix work owner.
 /// Admit each count/emit byte and visitor prefix before processing it, retaining
 /// successful charges on refusal instead of charging the whole output ceiling.
+/// Key comparisons additionally admit their bounded input-byte windows before
+/// scanning them; the returned visit count remains the actual value visits.
 pub fn canonical_bytes_v1_with_state_budget_and_visits_and_admission(
     value: &JsonValue,
     profile: CanonicalProfile,
@@ -2609,11 +2611,19 @@ fn write_value(
                 }
                 for pair in ordered.windows(2) {
                     let duplicate = if checked_scalar_keys {
-                        checked_units_equal(
-                            &pair[0].1.0.units,
-                            &pair[1].1.0.units,
-                            &mut output.poll,
-                        )?
+                        let left = &pair[0].1.0.units;
+                        let right = &pair[1].1.0.units;
+                        output.poll.admit_work(1, 0)?;
+                        if left.len() == right.len() {
+                            let bytes = left
+                                .len()
+                                .checked_mul(2 * std::mem::size_of::<u16>())
+                                .ok_or_else(state_error)?;
+                            // Prepay both source key buffers before equality;
+                            // parser admission retains its separate contract.
+                            output.poll.admit_work(bytes, 0)?;
+                        }
+                        checked_units_equal(left, right, &mut output.poll)?
                     } else {
                         pair[0].1.0.units == pair[1].1.0.units
                     };
@@ -2701,7 +2711,7 @@ fn write_value(
                                 .then(left_index.cmp(right_index))
                         },
                     );
-                } else {
+                } else if !stateful {
                     if output.poll.check.is_some() {
                         checked_key_sort(&mut ordered, &mut output.poll)?;
                     } else {
@@ -2710,6 +2720,10 @@ fn write_value(
                         });
                     }
                 }
+                // A checked stateful object was already sorted by this exact
+                // scalar/ordinal comparator for duplicate checking above. The
+                // duplicate scan leaves that order unchanged; emit it directly.
+                // This removes work, without skipping admission for any compare.
                 for (index, (_, (key, item))) in ordered.iter().copied().enumerate() {
                     if index != 0 {
                         emit(
@@ -3338,6 +3352,7 @@ fn checked_key_sort(
         b: &JsonString,
         poll: &mut JsonCheck<'_>,
     ) -> Result<std::cmp::Ordering> {
+        poll.admit_work(1, 0)?;
         match (a.as_str(), b.as_str()) {
             (Some(a), Some(b)) => {
                 for (a, b) in a
@@ -3346,6 +3361,9 @@ fn checked_key_sort(
                     .zip(b.as_bytes().chunks(CHECK_BYTES))
                 {
                     poll.now()?;
+                    // Both chunks are <= CHECK_BYTES. Pay their input scan
+                    // before lexicographic comparison, including long prefixes.
+                    poll.admit_work(a.len() + b.len(), 0)?;
                     let ordering = a.cmp(b);
                     if ordering != std::cmp::Ordering::Equal {
                         return Ok(ordering);
