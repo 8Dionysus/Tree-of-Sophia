@@ -166,6 +166,9 @@ source identity and required-job checks without compiling mechanics, storage
 or schema-validation families. The plan job records their source commit/tree, lock digest, toolchain
 and binary sizes/digests; software, Rust and the required gate reuse that same
 run's artifact and verify its identity before placing the native executors on PATH.
+The software package reuses these three products as its corresponding command
+roles. Receipt generation rechecks their source-bound manifest and copied bytes;
+the other native roles still require their completed Cargo artifact streams.
 Missing products or a failed plan fail closed. Documentation-only changes skip
 the software package and browser/Worker jobs, but still need this native selector
 prerequisite. Cargo cache reuse is an optimization, not evidence of identity.
