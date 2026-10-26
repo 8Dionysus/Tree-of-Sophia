@@ -456,6 +456,20 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     let reader = one_step(software, "--run software_reader");
     assert!(reader["if"].as_str().unwrap().contains("== 'reader'"));
     let receipts = run(one_step(software, "software-receipts"));
+    let production_target = one_step(software, "software-receipts")["env"]["CARGO_TARGET_DIR"]
+        .as_str()
+        .unwrap();
+    let test_target = jobs["software"]["env"]["CARGO_TARGET_DIR"]
+        .as_str()
+        .unwrap();
+    assert_ne!(
+        production_target, test_target,
+        "test features must not overwrite receipt-bound images"
+    );
+    assert_eq!(
+        one_step(software, "software-limits")["env"]["CARGO_TARGET_DIR"].as_str(),
+        Some(production_target),
+    );
     assert!(receipts.contains("\"$TOS_SOFTWARE_CI_EXECUTOR\" software-receipts"));
     assert!(receipts.contains("--executor-root \"$RUNNER_TEMP/tos-ci-executors\""));
     for name in [

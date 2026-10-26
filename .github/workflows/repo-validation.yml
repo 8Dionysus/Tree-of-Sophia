@@ -22,6 +22,10 @@ jobs:
   plan:
     name: Select checks and validate changed documentation
     runs-on: ubuntu-latest
+    env:
+      CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
+      CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
+      CARGO_BUILD_JOBS: "2"
     outputs:
       software_mode: ${{ steps.select.outputs.software_mode }}
       worker: ${{ steps.select.outputs.worker }}
@@ -33,12 +37,23 @@ jobs:
       executor_manifest_sha256: ${{ steps.executors.outputs.executor_manifest_sha256 }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Identify Cargo cache platform
+        id: cargo_platform
+        run: |
+          . /etc/os-release
+          printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+      - name: Restore optional plan Cargo cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        continue-on-error: true
+        with:
+          path: |
+            ${{ runner.temp }}/plan-cargo-home/registry
+            ${{ runner.temp }}/plan-cargo-target
+          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-plan-native-nodefault-mechanics-debug0-${{ github.sha }}
+          restore-keys: |
+            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-plan-native-nodefault-mechanics-debug0-
       - name: Prepare exact native CI executors
         id: executors
-        env:
-          CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
-          CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
-          CARGO_BUILD_JOBS: "2"
         run: |
           rustup toolchain install 1.98.1 --profile minimal
           if cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
@@ -82,9 +97,6 @@ jobs:
       - name: Validate selected documentation owners
         if: ${{ steps.select.outputs.route_docs != 'none' || steps.select.outputs.agent_surface == 'true' || steps.select.outputs.documentation_family == 'true' }}
         env:
-          CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
-          CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
-          CARGO_BUILD_JOBS: "2"
           ROUTE_DOCS: ${{ steps.select.outputs.route_docs }}
           AGENT_SURFACE: ${{ steps.select.outputs.agent_surface }}
           DOCUMENTATION_FAMILY: ${{ steps.select.outputs.documentation_family }}
@@ -110,6 +122,11 @@ jobs:
     if: ${{ needs.plan.outputs.software_mode != 'none' }}
     name: Software Contracts, Browser and Installed Package
     runs-on: ubuntu-latest
+    env:
+      CARGO_HOME: ${{ runner.temp }}/software-cargo-home
+      # Tests keep a separate host target so their features cannot replace
+      # the production images already bound by package receipts.
+      CARGO_TARGET_DIR: ${{ runner.temp }}/software-test-cargo-target
     steps:
       - name: Checkout software and bounded test fixtures
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -186,6 +203,22 @@ jobs:
             /tests/fixtures/decision_records_oracle/expected/by-tos-layer.md.txt
             /tests/fixtures/decision_records_oracle/expected/by-tree-class.md.txt
 
+      - name: Identify Cargo cache platform
+        id: cargo_platform
+        run: |
+          . /etc/os-release
+          printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+      - name: Restore optional software Cargo cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        continue-on-error: true
+        with:
+          path: |
+            ${{ runner.temp }}/software-cargo-home/registry
+            ${{ runner.temp }}/software-cargo-target
+            ${{ runner.temp }}/software-test-cargo-target
+          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-software-native-prod-test-wasm-release-debug0-${{ github.sha }}
+          restore-keys: |
+            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-software-native-prod-test-wasm-release-debug0-
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -222,7 +255,6 @@ jobs:
 
       - name: Prepare pinned native software and browser rules
         env:
-          CARGO_HOME: ${{ runner.temp }}/software-cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
           CARGO_BUILD_JOBS: "2"
         run: |
@@ -294,7 +326,6 @@ jobs:
 
       - name: Check canonical definition topology and generated registry pair
         env:
-          CARGO_HOME: ${{ runner.temp }}/software-cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
           CARGO_BUILD_JOBS: "2"
         run: |
@@ -395,6 +426,9 @@ jobs:
     if: ${{ needs.plan.outputs.worker == 'true' }}
     name: Worker Software Contracts
     runs-on: ubuntu-latest
+    env:
+      CARGO_HOME: ${{ runner.temp }}/worker-cargo-home
+      CARGO_TARGET_DIR: ${{ runner.temp }}/worker-cargo-target
     steps:
       - name: Checkout Worker software
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -427,6 +461,21 @@ jobs:
             # Literal Rust compile/test inputs; source bytes are not executed.
             /ToS/doctrine/semantic-interchange/source-validation-profiles.v1.json
 
+      - name: Identify Cargo cache platform
+        id: cargo_platform
+        run: |
+          . /etc/os-release
+          printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+      - name: Restore optional Worker Cargo cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        continue-on-error: true
+        with:
+          path: |
+            ${{ runner.temp }}/worker-cargo-home/registry
+            ${{ runner.temp }}/worker-cargo-target
+          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-worker-native-wasm-release-debug0-${{ github.sha }}
+          restore-keys: |
+            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-worker-native-wasm-release-debug0-
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -437,8 +486,6 @@ jobs:
 
       - name: Prepare pinned Worker rules
         env:
-          CARGO_HOME: ${{ runner.temp }}/worker-cargo-home
-          CARGO_TARGET_DIR: ${{ runner.temp }}/worker-cargo-target
           CARGO_BUILD_JOBS: "2"
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
@@ -473,6 +520,10 @@ jobs:
     # Native exec fixtures run host ELF programs through sealed memfds.
     # Keep their qualified platform stable across ubuntu-latest migrations.
     runs-on: ubuntu-24.04
+    env:
+      CARGO_HOME: ${{ runner.temp }}/cargo-home
+      CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
+      CARGO_BUILD_JOBS: "2"
     services:
       postgres:
         # Docker Official Image, pinned to the verified upstream OCI index digest.
@@ -810,6 +861,21 @@ jobs:
             /ToS/philosophy/**/branch.manifest.json
             /ToS/philosophy/eras/medieval-worlds/regions/sri-lanka/traditions/pali-scholastic-commentarial-handoff/sources/source-anchor-backlog.jsonl
             /ToS/philosophy/eras/axial-age/regions/levant/traditions/levantine-wisdom-hebrew-aramaic-documentary/sources/source-anchor-backlog.jsonl
+      - name: Identify Cargo cache platform
+        id: cargo_platform
+        run: |
+          . /etc/os-release
+          printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+      - name: Restore optional Rust workspace Cargo cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        continue-on-error: true
+        with:
+          path: |
+            ${{ runner.temp }}/cargo-home/registry
+            ${{ runner.temp }}/cargo-target
+          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-workspace-native-tests-wasm-check-pg-debug0-${{ github.sha }}
+          restore-keys: |
+            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-workspace-native-tests-wasm-check-pg-debug0-
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -886,9 +952,6 @@ jobs:
           echo "TMPDIR=$root/mounted" >> "$GITHUB_ENV"
       - name: Verify Rust workspace, conformance products and isolated install
         env:
-          CARGO_HOME: ${{ runner.temp }}/cargo-home
-          CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
-          CARGO_BUILD_JOBS: "2"
           TOS_NATIVE_OWNER_COMMAND_PATH: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
@@ -896,9 +959,6 @@ jobs:
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --lane-timeout-ms 10800000'
       - name: Verify durable command transactions against PostgreSQL
         env:
-          CARGO_HOME: ${{ runner.temp }}/cargo-home
-          CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
-          CARGO_BUILD_JOBS: "2"
           # Apply the native fixture process contract to test executables only.
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "prlimit --as=1073741824:1073741824 --fsize=67108864:67108864 --"
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
