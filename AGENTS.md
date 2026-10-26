@@ -76,7 +76,9 @@ executing host's policy; no ecosystem installation is a ToS prerequisite.
 
 Follow [RELEASING](docs/RELEASING.md) for branch, checkpoint review, PR, CI,
 merge and post-landing synchronization. Required checks follow changed-path
-selection under TOS-D-0062. Production corpus, KAG/stats integration and generated
+selection under TOS-D-0062. Guides and agent cards keep their selected source
+checks; ToS and Questbook text inputs retain their Rust consumers.
+Production corpus, KAG/stats integration and generated
 currentness are separate operations. Report an unobservable remote state as a
 blocker rather than inferring success.
 
