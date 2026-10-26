@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tree-of-sophia-public-research",
+  "main": "src/public-research-entry.ts",
+  "compatibility_date": "2026-09-03",
+  "compatibility_flags": ["enable_request_signal", "request_signal_passthrough"],
+  "assets": {
+    "directory": "./dist-public-research",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": ["/zarathustra*", "/antiquity*", "/__research/*"]
+  },
+  "routes": [
+    { "pattern": "treeofsophia.com/zarathustra*", "zone_name": "treeofsophia.com" },
+    { "pattern": "treeofsophia.com/antiquity*", "zone_name": "treeofsophia.com" },
+    { "pattern": "treeofsophia.com/__research/*", "zone_name": "treeofsophia.com" },
+    { "pattern": "www.treeofsophia.com/zarathustra*", "zone_name": "treeofsophia.com" },
+    { "pattern": "www.treeofsophia.com/antiquity*", "zone_name": "treeofsophia.com" },
+    { "pattern": "www.treeofsophia.com/__research/*", "zone_name": "treeofsophia.com" }
+  ]
+}

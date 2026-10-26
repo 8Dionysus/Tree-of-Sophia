@@ -7,7 +7,7 @@ export const CORPUS_OPERATIONS = Object.freeze([
   'search',
   'resolve',
 ]);
-export const CORPUS_OPTIONAL_OPERATIONS = Object.freeze(['structure']);
+export const CORPUS_OPTIONAL_OPERATIONS = Object.freeze(['structure', 'analyze']);
 export const CORPUS_ALL_OPERATIONS = Object.freeze([...CORPUS_OPERATIONS, ...CORPUS_OPTIONAL_OPERATIONS]);
 
 export const CORPUS_LIMITS = Object.freeze({
@@ -350,6 +350,7 @@ function validateSearchPage(value, args = {}) {
     if (!isRecord(item)) throw new CorpusProviderError('invalid_response', 'search.items must contain objects', 'search');
     responseString(item.unitId, 'search.items[].unitId', 'search');
     responseString(item.reference, 'search.items[].reference', 'search');
+    if(item.exactReference!==undefined){const reference=validateReference(item.exactReference);if(reference.unitId!==item.unitId||reference.target.workId!==args.documentId||reference.versionId!==args.versionId)throw new CorpusProviderError('invalid_response','Search occurrence refers to a different source','search');}
     responseString(item.excerpt, 'search.items[].excerpt', 'search', CORPUS_LIMITS.maxUnitTextCharacters);
     metadataCharacters += responseMetadata(item, 'search.items[]', 'search');
   }
@@ -423,6 +424,27 @@ function validateResolvePage(value, args = {}) {
   return page;
 }
 
+function validateAnalysisPage(value, args = {}) {
+  const page = assertPage(value, 'analyze');
+  if (!['available', 'unavailable'].includes(page.status)) {
+    throw new CorpusProviderError('invalid_response', 'analyze.status must be available or unavailable', 'analyze');
+  }
+  let reference;
+  try { reference = validateReference(page.reference); }
+  catch { throw new CorpusProviderError('invalid_response', 'analyze.reference is not a valid corpus reference', 'analyze'); }
+  if (referenceKey(reference) !== referenceKey(args.reference)) {
+    throw new CorpusProviderError('invalid_response', 'analyze.reference does not match the requested occurrence', 'analyze');
+  }
+  if (page.status === 'available') {
+    responseString(page.analysisVersion, 'analyze.analysisVersion', 'analyze', 256);
+    if (!Array.isArray(page.candidates) || page.candidates.length === 0 || page.candidates.length > 64) {
+      throw new CorpusProviderError('invalid_response', 'analyze.candidates must contain 1 to 64 supplied candidates', 'analyze');
+    }
+  }
+  responseMetadata(page, 'analyze response', 'analyze', 16_384);
+  return {...page, reference};
+}
+
 const VALIDATORS = Object.freeze({
   catalog: validateCatalogPage,
   document: validateDocumentPage,
@@ -484,6 +506,9 @@ export function assertCorpusProvider(provider) {
   if (provider.structure !== undefined && typeof provider.structure !== 'function') {
     throw new TypeError('provider.structure must be a function when supplied');
   }
+  if (provider.analyze !== undefined && typeof provider.analyze !== 'function') {
+    throw new TypeError('provider.analyze must be a function when supplied');
+  }
   return provider;
 }
 
@@ -508,9 +533,18 @@ export function bindCorpusProvider(provider) {
       return VALIDATORS.structure(result, normalized);
     };
   }
+  if (typeof provider.analyze === 'function') {
+    bound.analyze = async (args = {}) => {
+      const normalized = validateOperationArgs('analyze', args);
+      const result = await provider.analyze(normalized);
+      return validateAnalysisPage(result, normalized);
+    };
+  }
   const capabilities = isRecord(provider.capabilities) ? {...provider.capabilities} : {};
   if (typeof provider.structure === 'function') capabilities.structure = true;
   else delete capabilities.structure;
+  if (typeof provider.analyze === 'function') capabilities.analyze = true;
+  else delete capabilities.analyze;
   if (Object.keys(capabilities).length > 0) bound.capabilities = Object.freeze(capabilities);
   return Object.freeze(bound);
 }
@@ -519,12 +553,15 @@ export function bindCorpusProvider(provider) {
  * Adapt a caller-owned transport. The transport chooses how operation names
  * become HTTP, IPC, or another request; this module never invents a route.
  */
-export function createTransportProvider({request, structure = null, capabilities = null} = {}) {
+export function createTransportProvider({request, structure = null, analyze = null, capabilities = null} = {}) {
   if (typeof request !== 'function') {
     throw new TypeError('createTransportProvider requires caller-supplied request(operation, args)');
   }
   if (structure !== null && typeof structure !== 'function') {
     throw new TypeError('createTransportProvider.structure must be a function when supplied');
+  }
+  if (analyze !== null && typeof analyze !== 'function') {
+    throw new TypeError('createTransportProvider.analyze must be a function when supplied');
   }
   if (capabilities !== null && !isRecord(capabilities)) {
     throw new TypeError('createTransportProvider.capabilities must be an object when supplied');
@@ -534,6 +571,7 @@ export function createTransportProvider({request, structure = null, capabilities
     provider[operation] = (args = {}) => request(operation, args);
   }
   if (structure !== null) provider.structure = structure;
+  if (analyze !== null) provider.analyze = analyze;
   if (capabilities !== null) provider.capabilities = capabilities;
   return bindCorpusProvider(provider);
 }
@@ -551,6 +589,7 @@ export function createUnavailableProvider(reason = 'The real corpus provider is 
       search: false,
       resolve: false,
       structure: false,
+      analyze: false,
       searchScopes: Object.freeze([]),
     }),
   });
@@ -601,6 +640,12 @@ export function validateOperationArgs(operation, args = {}) {
     normalized.limit = pageLimit(args.limit, operation);
   } else if (operation === 'resolve') {
     normalized.reference = validateReference(args.reference);
+  } else if (operation === 'analyze') {
+    normalized.reference = validateReference(args.reference);
+    normalized.form = requiredString(args.form, 'analyze.form');
+    if (normalized.form.length > 2048) throw new CorpusProviderError('invalid_request', 'analyze.form exceeds 2048 characters', operation);
+    normalized.language = requiredString(args.language, 'analyze.language');
+    if (normalized.language.length > 64) throw new CorpusProviderError('invalid_request', 'analyze.language exceeds 64 characters', operation);
   }
   return normalized;
 }

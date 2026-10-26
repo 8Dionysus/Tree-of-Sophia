@@ -1,8 +1,10 @@
 import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 
-export default defineConfig({
-  base: "/static/",
+export default defineConfig(({ mode }) => {
+  const publicResearch = mode === "public-research";
+  return {
+  base: publicResearch ? "/__research/" : "/static/",
   server: {
     host: "127.0.0.1",
     fs: {
@@ -18,15 +20,21 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 900,
     manifest: false,
-    outDir: "dist",
+    outDir: publicResearch ? "../deploy/cloudflare-worker/dist-public-research" : "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: {index:fileURLToPath(new URL('./index.html',import.meta.url)),research:fileURLToPath(new URL('./research.html',import.meta.url))},
+      input: {
+        index:fileURLToPath(new URL('./index.html',import.meta.url)),
+        research:fileURLToPath(new URL('./research.html',import.meta.url)),
+        'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
+        'antiquity/index':fileURLToPath(new URL('./antiquity/index.html',import.meta.url)),
+      },
       output: {
-        entryFileNames: chunk=>chunk.name==='index'?'assets/tos-graph.js':'assets/tos-research.js',
+        entryFileNames: chunk=>chunk.name==='index'?'assets/tos-graph.js':chunk.name==='research'?'assets/tos-research.js':`assets/${chunk.name.replaceAll('/','-')}.js`,
         chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
       },
     },
   },
+  };
 });

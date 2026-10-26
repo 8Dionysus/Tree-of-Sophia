@@ -1,5 +1,22 @@
 # Native access response budgets
 
+`tos-access public-corpus-build` creates a deterministic public snapshot from
+an explicit `tos_public_corpus_selection_v1` request. It verifies selection,
+packet, rights and source-text digests before writing to a fresh output
+directory. The packet and source layer must declare public visibility,
+publication authorization, and no private source use; the selected rights
+record must allow `public_payload`, authorize redistribution, and bind the
+returned license URI and attribution. Units are copied only through one exact
+contiguous content anchor. It refuses local-only rights, unsafe paths,
+ambiguous anchors, and output/input/time budget overruns. The exporter does
+not create source identities, review meaning, or grant rights. Search indexes
+are omitted; the web provider retains literal matching in its existing reader.
+
+Invocation: `tos-access public-corpus-build --source-root ABS --selection REL
+--output FRESH_ABS --max-input-bytes N --max-output-bytes N --max-seconds N`.
+The selection is relative to the source root; output is a new absolute
+directory.
+
 `tos validate-standalone --root ABS --software --json` checks the standalone
 runtime/API/page contracts, the offline Draft 2020-12 schema set, runtime-data
 allowlist and access source portability. It reads no production corpus. This

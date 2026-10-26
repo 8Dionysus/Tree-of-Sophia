@@ -1,0 +1,17 @@
+.cr-philology-form{margin:0 0 14px;padding:12px 14px;border-inline-start:2px solid var(--cr-accent);background:var(--cr-rule);font:18px/1.7 Georgia,'Times New Roman',serif;overflow-wrap:anywhere;white-space:pre-wrap}
+.cr-philology-address{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 9px;margin:0 0 16px;font-size:10px;overflow-wrap:anywhere}
+.cr-philology-address dt{color:var(--cr-muted)}.cr-philology-address dd{margin:0;color:var(--cr-ink)}
+.cr-philology-heading,.cr-philology-source h3{margin:18px 0 8px!important;font:13px/1.5 system-ui,sans-serif;color:var(--cr-accent)}
+.cr-philology-version,.cr-philology-muted{color:var(--cr-muted);font-size:11px;line-height:1.6}
+.cr-philology-candidate{margin:9px 0;padding:11px 12px;border:1px solid var(--cr-rule);border-radius:8px;background:var(--cr-panel-soft)}
+.cr-philology-candidate>h3{margin:0 0 8px!important;font:18px/1.4 Georgia,serif;color:var(--cr-ink)}
+.cr-philology-candidate p{margin:6px 0!important;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.cr-philology-meta strong,.cr-philology-candidate p strong{color:var(--cr-muted)}
+.cr-philology-source{margin-top:12px}.cr-philology-source h3{margin-top:8px!important}
+.cr-philology-alternatives{margin:5px 0;padding-inline-start:20px;color:var(--cr-muted);font-size:11px}
+.cr-philology-dictionary{display:inline-block;margin-top:8px;font-size:11px}
+.cr-philology-actions{display:flex;gap:6px;margin:14px 0}.cr-philology-actions button{border:1px solid var(--cr-rule);color:var(--cr-accent);font-size:11px}
+.cr-philology-hit{display:block;width:100%;margin:5px 0;padding:9px!important;text-align:left;border-bottom:1px solid var(--cr-rule)!important;border-radius:4px!important}
+.cr-philology-hit strong,.cr-philology-hit span{display:block}.cr-philology-hit strong{color:var(--cr-accent);font-size:10px}.cr-philology-hit span{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cr-muted);font:12px/1.5 Georgia,serif}
+.cr-unit mark.cr-selected-occurrence{position:relative;z-index:1;border-radius:3px;background:#f2cf77;color:#17140e;box-shadow:0 0 0 2px #f2cf77,0 0 10px #f2cf77aa;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.cr-philology-context-address{margin:9px 0 16px!important;color:var(--cr-muted);font-size:10px;line-height:1.6;overflow-wrap:anywhere}

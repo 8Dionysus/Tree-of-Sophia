@@ -34,6 +34,8 @@ pub mod prepared_publication;
 #[cfg(target_os = "linux")]
 pub mod private_stage_run;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
+pub mod public_corpus_build_command;
+#[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod public_d1_build;
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]

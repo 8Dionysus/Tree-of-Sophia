@@ -13,6 +13,7 @@ import {
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
 import {languageName,sourceLinkLabel} from '../observatory/human-presentation.mjs';
+import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm} from './philology.mjs';
 
 const WORDING = {
   ru: {
@@ -20,7 +21,7 @@ const WORDING = {
     previous: 'Предыдущий фрагмент', next: 'Следующий фрагмент', one: 'Один текст', parallel: 'Рядом', compare: 'Сравнить с',
     search: 'Поиск', searchPlaceholder: 'Искать в открытом тексте', loaded: 'Загруженный фрагмент', version: 'Всё произведение',
     corpus: 'Весь корпус', noSearch: 'Совпадений нет', searchUnavailable: 'Поиск недоступен для этого источника',
-    notes: 'Блокнот', context: 'Контекст', source: 'Источник', settings: 'Вид текста', bookmark: 'Закладка', bookmarked: 'Закладка снята',
+    notes: 'Блокнот', context: 'Контекст', source: 'Источник', word: 'Слово', settings: 'Вид текста', bookmark: 'Закладка', bookmarked: 'Закладка снята',
     addNote: 'Оставить заметку', notePlaceholder: 'Что открылось здесь? Вопрос, связь, возражение…', save: 'Сохранить', delete: 'Удалить',
     copy: 'Скопировать цитату', copied: 'Цитата и атрибуция скопированы', graph: 'Открыть в Древе', export: 'Скачать блокнот', import: 'Импортировать блокнот',
     noNotes: 'Выберите фрагмент, чтобы оставить заметку или закладку.', saved: 'Сохранено на этом устройстве', pending: 'Сохраняется…', memory: 'Только в памяти', session: 'Только на время сеанса', saveError: 'Не удалось сохранить', providerUnavailable: 'Источник полных текстов пока не подключён.',
@@ -38,7 +39,7 @@ const WORDING = {
     previous: 'Previous passage', next: 'Next passage', one: 'One text', parallel: 'Side by side', compare: 'Compare with',
     search: 'Search', searchPlaceholder: 'Search the open text', loaded: 'Loaded passage', version: 'This work',
     corpus: 'Entire corpus', noSearch: 'No matches', searchUnavailable: 'Search is unavailable for this source',
-    notes: 'Notebook', context: 'Context', source: 'Source', settings: 'Text appearance', bookmark: 'Bookmark', bookmarked: 'Bookmark removed',
+    notes: 'Notebook', context: 'Context', source: 'Source', word: 'Word', settings: 'Text appearance', bookmark: 'Bookmark', bookmarked: 'Bookmark removed',
     addNote: 'Leave a note', notePlaceholder: 'What opened here? A question, connection, objection…', save: 'Save', delete: 'Delete',
     copy: 'Copy quotation', copied: 'Quotation and attribution copied', graph: 'Open in the tree', export: 'Download notebook', import: 'Import notebook',
     noNotes: 'Choose a passage to leave a note or bookmark.', saved: 'Saved on this device', pending: 'Saving…', memory: 'Memory only', session: 'This session only', saveError: 'Could not save', providerUnavailable: 'The full-text source is not connected yet.', changed: 'The source version changed. The old bookmark is kept.',
@@ -117,7 +118,9 @@ function quoteAttribution({document, version, unit, quote, locale}) {
   const edition = localized(version?.edition, locale) || version?.label || version?.id || '';
   const locator = localized(unit?.label || version?.locator || document?.locator, locale) || unit?.sourceReference || unit?.unitId || '';
   const source = safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
-  return [quote ? `«${quote}»` : '', `${title}${work && work !== title ? ` · ${work}` : ''}`, edition, locator, source].filter(Boolean).join('\n');
+  const licenseUrl = safeExternalUrl(attr(version?.license?.url));
+  const license = licenseUrl ? `${localized(version?.license?.label, locale) || 'License'}: ${licenseUrl}` : '';
+  return [quote ? `«${quote}»` : '', `${title}${work && work !== title ? ` · ${work}` : ''}`, edition, locator, source, license].filter(Boolean).join('\n');
 }
 
 /**
@@ -159,6 +162,8 @@ export function mountCorpusReader({
   let paneSaveTimers = new Map();
   let paneSaveWork = Promise.resolve();
   let selected = null;
+  let philology = {busy:false,result:null,concordance:null,error:null};
+  let philologyController = null;
   let noteEditor = null;
   let noteDirty = false;
   let noteTimer = null;
@@ -372,8 +377,11 @@ export function mountCorpusReader({
     const endOffset = Number.isSafeInteger(end) ? codePointOffset(unit.text, end) : startOffset;
     const reference = unitReference(unit, version, document, {start: startOffset, end: Math.max(startOffset, endOffset)});
     selected = {reference, unit, versionId, quote:quote||unit.text.slice(0,READER_LIMITS.quote)};
+    philologyController?.abort();
+    philologyController = null;
+    philology = {busy:false,result:null,concordance:null,error:null};
     inspectorOpen = true;
-    currentTab = 'notes';
+    currentTab = endOffset > startOffset ? 'word' : 'notes';
     mode = mode || 'single';
     emitLocation(reference);
     const layout = root.querySelector('.cr-layout');
@@ -383,7 +391,86 @@ export function mountCorpusReader({
     }
     renderInspector();
     markSelection();
+    updateFooter();
+    void loadPhilology();
     if (focus) root.querySelector('.cr-note-editor')?.focus();
+  }
+
+  async function loadPhilology() {
+    const reference = selected?.reference;
+    const unit = selected?.unit;
+    const version = activeVersion(selected?.versionId);
+    if (!reference || !unit || !version) return;
+    const form = selectedPhilologyForm(unit.text, reference);
+    if (!form || typeof provider?.analyze !== 'function') {
+      philology = {busy:false,result:{status:'unavailable',candidates:[]},concordance:null,error:null};
+      renderInspector();
+      return;
+    }
+    const controller = new AbortController();
+    philologyController = controller;
+    philology = {busy:true,result:null,concordance:null,error:null};
+    renderInspector();
+    try {
+      const response = await provider.analyze({reference,form,language:version.language || unit.language || '',signal:controller.signal});
+      if (controller.signal.aborted || selected?.reference !== reference) return;
+      philology = {busy:false,result:bindPhilologyResult(response,reference),concordance:null,error:null};
+    } catch (error) {
+      if (controller.signal.aborted || error?.name === 'AbortError' || selected?.reference !== reference) return;
+      philology = {busy:false,result:{status:'unavailable',candidates:[]},concordance:null,error};
+    }
+    renderInspector();
+  }
+
+  async function findPhilologyConcordance(form, cursor = null) {
+    const reference = selected?.reference;
+    const versionId = selected?.versionId;
+    if (!reference || !form || !model.searchCapabilities().version) return;
+    try {
+      const page = await model.search({documentId:reference.target.workId,versionId,query:form,scope:'version',cursor});
+      if (selected?.reference !== reference || !page) return;
+      const exactItems = [];
+      let inexactCount = 0;
+      for (const item of page.items || []) {
+        const hit = exactReference(item.reference);
+        if (!hit || hit.target.workId !== reference.target.workId || hit.versionId !== versionId
+          || hit.unitId !== item.unitId || !Number.isSafeInteger(hit.selector.start)
+          || !Number.isSafeInteger(hit.selector.end) || hit.selector.end <= hit.selector.start) {
+          inexactCount += 1;
+          continue;
+        }
+        exactItems.push({...item,reference:hit});
+      }
+      philology = {...philology,concordance:{...page,items:exactItems,inexactCount},error:null};
+      renderInspector();
+    } catch (error) {
+      if (selected?.reference !== reference) return;
+      philology = {...philology,concordance:{items:[],nextCursor:null,total:null},error};
+      announce(friendlyError(error));
+      renderInspector();
+    }
+  }
+
+  async function openPhilologyOccurrence(hit) {
+    const reference = exactReference(hit?.reference);
+    const origin = selected?.reference;
+    const state = modelState();
+    if (!reference || reference.target.workId !== state.document?.id || reference.versionId !== state.activeVersionId
+      || !Number.isSafeInteger(reference.selector.start) || !Number.isSafeInteger(reference.selector.end)
+      || reference.selector.end <= reference.selector.start) return;
+    if (!(await flushNote()) || selected?.reference !== origin) return;
+    capturePanePositions();
+    const result = await model.loadWindow({documentId:state.document.id,versionId:reference.versionId,reference});
+    if (selected?.reference !== origin) return;
+    const unit = result?.units?.find(value => (value.unitId || value.id) === reference.unitId);
+    if (!unit) {
+      announce(t('error')); return;
+    }
+    selected = {reference,unit,versionId:reference.versionId,quote:selectedPhilologyForm(unit.text,reference)};
+    philology = {busy:false,result:null,concordance:null,error:null};
+    currentTab = 'context';
+    emitLocation(reference);
+    render();
   }
 
   function markSelection() {
@@ -700,14 +787,23 @@ export function mountCorpusReader({
     marker.setAttribute('aria-label', `${t('select')} ${markerLabel}`);
     const content = element(unit.heading?'span':'div', 'cr-unit-text');
     const matches = unitMatches(unit).filter(match => Number.isSafeInteger(match.start) && Number.isSafeInteger(match.end) && match.end >= match.start).sort((a, b) => a.start - b.start);
+    const codePoints = Array.from(unit.text).length;
+    const selectedReference = selected?.versionId === versionId && selected.reference?.unitId === reference?.unitId
+      ? exactReference({...reference, selector:selected.reference.selector})
+      : null;
+    const selectedSpan = selectedReference && sameReference(selectedReference, selected.reference)
+      ? {start:selected.reference.selector.start,end:selected.reference.selector.end}
+      : null;
+    const intervals = philologyMarkIntervals(codePoints,matches,selectedSpan,Boolean(searchQuery));
     let cursor = 0;
-    if (matches.length && searchQuery) {
-      for (const match of matches) {
-        const start = Math.max(cursor, match.start);
-        const end = Math.max(start, match.end);
-        content.append(document.createTextNode(codePointSlice(unit.text, cursor, start)));
-        const mark = element('mark', '', codePointSlice(unit.text, start, end)); content.append(mark); cursor = end;
-      }
+    for (const interval of intervals) {
+      const start = Math.max(cursor, interval.start);
+      const end = Math.max(start, interval.end);
+      if (end <= start) continue;
+      content.append(document.createTextNode(codePointSlice(unit.text, cursor, start)));
+      const mark = element('mark', interval.selected ? 'cr-selected-occurrence' : '', codePointSlice(unit.text, start, end));
+      if (interval.selected) mark.dataset.selectedOccurrence = 'true';
+      content.append(mark); cursor = end;
     }
     content.append(document.createTextNode(codePointSlice(unit.text, cursor)));
     row.append(marker, content);
@@ -766,6 +862,18 @@ export function mountCorpusReader({
       if (metadata.length) {
         const details = element('details', 'cr-source-details'); details.open = true; details.append(element('summary', '', t('provenance')));
         details.append(element('p', '', metadata.join(' · '))); body.append(details);
+      }
+    }
+    if (selected?.reference && selected?.unit) {
+      const quote = selectedPhilologyForm(selected.unit.text, selected.reference);
+      if (quote) {
+        const excerpt = element('blockquote','cr-quote',quote);
+        excerpt.dataset.reference = JSON.stringify(selected.reference);
+        body.append(excerpt);
+        const sourceVersion = activeVersion(selected.versionId);
+        const address = [documentTitle(state.document), sourceVersion ? versionLabel(sourceVersion) : '', unitLabel(selected.unit),
+          `${selected.reference.selector.start}–${selected.reference.selector.end} ${t('characters')}`].filter(Boolean).join(' · ');
+        body.append(element('p','cr-philology-context-address',address));
       }
     }
     const current = selected?.unit || currentWindow(state.activeVersionId)?.units?.[0];
@@ -884,7 +992,14 @@ export function mountCorpusReader({
       const status = isTextAvailable(version) ? '' : catalogAvailability(version);
       const section = element('section', 'cr-source'); section.append(element('h3', '', [versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
       const sourceUrl = safeExternalUrl(attr(version.sourceUrl || version.source_url || version.source?.url || version.source?.href));
+      if (version.attribution) section.append(element('p', '', localized(version.attribution, uiLocale())));
       if (sourceUrl) { const link = element('a', '', sourceLinkLabel(sourceUrl, uiLocale())); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
+      const licenseUrl = safeExternalUrl(attr(version.license?.url));
+      if (licenseUrl) {
+        const notice = element('p', '', uiLocale() === 'en' ? 'Source text projection · ' : 'Текстовая проекция источника · ');
+        const link = element('a', '', localized(version.license?.label, uiLocale()) || (uiLocale() === 'en' ? 'License' : 'Лицензия'));
+        link.href = licenseUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; notice.append(link); section.append(notice);
+      }
       body.append(section);
     }
   }
@@ -893,9 +1008,29 @@ export function mountCorpusReader({
     const state = modelState(); const inspector = root.querySelector('.cr-inspector'); if (!inspector) return;
     noteEditor = null; inspector.replaceChildren();
     const tabs = element('nav', 'cr-inspector-tabs');
-    for (const name of ['context', 'notes', 'source']) { const b = button(t(name), async () => { if(!(await flushNote()))return; currentTab = name; renderInspector(); }, 'cr-tab'); b.setAttribute('aria-pressed', String(currentTab === name)); tabs.append(b); }
+    for (const name of ['context', 'word', 'notes', 'source']) { const b = button(t(name), async () => {
+      if(!(await flushNote()))return;
+      currentTab = name;
+      if (name === 'word' && selected?.reference && !philology.busy && (!philology.result || philology.error)) void loadPhilology();
+      else renderInspector();
+    }, 'cr-tab'); b.setAttribute('aria-pressed', String(currentTab === name)); tabs.append(b); }
     inspector.append(tabs); const body = element('div', 'cr-inspector-body'); inspector.append(body);
-    if (currentTab === 'notes') renderNotes(body, state); else if (currentTab === 'source') renderSource(body, state); else renderContext(body, state);
+    if (currentTab === 'notes') renderNotes(body, state);
+    else if (currentTab === 'source') renderSource(body, state);
+    else if (currentTab === 'word') {
+      const version = activeVersion(selected?.versionId || state.activeVersionId);
+      const reference = selected?.reference || null;
+      const form = selected?.unit ? selectedPhilologyForm(selected.unit.text, reference) : '';
+      renderPhilology(body, {
+        locale:uiLocale(),form,language:version?.language || selected?.unit?.language || '',reference,version,
+        result:philology.result,busy:philology.busy,concordance:philology.concordance,
+        searchAvailable:model.searchCapabilities().version,
+        onConcordance:value=>void findPhilologyConcordance(value),
+        onMore:()=>void findPhilologyConcordance(form,philology.concordance?.nextCursor),
+        onOccurrence:hit=>void openPhilologyOccurrence(hit),
+      });
+      if (philology.error) body.append(element('p','cr-philology-muted',t('error')));
+    } else renderContext(body, state);
   }
 
   function renderSettings() {
@@ -907,6 +1042,7 @@ export function mountCorpusReader({
 
   function updateFooter() {
     const footer = root.querySelector('.cr-footer'); if (!footer) return;
+    footer.querySelector('.cr-location').textContent = locationLabel(currentRef());
     const save = footer.querySelector('.cr-save');
     save.textContent = notebookSaveLabel();
     save.title = notebookSaveTitle();
@@ -998,7 +1134,7 @@ export function mountCorpusReader({
     if(disposed || !root)return true;
     await capturePanePositions();
     if(disposed || !root)return true;
-    opened=false; root.hidden=true; delete root.dataset.open;model.cancel();
+    opened=false; root.hidden=true; delete root.dataset.open;philologyController?.abort();philologyController=null;model.cancel();
     if(notify)onClose?.();
     const focus=opener;opener=null;
     if(focus?.isConnected&&!focus.closest('[hidden]')&&focus.offsetParent!==null)focus.focus?.({preventScroll:true});
@@ -1070,12 +1206,37 @@ export function mountCorpusReader({
       // retain the DOM and notebook until both note and position writes settle.
       const positionSaving=opened?capturePanePositions():Promise.resolve();
       const saving=Promise.allSettled([flushNote(),positionSaving]);
-      disposed=true;opened=false;notebookListGeneration+=1;notebookMetadataResolver.dispose();catalogCancel?.();searchCancel?.();
+      disposed=true;opened=false;philologyController?.abort();philologyController=null;notebookListGeneration+=1;notebookMetadataResolver.dispose();catalogCancel?.();searchCancel?.();
       document.removeEventListener('selectionchange',onSelectionChange);document.removeEventListener('visibilitychange',visibilityChanged);
       window.removeEventListener('beforeunload',beforeUnload);
       destroyWork=saving.finally(()=>{root?.remove();root=null;model.destroy();});return destroyWork;
     },
     isOpen: () => opened,
+    async refreshNotebook() {
+      if (disposed || !(await flushNote())) return false;
+      await model.refreshNotebook();
+      if (opened) render();
+      return true;
+    },
+    selectedSource() {
+      if (!selected?.reference || !selected.unit) return null;
+      const state = modelState();
+      const version = activeVersion(selected.versionId);
+      const document = state.document;
+      if (!version || !document) return null;
+      return {
+        reference: exactReference(selected.reference),
+        quote: selectedPhilologyForm(selected.unit.text, selected.reference),
+        text: String(selected.unit.text || ''),
+        language: version.language || selected.unit.language || '',
+        documentId: document.id,
+        versionId: version.id,
+        title: [localized(document.title, uiLocale()), selected.unit.label].filter(Boolean).join(' · '),
+        versionLabel: versionLabel(version),
+        edition: localized(version.edition, uiLocale()),
+        source: version.source ? structuredClone(version.source) : null,
+      };
+    },
     state: () => model.snapshot(),
   };
 }

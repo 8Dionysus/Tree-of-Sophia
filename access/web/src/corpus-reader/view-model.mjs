@@ -226,7 +226,7 @@ export function normalizeUnit(raw, index, identity = {}) {
   const reference = typeof providerReference === 'string' ? null : exactReference(providerReference || item);
   if (reference && !reference.unitId && unitId !== null && unitId !== undefined) reference.unitId = unitId;
   const value = first(item.text, item.content, item.value, item.body, item.wording, '');
-  const heading = item.heading === true || ['heading', 'chapter', 'section', 'title'].includes(String(first(item.kind, item.type, '')).toLowerCase());
+  const heading = item.heading === true || (item.heading !== false && ['heading', 'chapter', 'section', 'title'].includes(String(first(item.kind, item.type, '')).toLowerCase()));
   return {
     ...item,
     id: unitId,
@@ -297,15 +297,15 @@ export function normalizeSearch(raw = {}, {document = {}, version = {}, scope = 
   const rawItems = list(Array.isArray(raw) ? raw : first(source.matches, source.results, source.items, []));
   const items = rawItems.slice(0, READER_LIMITS.searchResults).map((item, index) => {
     const match = object(item) ? clone(item) : {text: text(item)};
-    const candidateReference = first(match.reference, match.anchor, null);
+    const candidateReference = first(match.exactReference, match.reference, match.anchor, null);
     const reference = isReference(candidateReference) ? validateReference(candidateReference) : null;
     return {
       ...match,
       id: first(match.id, match.matchId, `${scope}-${index}`),
       reference,
-      sourceReference: typeof candidateReference === 'string' ? candidateReference : null,
+      sourceReference: typeof match.reference === 'string' ? match.reference : (typeof candidateReference === 'string' ? candidateReference : null),
       unitId: first(match.unitId, match.unit_id, reference?.unitId, null),
-      label: text(first(match.label, match.locator, match.heading), ''),
+      label: text(first(match.label, match.locator, match.heading, typeof match.reference==='string'?match.reference:null), ''),
       ordinal: Number.isSafeInteger(match.ordinal) ? match.ordinal : null,
       snippet: text(first(match.snippet, match.text, match.excerpt), ''),
       start: first(match.start, match.offsetStart, reference?.selector?.start, null),
@@ -1031,6 +1031,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       notify(); return value;
     },
     exportNotebook() { return notebook?.exportPacket ? notebookCall('exportPacket') : JSON.stringify(notebookState()); },
+    refreshNotebook: hydrateNotebook,
     importNotebook(value) {
       if (!notebook?.importPacket) throw new Error('notebook-unavailable');
       const result = notebookCall('importPacket', value);

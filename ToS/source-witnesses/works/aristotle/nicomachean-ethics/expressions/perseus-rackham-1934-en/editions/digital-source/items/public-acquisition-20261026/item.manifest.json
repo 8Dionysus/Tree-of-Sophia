@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.aristotle.nicomachean-ethics.public-acquisition-20261026.perseus-rackham-1934-en",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.aristotle.nicomachean-ethics.perseus-rackham-1934-en",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.48b644fdab785b6e3624339946b3b2bccb328950e948460d94510d7352429edf",
+      "relative_path": "payload/source.tei.xml",
+      "original_basename": "source.tei.xml",
+      "media_type": "application/xml",
+      "byte_size": 856316,
+      "sha256": "48b644fdab785b6e3624339946b3b2bccb328950e948460d94510d7352429edf",
+      "fixity_verified_at": "2026-10-26T21:11:41.343064+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.fb975a2a0ae37e53d8366800de7e7c7ca72432f6a3a27fd121a7b51bb1217181",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 596896,
+      "sha256": "fb975a2a0ae37e53d8366800de7e7c7ca72432f6a3a27fd121a7b51bb1217181",
+      "fixity_verified_at": "2026-10-26T21:11:41.343064+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.public-acquisition.perseus-rackham-1934-en.20261026",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/perseus-rackham-1934-en/editions/digital-source/items/public-acquisition-20261026/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/perseus-rackham-1934-en/editions/digital-source/items/public-acquisition-20261026/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/perseus-rackham-1934-en/editions/digital-source/items/public-acquisition-20261026/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/perseus-rackham-1934-en/editions/digital-source/items/public-acquisition-20261026/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/perseus-rackham-1934-en/editions/digital-source/items/public-acquisition-20261026/source-metadata-snapshot.json"
+  ]
+}
