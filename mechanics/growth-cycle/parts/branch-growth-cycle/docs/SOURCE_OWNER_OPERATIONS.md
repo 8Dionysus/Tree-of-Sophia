@@ -2059,6 +2059,8 @@ reader-boundary checks are separate. Existing 8 MiB selected-package, 128-histor
 and source/form byte limits refuse rather than truncate. Semantic assessment, current use, rights, canon, release and deployment retain
 their owner decisions.
 
+<a id="native-work-expression-growth"></a>
+
 ### Native Work / Expression growth
 
 The [native compound owner contract](NATIVE_WORK_EXPRESSION_GROWTH.md) owns the
