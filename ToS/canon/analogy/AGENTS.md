@@ -1,24 +1,13 @@
 # AGENTS.md
 
-This file applies to canonical authored analogy nodes under `ToS/canon/analogy/`.
+This card applies to authored `analogy` nodes under `ToS/canon/analogy/`.
 
-## What lives here
+## Role
 
-`ToS/canon/analogy/` is the home of canonical authored analogy nodes.
-
-It holds:
-
-- route-local image-bearing analogy surfaces promoted from reviewed intake
-- bounded symbolic comparisons that have crossed the review boundary
-- one `node.json` per stabilized analogy surface
+Reviewed image-bearing symbolic comparisons.
 
 ## Editing posture
 
-Treat these files as canonical authored tree law; raw candidate tables route to
-`ToS/candidate-intake/`.
-Keep each `node.json` bounded to one analogy surface.
-Keep the source route explicit in `source_anchor`.
-Keep analogy nodes route-local and image-bearing; doctrine-wide claims route to
-`ToS/doctrine/`.
-Keep `ToS/public-compatibility/analogy_node.example.json` aligned with the worked canonical
-mirror as a compatibility surface.
+Keep analogy route-local; doctrine-wide claims return to `ToS/doctrine/`.
+The parent canon card owns object/source-anchor and review rules. Its worked
+mirror for this class is `ToS/public-compatibility/analogy_node.example.json`.

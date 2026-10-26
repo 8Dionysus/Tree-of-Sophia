@@ -1,67 +1,34 @@
 # AGENTS.md
 
-This card applies to `mechanics/` and every nested path until a nearer
-`AGENTS.md` narrows the lane.
+This card applies to `mechanics/` until a nearer card adds a local delta.
 
 ## Role
 
-`mechanics/` is the operation topology layer for Tree of Sophia. It routes
-repeatable movement around the `ToS/` source home: intake, review,
-distillation, boundary handoff, obligation routing, release support, generated
-companion checks, and graph/export promotion.
-
-Mechanics are organs of operation. Authored philosophical meaning, source
-witnesses, canon, Zarathustra, and the philosophy domain tree route through
-`ToS/`.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| input | repeatable ToS operation pressure, package route change, part contract, provenance bridge, or validation movement |
-| output | mechanics package, part-local contract, provenance bridge, generated companion, or validator route |
-| owner | `mechanics/AGENTS.md`, `mechanics/README.md`, `mechanics/topology.json`, and the nearest package or part route |
-| next route | package `AGENTS.md` -> package README operation map -> exact contract; history and growth conditions are on demand |
-| validation | mechanics topology, nested route-card check, package validator, or part validator |
+Mechanics owns repeatable operations around the `ToS/` source home: intake,
+review, distillation, growth, promotion, handoff and release support. Authored
+philosophical meaning remains with the source branch.
 
 ## Boundary Routes
 
-- Top-level shared packages follow the AoA mechanics vocabulary when the
-  operation belongs to that shared family.
-- A ToS-local top-level mechanic needs evidence that its operation fits no
-  existing shared parent.
-- Shared mechanics become ToS-local only when ToS has its own operation, owner
-  split, boundary, and validation route.
-- An active part under `parts/` holds a functioning operation contract with its
-  input, result, owner and validation route.
-- Package `README.md#growth-conditions` holds future pressure and growth conditions; backlogs,
-  validation inventories, script/test refactor plans, and landing ledgers route
-  to their owning surfaces.
-- Package `README.md#history` bridges active routes to former placement or source
-  lineage.
-- Historical moved-path, raw-receipt, and old-name accounting returns through
-  `README.md#history` to an immutable Git commit and original path. Current receipts remain with the active owning part.
-- Retained package `PARTS.md`, `PROVENANCE.md`, and `ROADMAP.md` are historical
-  compatibility carriers; follow package `README.md#history` to their owning
-  successor and immutable Git source before interpreting earlier state.
-- Source witnesses, philosophy branches, canon nodes, review ledgers, and the
-  Zarathustra core route to `ToS/`.
-- Runtime activation, proof verdicts, memory truth, SDK authority, AoA
-  federation law, KAG substrate authority, and ToS canon mutation route to
-  their stronger owners.
+Use the operation topology in `mechanics/topology.json` and the package card to reach the active part.
+Open `README.md#operations` when operation navigation is needed. An active part
+names its input, result, owner and validation route.
+
+Use an existing shared parent when its responsibility fits. A ToS-local package
+needs a real local operation and owner split; an additional part needs repeated
+work that justifies it. The package README owns growth conditions and history.
+
+Historical paths and receipts return through `README.md#history` to an exact
+revision in Git and original path. Retained `PARTS.md`, `PROVENANCE.md` and
+`ROADMAP.md` are compatibility carriers, not required components of a new
+mechanic. Current receipts remain with the active owning part.
+
+Runtime activation, proof, memory, SDK, federation and KAG substrate decisions
+return to their actual owners. A mechanic cannot silently grant canon authority.
 
 ## Validation
 
-For mechanics topology changes, select the `mechanics_local` or topology route
-from [`mechanics/VALIDATION.md`](VALIDATION.md) after the affected package or
-part is known. The lane manifest retains the command order.
-
-For package-local payload changes, run the package or part validator named by
-the nearest route card, then the repository release gate when the change is
-release-facing.
-
-## Closeout
-
-Report which mechanic package changed, whether pressure was shared or local,
-which part owns the payload, whether historical retrieval through `README.md#history` was needed,
-which stronger owner stayed stronger, and which validator proved the topology.
+Use [mechanics/VALIDATION.md](VALIDATION.md): mechanics topology and local native checks
+for the selected package, plus the source or export owner affected by its
+operation. The lane manifest keeps command order. Report the active part,
+validation and any historical retrieval needed for the change.

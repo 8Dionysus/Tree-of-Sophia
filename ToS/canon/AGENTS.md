@@ -1,40 +1,24 @@
 # AGENTS.md
 
-This file applies to canonical authored tree surfaces under `ToS/canon/`.
+This card applies to authored canonical objects under `ToS/canon/`.
 
 ## Role
 
-`ToS/canon/` is the canonical authored tree layer: source nodes, concept,
-principle, lineage, event, state, support, analogy, synthesis nodes, relation
-packs, and vocabulary registries.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| role | canonical authored tree layer |
-| input | reviewed source-grounded authored object, canonical relation pack, or vocabulary registry change |
-| output | canonical `node.json`, `edges.csv`, or registry surface with stable identity |
-| owner | `ToS/canon/AGENTS.md` and nearest class-specific `AGENTS.md` |
-| next route | source witness or philosophy branch -> canon review -> compatibility mirror -> derived export |
-| tools | node templates, relation contract, registries, tree validators |
-| check | node contract, relation pack, example sync, and export validators |
+Canon holds reviewed source-grounded nodes, relation packs and vocabulary
+registries. Read the nearest class card, node template and relation contract.
 
 ## Boundary Routes
 
-- Treat canon as authored meaning, not raw witness storage.
-- Keep one authored object per directory-scoped `node.json`.
-- Keep canonical relation packs under `ToS/canon/relations/`.
-- Route raw witness material to `ToS/source-witnesses/`.
-- Route compatibility mirrors through `ToS/public-compatibility/`.
-- Route generated projections through `ToS/derived-exports/`.
+- Keep one bounded authored object per directory-scoped `node.json` and its
+  source route explicit in `source_anchor`. Raw witnesses remain in
+  `ToS/source-witnesses/`; unresolved candidate material stays in intake.
+- Canonical relation packs live in `relations/`, using registered predicates
+  and stable canonical endpoints.
+- Align the worked class mirror in `ToS/public-compatibility/` when its canon
+  changes; rebuild `ToS/derived-exports/` only from changed owned inputs.
 
 ## Validation
 
-Use `rust/crates/tos-ops-mechanics-plan/src/tree_nodes.rs`,
-`rust/crates/tos-ops-mechanics-plan/src/relation_pack.rs`,
-and the public mirror or export validator when those surfaces are affected.
-Select the `canon_contracts` route from [`ToS/VALIDATION.md`](../VALIDATION.md)
-after the authored class or relation surface and affected companion are known.
-If a public mirror or derived export is touched, select the corresponding
-`public_entry` or `generated_parity` route; their owner docs retain procedure.
+Select `canon_contracts` from [ToS/VALIDATION.md](../VALIDATION.md). Add
+`public_entry` or `generated_parity` for affected mirrors and exports.
+Mechanical shape does not replace the required source and canon review.

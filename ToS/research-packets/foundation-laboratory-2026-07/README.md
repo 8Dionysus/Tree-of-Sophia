@@ -11,78 +11,10 @@ describe their original research environment. Current ToS operations use the
 [release procedure](../../../docs/RELEASING.md). ToS execution and export require
 neither that host installation nor a consumer checkout.
 
-Research snapshot: 2026-07-23; local software/LLM admission refreshed
-2026-07-26; semantic-annotation assurance and historical-German
-morphology/lemmatization admission refreshed 2026-07-29; eKGWB rights and
-transport plus *Ecce Homo*, *Zarathustra*, and *Jenseits von Gut und Böse*
-plus *Zur Genealogie der Moral*, *Der Antichrist*, and *Der Fall Wagner*
-plus *Götzen-Dämmerung* authorial-witness routes refreshed 2026-07-30;
-bibliographic time/place/provision responsibility refreshed 2026-07-31;
-Mysl and Antonovsky translator-Agent identity reconciliation, exact
-Zarathustra part-IV provision chronology, and Antonovsky 1913 source-visible
-publisher/printer separation plus Naumann 1893 title-page provision identity
-and Jenseits 1886 plus Genealogie 1892 exact-Edition provision identity
-plus Cultural Revolution 2007 translation responsibility, the exact
-Antonovsky–Prometey 1911 source witness, the bounded Antonovsky
-Expression-derivation contract/discovery route, the exact Lithuanian National
-Library 1900 Edition/holding route plus its current RSL/RNL/LNB reconciliation,
-and the exact RSL/RNL 1903 second-corrected Edition/current-holdings route plus
-the removed-or-replaced RuNEB 1907 third-Edition route and its current
-RNL-reported RSL holding reconciliation, Reader and Nani 1899
-layered rights, and the exact
-Antonovsky 1913 RU/US positive-rights versus operator-local-payload boundary
-and all four exact DTA annotated-TEI CC BY-SA versus local-custody boundaries
-plus the Naumann 1893 PDF/EPUB fork, the Jenseits 1886 mixed-package boundary,
-the Genealogie 1892 Commons/UNC and Antichrist 1906 Commons/Stanford
-eleven-layer boundaries, and the contrasting five-layer MDZ permission versus
-license pair for *Der Fall Wagner* 1888 and *Götzen-Dämmerung* 1889, plus the
-exact *Ecce Homo* 1908 Commons/Getty eleven-layer active-design boundary with
-its corrected §104A foreign-work and restored-term route
-and the exact-form recurrence plus question-scoped usage-context foundations
-refreshed 2026-08-02; lived-witness authorship, privacy, provenance, AI-role,
-permission, revision, and the zero-model-download Qwen3-8B CPU translation
-challenger plus the deterministic Russian-surface pre-human quality floor,
-pinned offline LanguageTool B, and source-free Qwen3.5-0.8B GEC C,
-plus the exact-address, rights-aware etymology evidence route and open Kluge
-1889 candidate, plus semantic standards, annotation-tool, and fresh-paper
-currentness plus the broad source-forensics/OCR/language/runtime/model/
-retrieval/graph software-stack currentness and the fixity-bound German
-*Genealogie*/*Antichrist* source-structure continuation refreshed 2026-08-08;
-the exact *Antichrist* 1906 Commons/Stanford foreign-work reasoning, current
-provider responses, and conditional 2001-12-31 restored-term endpoint were
-corrected and refreshed 2026-08-10; the separate exact local Internet Archive
-navigation derivative custody record now identifies its DjVuXML, 525-member
-JP2, and 525-leaf scandata evidence while preserving distinct-Item,
-no-textual-identity, local-only, and no-upload boundaries; the specialized
-DE→RU MT continuation then selected MADLAD-400 3B q4 from ordered current
-research and completed exact acquisition, a locked offline Candle runtime,
-preserved admission failures, a source-free no-network smoke, and one exact
-non-forced private-source episode. Its candidate survived the deterministic
-Russian-surface floor but remains `uncertain`, retained only for method
-comparison with three bounded AI risk labels and no human task, accepted text,
-semantic, graph, canon, production, or publication authority. Source-anchor
-identity, representation-state, selector-composition, Unicode-offset, and
-public/private selector research plus source-free A/B/C were refreshed
-2026-08-11; immutable source-text layers, correction provenance, explicit
-normalization, and their public-synthetic real-byte A/B/C replay were refreshed
-the same day; immutable execution receipts, exact failure/byproduct posture,
-replay/authentication/authority separation, and their public-synthetic actual-
-command A/B/C were also refreshed the same day; existing v1 anchors,
-provenance events, and corpus text records were not migrated
-
-Translation-alignment identity, exact two-sided return, competing mapping
-claims, real-human competence gates, visibility inheritance, and derived
-interchange posture were refreshed 2026-08-11 through a separate
-public-synthetic A/B/C; no real translation packet or corpus alignment was
-migrated.
-
-Participant-scoped translation exposure was refreshed 2026-08-12 through
-ordered official/classical, established, and fresh 2025–2026 research. The
-historical global-blindness plan remains frozen; the current operator is
-recorded with a five-year Work-level lived route and a separate exact
-Antonovsky 2007 page observation in the current project, AI candidates may
-claim only operational context isolation, and no model run, human task,
-accepted text, comparator reveal, or promotion was created.
+Research snapshot starts 2026-07-23. Later dated findings and their exact
+scope are retained in the packet map below; each report owns its evidence,
+uncertainty, and time boundary. This index is not a consolidated currentness
+or task-status register.
 
 Owner route: `ToS/research-packets/AGENTS.md`
 

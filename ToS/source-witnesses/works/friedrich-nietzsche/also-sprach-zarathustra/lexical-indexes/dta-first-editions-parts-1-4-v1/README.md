@@ -4,26 +4,29 @@ This route owns the first whole-work lexical observation plan for the
 Zarathustra foundation. It reads the four fixity-bound DTA TEI payloads for
 the first public editions of parts 1–4.
 
-The index has two deliberately different outputs:
+The plan declares two deliberately different outputs:
 
 - a local gitignored SQLite/FTS5 database with exact forms, normalized search
   keys, page-local token order, source context, structural filters, and opaque
   occurrence IDs;
-- a tracked generated projection containing only SHA-256 form keys,
-  aggregate counts, and page/division resource references.
+- a generated source-withholding projection at the logical output path
+  `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`,
+  materialized through the selected data artifact. This software checkout tracks
+  the plan and provenance, not the `.min.json` bytes.
 
-The tracked projection does not carry exact strings, token sequence, snippets,
-contexts, or occurrence positions. Its low-entropy hashes are navigational
-fingerprints, not confidentiality. Public/site routing remains blocked until
-the source rights records receive an explicit review.
+The projection does not carry exact strings, token sequence, snippets, contexts,
+or occurrence positions. Its low-entropy hashes are navigational fingerprints,
+not confidentiality. Public/site routing remains blocked until the source
+rights records receive an explicit review.
 
 This route observes forms in an exact digital witness. It does not accept the
 German text, establish a critical edition, create a lexeme or lemma, infer a
 phrase, nominate a sign, open the initial semantic packet, or authorize
 publication. Frequency is never semantic sufficiency.
 
-The first release-safe downstream observation is frozen in
-`recurrence-plan.v1.json`. Its generated companion is:
+The first downstream observation is frozen in
+[`recurrence-plan.v1.json`](recurrence-plan.v1.json). Its declared logical
+output path in the selected data artifact is:
 
 `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-recurrence-v1.min.json`
 
@@ -53,8 +56,17 @@ string, sequence, context, or occurrence position. The baseline claims no
 sentence or sense boundary, creates no linguistic or semantic entity, opens
 no human backlog, and leaves `initial-sign-packet.v3.json` unchanged.
 
-The plan is `index-plan.v1.json`. The maintained producer is the native `tos-research lexical-index` command. Its `build` action writes a fresh private candidate from an explicit source cut; `validate-tracked` checks the read-only source closure and optional local database fixity. The prior active Python builder bytes are retained at `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/69e6475b17774b2aa41ab4be77050b6ada04ecba67cd8833c25b6d62e27502a2.py`; the earlier historical bytes remain at `ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/44bb4f9ad6f3bcc76d877366a87efb77f0eacb6cc999eec0f461ab5f35c37372.py`. Existing provenance keeps the original [historical lexical builder](https://github.com/8Dionysus/Tree-of-Sophia/blob/c04257b4f2270587856ac94d3fb28a5a9d5afa25/scripts/build_zarathustra_lexical_index.py) logical reference. Retained bytes are not executable fallbacks. The generated source-withholding companion
-(not cleared for publication) is:
+The plan is [`index-plan.v1.json`](index-plan.v1.json). The maintained
+producer is the native `tos-research lexical-index` command. Its `build` action
+writes a fresh private candidate from an explicit source cut; `validate` checks
+that candidate, while `validate-legacy` checks a retained legacy projection.
+The prior Python builder bytes are retained at
+`ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/69e6475b17774b2aa41ab4be77050b6ada04ecba67cd8833c25b6d62e27502a2.py`;
+the earlier historical bytes remain at
+`ToS/research-packets/retained-builder-inputs/build_zarathustra_lexical_index/44bb4f9ad6f3bcc76d877366a87efb77f0eacb6cc999eec0f461ab5f35c37372.py`.
+Provenance keeps the original [historical lexical builder](https://github.com/8Dionysus/Tree-of-Sophia/blob/c04257b4f2270587856ac94d3fb28a5a9d5afa25/scripts/build_zarathustra_lexical_index.py)
+logical reference. Retained bytes are not executable fallbacks. The declared
+source-withholding output path is not cleared for publication:
 
 `ToS/derived-exports/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.min.json`
 
@@ -62,7 +74,22 @@ The local database belongs at:
 
 `ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/lexical-search/zarathustra-dta-first-editions-parts-1-4-v1.sqlite3`
 
-Rebuild and validation commands are documented in `scripts/AGENTS.md`.
+The implementation and explicit build/validate requirements are owned by the
+[native compiler route](../../../../../../../rust/crates/tos-compiler/README.md)
+and [derived-export route](../../../../../../derived-exports/README.md). The
+read-only source/projection closure command is:
+
+```bash
+tos-research lexical-index validate-tracked \
+  --source-root /absolute/selected-source \
+  --derived-input-root /absolute/selected-data \
+  --local-output-root /absolute/private-artifacts
+```
+
+This closes the selected source, generated controls, and optional private
+SQLite bytes. The repository route is the `source_witness_foundation` lane in
+[ToS validation](../../../../../../VALIDATION.md); the lexical check is also an
+explicit step in that lane manifest.
 
 The first downstream experiment is deliberately narrower than lexical
 promotion. The source-gated plan and text-free materialization receipt live at:

@@ -1,117 +1,40 @@
 # AGENTS.md
 
-This card applies to deterministic generators, validators, lane loaders, and
-small command-plane helpers under `scripts/`.
+This card applies to deterministic generators, validators and small command
+helpers under `scripts/`.
+
+## Role
+
+Scripts carry a bounded operation for a named source owner. Builders produce
+owned companions; validators check declared mechanics. They do not acquire
+source, semantic, rights, canon, runtime or downstream acceptance authority.
 
 ## Read before editing
 
-Read the root `AGENTS.md`, then the owner surfaces that carry the action:
+Read the exact source/contract and its nearest card. Internal command order
+lives in `docs/validation/validation_lanes.json`. The descriptive
+`docs/validation/script_inventory.json` and
+`docs/validation/SCRIPT_TOPOLOGY.md` locate owners and side effects.
+For route-card work also read `DESIGN.AGENTS.md` and
+`docs/validation/agents_route_inventory.json`; decision indexes follow
+`docs/decisions/AGENTS.md`.
 
-- [`docs/validation/validation_lanes.json`](../docs/validation/validation_lanes.json)
-  is command authority; [`docs/validation/SCRIPT_TOPOLOGY.md`](../docs/validation/SCRIPT_TOPOLOGY.md)
-  and [`docs/validation/script_inventory.json`](../docs/validation/script_inventory.json)
-  describe script coverage and side effects.
-- Read the nearest source, contract, mechanics, decision, public-entry, or
-  review card for the route being changed. Open human-facing entrypoints such
-  as `ToS/source-witnesses/README.md`, `ToS/doctrine/CORPUS_FOUNDATION.md`,
-  `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`,
-  `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`, or
-  `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` only
-  when the selected route needs their explanation.
-- For decision indexes, read `docs/decisions/AGENTS.md`; for agent-route
-  topology, read `DESIGN.AGENTS.md` and
-  `docs/validation/agents_route_inventory.json`.
+## Boundary Routes
 
-## Local role
-
-Scripts are a bounded command and evidence plane. They build generated
-companions, check structural contracts, load executable validation lanes, and
-produce deterministic diagnostics. Authored ToS sources own meaning and semantic assessment. Rights, runtime
-policy, proof, memory, KAG, stats, eval and deployment decisions follow their
-named owner routes.
-
-The source/derived split is part of every script contract: a builder may write
-an explicitly owned generated companion; a validator proves its declared
-mechanics only. Record the exact scope of a successful source-witness, segmentation, semantic,
-translation, graph, public-entry or export check. Source-visible review,
-rights, canon and runtime acceptance each require evidence from their own
-decision route.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| role | deterministic generator, validator, or lane helper |
-| input | source, contract, manifest, decision, topology, or generated companion |
-| output | bounded artifact, parity result, route diagnostic, or validation signal |
-| owner | exact source surface; inventory entries provide optional navigation |
-| next route | source owner -> script -> generated companion/validator -> review or release lane |
-| tools | native command, schema, manifest, focused test, and generated-parity checks |
-| check | nearest lane first; use `tos-release-check` for release-visible changes |
-
-## Route by pressure
-
-| Pressure | Stronger owner and script route |
-| --- | --- |
-| corpus identity, provenance, rights, or source witness | `ToS/source-witnesses/` and `ToS/doctrine/CORPUS_FOUNDATION.md`; use the native `source_witness_foundation` lane and native source-catalog command |
-| text units, segmentation, translation alignment, or semantic proposals | `ToS/contracts/`, research packets, candidate intake, review ledger, and canon; use the corresponding contract validator or laboratory route |
-| philosophy tree or graph workbench | `ToS/philosophy/`; use the topology, graph-view, projection, and review routes in the validation manifest |
-| Zarathustra public entry or golden kernel | `ToS/zarathustra/`; use tiny-entry, source-home, lived-witness, and KAG-export checks as applicable |
-| mechanics package or part | nearest `mechanics/` card and package validator; scripts only carry repeatable operation law |
-| decision rationale or indexes | `docs/decisions/`; generate and validate indexes after the authored record is reviewed |
-| agent route cards and disclosure | `DESIGN.AGENTS.md`, `docs/validation/agents_route_inventory.json`, and the route currentness/harness scripts |
-| KAG source export | local `kag/` card and native ToS export verifier; consumer indexing and admission stay outside ToS |
-| eval, stats, or memo port | local `evals/`, `stats/`, or `memo/` card, then the named sibling owner; central acceptance follows the named sibling owner's review |
-
-## Editing posture
-
-Keep each script narrow to its declared source route. Prefer explicit file
-dependencies, stable input order, fail-closed negative controls, reproducible
-transforms, and visible exit conditions. Keep private or payload-bearing data
-in the owner-controlled storage route; tracked companions must state their
-fixity, provenance, rights posture, uncertainty, and semantic ceiling when
-those facts affect admission.
-
-Keep command order in the lane manifest. `tos-release-check`, implemented in
-`rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs`, runs the
-`release_check` sequence from `docs/validation/validation_lanes.json`.
-`docs/validation/script_inventory.json` describes owner routes and side effects.
-Under TOS-D-0062, software validation follows executable code and tests.
-Update a navigation entry when its actual consumer needs that route; inventory
-regeneration follows that navigation need.
-
-Generated indexes, catalogs, graph packets, public mirrors, and route
-currentness are read models subordinate to their authored source. A green
-validator is evidence for its named contract only. Source-visible assessment
-by authorized, competent humans or agents owns bibliographic, textual,
-translation and semantic judgments under `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`.
-Rights, personal consent, canon and publication require authorization from
-their actual owners.
-
-## Boundary routes
-
-- Authored meaning returns to `ToS/source-witnesses/`, `ToS/doctrine/`,
-  `ToS/candidate-intake/`, `ToS/review-ledger/`, `ToS/canon/`, or the exact
-  branch owner; compatibility and graph exports remain derived.
-- Mechanics operation law returns to the nearest package/part owner.
-- Runtime, MCP, Neo4j, KAG composition, stats grammar, eval verdicts, memo
-  authority, memory, deployment, and proof doctrine route to their owning
-  repositories or layers.
-- Scope widening requires the source/contract/decision surface and its
-  validator or review route to move together. Never make a validator the
-  hidden source of truth.
+- Change the owned source or builder input before regenerating a companion.
+- Preserve explicit inputs, stable ordering, finite resource limits and visible
+  failure. A validator must not become a hidden source of policy.
+- Keep private or payload-bearing data in its selected owner-controlled storage.
+  Public outputs retain their source bindings and permitted visibility.
+- Source semantics return to the exact `ToS/` branch; repeatable operation law
+  returns to `mechanics/`; external integrations remain consumer-owned.
+- `rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs` is the native
+  release executor. Its manifest sequence, not an inventory entry, determines
+  which commands run. Update navigation when the actual route changes.
 
 ## Validation
 
-Use the nearest command sequence in `docs/validation/validation_lanes.json`.
-For route-card work, select the inventory -> generated currentness ->
-inheritance validator -> deterministic task harness route from
-[`scripts/VALIDATION.md`](VALIDATION.md). The repository release gate and
-affected source, mechanics, public-entry, graph, decision, test, or port checks
-remain owned by the named lane.
-
-Run affected source, mechanics, public-entry, graph, decision, test, or port
-checks named by the same lane. Do not infer human, semantic, runtime, CI, or
-owner acceptance from a local green result. Report changed surfaces, selected
-validation, skipped checks, generated parity, boundary limits, residual risk,
-and the next owner route.
+Use [scripts/VALIDATION.md](VALIDATION.md) for the selected owner lane. Route
+changes need currentness, inheritance and task-harness checks; builders need
+parity and the affected consumer check. Run the broader release route only when
+selected by the changed surface or publication operation.

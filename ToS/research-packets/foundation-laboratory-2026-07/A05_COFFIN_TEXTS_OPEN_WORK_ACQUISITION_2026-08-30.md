@@ -31,8 +31,6 @@
 | Khnumnakht `15.2.2a, b` | original `DP354909.jpg`, 3927×2897 | 2,631,758 | `157590ee44135d24fc4d7e77f82e2f251c01bdcff50c2a6a6b9178cede5e358d` | Public Domain / CC0 |
 | Khnumnakht `15.2.2a, b` | IIIF `1476464`, 1200×885 | 209,846 | `b02c20944dca202341d8cf7319354960d7df1913c0fb382cea9f05b716900a1a` | Public Domain / CC0 |
 
-The machine storage preflight returned `deny` because host storage automation treats `/srv/AbyssOS` as a protected project root, not because of capacity. The operator's explicit project-write and download directive governed the source-owned ToS write; the preflight remains recorded as `deny-protected-project-root` with scope `machine-owned-storage-automation-only`.
-
 ## Rights separation
 
 - physical-artifact metadata: public metadata only; no photograph or text license is inferred from the artifact record;

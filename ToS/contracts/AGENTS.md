@@ -1,51 +1,29 @@
 # AGENTS.md
 
-This file applies to public schema contracts under `ToS/contracts/`.
+This card applies to public schema contracts under `ToS/contracts/`.
 
 ## Role
 
-`ToS/contracts/` defines public structure for ToS-owned surfaces. A schema edit
-is a public contract change and must stay aligned with examples, canon, and
-validators.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| role | public schema contract surface for ToS structures |
-| input | reviewed structural change in canon, compatibility, source-home, or export boundary |
-| output | schema contract aligned with examples and validators |
-| owner | `ToS/contracts/AGENTS.md` and the specific schema file |
-| next route | source/canon/compatibility pressure -> schema update -> examples -> validators |
-| tools | JSON Schema, example sync, export validation, review checklist |
-| check | schema-aware validators and affected route validators |
+Schemas define public ToS record shape. A changed contract must stay aligned
+with its source owner, examples and consuming validators.
 
 ## Boundary Routes
 
-- Route semantic model changes through doctrine, canon, contracts, examples,
-  and validators together.
-- Keep `node_id` grammar stable and ToS-owned.
-- Keep multilingual witness support inside one shared authored identity unless
-  the node contract itself changes.
-- For lived witness, enforce human authorship, exact-body/capture provenance,
-  separate permissions and explicit review state. Direct author review of
-memory, consent, personal context and meaning remains in
-`ToS/zarathustra/lived-witness/`.
-- Route runtime, graph UI, MCP, Neo4j, KAG envelope, and service behavior to
-  owning runtime or downstream surfaces.
-- For translation alignment, bind both exact text layers and anchor sets;
-  keep competing maps and review outcomes separate from the interchange form.
-- For a source-text-unit contract, bind exact frozen text and keep physical
-  layout, orthographic units, linguistic analysis, and tokenizer/model pieces
-  as distinct layers with explicit coverage and gaps.
-- A tokenizer or aligner produces a reproducible proposal. Source-visible
-assessment owns acceptance of linguistic units, translation correspondences
-and semantic Claims.
+- Route semantic model changes through doctrine, canon and their affected
+  examples together. Keep `node_id` grammar stable and ToS-owned.
+- Multilingual witnesses share authored identity unless the node contract
+  itself changes. Translation alignment binds exact text layers and anchor sets;
+  competing maps and assessments remain separate from interchange shape.
+- A source-text-unit contract binds exact frozen text with coverage/gaps. Physical layout,
+  orthographic units, linguistic analysis and model tokens remain distinct.
+  Reproducible tokenizer/aligner output is a proposal for source-visible review.
+- Lived witness requires human authorship, exact-body/capture provenance,
+  separate permissions and explicit review. Personal memory, context, meaning
+  and consent return to the author through `ToS/zarathustra/lived-witness/`.
+- Delivery behavior belongs to `access/`; consumer runtime, Neo4j and KAG
+  envelope contracts stay with their consuming owners.
 
 ## Validation
 
-Use the validator for the schema consumer: source-home, node contract,
-tiny-entry, corpus index, public mirror, or export seam. Use the review
-checklist for boundary-sensitive contract changes. Select the nearest contract
-route in [`ToS/VALIDATION.md`](../VALIDATION.md) after the schema consumer is
-known.
+Select the schema consumer's route in [ToS/VALIDATION.md](../VALIDATION.md)
+and use the review checklist for boundary-sensitive changes.

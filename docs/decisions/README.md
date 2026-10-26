@@ -1,98 +1,41 @@
-# Decision Records Index
+# Decision Records
 
-This directory is the durable decision surface for `Tree-of-Sophia`.
+Decision records explain a durable choice: a route, topology, owner boundary,
+export posture, validation rule or rejected alternative that a future
+contributor should not have to rediscover. Current behavior and meaning remain
+with the source that the decision cites.
 
-Use it when a future contributor needs the rationale for a route, topology, owner boundary, validator route, export posture, source-discipline rule, or tree-layer split.
+Use the owning guide for instructions, the review ledger for dated judgments,
+and the changelog for release history. An ordinary documentation edit does not
+need a new decision record.
 
-Ordinary implementation notes, generated output, runtime logs, private evidence, proof verdicts, review notes, and one-off planning thoughts route to their owning surfaces instead.
+## Find a decision
 
-## Operating Card
+The generated [indexes](indexes/README.md) offer these views:
 
-| Field | Route |
-| --- | --- |
-| role | durable ToS decision rationale entrypoint and index chooser |
-| input | changed source-first route, owner boundary, rejected option, validation guard, export posture, or tree-layer pressure |
-| output | canonical decision note, generated lookup indexes, and route back to the source surface |
-| owner | `docs/decisions/AGENTS.md` for lane law; decision notes for rationale; generated indexes for lookup only |
-| next route | source surface first, then nearest route card, `CHARTER.md`, `BOUNDARIES.md`, `ROADMAP.md`, generated lookup indexes, or the affected sibling owner |
-| validation | `tos-ops-mechanics-plan --repo-root ABS --decision-index-build --check` and `tos-ops-mechanics-plan --repo-root ABS --decision-records-validate`, plus the owning validator for the changed surface |
+- [canonical ID](indexes/by-number.md) and [date](indexes/by-date.md);
+- [surface](indexes/by-surface.md), [ToS layer](indexes/by-tos-layer.md) and
+  [tree class](indexes/by-tree-class.md);
+- [guard family](indexes/by-guard.md).
 
-## Authority
+Indexes are lookup aids derived from decision metadata. They do not replace
+the rationale or establish that an implementation is current.
 
-Decision notes explain why a route was chosen.
+## Write or supersede
 
-They are weaker than the source surface they describe:
+Start from [TEMPLATE.md](TEMPLATE.md) and the [local card](AGENTS.md).
+Use a stable `TOS-D-####` ID and the filename
+`TOS-D-####-short-decision-slug.md`. Keep the title short and record context,
+alternatives, rationale, consequences, exact source surfaces and validation.
 
-- source authority stays in `ToS/source-witnesses/`;
-- golden Zarathustra route surfaces stay in `ToS/zarathustra/`;
-- non-authoritative research scaffolds stay in `ToS/research-packets/`;
-- candidate structure stays in `ToS/candidate-intake/`;
-- canonical authored nodes and relations stay in `ToS/canon/`;
-- public compatibility stays in `ToS/public-compatibility/`;
-- derived export stays in `ToS/derived-exports/`;
-- route law, current doctrine, review posture, boundaries, and roadmap stay in their owning surfaces;
-- neighboring repositories keep stronger truth for federation, runtime, SDK control-plane helpers, KAG substrate semantics, skills, techniques, and playbooks.
+The `## Index Metadata` block carries the decision ID, original date, surface
+classes, ToS layers, tree classes, guard families and posture. Preserve existing
+IDs. When a choice changes, add an explicit superseding record and state the
+scope of supersession; historical records retain their original rationale.
 
-Generated decision indexes are weaker than the decision notes. They exist to make lookup cheaper for agents, not to carry decision rationale.
+## Regenerate and validate
 
-## Index Shape
-
-Each decision owns:
-
-- a canonical `Decision ID: TOS-D-####`;
-- a full canonical-ID filename, for example `TOS-D-0001-*.md`;
-- an `## Index Metadata` block naming original date, surface classes, ToS layers, tree classes, guard families, and posture.
-
-The lookup indexes under [indexes](indexes/README.md) are generated from that metadata:
-
-- [Decisions by canonical ID and number](indexes/by-number.md)
-- [Decisions by date](indexes/by-date.md)
-- [Decisions by surface class](indexes/by-surface.md)
-- [Decisions by ToS layer](indexes/by-tos-layer.md)
-- [Decisions by tree class](indexes/by-tree-class.md)
-- [Decisions by validation or guard family](indexes/by-guard.md)
-
-Regenerate the read models after decision metadata changes:
-
-Regeneration routes through `tos-ops-mechanics-plan --repo-root ABS --decision-index-build` under the
-operator guidance in `docs/decisions/AGENTS.md`.
-
-Check generated parity before closeout:
-
-Checked parity is owned by the `generated_parity` sequence in
-`docs/validation/validation_lanes.json`.
-
-## Lookup Route
-
-Do not hand-maintain a "latest decision" roster in this README. That list drifts as soon as a new decision lands.
-
-Use the generated indexes instead:
-
-- [by number](indexes/by-number.md) for the complete canonical ledger;
-- [by date](indexes/by-date.md) for recent landings;
-- [by surface](indexes/by-surface.md), [by ToS layer](indexes/by-tos-layer.md), and [by tree class](indexes/by-tree-class.md) for owner-pressure lookup;
-- [by guard](indexes/by-guard.md) for validation, route-law, or boundary pressure.
-
-The first decision records why this lane exists without turning it into source canon or runtime authority.
-
-## Addressing
-
-Full canonical-ID decision paths are the active source files:
-
-- `docs/decisions/TOS-D-0001-*.md`
-- `docs/decisions/TOS-D-0002-*.md`
-- `docs/decisions/TOS-D-####-*.md`
-
-Canonical IDs remain stable handles. Previous path names belong to git, PR, or release history, not to a compatibility lookup layer.
-
-## Naming
-
-Use the full canonical decision ID as the filename prefix:
-
-`TOS-D-0001-short-decision-slug.md`
-
-Prefer short titles that name the route, not the whole debate.
-
-## Template
-
-Start from [TEMPLATE.md](TEMPLATE.md) for new decisions. Keep notes concise, but include enough context, options, rationale, consequences, source surfaces, and validation for a future agent to avoid repeating the same route question.
+After changing decision metadata, use the native index builder and decision
+validator in [documentation validation](../VALIDATION.md). Generated indexes
+are rebuilt rather than edited by hand. Validate the changed source through
+its own owner route as well; index parity does not accept the decision.

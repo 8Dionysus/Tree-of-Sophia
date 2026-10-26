@@ -1,227 +1,90 @@
 # ToS Roadmap
 
-This roadmap tracks the growth of `Tree-of-Sophia` at the source-home level.
-It sets direction for the philosophical tree. Branch inventories, mechanic
-backlogs, release history and validation procedures follow the owner routes
-below.
-
-## Authority
-
-Root `ROADMAP.md` owns:
-
-- ToS-wide direction;
-- horizon posture for the philosophy source home;
-- maturity pressure across source, canon, graph, mechanics, and export routes;
-- source-home growth contour that affects more than one branch or mechanic;
-- concrete future triggers that belong to the repository, not one package.
-
-Narrower owner surfaces carry mechanic-local roadmaps, checked release history,
-branch inventories, review packets, validation command inventories, source
-witnesses, canon nodes, graph-workbench ledgers, and downstream runtime
-implementation.
-
-Use the stronger surface when the change is narrower:
-
-- mechanic-local future pressure: `mechanics/<slug>/ROADMAP.md`;
-- released repository history: `CHANGELOG.md`;
-- philosophical branch topology: `ToS/philosophy/`;
-- source witnesses: `ToS/source-witnesses/`;
-- reviewed canon: `ToS/canon/`;
-- graph review preparation: `ToS/philosophy/graph-workbench/`;
-- generated read models: `ToS/derived-exports/`;
-- standalone projection access product: `access/`;
-- ecosystem deployment and visualization orchestration: `abyss-stack`.
-
-## Update Rule
-
-Update this roadmap when a change moves ToS-wide direction, source-home growth
-posture, release contour meaning, graph/canon horizon, mechanics maturity
-pressure, public/export boundary, or a concrete future trigger.
-
-Route local landings to their owning surface. Before closeout, ask whether the
-change moved the tree's direction or only landed a local branch, package,
-validator, generated companion, or release note.
+This roadmap owns ToS-wide direction and the conditions for the next meaningful
+step. [The changelog](CHANGELOG.md) records releases;
+[architecture](DESIGN.md) describes the system; branch and mechanic owners keep
+their local work and evidence.
 
 ## Current ToS Direction
 
-ToS is moving from one golden source route into a world-philosophy tree whose
-branches can be read as graphs without losing their roots.
+Grow a source-grounded world-philosophy tree whose branches can be read as
+graphs without losing their sources, history or competing interpretations.
 
-The current repository move is:
+Two fronts remain coupled:
 
-- couple the world-philosophy corpus soil with Zarathustra as the first golden
-  source-to-canon learning kernel;
-- keep Zarathustra deep enough to teach observation, interpretation, refusal,
-  review, and promotion, not merely provide accepted labels;
-- transfer the kernel's method without imposing Nietzsche's ontology on other
-  branches;
-- keep the `root-entry` and `tiny-entry` seam inspectable for public entry;
-- grow `ToS/philosophy/` from atlas rows into era, region, tradition, corpus,
-  work, figure, concept, institution, script, medium, source, and transmission
-  branches;
-- keep graph-workbench material pre-canon until review promotes relation packs;
-- keep generated graph, KAG, and public exports downstream of authored ToS
-  surfaces;
-- carry the maintained executable foundation toward Rust under
-  [TOS-D-0069](docs/decisions/TOS-D-0069-rust-execution-foundation.md), with
-  source authority, exact historical bytes and release boundaries retained;
-- keep the public site continuously available through the repository-driven
-  Cloudflare edge profile, while native MCP and downloadable access remain
-  installable from ToS itself and consumers integrate from their own repositories
-  under [TOS-D-0072](docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md);
-- let mechanics carry repeatable movement around the source home without
-  becoming the source home.
+- the world-philosophy foundation supplies works, witnesses, languages, time,
+  place, transmission and exact source addresses;
+- Zarathustra supplies the first dense source-to-review kernel, including
+  rejected and unresolved readings and their grounds.
+
+Extend the method to other traditions without imposing Nietzsche's vocabulary
+or ontology. Authored sources and scoped review govern canon and every derived
+representation.
 
 ## Current release contour
 
-The consolidated `v0.5.0` release contour grows the bounded root-entry and
-owner-local-statistics line into a source-first corpus foundation, portable KAG
-family, and graph-review tree without widening canon:
+The released software line is `v0.6.0`; its scope and compatibility notes are
+in [the release history](CHANGELOG.md). The maintained native
+Rust foundation, transactional source updates and independent projections are
+implemented surfaces. Their existence does not establish production deployment
+or acceptance of every research input.
 
-| Contour | Surfaces |
-| --- | --- |
-| source-first orientation and public entry | `README.md`, `CHARTER.md`, `BOUNDARIES.md`, `ToS/source_home.manifest.json`, `ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md`, `ToS/derived-exports/root_entry_map.min.json` |
-| philosophy atlas and planted tree | `ToS/philosophy/atlas/`, `ToS/philosophy/eras/`, `ToS/philosophy/graph-workbench/branch-fragments/`, `ToS/philosophy/graph-workbench/promotion-ledger/` |
-| graph review and source-returning projection | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
-| multilingual planting | `ToS/philosophy/atlas/multilingual/`, `ToS/philosophy/graph-workbench/language-packets/` |
-| bounded source export | `mechanics/boundary-bridge/parts/derived-kag-seam/`, `kag/` |
-| owner-local reference measurement | `stats/`, `rust/crates/tos-ops-mechanics-plan/src/stats_release_main.rs` |
-| source-first corpus foundation | `ToS/source-witnesses/`, `ToS/contracts/`, `ToS/derived-exports/`, `ToS/research-packets/` |
-| portable export and routing boundary | `kag/`, native ToS export verification, consumer-owned import |
-
-This contour keeps atlas rows, planted dossiers, graph-workbench material,
-multilingual packets, KAG records, and generated readmodels subordinate to
-ToS-authored authority and explicit review. Downstream graph, KAG, routing, and
-runtime consumers may use the bounded seams; they do not widen the tree or
-promote material to canon.
+Software, corpus admission, data publication and consumer integration have
+separate boundaries under
+[TOS-D-0062](docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md).
+ToS operates and exports independently of ecosystem checkouts under
+[TOS-D-0072](docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md).
+Current commands and validation selection belong to
+[release guidance](docs/RELEASING.md).
 
 ## Current Growth Contour
 
-The current release has opened the first philosophy-atlas and graph-review
-contour without promoting that material to canon.
+[The philosophy atlas](ToS/philosophy/README.md) owns the prepared row spine and
+branch-growth route. Tables I, II and III have admitted dossier indexes at
+48, 58 and 84 dossiers respectively. These are preparation and navigation
+counts, not semantic-completeness claims. The prose-only `T3-57` artifact still
+needs a source-completed successor before semantic promotion.
 
-| Anchor | Surface |
-| --- | --- |
-| source home | `ToS/README.md`, `ToS/AGENTS.md`, `ToS/philosophy/README.md` |
-| philosophy atlas | `ToS/philosophy/atlas/`, `ToS/philosophy/atlas/master-tables/`, `ToS/derived-exports/philosophy_atlas_projection.min.json` |
-| trunk law | `ToS/philosophy/trunk/branch-law/`, `chronology/`, `evidence-status/`, `graph-layers/`, `node-kinds/`, `relation-kinds/`, `source-posture/` |
-| prepared-dossier planting | indexed Tables I–III with 48, 58, and 84 admitted dossiers respectively under `ToS/philosophy/atlas/`, `eras/`, `frontiers/`, and `graph-workbench/` |
-| graph review | `ToS/philosophy/graph-workbench/views/`, `clusters/`, `review-packets/`, `promotion-ledger/` |
-| owner-local measurement | `stats/port.manifest.json`, `stats/packets/table-i-prepared-dossier-route-ratio.reference.json` |
-| downstream read models | `ToS/derived-exports/philosophy_graph_views.min.json`, `ToS/derived-exports/philosophy_graph_projection.min.json` |
-| repeatable movement | `mechanics/`, package `PARTS.md`, package `ROADMAP.md`, and active part routes |
+[Source witnesses](ToS/source-witnesses/README.md) supply the identity and
+provenance foundation. [The graph workbench](ToS/philosophy/graph-workbench/README.md)
+holds proposed nodes, relations, views and review packets.
+[Canon](ToS/canon/) records the narrower reviewed authored outcome.
+New atlas material follows its owning era, region or tradition and preserves
+weak, frontier and incomplete evidence states.
 
-This contour is tree preparation. It exposes candidate nodes, proposed
-relations, graph views, layers, clusters, and review packets so a human can
-review the tree before canon promotion.
+## Horizons
 
-Index coverage does not establish semantic completeness. The prose-only
-`T3-57` artifact still projects no structured semantic rows and requires a
-source-completed successor before semantic promotion.
-
-## Horizon: Source Home Depth
-
-| Field | Direction |
-| --- | --- |
-| Current posture | `ToS/` is the source home; `ToS/philosophy/` is the expanding domain tree; Zarathustra remains the golden route. |
-| Next honest move | Keep branch growth attached to source anchors, review posture, and canon boundaries as the atlas expands. |
-| Guardrail | Authored philosophical meaning stays in source, branch, doctrine, review, and canon surfaces. |
-
-## Horizon: Golden Kernel And Corpus Soil
-
-| Field | Direction |
-| --- | --- |
-| Current posture | The bounded Zarathustra route proves several authored layers, while the philosophy atlas provides broad pre-canon corpus structure. The golden kernel supplies a source-to-canon method; the corpus soil supplies broader material for its transfer. |
-| Next honest move | Define the corpus-soil record and address spine, then define one reviewable gold-packet contract that carries observations, proposals, accepted/rejected/ambiguous outcomes, reviewer rationale, uncertainty, and version lineage through a real bounded Zarathustra slice. |
-| Transfer check | Test whether an agent can return to source, separate layers, refuse a bad label, and expose a missing distinction on unseen material before using the kernel across works. |
-| Guardrail | Stable evidence is foundational; semantic entities remain revisable. Lived witness remains first-person provenance, and Nietzsche-specific vocabulary is never a cross-corpus default. |
-
-## Horizon: Philosophy Atlas And Branch Growth
-
-| Field | Direction |
-| --- | --- |
-| Current posture | Master tables and prepared dossier indexes give the tree a navigable row spine. Tables I, II, and III are complete at 48, 58, and 84 admitted dossiers respectively; their graph rows remain pre-canon candidates, with weak, frontier, and structurally incomplete inputs kept explicit. |
-| Next honest move | Review the three graph-ready pre-canon slices, especially manual-review and frontier routes, complete missing source-witness anchors, and replace the structurally incomplete `T3-57` artifact before any semantic promotion. |
-| Guardrail | Atlas rows are prepared navigation and growth pressure; historical source claims still need source witnesses, branch review, and canon review. |
-
-## Horizon: Graph Review And Projection
-
-| Field | Direction |
-| --- | --- |
-| Current posture | Graph views, semantic graph layers, clusters, review packets, and a derived graph projection exist as source-owned preparation for downstream visualization. |
-| Next honest move | Use the review packets to inspect candidate nodes, proposed relations, weak source posture, clusters, and lens usefulness before canon promotion. |
-| Guardrail | Graph readability follows source-rooted tree growth. Canon, proof and runtime decisions retain their respective owner routes. |
-
-## Horizon: Canon Formation
-
-| Field | Direction |
-| --- | --- |
-| Current posture | Canon stays smaller than the workbench: reviewed source, concept, relation, state, support, analogy, lineage, event, and synthesis routes live under `ToS/canon/`. |
-| Next honest move | Promote only reviewed relation packs and node families whose source anchors, evidence status, branch placement, and review packet are inspectable. |
-| Guardrail | Prepared dossier rows and proposed graph fragments remain pre-canon until reviewed through the canon route. |
-
-## Horizon: Mechanics Maturity
-
-| Field | Direction |
-| --- | --- |
-| Current posture | ToS has shared AoA-aligned mechanics plus local philosophy mechanics for source witnessing, canon formation, and relation weaving. Package roadmaps own local future pressure. |
-| Next honest move | Let mechanics mature through active parts when repeated movement appears in real ToS work, not through root-roadmap inventories. |
-| Guardrail | Mechanics are organs of motion around the tree. They do not author the tree. |
-
-## Horizon: Public, Export, And Runtime Boundaries
-
-| Field | Direction |
-| --- | --- |
-| Current posture | Root-entry, tiny-entry, KAG export, public compatibility, graph-view catalog, and graph projection are bounded downstream companions; `access/` supplies a standalone read-only product with Evidence Lens, shared page commands, a local research workspace, a visible WebMCP/fallback surface, a validated downloadable candidate, and a permanent repository-driven Cloudflare Worker/D1 profile over the same explicit data allowlist. |
-| Next honest move | Observe repository-driven deployment and ordinary-user acceptance for both the public edge and downloadable candidate. Downstream consumers can integrate the same independently released artifact from their own repositories. |
-| Guardrail | Runtime can display or operate projections; ToS owns philosophical source and structural truth. |
-
-## Phase Path
-
-| Phase | Direction | Exit Signal |
+| Direction | Next meaningful step | Evidence needed |
 | --- | --- | --- |
-| 1. architectural baseline | charter, boundaries, knowledge model, source-first posture | contributors can say what ToS owns and routes away |
-| 2. corpus scaffold | identifiers, source-node templates, concept-node templates, provenance conventions | first node surfaces are reviewable |
-| 3. lineage and relations | works, concepts, contexts, and lineages become cross-linkable | relations are explicit and branch-readable |
-| 4. derived handoff discipline | KAG/export/graph handoff is bounded and source-returning | generated views stay downstream companions |
-| 5. contributor review workflow | human-reviewed synthesis and manual entry become repeatable | review can grow without hiding uncertainty |
-| 6. wider world-thought expansion | traditions, languages, eras, schools, works, and authors expand through branch topology | plurality grows without flattening into a list |
+| Source depth | Complete the witness and address chains required by a selected branch | Exact material, provenance, rights posture and explicit gaps |
+| Golden-kernel transfer | Exercise source return, justified refusal and competing readings on unseen material | A bounded review packet with accepted, rejected and unresolved outcomes; source-specific vocabulary retained |
+| Atlas growth | Review prepared graph slices, complete missing anchors and replace incomplete dossier inputs | Branch review and a source-completed successor for any structurally deficient input |
+| Canon formation | Promote only supported node families and relation packs | Inspectable evidence, reviewer rationale and an explicit canon decision |
+| Graph and retrieval | Test whether a selected view helps a real research question | Return to exact sources, status-preserving results and scoped user assessment |
+| Mechanics | Improve an operation when repeated work exposes friction | An existing owner, a concrete use and a proportionate check |
+| Public and portable access | Verify the selected release and data pair in ordinary use | Separate installation, deployment, runtime and user-acceptance evidence |
+
+The corresponding owners are [source witnesses](ToS/source-witnesses/README.md),
+[Zarathustra](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md),
+[philosophy](ToS/philosophy/README.md), [canon](ToS/canon/),
+[derived exports](ToS/derived-exports/README.md), [mechanics](mechanics/README.md)
+and [access](access/README.md).
 
 ## When Time Comes
 
-Use this block for likely ToS-wide work that is not useful to land before its
-trigger is real.
+- Plant another atlas table when prepared rows, branch targets and review
+  outputs can be connected to real sources and the existing tree.
+- Expand gold examples when a bounded source slice exposes a missing
+  distinction, an unsupported reading or a useful alternative.
+- Attempt wider cross-work transfer after an unseen-material evaluation can
+  distinguish source return and justified refusal from vocabulary agreement.
+- Promote graph relations when their exact evidence and review scope support
+  the proposed node kinds and branch placement.
+- Add a shared operation or schema when repeated owner work demonstrates the
+  need and existing contracts cannot represent it faithfully.
+- Cut a release when its source scope, compatibility, validation and delivery
+  evidence are explicit. Downstream consumers validate their own integration.
 
-- Plant the next atlas table when its prepared rows, route map, branch targets,
-  and graph-workbench outputs can follow the Table I pattern without flattening
-  the tree into a list.
-- Begin gold-packet implementation when the annotation-unit boundary, source
-  address, reviewer decision shape, negative/ambiguous examples, and version
-  lineage can all be exercised by one real bounded Zarathustra slice.
-- Begin corpus-soil implementation when work, witness, edition, language, time,
-  place, address, evidence status, and source-return rules can be stated without
-  smuggling interpretation into bibliographic order.
-- Attempt cross-work transfer only after an unseen-material eval can reward
-  source return, justified refusal, and schema-change pressure rather than
-  vocabulary agreement alone.
-- Promote the first Table I relation pack when review packets have exposed the
-  candidate nodes, relation kinds, weak evidence, and branch-return route.
-- Add stronger source-witness routes when a prepared branch needs published
-  editions, translations, inscription corpora, or source-corpus anchors before
-  canon movement.
-- Keep downstream runtime adapters in their consumer repositories. ToS supplies
-  independently verifiable exports and retains its own runtime authority.
-- Add shared review receipt schemas only after repeated graph or canon review
-  passes prove that prose packets are no longer enough.
-- Cut the next release contour when source-home growth, roadmap direction,
-  changelog history, generated companions, and validation lanes agree.
-
-## Standing Discipline
-
-- keep sources explicit;
-- keep provenance visible;
-- keep lineage legible;
-- keep branch topology stronger than flat buckets;
-- keep generated systems downstream of authored truth;
-- keep mechanics as organs of movement, not root-document clutter;
-- keep graph views useful without letting graphs replace the tree.
+Update this roadmap when direction or a real trigger changes. Put completed
+implementation details in their owner guide or release history, and dated
+observations in their research or review record.

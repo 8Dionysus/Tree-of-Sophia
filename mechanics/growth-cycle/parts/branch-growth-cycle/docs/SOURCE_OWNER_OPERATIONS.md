@@ -2,15 +2,12 @@
 
 ## Find a source-owner command
 
-Start with `tos-native-owner-command source-commands --discover`.
-It returns handler-owned JSON operation and request shapes without a private
-grant or source target. Use `--discover --handler HANDLER_ID` for one exact
-family. [Discovery contract](../docs/SOURCE_COMMAND_DISCOVERY.md) explains the compact API, typed owner handles and limits. Discovery reports
-implemented operations; a separately selected current owner grant authorizes
-execution. Access adapters remain read-only.
-
-The separately selected [loopback command transport](../docs/SOURCE_COMMAND_HTTP.md)
-can carry that same grammar to authenticated browser or agent clients. It carries the selected source command’s existing grant and request scope.
+Use `tos-native-owner-command source-commands --discover` before selecting a
+grant. The [discovery contract](SOURCE_COMMAND_DISCOVERY.md) owns the command
+grammar, result shape and limits; discovery reports implemented operations,
+while a separately selected current grant authorizes execution. The
+[loopback transport](SOURCE_COMMAND_HTTP.md) carries that same grammar for
+authenticated browser or agent clients.
 
 ### Explicit Claim display fields
 
@@ -111,15 +108,9 @@ their owner route.
 
 ## Operating Card
 
-| Field | Route |
-| --- | --- |
-| role | distinguish deepen-node, create-node, and form-branch moves |
-| input | source pressure, review state, branch need |
-| output | growth route or return-to-review |
-| owner | `mechanics/growth-cycle/parts/branch-growth-cycle/` |
-| next route | `ToS/philosophy/` or `ToS/canon/` after review |
-| tools | `mechanics/growth-cycle/parts/branch-growth-cycle/docs/GROWTH_STRUCTURE.md`, `ToS/philosophy/philosophy.manifest.json`, `rust/crates/tos-command/src/source_assessment_journal.rs` |
-| check | `tos-ops-mechanics-plan --repo-root ROOT --philosophy-topology` |
+The branch route card and operation map live in the
+[Branch Growth Cycle README](../README.md); this journal retains the detailed
+source-owner command contracts below.
 
 ## Assessment policy application
 
@@ -167,8 +158,11 @@ canon status. `inspect` remains a metadata-only owner view, not acceptance.
 
 ### Sign issuance through the shared source command
 
-The existing `tos-native-owner-command source-commands --invocation /absolute/native-invocation.json` entry
-accepts the separately delegated `tos_local_sign_promote_owner_v1` configuration.
+The local filesystem `source-commands` route accepts the separately delegated
+`tos_local_sign_promote_owner_v1` configuration. The distinct PostgreSQL Growth
+route requires Sign owner v2 and Assessment owner v5/v6; see the
+[selected PostgreSQL Growth route](SOURCE_COMMAND_DISCOVERY.md#selected-postgresql-growth-route).
+Run `tos-native-owner-command` with `source-commands --invocation ABSOLUTE_PATH`.
 It has the public profile-creation fields (`uid`, `principal_id`, `source_root`,
 `source_path`, `authority_ref`, `allowed_form_ids`, `allowed_operations`,
 `expires_at`, `record_id`, `profile_type_id`, `maker_type`,
@@ -909,43 +903,17 @@ support. Each future writer/consumer needs its own explicit adapter.
 
 ### Confidential native TextLayer and first segmentation
 
-The separately delegated `tos_local_text_layer_create_owner_v1` route performs
-bounded `text-layer.create` from one already acquired exact EPUB member to a
-new private, unreviewed native layer/anchor package. It requires distinct
-current reading and local-derivation authority plus exact Item/File and new
-layer rights before original bytes are read. It does not acquire material,
-assess text or publish content. The existing owner-local context stays two-root;
-the explicit payload input root is not a fallback namespace.
-
-`tos_local_text_unit_create_owner_v2` then supports first `text-unit.create`
-from a real layer-only binding, without an invented predecessor packet. V2
-adds exact retained input pins and redacted responses; v1 retains its existing
-historical retry semantics. Both new routes retain bounded private recovery
-plans and never overwrite a source or erase interrupted evidence. See
-[the full extraction, grant, limits, first-segmentation and recovery contract](../docs/NATIVE_TEXT_LAYER_CONSTRUCTION.md).
-The existing public Occurrence gate is unchanged.
-
-The separate `tos_local_text_layer_derive_owner_v1` grant now exposes native
-`text-layer.correct`, `text-layer.normalize`, `text-layer.record-transcription`
-and `text-layer.record-ocr`. Explicit correction and deterministic Unicode
-normalization create exact predecessor-bound successors; supplied human/model
-transcription and OCR recording preserve a reported, unverified origin without
-claiming provider execution. All use the same bounded private recovery route
-and remain unreviewed. The construction contract above names the exact grant
-shapes and the still-separate method-specific source-visible assessment owner.
+The [native TextLayer construction contract](NATIVE_TEXT_LAYER_CONSTRUCTION.md)
+owns the extraction and derivation grants, first segmentation, exact source
+bindings, budgets and recovery. The public Occurrence gate and
+source-visible assessment remain separate owner routes.
 
 ### Public project-text native construction
 
-The independent `tos_public_native_text_create_owner_v1` grant exposes
-`native-text.create` through the same source front door. It selects one exact
-existing project-authored UTF-8 documentation range, already acquired as an
-Item/File, and writes one new native TextLayer/Anchor plus an explicitly
-supplied first TextUnit partition. It does not widen private grants, import
-third-party historical text, or create an Occurrence implicitly.
-
-The [public construction contract](../docs/PUBLIC_NATIVE_TEXT_CONSTRUCTION.md)
-owns its exact positive rights/authority gate, limits, retained recovery and
-separate downstream source creation. Private originals remain private.
+The [public construction contract](PUBLIC_NATIVE_TEXT_CONSTRUCTION.md) owns the
+dedicated grant, project-text source binding, rights gate, limits, retained
+recovery and separate downstream source creation. It does not widen private
+grants or create an Occurrence implicitly.
 
 ### Confidential native TextUnit creation
 
@@ -1045,23 +1013,10 @@ review.
 
 ### Confidential native translation alignment
 
-The distinct [native translation-alignment route](../docs/NATIVE_TRANSLATION_ALIGNMENT.md)
-uses the same source front door and private no-replace/recovery machinery for
-supplied mappings between two exact native source closures. It owns immutable
-descriptive and Claim succession without rekeying the Alignment subject,
-leaves legacy translation packet-v1 unchanged, and cannot assess translation.
-
-For an explicitly selected local native Alignment invocation, the same CLI
-accepts `--owner-config /absolute/owner.json --native-invocation /absolute/private/invocation.json`.
-The mode-0600 invocation names the exact corpus revision/store, software
-capture/restored components, schema worker image and native executable digest
-under finite budgets. It is selected separately from the request and from the
-owner's grant; Rust repeats current source, rights and publication checks.
-This opt-in covers the exact delegated `describe`, prepare, create/revise,
-inspect, inspect-version and inspect-recovery operations. The default CLI
-also uses the maintained native route; the former Python route is retained
-only as historical comparison material. Neither route admits a proposal or
-exposes confidential bytes through HTTP.
+The [native translation-alignment contract](NATIVE_TRANSLATION_ALIGNMENT.md)
+owns the selected local invocation, grant, exact source closures, immutable
+Claim succession and retained recovery. Supplied mappings remain proposals;
+assessment and confidential-content transport retain their separate routes.
 
 ### Confidential owner-local source profiles
 
@@ -2106,36 +2061,17 @@ their owner decisions.
 
 ### Native Work / Expression growth
 
-The separate `tos_local_work_expression_owner_v1` delegates one exact existing
-Work, one new Expression and one distinct `has_expression` Claim, together with
-their selected form identities. `tos-native-owner-command source-commands` dispatches
-`work.expression.create` and explicit pending recovery through the
-[native compound owner contract](../docs/NATIVE_WORK_EXPRESSION_GROWTH.md).
-The parent gains only a version increment and the appended Claim reference;
-existing descendants and all other Work fields stay outside the change.
-New source-copy forms, exact predecessor history and serialization provenance
-travel together through the selected-metadata protocol. The committed link records this Work-to-Expression relationship. Bibliographic
-or textual admission, Edition/Item growth, responsibility attribution and
-publication use their separate routes. Standalone Claim grants cannot write or
-revise this topology predicate merely because a read profile understands it.
+The [native compound owner contract](NATIVE_WORK_EXPRESSION_GROWTH.md) owns the
+Work/Expression grant, `work.expression.create`, pending recovery and its
+selected-metadata transaction. Edition, Item, responsibility, assessment and
+publication remain separate routes.
 
 ### Native Expression responsibility attachment
 
-The separate `tos_local_expression_responsibility_owner_v1` delegates one exact
-existing Expression and Agent, `translated_by`, one new Claim home and selected
-forms/evidence. `prepare-attach`, `expression.responsibility.attach` and explicit
-recovery are described in the
-[responsibility owner contract](../docs/NATIVE_EXPRESSION_RESPONSIBILITY.md).
-Only Expression version and the appended responsibility ref change. A qualified
-unreviewed Claim keeps attribution evidence separate from endpoint metadata,
-and competing Claims may name the same Agent. Its standalone source profile
-does not grant flat creation; separately authorized descriptive Claim correction
-must preserve the exact initial compound lineage and qualified scope.
-
-External evidence URLs remain declared addresses. Their derived citation
-occurrences return to the exact local citing Claim; no remote bytes, reading,
-independence, review or truth are manufactured. The command neither creates nor
-edits the Agent or the Expression's earlier immutable topology Claim stream.
+The [responsibility owner contract](NATIVE_EXPRESSION_RESPONSIBILITY.md) owns
+the dedicated grant, exact Claim attachment, forms/evidence and recovery. It
+does not create or edit the Agent or the Expression's earlier topology Claim
+stream; evidence URLs remain declared addresses, not remote source evidence.
 
 ### Declared source Claim creation
 
@@ -2462,9 +2398,7 @@ owner route; neither this proposal grant nor an old assessment grants it.
 
 ### Native Artifact metadata creation
 
-The [native Artifact route](../docs/NATIVE_ARTIFACT_GROWTH.md) uses its own
-`tos_local_artifact_create_owner_v1` grant and the existing `source.create`
-publication engine. Artifact v2 metadata and source-copy forms have an exact
-serialization origin; existing rights, discovery and research remain separately
-bound inputs. Acquisition, witness assessment and earlier discovery/planting provenance
-remain separately owned source records.
+The [native Artifact contract](NATIVE_ARTIFACT_GROWTH.md) owns the dedicated
+creation grant, Artifact v2 metadata, source-copy forms and serialization
+origin. Rights, acquisition, witness assessment and prior discovery provenance
+remain separate source records.

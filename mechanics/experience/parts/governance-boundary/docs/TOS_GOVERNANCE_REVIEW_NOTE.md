@@ -15,6 +15,9 @@ explicit, and blocks hidden runtime or canon mutation.
 ## Local law
 
 - Local owner keeps meaning authority.
+
+### Decision refs
+
 - Governance packets must cite evidence and decision refs.
 - No direct ToS write or hidden assistant self-change.
 

@@ -701,414 +701,46 @@ Linguistic units and semantic assertions require their own source-grounded
 analysis; reuse and publication retain the source’s recorded rights
 conditions.
 
-## Current seed
+## Seed source routes
 
-The first physical seed is *Thus Spoke Zarathustra* and one Nietzsche
-collection containing it. The seed deliberately includes:
+This is a navigation index, not a parallel record of each item's assessment.
+Stable Work, Collection, Edition, Item, and File IDs remain the identity
+authority. Each linked item manifest returns to its exact fixity, rights,
+provenance, resource inventory, and forensic report. Dated research packets
+preserve detailed evidence and uncertainty; source-owned claim packets retain
+relation authority. These links do not merge witnesses or promote proposals.
 
-- a vector-outline Russian PDF requiring raster/OCR recovery;
-- an image-plus-ABBYY Russian collection PDF with an imperfect text layer;
-- an automatically generated German OCR EPUB with weak metadata and no usable
-  navigation;
-- the exact 529-page image-container PDF exposed by that EPUB's
-  checksum-verified Internet Archive parent item;
-- a checksum-verified 402-page scan of Yu. M. Antonovsky's 1913 Russian
-  translation from Wikimedia Commons, kept distinct from both the later
-  Antonovsky expression and the separately licensed Wikisource transcription;
-- an exact 62,952,283-byte RSL/RuNEB PDF of Antonovsky's 1911 fourth edition,
-  with 153 scanned spreads, separate Prometey publication and Energiya
-  manufacture claims, and source-visible evidence that the earlier translation
-  editions were revisions rather than simple reprints;
-- checksum-verified DTABf/TEI P5 transcriptions of all four public part
-  witnesses from Deutsches Textarchiv: Schmeitzner parts 1 and 2 from 1883,
-  Schmeitzner part 3 from 1884, and Naumann's first public edition of part 4
-  from 1891. Each remains grounded in its exact SBB-PK or SUB Göttingen
-  holding copy and distinct from DTA's facsimile layer and from a critical
-  edition;
-- an exact Wikimedia Commons revision of the UNC/Internet Archive scan of
-  Nietzsche's 1892 second Naumann *Zur Genealogie der Moral*, with visible
-  edition statement, exact file fixity, and a text-free 208-page resource
-  inventory;
-- an exact Wikimedia Commons/Stanford DjVu of the 1906 Naumann
-  *Nietzsche's Werke*, Band VIII aggregate, with a text-free 523-page bundled
-  DjVu inventory and an explicitly partial proposed boundary for *Der
-  Antichrist*. Its corrected United States historical route treats Commons'
-  pre-1931 sentence as provider evidence rather than an independent ToS
-  conclusion. In the statute, §104A(g) is the Presidential-proclamation
-  subsection; the restored-work definition's source-country-expiration
-  condition is §104A(h)(6)(B). Nietzsche's term and the assessed presentation alternatives
-  expired in Germany before possible §104A restoration, while any qualifying
-  restored term for a distinct contribution actually published in 1906 ended
-  at 2001-12-31. The eleven-layer aggregate remains `conflicting_evidence`;
-- a separate exact Internet Archive automatic DjVuXML derivative from the
-  Google/Stanford scan lineage, with provider SHA-1 plus local SHA-256 closure,
-  a text-free 525-page/5,434-paragraph/16,467-line/105,803-word inventory, and
-  local-only navigation posture. Its corrected historical-Work route applies
-  §104A's source-country condition and records 2001-12-31 as the conditional
-  endpoint only after locating that condition in §104A(h)(6)(B), not the
-  Presidential-proclamation subsection §104A(g); Internet Archive
-  `NOT_IN_COPYRIGHT` fields remain provider evidence, not an independent ToS
-  legal conclusion. The exact DjVuXML, 525-member JP2 ZIP, and 525-leaf
-  scandata package remain a separate local Item: contaminated descriptive
-  metadata, OCR correctness, textual identity with the Commons Item, accepted
-  German, and future-site upload remain explicitly unestablished;
-- an exact official MDZ PDF of the Bamberg Staatsbibliothek `30.1972` copy of
-  the standalone 1888 Naumann *Der Fall Wagner*, with 74 ordered IIIF
-  canvases, a one-page provider-cover offset, local fixity, and a text-free
-  75-page inventory;
-- an exact official MDZ PDF of the Bayerische Staatsbibliothek
-  `Ph.pr. 881 kc` copy of the standalone 1889 Naumann
-  *Götzen-Dämmerung*, with 164 ordered IIIF canvases, the same explicit
-  provider-cover offset, local fixity, and a text-free 165-page inventory;
-- the exact permanent Wikimedia Commons revision of the Getty/Internet
-Archive scan of the posthumous 1908 Insel *Ecce homo*, copy 965, with local
-fixity, a text-free 166-page inventory, a source-visible Nietzsche/Richter
-responsibility boundary, and the DNB 155-page versus IA/Open Library
-154-page catalog conflict preserved. Its eleven-layer rights record separates
-public-domain Nietzsche and Richter strata from van de Velde's German design
-term through 2027-12-31, the exact mixed Commons object, Getty furniture,
-licensed Commons metadata surfaces, and unresolved Internet Archive package.
-The independent United States route follows 17 U.S.C. §104A: Nietzsche and
-Richter's source-country terms ended before possible 1996 restoration, while
-any possible restored 1908 van de Velde term ended at 2003-12-31.
+### *Also sprach Zarathustra*
 
-The EPUB and image-container PDF are distinct acquired items descended from
-the same scan family. The PDF supplies source-visible pages for independent
-OCR; the EPUB text remains a sealed reference witness until variant outputs
-are frozen. Their current layer-specific rights results deliberately diverge.
-For the exact image-container PDF, the historical Work, Peter Gast preface,
-1893 Edition presentation, Nietzsche portrait, Overbeck letter facsimile, and
-faithful mass scan are `public_domain_reviewed` for DE/US; the separately
-reported catalog metadata is not folded into that result. The automatic EPUB
-retains positive historical, OCR, and extracted-image evidence but also
-contains a later 2023 Internet Archive notice with no reuse license, plus
-unresolved package, navigation, style, and metadata layers, so its aggregate
-status is `conflicting_evidence`. Because the Edition is a German foreign
-work, the independent United States historical-layer result now follows 17
-U.S.C. §104A's source-country-term condition rather than the domestic pre-1931
-shortcut; every reviewed historical German term ended before possible 1996
-restoration. This correction changes neither aggregate Item result. The exact
-PDM was reconfirmed on 2026-08-10, while the current Internet Archive terms
-route yielded only a JavaScript shell, so the substantive 2026-08-02 capture
-remains historical evidence and all human/server gates stay closed. Both
-operator-held files remain `local_only`, redistribution `not_authorized`,
-derivatives `local_research_only`, and unapproved for server transfer. A
-future public PDF candidate must be independently reacquired and reviewed; a
-future EPUB must be newly built from an accepted rights-positive source rather
-than obtained by stripping or republishing this package.
+Work: [tos.work.friedrich-nietzsche.also-sprach-zarathustra](works/friedrich-nietzsche/also-sprach-zarathustra/work.json).
 
-The 1913 scan likewise preserves the source provider's public-domain
-declaration as positive rights evidence rather than flattening it into either
-“authorized” or “closed.” Because the publication is foreign, the independent
-United States assessment now uses the URAA source-country condition in 17
-U.S.C. §104A rather than the domestic pre-1931 shorthand: the historical
-layers' source-country terms ended before possible restoration. In particular,
-§104A(h)(8)(C)(i) makes Germany the first-publication source country for
-Nietzsche's original Work, so its tracked source-country endpoint is 1970;
-Russia's 1950 reviewed-jurisdiction result is preserved separately. Its local
-copy remains off the future public site by operator policy. The Wikisource
-transcription is an independent CC BY-SA candidate layer and remains deferred:
-its index reports incomplete proofreading, so open licensing does not make it
-accepted text or gold.
+- **German DTA parts I–IV:** [tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/item.manifest.json), [tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/item.manifest.json), [tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/item.manifest.json), and [tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1891-part-4/editions/leipzig-naumann-1891-part-4/items/dta-sub-goettingen-corrected-tei-p5/item.manifest.json). The exact part witnesses and external quality, rights, and scope evidence remain distinct: [DTA rights assessment](../research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md) and [authorial-witness route](../research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_AUTHORIAL_WITNESS_ROUTE.md).
 
-The 1911 RuNEB witness now preserves a deliberately mixed layered assessment.
-Nietzsche's Work, Antonovsky's independently assessed 1911 translation and
-preface, and the historical presentation are `public_domain_reviewed` for
-RU/US; the United States result uses the foreign-work URAA source-country
-condition rather than blindly applying the domestic pre-1931 rule. Under
-§104A(h)(8)(C)(i), Germany is the original Work's first-publication source
-country and its tracked endpoint is 1970, while the Russian
-reviewed-jurisdiction endpoint remains separately recorded as 1950. The exact
-RSL/RuNEB scan and embedded text remain `copyright_undetermined`: current
-institutional terms support bounded local research but expose no
-resource-specific redistribution license, and the digital production and
-correction history is absent. The aggregate Item stays `local_only`,
-redistribution `not_authorized`, derivatives `local_research_only`, and
-blocked from the future site. Only public-safe metadata, fixity, provenance,
-text-free resource geometry, and proposed source-return anchors are tracked.
+- **Russian witnesses and fragments:** [1911 RSL/RuNEB scan](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1911.rsl-neb-scan-pdf), [1913 Commons/Penza scan](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1913/editions/saint-petersburg-zhizn-dlya-vsekh-1913/items/wikimedia-commons-penza-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913.wikimedia-commons-penza-scan-pdf), [2007 Cultural Revolution PDF](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-cultural-revolution/editions/moscow-cultural-revolution-2007-volume-4/items/operator-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-cultural-revolution-2007.operator-pdf), [Nani 1899 fragments](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-nani-1899-nine-fragments/editions/saint-petersburg-stasyulevich-1899-nine-fragments/items/rsl-rusneb-parallel-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-nani-1899-nine-fragments.rsl-rusneb-parallel-scan-pdf), and [Reader 1899 fragment](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-reader-1899-uncredited/editions/moscow-reader-editorial-office-1899/items/rnl-rusneb-fragment-pdf-parts/item.manifest.json) (tos.item.friedrich-nietzsche.also-sprach-zarathustra.ru-reader-1899-uncredited.rnl-rusneb-fragment-pdf-parts). Findings remain in the [1911 source research](../research-packets/foundation-laboratory-2026-07/ANTONOVSKY_PROMETEY_1911_SOURCE_WITNESS_RESEARCH.md) and [rights assessment](../research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1911_RSL_RUNEB_LAYERED_RIGHTS_ASSESSMENT.md), [1913 provision research](../research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_PROVISION_IDENTITY_RESEARCH.md) and [rights assessment](../research-packets/foundation-laboratory-2026-07/ANTONOVSKY_1913_LAYERED_RIGHTS_ASSESSMENT.md), [2007 responsibility research](../research-packets/foundation-laboratory-2026-07/ANTONOVSKY_CULTURAL_REVOLUTION_2007_TRANSLATION_RESPONSIBILITY_RESEARCH.md) and [rights assessment](../research-packets/foundation-laboratory-2026-07/ANTONOVSKY_2007_CULTURAL_REVOLUTION_LAYERED_RIGHTS_ASSESSMENT.md), and the [Nani](../research-packets/foundation-laboratory-2026-07/NANI_1899_PARALLEL_FRAGMENT_SOURCE_WITNESS_RESEARCH.md) and [Reader](../research-packets/foundation-laboratory-2026-07/READER_1899_FRAGMENT_SOURCE_WITNESS_RESEARCH.md) fragment packets.
 
-The local 2007 Cultural Revolution witness now carries its own eight-layer
-assessment instead of inheriting either the age of Nietzsche's Work or the
-status of Antonovsky's historical translation. Those two historical layers
-are public-domain-reviewed for RU/US, but page 4 separately identifies and
-claims 2007 translation editing, commentary translation, and design. The
-underlying modern commentary and exact scope of the publisher contribution
-remain unresolved. The aggregate vector-outline PDF is therefore
-`in_copyright`, `local_only`, redistribution `not_authorized`, derivatives
-`local_research_only`, and blocked from the future site. The positive
-historical substrate creates no equivalence, accepted text, translation-
-quality, OCR, semantic, or publication result.
+- **Naumann 1893 scan family:** the image-container PDF [Item manifest](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-image-container-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-image-container-pdf) and automatic EPUB [Item manifest](works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-naumann-1893/editions/leipzig-c-g-naumann-1893/items/internet-archive-cornell-auto-epub/item.manifest.json) (tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1893.internet-archive-cornell-auto-epub) are distinct acquired Items. See the [rights assessment](../research-packets/foundation-laboratory-2026-07/NAUMANN_1893_IA_PDF_EPUB_LAYERED_RIGHTS_ASSESSMENT.md) and [Edition identity research](../research-packets/foundation-laboratory-2026-07/NAUMANN_1893_PROVISION_IDENTITY_RESEARCH.md).
 
-The Nani 1899 parallel witness now exercises the required per-layer rights
-model. The exact record is freely downloadable and the current RuNEB FAQ says
-that only public-domain works may be downloaded, so the underlying Nietzsche
-work plus the published Nani translation and preface retain a positive
-`public_domain_reviewed` assessment for Russia. That conclusion does not clear
-the complete PDF: edition presentation, exact scan production, embedded text,
-and handwritten annotations remain unresolved, no reusable-file license was
-found, and no non-Russian serving jurisdiction was reviewed. The aggregate
-Item/File therefore stays `copyright_undetermined`, `local_only`, and blocked
-from the future site. Its `layer_assessments` preserve positive and negative evidence under the
-aggregate’s restrictive content-bearing gate.
+### Other standalone Works
 
-The four DTA TEIs add an institutionally corrected, source-structured German
-sequence without inventing whole-work textual unity. DTA reports OCR followed
-by native-speaker checking for every part, but ToS records that as external
-quality evidence, not as its own linguistic acceptance. The current DTA terms
-and TEI headers report CC BY-SA 4.0. Object-specific records now classify the
-exact annotated TEIs as `licensed`, while every live official Dublin Core
-field still reports the former CC BY-NC 3.0 and the distinct plain-text and
-facsimile routes remain separate. Their independent United States historical
-assessment follows 17 U.S.C. §104A's source-country-term condition rather than
-a domestic pre-1931 shortcut. The exact operator-held TEIs therefore stay
-local, gitignored, and metadata-only for future server routing even though a
-fresh, independently acquired upstream object has a positive licensed route.
+- *Jenseits von Gut und Böse*: [Work](works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json); exact 1886 Google/Harvard package [Item manifest](works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf). See the [rights assessment](../research-packets/foundation-laboratory-2026-07/JENSEITS_1886_IA_GOOGLE_HARVARD_LAYERED_RIGHTS_ASSESSMENT.md), [Edition provision research](../research-packets/foundation-laboratory-2026-07/JENSEITS_1886_PROVISION_IDENTITY_RESEARCH.md), and [authorial-witness route](../research-packets/foundation-laboratory-2026-07/JENSEITS_AUTHORIAL_WITNESS_ROUTE.md).
 
-The transfer seed now also includes the exact 274-page Google/Harvard scan
-package of Nietzsche's 1886 Naumann *Jenseits von Gut und Böse*: the Internet
-Archive PDF, its DjVu XML word-coordinate companion, and its compressed ABBYY
-XML coordinate companion. All three provider files are checksum-reconciled,
-gitignored, and local-only. The OCR companions share the scan’s source lineage and retain their unassessed
-German text. Their coordinate data make structure experiments reproducible.
-The historical Work and Edition, faithful historical page scan, and automatic
-historical OCR text are `public_domain_reviewed` for DE/US, but the generated
-Google cover, Harvard holding furniture, coordinate XML, package structure, and
-metadata remain unresolved. The exact three-file aggregate is therefore
-`conflicting_evidence`, redistribution `not_authorized`, derivatives
-`local_research_only`, and blocked from future-site transfer. A separate
-Harvard/Hathi 1886 volume found through the current Institutional Books route
-is not this physical Item and creates no identity or rights edge.
+- *Zur Genealogie der Moral*: [Work](works/friedrich-nietzsche/zur-genealogie-der-moral/work.json); exact Commons/UNC scan [Item manifest](works/friedrich-nietzsche/zur-genealogie-der-moral/expressions/de-naumann-1892-second/editions/leipzig-c-g-naumann-1892-second-edition/items/wikimedia-commons-unc-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.zur-genealogie-der-moral.de-naumann-1892-second.wikimedia-commons-unc-scan-pdf). Keep the Edition, acquired Item, related Russian collection member, and other provider revisions distinct. See the [rights assessment](../research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_COMMONS_UNC_LAYERED_RIGHTS_ASSESSMENT.md), [provision research](../research-packets/foundation-laboratory-2026-07/GENEALOGIE_1892_PROVISION_IDENTITY_RESEARCH.md), and [authorial-witness route](../research-packets/foundation-laboratory-2026-07/GENEALOGIE_AUTHORIAL_WITNESS_ROUTE.md).
 
-The second transfer-work source tree advances *Zur Genealogie der Moral*
-beyond a provisional Russian collection-member expression. Its acquired file
-is the exact 2020 Commons revision descended from the UNC/Internet Archive
-scan of the 1892 second Naumann edition; the current Internet Archive PDF is
-recorded as a different byte revision rather than silently equated. Current
-DE/US research classifies the historical Work and Edition presentation, the
-faithful historical page scan, and automatic historical OCR text as
-`public_domain_reviewed`. Commons' structured file metadata is separately
-`licensed` under CC0 1.0 and its unstructured page prose under CC BY-SA 4.0.
-Those positive results do not flatten the mixed PDF: the physical binding and
-marbled covers, UNC holding furniture, OCR layout, PDF package, and Internet
-Archive metadata remain unresolved. The exact aggregate is therefore
-`conflicting_evidence`, redistribution `not_authorized`, derivatives
-`local_research_only`, and blocked from transfer. The provider page's current
-`PD-US-expired` expression lacks an explicit German source-country tag; ToS
-preserves that incompleteness alongside its independent bounded German term
-analysis. The operator-held PDF stays local, its embedded OCR remains
-unaccepted, and no German text, translation relation, semantic claim, identity
-bridge, or server payload is admitted.
+- *Der Fall Wagner*: [Work](works/friedrich-nietzsche/der-fall-wagner/work.json); exact standalone 1888 Naumann [Item manifest](works/friedrich-nietzsche/der-fall-wagner/expressions/de-naumann-1888/editions/leipzig-c-g-naumann-1888/items/mdz-bamberg-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.der-fall-wagner.de-naumann-1888.mdz-bamberg-scan-pdf). See the combined [MDZ rights assessment](../research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md) and [authorial-witness route](../research-packets/foundation-laboratory-2026-07/FALL_WAGNER_AUTHORIAL_WITNESS_ROUTE.md).
 
-The third transfer-work route advances *Der Antichrist* beyond its
-provisional Russian collection expression without flattening the newly found
-aggregate. The source-visible 1906 Naumann volume, Stanford holding marks,
-exact Commons fixity, and scan pages 228-329 support one proposed member
-boundary; pages 1-227 and 330-523 remain explicitly unrepresented rather than
-being mislabeled as non-work material. Internet Archive's contaminated
-description is preserved as a conflict, while the 1906 archive-edition text
-is kept distinct from Nietzsche's 1888 manuscript, the 1895 first printing,
-a critical edition, accepted German, and provider OCR. Current DE/US research
-classifies the represented historical Work, 1906 presentation, faithful
-historical page scan, and automatic historical OCR text as
-`public_domain_reviewed`; Commons structured metadata is separately CC0 1.0
-and its unstructured prose CC BY-SA 4.0. The archive editorial layer remains
-`conflicting_evidence`, while Stanford binding and holding furniture, OCR
-layout, the DjVu package, and contaminated Internet Archive metadata remain
-unresolved. The exact eleven-layer aggregate is therefore
-`conflicting_evidence`, redistribution `not_authorized`, derivatives
-`local_research_only`, and blocked from transfer. The 490 `TXTz` chunks were
-counted but not decoded or accepted. The local DjVu is not a future-site
-upload source, and the rights result does not accept the proposed member map.
+- *Götzen-Dämmerung*: [Work](works/friedrich-nietzsche/goetzen-daemmerung/work.json); exact standalone 1889 Naumann [Item manifest](works/friedrich-nietzsche/goetzen-daemmerung/expressions/de-naumann-1889/editions/leipzig-c-g-naumann-1889/items/mdz-bsb-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.goetzen-daemmerung.de-naumann-1889.mdz-bsb-scan-pdf). Keep it distinct from the altered 1893 Edition. See the combined [MDZ rights assessment](../research-packets/foundation-laboratory-2026-07/MDZ_FALL_WAGNER_1888_GOETZEN_1889_LAYERED_RIGHTS_ASSESSMENT.md) and [authorial-witness route](../research-packets/foundation-laboratory-2026-07/GOETZEN_DAEMMERUNG_AUTHORIAL_WITNESS_ROUTE.md).
 
-The fourth route advances *Der Fall Wagner* beyond its provisional Russian
-collection expression through an exact standalone 1888 Naumann item. DNB fixes
-the work identity; MDZ IIIF, B3Kat, the Bamberg holding furniture, and the
-visible title page jointly fix the copy. HAdW's historical-critical commentary
-reports one 1000-copy run whose latter half was nominally marked
-`Zweite Auflage`; because this title page carries no such label, ToS preserves
-the exact unlabelled issue and the distinction instead of flattening copies.
-The MDZ `NoC-NC 1.0` statement supports bounded local non-commercial research,
-not payload redistribution, accepted German, critical-text equivalence, or
-server publication.
+- *Ecce homo*: [Work](works/friedrich-nietzsche/ecce-homo/work.json); exact 1908 Insel [Item manifest](works/friedrich-nietzsche/ecce-homo/expressions/de-richter-insel-1908/editions/leipzig-insel-verlag-1908/items/wikimedia-commons-getty-scan-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.ecce-homo.de-richter-insel-1908.wikimedia-commons-getty-scan-pdf). Keep Nietzsche's Work, Richter/Köselitz's editorial roles, and van de Velde design as separate evidence layers. See the [rights assessment](../research-packets/foundation-laboratory-2026-07/ECCE_HOMO_1908_COMMONS_GETTY_LAYERED_RIGHTS_ASSESSMENT.md) and [authorial-witness route](../research-packets/foundation-laboratory-2026-07/ECCE_HOMO_AUTHORIAL_WITNESS_ROUTE.md).
 
-The fifth route advances *Götzen-Dämmerung* through the exact standalone 1889
-Naumann BSB item. Its title and catalog records carry no edition statement,
-while the scholarly publication history places Köselitz's textually altered
-second edition in 1893. ToS therefore retains the 1889 object as a
-first-publication witness without equating it with Nietzsche's manuscript or
-a critical text. MDZ declares the exact digital object `CC BY-NC-SA 4.0`; that
-positive evidence remains model-assessed and unreviewed, the operator-held PDF
-stays local, and any future public route still requires current conditions,
-attribution, ShareAlike, jurisdiction, and explicit operator review.
+### Aggregate publications
 
-The sixth route gives *Ecce homo* its first distinct exact historical German
-tree. It admits the 1908 Insel physical-copy witness without pretending that
-the posthumous Richter/Köselitz expression is Nietzsche's lost author-final
-state or a modern critical reconstruction. The visible book itself separates
-Nietzsche's text through printed page 130 from Richter's separately titled
-afterword beginning at printed page 133. Commons' `PD-US-expired` statement is
-positive but US-scoped provider evidence. The independent United States
-analysis does not apply the domestic pre-1931 shorthand to this German work:
-under 17 U.S.C. §104A, Nietzsche and Richter's German terms expired before
-possible 1996 restoration, while any qualifying restored term for van de
-Velde's 1908 design ended at 2003-12-31. Current DE/US research therefore
-assesses Nietzsche's Work and Richter's editing and afterword as public domain
-in both routes and the design as public domain in the United States today,
-while the source-visible title, binding, lettering, and ornaments remain in
-copyright in Germany through 2027-12-31. Commons carries no German source-
-country tag, Getty exposes no exact CC0 record for this scanned book, and the
-exact aggregate remains `in_copyright`, `local_only`, and `not_authorized`.
-The local PDF is never a future-site upload source; a post-2027 candidate must
-be independently reacquired and pass fresh rights, fixity, quality, human-
-review, and operator gates.
+- 1996 Russian Volume II Collection [record](collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.json) (tos.collection.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996): exact operator PDF [Item manifest](collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/item.manifest.json) (tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf) and [work-boundary map](collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json). See the [Volume II rights assessment](../research-packets/foundation-laboratory-2026-07/MYSL_1996_VOLUME_2_LAYERED_RIGHTS_ASSESSMENT.md) and [translator identity research](../research-packets/foundation-laboratory-2026-07/MYSL_TRANSLATOR_IDENTITY_RECONCILIATION_RESEARCH.md).
 
-The same route now exercises multi-role responsibility claims without
-flattening the book into one creator. The Work points to Nietzsche through
-`authored_by`; the exact 1908 Edition separately points to Raoul Richter
-through `edited_by` and `afterword_by`, and to Henry van de Velde through
-`designed_by`. All three Agent identities resolve to current GND identifiers,
-and the four claims are model-made, unreviewed, subject-closed, and
-digest-bound to evidence. These Claims describe bibliographic responsibilities; author-final
-reconstruction and the extent of Richter’s intervention remain separate
-research questions.
+- 1906 Naumann *Nietzsche's Werke*, Band VIII Collection [record](collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/collection.json) (tos.collection.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906): Commons/Stanford scan [Item manifest](collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/wikimedia-commons-stanford-scan-djvu/item.manifest.json) (tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.wikimedia-commons-stanford-scan-djvu) and separate IA DjVuXML derivative [Item manifest](collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/editions/leipzig-c-g-naumann-1906/items/internet-archive-google-stanford-djvu-xml/item.manifest.json) (tos.item.friedrich-nietzsche.nietzsches-werke-band-8.naumann-1906.internet-archive-google-stanford-djvu-xml) stay separate Items. The partial *Der Antichrist* boundary remains a proposal in the [work-boundary map](collections/friedrich-nietzsche/nietzsches-werke-erste-abtheilung-band-viii-naumann-1906/structure/work-boundaries/work-boundary-map.json); see its [rights assessment](../research-packets/foundation-laboratory-2026-07/ANTICHRIST_1906_COMMONS_STANFORD_LAYERED_RIGHTS_ASSESSMENT.md) and [authorial-witness route](../research-packets/foundation-laboratory-2026-07/ANTICHRIST_AUTHORIAL_WITNESS_ROUTE.md).
 
-The metadata-only authorial follow-up gives that publication witness an exact
-upstream and critical comparison route without pretending ToS holds the
-remote objects. Current GSA ORES resolves Nietzsche's D 25 print manuscript
-as `GSA 71/32`, the Köselitz/Peter Gast D 25a copy as `GSA 71/33`, the
-surviving replacement-section copy as `GSA 102/734`, the undigitized
-deletions/change file as `GSA 102/735`, and four relevant notebook/loose-leaf
-complexes. DFGA supplies matching book identities; eKGWB supplies stable
-critical section addresses. Since no payload was acquired, no new
-Expression/Edition/Item branch is manufactured. The route records remote identities and their provenance; source bodies remain
-with the remote owners.
-
-The *Zarathustra* golden kernel now has the same responsibility-aware
-upstream discipline. Current GSA ORES and DFGA records separate mixed
-compositional notebooks from the surviving authorial part-IV print manuscript
-D 17 (`GSA 71/25`), the 1885 private print, and the separately corrected Peter
-Gast ensemble (`GSA 71/25a`). The current critical route reports that print
-manuscripts for parts I-III are not preserved. Whole-notebook work membership
-is therefore prohibited: an exact region and sourced attribution claim are
-required. The eKGWB route supplies 181 stable critical comparison addresses,
-for source comparison. No remote manuscript or print becomes
-a local Item without custody, fixity, rights evidence, and an acquisition
-event.
-
-The first transfer work, *Jenseits von Gut und Böse*, now has a matching
-metadata-only route. W I 3-W I 8 and the Mp XV/Mp XVI complexes remain mixed,
-region-addressed material; D 18 (`GSA 71/26`) is a reassembled print
-manuscript rather than an immutable original; HAAB C 4615 and C 4619 are
-distinct proof/correction witnesses; and the existing 1886 local Item remains
-separate from the 302-address eKGWB critical surface. ORES/Kalliope and DFGA
-leaf, canvas, sheet, image, and logical-ID counts are representation-specific.
-The deferred §22 route may open only for a concrete source-visible question
-with rights and German-competence gates; it does not create a whole-notebook
-membership claim, source text, semantic edge, duplicate Item, or human queue.
-
-The second transfer work, *Zur Genealogie der Moral*, now has its own
-metadata-only documentary route. It keeps region-only W II 1 evidence, D 20a
-and D 20b, partial K 11/C 4616 correction sheets, E 40, unresolved later
-copies, the existing 1892 second-edition Item, and critical addresses
-distinct. The December 2025 Basel edition is registered as a remote scholarly
-representation with source-surface navigation, not another historical witness
-or a local Item. No open viewer, IIIF placeholder, or digital-edition route
-admits its source body, collapses responsibility, creates transfer A/B/C, or
-opens a human queue.
-
-The third transfer work, *Der Antichrist*, now also has a metadata-only
-documentary route above the existing 1906 aggregate Item. It keeps exact
-W II regions, D 22 (`GSA 71/29`), the independent Overbeck A 311 copy, the
-Koegel/Naumann 1895 first print, the later archive-edition Item, and critical
-addresses distinct. D 22's leaf order and mixed reverse-side evidence may not
-be silently normalized. GSA 71/32 fol. 47 is recorded separately as a
-contested associated adjunct: its physical D 25 container, proposed
-*Antichrist* association, and later editorial placement are different claims,
-and it is not `AC 63`. The route retains IIIF and Public Domain Mark observations as metadata
-evidence under the source’s actual acquisition and review state.
-
-The exact 1888 *Der Fall Wagner* Item now also has a metadata-only
-documentary route. W II 6 (`GSA 71/162`) and W II 7 (`GSA 71/163`) remain
-mixed notebooks whose work relation requires exact regions and inscription
-layers. `D 21 / GSA 71/28` is explicitly *Götzen-Dämmerung*, not
-*Der Fall Wagner*. The June print manuscript and July fair copy are lost;
-`NL 200 : II, 1` is the sole surviving one-leaf correction/addition fragment,
-not either complete manuscript. Nietzsche's changes and later
-Köselitz/Lauterbach notes remain distinct. The unlabelled existing Item and
-nominal `Zweite Auflage` half of the 1000-copy run have no presumed textual
-identity or difference. The archive routes retain metadata evidence; source acquisition and textual
-assessment remain pending.
-
-Its current layered-rights pass now separates Nietzsche's public-domain Work,
-the public-domain 1888 presentation, faithful historical printed-page capture,
-the exact MDZ/Google digital object, and BSB/BDR bibliographic metadata. The
-independent United States result for the German historical layers now follows
-17 U.S.C. §104A's source-country-term condition rather than the domestic
-pre-1931 shorthand: Nietzsche's term ended in Germany on 1970-12-31, and even
-the conservative anonymous-presentation route ended on 1958-12-31, both before
-possible 1996 restoration. Current MDZ response bytes drifted, but the exact
-object identity, `NoC-NC 1.0` value, 74-canvas count, and attribution remained
-stable; no transient response body was retained. The digital object is
-`permission_granted` under `NoC-NC 1.0`, which permits
-non-commercial Item reuse but is a Rights Statement rather than a standard
-license; the metadata is separately CC0. The PDF contains no embedded book
-OCR. These positive results do not change local custody: the operator-held
-file is never a future-site upload source, and the server plan remains
-metadata-only, blocked, and operator-unapproved.
-
-The 1888 Edition now exercises `publication_claim_refs` through six sibling,
-unreviewed claim packets. The title-page year is observed; author-supervised
-publication role, September printing completion, 22 September publication,
-the single 1000-copy run, and the nominal later issue state remain scholarly
-reports. The issue-state object explicitly keeps both textual identity and
-textual difference `unresolved`, records that the current Item is unlabelled,
-and creates no separate Item. The claims are digest-bound to provenance and
-evidence; each retains its exact Edition scope and unreviewed posture.
-
-The exact 1889-dated *Götzen-Dämmerung* Item now also has a metadata-only
-documentary route. W II preparatory notebooks remain mixed surfaces whose
-work relation requires exact regions and inscription layers. D 21
-(`GSA 71/28`) is the positive autograph print manuscript for E 42, but it
-does not erase the additions sent after 7 September, proof-stage insertions,
-or the late migration of *Was ich den Alten verdanke*. Köselitz's title
-suggestion and Nietzsche's adoption remain distinct responsibility events.
-November 1888 printing and authorial receipt, the 1889 title-page date, and
-late-January 1889 sale remain distinct chronology claims. The
-Köselitz-edited, textually changed, non-author-approved 1893 second edition
-and the modern *Magnum in parvo* editorial reconstruction remain separate
-downstream routes. The archive records provide metadata evidence for these distinct textual and
-historical routes.
-
-Its current layered-rights pass uses the same five-layer topology without
-copying the *Fall Wagner* result. The historical Work, 1889 presentation, and
-faithful printed-page capture are public-domain-reviewed for DE/US. The
-independent United States historical route is 17 U.S.C. §104A's
-source-country-term condition, not the domestic pre-1931 shorthand: the German
-Work term ended on 1970-12-31 and the conservative anonymous-presentation term
-on 1959-12-31, both before possible 1996 restoration. Current MDZ response
-bytes drifted, while exact identity, `CC BY-NC-SA 4.0`, the 164-canvas count,
-and attribution remained stable; no transient response body was retained. The
-exact MDZ digital object is `licensed` under CC BY-NC-SA 4.0; BSB/BDR
-bibliographic metadata is separately CC0. The PDF contains no embedded book
-OCR. Attribution, non-commercial use, source/license and modification notices,
-and ShareAlike for shared adapted material remain exact-object duties. The
-operator-held file still stays off the future site, and its metadata-only plan
-remains blocked and operator-unapproved until a separately reacquired current
-object passes the full publication gates.
-
-The 1889 *Götzen-Dämmerung* Edition also exercises the existing
-`publication_claim_refs`
-contract through six sibling, unreviewed claim packets. They keep the
-title-page year, printing completion, authorial receipt, public-sale release,
-first-publication role, and the separate changed 1893 editorial state
-queryable without collapsing them into one date or one immutable text. The
-claims are digest-bound to provenance and evidence; each retains its exact evidence and unreviewed posture; the 1893 witness
-remains a remote comparison route.
-
-These laboratory witnesses retain their actual edition, acquisition and
-quality states. Their
-catalog, rights, and forensic records must remain honest about what is known,
-claimed, inferred, and unresolved.
+Item manifests lead to exact item-level files. Source-owned identity and
+relation packets remain with each Work, Expression, Edition, Collection,
+membership, and boundary map. Case-specific findings stay in their packets.
 
 ## Source-near movement
 
@@ -1123,184 +755,44 @@ payload + receipt
 
 Semantic admission follows the source-visible review stages in this route.
 
-## Source-anchor v2 laboratory boundary
+## Additive source and transformation contracts
 
-The additive `ToS/contracts/source-anchor-v2.schema.json` separates stable
-anchor identity, exact Item/File target, digest-bound representation state,
-selector composition, publication posture, mechanical resolution, and human
-review. Text position is explicitly Unicode-code-point, logical-order, and
-half-open; bytes use another selector. `single`, `alternatives`, and ordered
-`refinement_chain` expressions cannot be silently interchanged.
+The contracts below separate identity, content, execution, interpretation, and
+alignment. Each synthetic fixture is a mechanics check on invented or otherwise
+public-synthetic input; it is not corpus evidence, a source migration, or an
+acceptance decision. The contract and fixture links are the authoritative
+detail for their fields and controls.
 
-The current A/B/C under
-`ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/`
-uses only invented public resources. Direct JSON, Unicode, and XHTML checks
-confirm three exact selections and six rejected controls, including digest
-drift, UTF-16 offset substitution, divergent alternatives, reversed
-refinement, copied nonpublic quote text, and region overflow. These synthetic controls verify selector mechanics; the source corpus retains
-its existing records and review states.
+| Contract | Synthetic fixture |
+| --- | --- |
+| [Source Anchor v2](../contracts/source-anchor-v2.schema.json): stable anchor identity, exact Item/File representation and digest, selector composition, and publication posture | [A/B/C lab manifest](../research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json) |
+| [Source Text Layer](../contracts/source-text-layer.schema.json): immutable raw, diplomatic, reviewed, or normalized layer with explicit predecessor, policy, and replayable edits | [A/B/C lab manifest](../research-packets/foundation-laboratory-2026-07/source-text-layer-abc/lab.manifest.json) |
+| [Provenance Event v2](../contracts/provenance-event-v2.schema.json): input/output/byproduct entities, derivation, execution, failure, fixity, authentication, review, rights, and replay posture | [A/B/C lab manifest](../research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/lab.manifest.json) |
+| [Semantic Annotation Packet v2](../contracts/semantic-annotation-packet-v2.schema.json): source-anchored occurrence and annotation proposals with separate claim, review, and projection states | [A/B/C lab manifest](../research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/lab.manifest.json) |
+| [Translation Alignment Packet v1](../contracts/translation-alignment-packet-v1.schema.json): exact source/target layers, units, anchors, competing mappings, and review posture | [A/B/C lab manifest](../research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/lab.manifest.json) |
 
-All current corpus anchors remain v1. No source-bearing migration is implied.
-A future v2 successor may be created only for one concrete source question,
-with the exact representation and publication boundary visible.
+Existing v1 anchors, provenance, and corpus text were not migrated. A v2
+successor belongs to a concrete source-return or replay question. Mechanical
+validation does not establish source truth, language competence, accepted
+reading, translation equivalence, semantic promotion, rights, publication, or
+human approval; those remain with the [knowledge assessment route](../doctrine/KNOWLEDGE_ASSESSMENT.md)
+and the exact source review.
 
-## Source-text layer laboratory boundary
+### Bounded real source-text and alignment routes
 
-The additive `ToS/contracts/source-text-layer.schema.json` owns the next step
-without turning text into one mutable field. Raw OCR, machine or diplomatic
-transcription, reviewed source text, and normalized text are separate
-immutable records bound to exact corpus identity, a v2 source anchor, content
-digest, predecessor, editorial policy, and replayable code-point edits. Review,
-language competence, accepted use, rights-record refs, and publication-
-authority refs remain independent
-from mechanical validity.
+The active source-text routes and their limits are maintained with the
+[foundation pilot records](works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/README.md)
+and exact tracked plans:
 
-The current A/B/C under
-`ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/`
-uses only invented public UTF-8 bytes. It replays one correction and one
-NFD-to-NFC normalization transition and rejects nine overclaim or lineage
-failures. All three synthetic layers retain their unreviewed, use-free state.
+- [DTA Part I source-text foundation plan](works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-source-text-foundation.plan.v1.json).
+- [Antonovsky 1911 target-text foundation plan](works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json).
+- [Opening-sentence alignment proposal plan](works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json).
+- [Antonovsky 2007/1911 witness-collation plan](works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/antonovsky-2007-1911-opening-sentence-collation.plan.v1.json).
+- [Authored-canon evidence bridge plan](works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-canon-evidence-bridge.plan.v1.json) and [bridge record](works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/authored-route-evidence-bridge.za-i-vorrede-1.v1.json).
 
-The first bounded real continuation is deliberately smaller than a sentence
-or translation pass. The tracked
-`za-i-vorrede-1-source-text-foundation.plan.v1.json` asks which exact DTA
-provider-transcription paragraph and source-observed print-line boundaries
-underlie the already frozen opening-sentence calibration. Its
-`tos_source_anchor_v2` resolves one structural XPath against the exact Part-I
-TEI Item; `tos_source_text_layer_v1` records one deterministic
-`structural_extraction`; and `tos_source_text_unit_packet_v1` records seven
-physical lines plus six standalone line-break units. The 353 private bytes
-remain mode `0600` below ignored `local-content/source-text-foundation/`.
-Tracked records contain only text-free metadata and retain the private layer’s
-unreviewed posture.
-
-The exact check command is owned by the validation card in
-`scripts/AGENTS.md`. Use `--build` only to intentionally recreate the exact
-private layer and its four tracked text-free records. The builder's green
-result proves byte, selector, range, digest, rights-binding, and gate closure
-only.
-
-The second bounded real continuation uses the exact Antonovsky/Prometey 1911
-RSL/RuNEB PDF Item, but it does not declare a translation pair. The tracked
-`za-i-vorrede-1-antonovsky-1911-target-text-foundation.plan.v1.json` selects
-only the six visible opening-paragraph lines on page 6. A pinned Poppler
-`pdftotext` 26.01.0 bbox extraction yields one private 633-byte,
-349-code-point embedded-text layer and one private 30,714-byte bbox byproduct,
-both ignored and mode `0600`; its text-free packet exposes six physical-line
-and five line-break units. The source-visible page check confirms the selected
-region and line count while also exposing one unresolved spacing conflict:
-the embedded layer returns a visually joined historical word as four tokens.
-The raw layer therefore remains `raw_ocr`, lossy for the declared use,
-unreviewed, and use-free. Both layers retain their unreviewed source states; the spacing conflict
-remains an explicit target-quality issue.
-
-The next bounded question creates the first real alignment *proposal*. The text-free
-`za-i-vorrede-1-opening-sentence-alignment.plan.v1.json` binds offsets
-`[0,115)` and `[0,107)` to the exact private German and Russian paragraph
-digests, materializes one proposed sentence unit per side plus an exact
-excluded remainder, and records one software-made one-to-one claim with
-unresolved translation technique. No source string enters Git. Both sentence
-boundaries and the correspondence remain unreviewed; the Russian spacing
-uncertainty, language competence, translation fidelity, lexical equivalence,
-semantics, projection, graph/canon authority, rights clearance, and
-publication remain open.
-
-The separate Antonovsky 2007/1911 question compares two translation-edition
-witnesses through witness collation. It reuses only the already preserved, unattested
-`tos-sample-antonovsky-p011` Workbench observation, copies its exact 1503-code-
-point layer into ignored owner-local custody, and compares the proposed first
-prose sentence with the existing Antonovsky 1911 sentence proposal. The
-tracked `witness-text-collation-packet-v1` record exposes exact selectors,
-digests, four declared character-comparison views, aggregate edit counts, and
-the digest of local reconstructive detail; it exposes neither witness text nor
-the human feedback. The retained observation keeps its Workbench provenance. Both boundaries and
-the cross-edition correspondence stay `proposed`, with preferred reading,
-textual equivalence and edition genealogy open to further source comparison. Release validation closes only tracked metadata and therefore
-does not require the private source or Workbench artifact; the owner-local
-builder owns exact replay against both.
-
-The pre-existing authored `prologue-1` route now has a separate evidence-spine
-bridge. It extracts the complete exact DTA `Za-I-Vorrede-1` section into an
-ignored raw layer, derives a separately declared editorial-normalized local
-comparison layer, and keeps the twelve TEI paragraphs and twelve authored
-segments as reciprocal competing segmentations. All twelve authored German
-segments match the complete normalized DTA sequence, including the place where
-the authored and TEI boundaries cross. Git contains only selectors, digests,
-inventories, and authority posture; exact text and normalization operations
-remain mode-`0600` below `local-content/authored-canon-evidence-bridge/`.
-
-This closes representation and source-return debt without rewriting the
-authored route. Its `canonical_source`, `working_translation`, and
-`bridge_translation` values remain route-local authored roles. Eight legacy review notes retain their historical format. The current 92 nodes
-and 125 relations retain their canon state; the bridge adds exact source
-return while modern Claim/evidence closure and language assessment remain
-pending.
-
-## Provenance-event v2 laboratory boundary
-
-The additive `ToS/contracts/provenance-event-v2.schema.json` makes an execution
-receipt more precise without rewriting current v1 provenance. It separates
-input, output, and diagnostic-byproduct entities; explicit derivation edges;
-command/configuration/software/runtime/model capture; responsibility and manual
-changes; measurements and terminal state; fixity, authentication, review,
-rights, publication, and replay posture.
-
-The current public-synthetic A/B/C under
-`ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/`
-contains one byte-identical copy, one real NFD-to-NFC transformation, and one
-intentional ASCII-strict failure with exit code 7, an exact diagnostic
-byproduct, and zero authoritative outputs. Fourteen negative controls reject
-digest drift, command drift, output/status contradictions, escaping or false
-derivation, missing model/manual evidence, false signature or human-review
-claims, publication without authority, and self-supersession.
-
-All three receipts are unsigned, model-free, unreviewed, and publication-
-unauthorized. Their schema and byte closure verify the recorded structure and fixity.
-Execution attestation and content quality require their own evidence. Use v2 for new materialized work, or migrate one v1
-lineage only when a concrete discrepancy, replay, security, or source-return
-question requires it.
-
-## Semantic-annotation v2 laboratory boundary
-
-The additive
-`ToS/contracts/semantic-annotation-packet-v2.schema.json` begins only after an
-exact source representation and anchor exist. It keeps occurrences, lexemes,
-lexical senses, proposed annotations, promoted signs, concepts, claims,
-relations, reviews, and graph projections separately addressable. Opaque IDs
-do not derive from mutable labels or interpretations. Every semantic proposal
-returns through its exact source anchors and explicit maker, method,
-provenance, uncertainty, alternatives, and review posture.
-
-The current public-synthetic A/B/C under
-`ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/`
-records two exact occurrences, two reciprocal competing proposed readings,
-and one deliberately invalid model-shaped promotion. No corresponding model,
-software, or human act occurred; the fixture says so explicitly. Validation
-rejects the invalid promotion and twelve identity, evidence, competition,
-review, relation, graph, and publication-boundary failures. These synthetic cases verify semantic-packet closure and rejection behavior;
-existing semantic records retain their source states.
-
-## Translation-alignment v1 laboratory boundary
-
-The additive
-`ToS/contracts/translation-alignment-packet-v1.schema.json` begins only after
-both exact source and target witness plus frozen text-layer identities exist.
-It binds segmentation/tokenization and ordered anchors on both sides before a
-separate opaque alignment and claim ID can describe cardinality, order,
-omission/addition, technique, certainty, maker, competition, supersession, or
-review. A model, aligner, imported memory, or exchange file may propose but
-cannot accept. Accepted states require a distinct source-and-target-visible
-real-human decision with declared language and translation competence.
-
-The public-synthetic A/B/C under
-`ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/`
-uses only invented `x-tos-src` and `x-tos-tgt` bytes. A records one one-to-one
-proposal; B preserves reciprocal one-to-one and one-to-many proposals; C
-attempts an invalid unreviewed acceptance. Seventeen controls exercise exact
-side/layer/anchor closure, identity, cardinality, unaligned members,
-competition, acceptance, projection visibility, and supersession. These fixtures record synthetic proposals and rejection controls, with their
-review and publication states explicit. Existing structural
-crosswalks and translation packets are unchanged.
+Exact private text remains in owner-local ignored custody; tracked records carry
+selectors, digests, inventories, and posture. A route's result stays limited to
+its recorded source, representation, and review state.
 
 ## Rebuild local resource inventories
 

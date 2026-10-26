@@ -133,7 +133,7 @@ The earlier broader calibration-family pilot remains a review-stage proposal.
 
 See [LINEAGE_NODE_TEMPLATE](LINEAGE_NODE_TEMPLATE.md) and [CALIBRATION_LINEAGE_PILOT](CALIBRATION_LINEAGE_PILOT.md) for the compact pilot surfaces.
 
-## Pre-expansion soil before wider movement
+## Earlier eighth-phase preparation before later expansion
 
 The earlier eighth-phase preparation established source-entry and review routes
 for later expansion.
@@ -156,7 +156,9 @@ New families and branch nodes enter through their own growth and review decision
 See [CONTEXT_NODE_TEMPLATE](CONTEXT_NODE_TEMPLATE.md),
 [MANUAL_CORPUS_ENTRY_GATE](../../mechanics/source-witnessing/parts/witness-route/docs/MANUAL_CORPUS_ENTRY_GATE.md),
 and [PRE_EXPANSION_SOIL](../../mechanics/growth-cycle/parts/branch-growth-cycle/docs/PRE_EXPANSION_SOIL.md)
-for the compact preparation surfaces.
+for the compact preparation surfaces. Current philosophy-tree growth is routed
+through the [philosophy README](../philosophy/README.md) and
+[philosophy route card](../philosophy/AGENTS.md).
 
 ## Bounded trilingual Zarathustra entry
 

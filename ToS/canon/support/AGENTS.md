@@ -1,25 +1,15 @@
 # AGENTS.md
 
-This file applies to canonical authored support nodes under `ToS/canon/support/`.
+This card applies to authored `support` nodes under `ToS/canon/support/`.
 
-## What lives here
+## Role
 
-`ToS/canon/support/` is the home of canonical authored support nodes.
-
-It holds:
-
-- route-local support surfaces promoted from the reviewed `n.*` layer
-- bounded carriers, symbols, places, hinges, and recipient-facing nodes that
-  keep the route legible
-- one `node.json` per stabilized support surface
+Reviewed carriers, symbols, places, hinges and recipient-facing nodes from
+the `n.*` layer that keep the route legible.
 
 ## Editing posture
 
-Treat these files as canonical authored tree law; raw candidate tables route to
-`ToS/candidate-intake/`.
-Keep each `node.json` bounded to one support surface.
-Keep the source route explicit in `source_anchor`.
-Keep support nodes route-local and bounded; wider semantic families route to a
+Keep support route-local and bounded; wider semantic families require a
 reviewed philosophy or canon pass.
-Keep `ToS/public-compatibility/support_node.example.json` aligned with the worked canonical
-mirror as a compatibility surface.
+The parent canon card owns object/source-anchor and review rules. Its worked
+mirror for this class is `ToS/public-compatibility/support_node.example.json`.

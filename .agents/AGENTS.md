@@ -1,44 +1,24 @@
 # AGENTS.md
 
-## Applies to
-
-This card applies to `.agents/` and all descendants unless a nearer
-`AGENTS.md` narrows the path.
+This card applies to `.agents/`.
 
 ## Role
 
-`.agents/` holds agent-facing companion lanes for Tree-of-Sophia work:
-repo-local skills, prompts, handoff material, and other model-facing support
-surfaces.
-
-The current profile-owned discovery route is declared in the authored
-`.agents/agent-surface.manifest.json` and explained by `.agents/README.md`;
-repository-local skill projections are created only for an explicitly admitted
-ToS-owned procedure.
-
-Durable ToS meaning, repeatable mechanics, proof authority, memory authority,
-runtime state, and public repository entrypoints route to their owning homes.
-
-## Read before editing
-
-Read root `AGENTS.md`, then the nearest lane card for the surface being edited.
-
-Use ToS source surfaces, mechanics packages, docs, validators, and sibling
-owner repositories as stronger authority when the task touches their meaning.
+This model-facing directory maps optional profile bindings and ToS-local owner ports through
+`.agents/agent-surface.manifest.json`. `.agents/README.md` is the human guide.
+The current contributor route has no repository-local shared-skill projection.
 
 ## Boundary Routes
 
-- Keep model-facing launch and handoff guidance under `.agents/`.
-- Route philosophical meaning to `ToS/`.
-- Route repeatable ToS operation law to `mechanics/`.
-- Route proof, memory, runtime, stack, KAG, skill, and playbook authority to
-  their owning AoA repositories or layers.
-- Route durable doctrine, broad architecture law, and generated truth to their
-  canonical owner surfaces before using `.agents/` as launch guidance.
+Keep profile declaration, installation, model visibility and actual invocation
+as separate states. Shared packages retain their owning homes and profile-owned discovery; a ToS-local
+procedure needs explicit admission before adding a local skill projection.
+Authored source surfaces stay in `ToS/`, operation law in `mechanics/`, and proof authority, memory,
+runtime, SDK, KAG and playbook authority with their corresponding owners.
 
 ## Validation
 
-Select the `agent_surface` or `route_docs` route in the root
-[`VALIDATION.md`](../VALIDATION.md) after the touched owner surface is known.
-The lane manifest and its native route-card validator remain the procedure
-owners.
+Use `agent_surface` or `route_docs` through [VALIDATION.md](../VALIDATION.md).
+The native route-card validator checks structural routes. Rebuild generated
+companions from their authored maps. A valid declaration
+is not evidence that a package is installed or active.

@@ -1,135 +1,85 @@
 # AGENTS.md
 
-Root route card for `Tree-of-Sophia`. A nearer `AGENTS.md` adds only the local
-delta for its subtree.
+Root route card for `Tree-of-Sophia`. A nearer card adds only the local delta.
 
 ## Role
 
-`Tree-of-Sophia` owns the source-first philosophical tree of the AoA ecosystem:
-witnesses, doctrine, nodes, relations, branch growth, review, canon, public
-entry seams, and bounded derived exports.
-
-Authored ToS surfaces own meaning. Mechanics move owned material. Generated,
-exported, public, graph, KAG, and runtime carriers remain weaker than the
-source and review routes they expose.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| input | source material, philosophical growth pressure, route-law change, mechanic pressure, public seam, or derived handoff |
-| output | source-owned ToS surface, standalone access product, mechanic-local contract, generated companion, decision record, or stronger-owner return |
-| owner | `ToS/` for authored tree meaning; `access/` for portable read-only delivery; `mechanics/` for repeatable operation; `docs/decisions/` for rationale; exact sibling owner for external authority |
-| next route | nearest nested card, then the exact source, contract, mechanic, builder, validator, review, or sibling owner |
-| validation | on-demand [`VALIDATION.md`](VALIDATION.md), narrowed by the nearest district validation route |
+ToS owns source-grounded philosophical meaning: witnesses, doctrine, branches,
+nodes, relations, review and canon. Mechanics operate on those sources;
+`access/` delivers them. Generated, public, graph and KAG views return to the
+source-owned meaning and review that give them authority.
 
 ## Read Before Editing
 
-Start with this card and the nearest nested `AGENTS.md`. Then open only:
-
-- the exact authored source, contract, manifest, registry, or decision that
-  owns the change;
-- a README when its human explanation, public route, usage, provenance, or
-  standalone navigation is relevant;
-- the nearest `VALIDATION.md` after the touched surface and risk are known;
-- broader design, roadmap, release, or owner material only when it can change
-  interpretation or closeout.
-
-Root human orientation remains in [README](README.md); current direction in
-[ROADMAP](ROADMAP.md); system shape in [DESIGN](DESIGN.md); agent-card shape in
-[DESIGN.AGENTS](DESIGN.AGENTS.md); repository boundaries in
-[BOUNDARIES](BOUNDARIES.md). None is mandatory merely because it is nearby.
+Read this card and the nearest `AGENTS.md`, then the exact source, contract,
+manifest or implementation that owns the change. Open human guides when their
+explanation changes the task: [README](README.md) for entry,
+[DESIGN](DESIGN.md) for architecture, [ROADMAP](ROADMAP.md) for direction and
+[BOUNDARIES](BOUNDARIES.md) for owner boundaries. Validation is selected after
+the touched surface and risk are known.
 
 ## Owner Routes
 
-| Pressure | First owner |
+| Work | First owner |
 | --- | --- |
-| authored tree, doctrine, canon, review, contracts, or exports | [`ToS/AGENTS.md`](ToS/AGENTS.md), then the owning branch |
-| standalone CLI, HTTP, native MCP, site, WebMCP, or bundle | [`access/AGENTS.md`](access/AGENTS.md), then the nearest access contract or adapter |
-| corpus identity, provenance, fixity, rights, or source representation | `ToS/source-witnesses/AGENTS.md` and `ToS/doctrine/CORPUS_FOUNDATION.md` |
-| philosophical atlas or graph-workbench preparation | `ToS/philosophy/AGENTS.md` |
-| Zarathustra golden-kernel or bounded public entry | `ToS/zarathustra/AGENTS.md` |
-| repeatable operation | [`mechanics/AGENTS.md`](mechanics/AGENTS.md), then the active package/part |
-| durable rationale | `docs/decisions/AGENTS.md` |
-| owner-local measurement | `stats/AGENTS.md`; shared grammar remains with `aoa-stats` |
-| local proof pressure, KAG provider, or memo candidate | `evals/AGENTS.md`, `kag/AGENTS.md`, or `memo/AGENTS.md`; stronger authority stays with the named sibling owner |
-| deterministic builder, validator, or test | `scripts/AGENTS.md` or `tests/AGENTS.md`, subordinate to the source owner |
-| release and publication | `docs/RELEASING.md` and `.github/AGENTS.md` |
+| Authored tree, doctrine, canon, contracts, review or derived export | [ToS/AGENTS.md](ToS/AGENTS.md), then the owning branch |
+| Identity, provenance, fixity, rights or source representation | [source-witnesses](ToS/source-witnesses/AGENTS.md) and [Corpus Foundation](ToS/doctrine/CORPUS_FOUNDATION.md) |
+| Philosophy atlas or graph preparation | [philosophy](ToS/philosophy/AGENTS.md) |
+| Golden kernel or bounded public entry | [Zarathustra](ToS/zarathustra/AGENTS.md) |
+| CLI, HTTP, native MCP, site, WebMCP or software/data delivery | [access/AGENTS.md](access/AGENTS.md) and the exact native crate or adapter |
+| Repeatable operation | [mechanics/AGENTS.md](mechanics/AGENTS.md), then the active part |
+| Durable rationale | [docs/decisions/AGENTS.md](docs/decisions/AGENTS.md) |
+| Measurement, proof pressure, KAG source-return export or memory candidate | [stats](stats/AGENTS.md), [evals](evals/AGENTS.md), [kag](kag/AGENTS.md) or [memo](memo/AGENTS.md) |
+| Builder, validator or regression | [scripts](scripts/AGENTS.md) or [tests](tests/AGENTS.md), subordinate to the source owner |
+| Landing and publication | [RELEASING](docs/RELEASING.md); [.github](.github/AGENTS.md) for platform files |
 
 ## Boundary Law
 
-- Preserve source -> proposal -> review -> scoped admission, canon or explicit deferral ->
-  derived projection. A deterministic output or green validator cannot accept
-  source, translation, semantics, rights, or canon.
+- Preserve source -> proposal -> review -> scoped admission, canon or explicit
+  deferral -> derived projection. A deterministic output cannot accept meaning,
+  source fidelity, rights or canon.
 - Keep bibliographic witnesses, physical artifacts, scholarly composites,
-  transcriptions, translations, annotations, claims, review events, and graph
-  projections as distinct evidence layers. Stable identity preserves the referent; source-visible assessment evaluates
-claims about it.
-- Keep extraction, OCR, correction, normalization, segmentation, alignment,
-  semantic annotation, and review as separate versioned events. Never
-  overwrite an earlier layer to make a later result appear clean.
-- Paths provide navigation; stable ToS IDs own corpus identity. Moves require
-  explicit reference migration.
+  transcriptions, translations, annotations, claims and review events distinct.
+  Extraction, OCR, correction, normalization, segmentation and alignment are
+  separate versioned events; retain their exact predecessors and provenance.
+- Stable ToS IDs own identity; paths provide navigation. Migrations preserve
+  references explicitly.
 - Preserve source metadata, fixity, provenance, rights and forensic evidence
   in authored Git sources or an explicitly selected immutable corpus revision.
-  Bulk imports move only with exact membership, historical locators and verified
-  restore. Generated catalogs and projections belong to data artifacts; their
-  absence from Git does not retire the sources they describe.
-- ToS-owned standalone projection access routes to `access/`; ecosystem stack
-  orchestration and runtime authority route to their owning AoA layers.
-- Source-visible assessment by an authorized, competent human or agent owns
-  textual and semantic judgment under `ToS/doctrine/KNOWLEDGE_ASSESSMENT.md`.
-  Rights, personal consent, publication and canon retain their actual owner
-  authority. Validators prove only their declared mechanics.
-- Route runtime, proof, memory authority, KAG substrate, federation, SDK,
-  playbook, skill, technique, and cross-owner statistics to their owners.
-- Keep private payloads, secrets, provider credentials, and operator evidence
+  Bulk retirement requires exact membership, historical locators and verified
+  restore. Generated catalogs and projections are replaceable data artifacts.
+- [Knowledge Assessment](ToS/doctrine/KNOWLEDGE_ASSESSMENT.md) owns competent,
+  source-visible human or authorized-agent assessment. Rights, personal consent,
+  publication and canon retain their actual owner authority.
+- ToS owns standalone operation and delivery. Consumers own their ecosystem
+  integration; shared proof, memory, KAG, federation, SDK, skill, technique,
+  playbook and statistics authority stays with the corresponding owner.
+- Keep private payloads, secrets, provider credentials and operator evidence
   out of public authored and generated surfaces.
 
-The detailed corpus and semantic layer law lives with `ToS/doctrine/`,
-`ToS/source-witnesses/`, `ToS/contracts/`, `ToS/review-ledger/`, and
-`ToS/canon/`; do not reproduce it in a nested route card.
+## Change and Verify
 
-## Change Companions
+Change source or builder inputs before derived companions. Update only the
+contracts, guides, indexes and checks whose actual responsibilities changed.
+Record a decision when durable rationale changes, not merely to narrate a diff.
 
-Update only companions whose owner contract actually moved: source docs,
-roadmap or changelog, decision rationale, manifest/registry, builder,
-generated projection, validator, test, or public route. Change source or
-builder input before rebuilding a derived surface. If no durable rationale
-moved, do not create a decision record merely to narrate the diff.
+Select the narrow route in [VALIDATION.md](VALIDATION.md) or its district map.
+`docs/validation/validation_lanes.json` owns internal command order. Use the
+[review checklist](mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md)
+for source, structural, rights or semantic judgments outside mechanical checks.
 
-Keep material downloads, model runtimes, heavy benchmarks and large generated
-artifacts outside the source checkout, with explicit selected storage and finite
-budgets. Honor the executing host policy when supplied. No particular ecosystem
-host, laboratory checkout or installed service is a ToS prerequisite.
+Keep downloads, model runtimes, heavy benchmarks and large generated outputs
+outside the source checkout with explicit storage and finite budgets. Honor the
+executing host's policy; no ecosystem installation is a ToS prerequisite.
 
-## Verify
+## Landing and Completion
 
-Choose the narrowest relevant on-demand route in [`VALIDATION.md`](VALIDATION.md)
-or the nearest district `VALIDATION.md`. Internal ordered command authority
-remains `docs/validation/validation_lanes.json`; route cards do not duplicate
-its procedure bodies.
+Follow [RELEASING](docs/RELEASING.md) for branch, checkpoint review, PR, CI,
+merge and post-landing synchronization. Required checks follow changed-path
+selection under TOS-D-0062. Production corpus, KAG/stats integration and generated
+currentness are separate operations. Report an unobservable remote state as a
+blocker rather than inferring success.
 
-Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` when a
-source, rights, interpretation, structural, or boundary judgment lies outside
-mechanical validator coverage.
-
-## Landing Route
-
-Branch, PR, CI, merge, post-landing synchronization, and publication procedure
-lives in `docs/RELEASING.md`. `.github/AGENTS.md` owns only GitHub-native
-support surfaces. Under TOS-D-0062, `Repo Validation` protects software and
-applicable authored changes with the changed-path selection documented in
-`docs/RELEASING.md`; unknown/shared paths select the full software suite. Production corpus compilation, full KAG/stats
-integration and generated documentation currentness are separate operations,
-not prerequisites for every software merge or release. Preserve exact inputs
-and validation evidence at the corresponding data/integration boundary.
-If remote status or permissions cannot be observed, report
-the exact blocker rather than inferring success.
-
-## Completion
-
-Closeout names changed owner sources, generated companions, validation and
-manual review performed, skipped checks, residual risk, and the next owner.
-Report local validation, CI, merge, release, runtime health, semantic
-acceptance and human approval from the evidence for each state.
+Closeout names changed owners, generated companions, checks and manual review,
+skips, residual risk and the next owner. Distinguish local validation, CI,
+merge, release, installation, deployment, runtime and semantic acceptance.

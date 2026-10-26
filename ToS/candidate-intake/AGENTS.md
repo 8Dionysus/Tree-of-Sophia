@@ -1,38 +1,22 @@
 # AGENTS.md
 
-This file applies to candidate intake material under `ToS/candidate-intake/`.
+This card applies to provisional extraction under `ToS/candidate-intake/`.
 
 ## Role
 
-`ToS/candidate-intake/` holds provisional extraction and candidate structure
-that may later inform authored ToS work. It is a staging ledge, not canon,
-doctrine, or public authority.
-
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| role | provisional extraction and candidate structure surface |
-| input | source-linked extraction pass, candidate node table, relation table, normalization note, or promotion residue |
-| output | reviewable candidate pack with source pointer, pass frame, blocker state, and uncertainty |
-| owner | `ToS/candidate-intake/AGENTS.md` and the pass-local README or manifest |
-| next route | source witness -> candidate pass -> philosophy branch or canon review -> compatibility/export only after owned surfaces change |
-| tools | tabular base contract, relation pack contract, review checklist, route validators |
-| check | `rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs` when a bounded intake pack changes |
+Intake holds source-linked candidate node/relation tables, normalization notes and promotion
+residue. The pass-local README or manifest owns its source pointer, pass frame,
+blockers and uncertainty; keep these explicit until review resolves them.
 
 ## Boundary Routes
 
-- Keep intake visibly provisional and source-linked.
-- Route primary witness authority to `ToS/source-witnesses/`.
-- Route reviewed authored nodes and relation packs to `ToS/canon/`.
-- Route public examples to `ToS/public-compatibility/` only after an owned
-  source or canon surface changes.
-- Keep uncertainty in the pack instead of smoothing it into authority.
+Primary witnesses remain in `ToS/source-witnesses/`. Route candidate packs
+through philosophy branch or canon review before promotion to `ToS/canon/`.
+Public examples and exports follow their changed source/canon owners.
+Use the tabular-base and relation-pack contracts for candidate shape.
 
 ## Validation
 
-Use `mechanics/audit/parts/review-ledger-route/docs/REVIEW_CHECKLIST.md` for
-scope-broadening review. For the current bounded intake pack, use
-`rust/crates/tos-ops-mechanics-plan/src/intake_pack.rs` and any route/export validator named by the
-touched surface. Select the nearest source-home or intake route in
-[`ToS/VALIDATION.md`](../VALIDATION.md) after that surface is known.
+Select the intake or source-home route from
+[ToS/VALIDATION.md](../VALIDATION.md); add companion checks only when affected.
+The review checklist owns judgments that broaden the pack's scope.

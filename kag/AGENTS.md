@@ -27,7 +27,7 @@ Unrelated software changes do not require a production export rebuild.
 
 ## Source Routes
 
-- `ToS/derived-exports/kag_export.min.json`
+- The explicitly selected export artifact and its source-return manifest
 - `ToS/canon/source/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/node.json`
 - `ToS/derived-exports/README.md`
 - `mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md`
