@@ -161,6 +161,8 @@ its surrounding implementation directory; `ToS/` source Markdown does not use
 the documentation-only shortcut. Source assessment/admission still belongs to
 its owner, not to a green software gate. This selector does not publish data.
 The Rust job uses its own sparse checkout and temporary Cargo cache. The
+host-program fixtures use the qualified Ubuntu 24.04 runner explicitly;
+changing its distribution is a separate validation step. The
 installed reader checks exact old/current bytes from a tiny synthetic store.
 The Worker job checks the shipped `tos-web-rules` WASM product with the matching
 `wasm-bindgen` CLI verified against its pinned release digest.
