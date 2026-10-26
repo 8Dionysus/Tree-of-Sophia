@@ -26,6 +26,9 @@ jobs:
       software_mode: ${{ steps.select.outputs.software_mode }}
       worker: ${{ steps.select.outputs.worker }}
       rust: ${{ steps.select.outputs.rust }}
+      route_docs: ${{ steps.select.outputs.route_docs }}
+      agent_surface: ${{ steps.select.outputs.agent_surface }}
+      documentation_family: ${{ steps.select.outputs.documentation_family }}
       executor_sha256: ${{ steps.executors.outputs.executor_sha256 }}
       executor_manifest_sha256: ${{ steps.executors.outputs.executor_manifest_sha256 }}
     steps:
@@ -74,6 +77,32 @@ jobs:
           else
             git fetch --no-tags --depth=1 origin "$BASE_SHA"
             "$TOS_SOFTWARE_CI_EXECUTOR" plan --repo-root "$GITHUB_WORKSPACE" --base "$BASE_SHA"
+          fi
+
+      - name: Validate selected documentation owners
+        if: ${{ steps.select.outputs.route_docs != 'none' || steps.select.outputs.agent_surface == 'true' || steps.select.outputs.documentation_family == 'true' }}
+        env:
+          CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
+          CARGO_BUILD_JOBS: "2"
+          ROUTE_DOCS: ${{ steps.select.outputs.route_docs }}
+          AGENT_SURFACE: ${{ steps.select.outputs.agent_surface }}
+          DOCUMENTATION_FAMILY: ${{ steps.select.outputs.documentation_family }}
+        run: |
+          cargo +1.98.1 build --locked --no-default-features --features mechanics -p tos-ops-mechanics-plan \
+            --bin tos-route-cards --bin tos-agents-route-harness --bin tos-ops-mechanics-plan
+          binaries="$CARGO_TARGET_DIR/debug"
+          if [ "$ROUTE_DOCS" != none ]; then
+            operation=validate-source
+            if [ "$ROUTE_DOCS" = current ]; then operation=validate; fi
+            "$binaries/tos-route-cards" --repo-root "$GITHUB_WORKSPACE" "$operation"
+            "$binaries/tos-agents-route-harness" --repo-root "$GITHUB_WORKSPACE" --check
+          fi
+          if [ "$AGENT_SURFACE" = true ]; then
+            "$binaries/tos-ops-mechanics-plan" --repo-root "$GITHUB_WORKSPACE" --agent-surface-validate
+          fi
+          if [ "$DOCUMENTATION_FAMILY" = true ]; then
+            "$binaries/tos-ops-mechanics-plan" --repo-root "$GITHUB_WORKSPACE" --documentation-family-build --check
           fi
 
   software:

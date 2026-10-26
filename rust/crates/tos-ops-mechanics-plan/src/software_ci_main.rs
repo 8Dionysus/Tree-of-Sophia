@@ -29,8 +29,13 @@ fn output_cancel_check() -> io::Result<()> {
 fn github_output(path: &Path, selection: &software_ci::Selection) -> io::Result<()> {
     output_cancel_check()?;
     let record = format!(
-        "software_mode={}\nworker={}\nrust={}\n",
-        selection.software_mode, selection.worker, selection.rust
+        "software_mode={}\nworker={}\nrust={}\nroute_docs={}\nagent_surface={}\ndocumentation_family={}\n",
+        selection.software_mode,
+        selection.worker,
+        selection.rust,
+        selection.route_docs,
+        selection.agent_surface,
+        selection.documentation_family
     );
     let mut options = fs::OpenOptions::new();
     options.append(true).create(true);
@@ -228,7 +233,7 @@ mod output_tests {
         let _serial = OUTPUT_TEST.lock().unwrap_or_else(|p| p.into_inner());
         let root = Fixture::new();
         let selected = software_ci::select(Vec::new(), false).unwrap();
-        let record = b"software_mode=full\nworker=true\nrust=true\n";
+        let record = b"software_mode=full\nworker=true\nrust=true\nroute_docs=none\nagent_surface=false\ndocumentation_family=false\n";
         let cap = 1024 * 1024;
         let output = root.0.join("output");
         fs::write(&output, b"prior=kept\n").unwrap();

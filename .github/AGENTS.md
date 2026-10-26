@@ -23,6 +23,10 @@ Changed paths select software checks through `tos-software-ci` and the
 table in `docs/RELEASING.md`. The selector and documentation check must succeed.
 Selected jobs must succeed; only explicitly unselected jobs may be skipped.
 Unknown/shared paths and manual full-release runs select all software checks.
+Known human guides and owner cards select their documentation/source-route
+checks. ToS source Markdown and Questbook inputs retain their Rust consumers.
+Generated documentation parity is selected only when that carrier changes;
+an untouched carrier does not gate ordinary source or software work.
 Absent, failed or cancelled selected jobs cannot be aggregated as success. Do not add a KAG,
 stats, complete corpus or generated documentation currentness dependency to
 the software gate. Data/integration workflows validate their own exact inputs.

@@ -20,12 +20,12 @@ fn run() -> Result<i32, String> {
             "--repo-root" => {
                 root = Some(PathBuf::from(args.next().ok_or("missing repository root")?))
             }
-            "build" | "validate" if mode.is_none() => mode = Some(arg),
+            "build" | "validate" | "validate-source" if mode.is_none() => mode = Some(arg),
             "--check" => check = true,
             "--output" => output = Some(PathBuf::from(args.next().ok_or("missing output")?)),
             "--help" | "-h" => {
                 println!(
-                    "usage: tos-route-cards --repo-root ABSOLUTE_PATH build [--check] [--output PATH] | validate"
+                    "usage: tos-route-cards --repo-root ABSOLUTE_PATH build [--check] [--output PATH] | validate | validate-source"
                 );
                 return Ok(0);
             }
@@ -45,13 +45,23 @@ fn run() -> Result<i32, String> {
             }
         }
     }
-    if mode == "validate" {
+    if mode == "validate" || mode == "validate-source" {
         if check || output.is_some() {
             return Err("validate accepts no build flags".into());
         }
-        let issues = route_cards::run_validation(&root, &CANCEL).map_err(|e| e.to_string())?;
+        let issues = if mode == "validate-source" {
+            route_cards::run_source_validation(&root, &CANCEL)
+        } else {
+            route_cards::run_validation(&root, &CANCEL)
+        }
+        .map_err(|e| e.to_string())?;
+        let label = if mode == "validate-source" {
+            "Source"
+        } else {
+            "Nested"
+        };
         if !issues.is_empty() {
-            println!("Nested AGENTS route-card check failed.");
+            println!("{label} AGENTS route-card check failed.");
             for (location, message) in issues {
                 println!("- {location}: {message}");
             }
@@ -61,7 +71,7 @@ fn run() -> Result<i32, String> {
         let count = route_cards::discover_route_cards(&root, &inventory)
             .map_err(|e| e.to_string())?
             .len();
-        println!("Nested AGENTS route-card check passed for {count} files.");
+        println!("{label} AGENTS route-card check passed for {count} files.");
         return Ok(0);
     }
     let value = route_cards::build_currentness(&root, &CANCEL).map_err(|e| e.to_string())?;

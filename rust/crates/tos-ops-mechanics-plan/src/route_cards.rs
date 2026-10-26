@@ -2629,6 +2629,7 @@ fn inventory_issues(
     cards: &[String],
     tracked: Option<&BTreeSet<String>>,
     issues: &mut Vec<Issue>,
+    check_currentness: bool,
 ) -> io::Result<()> {
     let required = [
         "schema_version",
@@ -2809,6 +2810,9 @@ fn inventory_issues(
             }
         }
     }
+    if !check_currentness {
+        return Ok(());
+    }
     let current = field(inventory, "currentness")?;
     if !s.is_file(current)? {
         issue(
@@ -2884,13 +2888,24 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
         MAX_SELECTED_PATH_DISCOVERY_ENTRIES,
     )
 }
+/// Authored card, inventory, inheritance and executable-reference laws only.
+/// A software/doc change does not require regeneration of an untouched carrier.
+pub fn run_source_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>> {
+    run_validation_with_discovery_limit(
+        root,
+        &mut RouteSources::new(root)?,
+        cancel,
+        Some(MAX_SELECTED_PATH_DISCOVERY_ENTRIES),
+        false,
+    )
+}
 /// Run the same route laws on the caller's existing clock and custody.
 pub fn run_validation_with_sources(
     root: &Path,
     s: &mut RouteSources,
     cancel: &AtomicI32,
 ) -> io::Result<Vec<Issue>> {
-    run_validation_with_discovery_limit(root, s, cancel, None)
+    run_validation_with_discovery_limit(root, s, cancel, None, true)
 }
 /// Documentation owns a larger physical discovery pass on the same clock,
 /// custody and operation allowance. Ordinary route validation keeps its limit.
@@ -2900,13 +2915,14 @@ pub fn run_validation_with_card_discovery_limit(
     cancel: &AtomicI32,
     max_entries: usize,
 ) -> io::Result<Vec<Issue>> {
-    run_validation_with_discovery_limit(root, s, cancel, Some(max_entries))
+    run_validation_with_discovery_limit(root, s, cancel, Some(max_entries), true)
 }
 fn run_validation_with_discovery_limit(
     root: &Path,
     mut s: &mut RouteSources,
     cancel: &AtomicI32,
     max_entries: Option<usize>,
+    check_currentness: bool,
 ) -> io::Result<Vec<Issue>> {
     s.check()?;
     let inventory = s.inventory();
@@ -2947,7 +2963,14 @@ fn run_validation_with_discovery_limit(
     match inventory {
         Ok(inventory) => {
             let tracked = tracked(root, s.remaining_time()?, cancel)?;
-            inventory_issues(&mut s, &inventory, &cards, tracked.as_ref(), &mut issues)?;
+            inventory_issues(
+                &mut s,
+                &inventory,
+                &cards,
+                tracked.as_ref(),
+                &mut issues,
+                check_currentness,
+            )?;
         }
         Err(_) => {
             let message = if s.is_file(INVENTORY)? {

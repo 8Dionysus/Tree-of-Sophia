@@ -27,6 +27,10 @@ pub struct Selection {
     pub software_mode: &'static str,
     pub worker: bool,
     pub rust: bool,
+    /// Source route checks; parity is selected only when its carrier changes.
+    pub route_docs: &'static str,
+    pub agent_surface: bool,
+    pub documentation_family: bool,
     pub changed_paths: Vec<String>,
     pub forced_full: bool,
 }
@@ -86,6 +90,7 @@ fn select_checked(
     paths.dedup();
     check()?;
     let (mut mode, mut worker, mut rust) = (0usize, false, false);
+    let (mut routes, mut agent_surface, mut documentation_family) = (0usize, false, false);
     for path in &paths {
         check()?;
         let (name, components) = path_components(path)?;
@@ -93,11 +98,68 @@ fn select_checked(
             .rsplit_once('.')
             .filter(|(stem, tail)| stem.chars().any(|c| c != '.') && !tail.is_empty())
             .map(|(_, tail)| tail);
+        match path.as_str() {
+            ".agents/agents-route.current.json" => {
+                routes = 2;
+                continue;
+            }
+            ".agents/agent-surface.current.json" => {
+                agent_surface = true;
+                continue;
+            }
+            "docs/validation/documentation-family.current.json" => {
+                documentation_family = true;
+                continue;
+            }
+            _ => (),
+        }
+        // Source/Questbook text, including fixtures and deleted inputs, keeps
+        // the complete Rust consumer lane. The separate browser and Worker
+        // programs do not consume these bytes.
         if suffix == Some("md")
-            && name != "AGENTS.md"
-            && (components == 1 || path.starts_with("docs/") || path.starts_with("access/"))
+            && (path.starts_with("ToS/")
+                || path == "QUESTBOOK.md"
+                || path.starts_with("quests/")
+                || path
+                    == "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md")
         {
+            rust = true;
+            if name == "AGENTS.md" {
+                routes = routes.max(1);
+            }
             continue;
+        }
+        let fixture = path
+            .split('/')
+            .any(|part| matches!(part, "fixture" | "fixtures" | "testdata"));
+        if suffix == Some("md") && !fixture {
+            let owner_docs = components == 1
+                || [
+                    "docs/",
+                    "access/",
+                    ".agents/",
+                    ".github/",
+                    "mechanics/",
+                    "kag/",
+                    "memo/",
+                    "stats/",
+                    "evals/",
+                    "manifests/",
+                    "scripts/",
+                ]
+                .iter()
+                .any(|prefix| path.starts_with(prefix))
+                || (path.starts_with("rust/")
+                    && !path.contains("/src/")
+                    && !path.contains("/tests/"))
+                || (path.starts_with("tests/")
+                    && matches!(name, "AGENTS.md" | "README.md" | "VALIDATION.md"));
+            if owner_docs {
+                if name == "AGENTS.md" {
+                    routes = routes.max(1);
+                }
+                continue;
+            }
         }
         if path.starts_with("rust/crates/tos-reader/src/") && suffix == Some("rs") {
             // This leaf binary depends only on storage/foundation crates and has
@@ -128,10 +190,13 @@ fn select_checked(
         (mode, worker, rust) = (3, true, true);
     }
     Ok(Selection {
-        schema_version: 2,
+        schema_version: 3,
         software_mode: MODES[mode],
         worker,
         rust,
+        route_docs: ["none", "source", "current"][routes],
+        agent_surface,
+        documentation_family,
         changed_paths: paths,
         forced_full,
     })
@@ -153,9 +218,21 @@ pub fn gate(needs: &Value) -> io::Result<()> {
         .and_then(|o| o.get("worker"))
         .and_then(Value::as_str);
     let rust = outputs.and_then(|o| o.get("rust")).and_then(Value::as_str);
+    let route_docs = outputs
+        .and_then(|o| o.get("route_docs"))
+        .and_then(Value::as_str);
+    let agent_surface = outputs
+        .and_then(|o| o.get("agent_surface"))
+        .and_then(Value::as_str);
+    let documentation_family = outputs
+        .and_then(|o| o.get("documentation_family"))
+        .and_then(Value::as_str);
     if !mode.is_some_and(|m| MODES.contains(&m))
         || !matches!(worker, Some("true" | "false"))
         || !matches!(rust, Some("true" | "false"))
+        || !matches!(route_docs, Some("none" | "source" | "current"))
+        || !matches!(agent_surface, Some("true" | "false"))
+        || !matches!(documentation_family, Some("true" | "false"))
     {
         return Err(invalid("missing or invalid check selection"));
     }
@@ -712,6 +789,100 @@ mod tests {
     }
 
     #[test]
+    fn documentation_selection_keeps_source_consumers_and_owned_carrier_checks() {
+        for (paths, mode, rust, route_docs, agent_surface, documentation_family) in [
+            (
+                vec![
+                    "AGENTS.md",
+                    "mechanics/README.md",
+                    "rust/crates/tos-time-space/README.md",
+                ],
+                "none",
+                false,
+                "source",
+                false,
+                false,
+            ),
+            (vec!["ToS/AGENTS.md"], "none", true, "source", false, false),
+            (
+                vec!["ToS/doctrine/README.md", "QUESTBOOK.md"],
+                "none",
+                true,
+                "none",
+                false,
+                false,
+            ),
+            (
+                vec![
+                    "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md",
+                    "ToS/source-witnesses/fixtures/README.md",
+                ],
+                "none",
+                true,
+                "none",
+                false,
+                false,
+            ),
+            (
+                vec![".agents/agents-route.current.json", "access/AGENTS.md"],
+                "none",
+                false,
+                "current",
+                false,
+                false,
+            ),
+            (
+                vec![
+                    ".agents/agent-surface.current.json",
+                    "docs/validation/documentation-family.current.json",
+                ],
+                "none",
+                false,
+                "none",
+                true,
+                true,
+            ),
+            (
+                vec!["AGENTS.md", "new-unclassified/input.xyz"],
+                "full",
+                true,
+                "source",
+                false,
+                false,
+            ),
+            (
+                vec!["unknown/README.md"],
+                "full",
+                true,
+                "none",
+                false,
+                false,
+            ),
+        ] {
+            let result = select(paths.into_iter().map(str::to_owned).collect(), false).unwrap();
+            assert_eq!(
+                (
+                    result.software_mode,
+                    result.rust,
+                    result.route_docs,
+                    result.agent_surface,
+                    result.documentation_family
+                ),
+                (mode, rust, route_docs, agent_surface, documentation_family)
+            );
+            assert_eq!(result.worker, mode == "full");
+        }
+        for path in ["rust/crates/tos-access/tests/fixtures/README.md"] {
+            let result = select(vec![path.into()], false).unwrap();
+            assert!(result.rust);
+            assert_ne!(
+                result.software_mode, "none",
+                "fixture bytes require their consumer: {path}"
+            );
+        }
+    }
+
+    #[test]
     fn omission_requires_a_known_surface_and_gate_requires_every_job() {
         // Reject option-shaped refs before any Git reader or filesystem call.
         assert!(
@@ -808,9 +979,6 @@ mod tests {
             ".github/workflows/repo-validation.yml",
             "scripts/software_ci.py",
             "tests/test_software_ci.py",
-            "AGENTS.md",
-            "access/AGENTS.md",
-            "ToS/doctrine/README.md",
             "new-unclassified/input.xyz",
             "...md",
         ] {
@@ -839,11 +1007,21 @@ mod tests {
             ("full", true, true),
             ("none", true, false),
         ] {
-            let needs = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":mode,"worker":worker.to_string(),"rust":rust.to_string()}},
+            let needs = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":mode,"worker":worker.to_string(),"rust":rust.to_string(),"route_docs":"none","agent_surface":"false","documentation_family":"false"}},
                 "software":{"result":if mode=="none" {"skipped"} else {"success"}},
                 "worker":{"result":if worker {"success"} else {"skipped"}},
                 "rust":{"result":if rust {"success"} else {"skipped"}}});
             gate(&needs).unwrap();
+            for field in ["route_docs", "agent_surface", "documentation_family"] {
+                let mut bad = needs.clone();
+                bad["plan"]["outputs"]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove(field);
+                assert!(gate(&bad).is_err());
+                bad["plan"]["outputs"][field] = "unclassified".into();
+                assert!(gate(&bad).is_err());
+            }
             for job in ["plan", "software", "worker", "rust"] {
                 for failure in [Some("failure"), Some("cancelled"), None] {
                     let mut bad = needs.clone();
