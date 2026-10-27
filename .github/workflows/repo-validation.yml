@@ -40,18 +40,25 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'source_tree=%s\n' "$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
           printf 'CARGO_HOME=%s/plan-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           printf 'CARGO_TARGET_DIR=%s/plan-cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Restore optional plan Cargo cache
+      - name: Restore optional plan Cargo libraries
+        id: cargo_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
         with:
           path: |
             ${{ runner.temp }}/plan-cargo-home/registry
-            ${{ runner.temp }}/plan-cargo-target
-          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-plan-native-nodefault-mechanics-debug0-${{ github.sha }}
+            ${{ runner.temp }}/plan-cargo-target/**/.fingerprint
+            ${{ runner.temp }}/plan-cargo-target/**/build
+            ${{ runner.temp }}/plan-cargo-target/**/deps/*.rlib
+            ${{ runner.temp }}/plan-cargo-target/**/deps/*.rmeta
+            ${{ runner.temp }}/plan-cargo-target/**/deps/*.so
+            ${{ runner.temp }}/plan-cargo-target/**/deps/*.d
+          key: tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-plan-native-nodefault-mechanics-debug0-${{ steps.cargo_platform.outputs.source_tree }}
           restore-keys: |
-            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-plan-native-nodefault-mechanics-debug0-
+            tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-plan-native-nodefault-mechanics-debug0-
       - name: Prepare exact native CI executors
         id: executors
         run: |
@@ -116,6 +123,7 @@ jobs:
           if [ "$DOCUMENTATION_FAMILY" = true ]; then
             "$binaries/tos-ops-mechanics-plan" --repo-root "$GITHUB_WORKSPACE" --documentation-family-build --check
           fi
+
 
   software:
     needs: plan
@@ -203,20 +211,32 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'source_tree=%s\n' "$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
           printf 'CARGO_HOME=%s/software-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           # Test features cannot replace images already bound by package receipts.
           printf 'CARGO_TARGET_DIR=%s/software-test-cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Restore optional software Cargo cache
+      - name: Restore optional software Cargo libraries
+        id: cargo_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
         with:
           path: |
             ${{ runner.temp }}/software-cargo-home/registry
-            ${{ runner.temp }}/software-cargo-target
-            ${{ runner.temp }}/software-test-cargo-target
-          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-software-native-prod-test-wasm-release-debug0-${{ github.sha }}
+            ${{ runner.temp }}/software-cargo-target/**/.fingerprint
+            ${{ runner.temp }}/software-cargo-target/**/build
+            ${{ runner.temp }}/software-cargo-target/**/deps/*.rlib
+            ${{ runner.temp }}/software-cargo-target/**/deps/*.rmeta
+            ${{ runner.temp }}/software-cargo-target/**/deps/*.so
+            ${{ runner.temp }}/software-cargo-target/**/deps/*.d
+            ${{ runner.temp }}/software-test-cargo-target/**/.fingerprint
+            ${{ runner.temp }}/software-test-cargo-target/**/build
+            ${{ runner.temp }}/software-test-cargo-target/**/deps/*.rlib
+            ${{ runner.temp }}/software-test-cargo-target/**/deps/*.rmeta
+            ${{ runner.temp }}/software-test-cargo-target/**/deps/*.so
+            ${{ runner.temp }}/software-test-cargo-target/**/deps/*.d
+          key: tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-software-native-prod-test-wasm-release-debug0-${{ steps.cargo_platform.outputs.source_tree }}
           restore-keys: |
-            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-software-native-prod-test-wasm-release-debug0-
+            tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-software-native-prod-test-wasm-release-debug0-
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -419,6 +439,7 @@ jobs:
             sudo umount "$root/mounted"
           fi
 
+
   worker:
     needs: plan
     if: ${{ needs.plan.outputs.worker == 'true' }}
@@ -461,18 +482,25 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'source_tree=%s\n' "$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
           printf 'CARGO_HOME=%s/worker-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           printf 'CARGO_TARGET_DIR=%s/worker-cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Restore optional Worker Cargo cache
+      - name: Restore optional Worker Cargo libraries
+        id: cargo_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
         with:
           path: |
             ${{ runner.temp }}/worker-cargo-home/registry
-            ${{ runner.temp }}/worker-cargo-target
-          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-worker-native-wasm-release-debug0-${{ github.sha }}
+            ${{ runner.temp }}/worker-cargo-target/**/.fingerprint
+            ${{ runner.temp }}/worker-cargo-target/**/build
+            ${{ runner.temp }}/worker-cargo-target/**/deps/*.rlib
+            ${{ runner.temp }}/worker-cargo-target/**/deps/*.rmeta
+            ${{ runner.temp }}/worker-cargo-target/**/deps/*.so
+            ${{ runner.temp }}/worker-cargo-target/**/deps/*.d
+          key: tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-worker-native-wasm-release-debug0-${{ steps.cargo_platform.outputs.source_tree }}
           restore-keys: |
-            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-worker-native-wasm-release-debug0-
+            tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-worker-native-wasm-release-debug0-
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -509,6 +537,7 @@ jobs:
           npm ci --prefer-offline --no-audit --no-fund --prefix access/deploy/cloudflare-worker
           npm run typecheck --prefix access/deploy/cloudflare-worker
           npm test --prefix access/deploy/cloudflare-worker
+
 
   rust:
     needs: plan
@@ -861,18 +890,25 @@ jobs:
         run: |
           . /etc/os-release
           printf 'image=%s-%s\n' "$ID" "$VERSION_ID" >> "$GITHUB_OUTPUT"
+          printf 'source_tree=%s\n' "$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
           printf 'CARGO_HOME=%s/cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           printf 'CARGO_TARGET_DIR=%s/cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Restore optional Rust workspace Cargo cache
+      - name: Restore optional Rust workspace Cargo libraries
+        id: cargo_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         continue-on-error: true
         with:
           path: |
             ${{ runner.temp }}/cargo-home/registry
-            ${{ runner.temp }}/cargo-target
-          key: tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-workspace-native-tests-wasm-check-pg-debug0-${{ github.sha }}
+            ${{ runner.temp }}/cargo-target/**/.fingerprint
+            ${{ runner.temp }}/cargo-target/**/build
+            ${{ runner.temp }}/cargo-target/**/deps/*.rlib
+            ${{ runner.temp }}/cargo-target/**/deps/*.rmeta
+            ${{ runner.temp }}/cargo-target/**/deps/*.so
+            ${{ runner.temp }}/cargo-target/**/deps/*.d
+          key: tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-workspace-native-tests-wasm-check-pg-debug0-${{ steps.cargo_platform.outputs.source_tree }}
           restore-keys: |
-            tos-cargo-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-workspace-native-tests-wasm-check-pg-debug0-
+            tos-cargo-lib-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.cargo_platform.outputs.image }}-rust1.98.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'rust/crates/**/Cargo.toml', 'tests/conformance/rust/Cargo.toml') }}-workspace-native-tests-wasm-check-pg-debug0-
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -1008,6 +1044,7 @@ jobs:
           if mountpoint -q "$root/mounted"; then
             sudo umount "$root/mounted"
           fi
+
 
   required_gate:
     name: Repo Validation

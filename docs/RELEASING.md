@@ -161,9 +161,14 @@ the other native roles still require their completed Cargo artifact streams.
 Missing products or a failed plan fail closed. Documentation-only changes skip
 the software package and browser/Worker jobs, but still need this native selector
 prerequisite. Cargo cache reuse is an optimization, not evidence of identity.
-Optional per-job caches hold public Cargo registry data and compiler targets.
-Keys separate the observed OS image/architecture, pinned compiler, lock and
-Cargo manifests, native/WASM feature cohorts and reduced debug profile.
+Optional per-job caches hold public Cargo registry data, compiled libraries,
+compiler fingerprints and build-script outputs. Finished command/test images and
+incremental compiler state are excluded. Keys separate the observed OS
+image/architecture, pinned compiler, lock and Cargo/toolchain manifests, feature
+cohorts, reduced debug profile and source tree. Identical trees share a key across
+commit metadata changes; compatible earlier trees can restore through the same
+compiler/dependency/cohort prefix. Cache retention never replaces source-bound
+product generation or candidate preservation.
 Every Cargo command, product receipt, artifact hash and selected check still
 runs after a cache hit or miss. Software tests use a separate target directory
 from production images so test features cannot replace packaged executables.

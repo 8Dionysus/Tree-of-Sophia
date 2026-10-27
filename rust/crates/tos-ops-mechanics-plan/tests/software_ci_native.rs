@@ -381,6 +381,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     use std::collections::BTreeSet;
     let w = workflow("repo-validation.yml");
     let jobs = &w["jobs"];
+    let mut cached_jobs = 0;
     for job in jobs.as_hash().unwrap().values() {
         if let Some(env) = job["env"].as_hash() {
             assert!(
@@ -390,7 +391,44 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
                 "job env cannot reference the runner context"
             );
         }
+        let st = job["steps"].as_vec().unwrap();
+        let Some(restore) = st.iter().find(|s| s["id"].as_str() == Some("cargo_cache")) else {
+            continue;
+        };
+        cached_jobs += 1;
+        assert!(
+            restore["uses"]
+                .as_str()
+                .unwrap()
+                .starts_with("actions/cache@")
+        );
+        assert_eq!(restore["continue-on-error"].as_bool(), Some(true));
+        let key = restore["with"]["key"].as_str().unwrap();
+        assert!(key.starts_with("tos-cargo-lib-v2-"));
+        assert!(
+            !key.contains("github.sha"),
+            "identical trees must share a cache key"
+        );
+        let suffix = "-${{ steps.cargo_platform.outputs.source_tree }}";
+        let prefix = key.strip_suffix(suffix).unwrap();
+        assert_eq!(
+            restore["with"]["restore-keys"].as_str().unwrap().trim(),
+            format!("{prefix}-")
+        );
+        assert!(run(one_step(st, "source_tree=%s")).contains("git rev-parse 'HEAD^{tree}'"));
+        for path in restore["with"]["path"].as_str().unwrap().lines() {
+            assert!(
+                path.ends_with("/registry")
+                    || path.ends_with("/**/.fingerprint")
+                    || path.ends_with("/**/build")
+                    || ["rlib", "rmeta", "so", "d"]
+                        .iter()
+                        .any(|extension| path.ends_with(&format!("/**/deps/*.{extension}"))),
+                "cache only compiler libraries/metadata, not full targets: {path}"
+            );
+        }
     }
+    assert_eq!(cached_jobs, 4);
     assert!(!w["on"]["workflow_dispatch"].is_badvalue());
     assert_eq!(
         jobs["required_gate"]["needs"]
