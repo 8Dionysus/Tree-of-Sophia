@@ -260,6 +260,18 @@ fn rust_workspace_groups_exactly_cover_the_full_lane_and_keep_growth_conformance
             .map(|(index, _)| full[index].clone())
             .collect();
         assert_eq!(&selected[prepare_count..], expected);
+        if group == RustGroup::ColdInstall {
+            let position = |label: &str| {
+                selected
+                    .iter()
+                    .position(|((name, _), _)| name == label)
+                    .unwrap()
+            };
+            assert!(
+                position("fetch locked dependencies for offline mechanics install")
+                    < position("install native mechanics executor and verify process custody")
+            );
+        }
         reconstructed.extend_from_slice(&selected[prepare_count..]);
         let has_growth = selected.iter().any(|((label, command), _)| {
             label == "test source-owned native Growth assertion classes"
@@ -268,6 +280,23 @@ fn rust_workspace_groups_exactly_cover_the_full_lane_and_keep_growth_conformance
                     .is_some_and(|part| part == "@tos-native-growth-classes")
         });
         assert_eq!(has_growth, name == "conformance");
+        for (label, owner) in [
+            ("compile exact Rust conformance test image", "conformance"),
+            (
+                "test native software/data release actions fixture",
+                "cold-install",
+            ),
+            (
+                "fetch locked dependencies for offline mechanics install",
+                "cold-install",
+            ),
+        ] {
+            assert_eq!(
+                selected.iter().any(|((selected, _), _)| selected == label),
+                name == owner,
+                "{label} belongs to its consumer group only",
+            );
+        }
     }
     let expected_suffix: Vec<_> = source_steps
         .iter()
@@ -347,6 +376,124 @@ fn grouped_rust_workspace_selection_and_manifest_check_fail_closed() {
             )
             .is_err()
         );
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn workspace_without_conformance_binds_only_its_successful_exact_access_build() {
+    use std::{os::unix::fs::PermissionsExt, process::Command};
+    use tos_foundation::Digest256;
+
+    let root = Fixture::new();
+    fs::write(root.0.join("owner.md"), "fixture owner\n").unwrap();
+    let target = root.0.join("cargo-target");
+    fs::create_dir_all(target.join("debug")).unwrap();
+    let bytes = b"exact current-lane Access fixture";
+    fs::write(root.0.join("access-source"), bytes).unwrap();
+    let cargo = root.0.join("cargo");
+    fs::write(&cargo, br##"#!/bin/sh
+case "$1" in
+  build)
+    [ "$FAIL_BUILD" = yes ] && exit 7
+    /bin/cp access-source cargo-target/debug/tos-access
+    /bin/chmod 700 cargo-target/debug/tos-access
+    ;;
+  mutate)
+    if [ "$MUTATION" = symlink ]; then
+      /bin/rm cargo-target/debug/tos-access
+      /bin/ln -s ../../access-source cargo-target/debug/tos-access
+    else
+      printf changed > cargo-target/debug/tos-access
+    fi
+    ;;
+  skip-prepare) : ;;
+  test)
+    case " $* " in *' --no-run '*) exit 91;; esac
+    printf '%s\n%s\n%s\n' "$TOS_NATIVE_PREPARED_CONSUMER_BIN" "$TOS_NATIVE_PREPARED_CONSUMER_SHA256" "$TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256" > received
+    ;;
+  *) exit 92;;
+esac
+"##).unwrap();
+    fs::set_permissions(&cargo, fs::Permissions::from_mode(0o700)).unwrap();
+    let steps = vec![
+        json!({"label":"exact Access build","rust_group":"prepare","command":[cargo,"build","--locked","-p","tos-access","--bin","tos-access"]}),
+        json!({"label":"conformance products","rust_group":"conformance","command":[cargo,"test","--workspace","--no-run","--message-format=json"]}),
+        json!({"label":"workspace","rust_group":"workspace","command":[cargo,"test","--workspace","--exclude","tos-conformance"]}),
+        grouped_step("cold install", "cold-install"),
+    ];
+    let exe = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
+        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-validation-lanes").into());
+    let invoke = |fail: bool, mutation: &str| {
+        Command::new(&exe)
+            .arg("--repo-root")
+            .arg(&root.0)
+            .args(["--run", "rust_workspace", "--rust-group", "workspace"])
+            .env("CARGO_TARGET_DIR", &target)
+            .env("PATH", "")
+            .env("FAIL_BUILD", if fail { "yes" } else { "no" })
+            .env("MUTATION", mutation)
+            .env("TOS_NATIVE_PREPARED_CONSUMER_BIN", "/untrusted/Access")
+            .env("TOS_NATIVE_PREPARED_CONSUMER_SHA256", "not-authority")
+            .env("TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256", "not-authority")
+            .output()
+            .unwrap()
+    };
+    root.manifest(grouped_manifest(steps.clone()));
+    let output = invoke(false, "");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.0.join("received")).unwrap(),
+        format!(
+            "{}\n{}\n\n",
+            target.join("debug/tos-access").display(),
+            Digest256::of_bytes(bytes).to_hex()
+        )
+    );
+    fs::remove_file(root.0.join("received")).unwrap();
+    assert_eq!(invoke(true, "").status.code(), Some(7));
+    assert!(!root.0.join("received").exists());
+
+    for mutation in ["bytes", "symlink"] {
+        let mut changed = steps.clone();
+        changed.insert(2, json!({"label":"mutate prepared image","rust_group":"workspace","command":[cargo,"mutate"]}));
+        root.manifest(grouped_manifest(changed));
+        assert!(!invoke(false, mutation).status.success());
+        assert!(!root.0.join("received").exists());
+        if mutation == "symlink" {
+            fs::remove_file(target.join("debug/tos-access")).unwrap();
+        }
+    }
+    for invalid in [
+        "missing build",
+        "different features",
+        "exclude after harness separator",
+    ] {
+        let mut changed = steps.clone();
+        match invalid {
+            "missing build" => changed[0]["command"] = json!([cargo, "skip-prepare"]),
+            "different features" => changed[0]["command"]
+                .as_array_mut()
+                .unwrap()
+                .extend([json!("--features"), json!("research-tools")]),
+            _ => {
+                changed[2]["command"] = json!([
+                    cargo,
+                    "test",
+                    "--workspace",
+                    "--",
+                    "--exclude",
+                    "tos-conformance"
+                ])
+            }
+        }
+        root.manifest(grouped_manifest(changed));
+        assert!(!invoke(false, "").status.success(), "{invalid}");
+        assert!(!root.0.join("received").exists());
     }
 }
 

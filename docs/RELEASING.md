@@ -208,8 +208,19 @@ aggregate: `conformance`, `workspace` and `cold-install`. Each runner performs
 the common pinned-toolchain, retained-history, wasm-bindgen and fs-verity
 preparation, then the native lane executor selects the common preparation
 prefix and only that group's ordered suffix from the single `rust_workspace`
-route. The group filter preserves each selected step's command, order and
-budget. Matrix fail-fast is disabled so all three checks report their outcome.
+route. The common prefix retains formatting, both WASM target checks and the
+exact schema-worker, owner CLI and Access builds. Cargo JSON-selected
+conformance test images are prepared only by `conformance`; the workspace
+consumer that explicitly excludes `tos-conformance` instead receives its
+current-lane Access path/digest after the successful exact build and a fresh
+byte check. Conformance/Growth keeps its full test-image provenance. The exact
+default release-actions fixture is the first `cold-install` step, retaining its
+separate genuine feature context. The group filter preserves each selected
+step's command, order and budget; the original full-lane commands and relative
+order are unchanged. An explicit locked `cargo fetch` prepares
+the dependency cache immediately before the mechanics install; the native
+install verifier retains `--offline` and its existing checks.
+Matrix fail-fast is disabled so all three checks report their outcome.
 The independent PostgreSQL durable-command laboratory remains a separate
 required job; its pinned PostgreSQL 16 service, fs-verity volume, exact schema
 worker and two fresh restore databases are unchanged. The required gate still
