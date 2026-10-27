@@ -18,6 +18,7 @@
 - [TOS-D-0063 - Document catalogue dates and locations are separate attributed Claims](../TOS-D-0063-document-catalogue-attributions.md) (`docs/decisions/TOS-D-0063-document-catalogue-attributions.md`)
 - [TOS-D-0067 - Typed historical-time source wording in Claim navigation](../TOS-D-0067-typed-time-claim-navigation.md) (`docs/decisions/TOS-D-0067-typed-time-claim-navigation.md`)
 - [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
+- [TOS-D-0073 - TOS-D-0073 Verified PR Source CI and Exact-SHA Releases](../TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md) (`docs/decisions/TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md`)
 
 ## agent-lane
 
@@ -172,6 +173,7 @@
 - [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 - [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
 - [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
+- [TOS-D-0073 - TOS-D-0073 Verified PR Source CI and Exact-SHA Releases](../TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md) (`docs/decisions/TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md`)
 
 ## docs/route-law
 

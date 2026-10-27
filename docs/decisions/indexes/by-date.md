@@ -169,3 +169,7 @@
 ## 2026-10-17
 
 - [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
+
+## 2026-10-26
+
+- [TOS-D-0073 - TOS-D-0073 Verified PR Source CI and Exact-SHA Releases](../TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md) (`docs/decisions/TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md`)

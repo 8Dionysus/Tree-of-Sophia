@@ -9,7 +9,8 @@
 ## Validation
 <!-- Name the operation: software, corpus admission, data release, or integration.
 List only checks that actually ran. If none, say Not run. Repo Validation covers
-software; corpus/KAG/stats publication checks belong to their selected release. -->
+software; corpus/KAG/stats publication checks belong to their selected release.
+Distinguish reused PR source CI from full qualification of the exact release SHA. -->
 - ...
 
 ## Boundary / Direction Impact

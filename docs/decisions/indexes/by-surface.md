@@ -195,6 +195,7 @@
 - [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 - [TOS-D-0071 - TOS-D-0071 Transactional source updates and independent projections](../TOS-D-0071-transactional-source-and-independent-projections.md) (`docs/decisions/TOS-D-0071-transactional-source-and-independent-projections.md`)
 - [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
+- [TOS-D-0073 - TOS-D-0073 Verified PR Source CI and Exact-SHA Releases](../TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md) (`docs/decisions/TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md`)
 
 ## docs/testing
 
@@ -259,6 +260,7 @@
 
 - [TOS-D-0044 - TOS-D-0044 End the Temporary KAG Freeze](../TOS-D-0044-end-temporary-kag-freeze.md) (`docs/decisions/TOS-D-0044-end-temporary-kag-freeze.md`)
 - [TOS-D-0062 - TOS-D-0062 Independent Software, Corpus and Integration Releases](../TOS-D-0062-independent-software-corpus-and-integration-releases.md) (`docs/decisions/TOS-D-0062-independent-software-corpus-and-integration-releases.md`)
+- [TOS-D-0073 - TOS-D-0073 Verified PR Source CI and Exact-SHA Releases](../TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md) (`docs/decisions/TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md`)
 
 ## github/workflow
 
@@ -425,6 +427,7 @@
 - [TOS-D-0069 - TOS-D-0069 Rust execution foundation for corpus growth](../TOS-D-0069-rust-execution-foundation.md) (`docs/decisions/TOS-D-0069-rust-execution-foundation.md`)
 - [TOS-D-0070 - TOS-D-0070 Declared source validation scope](../TOS-D-0070-declared-source-validation-scope.md) (`docs/decisions/TOS-D-0070-declared-source-validation-scope.md`)
 - [TOS-D-0072 - TOS-D-0072 Repository-independent execution and exports](../TOS-D-0072-repository-independent-execution-and-exports.md) (`docs/decisions/TOS-D-0072-repository-independent-execution-and-exports.md`)
+- [TOS-D-0073 - TOS-D-0073 Verified PR Source CI and Exact-SHA Releases](../TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md) (`docs/decisions/TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md`)
 
 ## source-home
 

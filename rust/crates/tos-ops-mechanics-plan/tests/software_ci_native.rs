@@ -55,7 +55,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     git(&["commit", "-m", "reader removal plus Unicode documentation"]);
     let executable = std::env::var_os("TOS_SOFTWARE_CI_TEST_EXECUTABLE")
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-software-ci").into());
-    let invoke = |mode: &str, needs: Option<&str>, full: bool| -> Output {
+    let invoke = |mode: &str, needs: Option<&str>, full: bool, tree: Option<&str>| -> Output {
         let mut command = Command::new(&executable);
         command.arg(mode);
         if mode == "plan" {
@@ -67,6 +67,9 @@ fn software_ci_actual_history_and_required_gate_are_native() {
             if full {
                 command.arg("--full");
             }
+            if let Some(tree) = tree {
+                command.arg("--validated-tree").arg(tree);
+            }
             command.env("GITHUB_OUTPUT", root.join("native-output"));
         } else {
             command
@@ -77,7 +80,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
         command.current_dir(&root).output().unwrap()
     };
     for full in [false, true] {
-        let native = invoke("plan", None, full);
+        let native = invoke("plan", None, full, None);
         assert_eq!(
             native.status.code(),
             Some(0),
@@ -117,15 +120,44 @@ fn software_ci_actual_history_and_required_gate_are_native() {
                 .contains("\\u0437")
         );
     }
-    // New source-visible errors fail together; historical missing links stay historical.
+    let tree = git(&["rev-parse", "HEAD^{tree}"]);
+    let other_tree = "0".repeat(40);
+    for (candidate, full, expected) in [
+        (tree.as_str(), false, "none"),
+        (other_tree.as_str(), false, "reader"),
+        (tree.as_str(), true, "full"),
+    ] {
+        let native = invoke("plan", None, full, Some(candidate));
+        assert!(
+            native.status.success(),
+            "{}",
+            String::from_utf8_lossy(&native.stderr)
+        );
+        let selected: serde_json::Value = serde_json::from_slice(&native.stdout).unwrap();
+        assert_eq!(selected["software_mode"], expected);
+        assert_eq!(
+            selected["validated_tree"].as_str(),
+            (expected == "none").then_some(tree.as_str())
+        );
+        if expected == "none" {
+            assert_eq!(selected["worker"], false);
+            assert_eq!(selected["rust"], false);
+        }
+    }
+    assert!(
+        !invoke("plan", None, false, Some("invalid"))
+            .status
+            .success()
+    );
+    // A prior tree result cannot suppress changed-document validation.
     fs::write(root.join("README.md"), "<<<<<<< branch\n[new](absent.md)\n").unwrap();
-    let native = invoke("plan", None, false);
+    let native = invoke("plan", None, false, Some(&tree));
     assert_eq!(native.status.code(), Some(1));
     let diagnostic = String::from_utf8(native.stderr).unwrap();
     assert!(diagnostic.contains("README.md: unresolved merge marker"));
     assert!(diagnostic.contains("README.md: missing repository link target absent.md"));
     let good = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":"reader","worker":"true","rust":"false","route_docs":"none","agent_surface":"false","documentation_family":"false"}}, "software":{"result":"success"},"worker":{"result":"success"},"rust":{"result":"skipped"},"postgres":{"result":"skipped"}});
-    let native = invoke("gate", Some(&good.to_string()), false);
+    let native = invoke("gate", Some(&good.to_string()), false, None);
     assert_eq!(native.status.code(), Some(0));
     assert!(
         String::from_utf8(native.stdout)
@@ -141,7 +173,9 @@ fn software_ci_actual_history_and_required_gate_are_native() {
                 bad.as_object_mut().unwrap().remove(job);
             }
             assert_eq!(
-                invoke("gate", Some(&bad.to_string()), false).status.code(),
+                invoke("gate", Some(&bad.to_string()), false, None)
+                    .status
+                    .code(),
                 Some(1)
             );
         }
@@ -164,7 +198,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     .unwrap();
     git(&["add", "README.md", "AGENTS.md"]);
     git(&["commit", "-m", "documentation only"]);
-    let native = invoke("plan", None, false);
+    let native = invoke("plan", None, false, None);
     assert!(
         native.status.success(),
         "{}",
@@ -176,12 +210,12 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     assert_eq!(selection["worker"], false);
     assert_eq!(selection["route_docs"], "source");
     fs::write(root.join("README.md"), "[broken](absent.md)\n").unwrap();
-    assert_eq!(invoke("plan", None, false).status.code(), Some(1));
+    assert_eq!(invoke("plan", None, false, None).status.code(), Some(1));
     fs::write(root.join("README.md"), "Human guide updated.\n").unwrap();
     fs::remove_file(root.join(integration)).unwrap();
     git(&["add", "-A", "--", integration]);
     git(&["commit", "-m", "delete required Questbook input"]);
-    let native = invoke("plan", None, false);
+    let native = invoke("plan", None, false, None);
     assert!(native.status.success());
     let selection: serde_json::Value = serde_json::from_slice(&native.stdout).unwrap();
     assert_eq!(selection["software_mode"], "none");
@@ -455,8 +489,28 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         assert!(jobs[job]["if"].as_str().unwrap().contains(expected));
     }
     let plan = steps(jobs, "plan");
+    one_step(
+        plan,
+        "node --test .github/scripts/verified-pr-tree.test.mjs",
+    );
+    let proof = plan
+        .iter()
+        .find(|s| s["id"].as_str() == Some("main_ci"))
+        .unwrap();
+    assert!(
+        proof["if"]
+            .as_str()
+            .unwrap()
+            .contains("github.event_name == 'push'")
+    );
+    assert!(proof["if"].as_str().unwrap().contains("refs/heads/main"));
     let build = one_step(plan, "executor-manifest");
     let selection = one_step(plan, "\"$TOS_SOFTWARE_CI_EXECUTOR\" plan");
+    assert!(run(selection).contains("--validated-tree"));
+    assert_eq!(
+        selection["env"]["VALIDATED_TREE"].as_str(),
+        Some("${{ steps.main_ci.outputs.validated_tree }}")
+    );
     assert!(
         plan.iter().position(|s| std::ptr::eq(s, build))
             < plan.iter().position(|s| std::ptr::eq(s, selection))
