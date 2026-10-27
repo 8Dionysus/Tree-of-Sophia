@@ -1,0 +1,32 @@
+.pr-agent-bridge { margin-top: 52px; border-top: 1px solid #c6ad7140; padding-top: 28px; color: #e8e1d2; font-family: system-ui, sans-serif; }
+.pr-agent-bridge h2 { margin: 0 0 10px; color: #d9c895; font: 600 13px/1.4 system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.pr-agent-bridge h3 { margin: 25px 0 10px; color: #d9c895; font: 600 11px/1.4 system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.pr-agent-intro { max-width: 680px; color: #b5b8b3; font: 14px/1.7 system-ui, sans-serif; }
+.pr-agent-sources, .pr-agent-review { display: grid; gap: 10px; }
+.pr-agent-source, .pr-agent-proposal { border: 1px solid #405155; border-radius: 8px; padding: 14px; background: #121d22a8; }
+.pr-agent-source strong { color: #eee5d1; font-size: 13px; }
+.pr-agent-source p, .pr-agent-proposal p { margin: 8px 0; color: #c1c7c1; font: 13px/1.65 system-ui, sans-serif; white-space: pre-wrap; }
+.pr-agent-source .pr-agent-selection { color: #e5d59e; }
+.pr-agent-source .pr-agent-context { max-height: 8.4em; overflow: auto; color: #aeb8b4; }
+.pr-agent-truncated { color: #899493; font-size: 10px; }
+.pr-agent-source code { color: #99aaa7; font-size: 11px; overflow-wrap: anywhere; }
+.pr-agent-empty, .pr-agent-status { color: #899493; font: 12px/1.55 system-ui, sans-serif; }
+.pr-agent-buttons { display: flex; flex-wrap: wrap; gap: 9px; margin: 13px 0; }
+.pr-agent-button, .pr-agent-small { border: 1px solid #647276; border-radius: 999px; padding: 10px 15px; color: #e8e1d2; background: #111a20; cursor: pointer; font: 600 12px/1.2 system-ui, sans-serif; }
+.pr-agent-primary { border-color: #d5bd80; color: #161d20; background: #d5bd80; }
+.pr-agent-button:disabled { opacity: .5; cursor: not-allowed; }
+.pr-agent-small { margin: 8px 8px 0 0; padding: 7px 11px; font-size: 11px; }
+.pr-agent-json { display: block; width: 100%; min-height: 130px; resize: vertical; border: 1px solid #4c5e60; border-radius: 8px; padding: 12px; color: #dce3db; background: #0c1419; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.pr-agent-label { display: grid; gap: 9px; color: #e4dbc7; font: 13px/1.5 system-ui, sans-serif; }
+.pr-agent-file { display: block; margin: 10px 0 14px; color: #aeb8b4; font: 12px/1.5 system-ui, sans-serif; }
+.pr-agent-select { display: flex; align-items: start; gap: 10px; color: #d9c895; font-size: 12px; }
+.pr-agent-select input { margin: 2px 0 0; accent-color: #d5bd80; }
+.pr-agent-proposal h4 { margin: 12px 0 6px; color: #bfc9c0; font: 600 10px/1.4 system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.pr-agent-citations { display: grid; gap: 5px; }
+.pr-agent-citation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pr-agent-citation small { color: #8b9b96; font-size: 10px; }
+.pr-agent-cite { border: 0; padding: 0; color: #e5d59e; background: transparent; text-align: left; cursor: pointer; font: 12px/1.5 system-ui, sans-serif; text-decoration: underline; text-underline-offset: 3px; }
+.pr-agent-stale { color: #f1aa91; font: 12px/1.5 system-ui, sans-serif; }
+.pr-agent-uncertainty, .pr-agent-objection { border-left: 2px solid #c5aa6d; padding-left: 10px; color: #b5b8b3; }
+.pr-agent-bridge button:focus-visible, .pr-agent-json:focus-visible, .pr-agent-file:focus-visible { outline: 2px solid #e4cb8b; outline-offset: 3px; }
+@media (max-width: 600px) { .pr-agent-bridge { margin-top: 38px; } .pr-agent-source, .pr-agent-proposal { padding: 12px; } }

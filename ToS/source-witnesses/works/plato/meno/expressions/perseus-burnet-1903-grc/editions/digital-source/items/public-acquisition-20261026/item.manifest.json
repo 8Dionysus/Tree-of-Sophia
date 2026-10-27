@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.plato.meno.public-acquisition-20261026.perseus-burnet-1903-grc",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.plato.meno.perseus-burnet-1903-grc",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.789e95e17b74af5d740a77edab9a888f94a606e191d2b9d7d7e8e5cb2bf5f585",
+      "relative_path": "payload/source.tei.xml",
+      "original_basename": "source.tei.xml",
+      "media_type": "application/xml",
+      "byte_size": 162700,
+      "sha256": "789e95e17b74af5d740a77edab9a888f94a606e191d2b9d7d7e8e5cb2bf5f585",
+      "fixity_verified_at": "2026-10-26T21:11:41.343064+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.318789bd9af1fdf6d162d06f302c894b1dcc6bad05d2d9a224cd530f564c2e95",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 115802,
+      "sha256": "318789bd9af1fdf6d162d06f302c894b1dcc6bad05d2d9a224cd530f564c2e95",
+      "fixity_verified_at": "2026-10-26T21:11:41.343064+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.public-acquisition.perseus-burnet-1903-grc.20261026",
+  "rights_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/source-metadata-snapshot.json"
+  ]
+}

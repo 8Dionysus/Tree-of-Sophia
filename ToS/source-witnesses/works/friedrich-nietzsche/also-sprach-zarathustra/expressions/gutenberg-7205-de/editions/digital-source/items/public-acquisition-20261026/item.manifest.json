@@ -1,0 +1,28 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.public-acquisition-20261026.gutenberg-7205-de",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.gutenberg-7205-de",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.4f71adfeeb39e64055acc2fc3f58964cf39f03d27bf2264d25313bc45d8658ec",
+      "relative_path": "payload/source.txt",
+      "original_basename": "source.txt",
+      "media_type": "text/plain",
+      "byte_size": 565299,
+      "sha256": "4f71adfeeb39e64055acc2fc3f58964cf39f03d27bf2264d25313bc45d8658ec",
+      "fixity_verified_at": "2026-10-26T21:11:41.343064+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.public-acquisition.gutenberg-7205-de.20261026",
+  "rights_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/gutenberg-7205-de/editions/digital-source/items/public-acquisition-20261026/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/gutenberg-7205-de/editions/digital-source/items/public-acquisition-20261026/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/gutenberg-7205-de/editions/digital-source/items/public-acquisition-20261026/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/gutenberg-7205-de/editions/digital-source/items/public-acquisition-20261026/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/gutenberg-7205-de/editions/digital-source/items/public-acquisition-20261026/source-metadata-snapshot.json"
+  ]
+}

@@ -10,7 +10,7 @@ import './host.css';
 // this entry nor an unavailable provider fetches demo texts as a fallback.
 export function mountCorpusEntry({root,provider=createUnavailableProvider(),notebook,client,
   toolbar=root.querySelector('.main-tools, .sc-header-actions'),locale=()=> 'ru',
-  graphNavigate,onError,onReadingChange,route=true,dbName='tos-corpus-reader-v1'}={}) {
+  graphNavigate,onError,onReadingChange,onReadingLocation,route=true,dbName='tos-corpus-reader-v1'}={}) {
   if(!root || !toolbar)throw new TypeError('Reader host and toolbar are required.');
   provider=bindCorpusProvider(provider);
   const ownsNotebook=!notebook;
@@ -38,7 +38,8 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
   const reader=mountCorpusReader({host:document.body,provider,notebook,locale,
     onNativeReference:(reference,note)=>native?.open({reference,note}),
     onClose(){contents?.close();root.inert=false;delete root.dataset.corpusReading;onReadingChange?.(false);(opener.offsetParent===null&&narrow?narrow:opener).focus({preventScroll:true});},
-    onLocation(address){if(route){try{const url=new URL(location.href);url.hash=encodeReadingRoute(address);history.replaceState(history.state,'',url);}catch(error){report(error);}}},
+    onLocation(address){if(route){try{const url=new URL(location.href);url.hash=encodeReadingRoute(address);history.replaceState(history.state,'',url);}catch(error){report(error);}}
+      try{onReadingLocation?.(address);}catch(error){report(error);}},
     async onGraphRequest(value){
       const target=value?.context?.graphTarget;
       if(!graphNavigate || !target || !['node','relation'].includes(target.kind) || typeof target.id!=='string' || !target.id || target.id.length>2048) {

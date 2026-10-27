@@ -34,6 +34,7 @@ import {codePointCompare, installNativePythonRuntime, NativeBudgetExceeded} from
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
 import {nativeSha256} from './native-d1-read.ts';
 import { withWebAnalytics } from "./web-analytics";
+import { publicPrototypeAsset, withReaderSecurity } from "./public-prototypes.ts";
 import {SelectedTemporalError} from './selected-temporal-runtime.ts';
 import {sourceTextGatewayCapability, sourceTextSearchGatewayResponse} from './source-text-gateway.ts';
 import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
@@ -610,6 +611,12 @@ export default {
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
       return jsonResponse({ error: "standalone access is read-only" }, 405, request.method);
+    }
+    const prototypeAsset = publicPrototypeAsset(url.pathname);
+    if (prototypeAsset) {
+      const assetUrl = new URL(prototypeAsset, request.url);
+      const response = withReaderSecurity(await env.ASSETS.fetch(new Request(assetUrl, request)));
+      return withWebAnalytics(request, response, env.WEB_ANALYTICS_TOKEN);
     }
     if (url.pathname === "/health" || url.pathname.startsWith("/api/")) {
       try {

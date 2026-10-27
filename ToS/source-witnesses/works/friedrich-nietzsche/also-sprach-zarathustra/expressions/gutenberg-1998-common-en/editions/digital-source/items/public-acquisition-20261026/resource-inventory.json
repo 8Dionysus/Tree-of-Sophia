@@ -1,0 +1,49 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json",
+  "schema_version": "tos_source_resource_inventory_v1",
+  "item_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.public-acquisition-20261026.gutenberg-1998-common-en",
+  "generated_from_manifest_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/gutenberg-1998-common-en/editions/digital-source/items/public-acquisition-20261026/item.manifest.json",
+  "inventory_authority": "mechanical_metadata_only",
+  "source_text_included": false,
+  "files": [
+    {
+      "file_id": "tos.file.sha256.0854ebabe235d46c8e5e099418c5189b1df0848898c552009b70d924b9065d05",
+      "file_sha256": "0854ebabe235d46c8e5e099418c5189b1df0848898c552009b70d924b9065d05",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1,
+        "line_count": 16003,
+        "word_count": 113972
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-0001",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "media_type": "text/plain",
+          "byte_size": 682920,
+          "sha256": "0854ebabe235d46c8e5e099418c5189b1df0848898c552009b70d924b9065d05",
+          "structural_role": "member",
+          "line_count": 16003,
+          "word_count": 113972,
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "0854ebabe235d46c8e5e099418c5189b1df0848898c552009b70d924b9065d05",
+            "character_count": 672788
+          }
+        }
+      ]
+    }
+  ],
+  "generator": {
+    "name": "build_source_resource_inventories.py",
+    "version": "1"
+  },
+  "provenance_event_ref": "tos.event.resource-inventory.friedrich-nietzsche.also-sprach-zarathustra.public-acquisition-20261026.gutenberg-1998-common-en.2026-10-26",
+  "inventory_version": 1,
+  "authority_boundary": "Bounded one-off schema-conformant metadata measurement of every manifested public payload; no source text is reproduced by the inventory. Inventory prepared by one-off measurement; native admission not claimed."
+}

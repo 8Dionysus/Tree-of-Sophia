@@ -63,6 +63,8 @@ pub mod prepared_source_binding;
 #[cfg(feature = "source-tools")]
 pub mod private_tmpfs_stage;
 #[cfg(feature = "source-tools")]
+pub mod public_corpus_snapshot;
+#[cfg(feature = "source-tools")]
 pub mod pwe_native;
 #[cfg(feature = "source-tools")]
 pub use d1_public_build::{

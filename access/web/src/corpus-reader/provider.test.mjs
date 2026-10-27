@@ -144,6 +144,27 @@ test('document search paginates independently from text windows and exposes unsu
     .rejects.toBeInstanceOf(CorpusProviderUnsupportedScopeError);
 });
 
+test('optional word analysis keeps the exact selected reference and bounded versioned response', async () => {
+  const {provider: base, document, version} = await fixture({unitCount: 4});
+  const page = await base.window({documentId:document.id,versionId:version.id,limit:1});
+  const reference = createReference({source:version.source,versionId:version.id,unitId:page.units[0].id,start:2,end:8});
+  const controller = new AbortController();
+  let received;
+  const result = {
+    status:'available',reference,analysisVersion:'lexicon-v2',source:{id:'lexicon',version:'2'},
+    candidates:[{lemma:'λόγος',morphology:'noun',alternatives:['λόγιον']}],
+  };
+  const bound = createCorpusProvider({provider:{...base,analyze:async args=>{received=args;return result;}}});
+  expect(bound.capabilities.analyze).toBe(true);
+  expect(await bound.analyze({reference,form:'λόγος',language:'el',signal:controller.signal})).toMatchObject(result);
+  expect(received).toMatchObject({reference,form:'λόγος',language:'el'});
+  expect(received.signal).toBe(controller.signal);
+
+  const other = createReference({source:version.source,versionId:version.id,unitId:page.units[0].id,start:3,end:8});
+  const mismatched = createCorpusProvider({provider:{...base,analyze:async()=>({...result,reference:other})}});
+  await expect(mismatched.analyze({reference,form:'λόγος',language:'el'})).rejects.toMatchObject({code:'invalid_response'});
+});
+
 test('resolve distinguishes exact, changed and unavailable source identities', async () => {
   const {provider, document, version} = await fixture();
   const page = await provider.window({documentId: document.id, versionId: version.id, limit: 1});

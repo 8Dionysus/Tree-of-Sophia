@@ -6,6 +6,13 @@ use tos_access::{
 };
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().is_some_and(|arg| arg == "public-corpus-build") {
+        std::process::exit(tos_access::public_corpus_build_command::run(
+            &args,
+            &mut std::io::stdout(),
+            &mut std::io::stderr(),
+        ));
+    }
     #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::source_projection_coverage::run_if_requested(
         &args,
@@ -341,7 +348,7 @@ fn main() {
         )
     }) {
         eprintln!(
-            "usage: tos-access [--release-root ABSOLUTE_DIRECTORY] mcp | serve [LOOPBACK:PORT] | source descend NODE_ID | knowledge search QUERY [--mode legacy|indexed|compressed]"
+            "usage: tos-access [--release-root ABSOLUTE_DIRECTORY] mcp | serve [LOOPBACK:PORT] | source descend NODE_ID | knowledge search QUERY [--mode legacy|indexed|compressed] | public-corpus-build --source-root ABS --selection REL --output FRESH_ABS --max-input-bytes N --max-output-bytes N --max-seconds N"
         );
         std::process::exit(2);
     }

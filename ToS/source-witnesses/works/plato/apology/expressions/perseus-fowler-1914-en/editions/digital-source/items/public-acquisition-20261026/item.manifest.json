@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.plato.apology.public-acquisition-20261026.perseus-fowler-1914-en",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.plato.apology.perseus-fowler-1914-en",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.09ae91e79022297d5bc98d032d3e2834f908aab25652f3489425743eacee840a",
+      "relative_path": "payload/source.tei.xml",
+      "original_basename": "source.tei.xml",
+      "media_type": "application/xml",
+      "byte_size": 80175,
+      "sha256": "09ae91e79022297d5bc98d032d3e2834f908aab25652f3489425743eacee840a",
+      "fixity_verified_at": "2026-10-26T21:11:41.343064+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e9aad012204bd47d908d9fc119e0d81ad924388d362554835d18076b85f15c24",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 61486,
+      "sha256": "e9aad012204bd47d908d9fc119e0d81ad924388d362554835d18076b85f15c24",
+      "fixity_verified_at": "2026-10-26T21:11:41.343064+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.public-acquisition.perseus-fowler-1914-en.20261026",
+  "rights_ref": "ToS/source-witnesses/works/plato/apology/expressions/perseus-fowler-1914-en/editions/digital-source/items/public-acquisition-20261026/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/apology/expressions/perseus-fowler-1914-en/editions/digital-source/items/public-acquisition-20261026/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/apology/expressions/perseus-fowler-1914-en/editions/digital-source/items/public-acquisition-20261026/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/apology/expressions/perseus-fowler-1914-en/editions/digital-source/items/public-acquisition-20261026/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/apology/expressions/perseus-fowler-1914-en/editions/digital-source/items/public-acquisition-20261026/source-metadata-snapshot.json"
+  ]
+}

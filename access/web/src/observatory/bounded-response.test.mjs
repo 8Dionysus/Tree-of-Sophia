@@ -204,3 +204,11 @@ test('RequestSlots suppression still rejects stale transport ownership without a
   const {response,state}=streamed([encode('{}')]);pending.resolve(response);await vi.advanceTimersByTimeAsync(0);
   assert.equal(state.bodyCancels,1);assert.equal(state.reads,0);assert.equal(vi.getTimerCount(),0);
 });
+
+test('digest consumers receive original wire bytes including whitespace',async()=>{
+  const bytes=encode(' {"word":"雪🌌"} \n');
+  const transport=streamed([bytes.subarray(0,5),bytes.subarray(5)]);
+  const result=await readBoundedJSON(transport.response,bytes.length,new AbortController().signal,{includeBytes:true});
+  assert.deepEqual(result.packet,{word:'雪🌌'});
+  assert.deepEqual(result.bytes,bytes);
+});

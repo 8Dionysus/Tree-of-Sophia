@@ -1,0 +1,38 @@
+{
+  "schema_version": "tos_public_meno70_selected_side_tokenization_v1",
+  "posture": "frozen_mechanical_token_spans_not_lexical_or_translation_truth",
+  "byte_digest_posture": "sha256_binds_exact_complete_utf8_file_bytes_including_final_newline; no normalized serialization is substituted",
+  "boundary_method": "Exact Unicode-code-point spans manually cross-checked against the frozen reading-layer bytes; token boundaries follow the displayed whitespace and punctuation around the requested occurrences.",
+  "side": {
+    "versionId": "perseus-lamb-1924-en",
+    "textLayerSha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+    "language": "en",
+    "tokens": [
+      {
+        "form": "virtue",
+        "start": 40,
+        "end": 46,
+        "exactSha256": "3371305232c8dc10ce95c65849946e238a2e518ce770310333d4637ffcba1a51"
+      },
+      {
+        "form": "can",
+        "start": 47,
+        "end": 50,
+        "exactSha256": "9f584196e7fe6de85d3898bc0b11c78b1d0a1d49530ee5eaf7c26c3939cf043d"
+      },
+      {
+        "form": "be",
+        "start": 51,
+        "end": 53,
+        "exactSha256": "46599c5bb5c33101f80cea8438e2228085513dbbb19b2f5ce97bd68494d3344d"
+      },
+      {
+        "form": "taught",
+        "start": 54,
+        "end": 60,
+        "exactSha256": "e29ef4cb40cf73a5b1eb3144c9d653d2c97ec416ffb581bc5b397adee8f3c944"
+      }
+    ]
+  },
+  "scope": "Only the exact Meno 70 opening question and four lexical token spans used by the two selected correspondences."
+}

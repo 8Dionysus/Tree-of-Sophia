@@ -1,0 +1,1473 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-e13d4cd40f4248f3a6f36f91cdf2fe36",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.plato.meno",
+    "expression_ref": "tos.expression.plato.meno.perseus-lamb-1924-en",
+    "edition_ref": "tos.edition.plato.meno.perseus-lamb-1924-en",
+    "item_ref": "tos.item.plato.meno.public-acquisition-20261026.perseus-lamb-1924-en",
+    "file_ref": "tos.file.sha256.551882c9f7c19223a329d168d063bccb1de9f48c969afe3b56a37daba6353eb0",
+    "file_sha256": "551882c9f7c19223a329d168d063bccb1de9f48c969afe3b56a37daba6353eb0"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+    "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-9b25b39b590d4364baa8a587faabf1f5",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Electronic paragraph or leaf source division",
+      "analysis_role": "source_structure",
+      "boundary_basis": "source_markup",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.public-prototypes.20261026",
+        "method_name": "public-electronic-source-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 urllib/xml.etree.ElementTree/re"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.public-segmentation.plato.meno.public-acquisition-20261026.perseus-lamb-1924-en.20261026",
+        "made_at": "2026-10-26T21:11:41.343064+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-480e0193f4c048f4837f26a0b65f0aac",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 74155,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-99ae25fddbe74e9e88abaaeaed3b16a4",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 914,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1df384f2cb44b51b09b58deb7823f3c74d0b4b9a763d13510b59597fa4c2131f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6c38429f27a94f42be08df5b9edc4c44",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 914,
+        "end": 3542,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "dcb373225798db6add244715dd53c47b645d07296f9c3457b7473d15b60eb266",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2e064bb61c7b4550824755d846afdc61",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 3542,
+        "end": 5906,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d300cbd415f5d1990bbcea70a3d74fb7002c972b4549ec79b513d35737396bf8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-788397b808714719ab32ae5e10cdab60",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 5906,
+        "end": 8139,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "16f42ca30b94b1b2b61b34049942b1cc64e1591b9ed89074189a4631bcf7fdce",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b26c94a784f64a409215347550f1b541",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 8139,
+        "end": 10473,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3fee5fb9715a02b1488cddee2ba7fd8ff12e034d229e54296b7139a1c3453917",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bd37b277b3ae402cb8b6b64a1c03f157",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 10473,
+        "end": 13094,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c088348dbd1037376d60b66d0b5ce07fa22a601f2adcfe1f45f0edf628b47fbb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-17de7d1239494e7d937869c632f7ba30",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 13094,
+        "end": 15915,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "90f4de9a02c6b80988db7f46904ec065b7117cac6024538cbfa0dd814fecfb4a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-96b7346655c64ad886948386690c4ea8",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 15915,
+        "end": 18109,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4f8f7b589c044ada8ea8c5aabe0dd2119e4a4f5c39792604eb035b961fb82bc8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ed2ae3d1d710492c809843e10d914c22",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 18109,
+        "end": 20458,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b64f2ed29ea6c4d7054366f73a3aca652dd6b9257789dec7359b1b1ad4022037",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a016ec5ec87744a5bf1196e7bcbf15d9",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 20458,
+        "end": 23058,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "304feafb7b08d5235b73c7fac66d66e4524a92a9b36e2e0695038e4d88dceb1f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-61611aa6cf644a639a54667916b46a3c",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 23058,
+        "end": 25744,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "962ef6df2b597f31be699008808a53b43f35ddf739c63590e79bee67cb4f2f29",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-41ced274b1fa47f89dde1b83e4f52206",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 25744,
+        "end": 28048,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "622bf68da810d2e8559782f56b9a0c9d715fef23da5350f0fd6b28dc6067bc93",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-146bef354cb74f889340f77562f9d730",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 28048,
+        "end": 30457,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "86632b52dd0d70878cce9922b4af8a348283b2a97e5016a731916a8240bfebb0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-95af8717445b47e2b6cc55f976038e71",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 30457,
+        "end": 33073,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "33ed674339bff1a09f0e795e6144a45edec5b957766857356ea6c3bc2fff952a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c0b6d84f49d84f67a61002e1874d6243",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 33073,
+        "end": 35517,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "82c15ec751f11c337b82925537667f0b5e34abde9f61763003ef46ab9a59075e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5a1873839c5849be8fe0df0f217fc259",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 35517,
+        "end": 38061,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d15a9b81dabcdc1d9a0143c3153c755ea5875c7f1a10f6d3238f54916bc6711a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cefba3595d7f457ea96591ad5259c3d7",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 38061,
+        "end": 40721,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "53df9c78be15191f2cd89aa51b892ac2b62d314256c01748460e74009473ebba",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-da873fbec3324594a74fcd23bb9b7ee7",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 40721,
+        "end": 43662,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7461ed66a3d366eaa3c51704584aa15620d8c8c8f172c636e505d21f6b34aebd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-08bdf30bd6e941d58a4d8585fd0402e5",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 43662,
+        "end": 45784,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d47c147c228cf70e726747e2ed9a99382cead80db8843d99a9b7667849d58797",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c876fd0af9ca43f4bae254aca51e36ba",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 45784,
+        "end": 47912,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "24c20c5657b834864a63c9a206d1dd400caec656c12cb6ed264cb210e08c70fa",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a2e794ca85a340d1a69c12f556ed166f",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 47912,
+        "end": 50749,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0146bdc55b5617c32d7f6e3688378b92d59b7ece0b2adb442220cb9996426d18",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-919dd9c3a89941b284a791afd5a94d29",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 50749,
+        "end": 53125,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "abdd460d8d3b67cec1a85fad0f2ea794a0658ef0ad1d6ddff594ae034bed1ed7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3c73a081388f417daa5520073d378182",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 53125,
+        "end": 55381,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2a2c2726909cc69bc12015bc3cf46201fa27405e1c50d86dc66c140a3037ef98",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e763f0e1784a4484b2d07f53758499e5",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 55381,
+        "end": 57994,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1cd2127a8c85a85b19cf7d1fb51ab319483b1ba44501d47d7536433ca56b3dd9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9fe3c95272b14d42938192b5af542314",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 57994,
+        "end": 60383,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "38e6fae3ff05b2aa7a28a5e7cb3fe1c336691344ad89d9dcb542cc3f5f4aec56",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-acd3a82b98b749ed97e254b0c48a70a6",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 60383,
+        "end": 63073,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d3531a6b9f7b50f76dd647001e7496b50cbbea1f1e9b97508f51cd3d0db9af72",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9fc337eec52c49c496569b2de9ebec4a",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 63073,
+        "end": 65409,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1d58f31035e9a8503e95032d8c1823cc0c10003a93392616e6166de34c44669f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5f484bb17f4344b59a2c1f039b278257",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 65409,
+        "end": 67868,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "33fed112c18772e6060f6d26cf668dafc9861924952e79222c476dd0431f6905",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-134a626c33e342d782670b7e7b991a43",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 67868,
+        "end": 70766,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "db913493dd03346e2b58c8b9e4e638a3b14d43852ac78775f382340cbb74ec95",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ebf2c2df3be4458aa8f874f70a226366",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 70766,
+        "end": 72861,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b9a7a1848a3ef171f5cb14f6ef4c7ad6d6a4ed2c071cd4dcc43d458ef610efa7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-351f136d7a0d433e8e2d35bf0c2bd926",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+      "selector": {
+        "type": "text_position",
+        "start": 72861,
+        "end": 74155,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a5366a8034a742e843a53426b609a1941db352c04a22ec89206777d46ef73a9d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-189f5af96a1249ec9d958c9bfa1fbf09",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-99ae25fddbe74e9e88abaaeaed3b16a4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-243306a0f0b741b9804bae31371f0367",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6c38429f27a94f42be08df5b9edc4c44"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-22e9efbffae943efb803da4d6fb0cd28",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2e064bb61c7b4550824755d846afdc61"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2693cc02a4c04d7e90d3d787a66c0b26",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-788397b808714719ab32ae5e10cdab60"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8aabce60713e451a80761799427a8fa2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b26c94a784f64a409215347550f1b541"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-df672c9e4d3d4a22a706b96004940564",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bd37b277b3ae402cb8b6b64a1c03f157"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b7855e860c7e46d9a5c9f4657b93ffb4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-17de7d1239494e7d937869c632f7ba30"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3f76c233ca6845e2978d9602e5b46071",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-96b7346655c64ad886948386690c4ea8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9305c3d243284101b8a90f602850d75e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ed2ae3d1d710492c809843e10d914c22"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-71ce97b68d074d60ad6fa313189ba1a0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a016ec5ec87744a5bf1196e7bcbf15d9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c0a54583e0f9467ead260fedfb58f9d1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-61611aa6cf644a639a54667916b46a3c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f627c5f384e14e58af0433f593575162",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-41ced274b1fa47f89dde1b83e4f52206"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-64fd809f129f49cdbffa399c1ecdc1c6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-146bef354cb74f889340f77562f9d730"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c73bf9c0787347da819dda789621916c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-95af8717445b47e2b6cc55f976038e71"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bd63779de35947bdaaa4904be8ccde03",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c0b6d84f49d84f67a61002e1874d6243"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-db4090182a2940c0aec2e2dfd639426e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5a1873839c5849be8fe0df0f217fc259"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c5753ce84e8b4a948afee1ac0ce3beb5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cefba3595d7f457ea96591ad5259c3d7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ff7e3f80c05d4d6ba30ffb1edbf08166",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-da873fbec3324594a74fcd23bb9b7ee7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1abaeaa6f5e9494db0365e794cb49b50",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-08bdf30bd6e941d58a4d8585fd0402e5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-44b8dbbd939744628094ae475f32199f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c876fd0af9ca43f4bae254aca51e36ba"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6a2c02c359524a7a9d7a524dc807e670",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a2e794ca85a340d1a69c12f556ed166f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5f3c81728daf4f6ebd3a683c96371b1b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-919dd9c3a89941b284a791afd5a94d29"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ccc7ebd144884691a74d793657f08cc6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3c73a081388f417daa5520073d378182"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0d2b3d2383254af8ab0e95d3634ab001",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e763f0e1784a4484b2d07f53758499e5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1bf28c02c36d47a383f6dc092b9ac8b3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9fe3c95272b14d42938192b5af542314"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fe1ffb013a0a480fadd48957136ee659",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-acd3a82b98b749ed97e254b0c48a70a6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-132cc254cdd544ecae499fa3a64c1de4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9fc337eec52c49c496569b2de9ebec4a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a2099369565c4e50a2643ae37506c34d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5f484bb17f4344b59a2c1f039b278257"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2d5355730d674c6b97902f43603e1898",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-134a626c33e342d782670b7e7b991a43"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-431d5d3ac9884f2ba033c8b28fba33f4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ebf2c2df3be4458aa8f874f70a226366"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a2a1e201b34441b199f3951c72f71300",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-351f136d7a0d433e8e2d35bf0c2bd926"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Observed electronic paragraph/leaf division; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-e85774d1dba04b6891654dacefd96fdc",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-9b25b39b590d4364baa8a587faabf1f5",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-189f5af96a1249ec9d958c9bfa1fbf09",
+        "tos.text-unit.sid-243306a0f0b741b9804bae31371f0367",
+        "tos.text-unit.sid-22e9efbffae943efb803da4d6fb0cd28",
+        "tos.text-unit.sid-2693cc02a4c04d7e90d3d787a66c0b26",
+        "tos.text-unit.sid-8aabce60713e451a80761799427a8fa2",
+        "tos.text-unit.sid-df672c9e4d3d4a22a706b96004940564",
+        "tos.text-unit.sid-b7855e860c7e46d9a5c9f4657b93ffb4",
+        "tos.text-unit.sid-3f76c233ca6845e2978d9602e5b46071",
+        "tos.text-unit.sid-9305c3d243284101b8a90f602850d75e",
+        "tos.text-unit.sid-71ce97b68d074d60ad6fa313189ba1a0",
+        "tos.text-unit.sid-c0a54583e0f9467ead260fedfb58f9d1",
+        "tos.text-unit.sid-f627c5f384e14e58af0433f593575162",
+        "tos.text-unit.sid-64fd809f129f49cdbffa399c1ecdc1c6",
+        "tos.text-unit.sid-c73bf9c0787347da819dda789621916c",
+        "tos.text-unit.sid-bd63779de35947bdaaa4904be8ccde03",
+        "tos.text-unit.sid-db4090182a2940c0aec2e2dfd639426e",
+        "tos.text-unit.sid-c5753ce84e8b4a948afee1ac0ce3beb5",
+        "tos.text-unit.sid-ff7e3f80c05d4d6ba30ffb1edbf08166",
+        "tos.text-unit.sid-1abaeaa6f5e9494db0365e794cb49b50",
+        "tos.text-unit.sid-44b8dbbd939744628094ae475f32199f",
+        "tos.text-unit.sid-6a2c02c359524a7a9d7a524dc807e670",
+        "tos.text-unit.sid-5f3c81728daf4f6ebd3a683c96371b1b",
+        "tos.text-unit.sid-ccc7ebd144884691a74d793657f08cc6",
+        "tos.text-unit.sid-0d2b3d2383254af8ab0e95d3634ab001",
+        "tos.text-unit.sid-1bf28c02c36d47a383f6dc092b9ac8b3",
+        "tos.text-unit.sid-fe1ffb013a0a480fadd48957136ee659",
+        "tos.text-unit.sid-132cc254cdd544ecae499fa3a64c1de4",
+        "tos.text-unit.sid-a2099369565c4e50a2643ae37506c34d",
+        "tos.text-unit.sid-2d5355730d674c6b97902f43603e1898",
+        "tos.text-unit.sid-431d5d3ac9884f2ba033c8b28fba33f4",
+        "tos.text-unit.sid-a2a1e201b34441b199f3951c72f71300"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-480e0193f4c048f4837f26a0b65f0aac",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.public-prototypes.20261026",
+        "method_name": "public-electronic-source-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 urllib/xml.etree.ElementTree/re"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.public-segmentation.plato.meno.public-acquisition-20261026.perseus-lamb-1924-en.20261026",
+        "made_at": "2026-10-26T21:11:41.343064+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}
