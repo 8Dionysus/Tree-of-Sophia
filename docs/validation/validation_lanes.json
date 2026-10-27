@@ -604,7 +604,7 @@
       },
       {
         "label": "compile exact Rust conformance test image",
-        "rust_group": "prepare",
+        "rust_group": "conformance",
         "command_timeout_ms": 900000,
         "command": [
           "cargo",
@@ -778,7 +778,7 @@
       },
       {
         "label": "test native software/data release actions fixture",
-        "rust_group": "workspace",
+        "rust_group": "cold-install",
         "command_timeout_ms": 900000,
         "command_ref": "native_release_actions"
       },

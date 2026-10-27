@@ -94,9 +94,12 @@ The executor caps each command by the remaining lane time.
 
 The full local route remains `--run rust_workspace` with no group selector. CI
 may fan it out with `--run rust_workspace --rust-group conformance|workspace|cold-install`.
-Every selection runs the common `prepare` prefix before its
-group, so the three jobs build their own products and do not share artifacts or
-authority. The manifest owns the ordered group labels, argv and command limits;
+Every selection runs the six-step common `prepare` prefix before its group:
+formatting, both WASM target checks, and exact schema-worker, owner CLI and
+Access builds. The three jobs build their own products and do not share
+artifacts or authority. Only the `conformance` group then prepares the Cargo
+JSON-selected test images needed by its consumers. The manifest owns the
+ordered group labels, argv and command limits;
 `--sequence rust_workspace --rust-group <group>` prints the selected commands
 for review. Add `--cargo-timings` to a run when Cargo timing reports are useful.
 Growth exclusions and assertion counts always derive from the complete lane,
@@ -108,9 +111,15 @@ with `--exclude tos-access`; the exact Access CLI is still built first and its
 dependencies remain available to conformance. Explicit `tos-query/test-fixture`
 retains the original workspace feature union contributed by Access's development
 dependencies, so the next conformance command can reuse the prepared image.
-The later workspace test run
-retains Access's default features plus research/load-readiness coverage, and
-the default release-actions fixture still runs separately.
+The workspace test run retains Access's default features plus
+research/load-readiness coverage and explicitly excludes `tos-conformance`.
+It receives only the exact Access path and digest fixed after its successful
+current-lane default build, rechecked before execution; it does not acquire a
+Conformance case digest from inherited environment values. Actual Conformance
+and Growth execution still require the current Cargo JSON-selected test images.
+The default release-actions fixture runs separately as the first `cold-install`
+step, with its unchanged exact invocation and no research/load feature union.
+The ungrouped full route preserves the same command order and budgets.
 
 `tos-validation-lanes --run rust_workspace --growth-jobs 2` runs at most two
 source-derived Growth classes concurrently, each in its own supervisor process.

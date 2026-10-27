@@ -1315,6 +1315,7 @@ mod native {
                 return Err(error("execution wall deadline during setup"));
             }
             let mut products = initial_products;
+            let mut prepared_access: Option<crate::conformance_products::PreparedAccess> = None;
             if let Style::Validation(timeouts, _, _) = style {
                 if timeouts.len() != plan.commands.len() {
                     return Err(error("validation timeout/command count differs"));
@@ -1385,11 +1386,15 @@ mod native {
                 }
                 let preparing = matches!(style, Style::Validation(..))
                     && crate::conformance_products::preparation(&command.argv);
+                let preparing_access = matches!(style, Style::Validation(..))
+                    && crate::conformance_products::access_preparation(&command.argv);
                 let growth_class = matches!(style, Style::Validation(..))
                     && command
                         .argv
                         .first()
                         .is_some_and(|arg| arg == crate::growth_native_plan::NATIVE_CLASS);
+                let prepared_access_execution = matches!(style, Style::Validation(..))
+                    && crate::conformance_products::prepared_access_execution(&command.argv);
                 let mut argv = if growth_class {
                     products
                         .as_ref()
@@ -1424,7 +1429,12 @@ mod native {
                         cancel,
                     )?;
                 }
-                let overrides = if matches!(style, Style::Validation(..))
+                let overrides = if prepared_access_execution {
+                    prepared_access
+                        .as_ref()
+                        .ok_or_else(|| error("workspace Access test requires successful current-lane consumer preparation"))?
+                        .environment(deadline, cancel, "")?
+                } else if matches!(style, Style::Validation(..))
                     && (crate::conformance_products::execution(&command.argv) || growth_class)
                 {
                     products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
@@ -1515,6 +1525,20 @@ mod native {
                 execution?;
                 if status.unwrap().success() && growth_class {
                     crate::growth_native_plan::verify_result(&command.argv, &cargo_stdout)?;
+                }
+                if status.unwrap().success() && preparing_access {
+                    // The exact Access build has its own bounded image-selection
+                    // phase, capped by the enclosing lane just like Conformance.
+                    let completion_deadline = crate::conformance_products::selection_deadline(
+                        Instant::now(),
+                        lane_deadline,
+                        command_wall,
+                    );
+                    prepared_access = Some(crate::conformance_products::PreparedAccess::select(
+                        completion_deadline,
+                        cancel,
+                    )?);
+                    post_build_deadline = Some(completion_deadline);
                 }
                 if status.unwrap().success() && preparing {
                     // Cargo compilation and its complete product-selection,
