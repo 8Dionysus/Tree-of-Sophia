@@ -240,6 +240,7 @@ pub fn gate(needs: &Value) -> io::Result<()> {
         ("software", mode != Some("none")),
         ("worker", worker == Some("true")),
         ("rust", rust == Some("true")),
+        ("postgres", rust == Some("true")),
     ] {
         let expected = if required { "success" } else { "skipped" };
         if needs
@@ -1010,7 +1011,8 @@ mod tests {
             let needs = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":mode,"worker":worker.to_string(),"rust":rust.to_string(),"route_docs":"none","agent_surface":"false","documentation_family":"false"}},
                 "software":{"result":if mode=="none" {"skipped"} else {"success"}},
                 "worker":{"result":if worker {"success"} else {"skipped"}},
-                "rust":{"result":if rust {"success"} else {"skipped"}}});
+                "rust":{"result":if rust {"success"} else {"skipped"}},
+                "postgres":{"result":if rust {"success"} else {"skipped"}}});
             gate(&needs).unwrap();
             for field in ["route_docs", "agent_surface", "documentation_family"] {
                 let mut bad = needs.clone();
@@ -1022,7 +1024,7 @@ mod tests {
                 bad["plan"]["outputs"][field] = "unclassified".into();
                 assert!(gate(&bad).is_err());
             }
-            for job in ["plan", "software", "worker", "rust"] {
+            for job in ["plan", "software", "worker", "rust", "postgres"] {
                 for failure in [Some("failure"), Some("cancelled"), None] {
                     let mut bad = needs.clone();
                     if let Some(failure) = failure {

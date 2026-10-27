@@ -124,7 +124,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     let diagnostic = String::from_utf8(native.stderr).unwrap();
     assert!(diagnostic.contains("README.md: unresolved merge marker"));
     assert!(diagnostic.contains("README.md: missing repository link target absent.md"));
-    let good = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":"reader","worker":"true","rust":"false","route_docs":"none","agent_surface":"false","documentation_family":"false"}}, "software":{"result":"success"},"worker":{"result":"success"},"rust":{"result":"skipped"}});
+    let good = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":"reader","worker":"true","rust":"false","route_docs":"none","agent_surface":"false","documentation_family":"false"}}, "software":{"result":"success"},"worker":{"result":"success"},"rust":{"result":"skipped"},"postgres":{"result":"skipped"}});
     let native = invoke("gate", Some(&good.to_string()), false);
     assert_eq!(native.status.code(), Some(0));
     assert!(
@@ -132,7 +132,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
             .unwrap()
             .contains("All selected checks succeeded")
     );
-    for job in ["plan", "software", "worker", "rust"] {
+    for job in ["plan", "software", "worker", "rust", "postgres"] {
         for result in [Some("failure"), Some("cancelled"), None] {
             let mut bad = good.clone();
             if let Some(result) = result {
@@ -437,7 +437,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
             .iter()
             .map(|v| v.as_str().unwrap())
             .collect::<BTreeSet<_>>(),
-        BTreeSet::from(["plan", "software", "worker", "rust"])
+        BTreeSet::from(["plan", "software", "worker", "rust", "postgres"])
     );
     assert!(
         jobs["required_gate"]["if"]
@@ -449,6 +449,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         ("software", "!= 'none'"),
         ("worker", "== 'true'"),
         ("rust", "== 'true'"),
+        ("postgres", "== 'true'"),
     ] {
         assert_eq!(jobs[job]["needs"].as_str(), Some("plan"));
         assert!(jobs[job]["if"].as_str().unwrap().contains(expected));
@@ -535,8 +536,11 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
             "production build lacks receipt output: {line}"
         );
     }
-    let rust = steps(jobs, "rust");
-    let postgres = one_step(rust, "--test postgres_durable_lab");
+    let postgres_steps = steps(jobs, "postgres");
+    let pg_configure = run(one_step(postgres_steps, "CARGO_HOME=%s/cargo-home"));
+    assert!(pg_configure.contains("CARGO_TARGET_DIR=%s/cargo-target"));
+    assert!(pg_configure.contains("\"$RUNNER_TEMP\" >> \"$GITHUB_ENV\""));
+    let postgres = one_step(postgres_steps, "--test postgres_durable_lab");
     assert!(postgres["env"]["TOS_CMD_POSTGRES_URL"].as_str().is_some());
     let current_restore = postgres["env"]["TOS_CMD2_V2_RESTORE_PG_URL"]
         .as_str()
@@ -557,7 +561,15 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
             .as_str()
             .is_some()
     );
-    assert!(!jobs["rust"]["services"]["postgres"].is_badvalue());
+    assert!(!jobs["postgres"]["services"]["postgres"].is_badvalue());
+    assert!(jobs["rust"]["services"].is_badvalue());
+    assert_eq!(sparse(jobs, "postgres"), sparse(jobs, "rust"));
+    assert!(
+        run(one_step(postgres_steps, "cargo build"))
+            .contains("-p tos-validation --bin tos-schema-worker")
+    );
+    one_step(postgres_steps, "mkfs.ext4 -q -F -O verity");
+    one_step(postgres_steps, "sudo umount");
     let gate = steps(jobs, "required_gate").last().unwrap();
     assert_eq!(run(gate), "\"$TOS_SOFTWARE_CI_EXECUTOR\" gate");
     assert_eq!(
@@ -574,7 +586,8 @@ fn sparse_checkout_excludes_whole_corpus_and_private_payloads() {
     let software = sparse(jobs, "software");
     let worker = sparse(jobs, "worker");
     assert!(rust.contains("!/ToS/source-witnesses/**/payload/"));
-    for checkout in [&rust, &software, &worker] {
+    let postgres = sparse(jobs, "postgres");
+    for checkout in [&rust, &software, &worker, &postgres] {
         for path in ["/ToS/source-witnesses/", "/ToS/", "/ToS/candidate-intake/"] {
             assert!(!checkout.contains(path));
         }

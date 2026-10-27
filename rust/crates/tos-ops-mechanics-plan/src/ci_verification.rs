@@ -414,7 +414,7 @@ fn verify_commands(root: &Path, prefix: &Path, work: &Path, r: &Run<'_>) -> io::
     {
         return Err(bad("installed CI selector omitted native package consumer"));
     }
-    let mut needs = json!({"plan":{"result":"success","outputs":{"software_mode":"browser","worker":"false","rust":"true","route_docs":"none","agent_surface":"false","documentation_family":"false"}},"software":{"result":"success"},"worker":{"result":"skipped"},"rust":{"result":"success"}});
+    let mut needs = json!({"plan":{"result":"success","outputs":{"software_mode":"browser","worker":"false","rust":"true","route_docs":"none","agent_surface":"false","documentation_family":"false"}},"software":{"result":"success"},"worker":{"result":"skipped"},"rust":{"result":"success"},"postgres":{"result":"success"}});
     r.run(
         work,
         vec![ci.clone(), "gate".into()],
