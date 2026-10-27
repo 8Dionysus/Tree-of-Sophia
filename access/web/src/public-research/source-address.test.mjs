@@ -99,9 +99,10 @@ describe('public research shelf source addresses', () => {
     try {
       await savePublicThought({thesis: 'A thesis', grounds: sources, objection: 'o'.repeat(4_000 - 'Objection to thesis: '.length),
         objectionSources: [sources[0]], revision: 'r'.repeat(4_000 - 'Revises earlier thesis: '.length),
-        api: {provider: {resolve: async ({reference}) => ({status: 'exact', reference})}, getQuestion: () => 'Boundary test'},
+        api: {provider: {resolve: async ({reference}) => ({status: 'exact', reference})}, getQuestion: () => 'x'.repeat(511) + '😀'},
         workspace, shelf, notebook, labels: () => ({pick: 'pick', open: 'open', thesis: 'Thesis', objection: 'Objection', revision: 'Revision'})});
       const statements = workspace.getState().proposals.map(item => item.statement);
+      expect(workspace.getState().hypotheses[0].title).toBe('x'.repeat(511));
       expect(statements.map(value => value.length)).toEqual([8, 4_000, 4_000]);
     } finally {
       workspace.dispose();

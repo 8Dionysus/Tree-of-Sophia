@@ -15,6 +15,7 @@ const OBJECTION_PREFIX = 'Objection to thesis: ';
 const REVISION_PREFIX = 'Revises earlier thesis: ';
 const MAX_OBJECTION_TEXT = MAX_NOTE_TEXT - OBJECTION_PREFIX.length;
 const MAX_REVISION_TEXT = MAX_NOTE_TEXT - REVISION_PREFIX.length;
+const thoughtTitle = value => value.slice(0, 512).replace(/[\uD800-\uDBFF]$/, '');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const only = (value, fields) => object(value) && Object.keys(value).length === fields.length && fields.every(field => Object.hasOwn(value, field));
 const makeId = prefix => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`;
@@ -143,7 +144,7 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
   const thesisId = makeId('thesis');
   const objectionId = objectionText ? makeId('objection') : null;
   const revisionId = revisionText ? makeId('revision') : null;
-  const title = `${api.getQuestion().trim() || t().thesis}: ${claim}`.slice(0, 512);
+  const title = thoughtTitle(`${api.getQuestion().trim() || t().thesis}: ${claim}`);
 
   const sourceLocators = new Map();
   for (const item of [...groundRefs, ...objectionRefs]) {
@@ -164,11 +165,11 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
   workspace.addHypothesis({id: thesisId, title, body: claim});
   stage({id: makeId('ground'), kind: 'interpretation', targetId: thesisId, statement: claim, refs: groundRefs, dataFingerprint: fingerprints.grounds});
   if (objectionId) {
-    workspace.addHypothesis({id: objectionId, title: `${t().objection}: ${objectionText}`.slice(0, 512), body: objectionText});
+    workspace.addHypothesis({id: objectionId, title: thoughtTitle(`${t().objection}: ${objectionText}`), body: objectionText});
     stage({id: makeId('objection-link'), kind: 'relation', fromId: thesisId, toId: objectionId, statement: objectionStatement, refs: objectionRefs, dataFingerprint: fingerprints.objection});
   }
   if (revisionId) {
-    workspace.addHypothesis({id: revisionId, title: `${t().revision}: ${revisionText}`.slice(0, 512), body: revisionText});
+    workspace.addHypothesis({id: revisionId, title: thoughtTitle(`${t().revision}: ${revisionText}`), body: revisionText});
     const refs = objectionRefs.length ? objectionRefs : groundRefs;
     stage({id: makeId('revision-link'), kind: 'relation', fromId: objectionId || thesisId, toId: revisionId, statement: revisionStatement, refs, dataFingerprint: fingerprints.revision});
   }
