@@ -691,6 +691,35 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     assert!(all.stderr.is_empty());
 
     fs::remove_file(root.join("trace")).unwrap();
+    let cargo = root.join("cargo");
+    fs::write(&cargo, "#!/bin/sh\nprintf '%s\\n' \"$@\" > timing-args\n").unwrap();
+    fs::set_permissions(&cargo, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::write(
+        &manifest,
+        serde_json::to_vec(&json!({"command_sequences":{"release_check":[
+            {"label":"run tests: timing","command":[cargo,"test","--locked","--","--exact"]}
+        ]}}))
+        .unwrap(),
+    )
+    .unwrap();
+    let timed = Command::new(&executable)
+        .arg("--repo-root")
+        .arg(&root)
+        .args(["--phase", "tests", "--cargo-timings"])
+        .output()
+        .unwrap();
+    assert!(
+        timed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&timed.stderr)
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("timing-args")).unwrap(),
+        "test\n--locked\n--timings\n--\n--exact\n"
+    );
+    let timed_out = String::from_utf8(timed.stdout).unwrap();
+    assert!(timed_out.contains("[cargo-timings] run tests: timing:"));
+    assert!(timed_out.contains("[ok] run tests: timing\n"));
     fs::write(
         &manifest,
         serde_json::to_vec(&json!({"command_sequences":{"release_check":[

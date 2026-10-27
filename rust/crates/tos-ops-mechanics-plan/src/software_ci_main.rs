@@ -13,7 +13,7 @@ extern "C" fn cancelled(signal: i32) {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] [--validated-tree HEX40] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install} --repo-root ABS [--installed-prefix ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
+    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] [--validated-tree HEX40] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits|software-stage-manifest|software-stage-bind} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install} --repo-root ABS [--installed-prefix ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
 }
 
 fn output_cancel_check() -> io::Result<()> {
@@ -78,6 +78,8 @@ fn run() -> Result<(), String> {
         "executor-bind",
         "software-receipts",
         "software-limits",
+        "software-stage-manifest",
+        "software-stage-bind",
     ]
     .contains(&mode.as_str())
     {

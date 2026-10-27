@@ -84,6 +84,7 @@ pub mod route_harness;
 #[cfg(feature = "mechanics")]
 pub mod semantic_registry_transition;
 pub mod software_ci;
+pub mod software_stage;
 #[cfg(feature = "mechanics")]
 pub mod source_home;
 #[cfg(feature = "mechanics")]

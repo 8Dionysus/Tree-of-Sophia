@@ -19,20 +19,26 @@ const EXECUTORS: [&str; 3] = [
 use tos_foundation::native_software_roles::{
     self, COMMANDS, NO_DEFAULT_FEATURES as SOFTWARE_NO_DEFAULT_FEATURES,
 };
-const TARGET: &str = "x86_64-unknown-linux-gnu";
-const TOOLCHAIN: &str = "1.98.1";
-const META: usize = 1024 * 1024;
-const IMAGE: u64 = 1024 * 1024 * 1024;
-const CARGO_BYTES: usize = 32 * 1024 * 1024;
+pub(crate) const TARGET: &str = "x86_64-unknown-linux-gnu";
+pub(crate) const TOOLCHAIN: &str = "1.98.1";
+pub(crate) const META: usize = 1024 * 1024;
+pub(crate) const IMAGE: u64 = 1024 * 1024 * 1024;
+pub(crate) const CARGO_BYTES: usize = 32 * 1024 * 1024;
 fn bad(s: &str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, s)
 }
-struct Budget<'a> {
+pub(crate) struct Budget<'a> {
     deadline: Instant,
     cancel: &'a AtomicI32,
 }
-impl Budget<'_> {
-    fn check(&self) -> io::Result<()> {
+impl<'a> Budget<'a> {
+    pub(crate) fn new(cancel: &'a AtomicI32, timeout: Duration) -> Self {
+        Self {
+            deadline: Instant::now() + timeout,
+            cancel,
+        }
+    }
+    pub(crate) fn check(&self) -> io::Result<()> {
         if self.cancel.load(Ordering::Relaxed) != 0 || Instant::now() >= self.deadline {
             return Err(bad("CI artifact operation cancelled or expired"));
         }
@@ -70,7 +76,7 @@ impl Budget<'_> {
         Ok(value.into())
     }
 }
-fn absolute(path: &Path) -> io::Result<()> {
+pub(crate) fn absolute(path: &Path) -> io::Result<()> {
     if !path.is_absolute()
         || path.as_os_str().len() > 4096
         || path.to_str().is_none_or(|s| s.contains(['\n', '\r', '\0']))
@@ -117,7 +123,7 @@ fn unchanged(file: &File, path: &Path, before: &fs::Metadata) -> io::Result<()> 
     }
     Ok(())
 }
-fn bytes(path: &Path, cap: usize, b: &Budget<'_>) -> io::Result<Vec<u8>> {
+pub(crate) fn bytes(path: &Path, cap: usize, b: &Budget<'_>) -> io::Result<Vec<u8>> {
     b.check()?;
     let mut file = open(path, cap as u64)?;
     let before = file.metadata()?;
@@ -132,7 +138,7 @@ fn bytes(path: &Path, cap: usize, b: &Budget<'_>) -> io::Result<Vec<u8>> {
     b.check()?;
     Ok(raw)
 }
-fn strict(raw: &[u8], cap: usize) -> io::Result<Value> {
+pub(crate) fn strict(raw: &[u8], cap: usize) -> io::Result<Value> {
     parse_json(
         raw,
         JsonMode::PublishedStrict,
@@ -146,12 +152,12 @@ fn strict(raw: &[u8], cap: usize) -> io::Result<Value> {
     .map_err(|_| bad("invalid strict CI JSON"))?;
     serde_json::from_slice(raw).map_err(|_| bad("invalid CI JSON"))
 }
-fn hash(path: &Path, b: &Budget<'_>) -> io::Result<Value> {
+pub(crate) fn hash_capped(path: &Path, cap: u64, b: &Budget<'_>) -> io::Result<Value> {
     b.check()?;
-    let mut file = open(path, IMAGE)?;
+    let mut file = open(path, cap)?;
     let before = file.metadata()?;
-    if before.len() < 64 {
-        return Err(bad("CI image is too small"));
+    if before.len() > cap {
+        return Err(bad("CI file byte cap exceeded"));
     }
     let mut digest = Digest256Hasher::new();
     let mut buffer = [0u8; 65536];
@@ -165,8 +171,8 @@ fn hash(path: &Path, b: &Budget<'_>) -> io::Result<Value> {
         count = count
             .checked_add(n as u64)
             .ok_or_else(|| bad("CI image bytes overflow"))?;
-        if count > IMAGE {
-            return Err(bad("CI image bound exceeded"));
+        if count > cap {
+            return Err(bad("CI file byte cap exceeded"));
         }
         digest.update(&buffer[..n]);
     }
@@ -177,13 +183,37 @@ fn hash(path: &Path, b: &Budget<'_>) -> io::Result<Value> {
     b.check()?;
     Ok(json!({"sha256":digest.finalize().to_hex(),"size_bytes":count}))
 }
-fn sha(path: &Path, b: &Budget<'_>) -> io::Result<String> {
+pub(crate) fn hash(path: &Path, b: &Budget<'_>) -> io::Result<Value> {
+    let value = hash_capped(path, IMAGE, b)?;
+    if value["size_bytes"].as_u64().is_none_or(|size| size < 64) {
+        return Err(bad("CI image is too small"));
+    }
+    Ok(value)
+}
+pub(crate) fn sha(path: &Path, b: &Budget<'_>) -> io::Result<String> {
     let raw = bytes(path, META, b)?;
     let mut d = Digest256Hasher::new();
     d.update(&raw);
     Ok(d.finalize().to_hex())
 }
-fn identity(root: &Path, b: &Budget<'_>) -> io::Result<Value> {
+/// Export the established Software command environment from its local image
+/// root. Producer receipts and staged consumers share this single owner route.
+pub(crate) fn append_software_environment(
+    github_env: &Path,
+    images: &Path,
+    b: &Budget<'_>,
+) -> io::Result<()> {
+    append(
+        github_env,
+        format!(
+            "TOS_NATIVE_PREPARED_CONSUMER_BIN={0}/tos-access\nTOS_NATIVE_OWNER_COMMAND_BIN={0}/tos-native-owner-command\nTOS_PREPARED_EXECUTOR={0}/tos-access\nTOS_NATIVE_SOURCE_PREPARE_EXECUTABLE={0}/tos-access\nTOS_PREPARED_MAX_SECONDS=20\nTOS_NATIVE_SOURCE_PREPARE_SECONDS=45\nTOS_NATIVE_SOURCE_PREPARE_LIMITS={{\"max_input_bytes\":1048576,\"max_capture_bytes\":8388608,\"max_stage_bytes\":8388608,\"max_temp_bytes\":8388608}}\nTOS_KAG_RELEASE_BIN={0}/tos-kag-release\n",
+            images.display()
+        )
+        .as_bytes(),
+        b,
+    )
+}
+pub(crate) fn identity(root: &Path, b: &Budget<'_>) -> io::Result<Value> {
     absolute(root)?;
     Ok(
         json!({"source_commit":b.git(root,"HEAD")?,"source_tree":b.git(root,"HEAD^{tree}")?,"lock_sha256":sha(&root.join("Cargo.lock"),b)?,"toolchain":TOOLCHAIN,"target":TARGET,"profile":"debug","features":[]}),
@@ -257,19 +287,19 @@ fn enabled_features(
     }
     Ok(active.into_iter().collect())
 }
-fn keys(value: &Value, names: &[&str]) -> io::Result<()> {
+pub(crate) fn keys(value: &Value, names: &[&str]) -> io::Result<()> {
     let obj = value.as_object().ok_or_else(|| bad("CI object required"))?;
     if obj.len() != names.len() || names.iter().any(|n| !obj.contains_key(*n)) {
         return Err(bad("CI object exact keys mismatch"));
     }
     Ok(())
 }
-fn json_write(path: &Path, value: &Value, b: &Budget<'_>) -> io::Result<()> {
+pub(crate) fn json_write(path: &Path, value: &Value, b: &Budget<'_>) -> io::Result<()> {
     let mut raw = serde_json::to_vec(value).map_err(|_| bad("CI JSON encoding failed"))?;
     raw.push(b'\n');
     write_new(path, &raw, b)
 }
-fn write_new(path: &Path, raw: &[u8], b: &Budget<'_>) -> io::Result<()> {
+pub(crate) fn write_new(path: &Path, raw: &[u8], b: &Budget<'_>) -> io::Result<()> {
     b.check()?;
     absolute(
         path.parent()
@@ -291,7 +321,7 @@ fn write_new(path: &Path, raw: &[u8], b: &Budget<'_>) -> io::Result<()> {
     f.flush()?;
     b.check()
 }
-fn append(path: &Path, raw: &[u8], b: &Budget<'_>) -> io::Result<()> {
+pub(crate) fn append(path: &Path, raw: &[u8], b: &Budget<'_>) -> io::Result<()> {
     b.check()?;
     absolute(path)?;
     let mut options = OpenOptions::new();
@@ -325,6 +355,22 @@ fn accepted_opt_level(name: &str, allow_access_opt1: bool, opt_level: &str) -> b
         matches!(opt_level, "0" | "1")
     } else {
         opt_level == "0"
+    }
+}
+
+fn cargo_product_package(name: &str) -> Option<&'static str> {
+    if name == "tos-e2e-fixture" {
+        Some("tos-access")
+    } else {
+        native_software_roles::package(name)
+    }
+}
+
+fn cargo_product_explicit_features(name: &str) -> &'static [&'static str] {
+    if name == "tos-e2e-fixture" {
+        &["e2e-fixture"]
+    } else {
+        native_software_roles::explicit_features(name)
     }
 }
 
@@ -394,13 +440,13 @@ fn cargo_products(
         if !names.contains(&name) {
             continue;
         }
-        let package = native_software_roles::package(name)
-            .ok_or_else(|| bad("unsupported Cargo software role"))?;
+        let package =
+            cargo_product_package(name).ok_or_else(|| bad("unsupported Cargo software role"))?;
         let expected_features = enabled_features(
             root,
             package,
             !no_default_features.contains(&name),
-            native_software_roles::explicit_features(name),
+            cargo_product_explicit_features(name),
             b,
         )?;
         let actual_features = value["features"]
@@ -480,7 +526,7 @@ fn cargo_products(
                 .get(*name)
                 .ok_or_else(|| bad("Cargo stream lacks requested executable metadata"))?;
             Ok((
-                native_software_roles::package(name),
+                cargo_product_package(name),
                 !no_default_features.contains(name),
                 product.features.as_slice(),
                 product.opt_level.as_str(),
@@ -492,6 +538,167 @@ fn cargo_products(
     }
     Ok(product_metadata)
 }
+
+fn validate_stage_receipts(
+    root: &Path,
+    image_root: &Path,
+    receipt_root: &Path,
+    descriptor_roots: Option<(&Path, &Path)>,
+    b: &Budget<'_>,
+) -> io::Result<Value> {
+    absolute(root)?;
+    absolute(image_root)?;
+    absolute(receipt_root)?;
+    let id = identity(root, b)?;
+    let mut names = vec!["tos-access"];
+    names.extend(COMMANDS);
+
+    let descriptor = strict(
+        &bytes(
+            &receipt_root.join("tos-native-command-products.json"),
+            META,
+            b,
+        )?,
+        META,
+    )?;
+    keys(&descriptor, &COMMANDS)?;
+    for name in names {
+        b.check()?;
+        let receipt_path = receipt_root.join(if name == "tos-access" {
+            "tos-native-build.json".to_owned()
+        } else {
+            format!("{name}-build.json")
+        });
+        let proof = strict(&bytes(&receipt_path, META, b)?, META)?;
+        let image_path = image_root.join(name);
+        let image_hash = hash(&image_path, b)?;
+        let mut expected = id.clone();
+        let expected_schema = if name == "tos-access" {
+            "tos_native_access_build_v2"
+        } else {
+            "tos_native_software_command_build_v1"
+        };
+        if name == "tos-access" {
+            let opt_level = proof["opt_level"]
+                .as_str()
+                .ok_or_else(|| bad("access receipt optimization level missing"))?;
+            if !accepted_opt_level(name, true, opt_level) {
+                return Err(bad("access receipt optimization level mismatch"));
+            }
+            expected.as_object_mut().unwrap().remove("features");
+            expected
+                .as_object_mut()
+                .unwrap()
+                .insert("opt_level".into(), json!(opt_level));
+        } else {
+            let package = native_software_roles::package(name)
+                .ok_or_else(|| bad("unsupported native software role"))?;
+            let expected_features = enabled_features(
+                root,
+                package,
+                !SOFTWARE_NO_DEFAULT_FEATURES.contains(&name),
+                native_software_roles::explicit_features(name),
+                b,
+            )?;
+            expected
+                .as_object_mut()
+                .unwrap()
+                .insert("features".into(), json!(expected_features));
+        }
+        let expected_obj = expected.as_object_mut().unwrap();
+        expected_obj.insert("schema_version".into(), json!(expected_schema));
+        for key in ["sha256", "size_bytes"] {
+            expected_obj.insert(key.into(), image_hash[key].clone());
+        }
+        if proof != expected {
+            return Err(bad("software stage receipt identity or profile mismatch"));
+        }
+        if COMMANDS.contains(&name) {
+            keys(&descriptor[name], &["binary", "receipt"])?;
+            if !descriptor[name]["binary"].is_string() || !descriptor[name]["receipt"].is_string() {
+                return Err(bad("software stage product descriptor paths missing"));
+            }
+            if let Some((descriptor_images, descriptor_receipts)) = descriptor_roots {
+                if descriptor[name]["binary"]
+                    != descriptor_images.join(name).to_string_lossy().as_ref()
+                    || descriptor[name]["receipt"]
+                        != descriptor_receipts
+                            .join(format!("{name}-build.json"))
+                            .to_string_lossy()
+                            .as_ref()
+                {
+                    return Err(bad("software stage product paths mismatch"));
+                }
+            }
+        }
+    }
+    Ok(id)
+}
+
+/// Revalidate producer receipts, then validate the separate test-only Cargo
+/// stream and return the source identity plus the fixture image digest.
+pub(crate) fn validate_software_stage_inputs(
+    root: &Path,
+    image_root: &Path,
+    receipt_root: &Path,
+    fixture_messages: &Path,
+    rustc_version: &Path,
+    b: &Budget<'_>,
+) -> io::Result<Value> {
+    if !image_root.ends_with(Path::new(TARGET).join("debug")) {
+        return Err(bad("software stage image target/profile mismatch"));
+    }
+    let id = validate_stage_receipts(
+        root,
+        image_root,
+        receipt_root,
+        Some((image_root, receipt_root)),
+        b,
+    )?;
+    absolute(fixture_messages)?;
+    absolute(rustc_version)?;
+    let fixture_messages_hash = hash_capped(fixture_messages, CARGO_BYTES as u64, b)?;
+    let fixture = ["tos-e2e-fixture"];
+    cargo_products(
+        root,
+        fixture_messages,
+        image_root,
+        &fixture,
+        &[],
+        rustc_version,
+        0,
+        false,
+        b,
+    )?;
+    if hash_capped(fixture_messages, CARGO_BYTES as u64, b)? != fixture_messages_hash {
+        return Err(bad(
+            "Software fixture Cargo stream changed during validation",
+        ));
+    }
+    let fixture_binary = hash(&image_root.join(fixture[0]), b)?;
+    Ok(json!({
+        "identity":id,
+        "fixture_binary":fixture_binary,
+        "fixture_messages":fixture_messages_hash
+    }))
+}
+
+/// Verify a copied stage's native images against the source/profile receipts
+/// before the manifest is sealed. Descriptor paths are rewritten by the bind
+/// operation for each consumer.
+pub(crate) fn validate_software_stage_payload(
+    root: &Path,
+    image_root: &Path,
+    receipt_root: &Path,
+    b: &Budget<'_>,
+) -> io::Result<Value> {
+    validate_stage_receipts(root, image_root, receipt_root, None, b)
+}
+
+pub(crate) fn software_fixture_features(root: &Path, b: &Budget<'_>) -> io::Result<Vec<String>> {
+    enabled_features(root, "tos-access", true, &["e2e-fixture"], b)
+}
+
 fn artifact_set(root: &Path, with_manifest: bool, b: &Budget<'_>) -> io::Result<()> {
     let mut names = EXECUTORS
         .iter()
@@ -661,9 +868,13 @@ fn package_limits(root: &Path, images: &Path, b: &Budget<'_>) -> io::Result<Stri
     b.check()?;
     Ok(format!("{total} {archive} 1024 4194304\n"))
 }
-/// These four bounded CLI operations retain the existing manifest and software
-/// archive receipt shapes. Platform transport and initial verifier trust stay external.
+/// Bounded CLI operations retain the existing executor and software archive
+/// receipt shapes; the Software stage adds only cross-job transport admission.
+/// Initial verifier trust stays with the plan artifact binding.
 pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
+    if ["software-stage-manifest", "software-stage-bind"].contains(&mode) {
+        return crate::software_stage::run(mode, args, cancel);
+    }
     let b = Budget {
         deadline: Instant::now() + Duration::from_secs(120),
         cancel,
@@ -843,16 +1054,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 &Value::Object(products),
                 &b,
             )?;
-            append(get("--github-env"),format!("TOS_NATIVE_PREPARED_CONSUMER_BIN={}\nTOS_NATIVE_OWNER_COMMAND_BIN={}\nTOS_PREPARED_EXECUTOR={}\nTOS_NATIVE_SOURCE_PREPARE_EXECUTABLE={}\nTOS_PREPARED_MAX_SECONDS=20\nTOS_NATIVE_SOURCE_PREPARE_SECONDS=45\nTOS_NATIVE_SOURCE_PREPARE_LIMITS={{\"max_input_bytes\":1048576,\"max_capture_bytes\":8388608,\"max_stage_bytes\":8388608,\"max_temp_bytes\":8388608}}\n",images.join("tos-access").display(),images.join("tos-native-owner-command").display(),images.join("tos-access").display(),images.join("tos-access").display()).as_bytes(),&b)?;
-            append(
-                get("--github-env"),
-                format!(
-                    "TOS_KAG_RELEASE_BIN={}\n",
-                    images.join("tos-kag-release").display()
-                )
-                .as_bytes(),
-                &b,
-            )?;
+            append_software_environment(get("--github-env"), images, &b)?;
         }
         "software-limits" => {
             absolute(get("--image-root"))?;

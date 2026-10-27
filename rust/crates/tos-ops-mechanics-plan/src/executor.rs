@@ -163,17 +163,34 @@ pub fn run_release_sequence(
     limits: Limits,
     cancel: &AtomicI32,
 ) -> io::Result<i32> {
+    run_release_sequence_with_timings(root, steps, limits, cancel, false)
+}
+
+/// Optional Cargo reports preserve the authored release commands and limits.
+pub fn run_release_sequence_with_timings(
+    root: &Path,
+    steps: &[(String, Vec<String>)],
+    limits: Limits,
+    cancel: &AtomicI32,
+    cargo_timings: bool,
+) -> io::Result<i32> {
     if steps.is_empty() {
         return Ok(0);
     }
     let plan = selected_plan(steps, "tos_release_check_selected_v1", "release_check_step");
     #[cfg(target_os = "linux")]
     {
-        native::run(root, &plan, limits, cancel, native::Style::Release)
+        native::run(
+            root,
+            &plan,
+            limits,
+            cancel,
+            native::Style::Release(cargo_timings),
+        )
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = (root, plan, limits, cancel);
+        let _ = (root, plan, limits, cancel, cargo_timings);
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "execution requires Linux subreaper/pidfd custody",
@@ -271,7 +288,7 @@ mod native {
     pub(super) enum Style<'a> {
         Mechanics,
         Validation(&'a [Option<Duration>], usize, bool),
-        Release,
+        Release(bool),
         Capture,
     }
 
@@ -1347,7 +1364,7 @@ mod native {
                     Style::Validation(..) => {
                         format!("[run] {}: {}\n", command.home, command.argv.join(" "))
                     }
-                    Style::Release => {
+                    Style::Release(_) => {
                         format!("[run] {}: {}\n", command.home, list2cmdline(&command.argv))
                     }
                 };
@@ -1383,7 +1400,7 @@ mod native {
                 } else {
                     command.argv.clone()
                 };
-                if matches!(style, Style::Validation(_, _, true))
+                if matches!(style, Style::Validation(_, _, true) | Style::Release(true))
                     && argv
                         .first()
                         .and_then(|program| Path::new(program).file_name())
@@ -1531,7 +1548,7 @@ mod native {
                                 .code()
                                 .unwrap_or(-status.unwrap().signal().unwrap_or(0))
                         ),
-                        Style::Release => format!(
+                        Style::Release(_) => format!(
                             "[error] {} failed with exit code {}\n",
                             command.home,
                             status
@@ -1541,7 +1558,7 @@ mod native {
                         ),
                     };
                     write(
-                        if matches!(style, Style::Release) {
+                        if matches!(style, Style::Release(_)) {
                             1
                         } else {
                             2
@@ -1552,7 +1569,7 @@ mod native {
                     )?;
                     return Ok(match style {
                         Style::Mechanics => 1,
-                        Style::Validation(..) | Style::Release | Style::Capture => {
+                        Style::Validation(..) | Style::Release(_) | Style::Capture => {
                             status.unwrap().code().unwrap_or_else(|| {
                                 // sys.exit(-signal) from the Python compatibility entry
                                 // is observed by its parent as 256-signal on Unix.
@@ -1561,7 +1578,7 @@ mod native {
                         }
                     });
                 }
-                if matches!(style, Style::Validation(..)) {
+                if matches!(style, Style::Validation(..) | Style::Release(true)) {
                     write_validation_success(
                         1,
                         &command.home,
