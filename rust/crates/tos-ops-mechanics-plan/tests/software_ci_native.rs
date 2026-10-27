@@ -381,8 +381,8 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     use std::collections::BTreeSet;
     let w = workflow("repo-validation.yml");
     let jobs = &w["jobs"];
-    let mut cached_jobs = 0;
-    for job in jobs.as_hash().unwrap().values() {
+    let mut cached_jobs = BTreeSet::new();
+    for (name, job) in jobs.as_hash().unwrap() {
         if let Some(env) = job["env"].as_hash() {
             assert!(
                 env.values().all(|value| !value
@@ -395,7 +395,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         let Some(restore) = st.iter().find(|s| s["id"].as_str() == Some("cargo_cache")) else {
             continue;
         };
-        cached_jobs += 1;
+        cached_jobs.insert(name.as_str().unwrap());
         assert!(
             restore["uses"]
                 .as_str()
@@ -428,7 +428,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
             );
         }
     }
-    assert_eq!(cached_jobs, 4);
+    assert_eq!(cached_jobs, BTreeSet::from(["plan", "worker"]));
     assert!(!w["on"]["workflow_dispatch"].is_badvalue());
     assert_eq!(
         jobs["required_gate"]["needs"]
