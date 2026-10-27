@@ -304,15 +304,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(node.body)panelContent.append(el('p','body',node.body));
       if(ownerHyp?.targetId)panelContent.append(el('p','muted',`${t('related')}: ${ownerHyp.targetId}`));
     }else if(material){
+      const source=sourceForMaterial(material,node);
+      if(source?.exact){panelContent.append(el('p','ps-source-status',t('sourceExact')));const open=button(`↗ ${t('openExact')}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
+      else if(source?.binding){panelContent.append(el('p','ps-source-status',t('sourceWork')));const open=button(`↗ ${t('openWork')}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
+      else if(material.sourceAccess==='metadata-only'||material.sourceRefs?.length)panelContent.append(el('p','ps-source-status',t('linkOnly')));
       const postureLabel=material.demo===true||material.posture==='proposed'?'demo':material.sourceAccess;
       if(postureLabel==='demo')panelContent.append(el('p','posture',t('demo')));
       const body=material.atlasBody??material.body;
       if(body)panelContent.append(el('p','body',tr(body,locale())));
       if(material.question&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
-      const source=sourceForMaterial(material,node);
-      if(source?.exact){panelContent.append(el('p','ps-source-status',t('sourceExact')));const open=button(`↗ ${t('openExact')}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
-      else if(source?.binding){panelContent.append(el('p','ps-source-status',t('sourceWork')));const open=button(`↗ ${t('openWork')}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
-      else if(material.sourceAccess==='metadata-only'||material.sourceRefs?.length)panelContent.append(el('p','ps-source-status',t('linkOnly')));
       const inquiry=material.inquiry;
       if(inquiry){
         inquiryDetail(panelContent,t('argument'),inquiry.thesis??inquiry.argument,true);
