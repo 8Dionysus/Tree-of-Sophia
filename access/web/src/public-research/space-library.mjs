@@ -1,5 +1,7 @@
 import {createAtlasLibrary} from '../../constructor/atlas-data.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
+import {createZarathustraGroundTargets} from './zarathustra-ground-targets.mjs';
+import {extendPublicCollection} from './collection-data.mjs';
 import antiquityData from './antiquity-space-data.json' with {type: 'json'};
 
 const PUBLIC_PROFILE_IDS = Object.freeze({
@@ -129,7 +131,7 @@ async function makeZarathustra(sources, structure) {
     posture: bi('Подготовленное исследовательское прочтение. Толкования и связи предложены для исследования и не являются каноном.', 'Prepared research readings. Interpretations and relations are proposed for inquiry and are not canon.'),
     routes: library.atlas.routes,
   };
-  return {library, bindings, documentBindings};
+  return {library, bindings, documentBindings, groundTargets: createZarathustraGroundTargets(item.document)};
 }
 
 function sourceWorkId(oldWorkId) {
@@ -265,5 +267,6 @@ export async function createPublicSpace({profile, provider} = {}) {
   const prepared = profile === 'zarathustra'
     ? await makeZarathustra(sources, structures.get(PUBLIC_PROFILE_IDS.zarathustra) ?? [])
     : await makeAntiquity(sources, structures);
+  await extendPublicCollection(prepared,{profile,sources,provider,structures,loadStructure:(document,version)=>exactStructure(provider,document,version)});
   return {...prepared, profile, provider, sourceRevision: sources.manifest.revision};
 }

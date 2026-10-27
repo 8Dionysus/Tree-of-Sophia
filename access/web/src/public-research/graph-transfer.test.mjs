@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {applyGraphSpace, exportGraphSpace, validateGraphSpace} from './graph-transfer.mjs';
+import {applyGraphSpace, exportGraphSpace, validateGraphSpace, upgradePublicGraph} from './graph-transfer.mjs';
 
 const fingerprint = 'a'.repeat(64);
 const graphKey = `tos.public-research.graph.v1.zarathustra.${fingerprint}`;
@@ -12,6 +12,16 @@ function storage(seed = {}) {
 }
 
 describe('public research graph transfer', () => {
+  it('upgrades an explicit predecessor only after owner validation and retains its original bytes', () => {
+    const next='b'.repeat(64),key=`tos.public-research.graph.v1.zarathustra.${next}`,old=packet('Personal tree');
+    const store=storage({[graphKey]:old,[`${graphKey}.owners`]:'{"personal":"material:work"}'});
+    const options={profile:'zarathustra',fingerprint:next,predecessors:[{fingerprint,materialIds:['work']}],validate:value=>value};
+    expect(upgradePublicGraph(store,options).upgraded).toBe(true);
+    expect(store.getItem(graphKey)).toBe(old);expect(JSON.parse(store.getItem(key)).libraryFingerprint).toBe(next);
+    expect(store.getItem(`${key}.owners`)).toBe(store.getItem(`${graphKey}.owners`));
+    const rejected=storage({[graphKey]:old});expect(()=>upgradePublicGraph(rejected,{...options,validate:()=>{throw new Error('Owner rejected');}})).toThrow('Owner rejected');
+    expect(rejected.getItem(key)).toBeNull();expect(rejected.getItem(graphKey)).toBe(old);
+  });
   it('keeps legacy v1 packets without the optional graph-space companion valid', () => {
     expect(validateGraphSpace(undefined)).toBeNull();
     expect(() => validateGraphSpace({schema: 'tos.public_research.graph_space.v1', version: 1, entries: [{key: 'private.secret', value: '{}'}]})).toThrow();

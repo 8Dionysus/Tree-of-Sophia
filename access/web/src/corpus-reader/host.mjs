@@ -10,7 +10,7 @@ import './host.css';
 // this entry nor an unavailable provider fetches demo texts as a fallback.
 export function mountCorpusEntry({root,provider=createUnavailableProvider(),notebook,client,
   toolbar=root.querySelector('.main-tools, .sc-header-actions'),locale=()=> 'ru',
-  graphNavigate,onError,onReadingChange,onReadingLocation,route=true,dbName='tos-corpus-reader-v1'}={}) {
+  graphNavigate,onError,onReadingChange,onReadingLocation,onLibraryRequest,route=true,dbName='tos-corpus-reader-v1'}={}) {
   if(!root || !toolbar)throw new TypeError('Reader host and toolbar are required.');
   provider=bindCorpusProvider(provider);
   const ownsNotebook=!notebook;
@@ -58,11 +58,12 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
     root.dataset.corpusReading='true';root.inert=true;onReadingChange?.(true);
     try{return await reader.open(address);}catch(error){root.inert=false;delete root.dataset.corpusReading;onReadingChange?.(false);report(error);}
   };
-  opener.addEventListener('click',()=>void open());toolbar.append(opener);
+  const openLibrary=()=>{if(onLibraryRequest)onLibraryRequest();else void open();};
+  opener.addEventListener('click',openLibrary);toolbar.append(opener);
   // Constructor hides its wide toolbar on a narrow screen. Reading must stay
   // reachable there even before any graph selection has been made.
   const narrow=root.querySelector('.header')?document.createElement('button'):null;
-  if(narrow){narrow.type='button';narrow.className='corpus-open corpus-open-narrow';narrow.textContent='▤';narrow.setAttribute('aria-label',english()?'Read works and editions':'Читать произведения и издания');narrow.onclick=()=>void open();root.querySelector('.header').append(narrow);}
+  if(narrow){narrow.type='button';narrow.className='corpus-open corpus-open-narrow';narrow.textContent='▤';narrow.setAttribute('aria-label',english()?'Read works and editions':'Читать произведения и издания');narrow.onclick=openLibrary;root.querySelector('.header').append(narrow);}
   const refreshLocale=()=>{updateLabel(); reader.refreshLocale?.(); native?.refreshLocale?.();};
   document.addEventListener('sophia-ui-language',refreshLocale);
   const readEvent=event=>void open(event.detail??{});

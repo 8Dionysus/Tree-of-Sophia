@@ -37,6 +37,18 @@ The interface and prepared paths support Russian and English. Source passages
 keep their edition language. Plain entry and profile switching open the space;
 an explicit reading hash opens its exact passage.
 
+The shared Library also exposes the retained research collection: all fifteen
+Antiquity branches, author and era browsing, work maps, close-reading prompts,
+argument readings and lexical dossiers, with Russian and English presentation.
+`antiquity-collection-data.json` records its authored source revision and excludes
+witness text and quotation anchors. Published section entries use the separate
+provider structure; they are not exact word-span alignments. The readable corpus
+selection remains separate from this larger bibliographic collection.
+Zarathustra's source pointers and independently grounded alternatives use the
+same reading actions. Extending the Antiquity graph copies its explicitly
+compatible predecessor through the current Rust validator and retains the
+original namespace; browsing a route does not fill the personal graph.
+
 The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and
 the complete research transfer preserve personal work without source admission.

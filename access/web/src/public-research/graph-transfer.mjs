@@ -8,6 +8,27 @@ const record = value => value !== null && typeof value === 'object' && !Array.is
 const only = (value, fields) => record(value) && Object.keys(value).length === fields.length && fields.every(field => Object.hasOwn(value, field));
 const blockedObjectKeys = new Set(['__proto__', 'prototype', 'constructor']);
 
+/** Copy an explicitly compatible predecessor; preserve the original namespace. */
+export function upgradePublicGraph(storage,{profile,fingerprint,predecessors=[],validate}={}) {
+  if(!storage||typeof validate!=='function')return {upgraded:false};
+  const key=`tos.public-research.graph.v1.${profile}.${fingerprint}`;
+  if(storage.getItem(key)!==null)return {upgraded:false};
+  for(const predecessor of predecessors){
+    if(!/^[a-f0-9]{64}$/.test(predecessor.fingerprint)||predecessor.fingerprint===fingerprint)continue;
+    const previousKey=`tos.public-research.graph.v1.${profile}.${predecessor.fingerprint}`;
+    const original=storage.getItem(previousKey);if(original===null)continue;
+    const packet=JSON.parse(original),allowed=new Set(predecessor.materialIds??[]);
+    if(packet.libraryFingerprint!==predecessor.fingerprint||!Array.isArray(packet.nodes)||packet.nodes.some(node=>node.materialId&&!allowed.has(node.materialId)))throw new Error('The saved graph does not match its declared predecessor.');
+    const candidate=validate(JSON.stringify({...packet,libraryFingerprint:fingerprint}));
+    // The current Rust owner validates every reference before any storage write.
+    storage.setItem(key,candidate);
+    const owners=storage.getItem(`${previousKey}.owners`);
+    if(owners!==null)storage.setItem(`${key}.owners`,owners);
+    return {upgraded:true,from:previousKey,to:key};
+  }
+  return {upgraded:false};
+}
+
 export function graphKeyInfo(key) {
   if (typeof key !== 'string' || key.length > 256) return null;
   let match = /^tos\.public-research\.graph\.v1\.([a-z0-9][a-z0-9-]{0,63})\.([a-f0-9]{64})$/.exec(key);

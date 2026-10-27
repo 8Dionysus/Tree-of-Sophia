@@ -253,6 +253,7 @@ async function start() {
   if(appDisposed)return;
   if (location.hash !== (activeRoute ?? '')) history.replaceState(history.state, '', `${location.pathname}${location.search}${activeRoute ?? ''}`);
   entry = mountCorpusEntry({root: readerRoot, provider, notebook, toolbar, locale: () => locale, route: true, dbName: DB_NAME,
+    onLibraryRequest:()=>spaceView?.openCollection(),
     onReadingLocation(address) {
       const saved = validRoute(encodeReadingRoute(address));
       if (saved) void notebook.setPreference(routeKey(profile), saved).catch(() => {
@@ -261,12 +262,12 @@ async function start() {
     }});
   entry.opener.disabled = true;
   const narrowReader=readerRoot.querySelector('.corpus-open-narrow');if(narrowReader)narrowReader.disabled=true;
-  window.tosPublicResearch = Object.freeze({profile, getQuestion: () => question.value, setQuestion, open: openAddress, reader: entry.reader, provider, notebook: entry.notebook});
+  window.tosPublicResearch = Object.freeze({profile, getQuestion: () => question.value, setQuestion, open: openAddress, openLibrary:()=>entry.open(), reader: entry.reader, provider, notebook: entry.notebook});
   publicOwners = createPublicResearchOwners();
   const publicSpace = await createPublicSpace({profile,provider});
   if(appDisposed)return;
   spaceView = mountPublicResearchSpace({host:readerRoot,header,profile,locale:()=>locale,library:publicSpace.library,
-    bindings:publicSpace.bindings,documentBindings:publicSpace.documentBindings,api:window.tosPublicResearch,
+    bindings:publicSpace.bindings,documentBindings:publicSpace.documentBindings,groundTargets:publicSpace.groundTargets,graphPredecessors:publicSpace.graphPredecessors,api:window.tosPublicResearch,
     workspace:publicOwners.workspace,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[]});
   header.addEventListener('public-space-locale',onPublicSpaceLocale);
   agentBridge = mountPublicAgentBridge({root:spaceView.agentRoot, api:window.tosPublicResearch, notebook:entry.notebook,
