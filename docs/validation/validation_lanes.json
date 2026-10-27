@@ -830,6 +830,15 @@
         ]
       },
       {
+        "label": "fetch locked dependencies for offline mechanics install",
+        "rust_group": "cold-install",
+        "command": [
+          "cargo",
+          "fetch",
+          "--locked"
+        ]
+      },
+      {
         "label": "install native mechanics executor and verify process custody",
         "rust_group": "cold-install",
         "command_timeout_ms": 3600000,

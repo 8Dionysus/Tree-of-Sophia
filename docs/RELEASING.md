@@ -216,7 +216,10 @@ current-lane Access path/digest after the successful exact build and a fresh
 byte check. Conformance/Growth keeps its full test-image provenance. The exact
 default release-actions fixture is the first `cold-install` step, retaining its
 separate genuine feature context. The group filter preserves each selected
-step's command, order and budget; the full ungrouped command order is unchanged.
+step's command, order and budget; the original full-lane commands and relative
+order are unchanged. An explicit locked `cargo fetch` prepares
+the dependency cache immediately before the mechanics install; the native
+install verifier retains `--offline` and its existing checks.
 Matrix fail-fast is disabled so all three checks report their outcome.
 The independent PostgreSQL durable-command laboratory remains a separate
 required job; its pinned PostgreSQL 16 service, fs-verity volume, exact schema

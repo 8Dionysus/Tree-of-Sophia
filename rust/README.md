@@ -119,7 +119,10 @@ Conformance case digest from inherited environment values. Actual Conformance
 and Growth execution still require the current Cargo JSON-selected test images.
 The default release-actions fixture runs separately as the first `cold-install`
 step, with its unchanged exact invocation and no research/load feature union.
-The ungrouped full route preserves the same command order and budgets.
+The ungrouped full route preserves the original commands, relative order and
+budgets. A locked dependency fetch runs immediately before the
+offline mechanics install; that input preparation does not compile conformance
+images or allow the install verifier to access the network.
 
 `tos-validation-lanes --run rust_workspace --growth-jobs 2` runs at most two
 source-derived Growth classes concurrently, each in its own supervisor process.

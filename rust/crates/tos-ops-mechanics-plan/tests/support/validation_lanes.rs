@@ -260,6 +260,18 @@ fn rust_workspace_groups_exactly_cover_the_full_lane_and_keep_growth_conformance
             .map(|(index, _)| full[index].clone())
             .collect();
         assert_eq!(&selected[prepare_count..], expected);
+        if group == RustGroup::ColdInstall {
+            let position = |label: &str| {
+                selected
+                    .iter()
+                    .position(|((name, _), _)| name == label)
+                    .unwrap()
+            };
+            assert!(
+                position("fetch locked dependencies for offline mechanics install")
+                    < position("install native mechanics executor and verify process custody")
+            );
+        }
         reconstructed.extend_from_slice(&selected[prepare_count..]);
         let has_growth = selected.iter().any(|((label, command), _)| {
             label == "test source-owned native Growth assertion classes"
@@ -272,6 +284,10 @@ fn rust_workspace_groups_exactly_cover_the_full_lane_and_keep_growth_conformance
             ("compile exact Rust conformance test image", "conformance"),
             (
                 "test native software/data release actions fixture",
+                "cold-install",
+            ),
+            (
+                "fetch locked dependencies for offline mechanics install",
                 "cold-install",
             ),
         ] {
