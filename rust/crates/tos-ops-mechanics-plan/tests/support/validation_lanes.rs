@@ -161,6 +161,11 @@ fn workspace_consumers_run_before_package_tests_can_relink_products() {
                     .any(|pair| pair == ["--exclude", "tos-access"]),
                 "prepare current conformance products without unused Access test harnesses"
             );
+            assert!(
+                argv.windows(2)
+                    .any(|pair| pair == ["--features", "tos-query/test-fixture"]),
+                "retain the original workspace development feature union"
+            );
             prepared = true;
         } else if argv.first() == Some(&"@tos-native-growth-classes")
             || (argv.first() == Some(&"cargo")

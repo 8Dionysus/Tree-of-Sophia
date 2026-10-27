@@ -94,7 +94,10 @@ The executor caps each command by the remaining lane time.
 
 The initial conformance preparation excludes the Access package's test harnesses
 with `--exclude tos-access`; the exact Access CLI is still built first and its
-dependencies remain available to conformance. The later workspace test run
+dependencies remain available to conformance. Explicit `tos-query/test-fixture`
+retains the original workspace feature union contributed by Access's development
+dependencies, so the next conformance command can reuse the prepared image.
+The later workspace test run
 retains Access's default features plus research/load-readiness coverage, and
 the default release-actions fixture still runs separately.
 
