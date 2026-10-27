@@ -4,7 +4,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
-use tos_ops_mechanics_plan::validation_lanes::{self as lanes, ReleasePhase};
+use tos_ops_mechanics_plan::validation_lanes::{self as lanes, ReleasePhase, RustGroup};
 
 struct Fixture(PathBuf);
 impl Fixture {
@@ -36,6 +36,30 @@ fn repository() -> PathBuf {
 }
 fn step(label: &str, command: &[&str]) -> Value {
     json!({"label":label,"command":command})
+}
+fn grouped_step(label: &str, group: &str) -> Value {
+    json!({"label":label,"rust_group":group,"command":["cargo","test","--locked"]})
+}
+fn grouped_manifest(steps: Vec<Value>) -> Value {
+    json!({
+        "schema_version":"tos_validation_lanes_v1",
+        "owner_repo":"Tree-of-Sophia",
+        "command_authority":"docs/validation/validation_lanes.json",
+        "lanes":{"rust_workspace":{
+            "label":"Rust workspace",
+            "layer":"test",
+            "mode":"full",
+            "owner_surface":"owner.md",
+            "purpose":"Exercise grouped Rust validation selection.",
+            "failure_route":"owner.md",
+            "does_not_own":["semantic admission"],
+            "command_sequence":"rust_workspace"
+        }},
+        "command_sequences":{
+            "rust_workspace":steps,
+            "other_sequence":[step("legacy", &["cargo", "test"])]
+        }
+    })
 }
 
 #[test]
@@ -183,6 +207,147 @@ fn workspace_consumers_run_before_package_tests_can_relink_products() {
         }
     }
     assert!(prepared && consumers > 0 && package_tests_started);
+}
+
+#[test]
+fn rust_workspace_groups_exactly_cover_the_full_lane_and_keep_growth_conformance_local() {
+    let root = repository();
+    let manifest: Value = serde_json::from_slice(
+        &fs::read(root.join("docs/validation/validation_lanes.json")).unwrap(),
+    )
+    .unwrap();
+    let source_steps = manifest["command_sequences"]["rust_workspace"]
+        .as_array()
+        .unwrap();
+    let full = lanes::command_sequence_with_budgets(&root, "rust_workspace").unwrap();
+    assert_eq!(full.len(), source_steps.len());
+    let prepare_count = source_steps
+        .iter()
+        .filter(|step| step["rust_group"] == "prepare")
+        .count();
+    assert!(prepare_count > 0);
+    assert_eq!(
+        full.iter()
+            .filter(|((_, command), _)| command
+                .first()
+                .is_some_and(|part| part == "@tos-native-growth-classes"))
+            .count(),
+        1
+    );
+    assert!(source_steps.iter().all(|step| {
+        step["rust_group"].as_str().is_some_and(|group| {
+            matches!(
+                group,
+                "prepare" | "conformance" | "workspace" | "cold-install"
+            )
+        })
+    }));
+
+    let groups = [
+        (RustGroup::Conformance, "conformance"),
+        (RustGroup::Workspace, "workspace"),
+        (RustGroup::ColdInstall, "cold-install"),
+    ];
+    let mut reconstructed = Vec::new();
+    for (group, name) in groups {
+        let selected =
+            lanes::command_sequence_with_rust_group(&root, "rust_workspace", Some(group)).unwrap();
+        assert_eq!(selected[..prepare_count], full[..prepare_count]);
+        let expected: Vec<_> = source_steps
+            .iter()
+            .enumerate()
+            .filter(|(_, step)| step["rust_group"] == name)
+            .map(|(index, _)| full[index].clone())
+            .collect();
+        assert_eq!(&selected[prepare_count..], expected);
+        reconstructed.extend_from_slice(&selected[prepare_count..]);
+        let has_growth = selected.iter().any(|((label, command), _)| {
+            label == "test source-owned native Growth assertion classes"
+                && command
+                    .first()
+                    .is_some_and(|part| part == "@tos-native-growth-classes")
+        });
+        assert_eq!(has_growth, name == "conformance");
+    }
+    let expected_suffix: Vec<_> = source_steps
+        .iter()
+        .enumerate()
+        .filter(|(_, step)| step["rust_group"] != "prepare")
+        .map(|(index, _)| full[index].clone())
+        .collect();
+    assert_eq!(reconstructed, expected_suffix);
+}
+
+#[test]
+fn grouped_rust_workspace_selection_and_manifest_check_fail_closed() {
+    let root = Fixture::new();
+    fs::write(root.0.join("owner.md"), "fixture owner\n").unwrap();
+    let valid_steps = vec![
+        grouped_step("prepare", "prepare"),
+        grouped_step("conformance", "conformance"),
+        grouped_step("workspace", "workspace"),
+        grouped_step("cold install", "cold-install"),
+    ];
+    let valid = grouped_manifest(valid_steps.clone());
+    root.manifest(valid.clone());
+    assert!(lanes::validate_manifest(&root.0).unwrap().is_empty());
+    assert_eq!(
+        lanes::command_sequence_with_rust_group(
+            &root.0,
+            "rust_workspace",
+            Some(RustGroup::Workspace)
+        )
+        .unwrap()
+        .len(),
+        2
+    );
+    assert!(
+        lanes::command_sequence_with_rust_group(
+            &root.0,
+            "other_sequence",
+            Some(RustGroup::Workspace)
+        )
+        .is_err()
+    );
+
+    let mut unknown = valid_steps.clone();
+    unknown[1]["rust_group"] = json!("unrecognized");
+    let mut missing_annotation = valid_steps.clone();
+    missing_annotation[1]
+        .as_object_mut()
+        .unwrap()
+        .remove("rust_group");
+    let mut missing_group = valid_steps.clone();
+    missing_group[2]["rust_group"] = json!("conformance");
+    let mut out_of_order = valid_steps.clone();
+    out_of_order[1]["rust_group"] = json!("workspace");
+    out_of_order[2]["rust_group"] = json!("conformance");
+    let mut new_ungrouped_step = valid_steps;
+    new_ungrouped_step.push(step("new step", &["cargo", "test"]));
+
+    for invalid_steps in [
+        unknown,
+        missing_annotation,
+        missing_group,
+        out_of_order,
+        new_ungrouped_step,
+    ] {
+        root.manifest(grouped_manifest(invalid_steps));
+        assert!(
+            lanes::validate_manifest(&root.0)
+                .unwrap()
+                .iter()
+                .any(|(_, detail)| detail.contains("grouping"))
+        );
+        assert!(
+            lanes::command_sequence_with_rust_group(
+                &root.0,
+                "rust_workspace",
+                Some(RustGroup::Conformance)
+            )
+            .is_err()
+        );
+    }
 }
 
 #[test]

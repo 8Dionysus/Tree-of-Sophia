@@ -31,7 +31,10 @@ mod growth_parallel {
                 fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
             };
             executable("cargo-target/debug/tos-access", b"fixture exact consumer");
-            executable("cargo", b"#!/bin/sh\n/bin/cat artifacts.jsonl\n");
+            executable(
+                "cargo",
+                b"#!/bin/sh\nprintf '%s\\n' \"$@\" > cargo.args\n/bin/cat artifacts.jsonl\n",
+            );
             executable(
                 "cargo-target/debug/deps/conformance-fixture",
                 br#"#!/bin/sh
@@ -158,9 +161,17 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
 
     #[test]
     fn two_growth_processes_overlap_keep_counts_and_join_before_later_commands() {
-        for (scenario, jobs) in [("success", Some("2")), ("serial", None)] {
+        for (scenario, jobs, timings) in [
+            ("success", Some("2"), false),
+            ("serial", None, false),
+            ("success", Some("2"), true),
+        ] {
             let fixture = Fixture::new();
-            let output = fixture.command(scenario, jobs).output().unwrap();
+            let mut command = fixture.command(scenario, jobs);
+            if timings {
+                command.arg("--cargo-timings");
+            }
+            let output = command.output().unwrap();
             assert!(
                 output.status.success(),
                 "{scenario}: {}",
@@ -187,6 +198,9 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
                 3
             );
             let text = String::from_utf8_lossy(&output.stdout);
+            assert_eq!(text.contains("[cargo-timings] prepare:"), timings);
+            let cargo_args = fs::read_to_string(fixture.0.join("cargo.args")).unwrap();
+            assert_eq!(cargo_args.lines().any(|arg| arg == "--timings"), timings);
             assert_eq!(
                 text.contains("native Growth batch: classes=3 jobs=2"),
                 jobs.is_some()

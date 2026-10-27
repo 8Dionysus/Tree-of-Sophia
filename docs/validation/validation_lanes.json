@@ -524,6 +524,7 @@
     "rust_workspace": [
       {
         "label": "check Rust formatting",
+        "rust_group": "prepare",
         "command": [
           "cargo",
           "fmt",
@@ -533,6 +534,7 @@
       },
       {
         "label": "check WASM foundation target",
+        "rust_group": "prepare",
         "command": [
           "cargo",
           "check",
@@ -547,6 +549,7 @@
       },
       {
         "label": "check WASM validation backend target",
+        "rust_group": "prepare",
         "command": [
           "cargo",
           "check",
@@ -562,6 +565,7 @@
       },
       {
         "label": "build exact native schema worker for source-cut fixtures",
+        "rust_group": "prepare",
         "command": [
           "cargo",
           "build",
@@ -574,6 +578,7 @@
       },
       {
         "label": "build exact native owner CLI for process-cold fixtures",
+        "rust_group": "prepare",
         "command": [
           "cargo",
           "build",
@@ -586,6 +591,7 @@
       },
       {
         "label": "build exact native prepared consumer for conformance fixtures",
+        "rust_group": "prepare",
         "command": [
           "cargo",
           "build",
@@ -598,6 +604,7 @@
       },
       {
         "label": "compile exact Rust conformance test image",
+        "rust_group": "prepare",
         "command_timeout_ms": 900000,
         "command": [
           "cargo",
@@ -614,6 +621,7 @@
       },
       {
         "label": "test Rust conformance root and source families",
+        "rust_group": "conformance",
         "command_timeout_ms": 900000,
         "command": [
           "cargo",
@@ -629,6 +637,7 @@
       },
       {
         "label": "test source-owned native Growth assertion classes",
+        "rust_group": "conformance",
         "command_timeout_ms": 900000,
         "command": [
           "@tos-native-growth-classes"
@@ -636,6 +645,7 @@
       },
       {
         "label": "test Rust segment conformance target",
+        "rust_group": "conformance",
         "command": [
           "cargo",
           "test",
@@ -649,6 +659,7 @@
       },
       {
         "label": "test isolated conformance Artifact fixture",
+        "rust_group": "conformance",
         "command": [
           "cargo",
           "test",
@@ -664,6 +675,7 @@
       },
       {
         "label": "test isolated conformance Claim successor fixture",
+        "rust_group": "conformance",
         "command": [
           "cargo",
           "test",
@@ -679,6 +691,7 @@
       },
       {
         "label": "test isolated conformance initial Claim fixture",
+        "rust_group": "conformance",
         "command": [
           "cargo",
           "test",
@@ -694,6 +707,7 @@
       },
       {
         "label": "test isolated conformance Collection order fixture",
+        "rust_group": "conformance",
         "command": [
           "cargo",
           "test",
@@ -709,6 +723,7 @@
       },
       {
         "label": "test isolated conformance public assessment lifecycle fixture",
+        "rust_group": "conformance",
         "command_timeout_ms": 900000,
         "command": [
           "cargo",
@@ -725,6 +740,7 @@
       },
       {
         "label": "test isolated conformance assessed form batch fixture",
+        "rust_group": "conformance",
         "command_timeout_ms": 900000,
         "command": [
           "cargo",
@@ -741,6 +757,7 @@
       },
       {
         "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
+        "rust_group": "workspace",
         "command_timeout_ms": 900000,
         "command": [
           "cargo",
@@ -761,11 +778,13 @@
       },
       {
         "label": "test native software/data release actions fixture",
+        "rust_group": "workspace",
         "command_timeout_ms": 900000,
         "command_ref": "native_release_actions"
       },
       {
         "label": "test isolated process-cold source revision fixture",
+        "rust_group": "cold-install",
         "command_timeout_ms": 1020000,
         "command": [
           "cargo",
@@ -781,10 +800,12 @@
       },
       {
         "label": "test isolated process-cold Work37 fixture",
+        "rust_group": "cold-install",
         "command_ref": "work37_cold_replay"
       },
       {
         "label": "test isolated process-cold Work recovery fixture",
+        "rust_group": "cold-install",
         "command": [
           "cargo",
           "test",
@@ -799,6 +820,7 @@
       },
       {
         "label": "install native exact reader outside checkout",
+        "rust_group": "cold-install",
         "command_timeout_ms": 3600000,
         "command": [
           "tos-software-ci",
@@ -809,6 +831,7 @@
       },
       {
         "label": "install native mechanics executor and verify process custody",
+        "rust_group": "cold-install",
         "command_timeout_ms": 3600000,
         "command": [
           "tos-software-ci",
