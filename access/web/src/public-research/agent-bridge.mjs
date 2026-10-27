@@ -1,6 +1,7 @@
 import {kindLabel, displayPublicError} from './presentation-i18n.mjs';
 import {referenceKey, validateReference} from '../corpus-reader/model.mjs';
 import {ensureSourceRecord} from './source-address.mjs';
+import {WORKSPACE_KEY} from './workspace-view.mjs';
 import './agent-bridge.css';
 
 export const AGENT_TASK_SCHEMA = 'tos.public_research.agent_task.v1';
@@ -40,7 +41,7 @@ function checkReference(value) {
   return {reference, key};
 }
 
-function taskPacket(value) {
+export function taskPacket(value) {
   if (!only(value, ['schema', 'version', 'taskId', 'createdAt', 'profile', 'question', 'workspaceRevision', 'sources', 'instructions', 'responseContract'])) throw new TypeError('The agent task packet has unexpected fields.');
   if (value.schema !== AGENT_TASK_SCHEMA || value.version !== TASK_VERSION) throw new TypeError('Unsupported agent task version.');
   bounded(value.taskId, 128, 'Task id');
@@ -140,6 +141,38 @@ export function planAgentApplication(task, response, selectedProposals, state) {
   return {already: false, hypothesis, hypothesisId, proposalIds};
 }
 
+/** Stage the selected response while preserving an objection's parent proposal. */
+export function stageAgentProposals({task, selected, workspace, sourceLocators, dataFingerprint, plan}) {
+  const sourceMap = new Map(task.sources.map(source => [source.id, source]));
+  for (const proposal of selected) {
+    for (const sourceId of [...proposal.sourceIds, ...proposal.evidenceIds, ...(proposal.objection?.sourceRefs || [])]) {
+      if (!sourceMap.has(sourceId) || typeof sourceLocators.get(sourceId) !== 'string') throw new TypeError('A selected agent source is unavailable.');
+    }
+  }
+  workspace.addHypothesis(plan.hypothesis);
+  if (workspace.persistenceError?.()) throw new Error('The workspace changed in another tab. Export your unsaved workspace draft before reloading.');
+  const stage = (proposalId, kind, statement, sourceIds, evidenceIds, targetIds, targetOverride = null) => {
+    const proposalKey = `agent-${task.taskId}-${proposalId}`;
+    const sourceRefs = [...new Set(sourceIds.map(sourceId => sourceLocators.get(sourceId)))];
+    const evidenceRefs = [...new Set(evidenceIds.map(sourceId => sourceLocators.get(sourceId)))];
+    const target = targetIds.map(sourceId => sourceMap.get(sourceId).reference.unitId);
+    const base = {id: proposalKey, kind, parentHypothesisId: plan.hypothesisId, statement, sourceRefs, evidenceRefs,
+      confidencePosture: {value: 'unknown', meaning: 'maker_declared_uncertainty_not_truth_probability'},
+      actorOrigin: 'agent', basePageRevision: 0, baseWorkspaceRevision: workspace.summary().revision, dataFingerprint};
+    if (kind === 'relation') { base.fromId = target[0]; base.toId = target[1]; }
+    else base.targetId = targetOverride || target[0];
+    workspace.stageProposal(base);
+    if (workspace.persistenceError?.()) throw new Error('The workspace changed in another tab. Export your unsaved workspace draft before reloading.');
+  };
+  selected.forEach(proposal => {
+    const citationIds = [...new Set([...proposal.sourceIds, ...proposal.evidenceIds])];
+    stage(proposal.id, proposal.kind, proposal.statement, proposal.sourceIds, proposal.evidenceIds,
+      proposal.kind === 'relation' ? citationIds.slice(0, 2) : [proposal.sourceIds[0]]);
+    if (proposal.objection) stage(`${proposal.id}-objection`, 'interpretation', `Objection: ${proposal.objection.statement}`,
+      proposal.objection.sourceRefs, proposal.objection.sourceRefs, [proposal.objection.sourceRefs[0]], `agent-${task.taskId}-${proposal.id}`);
+  });
+}
+
 async function fingerprint(sources) {
   const input = new TextEncoder().encode(JSON.stringify(sources.map(source => ({id: source.id, reference: source.reference}))));
   const digest = await globalThis.crypto.subtle.digest('SHA-256', input);
@@ -178,6 +211,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const exportButton = button(t().export, 'pr-agent-button pr-agent-primary');
   const copyButton = button(t().copy, 'pr-agent-button');
   const taskText = document.createElement('textarea'); taskText.className = 'pr-agent-json'; taskText.readOnly = true; taskText.rows = 8; taskText.setAttribute('aria-label', 'Agent task JSON');
+  const taskNotice = text('p', 'pr-agent-status'); taskNotice.hidden = true;
   const importLabel = text('label', 'pr-agent-label'); const importLabelText = text('span', '', t().import); importLabel.append(importLabelText);
   const responseText = document.createElement('textarea'); responseText.className = 'pr-agent-json'; responseText.rows = 8; responseText.maxLength = RESPONSE_LIMIT; responseText.setAttribute('aria-label', 'Agent response JSON'); importLabel.append(responseText);
   const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'application/json,.json'; fileInput.className = 'pr-agent-file';
@@ -188,7 +222,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const controls = text('div', 'pr-agent-buttons'); controls.append(addSource);
   taskButtons.append(exportButton, copyButton);
   const importHeading = text('h3', '', t().import);
-  section.append(heading, intro, sourceHeading, sourceList, controls, taskButtons, taskText, importHeading, importLabel, fileInput, previewButton, review, applyButton, status);
+  section.append(heading, intro, sourceHeading, sourceList, controls, taskButtons, taskText, taskNotice, importHeading, importLabel, fileInput, previewButton, review, applyButton, status);
   root.append(section);
 
   let chosen = [];
@@ -196,11 +230,28 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   let tasks = [];
   const sourceListeners = new Set();
   let activeTask = null;
+  let displayedTask = null;
   let activeResponse = null;
   let selectedProposalIds = new Set();
   const message = value => { status.textContent = value; };
-  const notifySources = () => { const current = chosen.map(source => copy(source)); for (const listener of sourceListeners) listener(current); };
-  const sourceTitle = source => [source.title, source.versionLabel].filter(Boolean).join(' · ') || source.id;
+  const updateTaskNotice = () => {
+    if (!displayedTask) { taskNotice.hidden = true; return; }
+    const sameSources = JSON.stringify(displayedTask.sources.map(source => referenceKey(source.reference))) === JSON.stringify(chosen.map(source => source.key));
+    const stale = !sameSources || displayedTask.question !== api.getQuestion() || displayedTask.workspaceRevision !== workspace.summary().revision;
+    taskNotice.hidden = false;
+    taskNotice.textContent = stale
+      ? (english() ? 'This JSON is an earlier saved task. Export a new task to include the current question and sources.' : 'Этот JSON — ранее сохранённое задание. Экспортируйте новое, чтобы включить текущий вопрос и источники.')
+      : (english() ? 'This JSON is a saved task snapshot.' : 'Этот JSON — снимок сохранённого задания.');
+  };
+  const notifySources = () => { const current = chosen.map(source => copy(source)); for (const listener of sourceListeners) listener(current); updateTaskNotice(); };
+  const unsubscribeQuestion = api.subscribeQuestion?.(updateTaskNotice);
+  const unsubscribeWorkspace = workspace.subscribe(updateTaskNotice);
+  const sourceTitle = source => {
+    const selector = source.reference?.selector;
+    const range = Number.isSafeInteger(selector?.start) && Number.isSafeInteger(selector?.end) && selector.end > selector.start
+      ? `${selector.start}–${selector.end} ${english() ? 'characters' : 'знаков'}` : '';
+    return [source.title, source.versionLabel, range].filter(Boolean).join(' · ') || source.id;
+  };
   const renderSources = () => {
     sourceList.replaceChildren();
     if (!chosen.length) sourceList.append(text('p', 'pr-agent-empty', english() ? 'No exact passage selected yet.' : 'Точные фрагменты ещё не выбраны.'));
@@ -246,11 +297,13 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
 
   const restoreTasks = async () => {
     try {
-      const savedIds = await notebook.getPreference(TASKS_KEY);
-      if (Array.isArray(savedIds) && savedIds.length <= 5_000) for (const taskId of savedIds) {
-        if (typeof taskId !== 'string' || taskId.length > 128) continue;
+      const packet = await notebook.exportPacket();
+      const saved = packet.preferences.filter(item => item.key.startsWith(TASK_KEY_PREFIX)).slice(0, 5_000);
+      for (const item of saved) {
+        const taskId = item.key.slice(TASK_KEY_PREFIX.length);
+        if (!taskId || taskId.length > 128) continue;
         try {
-          const value = await notebook.getPreference(`${TASK_KEY_PREFIX}${taskId}`);
+          const value = item.value;
           if (value) { const task = taskPacket(value); if (task.taskId === taskId && new TextEncoder().encode(JSON.stringify(task)).byteLength <= TASK_LIMIT) tasks.push(task); }
         } catch { /* Keep other saved tasks available when one old packet is invalid. */ }
       }
@@ -260,15 +313,20 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     const serialized = JSON.stringify(task);
     if (new TextEncoder().encode(serialized).byteLength > TASK_LIMIT) throw new TypeError('The task exceeds the 64 KB export limit. Remove sources or shorten the question.');
     try {
-      await notebook.setPreference(`${TASK_KEY_PREFIX}${task.taskId}`, task);
-      const ids = await notebook.getPreference(TASKS_KEY);
-      const nextIds = Array.isArray(ids) ? ids.filter(value => value !== task.taskId) : [];
-      nextIds.push(task.taskId);
-      await notebook.setPreference(TASKS_KEY, nextIds);
+      await notebook.setPreference(`${TASK_KEY_PREFIX}${task.taskId}`, task, {expectedValue: undefined});
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const ids = await notebook.getPreference(TASKS_KEY);
+        if (ids !== undefined && !Array.isArray(ids)) throw new Error('The saved task index is invalid.');
+        const nextIds = Array.isArray(ids) ? ids.filter(value => value !== task.taskId) : [];
+        nextIds.push(task.taskId);
+        try { await notebook.setPreference(TASKS_KEY, nextIds, {expectedValue: ids}); break; }
+        catch (error) { if (error?.code !== 'conflict' || attempt === 2) throw error; }
+      }
       tasks = [...tasks.filter(value => value.taskId !== task.taskId), task];
     } catch { throw new Error(english() ? 'The task could not be saved in the notebook.' : 'Не удалось сохранить задание в блокноте.'); }
   };
   const createTask = async () => {
+    if (api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) throw new Error('The research question has unsaved changes or changed in another tab.');
     const question = bounded(await api.getQuestion(), 4_000, 'Question');
     if (!chosen.length) throw new TypeError(english() ? 'Add at least one exact selected source.' : 'Добавьте хотя бы один точный выбранный источник.');
     const sources = chosen.map(source => ({id: source.id, reference: source.reference, title: source.title,
@@ -282,10 +340,12 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     await saveTask(task);
     activeTask = task; activeResponse = null; selectedProposalIds.clear(); applyButton.disabled = true; review.replaceChildren();
     taskText.value = JSON.stringify(task, null, 2);
+    displayedTask = task; updateTaskNotice();
     message(english() ? 'Task saved in this device notebook. Export or copy it to any external agent.' : 'Задание сохранено в блокноте этого устройства. Экспортируйте или скопируйте его для любого внешнего агента.');
     return task;
   };
   const readImport = async () => {
+    await tasksReady;
     const raw = responseText.value;
     if (new TextEncoder().encode(raw).byteLength > RESPONSE_LIMIT) throw new TypeError('The response exceeds 64 KB.');
     let value; try { value = JSON.parse(raw); } catch { throw new TypeError('The response is not valid JSON.'); }
@@ -320,13 +380,14 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     if (!activeTask || !activeResponse) return;
     const results = await resolveResponse();
     const sources = new Map(activeTask.sources.map(source => [source.id, source]));
-    let allExact = true;
+    const selectedExact = () => activeResponse.proposals.filter(proposal => selectedProposalIds.has(proposal.id)).every(proposal =>
+      [...proposal.sourceIds, ...proposal.evidenceIds, ...(proposal.objection?.sourceRefs || [])].every(sourceId => results.get(sourceId)?.status === 'exact'));
     const cards = [];
     const citationNode = sourceId => {
       const source = sources.get(sourceId); const result = results.get(sourceId);
-      if (!source) { allExact = false; return text('span', 'pr-agent-stale', `${sourceId}: ${t().stale}`); }
+      if (!source) return text('span', 'pr-agent-stale', `${sourceId}: ${t().stale}`);
       const row = text('div', `pr-agent-citation ${result?.status === 'exact' ? 'is-exact' : 'is-stale'}`);
-      if (result?.status !== 'exact') { allExact = false; row.append(text('span', 'pr-agent-stale', `${sourceTitle(source)} — ${t().stale}`)); }
+      if (result?.status !== 'exact') row.append(text('span', 'pr-agent-stale', `${sourceTitle(source)} — ${t().stale}`));
       else {
         const open = button(sourceTitle(source), 'pr-agent-cite'); open.addEventListener('click', () => void reopenSource(source));
         row.append(open, text('small', '', t().exact));
@@ -336,7 +397,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     for (const proposal of activeResponse.proposals) {
       const card = text('article', 'pr-agent-proposal');
       const label = document.createElement('label'); label.className = 'pr-agent-select';
-      const check = document.createElement('input'); check.type = 'checkbox'; check.checked = selectedProposalIds.has(proposal.id); check.addEventListener('change', () => { check.checked ? selectedProposalIds.add(proposal.id) : selectedProposalIds.delete(proposal.id); applyButton.disabled = !allExact || !selectedProposalIds.size; });
+      const check = document.createElement('input'); check.type = 'checkbox'; check.checked = selectedProposalIds.has(proposal.id); check.addEventListener('change', () => { check.checked ? selectedProposalIds.add(proposal.id) : selectedProposalIds.delete(proposal.id); applyButton.disabled = !selectedExact() || !selectedProposalIds.size; });
       label.append(check, text('strong', '', `${t().proposal} · ${kindLabel(proposal.kind, locale)}`));
       card.append(label, text('p', '', proposal.statement));
       const citations = text('div', 'pr-agent-citations'); proposal.sourceIds.forEach(sourceId => citations.append(citationNode(sourceId)));
@@ -352,7 +413,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     }
     if (activeResponse.uncertainty) review.append(text('p', 'pr-agent-uncertainty', `${english() ? 'Uncertainty' : 'Неопределённость'}: ${activeResponse.uncertainty}`));
     cards.forEach(card => review.append(card));
-    if (allExact) {
+    if (selectedExact()) {
       applyButton.disabled = selectedProposalIds.size === 0;
       message(t().exact);
     } else {
@@ -370,8 +431,19 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     });
     if ([...referenced].some(sourceId => results.get(sourceId)?.status !== 'exact')) { await renderReview(); throw new Error(t().stale); }
     const sourceMap = new Map(activeTask.sources.map(source => [source.id, source]));
-    const currentQuestion = bounded(await api.getQuestion(), 4_000, 'Question');
-    if (currentQuestion !== activeTask.question) throw new Error(english() ? 'The question changed after task export. Export a new task before applying this response.' : 'После экспорта задания вопрос изменился. Перед применением ответа экспортируйте новое задание.');
+    const checkWorkspace = () => {
+      const saved = globalThis.localStorage.getItem(WORKSPACE_KEY);
+      if (workspace.persistenceError?.() || (saved !== null && saved !== workspace.exportPacket())) {
+        throw new Error('The workspace changed in another tab. Review the saved state before applying this response.');
+      }
+    };
+    const checkQuestion = async () => {
+      if ((api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) || bounded(await api.getQuestion(), 4_000, 'Question') !== activeTask.question) {
+        throw Object.assign(new Error('The question changed after task export.'), {code:'agent-question-changed'});
+      }
+    };
+    await checkQuestion();
+    checkWorkspace();
     const work = workspace;
     let plan = planAgentApplication(activeTask, activeResponse, selected, work.getState());
     if (plan.already) { message(t().appliedAlready); return; }
@@ -390,26 +462,9 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     if (activeTask.workspaceRevision !== work.summary().revision) throw new Error(english()
       ? 'The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.'
       : 'После экспорта задания рабочая область изменилась. Ответ сохранён для просмотра; перед применением экспортируйте новое задание.');
-    work.addHypothesis(plan.hypothesis);
-    const stage = (proposalId, kind, statement, sourceIds, evidenceIds, targetIds) => {
-      const proposalKey = `agent-${activeTask.taskId}-${proposalId}`;
-      const sourceRefs = [...new Set(sourceIds.map(sourceId => sourceLocators.get(sourceId)))];
-      const evidenceRefs = [...new Set(evidenceIds.map(sourceId => sourceLocators.get(sourceId)))];
-      const target = targetIds.map(sourceId => sourceMap.get(sourceId).reference.unitId);
-      const base = {id: proposalKey, kind, parentHypothesisId: plan.hypothesisId, statement, sourceRefs, evidenceRefs,
-        confidencePosture: {value: 'unknown', meaning: 'maker_declared_uncertainty_not_truth_probability'},
-        actorOrigin: 'agent', basePageRevision: 0, baseWorkspaceRevision: work.summary().revision, dataFingerprint};
-      if (kind === 'relation') { base.fromId = target[0]; base.toId = target[1]; }
-      else base.targetId = target[0];
-      work.stageProposal(base);
-    };
-    selected.forEach(proposal => {
-      const citationIds = [...new Set([...proposal.sourceIds, ...proposal.evidenceIds])];
-      stage(proposal.id, proposal.kind, proposal.statement, proposal.sourceIds, proposal.evidenceIds,
-        proposal.kind === 'relation' ? citationIds.slice(0, 2) : [proposal.sourceIds[0]]);
-      if (proposal.objection) stage(`${proposal.id}-objection`, 'interpretation', `Objection: ${proposal.objection.statement}`,
-        proposal.objection.sourceRefs, proposal.objection.sourceRefs, [proposal.objection.sourceRefs[0]]);
-    });
+    await checkQuestion();
+    checkWorkspace();
+    stageAgentProposals({task:activeTask, selected, workspace:work, sourceLocators, dataFingerprint, plan});
     await renderReview();
     message(t().applied);
   };
@@ -438,13 +493,13 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     if (file.size > RESPONSE_LIMIT) { message(english() ? 'The response exceeds 64 KB.' : 'Ответ превышает 64 КБ.'); fileInput.value = ''; return; }
     responseText.value = await file.text(); fileInput.value = '';
   });
-  void restoreTasks();
+  const tasksReady = restoreTasks();
   renderSources();
   let destroyed = false;
-  const destroy = () => { if (destroyed) return; destroyed = true; window.removeEventListener('pagehide', pageHide); sourceListeners.clear(); section.remove(); };
+  const destroy = () => { if (destroyed) return; destroyed = true; window.removeEventListener('pagehide', pageHide); unsubscribeQuestion?.(); unsubscribeWorkspace?.(); sourceListeners.clear(); section.remove(); };
   const pageHide = event => { if (!event.persisted) destroy(); };
   window.addEventListener('pagehide', pageHide);
-  const refreshLocale = () => { heading.textContent=t().heading; intro.textContent=t().intro; sourceHeading.textContent=t().sourceCount; addSource.textContent=t().add; exportButton.textContent=t().export; copyButton.textContent=t().copy; importHeading.textContent=t().import; importLabelText.textContent=t().import; previewButton.textContent=t().preview; applyButton.textContent=t().apply; taskText.setAttribute('aria-label', english() ? 'Agent task JSON' : 'JSON задания агенту'); responseText.setAttribute('aria-label', english() ? 'Agent response JSON' : 'JSON ответа агента'); fileInput.setAttribute('aria-label', t().file); status.textContent=t().status; renderSources(); if (activeResponse) void renderReview(); };
+  const refreshLocale = () => { heading.textContent=t().heading; intro.textContent=t().intro; sourceHeading.textContent=t().sourceCount; addSource.textContent=t().add; exportButton.textContent=t().export; copyButton.textContent=t().copy; importHeading.textContent=t().import; importLabelText.textContent=t().import; previewButton.textContent=t().preview; applyButton.textContent=t().apply; taskText.setAttribute('aria-label', english() ? 'Agent task JSON' : 'JSON задания агенту'); responseText.setAttribute('aria-label', english() ? 'Agent response JSON' : 'JSON ответа агента'); fileInput.setAttribute('aria-label', t().file); status.textContent=t().status; renderSources(); updateTaskNotice(); if (activeResponse) void renderReview(); };
   refreshLocale();
   return {destroy, refreshLocale, addSelectedSource, exportTask: createTask,
     selectedSources: () => chosen.map(source => copy(source)),

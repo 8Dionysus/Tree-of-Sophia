@@ -264,3 +264,8 @@
 
 /* Keep route prose and controls outside the open detail card. */
 @media(min-width:761px){#tree[data-reading=true] .ps-route-dock{right:410px}}
+
+.ps-personal-title{font-size:1rem;line-height:1.55;overflow-wrap:anywhere;color:var(--ink,#dce2e9)}
+.ps-personal-grounds,.ps-personal-proposals,.ps-endpoint-source{margin:1.3rem 0;padding-top:.8rem;border-top:1px solid #8fa1b42b}
+.ps-personal-grounds .text-button,.ps-endpoint-source .text-button,.ps-personal-proposals .text-button{display:block;white-space:normal;text-align:start;overflow-wrap:anywhere;margin:.6rem 0}
+.ps-personal-proposal+.ps-personal-proposal{margin-top:1rem;padding-top:1rem;border-top:1px solid #8fa1b422}

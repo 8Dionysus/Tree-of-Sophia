@@ -9,10 +9,13 @@ const only = (value, fields) => record(value) && Object.keys(value).length === f
 const blockedObjectKeys = new Set(['__proto__', 'prototype', 'constructor']);
 
 /** Copy an explicitly compatible predecessor; preserve the original namespace. */
-export function upgradePublicGraph(storage,{profile,fingerprint,predecessors=[],validate}={}) {
+export function upgradePublicGraph(storage,{profile,fingerprint,predecessors=[],validate,pristineGraph=null}={}) {
   if(!storage||typeof validate!=='function')return {upgraded:false};
   const key=`tos.public-research.graph.v1.${profile}.${fingerprint}`;
-  if(storage.getItem(key)!==null)return {upgraded:false};
+  const current=storage.getItem(key);
+  // An earlier archive may be imported after this release has seeded a page.
+  // Only that exact owner-produced seed may be replaced, never personal edits.
+  if(current!==null&&current!==pristineGraph)return {upgraded:false};
   for(const predecessor of predecessors){
     if(!/^[a-f0-9]{64}$/.test(predecessor.fingerprint)||predecessor.fingerprint===fingerprint)continue;
     const previousKey=`tos.public-research.graph.v1.${profile}.${predecessor.fingerprint}`;
@@ -20,9 +23,12 @@ export function upgradePublicGraph(storage,{profile,fingerprint,predecessors=[],
     const packet=JSON.parse(original),allowed=new Set(predecessor.materialIds??[]);
     if(packet.libraryFingerprint!==predecessor.fingerprint||!Array.isArray(packet.nodes)||packet.nodes.some(node=>node.materialId&&!allowed.has(node.materialId)))throw new Error('The saved graph does not match its declared predecessor.');
     const candidate=validate(JSON.stringify({...packet,libraryFingerprint:fingerprint}));
+    const owners=storage.getItem(`${previousKey}.owners`);
+    const currentOwners=storage.getItem(`${key}.owners`);
+    if(currentOwners!==null&&currentOwners!=='{}'&&currentOwners!==owners)throw new Error('The current graph has different personal bindings. Both original graphs are preserved.');
+    if(storage.getItem(key)!==current)throw new Error('The current graph changed during restoration. Both original graphs are preserved.');
     // The current Rust owner validates every reference before any storage write.
     storage.setItem(key,candidate);
-    const owners=storage.getItem(`${previousKey}.owners`);
     if(owners!==null)storage.setItem(`${key}.owners`,owners);
     return {upgraded:true,from:previousKey,to:key};
   }
@@ -140,4 +146,9 @@ export function applyGraphSpace(storage, graphSpace, options = {}) {
     storage.setItem(item.key, item.value); added.push(item.key);
   }
   return {added, equal, conflicts: [...new Set(conflicts)]};
+}
+
+/** A newly added graph or companion for the active profile needs remounting. */
+export function shouldReloadImportedGraph(addedKeys, profile) {
+  return Array.isArray(addedKeys) && addedKeys.some(key => graphKeyInfo(key)?.profile === profile);
 }

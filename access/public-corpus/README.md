@@ -72,6 +72,31 @@ Completeness here means all sections of the saved reading representations.
 It does not certify transcription quality against scans or critical editions.
 Historical Wikisource transclusions retain their recorded proofreading limits.
 
+## Editorial marks in the reader
+
+`editorial-annotations.v1.json` is bounded presentation metadata, generated
+from the exact source and immutable reading-layer bytes by
+`python3 access/public-corpus/prepare_editorial_annotations.py`. It does not
+rebuild or change the public corpus. It records the source digest, version,
+layer digest, unit, Unicode-code-point range and exact text for every displayed
+mark. The reader applies a mark only when all these bindings still match.
+
+The pinned Rackham TEI maps 696 source `<note>` elements to their own units;
+an ambiguous note makes generation fail. The retained Athenian Constitution
+HTML maps 56 editorial additions and 26 gap marks; the retained Greek Ethics
+HTML maps 80 addition, deletion and gap spans. Three ambiguous Greek Ethics
+spans were rejected and are not displayed as editorial marks. The retained
+HTML is evidence of its own markup, not proof of an editor's identity, a full
+critical apparatus, or a semantic judgment. Text and existing selectors stay
+unchanged; quoted selected ranges identify any mapped editorial material.
+
+The provisional source-visible comparison of one phrase in Adams's
+*On the Sacred Disease* is separately recorded in
+`ToS/research-packets/public-prototypes-20261026/reader-textual-variants.v1.json`.
+The reader preserves and attributes the digital reading while showing the
+different reading in the linked printed witness. This is not a complete
+collation or a replacement text layer.
+
 ## Morphology and dictionaries
 
 The two `morphology.*.v1.json` files contain retained, unranked tool candidates,

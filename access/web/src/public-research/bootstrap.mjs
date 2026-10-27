@@ -3,6 +3,7 @@ import {installBrowserWorkspaceMachine} from '../research-workspace-rust.ts';
 import {installCorpusReferenceRules} from '../corpus-reader/corpus-reference-rules.mjs';
 import {installReaderOccurrenceRules} from '../reader/occurrences-rust.mjs';
 import {installResearchShelfRules} from '../research-shelf/rules.mjs';
+import {installDraftRules} from '../observatory/lens-draft-rust.mjs';
 import {installConstructorRules} from '../../constructor/model.mjs';
 import {installConstructorReadingRules} from '../../constructor/reading-rules-rust.mjs';
 
@@ -15,6 +16,7 @@ export function initializePublicReaderRules() {
     installCorpusReferenceRules(rules);
     installReaderOccurrenceRules(rules);
     installResearchShelfRules(rules);
+    installDraftRules(rules);
     installConstructorRules(rules);
     installConstructorReadingRules(rules);
   })();

@@ -16,13 +16,30 @@ import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '.
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm} from './philology.mjs';
 import {editionRepresentationKind,groupEditionRepresentations} from './edition-groups.mjs';
 import {readableUnitLocator} from './location-label.mjs';
+import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+import variants from '../../../../ToS/research-packets/public-prototypes-20261026/reader-textual-variants.v1.json' with {type:'json'};
 
 const retainedApparatus=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>[
-  ...(version.bookNotesUnitIds??[]).map(id=>[id,'workNotes']),
-  ...(version.adjustmentUnitIds??[]).map(id=>[id,'textualAdjustments']),
+  ...(version.bookNotesUnitIds??[]).map(id=>[id,{key:'workNotes',versionId:version.versionId,revision:version.revision}]),
+  ...(version.adjustmentUnitIds??[]).map(id=>[id,{key:'textualAdjustments',versionId:version.versionId,revision:version.revision}]),
 ])));
-const apparatusLabel=(unit,locale)=>{const key=retainedApparatus.get(unit?.unitId??unit?.id);return key?WORDING[String(locale).startsWith('en')?'en':'ru'][key]:'';};
+const apparatusLabel=(unit,locale)=>{const item=retainedApparatus.get(unit?.unitId??unit?.id),reference=unit?.reference;
+  return item && reference?.versionId===item.versionId && reference?.target?.textLayerSha256===item.revision
+    ? WORDING[String(locale).startsWith('en')?'en':'ru'][item.key] : '';};
+// Structural section IDs can include an earlier scholarly marker. Show the
+// range supplied by the retained navigation metadata without changing the
+// unit's identity or claiming an offset for an individual marker.
+const retainedEarlierMarkers=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>
+  version.structure.flatMap(section=>{
+    const first=section.markers?.[0],last=section.markers?.at(-1);
+    const sectionNumber=/^\d+$/.test(section.sectionId??'')?Number(section.sectionId):null;
+    const firstNumber=typeof first==='string'?Number(first.match(/^\d+/)?.[0]):NaN;
+    return sectionNumber!==null && Number.isFinite(firstNumber) && firstNumber<sectionNumber && last
+      ? [[`${version.versionId}\u0000${version.revision}\u0000${section.unitId}`,`${first}–${last}`]] : [];
+  }))));
+const earlierMarkerRange=(unit,versionId)=>retainedEarlierMarkers.get(`${versionId}\u0000${unit?.reference?.target?.textLayerSha256}\u0000${unit?.unitId??unit?.id}`) || '';
+const withMarkerRange=(label,unit,versionId)=>{const range=earlierMarkerRange(unit,versionId);return range?`${label} (${range})`:label;};
 
 const WORDING = {
   ru: {
@@ -129,13 +146,15 @@ function selectedOffsets(row, node, offset) {
 
 function quoteAttribution({document, version, unit, quote, locale}) {
   const title = corpusWorkTitle(document, locale) || document?.id || '';
+  const author = localized(document?.author, locale);
   const work = localized(document?.work, locale);
+  const originalTitle = localized(document?.title, locale);
   const edition = localized(version?.edition, locale) || version?.label || version?.id || '';
-  const locator = apparatusLabel(unit,locale) || localized(unit?.label || version?.locator || document?.locator, locale) || unit?.sourceReference || unit?.unitId || '';
+  const locator = withMarkerRange(apparatusLabel(unit,locale) || corpusSectionLabel(readableUnitLocator(unit,locale),locale,version?.id) || localized(version?.locator || document?.locator, locale) || unit?.unitId || '',unit,version?.id);
   const source = safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
   const licenseUrl = safeExternalUrl(attr(version?.license?.url));
   const license = licenseUrl ? `${localized(version?.license?.label, locale) || (String(locale).startsWith('en') ? 'License' : 'Лицензия')}: ${licenseUrl}` : '';
-  return [quote ? `«${quote}»` : '', `${title}${work && work !== title ? ` · ${work}` : ''}`, edition, locator, source, license].filter(Boolean).join('\n');
+  return [quote ? `«${quote}»` : '', [author,title,work && work !== title && work !== originalTitle ? work : ''].filter(Boolean).join(' · '), edition, locator, source, license].filter(Boolean).join('\n');
 }
 
 /**
@@ -149,6 +168,7 @@ export function mountCorpusReader({
   locale = () => 'ru',
   onGraphRequest,
   onClose,
+  onReturnFocusFallback,
   onLocation,
   onNativeReference,
 } = {}) {
@@ -167,6 +187,7 @@ export function mountCorpusReader({
   let renderSerial = 0;
   let catalogCancel = null;
   let searchCancel = null;
+  let searchGeneration = 0;
   let currentTab = 'context';
   let searchOpen = false;
   let searchScope = 'loaded';
@@ -231,13 +252,13 @@ export function mountCorpusReader({
   const versionLanguage = version => readableLanguage(version?.language, uiLocale());
   const unitLabel = unit => {
     const apparatus=apparatusLabel(unit,uiLocale());if(apparatus)return apparatus;
-    if (typeof unit?.label === 'string' && unit.label.trim()) return corpusSectionLabel(unit.label,uiLocale(),modelState().activeVersionId);
+    if (typeof unit?.label === 'string' && unit.label.trim()) return withMarkerRange(corpusSectionLabel(unit.label,uiLocale(),selected?.versionId || modelState().activeVersionId),unit,selected?.versionId || modelState().activeVersionId);
     if (Number.isSafeInteger(unit?.ordinal) && unit.ordinal >= 0) return `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}`;
     return t('passage');
   };
-  const paneUnitLabel = (unit, version) => apparatusLabel(unit,uiLocale())
+  const paneUnitLabel = (unit, version) => withMarkerRange(apparatusLabel(unit,uiLocale())
     || corpusSectionLabel(readableUnitLocator(unit,uiLocale()), uiLocale(), version?.id || '')
-    || (Number.isSafeInteger(unit?.ordinal) ? `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}` : '');
+    || (Number.isSafeInteger(unit?.ordinal) ? `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}` : ''),unit,version?.id);
   const locationLabel = reference => {
     if (!reference) return '';
     const state = modelState();
@@ -363,7 +384,13 @@ export function mountCorpusReader({
   function selectedRecord() {
     if (!selected?.reference) return null;
     const items = notebookItems();
-    return items.notes.find(item => sameNoteReference(item, selected.reference)) || null;
+    if (Object.hasOwn(selected, 'noteId')) {
+      return items.notes.find(item => item.id === selected.noteId && sameNoteReference(item, selected.reference)) || null;
+    }
+    const item = items.notes.find(note => sameNoteReference(note, selected.reference)) || null;
+    selected.noteId = item?.id ?? null;
+    selected.noteRevision = item?.revision;
+    return item;
   }
 
   async function flushNote() {
@@ -371,9 +398,22 @@ export function mountCorpusReader({
     while (noteFlushPromise) { const saved=await noteFlushPromise; if(!saved)return false; }
     if (!noteDirty || !draft || !selected?.reference) return true;
     const target=selected.reference, value=draft.text, key=referenceKey(target), quote=selected.quote || '';
+    const recordId=draft.recordId, recordRevision=draft.recordRevision;
     const task=(async()=>{
       try {
-        if(value.trim())await model.saveNote(target,value,quote);else await model.deleteNote(target);
+        const result=value.trim()
+          ? await model.saveNote(target,value,quote,{id:recordId,revision:recordRevision})
+          : recordId ? await model.deleteNote(target,{id:recordId,revision:recordRevision}) : null;
+        const savedId=result?.item?.id ?? null, savedRevision=result?.item?.revision;
+        if (selected?.reference === target && selected.noteId === recordId) {
+          selected.noteId=savedId; selected.noteRevision=savedRevision;
+        }
+        if (draft?.key===key && draft.recordId===recordId) {
+          draft.recordId=savedId; draft.recordRevision=savedRevision;
+          if (draft.text!==value) {
+            try{draftJournal.capture({reference:target,text:draft.text,quote,originalNoteId:savedId});}catch{}
+          }
+        }
         if(notebook?.status?.().persistent){
           // A failed cleanup retains a recovery copy; it does not undo the
           // notebook transaction that has already committed successfully.
@@ -401,6 +441,7 @@ export function mountCorpusReader({
     const startOffset = Number.isSafeInteger(start) ? codePointOffset(unit.text, start) : 0;
     const endOffset = Number.isSafeInteger(end) ? codePointOffset(unit.text, end) : startOffset;
     const reference = unitReference(unit, version, document, {start: startOffset, end: Math.max(startOffset, endOffset)});
+    if (!reference) return;
     selected = {reference, unit, versionId, quote:quote||unit.text.slice(0,READER_LIMITS.quote)};
     philologyController?.abort();
     philologyController = null;
@@ -484,6 +525,7 @@ export function mountCorpusReader({
       || !Number.isSafeInteger(reference.selector.start) || !Number.isSafeInteger(reference.selector.end)
       || reference.selector.end <= reference.selector.start) return;
     if (!(await flushNote()) || selected?.reference !== origin) return;
+    selectionSequence++;
     capturePanePositions();
     const result = await model.loadWindow({documentId:state.document.id,versionId:reference.versionId,reference});
     if (selected?.reference !== origin) return;
@@ -509,6 +551,7 @@ export function mountCorpusReader({
         return;
       }
       if(!(await flushNote())||selected?.reference!==origin)return;
+      selectionSequence++;
       capturePanePositions();
       const opened=await model.open({documentId:target.target.workId,versionId:target.versionId,reference:target});
       if(selected?.reference!==origin||!opened)return;
@@ -530,10 +573,13 @@ export function mountCorpusReader({
     if (!row) return;
     const mark = row.querySelector('[data-selected-occurrence]');
     (mark || row).scrollIntoView({block:mark?'center':'start',inline:'nearest'});
+    const boundary=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top;
+    if(row.getBoundingClientRect().top<boundary && !mark)pane.scrollTop-=boundary-row.getBoundingClientRect().top+2;
+    refreshPaneLocation(pane,activeVersion(reference.versionId));
   }
 
   function markSelection() {
-    for (const row of root.querySelectorAll('.cr-unit')) row.dataset.selected = String(selected && row.dataset.unitId===selected.reference.unitId && row.closest('.cr-pane')?.dataset.versionId===selected.versionId);
+    for (const row of root.querySelectorAll('.cr-unit')) row.dataset.selected = String(selected?.reference && row.dataset.unitId===selected.reference.unitId && row.closest('.cr-pane')?.dataset.versionId===selected.versionId);
   }
 
   function unitFromSelection() {
@@ -564,8 +610,16 @@ export function mountCorpusReader({
     if (!item) return;
     const document = activeDocument();
     const version = activeVersion(selected.versionId);
-    const quote = selected.quote || item.text;
-    const value = quoteAttribution({document, version, unit: item, quote, locale: uiLocale()});
+    const reference = selected.reference;
+    if (!version || reference?.target?.workId !== document?.id || reference.versionId !== version.id
+      || reference.unitId !== (item.unitId || item.id)
+      || (version.source?.textLayerSha256 && reference.target.textLayerSha256!==version.source.textLayerSha256)) { announce(t('changedCurrent')); return; }
+    const quote = quotationWithEditorialRoles(version,item,reference.selector,uiLocale());
+    let value = quoteAttribution({document, version, unit: item, quote, locale: uiLocale()});
+    const difference=variants.variants.find(entry=>entry.versionId===version.id && entry.revision===version.revision && entry.unitId===reference.unitId
+      && codePointSlice(item.text,entry.selector.start,entry.selector.end)===entry.digitalReading
+      && (reference.selector.end===reference.selector.start || reference.selector.start<entry.selector.end && reference.selector.end>entry.selector.start));
+    if(difference)value+=`\n${uiLocale()==='en'?'Reviewed witness difference':'Проверенное различие свидетелей'}: “${difference.digitalReading}” / “${difference.printReading}” · ${difference.printWitness} · ${difference.printUrl}`;
     try { await navigator.clipboard.writeText(value); }
     catch {
       const fallback = element('textarea', 'cr-copy-fallback', value);
@@ -685,7 +739,8 @@ export function mountCorpusReader({
     if(window.innerWidth<=850)libraryOpen=false;
     await capturePanePositions();
     if(disposed)return null;
-    selected = null;
+    selectionSequence++; selected = null;
+    searchCancel?.(); searchGeneration++;
     searchQuery = '';
     searchResult = {items: []};
     const result = await model.open({documentId});
@@ -702,7 +757,8 @@ export function mountCorpusReader({
     if(window.innerWidth<=850){libraryOpen=false;inspectorOpen=false;}
     await capturePanePositions();
     if(disposed)return null;
-    selected = null;
+    selectionSequence++; selected = null;
+    searchCancel?.(); searchGeneration++;
     searchQuery = '';
     searchResult = {items: []};
     const result = await model.open({documentId, versionId});
@@ -839,7 +895,14 @@ export function mountCorpusReader({
     const count = element('span', 'cr-search-count', searchQuery ? countValue : ''); count.setAttribute('role', 'status');
     const update = () => {
       searchCancel?.(); searchQuery = input.value; searchScope = scope.value;
-      searchCancel = wait(180, () => model.search({query: searchQuery, scope: searchScope}).then(result => { searchResult = result || {items: []}; render(); }).catch(error => { searchResult = {items: [], nextCursor: null, total: null}; announce(friendlyError(error)); render(); }));
+      const generation=++searchGeneration, query=searchQuery, selectedScope=searchScope;
+      const documentId=state.document?.id, versionId=state.activeVersionId;
+      searchResult={items:[],total:null};
+      const current=()=>generation===searchGeneration && modelState().document?.id===documentId
+        && modelState().activeVersionId===versionId && searchQuery===query && searchScope===selectedScope;
+      searchCancel = wait(180, () => model.search({documentId,versionId,query,scope:selectedScope}).then(result => {
+        if(current()){searchResult = result || {items: []}; render();}
+      }).catch(error => { if(current()){searchResult = {items: [], nextCursor: null, total: null}; announce(friendlyError(error)); render();} }));
     };
     input.addEventListener('input', update); scope.addEventListener('change', update); input.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation();event.preventDefault();searchOpen = false; searchQuery = ''; searchResult = {items: []}; render(); } });
     bar.append(input, scope, count);
@@ -847,15 +910,30 @@ export function mountCorpusReader({
     if (searchResult.items?.length || hasContinuation) {
       const results = element('div', 'cr-search-results');
       for (const item of searchResult.items.slice(-READER_LIMITS.searchResults)) {
-        const result = button('', () => {
+        const result = button('', async () => {
+          if(!(await flushNote()))return;
+          selectionSequence++;
           const version = activeVersion(state.activeVersionId);
-          model.loadWindow({versionId: state.activeVersionId, unitId: item.unitId, revision: version?.revision}).then(window => {
-            const unit = window?.units?.find(value => value.unitId === item.unitId || value.id === item.unitId) || window?.units?.[0];
-            if (unit) { selected = null; emitLocation(unitReference(unit, version, state.document, {})); render(); }
-          }).catch(() => announce(t('error')));
+          const expectedDocument=state.document.id, expectedVersion=version?.id;
+          if(!expectedVersion || modelState().document?.id!==expectedDocument || modelState().activeVersionId!==expectedVersion)return;
+          const exact=exactReference(item.reference);
+          try {
+            const page=await model.loadWindow({documentId:expectedDocument,versionId:expectedVersion,
+              ...(exact?{reference:exact}:{unitId:item.unitId,revision:version.revision})});
+            if(modelState().document?.id!==expectedDocument || modelState().activeVersionId!==expectedVersion)return;
+            const unit=page?.units?.find(value=>value.unitId===item.unitId||value.id===item.unitId);
+            if(!unit){announce(t('error'));return;}
+            const reference=exact || unitReference(unit,version,state.document,{start:item.start||0,end:item.end||0});
+            selected={reference,unit,versionId:expectedVersion,quote:selectedPhilologyForm(unit.text,reference).slice(0,READER_LIMITS.quote)};
+            emitLocation(reference); render(); revealSelectedSource();
+          } catch { announce(t('error')); }
         }, 'cr-search-result');
         const unit = currentWindow(state.activeVersionId)?.units?.find(value => (value.unitId || value.id) === item.unitId);
-        result.append(element('strong', '', item.label || unitLabel(unit || item)), element('span', '', item.snippet || item.excerpt || ''));
+        const kind=item.sourceLayer || (unit && editorialKindForMatch(activeVersion(state.activeVersionId),unit,item.start,item.end))
+          || sourceLayerKind(activeVersion(state.activeVersionId),item,item.start);
+        result.append(element('strong', '', item.label || unitLabel(unit || item)));
+        if(kind)result.append(element('small','cr-search-layer',editorialLabel(kind,uiLocale())));
+        result.append(element('span', '', item.snippet || item.excerpt || ''));
         results.append(result);
       }
       if (!searchResult.items?.length && hasContinuation) results.append(element('span', 'cr-muted', t('continuation')));
@@ -863,9 +941,12 @@ export function mountCorpusReader({
       if (hasContinuation) {
         bar.append(button(t('loadMore'), async event => {
           const trigger = event.currentTarget;
+          const generation=searchGeneration,query=searchQuery,selectedScope=searchScope,documentId=state.document?.id,versionId=state.activeVersionId;
           trigger.disabled = true;
           try {
-            searchResult = await model.search({query: searchQuery, scope: searchScope, cursor: searchResult.nextCursor}) || searchResult;
+            const result=await model.search({documentId,versionId,query,scope:selectedScope,cursor:searchResult.nextCursor});
+            if(generation!==searchGeneration || modelState().document?.id!==documentId || modelState().activeVersionId!==versionId || searchQuery!==query || searchScope!==selectedScope)return;
+            searchResult = result || searchResult;
             render();
           } catch (error) {
             trigger.disabled = false;
@@ -881,7 +962,7 @@ export function mountCorpusReader({
     return (searchResult.items || []).filter(item => item.unitId && item.unitId === (unit.unitId || unit.id));
   }
 
-  function renderUnit(unit, version, sourceDocument) {
+  function renderUnit(unit, version, sourceDocument, {showWholeLayer=true} = {}) {
     const versionId=version.id;
     const row = element(unit.heading ? 'h3' : 'div', `cr-unit${unit.heading ? ' cr-heading' : ''}${unit.kind === 'verse_line' ? ' cr-verse-line' : ''}`);
     // All units in this render share its validated snapshot. Looking up the
@@ -890,7 +971,7 @@ export function mountCorpusReader({
     row.dataset.reference = referenceKey(reference); row.dataset.unitId = unit.unitId || ''; row.dataset.kind = unit.kind || ''; row.__readerUnit = unit;
     if (selected && sameReference(selected.reference, reference)) row.dataset.selected = 'true';
     const ordinal = Number.isSafeInteger(unit.ordinal) && unit.ordinal > 0 ? unit.ordinal : Number.isSafeInteger(unit.ordinal) ? unit.ordinal + 1 : null;
-    const markerLabel = apparatusLabel(unit,uiLocale()) || corpusSectionLabel(unit.label,uiLocale(),versionId) || (ordinal === null ? '·' : String(ordinal));
+    const markerLabel = withMarkerRange(apparatusLabel(unit,uiLocale()) || corpusSectionLabel(unit.label,uiLocale(),versionId) || (ordinal === null ? '·' : String(ordinal)),unit,versionId);
     const marker = button(markerLabel, () => selectUnit(unit, versionId, {focus: true}), 'cr-unit-marker');
     marker.setAttribute('aria-label', `${t('select')} ${markerLabel}`);
     const content = element(unit.heading?'span':'div', 'cr-unit-text');
@@ -903,18 +984,36 @@ export function mountCorpusReader({
       ? {start:selected.reference.selector.start,end:selected.reference.selector.end}
       : null;
     const intervals = philologyMarkIntervals(codePoints,matches,selectedSpan,Boolean(searchQuery));
-    let cursor = 0;
-    for (const interval of intervals) {
-      const start = Math.max(cursor, interval.start);
-      const end = Math.max(start, interval.end);
-      if (end <= start) continue;
-      content.append(document.createTextNode(codePointSlice(unit.text, cursor, start)));
-      const mark = element('mark', interval.selected ? 'cr-selected-occurrence' : '', codePointSlice(unit.text, start, end));
-      if (interval.selected) mark.dataset.selectedOccurrence = 'true';
-      content.append(mark); cursor = end;
+    const editorial=editorialRanges(version,unit);
+    const boundaries=[...new Set([0,codePoints,...intervals.flatMap(value=>[value.start,value.end]),...editorial.flatMap(value=>[value.start,value.end])])].sort((a,b)=>a-b);
+    for(let index=0;index<boundaries.length-1;index++){
+      const start=boundaries[index],end=boundaries[index+1];if(end<=start)continue;
+      const selectedMark=intervals.find(value=>value.start<=start&&value.end>=end);
+      const annotation=editorial.find(value=>value.start<=start&&value.end>=end);
+      let piece=document.createTextNode(codePointSlice(unit.text,start,end));
+      if(selectedMark){const mark=element('mark',selectedMark.selected?'cr-selected-occurrence':'');
+        if(selectedMark.selected)mark.dataset.selectedOccurrence='true';mark.append(piece);piece=mark;}
+      if(annotation){const span=element('span',`cr-editorial-${annotation.kind}${start===annotation.start?' cr-editorial-start':''}`);
+        const label=editorialLabel(annotation.kind,uiLocale());span.title=label;span.dataset.editorialLabel=label;
+        span.setAttribute('role','note');span.setAttribute('aria-label',`${label}: ${codePointSlice(unit.text,start,end)}`);
+        span.append(piece);piece=span;}
+      content.append(piece);
     }
-    content.append(document.createTextNode(codePointSlice(unit.text, cursor)));
     row.append(marker, content);
+    const kinds=[...new Set(editorial.map(value=>value.kind))];
+    const wholeLayer=sourceLayerKind(version,unit);
+    if(showWholeLayer && wholeLayer && !kinds.includes(wholeLayer))kinds.unshift(wholeLayer);
+    if(kinds.length){const notice=element('small','cr-editorial-notice',kinds.map(kind=>editorialLabel(kind,uiLocale())).join(' · '));row.append(notice);}
+    const difference=variants.variants.find(value=>value.versionId===version.id && value.revision===version.revision && value.unitId===(unit.unitId||unit.id)
+      && codePointSlice(unit.text,value.selector.start,value.selector.end)===value.digitalReading);
+    if(difference){
+      const notice=element('p','cr-textual-variant');
+      notice.append(document.createTextNode(uiLocale()==='en'
+        ? `Reviewed witness difference: this digital text reads “${difference.digitalReading}”; the printed edition reads “${difference.printReading}”. `
+        : `Проверенное различие свидетелей: в цифровом тексте «${difference.digitalReading}», в печатном издании «${difference.printReading}». `));
+      const link=element('a','',uiLocale()==='en'?'Printed witness, p. 334':'Печатный свидетель, с. 334');
+      link.href=difference.printUrl;link.target='_blank';link.rel='noopener noreferrer';notice.append(link);row.insertBefore(notice,content);
+    }
     return row;
   }
 
@@ -928,6 +1027,9 @@ export function mountCorpusReader({
     const head=element('header','cr-pane-head');head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
+    if(hasEditorialProjection(version))head.append(element('p','cr-editorial-notice',uiLocale()==='en'
+      ?'Source markup is shown where matched; consult the edition for its complete apparatus.'
+      :'Пометы источника показаны там, где их удалось сопоставить; полный аппарат проверяйте в издании.'));
     const page=state.windows[stateKey(state.document.id,version.id)];pane.dataset.windowStart=page?.units?.[0]?.id||'';
     const selectedHere = selected?.versionId === version.id ? selected.unit : null;
     const firstUnit = page?.units?.[0];
@@ -952,7 +1054,9 @@ export function mountCorpusReader({
     }
     if(!page&&!stale)pane.append(element('div','cr-loading',state.error?t('error'):t('loading')));
     else if(page&&!page.units.length)pane.append(element('p','cr-empty',t('empty')));
-    else if(page){const body=element('div','cr-text-page');for(const unit of page.units)body.append(renderUnit(unit,version,state.document));pane.append(body);}
+    else if(page){const body=element('div','cr-text-page');let previousLayer=null;
+      for(const unit of page.units){const layer=sourceLayerKind(version,unit);body.append(renderUnit(unit,version,state.document,{showWholeLayer:layer!==previousLayer}));previousLayer=layer;}
+      pane.append(body);}
     const windowError = state.windowErrors?.[stateKey(state.document.id, version.id)];
     if (page && windowError) {
       const notice = element('p', 'cr-notice cr-window-error', friendlyError(windowError));
@@ -960,7 +1064,7 @@ export function mountCorpusReader({
       pane.insertBefore(notice, pane.querySelector('.cr-pane-nav'));
     }
     const move=async direction=>{if(!(await flushNote()))return;capturePanePositions();try{
-      const result=await model.loadWindow({versionId:version.id,direction});if(result){selected=null;panePositions.delete(version.id);const first=result.units[0];emitLocation(first?unitReference(first,activeVersion(version.id),activeDocument(),{}):null);render();}}
+      selectionSequence++;const result=await model.loadWindow({versionId:version.id,direction});if(result){selected=null;panePositions.delete(version.id);const first=result.units[0];emitLocation(first?unitReference(first,activeVersion(version.id),activeDocument(),{}):null);render();}}
       catch(error){announce(t('error'));}};
     const nav=element('footer','cr-pane-nav');const previous=button(`← ${t('previousChunk')}`,()=>move('previous'),'cr-nav');const next=button(`${t('nextChunk')} →`,()=>move('next'),'cr-nav');
     previous.disabled=stale||!page?.hasPrevious;next.disabled=stale||!page?.hasNext;
@@ -975,7 +1079,8 @@ export function mountCorpusReader({
     const value=pane.querySelector('.cr-current-location strong');
     if(!value)return;
     const row=visiblePaneRow(pane);
-    const label=row?.__readerUnit?paneUnitLabel(row.__readerUnit,version):'';
+    const unit=row?.__readerUnit,layer=unit&&sourceLayerKind(version,unit);
+    const label=unit?[paneUnitLabel(unit,version),layer?editorialLabel(layer,uiLocale()):''].filter(Boolean).join(' · '):'';
     value.textContent=label||t('loading');
   }
 
@@ -994,7 +1099,8 @@ export function mountCorpusReader({
       }
     }
     if (selected?.reference && selected?.unit) {
-      const quote = selectedPhilologyForm(selected.unit.text, selected.reference);
+      const quote = selectedPhilologyForm(selected.unit.text, selected.reference)
+        ? quotationWithEditorialRoles(activeVersion(selected.versionId),selected.unit,selected.reference.selector,uiLocale()) : '';
       if (quote) {
         const excerpt = element('blockquote','cr-quote',quote);
         excerpt.dataset.reference = JSON.stringify(selected.reference);
@@ -1013,8 +1119,12 @@ export function mountCorpusReader({
     body.append(element('h2', 'cr-inspector-title', t('notes')));
     if (!selected?.reference) { body.append(element('p', 'cr-muted', t('noNotes'))); renderNotebookList(body); renderTransfer(body); return; }
     const selectedNote = selectedRecord();
-    const quote=selected.quote||selectedNote?.quote;
-    if(quote){const excerpt=element('blockquote','cr-quote',quote);excerpt.dataset.reference=JSON.stringify(selected.reference);body.append(excerpt);}
+    const rawQuote=selected.quote||selectedNote?.quote;
+    const full=selected.unit?quotationWithEditorialRoles(activeVersion(selected.versionId),selected.unit,selected.reference.selector,uiLocale()):rawQuote;
+    const quote=full?.slice(0,READER_LIMITS.quote);
+    if(quote){const excerpt=element('blockquote','cr-quote',quote);excerpt.dataset.reference=JSON.stringify(selected.reference);body.append(excerpt);
+      if(full.length>quote.length)body.append(element('p','cr-muted',uiLocale()==='en'?'Preview shortened; Copy quotation includes the full selection.':'Предпросмотр сокращён; кнопка копирует выделенный фрагмент целиком.'));
+    }
     const tools = element('div', 'cr-note-tools');
     const isBookmarked = notebookItems().bookmarks.some(item => sameNoteReference(item, selected.reference));
     tools.append(button(isBookmarked ? '◆' : '◇', async event => {
@@ -1032,10 +1142,11 @@ export function mountCorpusReader({
     tools.lastChild.setAttribute('aria-label', t('bookmark'));
     tools.append(button(t('copy'), copySelected, 'cr-copy')); body.append(tools);
     const label = element('label', 'cr-note-label', `${t('addNote')} · ${unitLabel(selected.unit)}`);
-    noteEditor = element('textarea', 'cr-note-editor'); noteEditor.rows = 7; noteEditor.maxLength = READER_LIMITS.note; noteEditor.placeholder = t('notePlaceholder'); noteEditor.value = draft?.key===referenceKey(selected.reference)?draft.text:selectedNote?.text || '';
+    noteEditor = element('textarea', 'cr-note-editor'); noteEditor.rows = 7; noteEditor.maxLength = READER_LIMITS.note; noteEditor.placeholder = t('notePlaceholder'); noteEditor.value = draft?.key===referenceKey(selected.reference)&&draft.recordId===selected.noteId?draft.text:selectedNote?.text || '';
     noteEditor.addEventListener('input', () => {
-      draft={key:referenceKey(selected.reference),text:noteEditor.value};noteDirty = true;
-      try{draftJournal.capture({reference:selected.reference,text:draft.text,quote:selected.quote||'',originalNoteId:selectedRecord()?.id??null});}
+      selectedRecord();
+      draft={key:referenceKey(selected.reference),text:noteEditor.value,recordId:selected.noteId,recordRevision:selected.noteRevision};noteDirty = true;
+      try{draftJournal.capture({reference:selected.reference,text:draft.text,quote:selected.quote||'',originalNoteId:draft.recordId});}
       catch(error){announce(friendlyError(error));}
       clearTimeout(noteTimer);noteTimer=setTimeout(flushNote,450);updateFooter();
     }); label.append(noteEditor); body.append(label);
@@ -1044,8 +1155,9 @@ export function mountCorpusReader({
       if (await flushNote()) { announce(notebookSaveLabel()); renderInspector(); updateFooter(); }
     }), button(t('delete'), async () => {
       if (!(await flushNote())) return;
-      try{await model.deleteNote(selected.reference);}catch(error){announce(error.code==='conflict'?(uiLocale()==='en'?'This note changed in another window.':'Заметка изменилась в другом окне.'):t('saveError'));return;}
-      selected = {...selected, quote: ''};
+      selectedRecord();
+      try{if(selected.noteId)await model.deleteNote(selected.reference,{id:selected.noteId,revision:selected.noteRevision});}catch(error){announce(error.code==='conflict'?(uiLocale()==='en'?'This note changed in another window.':'Заметка изменилась в другом окне.'):t('saveError'));return;}
+      selected = {...selected, noteId:null, noteRevision:undefined, quote: ''};
       announce(notebookSaveLabel());
       renderInspector();
     }));
@@ -1072,15 +1184,16 @@ export function mountCorpusReader({
       const fallbackLabel=notebookFallbackLabel(item,{index,locale:uiLocale(),passage:t('passage'),rangeLabel:t('characters')});
       const label=element('strong','',`${prefix}${contextLabel||fallbackLabel}`);
       const entry=button('',async()=>{
-        if(!(await flushNote()))return;capturePanePositions();
+        if(!(await flushNote()))return;selectionSequence++;capturePanePositions();
         if(ref?.schemaVersion==='tos.corpus.reader.native-reference.v1'){await close();await onNativeReference?.(ref,item);return;}
         try{if(!documentId)throw new Error('invalid-reference');const openedReference=exactReference(ref);if(!openedReference)throw new Error('invalid-reference');
           const opened=await model.open({documentId,versionId:ref.versionId,reference:openedReference});
           const represented=modelState().document?.id===documentId&&activeVersion(ref.versionId);
           if(represented)emitLocation(openedReference);
-          if(!opened){selected={reference:openedReference,unit:null,versionId:ref.versionId,quote:item.quote||''};render();return;}
+          const noteTarget=item.kind==='note'?{noteId:item.id,noteRevision:item.revision}:{};
+          if(!opened){selected={reference:openedReference,unit:null,versionId:ref.versionId,quote:item.quote||'',...noteTarget};render();return;}
           await ensureVisiblePanes();
-          selected={reference:openedReference,unit:currentWindow(ref.versionId)?.units?.find(unit=>unit.id===ref.unitId)||null,versionId:ref.versionId,quote:item.quote||''};render();revealSelectedSource();}
+          selected={reference:openedReference,unit:currentWindow(ref.versionId)?.units?.find(unit=>unit.id===ref.unitId)||null,versionId:ref.versionId,quote:item.quote||'',...noteTarget};render();revealSelectedSource();}
         catch(error){announce(t('error'));}
       },'cr-note-entry');entry.append(label,element('span','',item.text||item.quote||t('bookmark')));details.append(entry);
       if(documentId && (!catalogDocument || !catalogDocument.versions?.length)){
@@ -1205,7 +1318,16 @@ export function mountCorpusReader({
   function renderContents() {
     const focused=document.activeElement;const focusClass=['cr-library-search','cr-search-input','cr-search-scope','cr-note-editor'].find(name=>focused?.classList?.contains(name));
     const selectionStart=focused?.selectionStart,selectionEnd=focused?.selectionEnd;
-    for(const pane of root.querySelectorAll('.cr-pane')){if(pane.dataset.windowStart===currentWindow(pane.dataset.versionId)?.units?.[0]?.id)remember(panePositions,pane.dataset.versionId,pane.scrollTop);else panePositions.delete(pane.dataset.versionId);}
+    const visualAnchors=[];
+    for(const pane of root.querySelectorAll('.cr-pane')){
+      if(pane.dataset.windowStart===currentWindow(pane.dataset.versionId)?.units?.[0]?.id){
+        remember(panePositions,pane.dataset.versionId,pane.scrollTop);
+        const row=visiblePaneRow(pane),rect=row?.getBoundingClientRect();
+        const boundary=Math.max(pane.getBoundingClientRect().top,pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??0)+2;
+        if(row && rect?.height){const offset=rect.top-boundary;visualAnchors.push({versionId:pane.dataset.versionId,unitId:row.dataset.unitId,
+          offset:offset>=0?offset:null,fraction:offset<0?Math.min(1,Math.max(0,-offset/rect.height)):0});}
+      }else panePositions.delete(pane.dataset.versionId);
+    }
     rendering=true;
     const state = modelState(); renderSerial += 1; const serial = renderSerial;
     root.replaceChildren(); root.className = `corpus-reader cr-theme-${model.notebookState().preferences?.theme || 'night'}`; root.dataset.mode = mode; root.dataset.library = String(libraryOpen); root.dataset.inspector = String(inspectorOpen);
@@ -1243,6 +1365,14 @@ export function mountCorpusReader({
     main.append(panes); layout.append(main);
     if (inspectorOpen) layout.append(element('aside', 'cr-inspector'));
     root.append(layout, renderFooter()); renderInspector(); restorePanePositions();
+    for(const anchor of visualAnchors){
+      const pane=[...root.querySelectorAll('.cr-pane')].find(item=>item.dataset.versionId===anchor.versionId);
+      const row=pane&&[...pane.querySelectorAll('.cr-unit')].find(item=>item.dataset.unitId===anchor.unitId);
+      if(!row)continue;
+      const boundary=Math.max(pane.getBoundingClientRect().top,pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??0)+2;
+      const rect=row.getBoundingClientRect();
+      pane.scrollTop+=anchor.offset===null?rect.top+anchor.fraction*rect.height-boundary:rect.top-boundary-anchor.offset;
+    }
     for(const pane of root.querySelectorAll('.cr-pane'))refreshPaneLocation(pane,activeVersion(pane.dataset.versionId));
     markSelection();
     const location = root.querySelector('.cr-location'); if (location) { location.textContent = locationLabel(currentRef()); }
@@ -1271,9 +1401,19 @@ export function mountCorpusReader({
         if (reference && unit) { selected={reference,unit,versionId:reference.versionId,quote:selectedPhilologyForm(unit.text,reference)}; currentTab='context'; }
       }
       const firstUnit = openedResult && !stale ? currentWindow(state.activeVersionId)?.units?.[0] : null;
-      if (firstUnit) emitLocation(unitReference(firstUnit, activeVersion(state.activeVersionId), state.document, {}));
+      const requestedUnit = args.unitId && !stale ? currentWindow(state.activeVersionId)?.units?.find(value => (value.unitId||value.id)===args.unitId) : null;
+      const location = args.reference && selected?.reference || (requestedUnit||firstUnit) && unitReference(requestedUnit||firstUnit, activeVersion(state.activeVersionId), state.document, {});
+      if (location) emitLocation(location);
       render();
       if (args.reference && !stale) revealSelectedSource();
+      else if(requestedUnit){
+        const pane=[...root.querySelectorAll('.cr-pane')].find(item=>item.dataset.versionId===state.activeVersionId);
+        const row=pane&&[...pane.querySelectorAll('.cr-unit')].find(item=>item.dataset.unitId===args.unitId);
+        row?.scrollIntoView({block:'start',inline:'nearest'});
+        if(row){const boundary=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top;
+          if(row.getBoundingClientRect().top<boundary)pane.scrollTop-=boundary-row.getBoundingClientRect().top+2;
+          refreshPaneLocation(pane,activeVersion(state.activeVersionId));}
+      }
     } catch (error) { announce(friendlyError(error)); render(); }
   }
 
@@ -1283,10 +1423,11 @@ export function mountCorpusReader({
     if(disposed || !root)return true;
     await capturePanePositions();
     if(disposed || !root)return true;
-    opened=false; root.hidden=true; delete root.dataset.open;philologyController?.abort();philologyController=null;model.cancel();
+    opened=false; selectionSequence++; searchCancel?.(); searchGeneration++; root.hidden=true; delete root.dataset.open;philologyController?.abort();philologyController=null;model.cancel();
     if(notify)onClose?.();
     const focus=opener;opener=null;
-    if(focus?.isConnected&&!focus.closest('[hidden]')&&focus.offsetParent!==null)focus.focus?.({preventScroll:true});
+    if(focus?.isConnected&&focus!==document.body&&!focus.closest('[hidden], [inert]')&&focus.offsetParent!==null&&!focus.disabled)focus.focus?.({preventScroll:true});
+    if(!focus || document.activeElement!==focus)onReturnFocusFallback?.();
     return true;
   }
 
@@ -1323,11 +1464,11 @@ export function mountCorpusReader({
       if(opened)await capturePanePositions();
       if(disposed || !root)return this;
       const wasOpened=opened;
-      opener = document.activeElement;
+      if(!wasOpened)opener = args.returnFocus || document.activeElement;
       opened = true; root.hidden = false; root.dataset.open = 'true';
       if (args.mode === 'parallel' || args.mode === 'single') mode = args.mode;
-      if (args.reference || args.unitId) selected = null;
       const hasTarget = Boolean(args.documentId || args.versionId || args.reference || args.unitId || args.revision);
+      if (hasTarget) { selectionSequence++; selected=null; searchCancel?.(); searchGeneration++; searchQuery=''; searchResult={items:[]}; }
       // Keep the last usable window during a new request. Rebuilding the same
       // old panes here forces layout before the incoming window is rendered.
       if(!wasOpened || !hasTarget)render();
@@ -1402,7 +1543,7 @@ export function mountCorpusReader({
         language: version.language || selected.unit.language || '',
         documentId: document.id,
         versionId: version.id,
-        title: [localized(document.title, uiLocale()), selected.unit.label].filter(Boolean).join(' · '),
+        title: [documentTitle(document), paneUnitLabel(selected.unit,version)].filter(Boolean).join(' · '),
         versionLabel: versionLabel(version),
         edition: localized(version.edition, uiLocale()),
         source: version.source ? structuredClone(version.source) : null,

@@ -6,6 +6,7 @@ import {mountCollectionView} from './collection-view.mjs';
 import {upgradePublicGraph} from './graph-transfer.mjs';
 import {localizePublicJourney} from './journey-i18n.mjs';
 import {displayPublicError} from './presentation-i18n.mjs';
+import {describeSourceLocator} from './source-address.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -22,8 +23,8 @@ const tr=(value,locale)=>{
   return value[locale]??value.en??value.ru??'';
 };
 const extraTranslations={
-  ru:{addToSpace:'Добавить в пространство',removeFromSpace:'Убрать из пространства',removedFromSpace:'Узел убран из пространства. Отмена восстановит его связи; текст остаётся в библиотеке.',previewOnly:'Просмотр материала · пространство не изменено',authorWorks:'Произведения автора',visibleCount:'В поле зрения',recordScope:'Древо и личные мысли сохранены в этом браузере',routeScope:'Маршрут и шаг сохранены в адресе страницы',lensInquiry:'Как исследовать этот вопрос',lensMethod:'Способ чтения',lensLimit:'Что остаётся вне линзы',argument:'Ход мысли',counterReading:'Другое прочтение',readingQuestion:'Вопрос к этому чтению',experiment:'Попробовать при чтении',perspectives:'Детали чтения',example:'Проверить на примере',relationWarrant:'На чём держится переход',relationLimit:'Предел этого сопоставления',nextRelation:'Следующий переход',routeEnd:'К чему пришли',routeStarting:'С чем начинаем',routeStakes:'Почему это меняет ответ',routeCarry:'Что проверить дальше',practice:'Практика',chooseQuestion:'Выберите вопрос',graphSaveError:'Не удалось сохранить граф в этом браузере. Он пока доступен в открытой вкладке.',steps:'шагов',stepsOne:'шаг',stepsFew:'шага'},
-  en:{addToSpace:'Add to space',removeFromSpace:'Remove from space',removedFromSpace:'Node removed from the space. Undo restores its relations; the text remains in the library.',previewOnly:'Material preview · your space has not changed',authorWorks:'Works by this author',visibleCount:'In view',recordScope:'Tree and personal thoughts saved in this browser',routeScope:'Route and step are kept in the page address',lensInquiry:'How to investigate this question',lensMethod:'A way of reading',lensLimit:'What the lens leaves outside',argument:'The argument',counterReading:'Another reading',readingQuestion:'A question for this reading',experiment:'Try while reading',perspectives:'Details to follow',example:'Try an example',relationWarrant:'What grounds this transition',relationLimit:'Limits of this comparison',nextRelation:'The next transition',routeEnd:'What we have reached',routeStarting:'Where we begin',routeStakes:'Why this changes the answer',routeCarry:'What to examine next',practice:'Practice',chooseQuestion:'Choose a question',graphSaveError:'Could not save the graph in this browser. It remains available in this tab.',steps:'steps',stepsOne:'step',stepsFew:'steps'},
+  ru:{addToSpace:'Добавить в пространство',removeFromSpace:'Убрать из пространства',removedFromSpace:'Узел убран из пространства. Отмена восстановит его связи; текст остаётся в библиотеке.',previewOnly:'Просмотр материала · пространство не изменено',authorWorks:'Произведения автора',visibleCount:'В текущей выборке',recordScope:'Древо и личные мысли сохранены в этом браузере',routeScope:'Маршрут и шаг сохранены в адресе страницы',lensInquiry:'Как исследовать этот вопрос',lensMethod:'Способ чтения',lensLimit:'Что остаётся вне линзы',argument:'Ход мысли',counterReading:'Другое прочтение',readingQuestion:'Вопрос к этому чтению',experiment:'Попробовать при чтении',perspectives:'Детали чтения',example:'Проверить на примере',relationWarrant:'На чём держится переход',relationLimit:'Предел этого сопоставления',nextRelation:'Следующий переход',routeEnd:'К чему пришли',routeStarting:'С чем начинаем',routeStakes:'Почему это меняет ответ',routeCarry:'Что проверить дальше',practice:'Практика',chooseQuestion:'Выберите вопрос',graphSaveError:'Не удалось сохранить граф в этом браузере. Он пока доступен в открытой вкладке.',steps:'шагов',stepsOne:'шаг',stepsFew:'шага',graphUndo:'Отменить действие в пространстве',graphRedo:'Вернуть действие в пространстве',bibliographicOnly:'Только библиографическое указание',externalBibliographic:'Внешняя библиографическая ссылка · доступ к полному тексту не заявлен',openExternal:'Открыть внешнюю библиографическую ссылку',basedOn:'Основано на',groundsFor:'Основание для',endpointSource:'Источник узла',endpointRelatedSources:'Ссылки связанных предложений',personalGrounds:'Основания личного исследования',personalRelations:'Предложения и связи',personalObjection:'Возражение к предложению',openGround:'Открыть основание',sourceLoading:'Сведения об источнике…'},
+  en:{addToSpace:'Add to space',removeFromSpace:'Remove from space',removedFromSpace:'Node removed from the space. Undo restores its relations; the text remains in the library.',previewOnly:'Material preview · your space has not changed',authorWorks:'Works by this author',visibleCount:'In current selection',recordScope:'Tree and personal thoughts saved in this browser',routeScope:'Route and step are kept in the page address',lensInquiry:'How to investigate this question',lensMethod:'A way of reading',lensLimit:'What the lens leaves outside',argument:'The argument',counterReading:'Another reading',readingQuestion:'A question for this reading',experiment:'Try while reading',perspectives:'Details to follow',example:'Try an example',relationWarrant:'What grounds this transition',relationLimit:'Limits of this comparison',nextRelation:'The next transition',routeEnd:'What we have reached',routeStarting:'Where we begin',routeStakes:'Why this changes the answer',routeCarry:'What to examine next',practice:'Practice',chooseQuestion:'Choose a question',graphSaveError:'Could not save the graph in this browser. It remains available in this tab.',steps:'steps',stepsOne:'step',stepsFew:'steps',graphUndo:'Undo a space action',graphRedo:'Redo a space action',bibliographicOnly:'Bibliographic reference only',externalBibliographic:'External bibliographic link · full-text access is not asserted',openExternal:'Open external bibliographic link',basedOn:'Based on',groundsFor:'Grounds',endpointSource:'Source of the endpoint',endpointRelatedSources:'Sources from related proposals',personalGrounds:'Grounds of this personal inquiry',personalRelations:'Proposals and relations',personalObjection:'Objection to proposal',openGround:'Open ground',sourceLoading:'Source details…'},
 };
 const materialMap=library=>new Map((library?.nodes??[]).map(item=>[item.id,item]));
 const graphIdForMaterial=id=>`material:${id}`;
@@ -32,7 +33,7 @@ const copyPosition=value=>Array.isArray(value)&&value.length===3&&value.every(Nu
 function downloadGraph(packet,name){const blob=new Blob([packet],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.hidden=true;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
 /** A public adapter over the existing constructor scene and its Rust graph owner. */
-export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],graphPredecessors=[],api,workspace,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[]}={}){
+export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[]}={}){
   if(!host||!library||!api)throw new TypeError('The public space needs a host, library, and reader API.');
   const t=key=>{const lang=String(locale()||'ru').startsWith('en')?'en':'ru';return extraTranslations[lang][key]??translations[lang][key]??key;};
   const openPublicAddress=address=>api.open(Object.fromEntries(Object.entries(address).filter(([key])=>['documentId','versionId','unitId','revision','reference'].includes(key))));
@@ -48,19 +49,22 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const countText=(value,kind)=>`${value} ${countUnit(value,kind)}`;
   const countSteps=value=>{const n=Number(value)||0;if(String(locale()).startsWith('en'))return `${n} ${n===1?t('stepsOne'):t('steps')}`;const mod100=Math.abs(n)%100,mod10=Math.abs(n)%10;return `${n} ${mod100>=11&&mod100<=14?t('steps'):mod10===1?t('stepsOne'):mod10>=2&&mod10<=4?t('stepsFew'):t('steps')}`;};
   const spaceKey=`tos.public-research.graph.v1.${profile}.${library.fingerprint}`;
-  let upgradeError=null;
-  try{upgradePublicGraph(localStorage,{profile,fingerprint:library.fingerprint,predecessors:graphPredecessors,validate:packet=>{const verifier=createConstructorModel(library,{storage:null});try{verifier.importPacket(packet);return verifier.exportPacket();}finally{verifier.dispose();}}});}catch(error){upgradeError=error;}
-  const model=createConstructorModel(library,{key:spaceKey});
   const baselineModel=createConstructorModel(library,{storage:null});
   let pristineGraphs;try{baselineModel.seedAtlas();pristineGraphs={[spaceKey]:baselineModel.exportPacket()};}finally{baselineModel.dispose();}
+  let upgradeError=null;
+  try{upgradePublicGraph(localStorage,{profile,fingerprint:library.fingerprint,predecessors:graphPredecessors,pristineGraph:pristineGraphs[spaceKey],validate:packet=>{const verifier=createConstructorModel(library,{storage:null});try{verifier.importPacket(packet);return verifier.exportPacket();}finally{verifier.dispose();}}});}catch(error){upgradeError=error;}
+  const model=createConstructorModel(library,{key:spaceKey});
   let state=model.getState(),lens=lenses.some(item=>item.id==='tree')?'tree':lenses[0]?.id??'tree',enabled=new Set(relationKinds),selected=null,selectedEdge=null,searchValue='',route=null,routeIndex=0,compareIds=[],connectIds=[],interaction=null,panelMode='detail',personalState=workspace?.getState?.()??null,destroyed=false,routeDockTouched=false;
   const desktopMode=window.matchMedia('(min-width: 761px)');
+  let browsingRoutes=false,personalRouteWasVisible=false,comparisonRouteWasVisible=false;
   const personalPositions=new Map();
   const materializedHypotheses=new Map(),managedDrafts=new Map();let syncingOwner=false;
   const positionsKey=`tos.public-research.graph-positions.v1.${profile}`;
   const ownersKey=`${spaceKey}.owners`;
   try{const saved=JSON.parse(localStorage.getItem(ownersKey)||'{}');if(object(saved))for(const [ownerId,graphId]of Object.entries(saved))if(typeof graphId==='string'&&state.nodes.some(node=>node.id===graphId))materializedHypotheses.set(ownerId,graphId);}catch{}
-  function saveOwnerBindings(){try{localStorage.setItem(ownersKey,JSON.stringify(Object.fromEntries(materializedHypotheses)));}catch{notify(t('graphSaveError'));}}
+  let ownersPersistenceError=false,positionsPersistenceError=false;
+  function bindHypothesis(ownerId,graphId){for(const [previousOwner,previousGraph]of materializedHypotheses)if(previousOwner!==ownerId&&previousGraph===graphId)materializedHypotheses.delete(previousOwner);materializedHypotheses.set(ownerId,graphId);}
+  function saveOwnerBindings(){try{localStorage.setItem(ownersKey,JSON.stringify(Object.fromEntries(materializedHypotheses)));ownersPersistenceError=false;}catch{ownersPersistenceError=true;notify(t('graphSaveError'));}}
   try{const saved=JSON.parse(localStorage.getItem(positionsKey)||'{}');if(object(saved))for(const [key,value]of Object.entries(saved)){const p=copyPosition(value);if(p)personalPositions.set(key,p);}}catch{}
   const shell=el('section','pr-public-space');shell.id='tree';shell.dataset.profile=profile;shell.dataset.ready='false';shell.dataset.reading='false';
   const canvas=document.createElement('canvas');canvas.className='tree-sky';canvas.setAttribute('aria-label',t('space'));
@@ -139,8 +143,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   addTool('connect','↗',()=>beginConnect(),'icon');
   addTool('compare','⇄',()=>beginCompare(),'icon');
   footerTools.append(el('i'));
-  const undoButton=addTool('undo','↶',()=>{model.undo();checkGraphPersistence();},'icon');
-  const redoButton=addTool('redo','↷',()=>{model.redo();checkGraphPersistence();},'icon');
+  const undoButton=addTool('graphUndo','↶',()=>{model.undo();checkGraphPersistence();},'icon');
+  const redoButton=addTool('graphRedo','↷',()=>{model.redo();checkGraphPersistence();},'icon');
   addTool('fit','⌖',()=>sky?.frame(),'icon');
   addTool('fullscreen','⛶',()=>void toggleFullscreen(),'icon');
   addTool('export','⇩',()=>{try{downloadGraph(model.exportPacket(),`tos-${profile}-research-tree.json`);}catch(error){notify(displayPublicError(error,locale));}},'icon');
@@ -155,7 +159,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   search.addEventListener('keydown',event=>{if(event.key==='Escape'){search.value='';searchValue='';searchResults.hidden=true;}if(event.key==='Enter')searchResults.querySelector('button')?.click();});
   document.addEventListener('keydown',keyboard);
 
-  function savedStatus(){if(model.persistenceError?.())return t('graphSaveError');return `${t('recordScope')}${route?` · ${t('routeScope')}`:''}`;}
+  function savedStatus(){if(model.persistenceError?.()||ownersPersistenceError||positionsPersistenceError)return t('graphSaveError');return `${t('recordScope')}${route?` · ${t('routeScope')}`:''}`;}
   function notify(message){statusLabel.textContent=message;clearTimeout(notify.timer);notify.timer=setTimeout(()=>{notify.timer=null;statusLabel.textContent=savedStatus();},3800);}
   function persistView(){
     const url=new URL(location.href);
@@ -164,8 +168,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     history.replaceState(history.state,'',url);
     if(!notify.timer)statusLabel.textContent=savedStatus();
   }
-  function checkGraphPersistence(){if(model.persistenceError?.())notify(t('graphSaveError'));}
-  function notifyGraphResult(successMessage){if(model.persistenceError?.())notify(t('graphSaveError'));else notify(successMessage);}
+  function checkGraphPersistence(){if(model.persistenceError?.()||ownersPersistenceError||positionsPersistenceError)notify(t('graphSaveError'));}
+  function notifyGraphResult(successMessage){if(model.persistenceError?.()||ownersPersistenceError||positionsPersistenceError)notify(t('graphSaveError'));else notify(successMessage);}
   function humanEdgeLabel(edge){const value=tr(edge?.label,locale()).trim();if(!value||/^[a-z0-9][a-z0-9_.-]*(?::[a-z0-9][a-z0-9_.-]*)+$/i.test(value))return '';return value;}
   function label(item){return tr(item?.title,locale())||item?.title||item?.id||'';}
   function preferredGroundTarget(ref,contextId){
@@ -215,6 +219,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return null;
   }
   function routeSource(step){
+    const target=profile==='zarathustra'?routeGroundTargets(route?.id,routeIndex,String(locale()).startsWith('en')?'en':'de'):null;
+    if(target){
+      if(target.kind==='exact')return {binding:target.address,exact:true};
+      const reference=atlas.references?.[target.ref];
+      let externalUrl=target.kind==='external'&&/^https?:\/\//.test(reference?.url??'')?reference.url:null;
+      if(externalUrl&&/^#page=\d+$/.test(target.fragment??'')){const url=new URL(externalUrl);url.hash=target.fragment;externalUrl=url.href;}
+      return {reference,externalUrl};
+    }
     const exact=(step?.grounds??[]).map(value=>sourceForRef(value.ref)).find(Boolean);
     if(exact)return {binding:exact,exact:true};
     const ids=[step?.sourceNodeId,step?.nodeId,step?.graphNodeId].filter(Boolean);
@@ -222,37 +234,81 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const id of ids){const material=materials.get(id)??materials.get(id.replace(/^material:/,''));const source=sourceForMaterial(material,{sourceNodeId:step?.sourceNodeId});if(source)return source;}
     return null;
   }
+  function isBasedOn(edge){return String(edge.id).startsWith('atlas:antiquity:reading-source:')&&edge.kind==='supports'&&String(edge.from).includes('antiquity:reading:')&&String(edge.to).includes('antiquity:source:');}
+  function relationName(edge,inverse=false){if(edge.proposalId)return tr(edge.label,locale());return isBasedOn(edge)?t(inverse?'groundsFor':'basedOn'):tr(RELATIONS[edge.kind],locale())||t('relation');}
+  function personalProposals(ownerId){
+    if(!ownerId)return [];
+    return (workspace?.getState?.()?.proposals??personalState?.proposals??[]).filter(item=>item.parentHypothesisId===ownerId||item.targetId===ownerId||item.fromId===ownerId||item.toId===ownerId);
+  }
+  function appendPersonalGrounds(parent,proposals){
+    const refs=[...new Set(proposals.flatMap(item=>[...(item.sourceRefs??[]),...(item.evidenceRefs??[])]))];
+    if(!refs.length)return;
+    const section=el('section','ps-personal-grounds');section.append(el('h2','minor-title',t('personalGrounds')));parent.append(section);
+    for(const locator of refs){
+      const open=button(t('sourceLoading'),'text-button');open.disabled=true;section.append(open);
+      void describeSourceLocator(locator,shelf,api.provider,locale()).then(result=>{
+        if(!section.isConnected)return;
+        open.textContent=`↗ ${t('openGround')} · ${result.label}`;open.disabled=result.status!=='exact';
+        if(result.reference)open.addEventListener('click',()=>void openPublicAddress({documentId:result.reference.target.workId,versionId:result.reference.versionId,unitId:result.reference.unitId,revision:result.reference.target.textLayerSha256,reference:result.reference}).catch(()=>notify(t('unavailable'))));
+      }).catch(()=>{if(section.isConnected)open.textContent=t('sourceMissing');});
+    }
+  }
   function matForNode(node){return node?.materialId?previewMaterials.get(node.materialId):null;}
   function liveWorkspaceNodes(){
     const ownerState=workspace?.getState?.()??personalState;
     personalState=ownerState;
-    const existing=new Set(state.nodes.map(node=>node.id));
+    const stored=new Map(state.nodes.map(node=>[node.id,node]));
     const byOwnerId=new Map((ownerState?.hypotheses??[]).map(item=>[item.id,item]));
+    const graphId=ownerId=>{
+      const mapped=materializedHypotheses.get(ownerId);
+      return mapped&&stored.has(mapped)?mapped:stored.has(ownerId)?ownerId:`personal:${ownerId}`;
+    };
     const materialNodes=[];
-    for(const hypothesis of ownerState?.hypotheses??[]){
-      const materializedId=materializedHypotheses.get(hypothesis.id);if(materializedId&&state.nodes.some(node=>node.id===materializedId))continue;
-      const id=existing.has(hypothesis.id)?hypothesis.id:`personal:${hypothesis.id}`;
-      const x=personalPositions.get(id)??[((materialNodes.length%5)-2)*130,240+Math.floor(materialNodes.length/5)*115,25];
-      const sourceIds=[];
-      for(const target of [hypothesis.targetId,hypothesis.fromId,hypothesis.toId])if(target&&existing.has(target))sourceIds.push(target);
-      materialNodes.push({id,kind:'note',title:hypothesis.title,body:hypothesis.body,sourceIds,position:x,localOnly:true,workspaceHypothesisId:hypothesis.id,ownerType:'personal-hypothesis',major:true,color:'#b3d9c4'});
+    for(const hypothesis of byOwnerId.values()){
+      const id=graphId(hypothesis.id),saved=stored.get(id);
+      const position=personalPositions.get(id)??personalPositions.get(`personal:${hypothesis.id}`)??saved?.position??[((materialNodes.length%5)-2)*130,240+Math.floor(materialNodes.length/5)*115,25];
+      materialNodes.push({...saved,id,kind:saved?.kind??'note',title:hypothesis.title,body:hypothesis.body,sourceIds:saved?.sourceIds??[],position,localOnly:true,workspaceHypothesisId:hypothesis.id,ownerType:'personal-hypothesis',major:true,color:'#b3d9c4'});
     }
     const extraEdges=[];
-    for(const hypothesis of ownerState?.hypotheses??[]){
-      const mapped=materializedHypotheses.get(hypothesis.id),id=mapped&&existing.has(mapped)?mapped:existing.has(hypothesis.id)?hypothesis.id:`personal:${hypothesis.id}`;
-      const target=hypothesis.targetId&&state.nodes.find(node=>node.id===hypothesis.targetId||node.materialId===hypothesis.targetId);
-      if(target&&target.id!==id)extraEdges.push({id:`personal-edge:${hypothesis.id}`,from:id,to:target.id,kind:'relates',label:locale()==='en'?'Personal link':'Личная связь',body:locale()==='en'?'A connection made in the personal research workspace.':'Связь создана в личном исследовании.',color:RELATIONS.relates.color,ownerType:'personal-hypothesis'});
-      const from=hypothesis.fromId&&state.nodes.find(node=>node.id===hypothesis.fromId||node.materialId===hypothesis.fromId),to=hypothesis.toId&&state.nodes.find(node=>node.id===hypothesis.toId||node.materialId===hypothesis.toId);
-      if(from&&to)extraEdges.push({id:`personal-edge:${hypothesis.id}`,from:from.id,to:to.id,kind:'relates',label:hypothesis.predicateLabel|| (locale()==='en'?'Personal link':'Личная связь'),body:hypothesis.body,color:RELATIONS.relates.color,ownerType:'personal-hypothesis'});
+    const resolve=id=>!id?null:byOwnerId.has(id)?graphId(id):state.nodes.find(node=>node.id===id||node.materialId===id)?.id;
+    for(const hypothesis of byOwnerId.values()){
+      const id=graphId(hypothesis.id),target=resolve(hypothesis.targetId);
+      if(target&&target!==id)extraEdges.push({id:`personal-edge:${hypothesis.id}`,from:id,to:target,kind:'relates',label:locale()==='en'?'Personal link':'Личная связь',body:hypothesis.body,color:RELATIONS.relates.color,ownerType:'personal-hypothesis'});
+      const from=resolve(hypothesis.fromId),to=resolve(hypothesis.toId);
+      if(from&&to&&from!==to)extraEdges.push({id:`personal-relation:${hypothesis.id}`,from,to,kind:'relates',label:hypothesis.predicateLabel||(locale()==='en'?'Personal relation':'Личная связь'),body:hypothesis.body,color:RELATIONS.relates.color,ownerType:'personal-hypothesis'});
+    }
+    // These are projections of existing proposal relations, never new claims
+    // written into the user's graph or admitted to the prepared library.
+    for(const proposal of ownerState?.proposals??[]){
+      if(proposal.kind!=='relation')continue;
+      const from=resolve(proposal.fromId),to=resolve(proposal.toId);
+      if(!from||!to||from===to)continue;
+      const revision=proposal.id.startsWith('revision-link');
+      const objection=proposal.id.startsWith('objection-link'),kind='relates';
+      extraEdges.push({id:`personal-proposal:${proposal.id}`,from,to,kind,label:locale()==='en'?(revision?'Receives a reply or revision':objection?'Has an objection':'Personal relation'):(revision?'Получает ответ или пересмотр':objection?'Имеет возражение':'Личная связь'),body:proposal.statement,proposalId:proposal.id,color:RELATIONS[kind].color,ownerType:'personal-hypothesis'});
     }
     return {nodes:materialNodes,edges:extraEdges,byOwnerId};
   }
-  function materializePersonalNode(id){
-    const node=graphState().nodes.find(item=>item.id===id);if(node?.routeContext){const added=model.addMaterial(node.materialId);state=model.getState();return added;}if(node?.ownerType!=='personal-hypothesis')return id;
-    const ownerId=node.workspaceHypothesisId??node.id.replace(/^personal:/,'');const prior=materializedHypotheses.get(ownerId);
-    if(prior&&state.nodes.some(item=>item.id===prior))return prior;
-    const hypothesis=(workspace?.getState?.()??personalState)?.hypotheses?.find(item=>item.id===ownerId);if(!hypothesis)return id;
-    try{const graphId=model.addDraft({kind:'note',title:hypothesis.title,body:hypothesis.body});materializedHypotheses.set(ownerId,graphId);saveOwnerBindings();checkGraphPersistence();reflect();return graphId;}catch(error){notify(displayPublicError(error,locale));return id;}
+  function connectPersonalNodes(fromId,toId,kind,reason){
+    const before=graphState(),nextBindings=[];
+    const candidate=createConstructorModel(library,{storage:null});
+    try{
+      candidate.importPacket(model.exportPacket());
+      const materialize=id=>{
+        const node=before.nodes.find(item=>item.id===id);
+        if(!node)throw new Error('A selected thought is no longer available.');
+        if(node.routeContext)return candidate.addMaterial(node.materialId);
+        if(node.ownerType!=='personal-hypothesis'||state.nodes.some(item=>item.id===id))return id;
+        const graphId=candidate.addDraft({kind:node.kind,title:node.title,body:node.body,position:node.position});
+        nextBindings.push([node.workspaceHypothesisId,graphId]);return graphId;
+      };
+      const from=materialize(fromId),to=materialize(toId),edgeId=candidate.connect(from,to,kind,reason);
+      // Commit the fully validated operation once: cancellation and a failed
+      // connection never materialize nodes, and one graph Undo reverses Save.
+      model.importPacket(candidate.exportPacket());
+      for(const [ownerId,graphId]of nextBindings)bindHypothesis(ownerId,graphId);
+      saveOwnerBindings();reflect();checkGraphPersistence();return edgeId;
+    }finally{candidate.dispose();}
   }
   function graphState(){
     const base=structuredClone(state),owner=liveWorkspaceNodes(),byId=new Map(base.nodes.map(n=>[n.id,n]));
@@ -263,16 +319,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const existing=new Set(base.edges.map(edge=>edge.id));
       for(const edge of atlas.edges??[]){const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to),id=`atlas:${edge.id}`;if(existing.has(id)||!byId.has(from)||!byId.has(to))continue;base.edges.push({...edge,id,from,to});existing.add(id);}
     }
-    for(const n of owner.nodes)if(!byId.has(n.id)){base.nodes.push(n);byId.set(n.id,n);}
+    for(const n of owner.nodes){if(byId.has(n.id))Object.assign(byId.get(n.id),n);else{base.nodes.push(n);byId.set(n.id,n);}}
     const existingEdges=new Set(base.edges.map(e=>e.id));
     for(const edge of owner.edges)if(!existingEdges.has(edge.id))base.edges.push(edge);
     return base;
   }
   function visibleState(){
     const current=graphState();
-    const projected=makeLensView(current,library,{lens,enabled:enabled.size===relationKinds.length?null:enabled,path:route?.path??null});
+    const projected=makeLensView(current,library,{lens,enabled:enabled.size===relationKinds.length?null:enabled,path:interaction||!compareBar.hidden?null:route?.path??null});
     projected.clusters=(projected.clusters??[]).map(cluster=>({...cluster,title:tr(cluster.title,locale()),subtitle:tr(cluster.subtitle,locale())}));
-    projected.edges=projected.edges.map(edge=>({...edge,label:tr(edge.label,locale())||tr(RELATIONS[edge.kind],locale())||t('relation')}));
+    projected.edges=projected.edges.map(edge=>({...edge,label:isBasedOn(edge)?relationName(edge):tr(edge.label,locale())||relationName(edge)}));
     projected.nodes=projected.nodes.map(node=>{
       const material=matForNode(node);
       if(node.ownerType==='personal-hypothesis')return {...node,title:node.title,body:node.body};
@@ -286,9 +342,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function reflect(){
     if(destroyed)return;state=model.getState();refreshSky();
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
-    const current=graphState();count.textContent=`${t('visibleCount')}: ${countText(current.nodes.length,'nodes')} · ${countText(current.edges.length,'edges')}`;if(!notify.timer)statusLabel.textContent=savedStatus();
+    const current=visibleState();count.textContent=`${t('visibleCount')}: ${countText(current.nodes.length,'nodes')} · ${countText(current.edges.length,'edges')}`;if(!notify.timer)statusLabel.textContent=savedStatus();
     posture.querySelector('span').textContent=tr(library.space?.posture,locale())||t('posture');posture.setAttribute('aria-label',posture.textContent);
-    if(selectedEdge)renderEdge(selectedEdge);else if(selected)renderNode(selected);else if(personal.hidden&&reading.hidden&&!state.nodes.length)renderWelcome();
+    if(personal.hidden){if(selectedEdge)renderEdge(selectedEdge);else if(selected)renderNode(selected);else if(reading.hidden&&!state.nodes.length)renderWelcome();}
     renderSearch();
   }
   function paintLenses(){
@@ -312,16 +368,29 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const inSavedGraph=state.nodes.some(item=>item.id===id),inView=graphState().nodes.some(item=>item.id===id);
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
     reading.hidden=false;personal.hidden=true;shell.dataset.reading='true';panelContent.replaceChildren();
-    panelContent.append(el('p','eyebrow',`${t('kind')} · ${kindName(material?.kind??node.kind)}`),el('h1','',label(node.ownerType==='personal-hypothesis'?node:material??node)));
+    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node);panelContent.append(el('p','eyebrow',`${t('kind')} · ${kindName(material?.kind??node.kind)}`),el('h1','',node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle));if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)panelContent.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
       panelContent.append(el('p','posture',t('personal')));
       if(node.body)panelContent.append(el('p','body',node.body));
       if(ownerHyp?.targetId)panelContent.append(el('p','muted',`${t('related')}: ${ownerHyp.targetId}`));
+      const proposals=personalProposals(ownerHyp?.id??node.workspaceHypothesisId);
+      appendPersonalGrounds(panelContent,proposals);
+      if(proposals.length){
+        const list=el('section','ps-personal-proposals');list.append(el('h2','minor-title',t('personalRelations')));
+        for(const proposal of proposals){
+          const article=el('article','ps-personal-proposal');article.id=`ps-proposal-${proposal.id}`;
+          article.append(el('p','posture',t('personal')),el('p','body',proposal.statement));
+          const target=proposals.find(item=>item.id===proposal.targetId);
+          if(target){const link=button(`${t('personalObjection')}: ${target.statement.slice(0,110)}`,'text-button');link.addEventListener('click',()=>{const destination=document.getElementById(`ps-proposal-${target.id}`);destination?.scrollIntoView({block:'nearest'});});article.append(link);}
+          list.append(article);
+        }
+        panelContent.append(list);
+      }
     }else if(material){
       const source=sourceForMaterial(material,node);
       if(source?.exact){panelContent.append(el('p','ps-source-status',t('sourceExact')));const open=button(`↗ ${t('openExact')}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
       else if(source?.binding){panelContent.append(el('p','ps-source-status',t('sourceWork')));const open=button(`↗ ${t('openWork')}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
-      else if(material.sourceAccess==='metadata-only'||material.sourceRefs?.length)panelContent.append(el('p','ps-source-status',t('linkOnly')));
+      else if(material.sourceAccess==='metadata-only'||material.sourceRefs?.length){const external=(material.sourceRefs??[]).some(ref=>/^https?:\/\//.test(typeof ref==='string'?ref:ref.url??''))||(material.inquiry?.grounds??[]).some(ground=>/^https?:\/\//.test(atlas.references?.[ground.ref]?.url??''));panelContent.append(el('p','ps-source-status',t(external?'externalBibliographic':'bibliographicOnly')));}
       const postureLabel=material.demo===true||material.posture==='proposed'?'demo':material.sourceAccess;
       if(postureLabel==='demo')panelContent.append(el('p','posture',t('demo')));
       const body=material.atlasBody??material.body;
@@ -342,7 +411,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const authorId=material?.legacyId??material?.id,works=material?.kind==='figure'?[...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))):[];
     if(works.length){panelContent.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target');open.addEventListener('click',()=>previewMaterial(work.id));panelContent.append(open);}}
     const connections=graphState().edges.filter(edge=>edge.from===id||edge.to===id);
-    if(connections.length){panelContent.append(el('h2','minor-title',t('connections')));for(const edge of connections){const otherId=edge.from===id?edge.to:edge.from;const other=graphState().nodes.find(item=>item.id===otherId);const row=button('', 'connection-target'),type=tr(RELATIONS[edge.kind],locale())||t('relation'),extra=humanEdgeLabel(edge);row.append(el('small','',`${edge.from===id?'→':'←'} ${type}${extra&&extra!==type?` · ${extra}`:''}`),el('span','',label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other)));row.style.setProperty('--relation-color',RELATIONS[edge.kind]?.color??'#a5b7cf');row.addEventListener('click',()=>selectNode(otherId));panelContent.append(row);}}
+    if(connections.length){panelContent.append(el('h2','minor-title',t('connections')));for(const edge of connections){const otherId=edge.from===id?edge.to:edge.from;const other=graphState().nodes.find(item=>item.id===otherId);const row=button('', 'connection-target'),type=relationName(edge,edge.to===id),extra=humanEdgeLabel(edge);row.append(el('small','',`${isBasedOn(edge)||edge.from===id?'→':'←'} ${type}${extra&&extra!==type?` · ${extra}`:''}`),el('span','',label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other)));row.style.setProperty('--relation-color',RELATIONS[edge.kind]?.color??'#a5b7cf');row.addEventListener('click',()=>selectNode(otherId));panelContent.append(row);}}
     if(material&&materials.has(material.id)){
       const edit=button(t(inSavedGraph?'removeFromSpace':'addToSpace'),'text-button');
       edit.addEventListener('click',()=>{try{if(inSavedGraph){model.removeNode(id);selected=id;notifyGraphResult(t('removedFromSpace'));}else{const added=model.addMaterial(material.id);state=model.getState();selectActual(added);notifyGraphResult(t('saved'));}reflect();}catch(error){notify(displayPublicError(error,locale));}});panelContent.append(edit);
@@ -357,16 +426,27 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const edge=findEdge(id);if(!edge){selectedEdge=null;return renderWelcome();}
     reading.hidden=false;personal.hidden=true;shell.dataset.reading='true';panelContent.replaceChildren();
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
-    const relationLabel=tr(RELATIONS[edge.kind],locale())||t('relation'),edgeLabel=humanEdgeLabel(edge);
-    panelContent.append(el('p','eyebrow',t('relation')+' · '+relationLabel),el('h1','',edgeLabel||relationLabel));
+    const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge);
+    panelContent.append(el('p','eyebrow',t('relation')+' · '+relationLabel),el('h1','',edgeLabel&&edgeLabel.length<=120?edgeLabel:relationLabel));if(edgeLabel.length>120)panelContent.append(el('p','body',edgeLabel));
     if(edge.body||atlasEdge?.body)panelContent.append(el('p','body',tr(edge.body??atlasEdge.body,locale())));
     const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(panelContent,t('relationWarrant'),inquiry.warrant,true);appendGrounds(panelContent,inquiry.grounds);inquiryDetail(panelContent,t('relationLimit'),inquiry.limit);inquiryQuestion(panelContent,inquiry.question);}
     const endpoints=el('div','edge-endpoints');const a=button(label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from),'text-button'),b=button(label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to),'text-button');a.addEventListener('click',()=>selectNode(from.id));b.addEventListener('click',()=>selectNode(to.id));endpoints.append(a,el('span','',relationLabel),b);panelContent.append(endpoints);
-    const actions=el('div','reading-actions');actions.append(button(t('openExact'),'primary'),button(t('compare'),'text-button'));
-    actions.children[0].textContent=t('openExact');const source=sourceForMaterial(matForNode(from),from)??sourceForMaterial(matForNode(to),to);if(source){actions.children[0].textContent=source.exact?t('openExact'):t('openWork');actions.children[0].addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));}else actions.children[0].addEventListener('click',()=>notify(t('sourceMissing')));actions.children[1].addEventListener('click',()=>{closePanel();beginCompare(from?.id,to?.id);});panelContent.append(actions);
+    const proposal=(workspace?.getState?.()?.proposals??[]).find(item=>item.id===edge.proposalId);
+    if(proposal)appendPersonalGrounds(panelContent,[proposal]);
+    for(const endpoint of [from,to]){
+      if(endpoint?.ownerType==='personal-hypothesis'){
+        const section=el('section','ps-endpoint-source');section.append(el('h2','minor-title',`${t('endpointRelatedSources')}: ${label(endpoint)}`));
+        appendPersonalGrounds(section,personalProposals(endpoint.workspaceHypothesisId));panelContent.append(section);continue;
+      }
+      const source=sourceForMaterial(matForNode(endpoint),endpoint);
+      if(!source)continue;
+      const section=el('section','ps-endpoint-source');section.append(el('h2','minor-title',`${t('endpointSource')}: ${label(matForNode(endpoint)??endpoint)}`));
+      const open=button(`↗ ${t(source.exact?'openExact':'openWork')}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));section.append(open);panelContent.append(section);
+    }
+    const actions=el('div','reading-actions'),compare=button(t('compare'),'text-button');compare.addEventListener('click',()=>{closePanel();beginCompare(from?.id,to?.id);});actions.append(compare);panelContent.append(actions);
   }
   function selectNode(id){
-    if(interaction==='connect'){const nextId=materializePersonalNode(id);if(!connectIds.length){connectIds=[nextId];notify(t('chooseSecond'));return;}if(nextId===connectIds[0])return;connectIds=[connectIds[0],nextId];interaction=null;openRelationDialog();return;}
+    if(interaction==='connect'){const nextId=id;if(!connectIds.length){connectIds=[nextId];notify(t('chooseSecond'));return;}if(nextId===connectIds[0])return;connectIds=[connectIds[0],nextId];interaction=null;openRelationDialog();return;}
     if(interaction==='compare'){if(!compareIds.includes(id))compareIds.push(id);if(compareIds.length===2){interaction=null;renderComparison();}return;}
     selectActual(id);
   }
@@ -375,21 +455,33 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function selectEdge(id){selectedEdge=id;selected=null;reading.hidden=false;personal.hidden=true;sky?.selectEdge(id);renderEdge(id);}
   function openPanel(){reading.hidden=false;shell.dataset.reading='true';sky?.refresh();}
   function closePanel(){reading.hidden=true;shell.dataset.reading='false';selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);reflect();}
-  function togglePersonal(){const opening=personal.hidden;personal.hidden=!personal.hidden;reading.hidden=true;if(opening){deck.hidden=true;shell.dataset.journey='false';}shell.dataset.reading=String(opening);personalState=workspace?.getState?.()??personalState;if(opening)renderPersonalPanel();sky?.refresh();}
-  function closePersonal(){personal.hidden=true;shell.dataset.reading='false';sky?.refresh();}
-  function toggleRoutes(){routeDockTouched=true;if(route||!deck.hidden){route=null;persistView();deck.hidden=true;shell.dataset.journey='false';reflect();return;}panelMode='routes';renderRoutes();deck.hidden=false;shell.dataset.journey='true';reading.hidden=true;personal.hidden=true;shell.dataset.reading='false';sky?.refresh();}
+  function togglePersonal(){
+    const opening=personal.hidden;
+    if(!opening){closePersonal();return;}
+    personalRouteWasVisible=!!route&&!deck.hidden;
+    personal.hidden=false;reading.hidden=true;deck.hidden=true;shell.dataset.journey='false';shell.dataset.reading='true';
+    personalState=workspace?.getState?.()??personalState;renderPersonalPanel();sky?.refresh();
+  }
+  function restoreRouteDock(){if(route){browsingRoutes=false;renderRoutes();deck.hidden=false;shell.dataset.journey='true';}}
+  function closePersonal(){personal.hidden=true;shell.dataset.reading='false';if(personalRouteWasVisible)restoreRouteDock();personalRouteWasVisible=false;sky?.refresh();}
+  function closeRoute(){routeDockTouched=true;route=null;browsingRoutes=false;persistView();deck.hidden=true;shell.dataset.journey='false';reflect();sky?.frame();}
+  function toggleRoutes(){
+    routeDockTouched=true;
+    if(!deck.hidden&&browsingRoutes){deck.hidden=true;browsingRoutes=false;shell.dataset.journey='false';sky?.refresh();return;}
+    browsingRoutes=true;renderRoutes();deck.hidden=false;shell.dataset.journey='true';reading.hidden=true;personal.hidden=true;shell.dataset.reading='false';sky?.refresh();
+  }
   function routeItems(){return [...routes.map(item=>({...item,source:'atlas'})),...journeyList.map(item=>({...item,source:'manifest'}))];}
   function renderRoutes(){
-    if(!deck)return;deck.dataset.active=String(!!route);deck.replaceChildren();const title=el('div','deck-caption');title.append(el('span','eyebrow',t('chooseQuestion')),button(t('close'),'text-button'));title.lastChild.addEventListener('click',()=>{routeDockTouched=true;route=null;persistView();deck.hidden=true;shell.dataset.journey='false';reflect();});deck.append(title);
-    if(route&&route.source==='atlas'){
+    if(!deck)return;deck.dataset.active=String(!!route);deck.replaceChildren();const title=el('div','deck-caption');title.append(el('span','eyebrow',t('chooseQuestion')),button(t(route?'resetRoute':'close'),'text-button'));title.lastChild.addEventListener('click',closeRoute);deck.append(title);
+    if(route&&!browsingRoutes&&route.source==='atlas'){
       const current=routes.find(item=>item.id===route.id),steps=current?.steps??[];const progress=el('div','ps-route-progress');
-      for(let i=0;i<steps.length;i++){const b=button(String(i+1),'journey-stop');b.setAttribute('aria-current',String(i===routeIndex));b.addEventListener('click',()=>goRouteStep(i));progress.append(b);}deck.append(el('h2','ps-route-title',tr(current?.title,locale())),el('p','ps-route-question',tr(current?.question,locale())),progress);
-      const step=steps[routeIndex];if(step){deck.append(el('h3','',tr(step.title,locale())),el('p','',tr(step.body,locale())));if(step.question)inquiryQuestion(deck,step.question);const nextStep=steps[routeIndex+1],transition=(current.transitions??[]).find(item=>(item.fromNodeId===step.nodeId&&item.toNodeId===nextStep?.nodeId)||(item.from===step.nodeId&&item.to===nextStep?.nodeId))??(profile==='zarathustra'?(current.transitions??[])[routeIndex]:null);if(nextStep&&transition?.body){deck.append(el('h3','minor-title',t('nextRelation')),el('p','',tr(transition.body,locale())));}else if(!nextStep&&current.conclusion){deck.append(el('h3','minor-title',t('routeEnd')),el('p','',tr(current.conclusion,locale())));}const actionRow=el('div','ps-route-actions');if(routeIndex>0){const previous=button(`← ${t('routePrevious')}`,'text-button');previous.addEventListener('click',()=>goRouteStep(routeIndex-1));actionRow.append(previous);}const source=routeSource(step);if(source){const open=button(`↗ ${t(source.exact?'openExact':'openWork')}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));actionRow.append(open);}if(routeIndex<steps.length-1){const next=button(`${t('routeNext')} →`,'primary');next.addEventListener('click',()=>goRouteStep(routeIndex+1));actionRow.append(next);}deck.append(actionRow);}
+      for(let i=0;i<steps.length;i++){const b=button(String(i+1),'journey-stop');b.setAttribute('aria-current',String(i===routeIndex));b.setAttribute('aria-label',`${t('step')} ${i+1}`);b.addEventListener('click',()=>goRouteStep(i));progress.append(b);}deck.append(el('h2','ps-route-title',tr(current?.title,locale())),el('p','ps-route-question',tr(current?.question,locale())),progress);
+      const step=steps[routeIndex];if(step){deck.append(el('h3','',tr(step.title,locale())),el('p','',tr(step.body,locale())));if(step.question)inquiryQuestion(deck,step.question);const nextStep=steps[routeIndex+1],transition=(current.transitions??[]).find(item=>(item.fromNodeId===step.nodeId&&item.toNodeId===nextStep?.nodeId)||(item.from===step.nodeId&&item.to===nextStep?.nodeId))??(profile==='zarathustra'?(current.transitions??[])[routeIndex]:null);if(nextStep&&transition?.body){deck.append(el('h3','minor-title',t('nextRelation')),el('p','',tr(transition.body,locale())));}else if(!nextStep&&current.conclusion){deck.append(el('h3','minor-title',t('routeEnd')),el('p','',tr(current.conclusion,locale())));}const actionRow=el('div','ps-route-actions');if(routeIndex>0){const previous=button(`← ${t('routePrevious')}`,'text-button');previous.addEventListener('click',()=>goRouteStep(routeIndex-1));actionRow.append(previous);}const source=routeSource(step);if(source?.binding){const open=button(`↗ ${t(source.exact?'openExact':'openWork')}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));actionRow.append(open);}else if(source){const lang={de:{ru:'немецкий',en:'German'},en:{ru:'английский',en:'English'},fr:{ru:'французский',en:'French'},grc:{ru:'древнегреческий',en:'Ancient Greek'},la:{ru:'латинский',en:'Latin'}}[source.reference?.language];const title=[tr(source.reference?.author,locale()),tr(source.reference?.work,locale()),tr(source.reference?.locator,locale()),lang&&tr(lang,locale())].filter(Boolean).join(' · ');if(source.externalUrl){const link=el('a','text-button',`↗ ${t('openExternal')} · ${title}`);link.href=source.externalUrl;link.target='_blank';link.rel='noopener noreferrer';actionRow.append(link);}else actionRow.append(el('p','muted',`${t('bibliographicOnly')}${title?` · ${title}`:''}`));}if(routeIndex<steps.length-1){const next=button(`${t('routeNext')} →`,'primary');next.addEventListener('click',()=>goRouteStep(routeIndex+1));actionRow.append(next);}deck.append(actionRow);}
       return;
     }
-    if(route&&route.source==='manifest'){
+    if(route&&!browsingRoutes&&route.source==='manifest'){
       const current=localizePublicJourney(journeyList.find(item=>item.id===route.id),locale());const steps=current?.steps??[];const progress=el('div','ps-route-progress');
-      for(let i=0;i<steps.length;i++){const b=button(String(i+1),'journey-stop');b.setAttribute('aria-current',String(i===routeIndex));b.addEventListener('click',()=>goJourneyStep(i));progress.append(b);}deck.append(el('h2','ps-route-title',current?.title??''),el('p','ps-route-question',current?.question??''),progress,el('h3','',steps[routeIndex]?.title??''),el('p','',steps[routeIndex]?.prompt??''));
+      for(let i=0;i<steps.length;i++){const b=button(String(i+1),'journey-stop');b.setAttribute('aria-current',String(i===routeIndex));b.setAttribute('aria-label',`${t('step')} ${i+1}`);b.addEventListener('click',()=>goJourneyStep(i));progress.append(b);}deck.append(el('h2','ps-route-title',current?.title??''),el('p','ps-route-question',current?.question??''),progress,el('h3','',steps[routeIndex]?.title??''),el('p','',steps[routeIndex]?.prompt??''));
       if(current?.readingHypothesis)inquiryDetail(deck,t('argument'),current.readingHypothesis);
       if(current?.strongAlternative)inquiryDetail(deck,t('counterReading'),current.strongAlternative);
       const actions=el('div','ps-route-actions');if(routeIndex>0){const previous=button(`← ${t('routePrevious')}`,'text-button');previous.addEventListener('click',()=>goJourneyStep(routeIndex-1));actions.append(previous);}
@@ -407,7 +499,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function syncInitialRouteDock(){if(routeDockTouched||route)return;if(desktopMode.matches){renderRoutes();deck.hidden=false;shell.dataset.journey='true';}else{deck.hidden=true;shell.dataset.journey='false';}sky?.refresh();}
   function startRoute(item){
-    routeDockTouched=true;
+    routeDockTouched=true;browsingRoutes=false;
     route={id:item.id,source:item.source,path:null};routeIndex=0;
     if(item.source==='atlas'){
       const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(Boolean);
@@ -424,18 +516,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return {nodeIds:out,edgeIds:[...new Set(edgeIds)],restrictEdges:true};
   }
   function goRouteStep(index){
+    const moveFocus=!!document.activeElement?.closest('.ps-route-dock');browsingRoutes=false;
     const item=routes.find(value=>value.id===route?.id),step=item?.steps?.[index];if(!step)return;routeIndex=index;persistView();
     const raw=step.nodeId??step.graphNodeId,materialId=materials.has(raw)?raw:raw?.replace(/^material:/,'');
     if(materialId){selected=graphIdForMaterial(materialId);selectedEdge=null;sky?.select(selected);sky?.focus(selected);}
-    renderRoutes();reflect();
+    renderRoutes();reflect();if(moveFocus)deck.querySelector('[aria-current="true"]')?.focus();
   }
   function goJourneyStep(index,open=false){
+    const moveFocus=!!document.activeElement?.closest('.ps-route-dock');browsingRoutes=false;
     const item=localizePublicJourney(journeyList.find(value=>value.id===route?.id),locale()),step=item?.steps?.[index];if(!step)return;routeIndex=index;persistView();renderRoutes();
     const address={documentId:step.documentId,versionId:step.versionId,unitId:step.unitId};
     const binding=[...sourceMap.values()].find(value=>value.documentId===address.documentId&&value.versionId===address.versionId&&value.unitId===address.unitId);
     const node=binding&&[...sourceMap.entries()].find(([,value])=>value===binding)?.[0];
     if(node){selected=graphIdForMaterial(node);sky?.select(selected);sky?.focus(selected);}
-    if(open)void openPublicAddress(address).catch(()=>notify(t('unavailable')));
+    if(open)void openPublicAddress(address).catch(()=>notify(t('unavailable')));else if(moveFocus)deck.querySelector('[aria-current="true"]')?.focus();
   }
   function sourceForRef(ref){
     for(const [id,value] of sourceMap)if(value.referenceId===ref||value.unitId===ref)return value;
@@ -461,20 +555,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(dialog.open)dialog.close();dialog.replaceChildren();const content=makeDialog(t('newNode'));const form=document.createElement('form');const kind=document.createElement('select');for(const value of ['concept','interpretation','question','note'])kind.append(new Option(tr({concept:{ru:'Понятие',en:'Concept'},interpretation:{ru:'Прочтение',en:'Reading'},question:{ru:'Вопрос',en:'Question'},note:{ru:'Заметка',en:'Note'}}[value],locale()),value));
     const title=document.createElement('input');title.maxLength=250;title.required=true;const body=document.createElement('textarea');body.rows=5;body.maxLength=4000;body.required=true;
     form.append(field(t('kind'),kind),field(t('title'),title),field(t('text'),body));const actions=el('div','dialog-actions');actions.append(button(t('cancel')));actions.firstChild.addEventListener('click',()=>dialog.close());const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent=t('save');actions.append(save);form.append(actions);content.append(form);
-    form.addEventListener('submit',event=>{event.preventDefault();try{const input={id:'',title:title.value.trim(),body:body.value.trim()},id=model.addDraft({kind:kind.value,title:input.title,body:input.body});input.id=`space:${profile}:${crypto.randomUUID()}`;materializedHypotheses.set(input.id,id);saveOwnerBindings();const managed={input,ownerSynced:false};managedDrafts.set(id,managed);try{workspace?.addHypothesis?.(input);managed.ownerSynced=true;notifyGraphResult(t('saved'));}catch{notify(model.persistenceError?.()?t('graphSaveError'):t('saveError'));}personalState=workspace?.getState?.()??personalState;selected=id;selectedEdge=null;dialog.close();reflect();sky?.frame();}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();title.focus();
+    form.addEventListener('submit',event=>{event.preventDefault();try{const input={id:'',title:title.value.trim(),body:body.value.trim()},id=model.addDraft({kind:kind.value,title:input.title,body:input.body});input.id=`space:${profile}:${crypto.randomUUID()}`;bindHypothesis(input.id,id);saveOwnerBindings();const managed={input,ownerSynced:false};managedDrafts.set(id,managed);try{workspace?.addHypothesis?.(input);managed.ownerSynced=true;notifyGraphResult(t('saved'));}catch{notify(model.persistenceError?.()?t('graphSaveError'):t('saveError'));}personalState=workspace?.getState?.()??personalState;selected=id;selectedEdge=null;dialog.close();reflect();sky?.frame();}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();title.focus();
   }
   function field(label,input){const wrapper=el('label','ps-field');wrapper.append(el('span','',label),input);return wrapper;}
-  function beginConnect(first){interaction='connect';connectIds=first?[materializePersonalNode(first)]:[];compareIds=[];closePanel();notify(connectIds.length?t('chooseSecond'):t('chooseFirst'));}
+  function beginConnect(first){interaction='connect';connectIds=first?[first]:[];compareIds=[];closePanel();notify(connectIds.length?t('chooseSecond'):t('chooseFirst'));}
   function openRelationDialog(){
     dialog.replaceChildren();const from=graphState().nodes.find(item=>item.id===connectIds[0]),to=graphState().nodes.find(item=>item.id===connectIds[1]);const content=makeDialog(t('newEdge'));content.append(el('p','ps-dialog-intro',`${label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from)} → ${label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to)}`));const form=document.createElement('form'),kind=document.createElement('select');
     for(const key of relationKinds.filter(key=>key!=='contains'))kind.append(new Option(tr(RELATIONS[key],locale()),key));const reason=document.createElement('textarea');reason.rows=3;reason.maxLength=500;reason.required=true;form.append(field(t('chooseRelation'),kind),field(t('edgeLabel'),reason));const actions=el('div','dialog-actions');const cancel=button(t('cancel'));cancel.addEventListener('click',()=>{connectIds=[];dialog.close();});const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent=t('save');actions.append(cancel,save);form.append(actions);content.append(form);
-    form.addEventListener('submit',event=>{event.preventDefault();try{const edgeId=model.connect(connectIds[0],connectIds[1],kind.value,reason.value.trim());connectIds=[];dialog.close();selectEdge(edgeId);notifyGraphResult(t('connected'));}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();reason.focus();
+    form.addEventListener('submit',event=>{event.preventDefault();try{const edgeId=connectPersonalNodes(connectIds[0],connectIds[1],kind.value,reason.value.trim());connectIds=[];dialog.close();selectEdge(edgeId);notifyGraphResult(t('connected'));}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();reason.focus();
   }
-  function beginCompare(first,second){interaction='compare';connectIds=[];compareIds=[first,second].filter(Boolean);if(compareIds.length>=2){interaction=null;renderComparison();return;}closePanel();notify(t('comparePick'));}
+  function beginCompare(first,second){comparisonRouteWasVisible=!!route&&!deck.hidden;deck.hidden=true;shell.dataset.journey='false';interaction='compare';connectIds=[];compareIds=[first,second].filter(Boolean);if(compareIds.length>=2){interaction=null;renderComparison();return;}closePanel();refreshSky();sky?.frame();notify(t('comparePick'));}
   function renderComparison(){
     if(compareIds.length<2)return;const values=compareIds.map(id=>graphState().nodes.find(node=>node.id===id));compareBar.replaceChildren();compareBar.hidden=false;
-    const close=button('×','icon');close.setAttribute('aria-label',t('close'));close.addEventListener('click',()=>{compareIds=[];compareBar.hidden=true;});compareBar.append(close,el('h2','',t('comparison')),el('p','',t('comparePrompt')));const columns=el('div','ps-compare-columns');
-    for(const node of values){const material=matForNode(node),card=el('article','ps-compare-card');card.append(el('h3','',label(node.ownerType==='personal-hypothesis'?node:material??node)),el('small','posture',material?.demo?t('demo'):node.ownerType==='personal-hypothesis'?t('personal'):(material?.sourceAccess==='metadata-only'?t('linkOnly'):'')),el('p','body',tr(node.body??material?.atlasBody??material?.body,locale())));const source=sourceForMaterial(material,node);if(source){const open=button(source.exact?t('openExact'):t('openWork'),'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));card.append(open);}columns.append(card);}
+    const close=button('×','icon');close.setAttribute('aria-label',t('close'));close.addEventListener('click',()=>{compareIds=[];compareBar.hidden=true;if(comparisonRouteWasVisible)restoreRouteDock();comparisonRouteWasVisible=false;refreshSky();});compareBar.append(close,el('h2','',t('comparison')),el('p','',t('comparePrompt')));const columns=el('div','ps-compare-columns');
+    for(const node of values){const material=matForNode(node),card=el('article','ps-compare-card');card.append(el('h3','',label(node.ownerType==='personal-hypothesis'?node:material??node)),el('small','posture',material?.demo?t('demo'):node.ownerType==='personal-hypothesis'?t('personal'):(material?.sourceAccess==='metadata-only'?t('linkOnly'):'')),el('p','body',tr(node.body??material?.atlasBody??material?.body,locale())));const source=sourceForMaterial(material,node);if(source){const open=button(source.exact?t('openExact'):t('openWork'),'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));card.append(open);}if(node.ownerType==='personal-hypothesis')appendPersonalGrounds(card,personalProposals(node.workspaceHypothesisId));columns.append(card);}
     compareBar.append(columns);shell.dataset.reading='false';reading.hidden=true;personal.hidden=true;sky?.refresh();
   }
   function toggleRelations(){
@@ -493,9 +587,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function toggleFullscreen(){if(document.fullscreenElement)return document.exitFullscreen().catch(()=>{});return shell.requestFullscreen?.().catch(()=>{});}
   function keyboard(event){
-    if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
+    if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
-    else if(!event.ctrlKey&&!event.metaKey){if(key==='o')sky?.frame();if(key==='/'){event.preventDefault();search.focus();}if(key==='escape'){interaction=null;connectIds=[];compareIds=[];compareBar.hidden=true;route=null;persistView();deck.hidden=true;shell.dataset.journey='false';closePanel();closePersonal();}}
+    else if(!event.ctrlKey&&!event.metaKey){if(key==='o')sky?.frame();if(key==='/'){event.preventDefault();search.focus();}if(key==='escape'){interaction=null;connectIds=[];compareIds=[];compareBar.hidden=true;closePanel();closePersonal();closeRoute();}}
+  }
+  function restoreFocus(){
+    const target=!deck.hidden?(deck.querySelector('[aria-current="true"]')??deck.querySelector('button,a[href]')):!reading.hidden?reading.querySelector('button,a[href]'):mainActions.querySelector('[data-space-action="routes"]');
+    if(!target?.isConnected)return false;target.focus({preventScroll:true});return document.activeElement===target;
   }
   let collectionView=null,collectionRoot=null;
   function refreshLocale(){setLocaleState();if(!personal.hidden)renderPersonalPanel();if(dialog.open&&collectionRoot?.isConnected){dialog.querySelector('.dialog-top h2').textContent=t('library');for(const b of dialog.querySelectorAll('[data-public-locale]'))b.setAttribute('aria-pressed',String(b.dataset.publicLocale===locale()));collectionView?.refresh();}}
@@ -508,13 +606,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   const unsubscribeModel=model.subscribe(next=>{state=next;syncManagedDrafts(next);reflect();});
   const unsubscribeWorkspace=workspace?.subscribe?.(updateWorkspace);
+  const showImportResult=()=>{if(personal.hidden)togglePersonal();};
+  workspaceRoot.addEventListener('public-research-import-result',showImportResult);
   if(question)question.classList.add('ps-question-input');
   searchResults.hidden=true;deck.hidden=true;personal.hidden=true;reading.hidden=true;
   paintLenses();paintRelations();desktopMode.addEventListener('change',syncInitialRouteDock);syncInitialRouteDock();
   try{if(!model.getState().nodes.length)model.seedAtlas();}catch{}
   checkGraphPersistence();
   state=model.getState();
-  sky=mountConstructorSky(shell,{onSelect:selectNode,onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));}catch{};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  sky=mountConstructorSky(shell,{onSelect:selectNode,onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
   const viewParams=new URLSearchParams(location.search),savedRoute=viewParams.get('treeRoute'),savedStep=Number(viewParams.get('treeStep'));
   const restoredRoute=routeItems().find(item=>`${item.source}:${item.id}`===savedRoute);
   if(restoredRoute){startRoute(restoredRoute);const step=Math.max(0,Math.min((restoredRoute.steps?.length??1)-1,Number.isSafeInteger(savedStep)?savedStep-1:0));if(restoredRoute.source==='atlas')goRouteStep(step);else goJourneyStep(step);}
@@ -522,6 +622,6 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   reflect();sky.frame();shell.dataset.ready='true';
   if(upgradeError)notify(locale()==='en'?'The saved graph could not be upgraded. Its original copy is preserved.':'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
-  return {root:shell,pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;unsubscribeModel?.();unsubscribeWorkspace?.();document.removeEventListener('keydown',keyboard);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
+  return {root:shell,pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
+    destroy(){if(destroyed)return;destroyed=true;unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);document.removeEventListener('keydown',keyboard);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
 }

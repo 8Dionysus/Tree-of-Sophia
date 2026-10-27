@@ -57,6 +57,7 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     // Collection metadata does not participate in the constructor identity. The
     // saved Zarathustra graph and its witness addresses remain byte-for-byte.
     library.space.collection=[...own,...items];
+    prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)}];
     return prepared;
   }
   const predecessor=library.fingerprint;
@@ -114,6 +115,6 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
   // Keep the prior released Antiquity namespace upgradeable after source-link
   // and reading-copy corrections. Existing material IDs and source anchors are
   // retained, so saved work is validated against the current library in place.
-  prepared.graphPredecessors=[{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'cc89b903fad44969370ad6a8414817f2f54dcbb977a5544efe28a70ec10f5d85',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
+  prepared.graphPredecessors=[{fingerprint:'5674759af32d0c1ad4a79dc0b8da4202040b75407da8434a291a0aac8df186f6',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'cc89b903fad44969370ad6a8414817f2f54dcbb977a5544efe28a70ec10f5d85',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
   return prepared;
 }

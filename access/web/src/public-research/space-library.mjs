@@ -1,6 +1,6 @@
 import {createAtlasLibrary} from '../../constructor/atlas-data.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
-import {createZarathustraGroundTargets} from './zarathustra-ground-targets.mjs';
+import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from './zarathustra-ground-targets.mjs';
 import {extendPublicCollection} from './collection-data.mjs';
 import antiquityData from './antiquity-space-data.json' with {type: 'json'};
 
@@ -135,7 +135,7 @@ async function makeZarathustra(sources, structure) {
     posture: bi('Подготовленное исследовательское прочтение. Толкования и связи предложены для исследования и не являются каноном.', 'Prepared research readings. Interpretations and relations are proposed for inquiry and are not canon.'),
     routes: library.atlas.routes,
   };
-  return {library, bindings, documentBindings, groundTargets: createZarathustraGroundTargets(item.document)};
+  return {library, bindings, documentBindings, groundTargets: createZarathustraGroundTargets(item.document),routeGroundTargets:createZarathustraRouteGroundTargets(item.document)};
 }
 
 function sourceWorkId(oldWorkId) {

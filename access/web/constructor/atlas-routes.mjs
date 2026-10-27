@@ -960,8 +960,8 @@ export const RESEARCH_ROUTES = [
           "en": "Joy wants itself and everything"
         },
         "body": {
-          "ru": "В §9 горе хочет наследников и продолжения, тогда как радость хочет себя и вечности. В §§10–11 радость одного мгновения захватывает весь связанный ход вещей, включая горе. Удержите обе ступени: различие хотений и затем расширение одного из них.",
-          "en": "In §9, sorrow wants heirs and continuation, whereas joy wants itself and eternity. In §§10–11, one moment’s joy takes in things’ whole connected course, including sorrow. Keep both stages: the differing forms of willing and then one’s expansion."
+          "ru": "В песне горе говорит: «Пройди», а всё страдающее хочет жить и иметь наследников; радость хочет себя и вечности. В §§10–11 радость одного мгновения захватывает весь связанный ход вещей, включая горе. Удержите обе ступени: различие хотений и затем расширение одного из них.",
+          "en": "In the song, woe says “Go!”, while everything that suffers wants to live and have heirs; joy wants itself and eternity. In §§10–11, one moment’s joy takes in things’ whole connected course, including woe. Keep both stages: the differing forms of willing and then one’s expansion."
         },
         "question": {
           "ru": "Как песнь переходит от различия радости и горя к желанию всего?",

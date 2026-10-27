@@ -26,7 +26,8 @@
 .pr-workspace-owner-ok { color: #a7c4a8; font: 11px/1.5 system-ui, sans-serif; }
 .pr-workspace-import-preview { margin-top: 12px; }
 .pr-workspace-import-preview > p { color: #c1c7c1; font: 12px/1.5 system-ui, sans-serif; }
-.pr-workspace-graph { display: block; width: min(100%, 720px); height: auto; min-height: 190px; border: 1px solid #34474b; border-radius: 6px; background: #0c1419; }
+.pr-workspace-graph-scroll { max-width: 100%; overflow-x: auto; }
+.pr-workspace-graph { display: block; max-width: none; height: auto; min-height: 190px; border: 1px solid #34474b; border-radius: 6px; background: #0c1419; }
 .pr-workspace-edge { stroke: #c5aa6d; stroke-width: 2; opacity: .8; }
 .pr-workspace-node circle { fill: #202f34; stroke: #d5bd80; stroke-width: 2; }
 .pr-workspace-node text { fill: #e8e1d2; font: 10px system-ui, sans-serif; }

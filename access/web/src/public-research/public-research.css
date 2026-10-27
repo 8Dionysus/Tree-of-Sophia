@@ -22,6 +22,14 @@ button, textarea { font: inherit; }
 .pr-question:focus { border-color: #c5aa6d; box-shadow: 0 0 0 2px #c5aa6d25; }
 .pr-question::placeholder { color: #7e8a89; }
 .pr-save-state, .pr-provider-state { color: #899493; font: 12px/1.5 system-ui, sans-serif; }
+.pr-question-history { max-width: 660px; color: #c1c9c5; font: 12px/1.5 system-ui, sans-serif; }
+.pr-question-history summary { color: #d9c895; cursor: pointer; }
+.pr-question-history-entry { margin: 12px 0; padding-left: 12px; border-left: 2px solid #647276; }
+.pr-question-history-entry p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pr-question-recover, .pr-draft-dialog button { border: 1px solid #c5aa6d; border-radius: 6px; padding: 9px 12px; color: #f0eadc; background: #111a20; cursor: pointer; }
+.pr-draft-dialog { max-width: min(520px, 90vw); padding: 24px; border: 1px solid #c5aa6d; border-radius: 8px; color: #f0eadc; background: #111a20; font: 14px/1.5 system-ui, sans-serif; }
+.pr-draft-dialog button + button { margin-left: 8px; }
+.pr-draft-dialog::backdrop { background: #000a; }
 .pr-provider-state { margin-top: 32px; }
 .pr-error { color: #f1aa91; font: 14px/1.5 system-ui, sans-serif; }
 .pr-journeys { margin-top: 46px; border-top: 1px solid #c6ad7140; padding-top: 24px; }

@@ -7,7 +7,7 @@ import {createResearchShelfStore} from '../research-shelf/storage.mjs';
 import {createBrowserResearchWorkspace} from '../research-workspace-rust.ts';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
 import {createReference} from '../corpus-reader/model.mjs';
-import {ensureSourceRecord, resolveSourceLocator} from './source-address.mjs';
+import {describeSourceLocator, ensureSourceRecord, resolveSourceLocator} from './source-address.mjs';
 import {createCompareAndSwapPersistence} from './workspace-persistence.mjs';
 import {savePublicThought} from './workspace-view.mjs';
 import {AGENT_RESPONSE_SCHEMA, planAgentApplication, responsePacket} from './agent-bridge.mjs';
@@ -56,6 +56,16 @@ describe('public research shelf source addresses', () => {
       const reopened = await resolveSourceLocator(stored.sourceRefs[0], shelf, provider);
       expect(reopened.status).toBe('exact');
       expect(JSON.stringify(reopened.reference)).toBe(JSON.stringify(reference));
+      const described = await describeSourceLocator(locator, shelf, provider, 'en');
+      expect(described.status).toBe('exact');
+      expect(described.label).toContain('Zarathustra');
+      expect(described.label).toContain('0–20 characters');
+      const otherReference = unitReference({unitId: sourceWindow.units[0].id}, version, document, {start: 20, end: 30});
+      const otherLocator = await ensureSourceRecord(shelf, otherReference, 'Zarathustra · German source');
+      const other = await describeSourceLocator(otherLocator, shelf, provider, 'en');
+      expect(other.status).toBe('exact');
+      expect(other.label).toContain('20–30 characters');
+      expect(other.reference).toEqual(otherReference);
     } finally {
       workspace.dispose();
       await shelf.close();

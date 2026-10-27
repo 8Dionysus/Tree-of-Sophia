@@ -187,7 +187,7 @@ export function corpusWorkTitle(document, locale = 'ru') {
 }
 export function corpusSectionLabel(value,locale='ru',versionId=''){
   if(typeof value!=='string'||typeof versionId!=='string'||!versionId.startsWith('retained-'))return value;
-  if(String(locale).startsWith('en'))return value.replace(/Книга\s+(\d+)/g,'Book $1').replace(/Глава\s+(\d+)/g,'Chapter $1');
-  return value.replace(/^Notes on the work$/,'Примечания к произведению').replace(/^Textual adjustments$/,'Текстологические сведения').replace(/Book\s+(\d+)/g,'Книга $1').replace(/Chapter\s+(\d+)/g,'Глава $1');
+  if(String(locale).startsWith('en'))return value.replace(/Книга\s+(\d+)/g,'Book $1').replace(/Глава\s+(\d+)/g,'Chapter $1').replace(/Раздел\s+(\d+)/g,'Section $1');
+  return value.replace(/^Notes on the work$/,'Примечания к произведению').replace(/^Textual adjustments$/,'Текстологические сведения').replace(/Book\s+(\d+)/g,'Книга $1').replace(/Chapter\s+(\d+)/g,'Глава $1').replace(/Section\s+(\d+)/g,'Раздел $1');
 }
 import retainedWorkNames from './retained-work-names.json' with {type:'json'};

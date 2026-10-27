@@ -19,6 +19,7 @@ export function proposalStatement(value, locale) {
 // presents bounded categories while the validation and stored packet stay intact.
 export function displayPublicError(error, locale) {
   const raw=String(error?.message ?? error ?? ''); const en=isEnglish(locale);
+  if (error?.code === 'agent-question-changed') return en?'The question changed after this task was exported. Keep the response for review and export a new task before applying it.':'После экспорта задания вопрос изменился. Сохраните ответ для просмотра и экспортируйте новое задание перед применением.';
   if (/two exact grounds|два точных основания/i.test(raw)) return en?'A thesis needs at least two exact grounds.':'Для тезиса нужны два точных основания.';
   if (/exact source for the objection/i.test(raw)) return en?'Choose an exact source for the objection.':'Выберите точный источник для возражения.';
   if (/json/i.test(raw)) return en?'The file or response is not valid JSON.':'Файл или ответ содержит некорректный JSON.';

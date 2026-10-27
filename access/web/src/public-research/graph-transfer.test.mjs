@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {applyGraphSpace, exportGraphSpace, validateGraphSpace, upgradePublicGraph} from './graph-transfer.mjs';
+import {applyGraphSpace, exportGraphSpace, shouldReloadImportedGraph, validateGraphSpace, upgradePublicGraph} from './graph-transfer.mjs';
 
 const fingerprint = 'a'.repeat(64);
 const graphKey = `tos.public-research.graph.v1.zarathustra.${fingerprint}`;
@@ -12,6 +12,14 @@ function storage(seed = {}) {
 }
 
 describe('public research graph transfer', () => {
+  it('reloads after adding an older graph or companion for the active profile', () => {
+    const older=`tos.public-research.graph.v1.antiquity.${'c'.repeat(64)}`;
+    expect(shouldReloadImportedGraph([older], 'antiquity')).toBe(true);
+    expect(shouldReloadImportedGraph([`${older}.owners`], 'antiquity')).toBe(true);
+    expect(shouldReloadImportedGraph(['tos.public-research.graph-positions.v1.antiquity'], 'antiquity')).toBe(true);
+    expect(shouldReloadImportedGraph([older], 'zarathustra')).toBe(false);
+    expect(shouldReloadImportedGraph([], 'antiquity')).toBe(false);
+  });
   it('upgrades an explicit predecessor only after owner validation and retains its original bytes', () => {
     const next='b'.repeat(64),key=`tos.public-research.graph.v1.zarathustra.${next}`,old=packet('Personal tree');
     const store=storage({[graphKey]:old,[`${graphKey}.owners`]:'{"personal":"material:work"}'});
@@ -26,6 +34,24 @@ describe('public research graph transfer', () => {
     expect(validateGraphSpace(undefined)).toBeNull();
     expect(() => validateGraphSpace({schema: 'tos.public_research.graph_space.v1', version: 1, entries: [{key: 'private.secret', value: '{}'}]})).toThrow();
     expect(() => validateGraphSpace({schema: 'tos.public_research.graph_space.v1', version: 1, entries: [{key: 'tos.public-research.graph-positions.v1.__proto__', value: '{}'}]})).toThrow();
+  });
+
+  it('restores an older archive over only an untouched new seed, retaining old graphs, bindings and positions', () => {
+    const next='b'.repeat(64),key=`tos.public-research.graph.v1.zarathustra.${next}`;
+    const pristine=JSON.stringify({...JSON.parse(packet('Prepared')),libraryFingerprint:next});
+    const positions='tos.public-research.graph-positions.v1.zarathustra';
+    const old=packet('My research'),owners='{"personal":"material:work"}';
+    const store=storage({[graphKey]:old,[`${graphKey}.owners`]:owners,[key]:pristine,[positions]:'{"personal":[1,2,3]}'});
+    const options={profile:'zarathustra',fingerprint:next,pristineGraph:pristine,predecessors:[{fingerprint,materialIds:['work']}],validate:value=>value};
+    expect(upgradePublicGraph(store,options).upgraded).toBe(true);
+    expect(store.getItem(graphKey)).toBe(old);
+    expect(store.getItem(`${graphKey}.owners`)).toBe(owners);
+    expect(store.getItem(`${key}.owners`)).toBe(owners);
+    expect(store.getItem(positions)).toBe('{"personal":[1,2,3]}');
+    expect(JSON.parse(store.getItem(key)).title).toBe('My research');
+    const edited=storage({[graphKey]:old,[key]:JSON.stringify({...JSON.parse(pristine),title:'New personal work'})});
+    expect(upgradePublicGraph(edited,options).upgraded).toBe(false);
+    expect(JSON.parse(edited.getItem(key)).title).toBe('New personal work');
   });
 
   it('exports bounded graph packets and companion records without rewriting Rust packet bytes', () => {

@@ -3,6 +3,7 @@ import {createReference,validateReference,referenceKey} from './model.mjs';
 import {findInParagraphs} from '../reader/occurrences-rust.mjs';
 import {readBoundedJSON,withAbort} from '../observatory/bounded-response.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
+import {editorialKindForMatch} from './editorial.mjs';
 
 // A delivery adapter for an explicitly selected, immutable public export.
 // Source identities, order, rights, wording and structure come from the native
@@ -274,7 +275,25 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
       if(!object(saved)||![saved.term,saved.match,saved.occurrence].every(value=>Number.isSafeInteger(value)&&value>=0)||saved.term>index.terms.length)throw new CorpusProviderCursorError();
       const matched=findInParagraphs(index.terms.slice(saved.term).map(value=>value.form),args.query,{limit:500});
       const items=[];
-      for(const match of matched.matches){
+      // A small page of index hits bounds the source-page reads needed for
+      // meaningful context. The continuation retains the exact index cursor.
+      const pageLimit=Number.isSafeInteger(args.limit)?Math.max(1,Math.min(args.limit,8)):8;
+      const finish=async nextCursor=>{
+        const pageNumbers=[...new Set(items.map(item=>item.page))];
+        const sourcePages=await Promise.all(pageNumbers.map(index=>pageData(document,version,index,args.signal)));
+        const byPage=new Map(pageNumbers.map((index,i)=>[index,sourcePages[i]]));
+        for(const item of items){
+          const unit=byPage.get(item.page)?.units.find(value=>value.id===item.unitId);
+          if(!unit || item.end>points(unit.text).length)fail('invalid_response','The surface index refers to an absent source range.');
+          item.reference=citation(version,unit);
+          item.excerpt=points(unit.text).slice(Math.max(0,item.start-20),item.end+60).join('');
+          item.sourceLayer=editorialKindForMatch(version,unit,item.start,item.end);
+          item.ordinal=unit.ordinal;
+          delete item.page;
+        }
+        return {items,total:null,nextCursor};
+      };
+      for(const [matchIndex,match] of matched.matches.entries()){
         const termIndex=saved.term+match.paragraph,term=index.terms[termIndex];
         if(termIndex===saved.term&&match.index<saved.match)continue;
         const first=termIndex===saved.term&&match.index===saved.match?saved.occurrence:0;
@@ -283,13 +302,16 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
           if(!meta||!Number.isSafeInteger(offset)||offset<0||(!Array.isArray(occurrence)&&meta.id!==occurrence.unitId))fail('invalid_response','The surface index refers to a different unit.');
           const start=offset+points(term.form.slice(0,match.index)).length;
           const end=start+points(term.form.slice(match.index,match.index+match.length)).length;
-          items.push({unitId:meta.id,reference:occurrence.reference??citation(version,meta),excerpt:occurrence.excerpt??term.form,
+          items.push({unitId:meta.id,page:meta.page,reference:occurrence.reference??citation(version,meta),
             start,end,exactReference:referenceFor(version,meta,start,end)});
-          if(items.length===args.limit)return {items,total:null,nextCursor:cursor('search',version.revision,binding,{term:termIndex,match:match.index,occurrence:i+1})};
+          if(items.length===pageLimit){
+            const more=i+1<term.occurrences.length || matchIndex+1<matched.matches.length || matched.truncated;
+            return finish(more?cursor('search',version.revision,binding,{term:termIndex,match:match.index,occurrence:i+1}):null);
+          }
         }
       }
       const last=matched.matches.at(-1);
-      return {items,total:null,nextCursor:matched.truncated&&last?cursor('search',version.revision,binding,{term:saved.term+last.paragraph,match:last.index+last.length,occurrence:0}):null};
+      return finish(matched.truncated&&last?cursor('search',version.revision,binding,{term:saved.term+last.paragraph,match:last.index+last.length,occurrence:0}):null);
     }
     const saved=position(args.cursor,'search-page',version.revision,binding,{page:0,unit:0,index:0});
     if(!object(saved)||![saved.page,saved.unit,saved.index].every(value=>Number.isSafeInteger(value)&&value>=0))throw new CorpusProviderCursorError();
@@ -301,7 +323,8 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
     const matches=findInParagraphs(searchable,args.query,{limit:args.limit});
     const items=matches.matches.map(match=>{
       const unit=page.units[saved.unit+match.paragraph],index=match.index+(match.paragraph===0?saved.index:0),start=points(unit.text.slice(0,index)).length,end=start+points(unit.text.slice(index,index+match.length)).length;
-      return {unitId:unit.id,reference:citation(version,unit),excerpt:points(unit.text).slice(Math.max(0,start-60),end+80).join(''),start,end,exactReference:referenceFor(version,unit,start,end)};
+      return {unitId:unit.id,ordinal:unit.ordinal,reference:citation(version,unit),excerpt:points(unit.text).slice(Math.max(0,start-20),end+60).join(''),start,end,
+        sourceLayer:editorialKindForMatch(version,unit,start,end),exactReference:referenceFor(version,unit,start,end)};
     });
     const last=matches.matches.at(-1),next=matches.truncated&&last
       ?{page:pageIndex,unit:saved.unit+last.paragraph,index:last.index+last.length+(last.paragraph===0?saved.index:0)}
@@ -322,7 +345,19 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
     window,search,resolve,analyze,
     async structure(args){
       const {document,version}=await versionData(args),binding={documentId:document.id,versionId:version.id};
-      const values=version.structure??[],offset=position(args.cursor,'structure',version.revision,binding);
+      let values=version.structure??[];
+      // The selected German source has this chapter heading as an existing
+      // unit, omitted by its generated contents. This is navigation metadata,
+      // not a replacement anchor or a change to the source text.
+      if(version.id==='gutenberg-7205-de' && version.revision==='4f71adfeeb39e64055acc2fc3f58964cf39f03d27bf2264d25313bc45d8658ec'){
+        const unitId='tos.text-unit.sid-06ad3f6ff0154946aba2f52258b13be9';
+        if(version.units.some(unit=>unit.id===unitId) && !values.some(item=>item.unitId===unitId)){
+          const order=new Map(version.units.map(unit=>[unit.id,unit.ordinal]));
+          values=[...values,{id:'presentation-seven-seals',unitId,label:'Die sieben Siegel (Oder: das Ja- und Amen-Lied)',level:1,parentId:null}]
+            .sort((a,b)=>(order.get(a.unitId)??Infinity)-(order.get(b.unitId)??Infinity));
+        }
+      }
+      const offset=position(args.cursor,'structure',version.revision,binding);
       return {documentId:document.id,versionId:version.id,revision:version.revision,items:values.slice(offset,offset+args.limit),total:values.length,
         nextCursor:offset+args.limit<values.length?cursor('structure',version.revision,binding,offset+args.limit):null};
     },

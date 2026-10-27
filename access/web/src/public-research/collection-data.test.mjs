@@ -1,6 +1,7 @@
 import {expect,it} from 'vitest';
 import {extendPublicCollection} from './collection-data.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+import collection from './antiquity-collection-data.json' with {type:'json'};
 
 it('binds navigation through the separate public structure without changing the Zarathustra graph identity',async()=>{
   const id='tos.work.plato.meno',version={id:'published-en',language:'en',revision:'a'.repeat(64)};
@@ -22,4 +23,13 @@ it('connects every retained book lazily while preserving existing collection mat
   for(const book of retained.books){const work=works.find(item=>item.legacyId===book.legacyId);expect(work?.publicDocumentId).toBe(book.documentId);expect(work?.publicVersionId).toBeTruthy();}
   expect(retained.books).toHaveLength(49);
   expect(works.find(item=>item.legacyId==='theaetetus')?.materialId).toBe('antiquity:catalog:theaetetus');
+});
+
+it('distinguishes original source links from translations without changing the legacy link identity',()=>{
+  const ref=id=>collection.entities.find(item=>item.id===id).sourceRefs[0];
+  expect(ref('athenian-constitution')).toMatchObject({language:'grc',versionId:'demo-ru',label:{en:'Greek text (TEI)'}});
+  expect(ref('enneads')).toMatchObject({language:'grc',versionId:'demo-ru',label:{en:'Greek text (TEI)'}});
+  expect(ref('de-fato')).toMatchObject({language:'la',versionId:'demo-ru',label:{en:'Latin text (TEI)'}});
+  expect(ref('isagoge')).toMatchObject({language:'la',versionId:'demo-ru',label:{en:'Latin translation: Boethius'}});
+  expect(ref('phaedrus')).toMatchObject({language:'en',versionId:'demo-ru',label:{en:'English translation (TEI)'}});
 });

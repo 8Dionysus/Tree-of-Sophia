@@ -43,6 +43,39 @@ test('reader keeps each provider window bounded across three documents and versi
   await notebook.close();
 });
 
+test('an explicit target remains loaded when leaving two comparison windows', async () => {
+  const provider = createFixtureProvider({documentCount: 2, unitCount: 120, languages: ['en', 'grc'], originalLanguage: 'grc'});
+  const model = createCorpusReaderModel({provider});
+  const catalog = await model.catalog();
+  const first = await provider.document({documentId: catalog.items[0].id});
+  const second = await provider.document({documentId: catalog.items[1].id});
+  const initial = await model.open({documentId:second.id,versionId:second.versions[0].id});
+  const targetPage=await model.loadWindow({documentId:second.id,versionId:second.versions[0].id,direction:'next'});
+  const target=model.anchorFor(targetPage.units[5],second.versions[0]);
+  expect(initial).toBeTruthy();
+  await model.open({documentId:first.id,versionId:first.versions[0].id});
+  await model.loadWindow({documentId:first.id,versionId:first.versions[1].id});
+  model.setVisibleVersions(first.versions.map(item=>item.id));
+  const opened=await model.open({documentId:second.id,versionId:second.versions[0].id,reference:target});
+  const actual=model.snapshot().windows[windowKey(second.id,second.versions[0].id)];
+  expect(opened.units[0].id).toBe(target.unitId);
+  expect(actual.units[0].id).toBe(target.unitId);
+});
+
+test('loaded search follows the new page and keeps context around the hit', async () => {
+  const provider=createFixtureProvider({documentCount:1,unitCount:90,languages:['en'],originalLanguage:'en'});
+  const model=createCorpusReaderModel({provider});
+  await model.open();
+  const before=await model.search({query:'synthetic',scope:'loaded'});
+  const firstId=before.items[0].unitId;
+  await model.loadWindow({direction:'next'});
+  const state=model.snapshot(),page=state.searches[windowKey(state.document.id,state.activeVersionId)];
+  expect(page.query).toBe('synthetic');
+  expect(page.items.length).toBeGreaterThan(0);
+  expect(page.items.every(item=>item.unitId!==firstId)).toBe(true);
+  expect(page.items[0].snippet.toLowerCase()).toContain('synthetic');
+});
+
 test('strict note quotes survive targeted CAS and reading positions reload per version', async () => {
   const provider = createFixtureProvider({
     documentCount: 1,
@@ -112,6 +145,37 @@ test('strict note quotes survive targeted CAS and reading positions reload per v
   await notebookA.close();
   await notebookB.close();
   await notebookReload.close();
+});
+
+test('editing notes sharing one exact reference targets the chosen record across reloads', async () => {
+  const provider = createFixtureProvider({documentCount: 1, unitCount: 8, languages: ['en'], originalLanguage: 'en'});
+  const {memoryStore, notebook} = await makeNotebook();
+  const model = createCorpusReaderModel({provider, notebook});
+  await model.ready();
+  const window = await model.open();
+  const document = model.snapshot().document;
+  const reference = model.anchorFor(window.units[0], document.versions[0], {start: 0, end: 4});
+  const first = await notebook.putNote({id: 'first-note', kind: 'note', reference, quote: 'one', text: 'first', expectedRecordRevision: null});
+  const second = await notebook.putNote({id: 'second-note', kind: 'note', reference, quote: 'two', text: 'second', expectedRecordRevision: null});
+  await model.refreshNotebook();
+
+  const secondEdit = await model.saveNote(reference, 'second edited', 'replacement', {id: second.item.id, revision: second.item.revision});
+  const firstEdit = await model.saveNote(reference, 'first edited', 'replacement', {id: first.item.id, revision: first.item.revision});
+  expect(await notebook.getNote('first-note')).toMatchObject({text: 'first edited', quote: 'one', reference});
+  expect(await notebook.getNote('second-note')).toMatchObject({text: 'second edited', quote: 'two', reference});
+
+  const reopened = createCorpusNotebook({adapter: 'memory', memoryStore});
+  const next = createCorpusReaderModel({provider, notebook: reopened});
+  await next.ready();
+  const firstAgain = await next.saveNote(reference, 'first after reload', '', {id: firstEdit.item.id, revision: firstEdit.item.revision});
+  const secondAgain = await next.saveNote(reference, 'second after reload', '', {id: secondEdit.item.id, revision: secondEdit.item.revision});
+  await expect(next.saveNote(reference, 'stale', '', {id: firstEdit.item.id, revision: firstEdit.item.revision})).rejects.toMatchObject({code: 'conflict'});
+  await next.deleteNote(reference, {id: firstAgain.item.id, revision: firstAgain.item.revision});
+  await expect(next.saveNote(reference, 'deleted', '', {id: firstAgain.item.id, revision: firstAgain.item.revision})).rejects.toMatchObject({code: 'conflict'});
+  expect(await reopened.getNote('first-note')).toBeNull();
+  expect(await reopened.getNote('second-note')).toMatchObject({text: 'second after reload', quote: 'two', reference, revision: secondAgain.item.revision});
+  await notebook.close();
+  await reopened.close();
 });
 
 test('stale addresses remain visible while the refreshed manifest exposes its current digest', async () => {

@@ -79,6 +79,26 @@ test('expected revisions provide atomic cross-context conflict detection',async(
   expect(updated.revision).toBe(created.revision+1);
 });
 
+test('question preference compares the current value and archives the previous value atomically',async()=>{
+  const shared=createMemoryCorpusNotebookState(),first=open({memoryStore:shared}),second=open({memoryStore:shared});
+  const key='question', history='question-history:first';
+  await first.setPreference(key,'QA',{expectedValue:undefined,archivePreviousKey:'question-history:empty'});
+  expect(await first.getPreference('question-history:empty')).toBeUndefined();
+  expect(await second.getPreference(key)).toBe('QA');
+  await second.setPreference('unrelated-position','keep');
+  await second.setPreference(key,'QB',{expectedValue:'QA',archivePreviousKey:history});
+  await expect(first.setPreference(key,'stale QA edit',{expectedValue:'QA',archivePreviousKey:'question-history:stale'}))
+    .rejects.toMatchObject({code:'conflict',key});
+  expect(await first.getPreference(key)).toBe('QB');
+  expect(await first.getPreference(history)).toMatchObject({value:'QA'});
+  expect(await first.getPreference('question-history:stale')).toBeUndefined();
+  await expect(second.setPreference(key,'QC',{expectedValue:'QB',archivePreviousKey:history}))
+    .rejects.toMatchObject({code:'conflict',key:history});
+  expect(await second.getPreference(key)).toBe('QB');
+  expect(await second.getPreference('unrelated-position')).toBe('keep');
+  await first.close();await second.close();
+});
+
 test('reading slots, preferences and unresolved source references stay separate',async()=>{
   const notebook=open();
   const oldReference=reference();
