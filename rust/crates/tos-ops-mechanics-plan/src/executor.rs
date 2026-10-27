@@ -70,7 +70,7 @@ pub fn run_validation_sequence_with_growth_jobs(
     cancel: &AtomicI32,
     growth_jobs: usize,
 ) -> io::Result<i32> {
-    run_validation_sequence_with_options(root, steps, limits, cancel, growth_jobs, false)
+    run_validation_sequence_with_options(root, steps, limits, cancel, growth_jobs, false, None)
 }
 
 /// Cargo timings are optional diagnostic output. They do not alter the source
@@ -82,6 +82,7 @@ pub fn run_validation_sequence_with_options(
     cancel: &AtomicI32,
     growth_jobs: usize,
     cargo_timings: bool,
+    rust_group: Option<crate::validation_lanes::RustGroup>,
 ) -> io::Result<i32> {
     if !(1..=2).contains(&growth_jobs) {
         return Err(io::Error::new(
@@ -91,7 +92,24 @@ pub fn run_validation_sequence_with_options(
     }
     // Only validation selections carry source-owned per-step budgets. Other
     // executor clients and serialized mechanics plans retain their old shape.
-    let expanded = crate::growth_native_plan::expand_steps(root, steps)?;
+    let expanded = if let Some(group) = rust_group {
+        let partition =
+            crate::validation_lanes::command_sequence_with_budgets(root, "rust_workspace")?;
+        let selected = crate::validation_lanes::command_sequence_with_rust_group(
+            root,
+            "rust_workspace",
+            Some(group),
+        )?;
+        if selected != steps {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Rust group selection changed before execution",
+            ));
+        }
+        crate::growth_native_plan::expand_selected_steps(root, steps, &partition)?
+    } else {
+        crate::growth_native_plan::expand_steps(root, steps)?
+    };
     let mut commands = Vec::with_capacity(expanded.len());
     let mut timeouts = Vec::with_capacity(expanded.len());
     for (command, timeout_ms) in &expanded {

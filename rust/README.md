@@ -99,6 +99,9 @@ group, so the three jobs build their own products and do not share artifacts or
 authority. The manifest owns the ordered group labels, argv and command limits;
 `--sequence rust_workspace --rust-group <group>` prints the selected commands
 for review. Add `--cargo-timings` to a run when Cargo timing reports are useful.
+Growth exclusions and assertion counts always derive from the complete lane,
+including isolated tests assigned to another group; only the selected commands
+execute. A changed selection or incomplete Growth partition fails closed.
 
 The initial conformance preparation excludes the Access package's test harnesses
 with `--exclude tos-access`; the exact Access CLI is still built first and its

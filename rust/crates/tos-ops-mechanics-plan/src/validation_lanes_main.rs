@@ -185,6 +185,7 @@ fn main() {
             &CANCEL,
             options.growth_jobs,
             options.cargo_timings,
+            options.rust_group,
         )
         .unwrap_or_else(|error| {
             eprintln!("error: validation sequence: {error}");
