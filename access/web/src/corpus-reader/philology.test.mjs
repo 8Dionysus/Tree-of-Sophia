@@ -1,7 +1,7 @@
 import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {expect, test} from 'vitest';
 import {createReference} from './model.mjs';
-import {bindPhilologyResult, philologyMarkIntervals, selectedPhilologyForm} from './philology.mjs';
+import {bindPhilologyResult, philologyMarkIntervals, selectedPhilologyForm, morphologyLabel} from './philology.mjs';
 
 const source = {
   workId:'work-1', expressionId:'expression-1', editionId:'edition-1', itemId:'item-1', fileId:'file-1',
@@ -58,4 +58,9 @@ test('the selected second occurrence owns its mark and search highlights do not 
   for(const interval of intervals){rendered.push(points.slice(cursor,interval.start).join(''),points.slice(interval.start,interval.end).join(''));cursor=interval.end;}
   rendered.push(points.slice(cursor).join(''));
   expect(rendered.join('')).toBe(text);
+});
+
+test('morphology renders readable language labels without changing the supplied analysis', () => {
+  expect(morphologyLabel('noun · accusative · feminine · singular', 'ru')).toBe('существительное · винительный падеж · женский род · единственное число');
+  expect(morphologyLabel('Gold<NN><Neut><Nom><Sg>', 'en')).toBe('noun · neuter · nominative · singular');
 });

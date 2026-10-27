@@ -16,6 +16,7 @@ test("public page paths map to their MPA HTML and receive security headers", asy
     headers: { "Content-Type": "text/html; charset=utf-8" },
   }));
   for (const [path, expected] of [
+    ["/", "/zarathustra/"],
     ["/zarathustra", "/zarathustra/"],
     ["/zarathustra/", "/zarathustra/"],
     ["/antiquity", "/antiquity/"],
@@ -49,7 +50,10 @@ test("unmatched paths do not call assets and www redirects preserve path and que
   const response = await app.fetch(new Request("https://www.treeofsophia.com/antiquity/?lang=en"));
   assert.equal(response.status, 308);
   assert.equal(response.headers.get("Location"), "https://treeofsophia.com/antiquity/?lang=en");
-  for (const path of ["/", "/api/health", "/static/reader.js"]) {
+  const home = await app.fetch(new Request("https://www.treeofsophia.com/?lang=ru"));
+  assert.equal(home.status, 308);
+  assert.equal(home.headers.get("Location"), "https://treeofsophia.com/?lang=ru");
+  for (const path of ["/api/health", "/static/reader.js"]) {
     const missing = await app.fetch(new Request(`https://treeofsophia.com${path}`));
     assert.equal(missing.status, 404);
   }

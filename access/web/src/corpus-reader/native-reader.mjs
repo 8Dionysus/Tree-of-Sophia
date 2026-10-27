@@ -238,7 +238,7 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
   const restore=()=>{if(!location.hash.startsWith(HASH))return;try{if(location.hash.length>32768)throw new Error('Native address is too large.');
     void open({reference:validateNativeReference(JSON.parse(decodeURIComponent(location.hash.slice(HASH.length))))});}catch(error){reveal();announce(unavailable(error));}};
   window.addEventListener('hashchange',restore);restore();controls();
-  return {root,open,close,async openNotes(){if(!(await saveDraft()))return;updateLabels();reveal();await showNotes();},
+  return {root,open,close,refreshLocale(){updateLabels(); controls(); if (!result) title.textContent=word('Текст источника','Source text');},async openNotes(){if(!(await saveDraft()))return;updateLabels();reveal();await showNotes();},
     destroy(){destroyed=true;generation++;notesGeneration++;request?.abort();cancelExpiry();clearTimeout(positionTimer);root.remove();window.removeEventListener('hashchange',restore);window.removeEventListener('beforeunload',beforeUnload);},
     async flush(){
       // Host pagehide waits for this before native.destroy() removes the

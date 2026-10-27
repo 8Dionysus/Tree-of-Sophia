@@ -171,3 +171,16 @@ export function relationLabel(raw,locale=uiLanguage()){
   if(value&&value!==id&&!(Object.hasOwn(predicates,id)&&value===id.replaceAll('_',' '))&&value!==raw?.relation_type_id)return value;
   return local(predicates,id,locale,locale==='ru'?'Связь':locale==='es'?'Relación':'Relation');
 }
+// Display names only; corpus identities and source-edition titles stay intact.
+const PUBLIC_WORK_NAMES = {
+  'tos.work.friedrich-nietzsche.also-sprach-zarathustra': ['Так говорил Заратустра', 'Thus Spoke Zarathustra'],
+  'tos.work.plato.meno': ['Менон', 'Meno'],
+  'tos.work.aristotle.nicomachean-ethics': ['Никомахова этика', 'Nicomachean Ethics'],
+  'tos.work.plato.apology': ['Апология Сократа', 'Apology'],
+};
+export function corpusWorkTitle(document, locale = 'ru') {
+  const value = document?.title;
+  if (value && typeof value === 'object') return value[locale] ?? value.en ?? value.ru ?? '';
+  const names = PUBLIC_WORK_NAMES[document?.id];
+  return names && names.includes(value) ? names[String(locale).startsWith('en') ? 1 : 0] : value ?? '';
+}

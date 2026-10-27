@@ -12,7 +12,7 @@ import {
   unitReference,
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
-import {languageName,sourceLinkLabel} from '../observatory/human-presentation.mjs';
+import {languageName,sourceLinkLabel,corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm} from './philology.mjs';
 
 const WORDING = {
@@ -119,7 +119,7 @@ function quoteAttribution({document, version, unit, quote, locale}) {
   const locator = localized(unit?.label || version?.locator || document?.locator, locale) || unit?.sourceReference || unit?.unitId || '';
   const source = safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
   const licenseUrl = safeExternalUrl(attr(version?.license?.url));
-  const license = licenseUrl ? `${localized(version?.license?.label, locale) || 'License'}: ${licenseUrl}` : '';
+  const license = licenseUrl ? `${localized(version?.license?.label, locale) || (String(locale).startsWith('en') ? 'License' : 'Лицензия')}: ${licenseUrl}` : '';
   return [quote ? `«${quote}»` : '', `${title}${work && work !== title ? ` · ${work}` : ''}`, edition, locator, source, license].filter(Boolean).join('\n');
 }
 
@@ -210,7 +210,7 @@ export function mountCorpusReader({
   const activeDocument = () => modelState().document;
   const activeVersion = versionId => activeDocument()?.versions?.find(item => item.id === versionId) || null;
   const documentTitle = (document, aliases = []) => {
-    const value = localized(document?.title, uiLocale());
+    const value = corpusWorkTitle(document, uiLocale());
     return value && ![document?.id, ...aliases].includes(value) ? value : t('untitled');
   };
   const versionLanguage = version => readableLanguage(version?.language, uiLocale());
@@ -1258,6 +1258,28 @@ export function mountCorpusReader({
       destroyWork=saving.finally(()=>{root?.remove();root=null;model.destroy();});return destroyWork;
     },
     isOpen: () => opened,
+    refreshLocale() {
+      if (!opened || disposed) return;
+      const selection=window.getSelection(); let saved=null;
+      if (selection?.rangeCount && !selection.isCollapsed) {
+        const range=selection.getRangeAt(0), elementOf=node=>node.nodeType===1?node:node.parentElement;
+        const row=elementOf(range.startContainer)?.closest('.cr-unit');
+        const endRow=elementOf(range.endContainer)?.closest('.cr-unit');
+        const content=row?.querySelector('.cr-unit-text');
+        if (row && row===endRow && content?.contains(range.startContainer) && content.contains(range.endContainer)) {
+          const before=range.cloneRange(); before.selectNodeContents(content); before.setEnd(range.startContainer,range.startOffset);
+          saved={key:row.dataset.reference,start:before.toString().length,end:before.toString().length+range.toString().length};
+        }
+      }
+      lastMessage=''; render();
+      if (saved) {
+        const row=[...root.querySelectorAll('.cr-unit')].find(item=>item.dataset.reference===saved.key), content=row?.querySelector('.cr-unit-text');
+        if (content) { const walker=document.createTreeWalker(content,NodeFilter.SHOW_TEXT); let node,offset=0,start=null,end=null;
+          while ((node=walker.nextNode())) { const next=offset+node.data.length; if (!start && saved.start<=next) start=[node,saved.start-offset]; if (saved.end<=next) {end=[node,saved.end-offset]; break;} offset=next; }
+          if (start && end) {const range=document.createRange(); range.setStart(...start); range.setEnd(...end); selection.removeAllRanges(); selection.addRange(range);}
+        }
+      }
+    },
     async refreshNotebook() {
       if (disposed || !(await flushNote())) return false;
       await model.refreshNotebook();

@@ -1,3 +1,4 @@
+import {kindLabel, displayPublicError} from './presentation-i18n.mjs';
 import {referenceKey, validateReference} from '../corpus-reader/model.mjs';
 import {ensureSourceRecord} from './source-address.mjs';
 import './agent-bridge.css';
@@ -162,7 +163,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     export: 'Экспорт задания JSON', copy: 'Копировать задание JSON', copyFail: 'Буфер обмена недоступен. Выделите JSON задания и скопируйте его вручную.',
     import: 'Вставьте JSON ответа агента', preview: 'Проверить ответ', file: 'Загрузить JSON-файл', apply: 'Добавить выбранные предложения в мою рабочую область',
     reopen: 'Открыть точный источник', source: 'Источник', objection: 'Возражение', noTask: 'Сначала экспортируйте задание.',
-    stale: 'Этот точный источник больше не разрешается. Автоматическая перепривязка запрещена.', exact: 'Точный источник проверен.', applied: 'Выбранные предложения добавлены в личную рабочую область со статусом ожидания review.',
+    stale: 'Этот точный источник больше не разрешается. Автоматическая перепривязка запрещена.', exact: 'Точный источник проверен.', applied: 'Выбранные предложения добавлены в личную рабочую область со статусом ожидания проверки.',
     appliedAlready: 'Эти предложения уже есть в личной рабочей области.', invalid: 'Не удалось прочитать это задание или ответ.', proposal: 'Предложение', status: 'Задание и ответ агента остаются локальными, пока вы не экспортируете или не скопируете их.',
   };
   const t = words;
@@ -177,7 +178,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const exportButton = button(t().export, 'pr-agent-button pr-agent-primary');
   const copyButton = button(t().copy, 'pr-agent-button');
   const taskText = document.createElement('textarea'); taskText.className = 'pr-agent-json'; taskText.readOnly = true; taskText.rows = 8; taskText.setAttribute('aria-label', 'Agent task JSON');
-  const importLabel = text('label', 'pr-agent-label', t().import);
+  const importLabel = text('label', 'pr-agent-label'); const importLabelText = text('span', '', t().import); importLabel.append(importLabelText);
   const responseText = document.createElement('textarea'); responseText.className = 'pr-agent-json'; responseText.rows = 8; responseText.maxLength = RESPONSE_LIMIT; responseText.setAttribute('aria-label', 'Agent response JSON'); importLabel.append(responseText);
   const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'application/json,.json'; fileInput.className = 'pr-agent-file';
   const previewButton = button(t().preview, 'pr-agent-button');
@@ -186,7 +187,8 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const status = text('p', 'pr-agent-status', t().status); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   const controls = text('div', 'pr-agent-buttons'); controls.append(addSource);
   taskButtons.append(exportButton, copyButton);
-  section.append(heading, intro, sourceHeading, sourceList, controls, taskButtons, taskText, text('h3', '', t().import), importLabel, fileInput, previewButton, review, applyButton, status);
+  const importHeading = text('h3', '', t().import);
+  section.append(heading, intro, sourceHeading, sourceList, controls, taskButtons, taskText, importHeading, importLabel, fileInput, previewButton, review, applyButton, status);
   root.append(section);
 
   let chosen = [];
@@ -239,7 +241,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
         contextTruncated: rawContext.length > MAX_QUOTE,
         language: bounded(selected.language || '', 64, 'Language', {empty: true}), versionLabel: bounded(selected.versionLabel || '', 512, 'Edition label', {empty: true})};
       chosen.push(source); renderSources(); notifySources(); message(t().exact); return true;
-    } catch (error) { message(error?.message ?? t().invalid); return false; }
+    } catch (error) { message(displayPublicError(error, locale)); return false; }
   };
 
   const restoreTasks = async () => {
@@ -335,7 +337,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       const card = text('article', 'pr-agent-proposal');
       const label = document.createElement('label'); label.className = 'pr-agent-select';
       const check = document.createElement('input'); check.type = 'checkbox'; check.checked = selectedProposalIds.has(proposal.id); check.addEventListener('change', () => { check.checked ? selectedProposalIds.add(proposal.id) : selectedProposalIds.delete(proposal.id); applyButton.disabled = !allExact || !selectedProposalIds.size; });
-      label.append(check, text('strong', '', `${t().proposal} · ${proposal.kind}`));
+      label.append(check, text('strong', '', `${t().proposal} · ${kindLabel(proposal.kind, locale)}`));
       card.append(label, text('p', '', proposal.statement));
       const citations = text('div', 'pr-agent-citations'); proposal.sourceIds.forEach(sourceId => citations.append(citationNode(sourceId)));
       card.append(text('h4', '', t().source), citations);
@@ -419,7 +421,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       const blob = new Blob([JSON.stringify(task, null, 2)], {type: 'application/json'});
       const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
       anchor.href = url; anchor.download = `tos-agent-task-${task.taskId}.json`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 0);
-    } catch (error) { message(error?.message ?? t().invalid); }
+    } catch (error) { message(displayPublicError(error, locale)); }
   });
   copyButton.addEventListener('click', async () => {
     try {
@@ -427,13 +429,13 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       taskText.value = payload;
       if (!navigator.clipboard?.writeText) throw new Error(t().copyFail);
       await navigator.clipboard.writeText(payload); message(english() ? 'Task JSON copied.' : 'JSON задания скопирован.');
-    } catch (error) { message(error?.message ?? t().copyFail); }
+    } catch (error) { message(displayPublicError(error, locale)); }
   });
-  previewButton.addEventListener('click', () => void readImport().catch(error => { activeResponse = null; applyButton.disabled = true; review.replaceChildren(text('p', 'pr-agent-stale', error?.message ?? t().invalid)); message(error?.message ?? t().invalid); }));
-  applyButton.addEventListener('click', () => void applyResponse().catch(error => message(error?.message ?? t().invalid)));
+  previewButton.addEventListener('click', () => void readImport().catch(error => { activeResponse = null; applyButton.disabled = true; review.replaceChildren(text('p', 'pr-agent-stale', displayPublicError(error, locale))); message(displayPublicError(error, locale)); }));
+  applyButton.addEventListener('click', () => void applyResponse().catch(error => message(displayPublicError(error, locale))));
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0]; if (!file) return;
-    if (file.size > RESPONSE_LIMIT) { message('The response exceeds 64 KB.'); fileInput.value = ''; return; }
+    if (file.size > RESPONSE_LIMIT) { message(english() ? 'The response exceeds 64 KB.' : 'Ответ превышает 64 КБ.'); fileInput.value = ''; return; }
     responseText.value = await file.text(); fileInput.value = '';
   });
   void restoreTasks();
@@ -442,7 +444,9 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const destroy = () => { if (destroyed) return; destroyed = true; window.removeEventListener('pagehide', pageHide); sourceListeners.clear(); section.remove(); };
   const pageHide = event => { if (!event.persisted) destroy(); };
   window.addEventListener('pagehide', pageHide);
-  return {destroy, addSelectedSource, exportTask: createTask,
+  const refreshLocale = () => { heading.textContent=t().heading; intro.textContent=t().intro; sourceHeading.textContent=t().sourceCount; addSource.textContent=t().add; exportButton.textContent=t().export; copyButton.textContent=t().copy; importHeading.textContent=t().import; importLabelText.textContent=t().import; previewButton.textContent=t().preview; applyButton.textContent=t().apply; taskText.setAttribute('aria-label', english() ? 'Agent task JSON' : 'JSON задания агенту'); responseText.setAttribute('aria-label', english() ? 'Agent response JSON' : 'JSON ответа агента'); fileInput.setAttribute('aria-label', t().file); status.textContent=t().status; renderSources(); if (activeResponse) void renderReview(); };
+  refreshLocale();
+  return {destroy, refreshLocale, addSelectedSource, exportTask: createTask,
     selectedSources: () => chosen.map(source => copy(source)),
     subscribeSources(listener) { if (typeof listener !== 'function') throw new TypeError('A source listener is required.'); sourceListeners.add(listener); listener(chosen.map(source => copy(source))); return () => sourceListeners.delete(listener); }};
 }

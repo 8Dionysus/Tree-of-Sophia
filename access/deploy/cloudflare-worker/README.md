@@ -70,14 +70,15 @@ gateway does not grant publication authority or change source admission.
 
 ## Production flow
 
-The public reading pages have a separate, asset-only Worker configured by
+The public research spaces have a separate, asset-only Worker configured by
 [`wrangler.public-research.jsonc`](wrangler.public-research.jsonc). Its narrow
-routes cover `/zarathustra*`, `/antiquity*` and `/__research/*` on the apex and
+routes cover `/`, `/zarathustra*`, `/antiquity*` and `/__research/*` on the apex and
 `www`; the `www` handler redirects those paths to the apex. Vite writes its
 `/__research/`-based bundle to `dist-public-research`, and the Worker removes
 that prefix only for the asset binding. The binding uses `not_found_handling:
 none`, so a missing corpus JSON or chunk stays a 404. This Worker has no D1,
-R2, analytics or secret bindings, and its path routes leave `/`, `/api/*`,
+R2, analytics or secret bindings. `/` serves the Zarathustra space. The path
+routes leave `/api/*`,
 `/static/*` and the existing atlas route to their current owners.
 
 Build with `npm run build:public-research`; validate the local upload package

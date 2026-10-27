@@ -63,7 +63,8 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
   // reachable there even before any graph selection has been made.
   const narrow=root.querySelector('.header')?document.createElement('button'):null;
   if(narrow){narrow.type='button';narrow.className='corpus-open corpus-open-narrow';narrow.textContent='▤';narrow.setAttribute('aria-label',english()?'Read works and editions':'Читать произведения и издания');narrow.onclick=()=>void open();root.querySelector('.header').append(narrow);}
-  document.addEventListener('sophia-ui-language',updateLabel);
+  const refreshLocale=()=>{updateLabel(); reader.refreshLocale?.(); native?.refreshLocale?.();};
+  document.addEventListener('sophia-ui-language',refreshLocale);
   const readEvent=event=>void open(event.detail??{});
   root.addEventListener('sophia-read-text',readEvent);
   const nativeEvent=async event=>{if(!native)return;await reader.close();if(reader.isOpen())return;root.dataset.corpusReading='true';await native.open(event.detail??{});};
@@ -78,12 +79,12 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
   const destroy=()=>{
     if(destroyed)return destroyWork;destroyed=true;contents.destroy();
     const saving=[reader.destroy(),native?.flush()];
-    opener.remove();notesOpen?.remove();narrow?.remove();document.removeEventListener('sophia-ui-language',updateLabel);root.removeEventListener('sophia-read-text',readEvent);root.removeEventListener('sophia-read-native',nativeEvent);window.removeEventListener('hashchange',restore);window.removeEventListener('pagehide',pageHide);
+    opener.remove();notesOpen?.remove();narrow?.remove();document.removeEventListener('sophia-ui-language',refreshLocale);root.removeEventListener('sophia-read-text',readEvent);root.removeEventListener('sophia-read-native',nativeEvent);window.removeEventListener('hashchange',restore);window.removeEventListener('pagehide',pageHide);
     destroyWork=Promise.allSettled(saving).then(async()=>{native?.destroy();if(ownsNotebook)await notebook.close();});return destroyWork;
   };
   // pagehide cannot be awaited by the browser; destroy performs the best
   // effort synchronously and keeps owned resources until its flushes settle.
   const pageHide=event=>{if(!event.persisted)void destroy();};
   window.addEventListener('pagehide',pageHide);restore();
-  return {reader,native,notebook,opener,open,destroy};
+  return {reader,native,notebook,opener,open,refreshLocale,destroy};
 }

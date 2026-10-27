@@ -1,5 +1,6 @@
 import './philology.css';
 import {referenceKey, validateReference} from './model.mjs';
+import {languageName} from '../observatory/human-presentation.mjs';
 
 const COPY = {
   ru: {
@@ -146,7 +147,7 @@ function appendMetadata(parent, heading, value, locale, labels) {
   section.append(element('h3', '', heading));
   for (const [key, item] of rows) {
     const row = element('p', 'cr-philology-meta');
-    row.append(element('strong', '', labels[key] || key));
+    row.append(element('strong', '', labels[key] || ({id: locale === 'en' ? 'Identifier: ' : 'Идентификатор: ', name: locale === 'en' ? 'Name: ' : 'Название: ', url: locale === 'en' ? 'Link: ' : 'Ссылка: ', version: locale === 'en' ? 'Version: ' : 'Версия: ', license: locale === 'en' ? 'License: ' : 'Лицензия: '})[key] || (locale === 'en' ? 'Details: ' : 'Сведения: ')));
     const url = /url|uri|href/i.test(key) ? safeUrl(item) : '';
     if (url) {
       const link = element('a', '', item); link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; row.append(link);
@@ -154,6 +155,18 @@ function appendMetadata(parent, heading, value, locale, labels) {
     section.append(row);
   }
   parent.append(section);
+}
+
+const MORPH = {
+ noun:['существительное','noun'], verb:['глагол','verb'], adjective:['прилагательное','adjective'], adverb:['наречие','adverb'], article:['артикль','article'], pronoun:['местоимение','pronoun'], preposition:['предлог','preposition'], conjunction:['союз','conjunction'], particle:['частица','particle'], exclamation:['междометие','exclamation'], irregular:['неправильная форма','irregular form'],
+ nominative:['именительный падеж','nominative'], accusative:['винительный падеж','accusative'], genitive:['родительный падеж','genitive'], dative:['дательный падеж','dative'], vocative:['звательный падеж','vocative'], masculine:['мужской род','masculine'], feminine:['женский род','feminine'], neuter:['средний род','neuter'], singular:['единственное число','singular'], plural:['множественное число','plural'], dual:['двойственное число','dual'], present:['настоящее время','present'], past:['прошедшее время','past'], future:['будущее время','future'], imperfect:['имперфект','imperfect'], aorist:['аорист','aorist'], perfect:['перфект','perfect'], indicative:['изъявительное наклонение','indicative'], subjunctive:['сослагательное наклонение','subjunctive'], optative:['оптатив','optative'], imperative:['повелительное наклонение','imperative'], infinitive:['инфинитив','infinitive'], participle:['причастие','participle'], active:['действительный залог','active'], passive:['страдательный залог','passive'], middle:['средний залог','middle'], mediopassive:['средне-страдательный залог','mediopassive'], '1st':['первое лицо','first person'], '2nd':['второе лицо','second person'], '3rd':['третье лицо','third person'], Attic:['аттический','Attic'], Ionic:['ионийский','Ionic'], Doric:['дорийский','Doric'], Aeolic:['эолийский','Aeolic'], epic:['эпический','epic']
+};
+const TAGS={NN:'noun',V:'verb',ADJ:'adjective',ADV:'adverb',ART:'article',PRO:'pronoun',PREP:'preposition',CONJ:'conjunction',Masc:'masculine',Fem:'feminine',Neut:'neuter',Nom:'nominative',Acc:'accusative',Gen:'genitive',Dat:'dative',Sg:'singular',Pl:'plural',Pres:'present',Past:'past',Perf:'perfect',Ind:'indicative',Subj:'subjunctive',Imp:'imperative',Inf:'infinitive',Part:'participle','1':'1st','2':'2nd','3':'3rd'};
+export function morphologyLabel(value, locale) {
+ const en=String(locale||'ru').toLowerCase().startsWith('en');
+ if (typeof value !== 'string') return localized(value,locale);
+ if (value.includes('<')) { const tags=[...value.matchAll(/<([^<>]+)>/g)].map(m=>TAGS[m[1]]).filter(Boolean); return [...new Set(tags)].map(tag=>MORPH[tag][en?1:0]).join(' · ') || (en?'Morphological analysis available':'Морфологический разбор доступен'); }
+ return value.split(/(\s*[·/]\s*|\s+)/).map(part=>MORPH[part]?.[en?1:0] ?? (/[A-Za-z]/.test(part) && !en ? 'другая грамматическая характеристика' : part)).join('');
 }
 
 function renderCandidate(parent, candidate, index, locale, words) {
@@ -165,7 +178,7 @@ function renderCandidate(parent, candidate, index, locale, words) {
     [words.gloss, candidate.gloss ?? candidate.meaning],
   ];
   for (const [label, value] of fields) {
-    const text = localized(value, locale);
+    const text = label === words.morphology ? morphologyLabel(value, locale) : localized(value, locale);
     if (text) { const row = element('p', ''); row.append(element('strong', '', `${label}: `), document.createTextNode(text)); card.append(row); }
   }
   appendMetadata(card, words.source, candidate.source ?? candidate.provenance ?? candidate.sourceRef, locale, {});
@@ -199,14 +212,14 @@ export function renderPhilology(body, {
   const source = reference?.target;
   const exact = element('dl', 'cr-philology-address');
   const address = source ? [source.workId, source.expressionId, source.editionId, source.itemId, source.fileId, source.textLayerRef, source.fileSha256, source.textLayerSha256].filter(Boolean).join(' › ') : '';
-  for (const [label, value] of [[words.language, language || ''], [words.address, address], ['version / unit', reference ? `${reference.versionId} / ${reference.unitId}` : ''], ['code-point', reference?.selector ? `${reference.selector.start}–${reference.selector.end}` : '']]) {
+  for (const [label, value] of [[words.language, language ? languageName(language, locale) : ''], [words.address, address], [String(locale).startsWith('en') ? 'Version / unit' : 'Версия / фрагмент', reference ? `${reference.versionId} / ${reference.unitId}` : ''], [String(locale).startsWith('en') ? 'Code-point offsets' : 'Позиции символов Unicode', reference?.selector ? `${reference.selector.start}–${reference.selector.end}` : '']]) {
     if (!value) continue;
     exact.append(element('dt', '', label), element('dd', '', value));
   }
   if (exact.childElementCount) {
     const details=element('details','cr-philology-exact');details.append(element('summary','',words.address),exact);body.append(details);
   }
-  if(language)body.append(element('p','cr-philology-muted',`${words.language}: ${language}`));
+  if(language)body.append(element('p','cr-philology-muted',`${words.language}: ${languageName(language, locale)}`));
 
   if (busy) body.append(element('p', 'cr-philology-muted', words.loading));
   else if (!form) body.append(element('p', 'cr-philology-muted', words.choose));

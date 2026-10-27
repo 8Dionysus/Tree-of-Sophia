@@ -23,7 +23,9 @@ export default {
       return textResponse("method not allowed", 405, request.method);
     }
 
-    const page = publicPrototypeAsset(url.pathname);
+    // The public site's main address opens the research space, too.
+    // Fetch the directory directly to avoid ASSETS index canonicalization.
+    const page = url.pathname === "/" ? "/zarathustra/" : publicPrototypeAsset(url.pathname);
     if (page) {
       return withReaderSecurity(await env.ASSETS.fetch(new Request(new URL(page, request.url), request)));
     }

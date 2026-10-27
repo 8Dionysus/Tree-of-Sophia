@@ -11,6 +11,8 @@ Shared renderers under `src/observatory/` present validated backend packets.
 Interface labels follow the selected UI language. Source titles, quotations,
 form wording and vocabulary labels keep their delivered wording; the UI does
 not translate them. Missing language variants show their actual fallback.
+The public profiles provide explicit Russian and English display names for
+the four selected works; source metadata and quoted text remain unchanged.
 
 Readable context keeps source qualifications, exact number lexemes and field
 order. Recognized fields receive interface labels, unknown fields remain
@@ -23,6 +25,21 @@ semantic assessment or rights decision. The
 selection, revision and context requirements.
 
 ## Observatory and research space
+
+The published `/` and `/zarathustra/` entries open the Zarathustra research
+space; `/antiquity/` opens the Antiquity space. Both reuse the constructor's
+Rust graph model, live sky, lenses, typed relations, comparisons and personal
+branches alongside the shared public corpus reader and research workspace.
+Prepared readings remain proposals. A bibliographic pointer becomes an exact
+reading action only when it binds to a unit in the selected public version.
+Unavailable works retain their metadata without substituting private text.
+The interface and prepared paths support Russian and English. Source passages
+keep their edition language. Plain entry and profile switching open the space;
+an explicit reading hash opens its exact passage.
+
+The scene uses Canvas2D when only a software WebGL renderer is available;
+the same graph and actions remain available. Browser-local graph exports and
+the complete research transfer preserve personal work without source admission.
 
 The default entry is the Observatory: a full-window star field with bounded
 knowledge neighborhoods and floating search, source and research panels. The

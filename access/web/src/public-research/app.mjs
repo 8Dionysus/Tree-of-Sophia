@@ -5,10 +5,15 @@ import {decodeReadingRoute, encodeReadingRoute} from '../corpus-reader/route.mjs
 import {mountPublicAgentBridge} from './agent-bridge.mjs';
 import {createPublicResearchOwners, mountPublicWorkspaceView} from './workspace-view.mjs';
 import {initializePublicReaderRules} from './bootstrap.mjs';
+import {createPublicSpace} from './space-library.mjs';
+import {mountPublicResearchSpace} from './public-space.mjs';
 import './public-research.css';
 
-const root = document.querySelector('#public-research');
+const root = document.querySelector('#public-research') ?? document.querySelector('#public-reader-host');
 const profile = root?.dataset.profile === 'antiquity' ? 'antiquity' : 'zarathustra';
+const requestedLocale=new URLSearchParams(location.search).get('lang');
+let locale=requestedLocale==='en'||requestedLocale==='ru'?requestedLocale:(navigator.language.toLowerCase().startsWith('en')?'en':'ru');
+let english=locale==='en';
 const copy = {
   zarathustra: {
     title: 'Заратустра', eyebrow: 'Читать и исследовать',
@@ -25,16 +30,13 @@ const copy = {
     other: 'Заратустра', status: 'Данные о корпусе загружаются по запросу.',
   },
 };
-const text = copy[profile];
-const english = navigator.language.toLowerCase().startsWith('en');
-const strings = english ? {
-  title: profile === 'antiquity' ? 'Antiquity' : 'Zarathustra', eyebrow: 'Read and explore',
-  intro: profile === 'antiquity' ? 'One question moves across texts and voices.' : 'One work. Many returns to its words.',
-  description: 'Read available editions, mark exact passages, and keep your own thoughts in a shared notebook.',
-  question: profile === 'antiquity' ? 'What question will you carry through ancient texts?' : 'What question brings you to Zarathustra?',
-  placeholder: profile === 'antiquity' ? 'For example: what makes a life good?' : 'For example: what changes when a person creates their own values?',
-  other: profile === 'antiquity' ? 'Zarathustra' : 'Antiquity', status: 'Corpus details load when requested.',
-} : text;
+const copyEn={
+  zarathustra:{title:'Zarathustra',eyebrow:'Read and explore',intro:'One work. Many returns to its words.',description:'Read available editions, mark exact passages, and keep your own thoughts in a shared notebook.',question:'What question brings you to Zarathustra?',placeholder:'For example: what changes when a person creates their own values?',other:'Antiquity',status:'Corpus details load when requested.'},
+  antiquity:{title:'Antiquity',eyebrow:'Read and explore',intro:'One question moves across texts and voices.',description:'Compare available sources, save exact places, and return to your own line of inquiry.',question:'What question will you carry through ancient texts?',placeholder:'For example: what makes a life good?',other:'Zarathustra',status:'Corpus details load when requested.'},
+};
+const stringsFor=()=>english?copyEn[profile]:copy[profile];
+let strings=stringsFor();
+document.title=`${strings.title} · ${english?'Tree of Sophia':'Древо Софии'}`;
 
 const h = (tag, cls, value) => { const node = document.createElement(tag); if (cls) node.className = cls; if (value !== undefined) node.textContent = value; return node; };
 const button = (label, cls = '') => { const node = h('button', cls, label); node.type = 'button'; return node; };
@@ -43,10 +45,10 @@ const routeBase = location.pathname.startsWith(import.meta.env.BASE_URL) ? impor
 const profileUrl = name => `${routeBase}${name}/`;
 const alternate = profileUrl(profile === 'antiquity' ? 'zarathustra' : 'antiquity');
 const targetProfile = profile === 'antiquity' ? 'zarathustra' : 'antiquity';
-const toolbar = h('nav', 'pr-toolbar');
-const readerRoot = h('main', 'pr-page');
+const toolbar = h('nav', 'main-tools pr-toolbar');
+const readerRoot = h('main', 'pr-page pr-space-page');
 readerRoot.id = 'public-reader-host';
-const header = h('header', 'pr-header');
+const header = h('header', 'header pr-header');
 header.append(link(english ? 'Tree of Sophia' : 'Древо Софии', profileUrl(profile), 'pr-wordmark'), toolbar);
 const hero = h('section', 'pr-hero');
 const eyebrow = h('p', 'pr-eyebrow', strings.eyebrow);
@@ -54,9 +56,9 @@ const title = h('h1', '', strings.title);
 const intro = h('p', 'pr-intro', strings.intro);
 const description = h('p', 'pr-description', strings.description);
 const actions = h('div', 'pr-actions');
-const read = button(english ? 'Open the reader' : 'Открыть чтение', 'pr-read');
 const switchProfile = link(`${english ? 'Explore' : 'Перейти'} ${strings.other}`, alternate, 'pr-switch');
-actions.append(read, switchProfile);
+switchProfile.href = `${alternate}?lang=${locale}`;
+toolbar.append(switchProfile);
 const questionLabel = h('label', 'pr-question-label', strings.question);
 const question = document.createElement('textarea');
 question.className = 'pr-question';
@@ -73,7 +75,6 @@ status.setAttribute('role', 'status');
 const journeys = h('section', 'pr-journeys');
 journeys.hidden = true;
 hero.append(eyebrow, title, intro, description, actions, questionLabel, saveState, status, journeys);
-readerRoot.append(header, hero);
 root.replaceWith(readerRoot);
 
 const DB_NAME = 'tos-public-research-v1';
@@ -84,14 +85,15 @@ let entry;
 let agentBridge;
 let workspaceView;
 let publicOwners;
-let profileInitialDocumentId = null;
-let profileDocumentIds = new Set();
-read.disabled = true;
+let spaceView;
+let appDisposed=false;
 let saveTimer = null;
 let questionTouched = false;
 let questionRestored = false;
 let questionSequence = 0;
 let questionWrite = Promise.resolve();
+let corpusWorkCount;
+function refreshProviderStatus(){status.textContent=corpusWorkCount===false?(english?'The public corpus could not be reached. Open the reader to check source availability.':'Не удалось связаться с публичным корпусом. Откройте чтение, чтобы проверить доступность источника.'):Number.isInteger(corpusWorkCount)?(english?`${corpusWorkCount} works are listed. Text is loaded in bounded passages.`:`Произведений в списке: ${corpusWorkCount}. Текст загружается небольшими фрагментами.`):strings.status;}
 
 function validRoute(value) {
   if (typeof value !== 'string' || !value.startsWith('#reading=')) return null;
@@ -131,11 +133,25 @@ async function switchProfiles(event) {
     if (!(await persistQuestion())) return;
     const currentRoute = validRoute(location.hash);
     if (currentRoute) await notebook.setPreference(routeKey(profile), currentRoute);
-    const nextRoute = validRoute(await notebook.getPreference(routeKey(targetProfile)));
-    location.assign(`${alternate}${nextRoute ?? ''}`);
+    const next=new URL(alternate,location.href);next.searchParams.set('lang',locale);
+    location.assign(next.toString());
   } catch {
     status.textContent = english ? 'Could not save this profile before switching.' : 'Не удалось сохранить состояние профиля перед переключением.';
   }
+}
+
+function setLanguage(value,{updateUrl=true}={}){
+  if(!['ru','en'].includes(value)||value===locale)return;
+  locale=value;english=locale==='en';strings=stringsFor();document.documentElement.lang=locale;document.title=`${strings.title} · ${english?'Tree of Sophia':'Древо Софии'}`;refreshProviderStatus();
+  header.querySelector('.pr-wordmark').textContent=english?'Tree of Sophia':'Древо Софии';
+  switchProfile.textContent=`${english?'Explore':'Перейти'} ${strings.other}`;
+  switchProfile.href=alternate+`?lang=${locale}`;
+  if(questionLabel.firstChild?.nodeType===Node.TEXT_NODE)questionLabel.firstChild.nodeValue=strings.question;
+  question.placeholder=strings.placeholder;
+  saveState.textContent=english?'Your question is saved on this device.':'Вопрос сохраняется в блокноте на этом устройстве.';
+  if(updateUrl){const url=new URL(location.href);url.searchParams.set('lang',locale);history.replaceState(history.state,'',url);}
+  document.dispatchEvent(new CustomEvent('sophia-ui-language',{detail:{locale}}));
+  spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
 }
 
 function mountJourneys(items, documentIds) {
@@ -215,77 +231,86 @@ async function openAddress(address) {
   return entry?.open(target) ?? null;
 }
 
-function openReader() {
-  const ownRoute = validRoute(location.hash);
-  if (ownRoute) void entry?.open(decodeReadingRoute(ownRoute));
-  else if (profileInitialDocumentId) void entry?.open({documentId: profileInitialDocumentId});
-  else void entry?.open();
-}
-
 async function start() {
+  if(appDisposed)return;
   try {
     const savedQuestion = await notebook.getPreference(QUESTION_KEY);
+    if(appDisposed)return;
     if (!questionTouched && typeof savedQuestion === 'string') question.value = savedQuestion;
     questionRestored = true;
   } catch {
     saveState.textContent = english ? 'Notebook storage is unavailable. Your question may not persist.' : 'Блокнот недоступен. Вопрос может не сохраниться.';
   }
+  if(appDisposed)return;
   await initializePublicReaderRules();
+  if(appDisposed)return;
   const provider = createPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
   let manifest = null;
   try { manifest = await provider.describe(); } catch { /* the reader will report delivery failure */ }
+  if(appDisposed)return;
   const profileInfo = manifest?.profiles?.[profile];
-  profileDocumentIds = new Set(Array.isArray(profileInfo?.documentIds) ? profileInfo.documentIds : []);
-  profileInitialDocumentId = typeof profileInfo?.initialDocumentId === 'string' && profileDocumentIds.has(profileInfo.initialDocumentId)
-    ? profileInfo.initialDocumentId
-    : [...profileDocumentIds][0] ?? null;
-  let activeRoute = validRoute(location.hash);
-  if (!activeRoute) {
-    try { activeRoute = validRoute(await notebook.getPreference(routeKey(profile))); }
-    catch { saveState.textContent = english ? 'Notebook storage is unavailable. Your question may not persist.' : 'Блокнот недоступен. Вопрос может не сохраниться.'; }
-  }
+  const activeRoute = validRoute(location.hash);
+  if(appDisposed)return;
   if (location.hash !== (activeRoute ?? '')) history.replaceState(history.state, '', `${location.pathname}${location.search}${activeRoute ?? ''}`);
-  entry = mountCorpusEntry({root: readerRoot, provider, notebook, toolbar, locale: () => english ? 'en' : 'ru', route: true, dbName: DB_NAME,
+  entry = mountCorpusEntry({root: readerRoot, provider, notebook, toolbar, locale: () => locale, route: true, dbName: DB_NAME,
     onReadingLocation(address) {
       const saved = validRoute(encodeReadingRoute(address));
       if (saved) void notebook.setPreference(routeKey(profile), saved).catch(() => {
         saveState.textContent = english ? 'Could not save this reading position.' : 'Не удалось сохранить это место чтения.';
       });
     }});
-  read.addEventListener('click', openReader);
+  entry.opener.disabled = true;
+  const narrowReader=readerRoot.querySelector('.corpus-open-narrow');if(narrowReader)narrowReader.disabled=true;
   window.tosPublicResearch = Object.freeze({profile, getQuestion: () => question.value, setQuestion, open: openAddress, reader: entry.reader, provider, notebook: entry.notebook});
   publicOwners = createPublicResearchOwners();
-  agentBridge = mountPublicAgentBridge({root:hero, api:window.tosPublicResearch, notebook:entry.notebook,
-    workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>english?'en':'ru'});
-  workspaceView = mountPublicWorkspaceView({root:hero, api:window.tosPublicResearch, notebook:entry.notebook,
-    workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>english?'en':'ru'});
+  const publicSpace = await createPublicSpace({profile,provider});
+  if(appDisposed)return;
+  spaceView = mountPublicResearchSpace({host:readerRoot,header,profile,locale:()=>locale,library:publicSpace.library,
+    bindings:publicSpace.bindings,documentBindings:publicSpace.documentBindings,api:window.tosPublicResearch,
+    workspace:publicOwners.workspace,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[]});
+  header.addEventListener('public-space-locale',onPublicSpaceLocale);
+  agentBridge = mountPublicAgentBridge({root:spaceView.agentRoot, api:window.tosPublicResearch, notebook:entry.notebook,
+    workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>locale});
+  workspaceView = mountPublicWorkspaceView({root:spaceView.workspaceRoot, api:window.tosPublicResearch, notebook:entry.notebook,
+    workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>locale,
+    graphSpaceContext:{profile,libraryFingerprint:publicSpace.library.fingerprint,pristineGraphs:spaceView.pristineGraphs,reload:()=>window.location.reload()}});
   workspaceView.connectAgentBridge(agentBridge);
   workspaceView?.render();
+  spaceView.refreshLocale();
   if (manifest && profileInfo) {
     const workCount = Array.isArray(profileInfo?.documentIds) ? profileInfo.documentIds.length : null;
-    status.textContent = workCount == null
-      ? strings.status
-      : (english ? `${workCount} works are listed. Text is loaded in bounded passages.` : `В списке ${workCount} произведений. Текст загружается небольшими фрагментами.`);
-    mountJourneys(profileInfo?.journeys, Array.isArray(profileInfo?.documentIds) ? profileInfo.documentIds : []);
-    read.disabled = false;
+    corpusWorkCount=workCount;refreshProviderStatus();
+    entry.opener.disabled = false;
+    readerRoot.querySelector('.corpus-open-narrow')?.removeAttribute('disabled');
   } else {
-    status.textContent = english ? 'The public corpus could not be reached. The reader will report source availability when opened.' : 'Не удалось связаться с публичным корпусом. При открытии читатель покажет доступность источника.';
-    read.disabled = true;
+    corpusWorkCount=false;refreshProviderStatus();
+    entry.opener.disabled = true;
+    readerRoot.querySelector('.corpus-open-narrow')?.setAttribute('disabled','');
   }
 }
 
-switchProfile.addEventListener('click', event => void switchProfiles(event));
-window.addEventListener('pagehide', event => {
-  if (event.persisted) return;
+const onPublicSpaceLocale=event=>setLanguage(event.detail?.locale);
+const onSwitchProfile=event=>void switchProfiles(event);
+function disposeApp() {
+  if(appDisposed)return;
+  appDisposed=true;clearTimeout(saveTimer);
+  switchProfile.removeEventListener('click',onSwitchProfile);
+  header.removeEventListener('public-space-locale',onPublicSpaceLocale);
+  question.removeEventListener('input',scheduleQuestionSave);
+  window.removeEventListener('pagehide',onPageHide);
   agentBridge?.destroy();
   workspaceView?.destroy();
+  spaceView?.destroy();
   delete window.tosPublicResearch;
   void persistQuestion().finally(() => Promise.resolve(entry?.destroy()).finally(() => notebook.close()));
-});
+}
+function onPageHide(event) { if(!event.persisted)disposeApp(); }
+switchProfile.addEventListener('click',onSwitchProfile);
+window.addEventListener('pagehide',onPageHide);
 question.addEventListener('input', scheduleQuestionSave);
+if(import.meta.hot)import.meta.hot.dispose(disposeApp);
 
 void start().catch(error => {
   const message = h('p', 'pr-error', english ? 'The reader could not start. Reload the page to try again.' : 'Не удалось запустить читатель. Перезагрузите страницу.');
-  message.title = error?.message ?? 'reader-start-failed';
-  hero.append(message);
+  readerRoot.append(message);
 });
