@@ -604,6 +604,8 @@
           "test",
           "--no-run",
           "--workspace",
+          "--exclude",
+          "tos-access",
           "--locked",
           "--message-format=json"
         ]

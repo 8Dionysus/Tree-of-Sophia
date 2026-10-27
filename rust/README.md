@@ -92,6 +92,21 @@ Rust CI selects a three-hour aggregate budget with
 The validation manifest owns the separate command limits and test groups.
 The executor caps each command by the remaining lane time.
 
+The initial conformance preparation excludes the Access package's test harnesses
+with `--exclude tos-access`; the exact Access CLI is still built first and its
+dependencies remain available to conformance. The later workspace test run
+retains Access's default features plus research/load-readiness coverage, and
+the default release-actions fixture still runs separately.
+
+`tos-validation-lanes --run rust_workspace --growth-jobs 2` runs at most two
+source-derived Growth classes concurrently, each in its own supervisor process.
+The default is one. Each class retains its exact prepared
+image, declared assertion/ignored counts, single test thread, output cap,
+timeout and descendant custody. The parent joins the complete group before
+later commands can rebuild its shared Cargo products. The first observed
+failure cancels the group and stops the lane. CI opts into two; local callers
+should choose that setting only within their admitted resource budget.
+
 The PostgreSQL integration target requires the explicit `postgres-lab` feature
 and a dedicated ephemeral database. The ordinary workspace lane excludes this
 target; it does not establish PostgreSQL execution. CI runs the durable

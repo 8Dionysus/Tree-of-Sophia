@@ -617,6 +617,9 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     );
     assert!(!jobs["postgres"]["services"]["postgres"].is_badvalue());
     assert!(jobs["rust"]["services"].is_badvalue());
+    let rust_run = run(one_step(steps(jobs, "rust"), "--run rust_workspace"));
+    assert!(rust_run.contains("--growth-jobs 2"));
+    assert!(rust_run.contains("--lane-timeout-ms 10800000"));
     assert_eq!(sparse(jobs, "postgres"), sparse(jobs, "rust"));
     assert!(
         run(one_step(postgres_steps, "cargo build"))

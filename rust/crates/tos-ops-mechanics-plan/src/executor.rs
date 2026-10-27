@@ -58,6 +58,24 @@ pub fn run_validation_sequence(
     limits: Limits,
     cancel: &AtomicI32,
 ) -> io::Result<i32> {
+    run_validation_sequence_with_growth_jobs(root, steps, limits, cancel, 1)
+}
+
+/// Opt-in process parallelism applies only to contiguous source-derived Growth
+/// classes. Other commands retain their order and the default remains serial.
+pub fn run_validation_sequence_with_growth_jobs(
+    root: &Path,
+    steps: &[crate::validation_lanes::BudgetedCommandStep],
+    limits: Limits,
+    cancel: &AtomicI32,
+    growth_jobs: usize,
+) -> io::Result<i32> {
+    if !(1..=2).contains(&growth_jobs) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Growth jobs must be 1 or 2",
+        ));
+    }
     // Only validation selections carry source-owned per-step budgets. Other
     // executor clients and serialized mechanics plans retain their old shape.
     let expanded = crate::growth_native_plan::expand_steps(root, steps)?;
@@ -85,12 +103,12 @@ pub fn run_validation_sequence(
             &plan,
             limits,
             cancel,
-            native::Style::Validation(&timeouts),
+            native::Style::Validation(&timeouts, growth_jobs),
         )
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = (root, plan, limits, cancel, timeouts);
+        let _ = (root, plan, limits, cancel, timeouts, growth_jobs);
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "execution requires Linux subreaper/pidfd custody",
@@ -213,7 +231,7 @@ mod native {
     #[derive(Clone, Copy)]
     pub(super) enum Style<'a> {
         Mechanics,
-        Validation(&'a [Option<Duration>]),
+        Validation(&'a [Option<Duration>], usize),
         Release,
         Capture,
     }
@@ -685,7 +703,7 @@ mod native {
         cancel: &AtomicI32,
         style: Style<'_>,
     ) -> io::Result<i32> {
-        run_inner(root, plan, limits, cancel, style, None, None, &[])
+        run_inner(root, plan, limits, cancel, style, None, None, &[], None)
     }
 
     pub(super) fn run_captured(
@@ -704,6 +722,7 @@ mod native {
             Some(streams),
             None,
             &[],
+            None,
         )
     }
     #[cfg(any(feature = "philosophy-library", test))]
@@ -724,7 +743,443 @@ mod native {
             None,
             Some(deadline),
             &[],
+            None,
         )
+    }
+
+    struct GrowthWorker {
+        home: String,
+        custody: Option<Custody>,
+        _stdout_mode: Option<Nonblocking>,
+        _stderr_mode: Option<Nonblocking>,
+        stdout: Option<File>,
+        stderr: Option<File>,
+        eof: [bool; 2],
+        pending: [Vec<u8>; 2],
+        status: Option<ExitStatus>,
+        deadline: Instant,
+        output_bytes: usize,
+    }
+
+    struct GrowthBatch {
+        workers: Vec<GrowthWorker>,
+        cleanup_attempted: bool,
+    }
+    impl GrowthBatch {
+        fn cleanup(&mut self) -> io::Result<()> {
+            if self.cleanup_attempted {
+                return Ok(());
+            }
+            self.cleanup_attempted = true;
+            // Custody sweeps all children of this dedicated process. Keep every
+            // guard until the batch joins, and clean the batch exactly once.
+            if let Some(first) = self.workers.first_mut() {
+                let result = first
+                    .custody
+                    .as_mut()
+                    .ok_or_else(|| error("Growth batch custody anchor missing"))?
+                    .cleanup();
+                for worker in &mut self.workers {
+                    // The one batch sweep owns every root. A failed sweep is
+                    // reported once; per-worker destructors must not repeat it
+                    // with stale waitpid state or pretend it succeeded.
+                    if let Some(custody) = worker.custody.as_mut() {
+                        custody.cleaned = true;
+                        if result.is_ok() {
+                            custody.reaped = true;
+                        }
+                    }
+                }
+                result?;
+            }
+            Ok(())
+        }
+    }
+    impl Drop for GrowthBatch {
+        fn drop(&mut self) {
+            let _ = self.cleanup();
+        }
+    }
+
+    fn fork_growth_worker(
+        root: &Path,
+        command: &crate::Command,
+        timeout: Option<Duration>,
+        products: &crate::conformance_products::Products,
+        limits: Limits,
+        cancel: &AtomicI32,
+        lane_deadline: Instant,
+        child_overrides: &[(String, String)],
+    ) -> io::Result<GrowthWorker> {
+        let plan = selected_plan(
+            &[(command.home.clone(), command.argv.clone())],
+            "tos_validation_growth_worker_v1",
+            "validation_lane_step",
+        );
+        let products = products.clone();
+        let (stdout, out_child) = pipe()?;
+        let (stderr, err_child) = pipe()?;
+        let (start_child, start_parent) = pipe()?;
+        let deadline = lane_deadline.min(Instant::now() + timeout.unwrap_or(limits.command_wall));
+        let parent = std::process::id() as i32;
+        let pid = unsafe { libc::fork() };
+        if pid < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        if pid == 0 {
+            unsafe {
+                if libc::setpgid(0, 0) != 0
+                    || libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL, 0, 0, 0) != 0
+                    || libc::getppid() != parent
+                    || libc::dup2(out_child.as_raw_fd(), 1) < 0
+                    || libc::dup2(err_child.as_raw_fd(), 2) < 0
+                {
+                    libc::_exit(126);
+                }
+                // No class child may start before the parent owns our pidfd.
+                libc::close(start_parent.as_raw_fd());
+                let mut ready = 0u8;
+                if libc::read(start_child.as_raw_fd(), (&mut ready as *mut u8).cast(), 1) != 1
+                    || ready != b'G'
+                    || libc::close_range(3, u32::MAX, 0) != 0
+                {
+                    libc::_exit(126);
+                }
+            }
+            // The enclosing CLI has proved that it has one thread and no
+            // unrelated children. This continuation is only a one-class
+            // supervisor, never another path through main or a general runner.
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let _out = Nonblocking::new(1)?;
+                let _err = Nonblocking::new(2)?;
+                run_inner(
+                    root,
+                    &plan,
+                    limits,
+                    cancel,
+                    Style::Validation(&[timeout], 1),
+                    None,
+                    Some(deadline),
+                    child_overrides,
+                    Some(products),
+                )
+            }));
+            let code = match result {
+                Ok(Ok(code)) => code,
+                Ok(Err(err)) => {
+                    let _ = write(
+                        2,
+                        format!("[error] native Growth worker: {err}\n").as_bytes(),
+                        deadline,
+                        cancel,
+                    );
+                    let signal = cancel.load(Ordering::Relaxed);
+                    if signal == 0 { 1 } else { 128 + signal }
+                }
+                Err(_) => 1,
+            };
+            unsafe {
+                libc::_exit(code);
+            }
+        }
+        drop(out_child);
+        drop(err_child);
+        drop(start_child);
+        let identity = match pidfd(pid) {
+            Ok(fd) => fd,
+            Err(err) => {
+                unsafe {
+                    libc::kill(-pid, libc::SIGKILL);
+                    libc::kill(pid, libc::SIGKILL);
+                }
+                let end = Instant::now() + limits.cleanup_grace;
+                loop {
+                    let rc = unsafe { libc::waitpid(pid, std::ptr::null_mut(), libc::WNOHANG) };
+                    if rc == pid {
+                        break;
+                    }
+                    if rc < 0 && io::Error::last_os_error().kind() != io::ErrorKind::Interrupted {
+                        return Err(error(format!(
+                            "Growth startup reap failed for PID {pid}: {}",
+                            io::Error::last_os_error()
+                        )));
+                    }
+                    if Instant::now() >= end {
+                        return Err(error(format!(
+                            "Growth startup cleanup deadline; residual PID {pid}"
+                        )));
+                    }
+                    thread::sleep(Duration::from_millis(1));
+                }
+                return Err(error(format!(
+                    "Growth pidfd custody unavailable; startup PID {pid} reaped: {err}"
+                )));
+            }
+        };
+        let custody = Custody {
+            pid,
+            identity,
+            reaped: false,
+            cleaned: false,
+            grace: limits.cleanup_grace,
+        };
+        let mut worker = GrowthWorker {
+            home: command.home.clone(),
+            custody: Some(custody),
+            _stdout_mode: Some(Nonblocking::new(stdout.as_raw_fd())?),
+            _stderr_mode: Some(Nonblocking::new(stderr.as_raw_fd())?),
+            stdout: Some(stdout),
+            stderr: Some(stderr),
+            eof: [false; 2],
+            pending: [Vec::new(), Vec::new()],
+            status: None,
+            deadline,
+            output_bytes: 0,
+        };
+        let ready = unsafe { libc::write(start_parent.as_raw_fd(), b"G".as_ptr().cast(), 1) };
+        if ready != 1 {
+            worker.custody.as_mut().unwrap().cleanup()?;
+            return Err(error("native Growth startup acknowledgement failed"));
+        }
+        Ok(worker)
+    }
+
+    fn finish_failed_growth_batch(
+        batch: &mut GrowthBatch,
+        limits: Limits,
+        cancel: &AtomicI32,
+        lane_deadline: Instant,
+    ) -> io::Result<i32> {
+        let index = batch
+            .workers
+            .iter()
+            .position(|w| w.status.is_some_and(|s| !s.success()))
+            .ok_or_else(|| error("Growth failure status missing"))?;
+        let status = batch.workers[index].status.unwrap();
+        let code = status
+            .code()
+            .unwrap_or_else(|| 256 - status.signal().unwrap_or(0));
+        // Stop every peer before forwarding diagnostics: a blocked output
+        // sink cannot leave a known-failed batch doing fixture work.
+        batch.cleanup()?;
+        let deadline = lane_deadline.min(Instant::now() + limits.cleanup_grace);
+        let worker = &mut batch.workers[index];
+        for (direction, (source, sink)) in [
+            (worker.stdout.as_ref().map_or(-1, AsRawFd::as_raw_fd), 1),
+            (worker.stderr.as_ref().map_or(-1, AsRawFd::as_raw_fd), 2),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut diagnostic = std::mem::take(&mut worker.pending[direction]);
+            if source >= 0 {
+                let mut buffer = [0u8; 8192];
+                let count = unsafe { libc::read(source, buffer.as_mut_ptr().cast(), buffer.len()) };
+                if count > 0 {
+                    let remaining = limits
+                        .output_bytes
+                        .saturating_add(65536)
+                        .saturating_sub(worker.output_bytes);
+                    diagnostic.extend_from_slice(&buffer[..(count as usize).min(remaining)]);
+                }
+            }
+            let _ = write(sink, &diagnostic, deadline, cancel);
+        }
+        let _ = write(
+            2,
+            format!("[error] {} failed with exit code {code}\n", worker.home).as_bytes(),
+            deadline,
+            cancel,
+        );
+        cancelled(cancel)?;
+        Ok(code)
+    }
+
+    fn run_growth_batch(
+        root: &Path,
+        commands: &[crate::Command],
+        timeouts: &[Option<Duration>],
+        products: &crate::conformance_products::Products,
+        limits: Limits,
+        cancel: &AtomicI32,
+        lane_deadline: Instant,
+        child_overrides: &[(String, String)],
+    ) -> io::Result<i32> {
+        let started = Instant::now();
+        write(
+            1,
+            format!(
+                "[parallel] native Growth batch: classes={} jobs=2\n",
+                commands.len()
+            )
+            .as_bytes(),
+            lane_deadline.min(started + limits.command_wall),
+            cancel,
+        )?;
+        let mut batch = GrowthBatch {
+            workers: Vec::with_capacity(commands.len()),
+            cleanup_attempted: false,
+        };
+        let result = (|| -> io::Result<i32> {
+            while batch
+                .workers
+                .iter()
+                .filter(|w| w.status.is_some() && w.eof.iter().all(|v| *v))
+                .count()
+                < commands.len()
+            {
+                cancelled(cancel)?;
+                if Instant::now() >= lane_deadline {
+                    return Err(error("native Growth batch lane deadline"));
+                }
+                for worker in &mut batch.workers {
+                    if worker.status.is_none() {
+                        worker.status = worker.custody.as_mut().unwrap().poll_exit()?;
+                    }
+                }
+                if batch
+                    .workers
+                    .iter()
+                    .any(|w| w.status.is_some_and(|s| !s.success()))
+                {
+                    return finish_failed_growth_batch(&mut batch, limits, cancel, lane_deadline);
+                }
+                let mut active = batch
+                    .workers
+                    .iter()
+                    .filter(|w| w.status.is_none() || !w.eof.iter().all(|v| *v))
+                    .count();
+                while active < 2 && batch.workers.len() < commands.len() {
+                    let index = batch.workers.len();
+                    batch.workers.push(fork_growth_worker(
+                        root,
+                        &commands[index],
+                        timeouts[index],
+                        products,
+                        limits,
+                        cancel,
+                        lane_deadline,
+                        child_overrides,
+                    )?);
+                    active += 1;
+                }
+                let output_deadline = batch
+                    .workers
+                    .iter()
+                    .filter(|w| w.status.is_none() || !w.eof.iter().all(|v| *v))
+                    .map(|w| w.deadline)
+                    .min()
+                    .unwrap_or(lane_deadline);
+                let mut failed = false;
+                for worker in &mut batch.workers {
+                    if worker.status.is_none() {
+                        if let Some(status) = worker.custody.as_mut().unwrap().poll_exit()? {
+                            worker.status = Some(status);
+                        }
+                    }
+                    if worker.status.is_some_and(|s| !s.success()) {
+                        failed = true;
+                        break;
+                    }
+                    if worker.status.is_some() && worker.eof.iter().all(|v| *v) {
+                        continue;
+                    }
+                    if Instant::now() >= worker.deadline {
+                        return Err(error("native Growth worker deadline"));
+                    }
+                    for (direction, (source, sink)) in [
+                        (worker.stdout.as_ref().map_or(-1, AsRawFd::as_raw_fd), 1),
+                        (worker.stderr.as_ref().map_or(-1, AsRawFd::as_raw_fd), 2),
+                    ]
+                    .into_iter()
+                    .enumerate()
+                    {
+                        if worker.eof[direction] {
+                            continue;
+                        }
+                        let mut buffer = [0u8; 8192];
+                        let count =
+                            unsafe { libc::read(source, buffer.as_mut_ptr().cast(), buffer.len()) };
+                        if count == 0 {
+                            worker.eof[direction] = true;
+                            write(sink, &worker.pending[direction], output_deadline, cancel)?;
+                            worker.pending[direction] = Vec::new();
+                            if direction == 0 {
+                                drop(worker._stdout_mode.take());
+                                drop(worker.stdout.take());
+                            } else {
+                                drop(worker._stderr_mode.take());
+                                drop(worker.stderr.take());
+                            }
+                        } else if count > 0 {
+                            let count = count as usize;
+                            worker.output_bytes += count;
+                            // The inner executor enforces the unchanged test
+                            // output cap. Bound its own progress/error envelope too.
+                            if worker.output_bytes > limits.output_bytes.saturating_add(65536) {
+                                return Err(error("native Growth worker output byte limit"));
+                            }
+                            let old_len = worker.pending[direction].len();
+                            worker.pending[direction].extend_from_slice(&buffer[..count]);
+                            if let Some(end) = buffer[..count].iter().rposition(|b| *b == b'\n') {
+                                let end = old_len + end + 1;
+                                write(
+                                    sink,
+                                    &worker.pending[direction][..end],
+                                    output_deadline,
+                                    cancel,
+                                )?;
+                                worker.pending[direction].drain(..end);
+                            }
+                        } else {
+                            let err = io::Error::last_os_error();
+                            if !matches!(
+                                err.kind(),
+                                io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+                            ) {
+                                return Err(err);
+                            }
+                        }
+                    }
+                }
+                if failed {
+                    return finish_failed_growth_batch(&mut batch, limits, cancel, lane_deadline);
+                }
+                for worker in batch.workers.iter_mut().skip(1) {
+                    if worker.status.is_some() && worker.eof.iter().all(|v| *v) {
+                        if let Some(mut custody) = worker.custody.take() {
+                            // Keep only the first pidfd as the batch cleanup
+                            // anchor; completed roots need no per-root sweep.
+                            custody.cleaned = true;
+                        }
+                    }
+                }
+                thread::sleep(Duration::from_millis(2));
+            }
+            Ok(0)
+        })();
+        batch.cleanup()?;
+        let code = result?;
+        if code == 0 {
+            let deadline = batch
+                .workers
+                .iter()
+                .map(|w| w.deadline)
+                .max()
+                .unwrap_or(lane_deadline);
+            write(
+                1,
+                format!(
+                    "[ok] native Growth batch: classes={} jobs=2 elapsed_ms={}\n",
+                    commands.len(),
+                    started.elapsed().as_millis()
+                )
+                .as_bytes(),
+                deadline,
+                cancel,
+            )?;
+        }
+        Ok(code)
     }
 
     fn run_inner(
@@ -736,6 +1191,7 @@ mod native {
         mut streams: Option<&mut [Vec<u8>; 2]>,
         original_deadline: Option<Instant>,
         child_overrides: &[(String, String)],
+        initial_products: Option<crate::conformance_products::Products>,
     ) -> io::Result<i32> {
         cancelled(cancel)?;
         if original_deadline.is_some_and(|deadline| Instant::now() >= deadline) {
@@ -802,15 +1258,46 @@ mod native {
             if Instant::now() >= lane_deadline {
                 return Err(error("execution wall deadline during setup"));
             }
-            let mut products: Option<crate::conformance_products::Products> = None;
-            if let Style::Validation(timeouts) = style {
+            let mut products = initial_products;
+            if let Style::Validation(timeouts, _) = style {
                 if timeouts.len() != plan.commands.len() {
                     return Err(error("validation timeout/command count differs"));
                 }
             }
-            for (index, command) in plan.commands.iter().enumerate() {
+            let mut index = 0;
+            while index < plan.commands.len() {
+                let command = &plan.commands[index];
+                if let Style::Validation(timeouts, 2) = style {
+                    if command
+                        .argv
+                        .first()
+                        .is_some_and(|arg| arg == crate::growth_native_plan::NATIVE_CLASS)
+                    {
+                        let end = index
+                            + plan.commands[index..]
+                                .iter()
+                                .take_while(|step| {
+                                    step.argv.first().is_some_and(|arg| {
+                                        arg == crate::growth_native_plan::NATIVE_CLASS
+                                    })
+                                })
+                                .count();
+                        if end - index > 1 {
+                            let code = run_growth_batch(
+                                root, &plan.commands[index..end], &timeouts[index..end],
+                                products.as_ref().ok_or_else(|| error("native Growth requires current-lane Cargo product preparation"))?,
+                                limits, cancel, lane_deadline, child_overrides,
+                            )?;
+                            if code != 0 {
+                                return Ok(code);
+                            }
+                            index = end;
+                            continue;
+                        }
+                    }
+                }
                 let explicit_timeout = match style {
-                    Style::Validation(timeouts) => timeouts[index],
+                    Style::Validation(timeouts, _) => timeouts[index],
                     _ => None,
                 };
                 let command_wall = explicit_timeout.unwrap_or(limits.command_wall);
@@ -818,7 +1305,7 @@ mod native {
                 let progress = match style {
                     Style::Capture => String::new(),
                     Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
-                    Style::Validation(_) => {
+                    Style::Validation(..) => {
                         format!("[run] {}: {}\n", command.home, command.argv.join(" "))
                     }
                     Style::Release => {
@@ -840,9 +1327,9 @@ mod native {
                         cancel,
                     )?;
                 }
-                let preparing = matches!(style, Style::Validation(_))
+                let preparing = matches!(style, Style::Validation(..))
                     && crate::conformance_products::preparation(&command.argv);
-                let growth_class = matches!(style, Style::Validation(_))
+                let growth_class = matches!(style, Style::Validation(..))
                     && command
                         .argv
                         .first()
@@ -857,7 +1344,7 @@ mod native {
                 } else {
                     command.argv.clone()
                 };
-                let overrides = if matches!(style, Style::Validation(_))
+                let overrides = if matches!(style, Style::Validation(..))
                     && (crate::conformance_products::execution(&command.argv) || growth_class)
                 {
                     products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
@@ -867,7 +1354,7 @@ mod native {
                 let mut overrides = overrides;
                 overrides.extend_from_slice(child_overrides);
                 let inherited_stage_ticket_fd = match style {
-                    Style::Validation(_) => foundation_stage_ticket_fd(&argv)?,
+                    Style::Validation(..) => foundation_stage_ticket_fd(&argv)?,
                     _ => None,
                 };
                 let mut cargo_stdout = Vec::new();
@@ -973,7 +1460,7 @@ mod native {
                             command.argv.join(" "),
                             status.unwrap()
                         ),
-                        Style::Validation(_) => format!(
+                        Style::Validation(..) => format!(
                             "[error] {} failed with exit code {}\n",
                             command.home,
                             status
@@ -1002,7 +1489,7 @@ mod native {
                     )?;
                     return Ok(match style {
                         Style::Mechanics => 1,
-                        Style::Validation(_) | Style::Release | Style::Capture => {
+                        Style::Validation(..) | Style::Release | Style::Capture => {
                             status.unwrap().code().unwrap_or_else(|| {
                                 // sys.exit(-signal) from the Python compatibility entry
                                 // is observed by its parent as 256-signal on Unix.
@@ -1011,7 +1498,7 @@ mod native {
                         }
                     });
                 }
-                if matches!(style, Style::Validation(_)) {
+                if matches!(style, Style::Validation(..)) {
                     write_validation_success(
                         1,
                         &command.home,
@@ -1020,6 +1507,7 @@ mod native {
                         cancel,
                     )?;
                 }
+                index += 1;
             }
             if matches!(style, Style::Mechanics) {
                 let native = plan

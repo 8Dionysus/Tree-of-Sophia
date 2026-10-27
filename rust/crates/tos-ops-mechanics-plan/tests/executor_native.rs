@@ -1,5 +1,271 @@
 //! A synthetic native validation sequence exercises ordered execution and durable
 //! lifecycle risks through the real CLI, without executing repository tools.
+
+#[cfg(target_os = "linux")]
+mod growth_parallel {
+    use serde_json::json;
+    use std::{
+        fs,
+        os::unix::fs::PermissionsExt,
+        path::PathBuf,
+        process::{Command, Stdio},
+        time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    };
+
+    struct Fixture(PathBuf);
+    impl Fixture {
+        fn new() -> Self {
+            let root = std::env::temp_dir().join(format!(
+                "tos-growth-parallel-{}-{}",
+                std::process::id(),
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            fs::create_dir_all(root.join("docs/validation")).unwrap();
+            fs::create_dir_all(root.join("cargo-target/debug/deps")).unwrap();
+            let executable = |name: &str, raw: &[u8]| {
+                let path = root.join(name);
+                fs::write(&path, raw).unwrap();
+                fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
+            };
+            executable("cargo-target/debug/tos-access", b"fixture exact consumer");
+            executable("cargo", b"#!/bin/sh\n/bin/cat artifacts.jsonl\n");
+            executable(
+                "cargo-target/debug/deps/conformance-fixture",
+                br#"#!/bin/sh
+set -eu
+name=${1%::}
+[ "${3-}" = --test-threads=1 ] || exit 31
+counter() {
+  while ! mkdir counter.lock 2>/dev/null; do /bin/sleep 0.002; done
+  active=$(/bin/cat active.count 2>/dev/null || echo 0)
+  active=$((active + $1))
+  printf '%s\n' "$active" > active.count
+  maximum=$(/bin/cat max.count 2>/dev/null || echo 0)
+  if [ "$active" -gt "$maximum" ]; then printf '%s\n' "$active" > max.count; fi
+  rmdir counter.lock
+  [ "$active" -le 2 ] || exit 32
+  if [ "$SCENARIO" = serial ]; then [ "$active" -le 1 ] || exit 33; fi
+}
+echo $$ > "$name.pid"
+mkdir "active-$name"
+printf '%s\n' "$name" >> starts
+counter 1
+if [ "$SCENARIO" != success ] && [ "$SCENARIO" != serial ] && [ "$name" = beta ]; then
+  /bin/sleep 20 & echo $! > ordinary.pid
+  /usr/bin/setsid /bin/sh -c 'echo $$ > escaped.pid; exec /bin/sleep 20' &
+  while [ ! -s escaped.pid ]; do /bin/sleep 0.002; done
+fi
+touch "$name.ready"
+if [ "$SCENARIO" = success ]; then
+  if [ "$name" != gamma ]; then
+    while [ ! -f alpha.ready ] || [ ! -f beta.ready ]; do /bin/sleep 0.002; done
+  fi
+  /bin/sleep 0.03
+elif [ "$SCENARIO" != serial ]; then
+  if [ "$name" = alpha ]; then
+    while [ ! -f beta.ready ]; do /bin/sleep 0.002; done
+    case "$SCENARIO" in
+      failure) exit 7;;
+      count) echo 'test result: ok. 0 passed; 0 failed; 0 ignored;'; exit 0;;
+      output) /usr/bin/head -c 65536 /dev/zero; printf '\n';;
+      blocked) /usr/bin/yes x | /usr/bin/head -c 262144;;
+    esac
+  fi
+  /bin/sleep 20
+fi
+rmdir "active-$name"
+counter -1
+touch "$name.done"
+echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
+"#,
+            );
+            let row = json!({"reason":"compiler-artifact","package_id":"path+file:///fixture#tos-conformance@0.0.0","target":{"name":"conformance","kind":["test"]},"executable":root.join("cargo-target/debug/deps/conformance-fixture")});
+            fs::write(root.join("artifacts.jsonl"), row.to_string() + "\n").unwrap();
+            let mut steps = vec![
+                json!({"label":"prepare","command":[root.join("cargo"),"test","--workspace","--no-run","--exclude","tos-access","--message-format=json"]}),
+            ];
+            for name in ["alpha", "beta", "gamma"] {
+                steps.push(json!({"label":name,"command":["@tos-native-growth-class","tos-conformance","test","conformance",format!("{name}::"),"1","0"]}));
+            }
+            steps.push(json!({"label":"joined","command":["/bin/sh","-c","test -f alpha.done && test -f beta.done && test -f gamma.done && touch joined"]}));
+            fs::write(
+                root.join("docs/validation/validation_lanes.json"),
+                json!({"command_sequences":{"rust_workspace":steps}}).to_string(),
+            )
+            .unwrap();
+            Self(root)
+        }
+        fn command(&self, scenario: &str, jobs: Option<&str>) -> Command {
+            let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
+                .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-validation-lanes").into());
+            let mut command = Command::new(executable);
+            command.arg("--repo-root").arg(&self.0).args([
+                "--run",
+                "rust_workspace",
+                "--command-timeout-ms",
+                if scenario == "success" || scenario == "serial" {
+                    "5000"
+                } else {
+                    "1000"
+                },
+                "--lane-timeout-ms",
+                "8000",
+                "--cleanup-grace-ms",
+                "500",
+                "--max-output-bytes",
+                if scenario == "output" {
+                    "1024"
+                } else {
+                    "1048576"
+                },
+            ]);
+            if let Some(jobs) = jobs {
+                command.args(["--growth-jobs", jobs]);
+            }
+            command
+                .env("CARGO_TARGET_DIR", self.0.join("cargo-target"))
+                .env("SCENARIO", scenario)
+                .env("PATH", "/usr/bin:/bin")
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
+            command
+        }
+        fn assert_reaped(&self) {
+            for name in [
+                "alpha.pid",
+                "beta.pid",
+                "gamma.pid",
+                "ordinary.pid",
+                "escaped.pid",
+            ] {
+                if let Ok(pid) = fs::read_to_string(self.0.join(name)) {
+                    assert!(
+                        !std::path::Path::new("/proc").join(pid.trim()).exists(),
+                        "residual {name}: {pid}"
+                    );
+                }
+            }
+        }
+    }
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn two_growth_processes_overlap_keep_counts_and_join_before_later_commands() {
+        for (scenario, jobs) in [("success", Some("2")), ("serial", None)] {
+            let fixture = Fixture::new();
+            let output = fixture.command(scenario, jobs).output().unwrap();
+            assert!(
+                output.status.success(),
+                "{scenario}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(fixture.0.join("joined").is_file());
+            assert_eq!(
+                fs::read_to_string(fixture.0.join("max.count"))
+                    .unwrap()
+                    .trim(),
+                if jobs.is_some() { "2" } else { "1" }
+            );
+            assert_eq!(
+                fs::read_to_string(fixture.0.join("active.count"))
+                    .unwrap()
+                    .trim(),
+                "0"
+            );
+            assert_eq!(
+                fs::read_to_string(fixture.0.join("starts"))
+                    .unwrap()
+                    .lines()
+                    .count(),
+                3
+            );
+            let text = String::from_utf8_lossy(&output.stdout);
+            assert_eq!(
+                text.contains("native Growth batch: classes=3 jobs=2"),
+                jobs.is_some()
+            );
+            for name in ["alpha", "beta", "gamma"] {
+                assert!(text.contains(&format!("[ok] {name}\n")));
+            }
+            fixture.assert_reaped();
+        }
+        for jobs in ["0", "3", "invalid"] {
+            let fixture = Fixture::new();
+            let output = fixture.command("success", Some(jobs)).output().unwrap();
+            assert_eq!(output.status.code(), Some(2));
+            assert!(!fixture.0.join("starts").exists());
+        }
+    }
+
+    #[test]
+    fn growth_failure_count_timeout_cancel_and_blocked_output_reap_both_process_trees() {
+        for scenario in ["failure", "count", "timeout", "cancel", "output", "blocked"] {
+            let fixture = Fixture::new();
+            let started = Instant::now();
+            let mut child = fixture.command(scenario, Some("2")).spawn().unwrap();
+            if scenario == "cancel" {
+                while !fixture.0.join("beta.ready").exists()
+                    && started.elapsed() < Duration::from_secs(3)
+                {
+                    std::thread::sleep(Duration::from_millis(2));
+                }
+                assert!(fixture.0.join("beta.ready").exists());
+                assert_eq!(unsafe { libc::kill(child.id() as i32, libc::SIGINT) }, 0);
+            }
+            if scenario == "blocked" {
+                while child.try_wait().unwrap().is_none()
+                    && started.elapsed() < Duration::from_secs(4)
+                {
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                assert!(
+                    child.try_wait().unwrap().is_some(),
+                    "blocked parallel output escaped command deadline"
+                );
+            }
+            let output = child.wait_with_output().unwrap();
+            assert!(
+                started.elapsed() < Duration::from_secs(5),
+                "{scenario} exceeded bounded cleanup"
+            );
+            assert_eq!(
+                output.status.code(),
+                Some(match scenario {
+                    "failure" => 7,
+                    "cancel" => 130,
+                    _ => 1,
+                }),
+                "{scenario}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(
+                !fixture.0.join("gamma.ready").exists(),
+                "{scenario}: queued class started after failure"
+            );
+            assert!(!fixture.0.join("gamma.pid").exists());
+            assert!(
+                !fs::read_to_string(fixture.0.join("starts"))
+                    .unwrap_or_default()
+                    .lines()
+                    .any(|line| line == "gamma")
+            );
+            assert!(!fixture.0.join("joined").exists());
+            assert!(
+                fixture.0.join("escaped.pid").is_file(),
+                "{scenario}: peer descendant was not exercised"
+            );
+            fixture.assert_reaped();
+        }
+    }
+}
+
 #[cfg(target_os = "linux")]
 #[test]
 fn ordered_runner_stops_and_owns_ordinary_and_escaped_children() {

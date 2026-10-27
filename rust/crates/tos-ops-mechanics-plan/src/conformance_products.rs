@@ -103,6 +103,7 @@ fn image(path: &Path, target: &Path, deadline: Instant, cancel: &AtomicI32) -> i
     }
     Ok(digest.finalize().to_hex())
 }
+#[derive(Clone)]
 pub(crate) struct Products {
     target: PathBuf,
     executable: PathBuf,
