@@ -384,6 +384,17 @@ def write_metadata_refresh(
             replaced = True
     if not replaced:
         provenance.append(inventory_event)
+    # Metadata refresh must not silently rewrite prior extraction or rendering
+    # history when a supposedly immutable input has changed.
+    for row in provenance:
+        for direction in ("inputs", "outputs"):
+            for binding in row.get(direction, []):
+                ref, expected = binding.get("ref"), binding.get("sha256")
+                path = repo_root / ref if isinstance(ref, str) else None
+                if expected and path and path.is_file():
+                    actual = sha(inventory_bytes) if path == inventory_path else sha(path.read_bytes())
+                    if actual != expected:
+                        raise RuntimeError(f"stale provenance digest requires an explicit versioned correction: {ref}")
     provenance_bytes = (
         "\n".join(json.dumps(row, ensure_ascii=False, separators=(",", ":")) for row in provenance)
         + "\n"
