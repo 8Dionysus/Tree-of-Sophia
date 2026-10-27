@@ -9,6 +9,7 @@ const labels={
 const groups={overview:null,era:['era'],people:['author','school','figure','tradition','translator'],work:['work'],concept:['concept'],translation:['translation','original','edition'],words:['concept']};
 labels.ru.words='Слова и значения';labels.en.words='Words and meanings';labels.ru.fullTexts='Полные тексты';labels.en.fullTexts='Full texts';
 labels.ru.kind.translator='Переводчик';labels.en.kind.translator='Translator';
+labels.ru.kind.character='Действующее лицо';labels.en.kind.character='Character';labels.ru.kind.excerpt='Выдержка';labels.en.kind.excerpt='Excerpt';
 const roleNames={premise:['Основание','Premise'],conclusion:['Вывод','Conclusion'],objection:['Возражение','Objection'],reply:['Ответ','Reply'],distinction:['Различение','Distinction'],example:['Пример','Example'],question:['Вопрос','Question'],inference:['Переход','Inference'],claim:['Тезис','Claim'],condition:['Условие','Condition'],definition:['Определение','Definition'],problem:['Затруднение','Problem'],explanation:['Объяснение','Explanation'],consequence:['Следствие','Consequence'],qualification:['Уточнение','Qualification'],test:['Проверка','Test']};
 
 /** Read-only browsing; graph mutation and reader access are explicit owner callbacks. */
