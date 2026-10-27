@@ -68,7 +68,28 @@ function taskPacket(value) {
   return {...value, sources};
 }
 
-function responsePacket(value, task) {
+function responseHypothesis(task, response) {
+  let questionExcerpt = task.question.slice(0, 220);
+  const lastCodeUnit = questionExcerpt.charCodeAt(questionExcerpt.length - 1);
+  if (lastCodeUnit >= 0xD800 && lastCodeUnit <= 0xDBFF) questionExcerpt = questionExcerpt.slice(0, -1);
+  const title = `Agent response: ${questionExcerpt}`.trim();
+  const body = `${task.question}\n\nExternal agent response for task ${task.taskId}. ${response.uncertainty ? `Uncertainty: ${response.uncertainty}` : ''}`.trim();
+  if (body.length > 4_000) throw new TypeError(`The complete question and uncertainty need ${body.length} characters; the workspace allows 4,000. Shorten them before applying this response.`);
+  return {id: `agent-${task.taskId}`, title, body};
+}
+
+function generatedProposalIds(task, proposals) {
+  const prefix = `agent-${task.taskId}-`;
+  const ids = [];
+  for (const proposal of proposals) {
+    ids.push(`${prefix}${proposal.id}`);
+    if (proposal.objection) ids.push(`${prefix}${proposal.id}-objection`);
+  }
+  if (new Set(ids).size !== ids.length) throw new TypeError('This response generates colliding proposal ids. Rename the proposal ids or remove the collision before applying.');
+  return {hypothesisId: `agent-${task.taskId}`, proposalIds: ids};
+}
+
+export function responsePacket(value, task) {
   if (!only(value, ['schema', 'version', 'taskId', 'uncertainty', 'proposals'])) throw new TypeError('The agent response has unexpected fields.');
   if (value.schema !== AGENT_RESPONSE_SCHEMA || value.version !== RESPONSE_VERSION) throw new TypeError('Unsupported agent response version.');
   if (value.taskId !== task.taskId) throw new TypeError('This response belongs to a different task.');
@@ -99,7 +120,23 @@ function responsePacket(value, task) {
     if (proposal.kind === 'relation' && new Set([...sourceRefs, ...evidenceRefs]).size < 2) throw new TypeError('A relation proposal must cite at least two distinct exact sources.');
     return {id: proposalId, kind: proposal.kind, statement, sourceIds: sourceRefs, evidenceIds: evidenceRefs, objection};
   });
-  return {schema: AGENT_RESPONSE_SCHEMA, version: RESPONSE_VERSION, taskId: task.taskId, uncertainty, proposals};
+  const response = {schema: AGENT_RESPONSE_SCHEMA, version: RESPONSE_VERSION, taskId: task.taskId, uncertainty, proposals};
+  responseHypothesis(task, response);
+  generatedProposalIds(task, proposals);
+  return response;
+}
+
+export function planAgentApplication(task, response, selectedProposals, state) {
+  const hypothesis = responseHypothesis(task, response);
+  const {hypothesisId, proposalIds} = generatedProposalIds(task, selectedProposals);
+  const existingProposalIds = new Set(state.proposals.map(item => item.id));
+  const existingHypothesis = state.hypotheses.find(item => item.id === hypothesisId);
+  const presentCount = proposalIds.filter(id => existingProposalIds.has(id)).length;
+  if (presentCount === proposalIds.length && existingHypothesis?.title === hypothesis.title && existingHypothesis?.body === hypothesis.body) {
+    return {already: true, hypothesis, hypothesisId, proposalIds};
+  }
+  if (presentCount || existingHypothesis) throw new Error('This agent task already occupies one or more workspace ids. Review the existing response before applying again.');
+  return {already: false, hypothesis, hypothesisId, proposalIds};
 }
 
 async function fingerprint(sources) {
@@ -331,34 +368,33 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     });
     if ([...referenced].some(sourceId => results.get(sourceId)?.status !== 'exact')) { await renderReview(); throw new Error(t().stale); }
     const sourceMap = new Map(activeTask.sources.map(source => [source.id, source]));
+    const currentQuestion = bounded(await api.getQuestion(), 4_000, 'Question');
+    if (currentQuestion !== activeTask.question) throw new Error(english() ? 'The question changed after task export. Export a new task before applying this response.' : 'После экспорта задания вопрос изменился. Перед применением ответа экспортируйте новое задание.');
+    const work = workspace;
+    let plan = planAgentApplication(activeTask, activeResponse, selected, work.getState());
+    if (plan.already) { message(t().appliedAlready); return; }
+    if (activeTask.workspaceRevision !== work.summary().revision) throw new Error(english()
+      ? 'The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.'
+      : 'После экспорта задания рабочая область изменилась. Ответ сохранён для просмотра; перед применением экспортируйте новое задание.');
+    const dataFingerprint = await fingerprint(activeTask.sources);
     const sourceLocators = new Map();
     for (const sourceId of referenced) {
       const source = sourceMap.get(sourceId);
       sourceLocators.set(sourceId, await ensureSourceRecord(shelf, source.reference, source.title));
     }
-    const currentQuestion = bounded(await api.getQuestion(), 4_000, 'Question');
-    if (currentQuestion !== activeTask.question) throw new Error(english() ? 'The question changed after task export. Export a new task before applying this response.' : 'После экспорта задания вопрос изменился. Перед применением ответа экспортируйте новое задание.');
-    const work = workspace;
-    const hypothesisId = `agent-${activeTask.taskId}`;
-    let state = work.getState();
-    let already = selected.every(proposal => state.proposals.some(item => item.id === `agent-${activeTask.taskId}-${proposal.id}`)
-      && (!proposal.objection || state.proposals.some(item => item.id === `agent-${activeTask.taskId}-${proposal.id}-objection`)));
-    if (already) { message(t().appliedAlready); return; }
+
+    plan = planAgentApplication(activeTask, activeResponse, selected, work.getState());
+    if (plan.already) { message(t().appliedAlready); return; }
     if (activeTask.workspaceRevision !== work.summary().revision) throw new Error(english()
       ? 'The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.'
       : 'После экспорта задания рабочая область изменилась. Ответ сохранён для просмотра; перед применением экспортируйте новое задание.');
-    if (!state.hypotheses.some(item => item.id === hypothesisId)) {
-      work.addHypothesis({id: hypothesisId, title: `Agent response: ${activeTask.question.slice(0, 220)}`,
-        body: `${activeTask.question}\n\nExternal agent response for task ${activeTask.taskId}. ${activeResponse.uncertainty ? `Uncertainty: ${activeResponse.uncertainty}` : ''}`});
-    }
-    const dataFingerprint = await fingerprint(activeTask.sources);
+    work.addHypothesis(plan.hypothesis);
     const stage = (proposalId, kind, statement, sourceIds, evidenceIds, targetIds) => {
       const proposalKey = `agent-${activeTask.taskId}-${proposalId}`;
-      if (work.getState().proposals.some(item => item.id === proposalKey)) return;
       const sourceRefs = [...new Set(sourceIds.map(sourceId => sourceLocators.get(sourceId)))];
       const evidenceRefs = [...new Set(evidenceIds.map(sourceId => sourceLocators.get(sourceId)))];
       const target = targetIds.map(sourceId => sourceMap.get(sourceId).reference.unitId);
-      const base = {id: proposalKey, kind, parentHypothesisId: hypothesisId, statement, sourceRefs, evidenceRefs,
+      const base = {id: proposalKey, kind, parentHypothesisId: plan.hypothesisId, statement, sourceRefs, evidenceRefs,
         confidencePosture: {value: 'unknown', meaning: 'maker_declared_uncertainty_not_truth_probability'},
         actorOrigin: 'agent', basePageRevision: 0, baseWorkspaceRevision: work.summary().revision, dataFingerprint};
       if (kind === 'relation') { base.fromId = target[0]; base.toId = target[1]; }

@@ -455,7 +455,7 @@ export function mountCorpusReader({
     const reference = exactReference(hit?.reference);
     const origin = selected?.reference;
     const state = modelState();
-    if (!reference || reference.target.workId !== state.document?.id || reference.versionId !== state.activeVersionId
+    if (!reference || !origin || reference.target.workId !== state.document?.id || reference.versionId !== origin.versionId
       || !Number.isSafeInteger(reference.selector.start) || !Number.isSafeInteger(reference.selector.end)
       || reference.selector.end <= reference.selector.start) return;
     if (!(await flushNote()) || selected?.reference !== origin) return;

@@ -10,6 +10,7 @@ import {createReference} from '../corpus-reader/model.mjs';
 import {ensureSourceRecord, resolveSourceLocator} from './source-address.mjs';
 import {createCompareAndSwapPersistence} from './workspace-persistence.mjs';
 import {savePublicThought} from './workspace-view.mjs';
+import {AGENT_RESPONSE_SCHEMA, planAgentApplication, responsePacket} from './agent-bridge.mjs';
 
 const corpusRoot = new URL('../../public/public-corpus/', import.meta.url);
 
@@ -71,6 +72,48 @@ describe('public research shelf source addresses', () => {
     first.save('first-tab');
     expect(() => second.save('stale-tab')).toThrow(/Another tab changed/);
     expect(storage.getItem('workspace')).toBe('first-tab');
+  });
+
+  it('refuses a response whose complete question and uncertainty exceed the workspace body limit', () => {
+    const task = {taskId: 'task-body', question: 'q'.repeat(2_500), sources: [{id: 's1'}]};
+    const response = {schema: AGENT_RESPONSE_SCHEMA, version: 1, taskId: task.taskId, uncertainty: 'u'.repeat(1_600), proposals: [
+      {id: 'p1', kind: 'interpretation', statement: 'Claim', sourceIds: ['s1'], evidenceIds: ['s1']},
+    ]};
+    expect(() => responsePacket(response, task)).toThrow(/complete question and uncertainty/);
+  });
+
+  it('rejects generated proposal-key collisions and preserves complete reapply idempotence', () => {
+    const task = {taskId: 'task-keys', question: 'Question', sources: [{id: 's1'}]};
+    const response = {schema: AGENT_RESPONSE_SCHEMA, version: 1, taskId: task.taskId, uncertainty: '', proposals: [
+      {id: 'p1', kind: 'interpretation', statement: 'Claim', sourceIds: ['s1'], evidenceIds: ['s1'],
+        objection: {statement: 'Objection', sourceIds: ['s1']}},
+      {id: 'p1-objection', kind: 'interpretation', statement: 'Another claim', sourceIds: ['s1'], evidenceIds: ['s1']},
+    ]};
+    expect(() => responsePacket(response, task)).toThrow(/colliding proposal ids/);
+
+    const valid = {...response, proposals: [response.proposals[0]]};
+    const checked = responsePacket(valid, task);
+    const fresh = planAgentApplication(task, checked, checked.proposals, {hypotheses: [], proposals: []});
+    expect(fresh.already).toBe(false);
+    const workspace = createBrowserResearchWorkspace({persistence: false});
+    try {
+      const storedHypothesis = workspace.addHypothesis(fresh.hypothesis);
+      const replay = planAgentApplication(task, checked, checked.proposals,
+        {hypotheses: [storedHypothesis], proposals: fresh.proposalIds.map(id => ({id}))});
+      expect(replay.already).toBe(true);
+    } finally { workspace.dispose(); }
+    expect(() => planAgentApplication(task, checked, checked.proposals,
+      {hypotheses: [{id: fresh.hypothesisId, title: 'Unrelated', body: 'Different'}], proposals: []})).toThrow(/already occupies/);
+  });
+
+  it('does not split a surrogate pair in the generated hypothesis title', () => {
+    const task = {taskId: 'task-title', question: `${'q'.repeat(219)}😀after`, sources: [{id: 's1'}]};
+    const checked = responsePacket({schema: AGENT_RESPONSE_SCHEMA, version: 1, taskId: task.taskId, uncertainty: '', proposals: [
+      {id: 'p1', kind: 'interpretation', statement: 'Claim', sourceIds: ['s1'], evidenceIds: ['s1']},
+    ]}, task);
+    const plan = planAgentApplication(task, checked, checked.proposals, {hypotheses: [], proposals: []});
+    const lastCodeUnit = plan.hypothesis.title.charCodeAt(plan.hypothesis.title.length - 1);
+    expect(lastCodeUnit >= 0xD800 && lastCodeUnit <= 0xDBFF).toBe(false);
   });
 
   it.each(['objection', 'revision'])('rejects an oversized generated %s statement before any owner mutation', async field => {
