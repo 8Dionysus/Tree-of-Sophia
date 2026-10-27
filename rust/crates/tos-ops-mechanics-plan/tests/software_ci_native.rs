@@ -381,6 +381,54 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     use std::collections::BTreeSet;
     let w = workflow("repo-validation.yml");
     let jobs = &w["jobs"];
+    let mut cached_jobs = BTreeSet::new();
+    for (name, job) in jobs.as_hash().unwrap() {
+        if let Some(env) = job["env"].as_hash() {
+            assert!(
+                env.values().all(|value| !value
+                    .as_str()
+                    .is_some_and(|s| s.contains("${{") && s.contains("runner."))),
+                "job env cannot reference the runner context"
+            );
+        }
+        let st = job["steps"].as_vec().unwrap();
+        let Some(restore) = st.iter().find(|s| s["id"].as_str() == Some("cargo_cache")) else {
+            continue;
+        };
+        cached_jobs.insert(name.as_str().unwrap());
+        assert!(
+            restore["uses"]
+                .as_str()
+                .unwrap()
+                .starts_with("actions/cache@")
+        );
+        assert_eq!(restore["continue-on-error"].as_bool(), Some(true));
+        let key = restore["with"]["key"].as_str().unwrap();
+        assert!(key.starts_with("tos-cargo-lib-v2-"));
+        assert!(
+            !key.contains("github.sha"),
+            "identical trees must share a cache key"
+        );
+        let suffix = "-${{ steps.cargo_platform.outputs.source_tree }}";
+        let prefix = key.strip_suffix(suffix).unwrap();
+        assert_eq!(
+            restore["with"]["restore-keys"].as_str().unwrap().trim(),
+            format!("{prefix}-")
+        );
+        assert!(run(one_step(st, "source_tree=%s")).contains("git rev-parse 'HEAD^{tree}'"));
+        for path in restore["with"]["path"].as_str().unwrap().lines() {
+            assert!(
+                path.ends_with("/registry")
+                    || path.ends_with("/**/.fingerprint")
+                    || path.ends_with("/**/build")
+                    || ["rlib", "rmeta", "so", "d"]
+                        .iter()
+                        .any(|extension| path.ends_with(&format!("/**/deps/*.{extension}"))),
+                "cache only compiler libraries/metadata, not full targets: {path}"
+            );
+        }
+    }
+    assert_eq!(cached_jobs, BTreeSet::from(["plan", "worker"]));
     assert!(!w["on"]["workflow_dispatch"].is_badvalue());
     assert_eq!(
         jobs["required_gate"]["needs"]
@@ -456,6 +504,18 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     let reader = one_step(software, "--run software_reader");
     assert!(reader["if"].as_str().unwrap().contains("== 'reader'"));
     let receipts = run(one_step(software, "software-receipts"));
+    let production_target = one_step(software, "software-receipts")["env"]["CARGO_TARGET_DIR"]
+        .as_str()
+        .unwrap();
+    let test_target = "software-test-cargo-target";
+    let configure = one_step(software, "CARGO_TARGET_DIR=%s/software-test-cargo-target");
+    assert!(run(configure).contains("\"$RUNNER_TEMP\" >> \"$GITHUB_ENV\""));
+    assert!(production_target.ends_with("/software-cargo-target"));
+    assert!(!production_target.contains(test_target));
+    assert_eq!(
+        one_step(software, "software-limits")["env"]["CARGO_TARGET_DIR"].as_str(),
+        Some(production_target),
+    );
     assert!(receipts.contains("\"$TOS_SOFTWARE_CI_EXECUTOR\" software-receipts"));
     assert!(receipts.contains("--executor-root \"$RUNNER_TEMP/tos-ci-executors\""));
     for name in [
