@@ -1,8 +1,13 @@
-const EN_ACTIONS = {'lens.select':'Selected lens','edge.exclude':'Excluded link','edge.include':'Restored link','hypothesis.add':'Added hypothesis','hypothesis.remove':'Removed hypothesis','proposal.stage':'Added proposal','route.snapshot':'Saved route','route.remove':'Removed route','note.add':'Added note','note.update':'Updated note','note.remove':'Removed note','workspace.undo':'Undid change','workspace.redo':'Redid change'};
-const RU_ACTIONS = {'lens.select':'Выбран взгляд','edge.exclude':'Связь исключена','edge.include':'Связь восстановлена','hypothesis.add':'Добавлена гипотеза','hypothesis.remove':'Гипотеза удалена','proposal.stage':'Добавлено предложение','route.snapshot':'Маршрут сохранён','route.remove':'Маршрут удалён','note.add':'Добавлена заметка','note.update':'Заметка изменена','note.remove':'Заметка удалена','workspace.undo':'Изменение отменено','workspace.redo':'Изменение возвращено'};
+const EN_ACTIONS = {'lens.select':'Selected lens','edge.exclude':'Excluded link','edge.include':'Restored link','hypothesis.add':'Added personal thought','hypothesis.remove':'Removed personal thought','proposal.stage':'Added proposal','route.snapshot':'Saved route','route.remove':'Removed route','note.add':'Added note','note.update':'Updated note','note.remove':'Removed note','workspace.undo':'Undid change','workspace.redo':'Redid change'};
+const RU_ACTIONS = {'lens.select':'Выбран взгляд','edge.exclude':'Связь исключена','edge.include':'Связь восстановлена','hypothesis.add':'Добавлена личная мысль','hypothesis.remove':'Личная мысль удалена','proposal.stage':'Добавлено предложение','route.snapshot':'Маршрут сохранён','route.remove':'Маршрут удалён','note.add':'Добавлена заметка','note.update':'Заметка изменена','note.remove':'Заметка удалена','workspace.undo':'Изменение отменено','workspace.redo':'Изменение возвращено'};
 export const isEnglish = locale => String(typeof locale === 'function' ? locale() : locale || 'ru').toLowerCase().startsWith('en');
 export const kindLabel = (kind, locale) => ({interpretation:isEnglish(locale)?'Interpretation':'Интерпретация',relation:isEnglish(locale)?'Relation':'Связь'})[kind] || (isEnglish(locale)?'Proposal':'Предложение');
 export const actionLabel = (action, locale) => (isEnglish(locale)?EN_ACTIONS:RU_ACTIONS)[action] || (isEnglish(locale)?'Workspace change':'Изменение исследования');
+export const researchQuestionLine = (value, locale) => {
+  const question = typeof value === 'string' ? value.trim() : '';
+  if (question) return `${isEnglish(locale) ? 'Research question' : 'Вопрос исследования'}: ${question}`;
+  return isEnglish(locale) ? 'No research question set.' : 'Вопрос исследования не задан.';
+};
 export function proposalStatement(value, locale) {
   if (typeof value !== 'string') return '';
   for (const [prefix,en,ru] of [['Objection to thesis: ','Objection to thesis: ','Возражение к тезису: '],['Revises earlier thesis: ','Revises earlier thesis: ','Пересмотр прежнего тезиса: '],['Objection: ','Objection: ','Возражение: ']]) {

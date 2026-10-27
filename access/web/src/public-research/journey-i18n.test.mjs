@@ -1,7 +1,7 @@
 import {expect, test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {localizePublicJourney} from './journey-i18n.mjs';
-import {actionLabel, kindLabel, proposalStatement} from './presentation-i18n.mjs';
+import {actionLabel, kindLabel, proposalStatement, researchQuestionLine} from './presentation-i18n.mjs';
 const files=['antiquity','zarathustra'].map(name=>new URL(`../../../../ToS/research-packets/public-prototypes-20261026/journeys.${name}.v1.json`,import.meta.url));
 test('all public journeys have English presentation without changing source addresses',()=>{
  for(const file of files) for(const source of JSON.parse(readFileSync(file)).journeys) {
@@ -17,4 +17,9 @@ test('all public journeys have English presentation without changing source addr
 test('presentation translates known labels and prefixes without mutating stored text',()=>{
  const stored='Objection to thesis: моя мысль'; expect(proposalStatement(stored,'ru')).toBe('Возражение к тезису: моя мысль'); expect(proposalStatement(stored,'en')).toBe(stored);
  expect(kindLabel('relation','ru')).toBe('Связь'); expect(actionLabel('proposal.stage','en')).toBe('Added proposal');
+ expect(actionLabel('hypothesis.add','ru')).toBe('Добавлена личная мысль');
+ expect(actionLabel('hypothesis.add','en')).toBe('Added personal thought');
+ expect(researchQuestionLine('', 'ru')).toBe('Вопрос исследования не задан.');
+ expect(researchQuestionLine('   ', 'en')).toBe('No research question set.');
+ expect(researchQuestionLine('What does he mean?', 'en')).toBe('Research question: What does he mean?');
 });

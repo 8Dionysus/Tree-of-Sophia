@@ -6,7 +6,7 @@ import {ensureSourceRecord, resolveSourceLocator} from './source-address.mjs';
 import {createCompareAndSwapPersistence} from './workspace-persistence.mjs';
 import {applyGraphSpace, exportGraphSpace, graphKeyInfo, inspectGraphSpace, validateGraphSpace} from './graph-transfer.mjs';
 import './workspace-view.css';
-import {isEnglish, kindLabel, actionLabel, proposalStatement, displayPublicError} from './presentation-i18n.mjs';
+import {isEnglish, kindLabel, actionLabel, proposalStatement, researchQuestionLine, displayPublicError} from './presentation-i18n.mjs';
 
 export const PUBLIC_WORKSPACE_SCHEMA = 'tos.public_research.personal_workspace.v1';
 export const PUBLIC_WORKSPACE_VERSION = 1;
@@ -220,7 +220,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   };
   const updateQuestionLine = () => {
     const line = proposalForm?.querySelector('.pr-workspace-question');
-    if (line) line.textContent = `${t().question}: ${api.getQuestion()}`;
+    if (line) line.textContent = researchQuestionLine(api.getQuestion(), locale);
   };
   const questionInput = event => { if (event.target?.matches?.('.pr-question')) updateQuestionLine(); };
   root.addEventListener('input', questionInput);
@@ -251,7 +251,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     const previousFields = previous ? [...previous.querySelectorAll('.pr-workspace-field textarea')].map(node => node.value) : [];
     const previousGroups = previous ? [...previous.querySelectorAll('.pr-workspace-source-picker')].map(group => [...group.querySelectorAll('input:checked')].map(node => node.value)) : [];
     const form = el('form', 'pr-workspace-editor'); proposalForm = form;
-    const question = el('p', 'pr-workspace-question', `${t().question}: ${api.getQuestion()}`);
+    const question = el('p', 'pr-workspace-question', researchQuestionLine(api.getQuestion(), locale));
     const thesisLabel = el('label', 'pr-workspace-field', t().thesis); const thesis = document.createElement('textarea'); thesis.maxLength = MAX_NOTE_TEXT; thesis.rows = 3; thesis.required = true; thesis.value = previousFields[0] ?? ''; thesisLabel.append(thesis);
     const sourceGroup = el('fieldset', 'pr-workspace-source-picker'); sourceGroup.append(el('legend', '', t().grounds));
     if (!sourceItems.length) sourceGroup.append(el('p', 'pr-workspace-muted', t().pick));

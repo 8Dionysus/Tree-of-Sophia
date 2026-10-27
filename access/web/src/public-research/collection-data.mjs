@@ -111,6 +111,9 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
   // Released collection before the English CE-label correction; material IDs,
   // witness addresses and graph content are unchanged. Prefer its newer saved
   // personal work over the original six-branch namespace.
-  prepared.graphPredecessors=[{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
+  // Keep the prior released Antiquity namespace upgradeable after source-link
+  // and reading-copy corrections. Existing material IDs and source anchors are
+  // retained, so saved work is validated against the current library in place.
+  prepared.graphPredecessors=[{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'cc89b903fad44969370ad6a8414817f2f54dcbb977a5544efe28a70ec10f5d85',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
   return prepared;
 }

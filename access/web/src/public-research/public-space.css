@@ -261,3 +261,6 @@
 .ps-collection-title{font-size:30px}.ps-collection .minor-title{margin-top:28px}
 #tree .ps-route-dock[data-active=true]{max-height:min(45dvh,430px);overflow:auto}
 @media(max-width:760px){.ps-dialog:has(.ps-collection){max-height:calc(100dvh - 20px)}.ps-dialog .dialog-content.ps-collection{max-height:calc(100dvh - 105px)}.ps-collection-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}#tree .ps-route-dock[data-active=true]{max-height:38dvh}}
+
+/* Keep route prose and controls outside the open detail card. */
+@media(min-width:761px){#tree[data-reading=true] .ps-route-dock{right:410px}}

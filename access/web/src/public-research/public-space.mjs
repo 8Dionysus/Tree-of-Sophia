@@ -22,8 +22,8 @@ const tr=(value,locale)=>{
   return value[locale]??value.en??value.ru??'';
 };
 const extraTranslations={
-  ru:{lensInquiry:'Как исследовать этот вопрос',lensMethod:'Способ чтения',lensLimit:'Что остаётся вне линзы',argument:'Ход мысли',counterReading:'Другое прочтение',readingQuestion:'Вопрос к этому чтению',experiment:'Попробовать при чтении',perspectives:'Детали чтения',example:'Проверить на примере',relationWarrant:'На чём держится переход',relationLimit:'Предел этого сопоставления',nextRelation:'Следующий переход',routeEnd:'К чему пришли',routeStarting:'С чем начинаем',routeStakes:'Почему это меняет ответ',routeCarry:'Что проверить дальше',practice:'Практика',chooseQuestion:'Выберите вопрос',graphSaveError:'Не удалось сохранить граф в этом браузере. Он пока доступен в открытой вкладке.',steps:'шагов',stepsOne:'шаг',stepsFew:'шага'},
-  en:{lensInquiry:'How to investigate this question',lensMethod:'A way of reading',lensLimit:'What the lens leaves outside',argument:'The argument',counterReading:'Another reading',readingQuestion:'A question for this reading',experiment:'Try while reading',perspectives:'Details to follow',example:'Try an example',relationWarrant:'What grounds this transition',relationLimit:'Limits of this comparison',nextRelation:'The next transition',routeEnd:'What we have reached',routeStarting:'Where we begin',routeStakes:'Why this changes the answer',routeCarry:'What to examine next',practice:'Practice',chooseQuestion:'Choose a question',graphSaveError:'Could not save the graph in this browser. It remains available in this tab.',steps:'steps',stepsOne:'step',stepsFew:'steps'},
+  ru:{addToSpace:'Добавить в пространство',removeFromSpace:'Убрать из пространства',removedFromSpace:'Узел убран из пространства. Отмена восстановит его связи; текст остаётся в библиотеке.',previewOnly:'Просмотр материала · пространство не изменено',authorWorks:'Произведения автора',visibleCount:'В поле зрения',recordScope:'Древо и личные мысли сохранены в этом браузере',routeScope:'Маршрут и шаг сохранены в адресе страницы',lensInquiry:'Как исследовать этот вопрос',lensMethod:'Способ чтения',lensLimit:'Что остаётся вне линзы',argument:'Ход мысли',counterReading:'Другое прочтение',readingQuestion:'Вопрос к этому чтению',experiment:'Попробовать при чтении',perspectives:'Детали чтения',example:'Проверить на примере',relationWarrant:'На чём держится переход',relationLimit:'Предел этого сопоставления',nextRelation:'Следующий переход',routeEnd:'К чему пришли',routeStarting:'С чем начинаем',routeStakes:'Почему это меняет ответ',routeCarry:'Что проверить дальше',practice:'Практика',chooseQuestion:'Выберите вопрос',graphSaveError:'Не удалось сохранить граф в этом браузере. Он пока доступен в открытой вкладке.',steps:'шагов',stepsOne:'шаг',stepsFew:'шага'},
+  en:{addToSpace:'Add to space',removeFromSpace:'Remove from space',removedFromSpace:'Node removed from the space. Undo restores its relations; the text remains in the library.',previewOnly:'Material preview · your space has not changed',authorWorks:'Works by this author',visibleCount:'In view',recordScope:'Tree and personal thoughts saved in this browser',routeScope:'Route and step are kept in the page address',lensInquiry:'How to investigate this question',lensMethod:'A way of reading',lensLimit:'What the lens leaves outside',argument:'The argument',counterReading:'Another reading',readingQuestion:'A question for this reading',experiment:'Try while reading',perspectives:'Details to follow',example:'Try an example',relationWarrant:'What grounds this transition',relationLimit:'Limits of this comparison',nextRelation:'The next transition',routeEnd:'What we have reached',routeStarting:'Where we begin',routeStakes:'Why this changes the answer',routeCarry:'What to examine next',practice:'Practice',chooseQuestion:'Choose a question',graphSaveError:'Could not save the graph in this browser. It remains available in this tab.',steps:'steps',stepsOne:'step',stepsFew:'steps'},
 };
 const materialMap=library=>new Map((library?.nodes??[]).map(item=>[item.id,item]));
 const graphIdForMaterial=id=>`material:${id}`;
@@ -37,6 +37,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const t=key=>{const lang=String(locale()||'ru').startsWith('en')?'en':'ru';return extraTranslations[lang][key]??translations[lang][key]??key;};
   const openPublicAddress=address=>api.open(Object.fromEntries(Object.entries(address).filter(([key])=>['documentId','versionId','unitId','revision','reference'].includes(key))));
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
+  const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
+  const previewMaterials=new Map([...collectionMaterials,...materials]);
+  const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
   const lenses=Array.isArray(library.space?.lenses)?library.space.lenses:LENSES;
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
   const kindName=kind=>t(({work:'work',part:'part',chapter:'chapter',fragment:'fragment',concept:'concept',interpretation:'interpretation',question:'question',note:'note',dossier:'dossier',figure:'figure',tradition:'tradition',symbol:'symbol'})[kind]??'source');
@@ -120,7 +123,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const newThoughtButton=lensRail.querySelector('.new-thought');if(newThoughtButton)newThoughtButton.textContent=`＋ ${t('new')}`;
     relationToggle.textContent=t('filter');relationToggle.setAttribute('aria-label',t('filter'));posture.querySelector('span').textContent=t('posture');canvas.setAttribute('aria-label',t('space'));importInput.setAttribute('aria-label',t('import'));
     for(const item of uiActions){item.button.textContent=item.label;item.button.title=t(item.key);item.button.setAttribute('aria-label',t(item.key));}
-    clearTimeout(notify.timer);statusLabel.textContent=t('record');
+    clearTimeout(notify.timer);notify.timer=null;statusLabel.textContent=savedStatus();
     panelTop.querySelector('.eyebrow').textContent=t('selected');personalTop.querySelector('.eyebrow').textContent=t('research');
     panelClose.setAttribute('aria-label',t('close'));personalClose.setAttribute('aria-label',t('close'));
     paintLenses();paintRelations();if(searchValue)renderSearch();if(route||!deck.hidden)renderRoutes();if(!compareBar.hidden)renderComparison();reflect();
@@ -152,7 +155,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   search.addEventListener('keydown',event=>{if(event.key==='Escape'){search.value='';searchValue='';searchResults.hidden=true;}if(event.key==='Enter')searchResults.querySelector('button')?.click();});
   document.addEventListener('keydown',keyboard);
 
-  function notify(message){statusLabel.textContent=message;clearTimeout(notify.timer);notify.timer=setTimeout(()=>{statusLabel.textContent=t('record');},3800);}
+  function savedStatus(){if(model.persistenceError?.())return t('graphSaveError');return `${t('recordScope')}${route?` · ${t('routeScope')}`:''}`;}
+  function notify(message){statusLabel.textContent=message;clearTimeout(notify.timer);notify.timer=setTimeout(()=>{notify.timer=null;statusLabel.textContent=savedStatus();},3800);}
+  function persistView(){
+    const url=new URL(location.href);
+    if(route){url.searchParams.set('treeRoute',`${route.source}:${route.id}`);url.searchParams.set('treeStep',String(routeIndex+1));}
+    else{url.searchParams.delete('treeRoute');url.searchParams.delete('treeStep');}
+    history.replaceState(history.state,'',url);
+    if(!notify.timer)statusLabel.textContent=savedStatus();
+  }
   function checkGraphPersistence(){if(model.persistenceError?.())notify(t('graphSaveError'));}
   function notifyGraphResult(successMessage){if(model.persistenceError?.())notify(t('graphSaveError'));else notify(successMessage);}
   function humanEdgeLabel(edge){const value=tr(edge?.label,locale()).trim();if(!value||/^[a-z0-9][a-z0-9_.-]*(?::[a-z0-9][a-z0-9_.-]*)+$/i.test(value))return '';return value;}
@@ -211,7 +222,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const id of ids){const material=materials.get(id)??materials.get(id.replace(/^material:/,''));const source=sourceForMaterial(material,{sourceNodeId:step?.sourceNodeId});if(source)return source;}
     return null;
   }
-  function matForNode(node){return node?.materialId?materials.get(node.materialId):null;}
+  function matForNode(node){return node?.materialId?previewMaterials.get(node.materialId):null;}
   function liveWorkspaceNodes(){
     const ownerState=workspace?.getState?.()??personalState;
     personalState=ownerState;
@@ -275,14 +286,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function reflect(){
     if(destroyed)return;state=model.getState();refreshSky();
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
-    const current=graphState();count.textContent=`${countText(current.nodes.length,'nodes')} · ${countText(current.edges.length,'edges')}`;
+    const current=graphState();count.textContent=`${t('visibleCount')}: ${countText(current.nodes.length,'nodes')} · ${countText(current.edges.length,'edges')}`;if(!notify.timer)statusLabel.textContent=savedStatus();
     posture.querySelector('span').textContent=tr(library.space?.posture,locale())||t('posture');posture.setAttribute('aria-label',posture.textContent);
     if(selectedEdge)renderEdge(selectedEdge);else if(selected)renderNode(selected);else if(personal.hidden&&reading.hidden&&!state.nodes.length)renderWelcome();
     renderSearch();
   }
   function paintLenses(){
     lensList.replaceChildren();
-    for(const item of lenses){const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.append(el('span','lens-icon',item.icon),el('span','',tr(item.title,locale())));b.title=tr(item.description,locale());b.addEventListener('click',()=>{lens=item.id;route=null;paintLenses();reflect();});lensList.append(b);}
+    for(const item of lenses){const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.append(el('span','lens-icon',item.icon),el('span','',tr(item.title,locale())));b.title=tr(item.description,locale());b.addEventListener('click',()=>{lens=item.id;route=null;persistView();renderRoutes();paintLenses();reflect();});lensList.append(b);}
   }
   function paintRelations(){
     relationChips.replaceChildren();
@@ -295,7 +306,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const actions=el('div','reading-actions');actions.append(button(t('routes'),'primary'));actions.lastChild.addEventListener('click',toggleRoutes);panelContent.append(actions);
   }
   function renderNode(id){
-    const node=graphState().nodes.find(item=>item.id===id);if(!node){selected=null;return renderWelcome();}
+    const materialId=id.startsWith('material:')?id.slice(9):null;
+    const preview=materialId&&previewMaterials.get(materialId);
+    const node=graphState().nodes.find(item=>item.id===id)??(preview?{id,materialId,kind:preview.kind,sourceIds:[]}:null);if(!node){selected=null;return renderWelcome();}
+    const inSavedGraph=state.nodes.some(item=>item.id===id),inView=graphState().nodes.some(item=>item.id===id);
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
     reading.hidden=false;personal.hidden=true;shell.dataset.reading='true';panelContent.replaceChildren();
     panelContent.append(el('p','eyebrow',`${t('kind')} · ${kindName(material?.kind??node.kind)}`),el('h1','',label(node.ownerType==='personal-hypothesis'?node:material??node)));
@@ -312,7 +326,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(postureLabel==='demo')panelContent.append(el('p','posture',t('demo')));
       const body=material.atlasBody??material.body;
       if(body)panelContent.append(el('p','body',tr(body,locale())));
-      if(material.question&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
+      if(tr(material.question,locale()).trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
       const inquiry=material.inquiry;
       if(inquiry){
         inquiryDetail(panelContent,t('argument'),inquiry.thesis??inquiry.argument,true);
@@ -325,8 +339,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(material.example)inquiryDetail(panelContent,t('example'),material.example);
       if(!material.inquiry?.grounds?.length&&material.sourceRefs?.length){panelContent.append(el('h2','minor-title',t('sourceRefs')));for(const ref of material.sourceRefs){const address=typeof ref==='string'?ref:ref.url??ref.ref;const labelText=typeof ref==='string'?ref:tr(ref.label,locale())||ref.title||address;if(typeof address==='string'&&/^https?:\/\//.test(address)){const a=el('a','source-link',`${labelText} ↗`);a.href=address;a.target='_blank';a.rel='noopener noreferrer';panelContent.append(a);}else if(labelText)panelContent.append(el('p','muted',labelText));}}
     }else if(node.body)panelContent.append(el('p','body',node.body));
+    const authorId=material?.legacyId??material?.id,works=material?.kind==='figure'?[...previewMaterials.values()].filter(item=>item.kind==='work'&&((material.works??[]).includes(item.legacyId??item.id)||(authorId&&item.author===authorId))):[];
+    if(works.length){panelContent.append(el('h2','minor-title',t('authorWorks')));for(const work of works){const open=button(label(work),'connection-target');open.addEventListener('click',()=>previewMaterial(work.id));panelContent.append(open);}}
     const connections=graphState().edges.filter(edge=>edge.from===id||edge.to===id);
     if(connections.length){panelContent.append(el('h2','minor-title',t('connections')));for(const edge of connections){const otherId=edge.from===id?edge.to:edge.from;const other=graphState().nodes.find(item=>item.id===otherId);const row=button('', 'connection-target'),type=tr(RELATIONS[edge.kind],locale())||t('relation'),extra=humanEdgeLabel(edge);row.append(el('small','',`${edge.from===id?'→':'←'} ${type}${extra&&extra!==type?` · ${extra}`:''}`),el('span','',label(other?.ownerType==='personal-hypothesis'?other:matForNode(other)??other)));row.style.setProperty('--relation-color',RELATIONS[edge.kind]?.color??'#a5b7cf');row.addEventListener('click',()=>selectNode(otherId));panelContent.append(row);}}
+    if(material&&materials.has(material.id)){
+      const edit=button(t(inSavedGraph?'removeFromSpace':'addToSpace'),'text-button');
+      edit.addEventListener('click',()=>{try{if(inSavedGraph){model.removeNode(id);selected=id;notifyGraphResult(t('removedFromSpace'));}else{const added=model.addMaterial(material.id);state=model.getState();selectActual(added);notifyGraphResult(t('saved'));}reflect();}catch(error){notify(displayPublicError(error,locale));}});panelContent.append(edit);
+    }
+    if(!inView){panelContent.append(el('p','muted',t('previewOnly')));return;}
     const actions=el('div','reading-bottom');
     actions.append(button(`↔ ${t('compare')}`,'text-button'),button(`↗ ${t('connect')}`,'text-button'));
     actions.children[0].addEventListener('click',()=>{closePanel();beginCompare(id);});actions.children[1].addEventListener('click',()=>{closePanel();beginConnect(id);});panelContent.append(actions);
@@ -349,16 +370,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(interaction==='compare'){if(!compareIds.includes(id))compareIds.push(id);if(compareIds.length===2){interaction=null;renderComparison();}return;}
     selectActual(id);
   }
+  function previewMaterial(materialId){const id=graphIdForMaterial(materialId);selected=id;selectedEdge=null;searchValue='';search.value='';searchResults.hidden=true;search.blur();if(graphState().nodes.some(item=>item.id===id)){sky?.select(id);sky?.focus(id);}renderNode(id);}
   function selectActual(id){selected=id;selectedEdge=null;reading.hidden=false;personal.hidden=true;sky?.select(id);sky?.focus(id);renderNode(id);}
   function selectEdge(id){selectedEdge=id;selected=null;reading.hidden=false;personal.hidden=true;sky?.selectEdge(id);renderEdge(id);}
   function openPanel(){reading.hidden=false;shell.dataset.reading='true';sky?.refresh();}
   function closePanel(){reading.hidden=true;shell.dataset.reading='false';selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);reflect();}
   function togglePersonal(){const opening=personal.hidden;personal.hidden=!personal.hidden;reading.hidden=true;if(opening){deck.hidden=true;shell.dataset.journey='false';}shell.dataset.reading=String(opening);personalState=workspace?.getState?.()??personalState;if(opening)renderPersonalPanel();sky?.refresh();}
   function closePersonal(){personal.hidden=true;shell.dataset.reading='false';sky?.refresh();}
-  function toggleRoutes(){routeDockTouched=true;if(route||!deck.hidden){route=null;deck.hidden=true;shell.dataset.journey='false';reflect();return;}panelMode='routes';renderRoutes();deck.hidden=false;shell.dataset.journey='true';reading.hidden=true;personal.hidden=true;shell.dataset.reading='false';sky?.refresh();}
+  function toggleRoutes(){routeDockTouched=true;if(route||!deck.hidden){route=null;persistView();deck.hidden=true;shell.dataset.journey='false';reflect();return;}panelMode='routes';renderRoutes();deck.hidden=false;shell.dataset.journey='true';reading.hidden=true;personal.hidden=true;shell.dataset.reading='false';sky?.refresh();}
   function routeItems(){return [...routes.map(item=>({...item,source:'atlas'})),...journeyList.map(item=>({...item,source:'manifest'}))];}
   function renderRoutes(){
-    if(!deck)return;deck.dataset.active=String(!!route);deck.replaceChildren();const title=el('div','deck-caption');title.append(el('span','eyebrow',t('chooseQuestion')),button(t('close'),'text-button'));title.lastChild.addEventListener('click',()=>{routeDockTouched=true;deck.hidden=true;shell.dataset.journey='false';sky?.refresh();});deck.append(title);
+    if(!deck)return;deck.dataset.active=String(!!route);deck.replaceChildren();const title=el('div','deck-caption');title.append(el('span','eyebrow',t('chooseQuestion')),button(t('close'),'text-button'));title.lastChild.addEventListener('click',()=>{routeDockTouched=true;route=null;persistView();deck.hidden=true;shell.dataset.journey='false';reflect();});deck.append(title);
     if(route&&route.source==='atlas'){
       const current=routes.find(item=>item.id===route.id),steps=current?.steps??[];const progress=el('div','ps-route-progress');
       for(let i=0;i<steps.length;i++){const b=button(String(i+1),'journey-stop');b.setAttribute('aria-current',String(i===routeIndex));b.addEventListener('click',()=>goRouteStep(i));progress.append(b);}deck.append(el('h2','ps-route-title',tr(current?.title,locale())),el('p','ps-route-question',tr(current?.question,locale())),progress);
@@ -402,13 +424,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return {nodeIds:out,edgeIds:[...new Set(edgeIds)],restrictEdges:true};
   }
   function goRouteStep(index){
-    const item=routes.find(value=>value.id===route?.id),step=item?.steps?.[index];if(!step)return;routeIndex=index;
+    const item=routes.find(value=>value.id===route?.id),step=item?.steps?.[index];if(!step)return;routeIndex=index;persistView();
     const raw=step.nodeId??step.graphNodeId,materialId=materials.has(raw)?raw:raw?.replace(/^material:/,'');
     if(materialId){selected=graphIdForMaterial(materialId);selectedEdge=null;sky?.select(selected);sky?.focus(selected);}
     renderRoutes();reflect();
   }
   function goJourneyStep(index,open=false){
-    const item=localizePublicJourney(journeyList.find(value=>value.id===route?.id),locale()),step=item?.steps?.[index];if(!step)return;routeIndex=index;renderRoutes();
+    const item=localizePublicJourney(journeyList.find(value=>value.id===route?.id),locale()),step=item?.steps?.[index];if(!step)return;routeIndex=index;persistView();renderRoutes();
     const address={documentId:step.documentId,versionId:step.versionId,unitId:step.unitId};
     const binding=[...sourceMap.values()].find(value=>value.documentId===address.documentId&&value.versionId===address.versionId&&value.unitId===address.unitId);
     const node=binding&&[...sourceMap.entries()].find(([,value])=>value===binding)?.[0];
@@ -461,8 +483,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function makeDialog(title){const head=el('div','dialog-top'),close=button('×','icon');close.addEventListener('click',()=>dialog.close());close.setAttribute('aria-label',t('close'));head.append(el('h2','',title),close);dialog.append(head);const content=el('div','dialog-content');dialog.append(content);return content;}
   function renderSearch(){
     if(!searchResults)return;searchResults.replaceChildren();const query=searchValue.toLocaleLowerCase();if(!query){searchResults.hidden=true;return;}
-    const current=graphState(),available=(library.nodes??[]).filter(item=>[item.title,item.body,item.atlasBody,item.question].some(value=>tr(value,locale()).toLocaleLowerCase().includes(query))).slice(0,16);
-    for(const item of available){const b=button('','ps-result');b.append(el('small','',kindName(item.kind)),el('strong','',label(item)),el('span','',tr(item.atlasBody??item.body,locale()).slice(0,140)));b.addEventListener('click',()=>{model.growAtlas({nodeIds:[item.id]});checkGraphPersistence();selected=graphIdForMaterial(item.id);searchResults.hidden=true;search.blur();reflect();sky?.focus(selected);});searchResults.append(b);}
+    const current=graphState(),available=[...previewMaterials.values()].filter(item=>{const author=entryByLegacyId.get(item.author);return [item.title,item.body,item.atlasBody,item.question,author?.title].some(value=>tr(value,locale()).toLocaleLowerCase().includes(query));}).slice(0,24);
+    for(const item of available){const b=button('','ps-result');b.append(el('small','',kindName(item.kind)),el('strong','',label(item)),el('span','',tr(item.atlasBody??item.body,locale()).slice(0,140)));b.addEventListener('click',()=>{previewMaterial(item.id);});searchResults.append(b);}
     for(const item of current.nodes.filter(node=>node.ownerType==='personal-hypothesis'&&`${node.title} ${node.body}`.toLocaleLowerCase().includes(query))){const b=button('','ps-result');b.append(el('small','',t('personal')),el('strong','',item.title),el('span','',item.body.slice(0,140)));b.addEventListener('click',()=>{searchResults.hidden=true;search.blur();selectActual(item.id);});searchResults.append(b);}
     if(!searchResults.childElementCount)searchResults.append(el('p','ps-no-results',t('emptySearch')));searchResults.hidden=false;
   }
@@ -473,7 +495,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function keyboard(event){
     if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
-    else if(!event.ctrlKey&&!event.metaKey){if(key==='o')sky?.frame();if(key==='/'){event.preventDefault();search.focus();}if(key==='escape'){interaction=null;connectIds=[];compareIds=[];compareBar.hidden=true;deck.hidden=true;closePanel();closePersonal();}}
+    else if(!event.ctrlKey&&!event.metaKey){if(key==='o')sky?.frame();if(key==='/'){event.preventDefault();search.focus();}if(key==='escape'){interaction=null;connectIds=[];compareIds=[];compareBar.hidden=true;route=null;persistView();deck.hidden=true;shell.dataset.journey='false';closePanel();closePersonal();}}
   }
   let collectionView=null,collectionRoot=null;
   function refreshLocale(){setLocaleState();if(!personal.hidden)renderPersonalPanel();if(dialog.open&&collectionRoot?.isConnected){dialog.querySelector('.dialog-top h2').textContent=t('library');for(const b of dialog.querySelectorAll('[data-public-locale]'))b.setAttribute('aria-pressed',String(b.dataset.publicLocale===locale()));collectionView?.refresh();}}
@@ -493,6 +515,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   checkGraphPersistence();
   state=model.getState();
   sky=mountConstructorSky(shell,{onSelect:selectNode,onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));}catch{};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  const viewParams=new URLSearchParams(location.search),savedRoute=viewParams.get('treeRoute'),savedStep=Number(viewParams.get('treeStep'));
+  const restoredRoute=routeItems().find(item=>`${item.source}:${item.id}`===savedRoute);
+  if(restoredRoute){startRoute(restoredRoute);const step=Math.max(0,Math.min((restoredRoute.steps?.length??1)-1,Number.isSafeInteger(savedStep)?savedStep-1:0));if(restoredRoute.source==='atlas')goRouteStep(step);else goJourneyStep(step);}
+  else if(savedRoute)persistView();
   reflect();sky.frame();shell.dataset.ready='true';
   if(upgradeError)notify(locale()==='en'?'The saved graph could not be upgraded. Its original copy is preserved.':'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);

@@ -166,6 +166,39 @@ describe('corpus reader view model', () => {
     expect(model.snapshot().activeVersionId).toBeNull();
   });
 
+  it('returns to each edition at its own exact saved location after switching versions', async () => {
+    const english = {...version, id: 'english', language: 'en', source: sourceFor('work-locations', 'd'), revision: 'd'.repeat(64)};
+    const latin = {...version, id: 'latin', language: 'lat', source: sourceFor('work-locations', 'e'), revision: 'e'.repeat(64)};
+    const work = {id: 'work-locations', title: 'Work', versions: [english, latin]};
+    const requests = [];
+    const provider = {
+      document: async () => work,
+      window: async ({versionId, unitId}) => {
+        requests.push({versionId, unitId});
+        return {units: [{id: unitId || `${versionId}-opening`, reference: versionId === 'english' ? '19' : '1', text: `${versionId} text`}]};
+      },
+      resolve: async ({versionId, reference}) => {
+        requests.push({versionId, unitId: reference.unitId});
+        return {units: [{id: reference.unitId, reference: versionId === 'english' ? '19' : '1', text: `${versionId} saved location`}]};
+      },
+    };
+    const model = createCorpusReaderModel({provider});
+
+    await model.open({documentId: work.id, versionId: english.id});
+    const englishReference = unitReference({unitId: 'english-19', ordinal: 19, text: 'English §19'}, english, work);
+    await model.savePosition(englishReference, 0, 'primary');
+    expect(model.positionFor(englishReference)?.reference).toEqual(englishReference);
+
+    await model.open({documentId: work.id, versionId: latin.id});
+    expect(requests.at(-1)).toEqual({versionId: latin.id, unitId: undefined});
+    const latinReference = unitReference({unitId: 'latin-1', ordinal: 1, text: 'Latin §1'}, latin, work);
+    await model.savePosition(latinReference, 0, 'primary');
+    await model.open({documentId: work.id, versionId: english.id});
+    expect(requests.at(-1)).toEqual({versionId: english.id, unitId: 'english-19'});
+    await model.open({documentId: work.id, versionId: latin.id});
+    expect(requests.at(-1)).toEqual({versionId: latin.id, unitId: 'latin-1'});
+  });
+
   it('marks a compact deep link changed without retargeting the current window', async () => {
     const provider = {
       catalog: async () => ({items: [document]}),

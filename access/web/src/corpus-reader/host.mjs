@@ -37,7 +37,7 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
     narrow?.setAttribute('aria-label',opener.getAttribute('aria-label'));if(notesOpen)notesOpen.textContent=english()?'My notes':'Мои записи';};
   const reader=mountCorpusReader({host:document.body,provider,notebook,locale,
     onNativeReference:(reference,note)=>native?.open({reference,note}),
-    onClose(){contents?.close();root.inert=false;delete root.dataset.corpusReading;onReadingChange?.(false);(opener.offsetParent===null&&narrow?narrow:opener).focus({preventScroll:true});},
+    onClose(){contents?.close();if(route&&location.hash.startsWith('#reading=')){const url=new URL(location.href);url.hash='';history.replaceState(history.state,'',url);}root.inert=false;delete root.dataset.corpusReading;onReadingChange?.(false);(opener.offsetParent===null&&narrow?narrow:opener).focus({preventScroll:true});},
     onLocation(address){if(route){try{const url=new URL(location.href);url.hash=encodeReadingRoute(address);history.replaceState(history.state,'',url);}catch(error){report(error);}}
       try{onReadingLocation?.(address);}catch(error){report(error);}},
     async onGraphRequest(value){

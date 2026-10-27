@@ -14,6 +14,8 @@ import {
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
 import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm} from './philology.mjs';
+import {editionRepresentationKind,groupEditionRepresentations} from './edition-groups.mjs';
+import {readableUnitLocator} from './location-label.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 
 const retainedApparatus=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>[
@@ -26,7 +28,7 @@ const WORDING = {
   ru: {
     workNotes:'Примечания к произведению',textualAdjustments:'Текстологические сведения',
     reading: 'Чтение', close: 'Вернуться к Древу', library: 'Корпус', find: 'Найти произведение', loadMore: 'Ещё',
-    previous: 'Предыдущий фрагмент', next: 'Следующий фрагмент', one: 'Один текст', parallel: 'Рядом', compare: 'Сравнить с',
+    previous: 'Предыдущий фрагмент', next: 'Следующий фрагмент', one: 'Один текст', parallel: 'Сравнить тексты', compare: 'Сравнить с',
     search: 'Поиск', searchPlaceholder: 'Искать в открытом тексте', loaded: 'Загруженный фрагмент', version: 'Всё произведение',
     corpus: 'Весь корпус', noSearch: 'Совпадений нет', searchUnavailable: 'Поиск недоступен для этого источника',
     notes: 'Блокнот', context: 'Контекст', source: 'Источник', word: 'Слово', settings: 'Вид текста', bookmark: 'Закладка', bookmarked: 'Закладка снята',
@@ -38,14 +40,16 @@ const WORDING = {
     empty: 'В этой области пока нет текста.', loading: 'Загрузка…', error: 'Не удалось загрузить фрагмент',
     previousChunk: 'Назад', nextChunk: 'Дальше', edition: 'Издание', provenance: 'Происхождение текста', language: 'Язык', original: 'Оригинал', translation: 'Перевод',
     unknown: 'не указано', continuation: 'Есть продолжение', metadataOnly: 'Только метаданные', restricted: 'Доступ ограничен', unavailableVersion: 'Текст недоступен', availabilityUnknown: 'Доступность уточняется',
-    untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент', characters: 'символов',
+    untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент', characters: 'символов', location: 'Место',
+    editionVersions: 'текстовых представления', sourceTextLayer: 'Текст из издания', retainedTextLayer: 'Сохранённый слой · старые привязки сохранены',
+    selectedEdition: 'выбрано', currentLocation: 'Текущее место', loadedPassage: 'Загруженный фрагмент', independentColumns: 'Колонки читаются независимо; соответствие мест не задано.', mobileEditions: 'Выбрать текстовое представление',
     font: 'Размер', leading: 'Интервал', width: 'Ширина', theme: 'Тема', paper: 'Бумага', night: 'Ночь',
     select: 'Выбрать фрагмент в тексте', noCatalog: 'Произведения не найдены', works: 'Произведений',
   },
   en: {
     workNotes:'Notes on the work',textualAdjustments:'Textual adjustments',
     reading: 'Reading', close: 'Return to the tree', library: 'Corpus', find: 'Find a work', loadMore: 'More',
-    previous: 'Previous passage', next: 'Next passage', one: 'One text', parallel: 'Side by side', compare: 'Compare with',
+    previous: 'Previous passage', next: 'Next passage', one: 'One text', parallel: 'Compare texts', compare: 'Compare with',
     search: 'Search', searchPlaceholder: 'Search the open text', loaded: 'Loaded passage', version: 'This work',
     corpus: 'Entire corpus', noSearch: 'No matches', searchUnavailable: 'Search is unavailable for this source',
     notes: 'Notebook', context: 'Context', source: 'Source', word: 'Word', settings: 'Text appearance', bookmark: 'Bookmark', bookmarked: 'Bookmark removed',
@@ -58,7 +62,9 @@ const WORDING = {
     unknown: 'unknown', continuation: 'More pages available', metadataOnly: 'Metadata only', restricted: 'Restricted', unavailableVersion: 'Text unavailable',
     font: 'Type size', leading: 'Line spacing', width: 'Line width', theme: 'Theme', paper: 'Paper', night: 'Night',
     select: 'Select a passage in the text', noCatalog: 'No works found', works: 'Works', availabilityUnknown: 'Availability is being checked',
-    untitled: 'Untitled', units: 'Units', passage: 'Passage', characters: 'characters',
+    untitled: 'Untitled', units: 'Units', passage: 'Passage', characters: 'characters', location: 'Location',
+    editionVersions: 'saved text versions', sourceTextLayer: 'Edition source text', retainedTextLayer: 'Retained layer · older links remain valid',
+    selectedEdition: 'selected', currentLocation: 'Current location', loadedPassage: 'Loaded passage', independentColumns: 'Each column keeps its own reading location; no alignment is implied.', mobileEditions: 'Choose a text representation',
   },
 };
 
@@ -229,6 +235,9 @@ export function mountCorpusReader({
     if (Number.isSafeInteger(unit?.ordinal) && unit.ordinal >= 0) return `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}`;
     return t('passage');
   };
+  const paneUnitLabel = (unit, version) => apparatusLabel(unit,uiLocale())
+    || corpusSectionLabel(readableUnitLocator(unit,uiLocale()), uiLocale(), version?.id || '')
+    || (Number.isSafeInteger(unit?.ordinal) ? `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}` : '');
   const locationLabel = reference => {
     if (!reference) return '';
     const state = modelState();
@@ -298,13 +307,19 @@ export function mountCorpusReader({
     });
   }
 
+  function visiblePaneRow(pane) {
+    const paneTop=pane.getBoundingClientRect().top;
+    const stickyBottom=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??paneTop;
+    const boundary=Math.max(paneTop,stickyBottom)+2;
+    return [...pane.querySelectorAll('.cr-unit')].find(item=>item.getBoundingClientRect().bottom>boundary);
+  }
+
   function capturePanePositions() {
     if (disposed || !root) return paneSaveWork;
     const writes=[],document=modelState().document;
     for (const [index, pane] of [...root.querySelectorAll('.cr-pane')].entries()) {
       remember(panePositions,pane.dataset.versionId, pane.scrollTop);
-      const visibleStart=pane.getBoundingClientRect().top + 18;
-      const row = [...pane.querySelectorAll('.cr-unit')].find(item => item.getBoundingClientRect().bottom > visibleStart);
+      const row=visiblePaneRow(pane);
       if (row?.__readerUnit) {
         const version = document?.versions?.find(item=>item.id===pane.dataset.versionId);
         const reference = unitReference(row.__readerUnit, version, document, {});
@@ -632,7 +647,8 @@ export function mountCorpusReader({
       const author = localized(document.author, uiLocale());
       const descriptor = localized(document.locator, uiLocale()) || author;
       const availability = catalogAvailability(document);
-      const count = `${t('units')}: ${countLabel(document.unitCount)}`;
+      const count = Number.isSafeInteger(document.unitCount) && document.unitCount >= 0
+        ? `${t('units')}: ${document.unitCount}` : '';
       const meta = [descriptor, availability, count].filter(Boolean).join(' · ');
       if (meta) item.append(element('small', '', meta));
       list.append(item);
@@ -721,16 +737,62 @@ export function mountCorpusReader({
     return [language, role, edition, status].filter(Boolean).join(' · ') || t('edition');
   }
 
+  function versionChoice(version) {
+    const choice = button(versionLabel(version), () => {
+      const picker = root.querySelector('.cr-edition-picker');
+      if (picker) picker.open = false;
+      openVersion(modelState().document.id, version.id).catch(error => announce(friendlyError(error)));
+    }, 'cr-version');
+    choice.dataset.versionId = version.id;
+    choice.setAttribute('aria-pressed', String(version.id === modelState().activeVersionId));
+    choice.dataset.available = String(isTextAvailable(version));
+    if (!isTextAvailable(version)) choice.title = catalogAvailability(version);
+    return choice;
+  }
+
+  function editionRepresentationLabel(version) {
+    const kind = editionRepresentationKind(version);
+    return kind === 'retained' ? t('retainedTextLayer') : kind === 'source' ? t('sourceTextLayer') : '';
+  }
+
+  function renderVersionChoices(versions, className = 'cr-edition-options') {
+    const nav = element('nav', className);
+    nav.setAttribute('aria-label', t('edition'));
+    for (const group of groupEditionRepresentations(versions)) {
+      if (group.versions.length === 1) {
+        nav.append(versionChoice(group.versions[0]));
+        continue;
+      }
+      const details = element('details', 'cr-edition-group');
+      const sourceVersion = group.versions.find(item => editionRepresentationKind(item) === 'source') || group.versions[0];
+      const selectedVersion = group.versions.find(item => item.id === modelState().activeVersionId);
+      const selectedLayer = selectedVersion ? editionRepresentationLabel(selectedVersion) : '';
+      const label = element('summary', '', `${versionLabel(sourceVersion)} · ${group.versions.length} ${t('editionVersions')}${selectedLayer ? ` · ${t('selectedEdition')}: ${selectedLayer}` : ''}`);
+      details.append(label);
+      const layers = element('div', 'cr-edition-layers');
+      for (const version of group.versions) {
+        const descriptor = editionRepresentationLabel(version);
+        const choice = versionChoice(version);
+        if (descriptor) choice.prepend(element('small', 'cr-edition-layer-kind', descriptor));
+        layers.append(choice);
+      }
+      details.append(layers);
+      nav.append(details);
+    }
+    return nav;
+  }
+
   function renderVersionBar(state, versions) {
     const toolbar = element('nav', 'cr-toolbar'); toolbar.setAttribute('aria-label', t('edition'));
-    for (const version of state.document?.versions || []) {
-      const b = button(versionLabel(version), () => {
-        openVersion(state.document.id, version.id).catch(error => announce(friendlyError(error)));
-      }, 'cr-version');
-      b.setAttribute('aria-pressed', String(version.id === state.activeVersionId)); b.dataset.available = String(isTextAvailable(version));
-      if (!isTextAvailable(version)) b.title = catalogAvailability(version);
-      toolbar.append(b);
-    }
+    const allVersions = state.document?.versions || [];
+    toolbar.append(renderVersionChoices(allVersions, 'cr-desktop-editions'));
+    const picker = element('details', 'cr-edition-picker');
+    picker.setAttribute('aria-label', t('mobileEditions'));
+    const active = allVersions.find(version => version.id === state.activeVersionId);
+    const activeLayer = active ? editionRepresentationLabel(active) : '';
+    picker.append(element('summary', '', `${t('edition')} · ${active ? versionLabel(active) : t('edition')}${activeLayer ? ` · ${activeLayer}` : ''}`));
+    picker.append(renderVersionChoices(allVersions));
+    toolbar.append(picker);
     if ((state.document?.versions || []).length > 1) {
       toolbar.append(button(mode === 'parallel' ? t('one') : t('parallel'), async () => {
         if(!(await flushNote()))return;
@@ -860,10 +922,23 @@ export function mountCorpusReader({
     const pane=element('article','cr-pane');pane.dataset.versionId=version.id;pane.lang=version.language||'';
     pane.dir=/^(ar|he|fa|ur)(-|$)/i.test(version.language||'')?'rtl':'ltr';
     pane.tabIndex=0;pane.setAttribute('aria-label',`${documentTitle(state.document)} · ${versionLabel(version)}`);
+    const currentLocation=element('div','cr-current-location');
+    currentLocation.append(element('span','cr-kicker',t('currentLocation')),element('strong','',t('loading')));
+    pane.append(currentLocation);
     const head=element('header','cr-pane-head');head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
     const page=state.windows[stateKey(state.document.id,version.id)];pane.dataset.windowStart=page?.units?.[0]?.id||'';
+    const selectedHere = selected?.versionId === version.id ? selected.unit : null;
+    const firstUnit = page?.units?.[0];
+    const lastUnit = page?.units?.at(-1);
+    const exactLocation = selectedHere ? paneUnitLabel(selectedHere, version) : '';
+    const firstLocation = firstUnit ? paneUnitLabel(firstUnit, version) : '';
+    const lastLocation = lastUnit ? paneUnitLabel(lastUnit, version) : '';
+    const loadedLocation = exactLocation || (firstLocation
+      ? `${firstLocation}${lastLocation && lastLocation !== firstLocation ? `–${lastLocation}` : ''}`
+      : firstUnit ? paneUnitLabel(firstUnit, version) : '');
+    if (loadedLocation) head.append(element('p', 'cr-column-location', `${t('loadedPassage')}: ${loadedLocation}`));
     const referenceStatus=state.referenceStates[stateKey(state.document.id,version.id)]||'exact';
     const stale=['changed','unavailable'].includes(referenceStatus);
     if(stale){
@@ -892,8 +967,16 @@ export function mountCorpusReader({
     const first=page?.units?.[0]?.ordinal,last=page?.units?.at(-1)?.ordinal,total=Number.isSafeInteger(page?.total)?page.total:null;
     const range = first && last ? `${first}–${last} / ${total ?? t('unknown')}` : `${page?.units?.length ? page.units.length : '—'} / ${total ?? t('unknown')}`;
     nav.append(previous,element('span','cr-muted',range),next);pane.append(nav);
-    pane.addEventListener('scroll',()=>{remember(panePositions,version.id,pane.scrollTop);clearTimeout(paneSaveTimers.get(version.id));paneSaveTimers.set(version.id,setTimeout(()=>{paneSaveTimers.delete(version.id);if(!disposed&&opened)capturePanePositions();},550));},{passive:true});
+    pane.addEventListener('scroll',()=>{refreshPaneLocation(pane,version);remember(panePositions,version.id,pane.scrollTop);clearTimeout(paneSaveTimers.get(version.id));paneSaveTimers.set(version.id,setTimeout(()=>{paneSaveTimers.delete(version.id);if(!disposed&&opened)capturePanePositions();},550));},{passive:true});
     return pane;
+  }
+
+  function refreshPaneLocation(pane,version) {
+    const value=pane.querySelector('.cr-current-location strong');
+    if(!value)return;
+    const row=visiblePaneRow(pane);
+    const label=row?.__readerUnit?paneUnitLabel(row.__readerUnit,version):'';
+    value.textContent=label||t('loading');
   }
 
   function renderContext(body, state) {
@@ -1148,12 +1231,20 @@ export function mountCorpusReader({
     if (searchOpen) root.append(renderSearch(state));
     if (settingsOpen) root.append(renderSettings());
     const layout = element('div', 'cr-layout'); if (libraryOpen) layout.append(renderLibrary(state));
-    const main = element('main', 'cr-main'); const panes = element('div', 'cr-panes');
+    const main = element('main', 'cr-main');
+    if (versions.length > 1) {
+      const independent = element('p', 'cr-comparison-note', t('independentColumns'));
+      independent.setAttribute('role', 'note');
+      main.append(independent);
+    }
+    const panes = element('div', 'cr-panes');
     if (versions.length > 1) panes.classList.add('cr-parallel');
     for (const version of versions) panes.append(renderPane(version, state));
     main.append(panes); layout.append(main);
     if (inspectorOpen) layout.append(element('aside', 'cr-inspector'));
-    root.append(layout, renderFooter()); renderInspector(); restorePanePositions(); markSelection();
+    root.append(layout, renderFooter()); renderInspector(); restorePanePositions();
+    for(const pane of root.querySelectorAll('.cr-pane'))refreshPaneLocation(pane,activeVersion(pane.dataset.versionId));
+    markSelection();
     const location = root.querySelector('.cr-location'); if (location) { location.textContent = locationLabel(currentRef()); }
     rendering=false;
     if(focusClass){const target=root.querySelector('.'+focusClass);if(target){target.focus({preventScroll:true});if(Number.isInteger(selectionStart)&&typeof target.setSelectionRange==='function')target.setSelectionRange(selectionStart,selectionEnd);}}
