@@ -127,7 +127,9 @@ owner surfaces.
    to the existing Custom Domain Worker. It has no D1, R2 or secret bindings. This deployment leaves the existing access
    Worker and D1 data unchanged. Record its version ID; rollback with
    `wrangler rollback VERSION_ID --name tree-of-sophia-public-research` restores
-   that Worker's version while preserving the separate path routes.
+   that Worker's version while preserving its current route patterns. A rollback
+   to a pre-root-proxy version also requires restoring its narrow routes; do
+   not leave a handler without origin forwarding on the broad `/*` routes.
    Native prepare fixture calls in CI use a 45-second allowance and a 55-second
    child wait, matching the measured joined maintenance fixture; the native
    product default remains 20 seconds. This allowance is not a production SLO.

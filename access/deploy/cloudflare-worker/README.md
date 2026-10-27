@@ -90,6 +90,9 @@ This command does not run the D1 importer or alter the existing access Worker.
 Record the published version ID. To roll back, select that Worker version
 with `wrangler rollback VERSION_ID --name tree-of-sophia-public-research` or
 the Cloudflare Deployments panel; its path routes remain scoped to this Worker.
+Version rollback does not restore route patterns. Before rolling back to a
+version predating the root proxy, restore that version's narrow route patterns
+as well; its handler cannot forward the existing access APIs under `/*`.
 Verify the two HTML routes, chunk/WASM and corpus JSON paths, unknown-JSON 404,
 and `www` redirect after deployment. Keep the previous Worker and its routes
 in place during rollback; D1 state is untouched.
