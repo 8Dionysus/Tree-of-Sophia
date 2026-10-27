@@ -688,6 +688,8 @@ jobs:
       - *bind_software_stage
       - name: Install software test dependencies
         run: |
+          # Keep signed Ubuntu packages; avoid the measured slow Azure HTTP mirror.
+          sudo sed -i 's@http://azure.archive.ubuntu.com/ubuntu@https://archive.ubuntu.com/ubuntu@g' /etc/apt/apt-mirrors.txt
           npm ci --prefer-offline --no-audit --no-fund --prefix access/web
           npm install --prefix "$RUNNER_TEMP/tos-e2e-deps" --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0
           "$RUNNER_TEMP/tos-e2e-deps/node_modules/.bin/playwright" install --with-deps chromium
