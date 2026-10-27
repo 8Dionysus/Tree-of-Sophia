@@ -1,0 +1,276 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/translation-alignment-packet-v1.schema.json",
+  "schema_version": "tos_translation_alignment_packet_v1",
+  "packet_id": "tos.translation-alignment-packet.sid-d71a1bd7b9fd7ddadd495de3efd5278e",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "granularity": "phrase",
+  "source_side": {
+    "side_role": "source",
+    "work_ref": "tos.work.plato.meno",
+    "expression_ref": "tos.expression.plato.meno.perseus-burnet-1903-grc",
+    "edition_ref": "tos.edition.plato.meno.perseus-burnet-1903-grc",
+    "item_ref": "tos.item.plato.meno.public-acquisition-20261026.perseus-burnet-1903-grc",
+    "file_ref": "tos.file.sha256.789e95e17b74af5d740a77edab9a888f94a606e191d2b9d7d7e8e5cb2bf5f585",
+    "file_sha256": "789e95e17b74af5d740a77edab9a888f94a606e191d2b9d7d7e8e5cb2bf5f585",
+    "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+    "text_layer_sha256": "318789bd9af1fdf6d162d06f302c894b1dcc6bad05d2d9a224cd530f564c2e95",
+    "language": "grc",
+    "segmentation": {
+      "artifact_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/source-text-unit-packet.v1.json#segmentations/tos.text-segmentation.sid-2d83475883e04929a7a72d8baa12de45",
+      "sha256": "bdce834d5c716557c095931ed5059f25f87a45fc43d5d28a08aee4bbeb47ed73",
+      "state": "frozen"
+    },
+    "tokenization": {
+      "artifact_ref": "ToS/research-packets/public-prototypes-20261026/MENO-70-SOURCE-TOKENIZATION.v1.json",
+      "sha256": "0a4e7a2278c69f1ab169fb6eca02ac2419a8063d4849f8290bb7f9565ef13fcb",
+      "state": "frozen"
+    },
+    "anchors": [
+      {
+        "anchor_ref": "tos.anchor.sid-3555fc1a35faf9bcf96d9db2e42803d8",
+        "ordinal": 1,
+        "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+        "text_layer_sha256": "318789bd9af1fdf6d162d06f302c894b1dcc6bad05d2d9a224cd530f564c2e95",
+        "selector": {
+          "type": "text_position",
+          "start": 39,
+          "end": 47,
+          "position_unit": "unicode_code_point",
+          "interval": "half_open"
+        },
+        "exact_sha256": "dd09b3b753d51725597da283f8436bf1d91199efa8cb1213547eb137a1cbbb36",
+        "source_return": {
+          "required": true,
+          "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-grc2.xml"
+        }
+      },
+      {
+        "anchor_ref": "tos.anchor.sid-34b597996579ab1c1d3d0f7bca4cf4e9",
+        "ordinal": 2,
+        "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+        "text_layer_sha256": "318789bd9af1fdf6d162d06f302c894b1dcc6bad05d2d9a224cd530f564c2e95",
+        "selector": {
+          "type": "text_position",
+          "start": 50,
+          "end": 55,
+          "position_unit": "unicode_code_point",
+          "interval": "half_open"
+        },
+        "exact_sha256": "8529d54b6a607678b66c0865cce4164ee510464d8ae35d5410a8680045d6be88",
+        "source_return": {
+          "required": true,
+          "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-grc2.xml"
+        }
+      }
+    ],
+    "rights_refs": [
+      "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/rights.json"
+    ],
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "target_side": {
+    "side_role": "target",
+    "work_ref": "tos.work.plato.meno",
+    "expression_ref": "tos.expression.plato.meno.perseus-lamb-1924-en",
+    "edition_ref": "tos.edition.plato.meno.perseus-lamb-1924-en",
+    "item_ref": "tos.item.plato.meno.public-acquisition-20261026.perseus-lamb-1924-en",
+    "file_ref": "tos.file.sha256.551882c9f7c19223a329d168d063bccb1de9f48c969afe3b56a37daba6353eb0",
+    "file_sha256": "551882c9f7c19223a329d168d063bccb1de9f48c969afe3b56a37daba6353eb0",
+    "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+    "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+    "language": "en",
+    "segmentation": {
+      "artifact_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/source-text-unit-packet.v1.json#segmentations/tos.text-segmentation.sid-e85774d1dba04b6891654dacefd96fdc",
+      "sha256": "280a829d5f905029807efbc7b585434a009f7e17234ed82629f1c3d07b68ea5c",
+      "state": "frozen"
+    },
+    "tokenization": {
+      "artifact_ref": "ToS/research-packets/public-prototypes-20261026/MENO-70-TARGET-TOKENIZATION.v1.json",
+      "sha256": "d0b37f8fef691d0562552416304511504a277ac7c7f33e332eef64e8bf009b8f",
+      "state": "frozen"
+    },
+    "anchors": [
+      {
+        "anchor_ref": "tos.anchor.sid-3ab051c2d8269330c21318ca56493ff6",
+        "ordinal": 1,
+        "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+        "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+        "selector": {
+          "type": "text_position",
+          "start": 40,
+          "end": 46,
+          "position_unit": "unicode_code_point",
+          "interval": "half_open"
+        },
+        "exact_sha256": "3371305232c8dc10ce95c65849946e238a2e518ce770310333d4637ffcba1a51",
+        "source_return": {
+          "required": true,
+          "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+        }
+      },
+      {
+        "anchor_ref": "tos.anchor.sid-1ba9fac95de6db1004c1ba7f5d4ccda8",
+        "ordinal": 2,
+        "text_layer_ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+        "text_layer_sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3",
+        "selector": {
+          "type": "text_position",
+          "start": 47,
+          "end": 60,
+          "position_unit": "unicode_code_point",
+          "interval": "half_open"
+        },
+        "exact_sha256": "7f90778dc6eb7facc9e264793f2da7aed88e9a0b0320a5bf394631b8a297626d",
+        "source_return": {
+          "required": true,
+          "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg024/tlg0059.tlg024.perseus-eng2.xml"
+        }
+      }
+    ],
+    "rights_refs": [
+      "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/rights.json"
+    ],
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "alignments": [
+    {
+      "alignment_id": "tos.translation-alignment.sid-8e674719899157a5b5a222e188e7e043",
+      "alignment_version": 1,
+      "supersedes_alignment_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-translation-and-current-mapping",
+      "claim_id": "tos.translation-alignment-claim.sid-49c6d8e1c9cf9a6af73025680f7ea9b3",
+      "claim_version": 1,
+      "supersedes_claim_ref": null,
+      "direction": "source_to_target",
+      "correspondence_shape": "one_to_one",
+      "order_posture": "reordered",
+      "ordered_source_anchor_refs": [
+        "tos.anchor.sid-34b597996579ab1c1d3d0f7bca4cf4e9"
+      ],
+      "ordered_target_anchor_refs": [
+        "tos.anchor.sid-3ab051c2d8269330c21318ca56493ff6"
+      ],
+      "translation_techniques": [
+        "literal"
+      ],
+      "epistemic_status": "inferred",
+      "certainty": {
+        "value": 0.72,
+        "meaning": "maker_declared_uncertainty_not_truth_probability"
+      },
+      "status": "proposed",
+      "status_reason": "Context-bound model proposal for the noun occurrence in Meno 70 only; English `virtue` does not establish universal lexical translation or concept identity.",
+      "maker": {
+        "maker_kind": "model",
+        "agent_ref": "codex.public-prototype-s09",
+        "made_at": "2026-10-26T22:39:40Z",
+        "method": "Source-visible, exact-span contextual proposal; no normalization or transfer beyond Meno 70.",
+        "provenance_event_ref": "tos.event.model-translation-mapping-proposal.meno-70.20261026",
+        "method_output_posture": "proposal_not_truth",
+        "model_ref": "gpt-6-luna",
+        "model_revision": "runtime deployment revision not exposed",
+        "prompt_sha256": "d5201c3d84340ff27787793d8fc6f3b06f4182511deeaeeeb5bf53b3f6a85e07"
+      },
+      "evidence": [
+        {
+          "evidence_ref": "ToS/research-packets/public-prototypes-20261026/MENO-70-WORD-MAPPINGS.md",
+          "role": "context",
+          "source_anchor_refs": [
+            "tos.anchor.sid-34b597996579ab1c1d3d0f7bca4cf4e9"
+          ],
+          "target_anchor_refs": [
+            "tos.anchor.sid-3ab051c2d8269330c21318ca56493ff6"
+          ],
+          "description": "Exact Meno 70 opening question. Greek context: ΜΕΝ. ἔχεις μοι εἰπεῖν, ὦ Σώκρατες, ἆρα διδακτὸν ἡ ἀρετή; ἢ οὐ διδακτὸν ἀλλʼ ἀσκητόν; ἢ οὔτε ἀσκητὸν οὔτε μαθητόν, ἀλλὰ φύσει παραγίγνεται τοῖς ἀνθρώποις ἢ ἄλλῳ τινὶ τρόπῳ;\n\nΣΩ. ὦ Μ English context: Men. Can you tell me, Socrates, whether virtue can be taught, or is acquired by practice, not teaching? Or if neither by practice nor by learning, whether it comes to mankind by na"
+        }
+      ],
+      "competing_alignment_refs": [],
+      "review_refs": []
+    },
+    {
+      "alignment_id": "tos.translation-alignment.sid-e40a93ee5c088e163d5ccfc0a29b9706",
+      "alignment_version": 1,
+      "supersedes_alignment_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-translation-and-current-mapping",
+      "claim_id": "tos.translation-alignment-claim.sid-802ba17d0f2e20e3ff6a28f4226c27ee",
+      "claim_version": 1,
+      "supersedes_claim_ref": null,
+      "direction": "source_to_target",
+      "correspondence_shape": "one_to_one",
+      "order_posture": "reordered",
+      "ordered_source_anchor_refs": [
+        "tos.anchor.sid-3555fc1a35faf9bcf96d9db2e42803d8"
+      ],
+      "ordered_target_anchor_refs": [
+        "tos.anchor.sid-1ba9fac95de6db1004c1ba7f5d4ccda8"
+      ],
+      "translation_techniques": [
+        "paraphrase"
+      ],
+      "epistemic_status": "inferred",
+      "certainty": {
+        "value": 0.72,
+        "meaning": "maker_declared_uncertainty_not_truth_probability"
+      },
+      "status": "proposed",
+      "status_reason": "Context-bound model proposal for the predicate in the Meno 70 opening question. Lamb uses a three-word English phrase for this Greek adjective; no universal lexical identity is claimed.",
+      "maker": {
+        "maker_kind": "model",
+        "agent_ref": "codex.public-prototype-s09",
+        "made_at": "2026-10-26T22:39:40Z",
+        "method": "Source-visible, exact-span contextual proposal; no normalization or transfer beyond Meno 70.",
+        "provenance_event_ref": "tos.event.model-translation-mapping-proposal.meno-70.20261026",
+        "method_output_posture": "proposal_not_truth",
+        "model_ref": "gpt-6-luna",
+        "model_revision": "runtime deployment revision not exposed",
+        "prompt_sha256": "d5201c3d84340ff27787793d8fc6f3b06f4182511deeaeeeb5bf53b3f6a85e07"
+      },
+      "evidence": [
+        {
+          "evidence_ref": "ToS/research-packets/public-prototypes-20261026/MENO-70-WORD-MAPPINGS.md",
+          "role": "context",
+          "source_anchor_refs": [
+            "tos.anchor.sid-3555fc1a35faf9bcf96d9db2e42803d8"
+          ],
+          "target_anchor_refs": [
+            "tos.anchor.sid-1ba9fac95de6db1004c1ba7f5d4ccda8"
+          ],
+          "description": "Exact Meno 70 opening question. Greek context: ΜΕΝ. ἔχεις μοι εἰπεῖν, ὦ Σώκρατες, ἆρα διδακτὸν ἡ ἀρετή; ἢ οὐ διδακτὸν ἀλλʼ ἀσκητόν; ἢ οὔτε ἀσκητὸν οὔτε μαθητόν, ἀλλὰ φύσει παραγίγνεται τοῖς ἀνθρώποις ἢ ἄλλῳ τινὶ τρόπῳ;\n\nΣΩ. ὦ Μ English context: Men. Can you tell me, Socrates, whether virtue can be taught, or is acquired by practice, not teaching? Or if neither by practice nor by learning, whether it comes to mankind by na"
+        }
+      ],
+      "competing_alignment_refs": [],
+      "review_refs": []
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "target_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/rights.json",
+      "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most_restrictive_side_or_packet_wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "alignment_is_claim_not_translation_truth": true,
+    "machine_or_model_may_propose_not_accept": true,
+    "exports_are_not_owner_truth": true,
+    "unaligned_members_are_first_class": true,
+    "lexical_equivalence_not_inferred": true,
+    "canon_effect": false
+  }
+}

@@ -37,6 +37,9 @@ export function readableTitleForm(value,preferred='ru',{guard=false}={}){
 // Interface vocabulary only; source titles and quotations remain source text.
 export function languageName(tag,locale=uiLanguage()){
   if(!tag)return '';
+  const historical={grc:{ru:'древнегреческий',en:'Ancient Greek',es:'griego antiguo'},lat:{ru:'латынь',en:'Latin',es:'latín'}};
+  const declared=historical[String(tag).toLowerCase()];
+  if(declared)return declared[locale]??declared.en;
   try{return new Intl.DisplayNames([locale],{type:'language',fallback:'none'}).of(tag)||t('Другой язык');}
   catch{return t('Другой язык');}
 }

@@ -11,3 +11,7 @@
 .cr-location{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.cr-save{flex-shrink:0}.cr-footer .cr-status{min-width:0;overflow-wrap:anywhere}@media(max-width:850px){.cr-footer{flex-wrap:wrap;gap:4px 10px}.cr-footer .cr-status:not([hidden]){flex-basis:100%;order:3}}
 
 .cr-library-count{padding-inline:7px;color:var(--cr-muted);font-size:10px}
+
+/* Source text remains unchanged; paragraph witnesses reflow at reading width. */
+.cr-unit[data-kind="paragraph"]>.cr-unit-text{white-space:normal}
+.cr-unit-marker{white-space:nowrap;overflow-wrap:normal;font-size:10px!important}

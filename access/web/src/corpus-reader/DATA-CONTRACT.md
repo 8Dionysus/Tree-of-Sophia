@@ -9,15 +9,15 @@ surfaces remain authoritative for meaning and publication.
 ## Provider operations
 
 `createCorpusProvider()` returns a provider with five required asynchronous
-operations and an optional `structure` operation. The real application
+operations and optional `structure` and `analyze` operations. The real application
 receives either an explicit provider or an explicit caller-owned transport
 adapter. No URL, HTTP verb, or backend route is inferred here.
 
-For a transport adapter, the optional operation is supplied explicitly as a
-caller-owned `structure` function:
+For a transport adapter, optional operations are supplied explicitly as
+caller-owned functions:
 
 ```js
-createTransportProvider({request, structure, capabilities});
+createTransportProvider({request, structure, analyze, capabilities});
 ```
 
 The generic `request` callback is never assumed to know an unadvertised
@@ -34,6 +34,9 @@ await provider.resolve({reference, signal});
 if (provider.capabilities?.structure === true) {
   await provider.structure({documentId, versionId, cursor, limit, signal});
 }
+if (provider.capabilities?.analyze === true) {
+  await provider.analyze({reference, form, language, signal});
+}
 ```
 
 Paged operations enforce a maximum page size of 100 at the provider boundary;
@@ -42,6 +45,45 @@ version windows visible. Cursors are opaque to callers and become stale when
 the provider's representation revision changes. `AbortSignal` is passed
 through every operation and must be honoured by the eventual backend adapter.
 
+`analyze` is an optional, selected-occurrence operation. The caller passes the
+exact validated reference and the literal form sliced from its Unicode
+code-point selector; the adapter must not normalize the form or move the
+selector. The language is the selected source version's language, independent
+of interface language. The bounded response is bound back to the exact same
+reference:
+
+```js
+{
+  status: 'available' | 'unavailable',
+  reference,
+  reason?: 'unrecognized' | 'not_processed' | 'provider_error' |
+    'unsupported_language' | 'source_changed' | 'form_mismatch',
+  analysisVersion?: string,
+  source?: {id, label?, version?, url?},
+  candidates?: [{lemma, morphology?, gloss?, source?, sourceRef?, alternatives?, dictionaryUrl?}],
+  dictionaryLinks?: [{label, url}],
+  mappings?: [{status:'proposed', reviewStatus:'model_proposal_owner_review_pending',
+    sourceReference, sourceQuote, targetReference, targetQuote,
+    sourceVersionId, targetVersionId, sourceRevision, targetRevision,
+    targetVersionLabel, targetLanguage, reviewBasis, evidence}],
+  mappingStatus?: 'available' | 'none'
+}
+```
+
+Available results require a version and at least one supplied candidate;
+candidate order is not a best-analysis claim. An unavailable result still
+echoes the exact reference and may provide dictionary links for navigation.
+The reader displays only supplied candidates, alternatives, attribution and
+links. Literal concordance uses the existing version-scoped `search` operation
+and its bounded cursor; it does not fetch the full work or infer a lemma.
+Dictionary URLs are limited to HTTP(S). A form search link remains distinct
+from a lemma-specific candidate link. Optional mappings are source-bound,
+exact-span model proposals; the provider re-resolves the target reference and
+checks its quote before returning it. A missing or stale target yields an empty
+mapping list with `mappingStatus: 'none'`, without changing morphology status.
+The reader preserves alternatives and analysis errors, labels proposals as
+unreviewed, and never writes a review or canon claim.
+
 `total` and `unitCount` are optional knowledge. A missing or `null` value is
 normalized to an explicit unknown state; only a supplied non-negative integer
 can be displayed as a count. An empty page with a non-null `nextCursor` is a
@@ -49,7 +91,8 @@ valid intermediate page. The reader exposes one explicit continuation action
 for it, retains the previous readable page when a continuation fails, and
 never turns an empty page into an automatic full scan. Providers and callers
 must keep continuation pages bounded rather than fan out requests in the
-background.
+background. A missing `window.limit` defaults to forty units, matching the
+reader's per-window bound.
 
 The bound provider also rejects text over 65,536 UTF-8 bytes per unit or
 262,144 UTF-8 bytes per text page, and rejects metadata over 16,384 UTF-8
@@ -162,7 +205,9 @@ the text-position form used by `source-anchor-v2.schema.json`. The text-layer
 digest is part of the identity, so `resolve` can return `exact`, `changed`,
 or `unavailable` without using a graph snapshot revision. Translation
 alignment is a separate source-owned packet and is not inferred by the
-reader. A future alignment-aware provider may supply reviewed mappings.
+reader. A provider may supply an exact source-bound proposal from that packet;
+it remains weaker than human review and canon and is opened only after an exact
+target resolve.
 
 The `window` operation also accepts a compact deep-link target:
 

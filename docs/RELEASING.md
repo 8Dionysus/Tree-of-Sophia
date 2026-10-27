@@ -116,6 +116,17 @@ owner surfaces.
    builder's determinism assertion on the maintained artifact. There is no
    Python wheel reference package in the release candidate path. Historical
    Python oracle tools remain optional comparison tools outside the native prefix.
+   Public reading pages also have an independent static-only Cloudflare route.
+   From `access/deploy/cloudflare-worker`, build them with
+   `npm run build:public-research` and inspect the upload with
+   `npm run deploy:public-research:plan`. After the normal review, required CI
+   and merge checks, deploy only
+   `wrangler deploy --config wrangler.public-research.jsonc`. It serves
+   `/zarathustra*`, `/antiquity*` and `/__research/*` on apex and `www`, without
+   D1, R2 or secret bindings. This deployment leaves the existing access
+   Worker and D1 data unchanged. Record its version ID; rollback with
+   `wrangler rollback VERSION_ID --name tree-of-sophia-public-research` restores
+   that Worker's version while preserving the separate path routes.
    Native prepare fixture calls in CI use a 45-second allowance and a 55-second
    child wait, matching the measured joined maintenance fixture; the native
    product default remains 20 seconds. This allowance is not a production SLO.

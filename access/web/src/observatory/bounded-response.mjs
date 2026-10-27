@@ -38,7 +38,7 @@ function exceedsDeclaredLength(response,limit){
   return /^[0-9]+$(?![\s\S])/.test(value)&&Number(value)>limit;
 }
 
-export async function readBoundedJSON(response,limit,signal){
+export async function readBoundedJSON(response,limit,signal,{includeBytes=false}={}){
   validateResponseLimit(limit);
   signal.throwIfAborted();
   if(exceedsDeclaredLength(response,limit)){
@@ -72,13 +72,14 @@ export async function readBoundedJSON(response,limit,signal){
       catch{throw new SyntaxError('response body contains invalid UTF-8');}
       signal.throwIfAborted();
       const packet=JSON.parse(text);
-      signal.throwIfAborted();return packet;
+      signal.throwIfAborted();return includeBytes?{packet,bytes:bytes.subarray(0,used)}:packet;
     }catch(error){cancelReader(reader,error);throw error;}
     finally{try{reader.releaseLock();}catch{}}
   }
   // Compatibility for existing in-memory json-only test/custom transports.
   // This is a post-parse size check, not a network-memory bound. Real bodies
   // always take the stream path above and never fall back to response.json().
+  if(includeBytes)throw new SyntaxError('Exact response bytes are unavailable');
   const packet=await withAbort(response.json(),signal);
   signal.throwIfAborted();
   let serialized;

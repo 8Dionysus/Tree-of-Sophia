@@ -1,0 +1,54 @@
+{
+  "schema_version": "tos_provenance_event_v1",
+  "event_id": "tos.event.model-translation-mapping-proposal.meno-70.20261026",
+  "event_type": "annotation",
+  "started_at": "2026-10-26T22:39:40Z",
+  "ended_at": "2026-10-26T22:39:40Z",
+  "agent_refs": [
+    "model:gpt-6-luna"
+  ],
+  "inputs": [
+    {
+      "ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-burnet-1903-grc/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "role": "source_side-text-layer",
+      "sha256": "318789bd9af1fdf6d162d06f302c894b1dcc6bad05d2d9a224cd530f564c2e95"
+    },
+    {
+      "ref": "ToS/research-packets/public-prototypes-20261026/MENO-70-SOURCE-TOKENIZATION.v1.json",
+      "role": "source_side-selected-tokenization",
+      "sha256": "0a4e7a2278c69f1ab169fb6eca02ac2419a8063d4849f8290bb7f9565ef13fcb"
+    },
+    {
+      "ref": "ToS/source-witnesses/works/plato/meno/expressions/perseus-lamb-1924-en/editions/digital-source/items/public-acquisition-20261026/payload/reading-layer.txt",
+      "role": "target_side-text-layer",
+      "sha256": "0c30e70af0c77aee04d8be6074ddf44c4c303ca70ee93cc65657329eb468d3c3"
+    },
+    {
+      "ref": "ToS/research-packets/public-prototypes-20261026/MENO-70-TARGET-TOKENIZATION.v1.json",
+      "role": "target_side-selected-tokenization",
+      "sha256": "d0b37f8fef691d0562552416304511504a277ac7c7f33e332eef64e8bf009b8f"
+    }
+  ],
+  "outputs": [
+    {
+      "ref": "ToS/research-packets/public-prototypes-20261026/MENO-70-WORD-MAPPINGS.v1.json",
+      "role": "proposed-contextual-translation-mappings",
+      "sha256": "41f5ef37cbe120b2c97c737a3edc9ff2745eb098f0f3a1dfbc4923a96874e5c2"
+    }
+  ],
+  "method": {
+    "maker_type": "model",
+    "name": "source-visible contextual correspondence proposal",
+    "version": "1",
+    "configuration": {
+      "posture": "provenance_record_not_review_or_acceptance",
+      "model_ref": "gpt-6-luna",
+      "model_revision": "hosted model revision was not exposed to the task",
+      "assessment_instruction": "Compare only the exact Meno 70 source and Lamb target spans requested. Use their local opening-question context; preserve the order difference; propose only the context-bound correspondence supported by the supplied sentence. Do not infer universal lexical translation, concept identity, or accepted alignment. Keep the exact source and target revisions, code-point selectors, and quotations.",
+      "prompt_digest_posture": "sha256 of exact UTF-8 bytes of assessment_instruction only; the hidden effective prompt and runtime context were unavailable",
+      "assessment_instruction_sha256": "d5201c3d84340ff27787793d8fc6f3b06f4182511deeaeeeb5bf53b3f6a85e07"
+    }
+  },
+  "status": "completed",
+  "event_version": 1
+}

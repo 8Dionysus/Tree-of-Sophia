@@ -6,6 +6,7 @@ import {
   exactReference,
   normalizeCatalog,
   normalizeDocument,
+  normalizeSearch,
   normalizeWindow,
   searchUnits,
   unitReference,
@@ -72,6 +73,12 @@ describe('corpus reader view model', () => {
     expect(result.units[0].text).toContain('ζωή');
   });
 
+  it('keeps a source section body selectable when its provider explicitly says it is not a heading', () => {
+    const result = normalizeWindow({units:[{id:'meno-70',kind:'section',heading:false,label:'70',text:'Meno asks whether virtue can be taught.'}]},{document,version});
+    expect(result.units[0]).toMatchObject({kind:'section',heading:false,label:'70'});
+    expect(unitReference(result.units[0],version,document).unitId).toBe('meno-70');
+  });
+
   it('keeps unknown counts and caps legacy manifest payloads', () => {
     const page = normalizeCatalog({items: [{...document, unitCount: undefined}], nextCursor: 'more'});
     expect(page.total).toBeNull();
@@ -93,6 +100,17 @@ describe('corpus reader view model', () => {
     expect(result.items[0]).toMatchObject({unitId: 'u', label: 'Абзац о слове', ordinal: 3, start: 6, end: 9, scope: 'loaded'});
     expect(result.items[0].reference.selector).toMatchObject({start: 6, end: 9, positionUnit: 'unicode_code_point'});
     expect(result.items[0].reference).not.toHaveProperty('quote');
+  });
+
+  it('prefers a typed exact occurrence reference over the human-readable search locator', () => {
+    const exact = createReference({source, versionId:'ru-1', unitId:'unit-833', start:17, end:21});
+    const page = normalizeSearch({items:[{
+      unitId:'unit-833', reference:'Chapter 14, paragraph 3', exactReference:exact,
+      excerpt:'... Gold ...', start:17, end:21,
+    }]},{document,version,scope:'version'});
+    expect(page.items[0].reference).toEqual(exact);
+    expect(page.items[0].sourceReference).toBe('Chapter 14, paragraph 3');
+    expect(page.items[0]).toMatchObject({start:17,end:21});
   });
 
   it('keeps a bounded loaded search total unknown when the result cap is reached', () => {
@@ -299,6 +317,20 @@ describe('corpus reader view model', () => {
     expect(resumedRu.units[0].id).toBe(opened.units[3].id);
     await notebookA.close();
     await notebookC.close();
+  });
+
+  it('refreshes old exact notes after another owner imports without retargeting their revision', async () => {
+    const notebook = createCorpusNotebook({adapter:'memory'});
+    const model = createCorpusReaderModel({notebook});
+    await model.ready();
+    const old = createReference({source:{...source,textLayerSha256:'c'.repeat(64)},versionId:'ru-1',unitId:'old-unit',start:12,end:16});
+    const incoming = createCorpusNotebook({adapter:'memory'});
+    await incoming.putNote({id:'imported-old-note',kind:'note',reference:old,quote:'Gold',text:'Preserve my earlier thought.'});
+    await notebook.importPacket(await incoming.exportPacket());
+    expect(model.notebookState().notes).toHaveLength(0);
+    await model.refreshNotebook();
+    expect(model.notebookState().notes[0]).toMatchObject({id:'imported-old-note',reference:old,quote:'Gold',text:'Preserve my earlier thought.'});
+    model.destroy(); await notebook.close(); await incoming.close();
   });
 
   it('loads older notebook records through a bounded page seam', async () => {
