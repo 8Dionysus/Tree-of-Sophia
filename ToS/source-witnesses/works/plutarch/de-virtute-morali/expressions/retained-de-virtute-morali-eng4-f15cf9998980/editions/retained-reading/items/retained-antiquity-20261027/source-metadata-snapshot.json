@@ -1,0 +1,119 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-virtute-morali.de-virtute-morali-eng4-f15cf9998980",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-virtute-morali-eng4-f15cf9998980.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+    "file_ref": "tos.file.sha256.a56d566016da2494aaa4074eab4481ca272d1e021a510e9197a7da23dd1cdd20",
+    "byte_size": 105561,
+    "sha256": "a56d566016da2494aaa4074eab4481ca272d1e021a510e9197a7da23dd1cdd20"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-virtute-morali-eng4-f15cf9998980",
+    "record_sha256": "b6f5ba58d3ca6f218b98510aac06d8ce0b1a6b247be996213de1717df76c6c87",
+    "record": {
+      "id": "de-virtute-morali-eng4-f15cf9998980",
+      "language": "en",
+      "title": "Английский · Мэтью Морган",
+      "credit": "Перевод: Мэтью Морган",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Plutarch's Morals."
+        ],
+        "dates": [
+          "1874"
+        ],
+        "places": [
+          "Boston",
+          "Cambridge"
+        ],
+        "publishers": [
+          "Little, Brown, and Company",
+          "Press of John Wilson and Son"
+        ],
+        "scans": [
+          "https://archive.org/details/plutarchsmorals03plut/page/460"
+        ]
+      },
+      "item": "tos.item.plutarch.de-virtute-morali.en-perseus-tlg0007-tlg094-perseus-eng4.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.f15cf99989805a9589b365d435c8f212efbcdf8d7bd4bf2297cb5da5804de69d",
+      "sha256": "f15cf99989805a9589b365d435c8f212efbcdf8d7bd4bf2297cb5da5804de69d",
+      "representationSha256": "712e29da756bff27cc45cb0f4f76bc1315ee7fc283065c1ad3cdf0a159533b3b",
+      "sourceRef": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/en-perseus-tlg0007-tlg094-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg094.perseus-eng4.xml",
+      "sectionCount": 12
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-virtute-morali-eng4-f15cf9998980",
+    "legacy_source_sha256_claim": "f15cf99989805a9589b365d435c8f212efbcdf8d7bd4bf2297cb5da5804de69d",
+    "legacy_representation_sha256_claim": "712e29da756bff27cc45cb0f4f76bc1315ee7fc283065c1ad3cdf0a159533b3b",
+    "retained_json_payload_sha256": "a56d566016da2494aaa4074eab4481ca272d1e021a510e9197a7da23dd1cdd20",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Of Moral Virtue",
+      "Plutarch's Morals."
+    ],
+    "authors": [
+      "Plutarch"
+    ],
+    "editors_or_translators": [
+      "William W. Goodwin",
+      "Matthew Morgan"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-virtute-morali",
+    "expression_ref": "tos.expression.retained.antiquity.de-virtute-morali.de-virtute-morali-eng4-f15cf9998980",
+    "edition_ref": "tos.edition.retained.antiquity.de-virtute-morali.de-virtute-morali-eng4-f15cf9998980",
+    "legacy_book_title": "О нравственной добродетели",
+    "legacy_credit": "Перевод: Мэтью Морган",
+    "publication": {
+      "titles": [
+        "Plutarch's Morals."
+      ],
+      "dates": [
+        "1874"
+      ],
+      "places": [
+        "Boston",
+        "Cambridge"
+      ],
+      "publishers": [
+        "Little, Brown, and Company",
+        "Press of John Wilson and Son"
+      ],
+      "scans": [
+        "https://archive.org/details/plutarchsmorals03plut/page/460"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-eng4.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 12,
+    "block_count": 30,
+    "apparatus": {
+      "headings": 0,
+      "notes": 11,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

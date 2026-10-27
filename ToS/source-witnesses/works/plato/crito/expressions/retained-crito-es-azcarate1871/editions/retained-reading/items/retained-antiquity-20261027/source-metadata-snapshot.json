@@ -1,0 +1,148 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.crito.crito-es-azcarate1871",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/crito-es-azcarate1871.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://es.wikisource.org/wiki/Crit%C3%B3n?oldid=1274327",
+    "file_ref": "tos.file.sha256.226d9664fcfaa73052275f51c613f2afb8be06217b8e20529e3bdaba64957b40",
+    "byte_size": 46189,
+    "sha256": "226d9664fcfaa73052275f51c613f2afb8be06217b8e20529e3bdaba64957b40"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=crito-es-azcarate1871",
+    "record_sha256": "1dbaafe4e30ce755a41ce586b50f1f2dd281f740be03ce153ef9eb73e9765962",
+    "record": {
+      "id": "crito-es-azcarate1871",
+      "language": "es",
+      "title": "Испанский · Patricio de Azcárate Corral",
+      "credit": "Перевод: Patricio de Azcárate Corral",
+      "creditRole": "translator",
+      "source": "https://es.wikisource.org/wiki/Crit%C3%B3n?oldid=1274327",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Wikisource contributors; Patricio de Azcárate Corral; pinned page revisions listed in source manifest.",
+      "publication": {
+        "titles": [
+          "Obras completas de Platón"
+        ],
+        "dates": [
+          "1871"
+        ],
+        "places": [
+          "Madrid"
+        ],
+        "publishers": [
+          "Medina y Navarro"
+        ],
+        "scans": [
+          "https://es.wikisource.org/wiki/%C3%8Dndice:Obras_completas_de_Plat%C3%B3n_-_Tomo_I_(1871).djvu"
+        ],
+        "scanIndex": "Obras completas de Platón - Tomo I (1871).djvu",
+        "volume": "I",
+        "series": null
+      },
+      "item": "https://es.wikisource.org/wiki/Crit%C3%B3n?oldid=1274327",
+      "file": "sha256:defcfced722c6292b97f8439c53e0ba50ea8d12577638179dee588a5343f6318",
+      "sha256": "defcfced722c6292b97f8439c53e0ba50ea8d12577638179dee588a5343f6318",
+      "representationSha256": "36f90637d6f8c0d12e029f0a6f5a1dd08d2ea877c097940f7f39d9a0955df991",
+      "sourceRef": "https://es.wikisource.org/wiki/Crit%C3%B3n?oldid=1274327",
+      "sectionCount": 1,
+      "historicalTranscription": true,
+      "headerKind": "generated-historical-provenance",
+      "sourceIndex": {
+        "url": "https://es.wikisource.org/wiki/%C3%8Dndice:Obras_completas_de_Plat%C3%B3n_-_Tomo_I_(1871).djvu",
+        "observedStatus": "Por corregir",
+        "metadata": "Obras completas de Platón, 1871, tomo I, Madrid, Medina y Navarro; the index supplies scan-page coverage."
+      },
+      "proofreadingStatus": "Por corregir",
+      "proofreadingStatusCode": "source-index-incomplete",
+      "sourcePageQualityCounts": {},
+      "coverageStatus": "complete-source-transclusion",
+      "coverageLimit": "Complete transclusion range; transcription accuracy was not checked against scan images. The Spanish volume index is marked Por corregir.",
+      "scanCollationPerformed": false,
+      "characterOffsetsAvailable": false,
+      "locatorPrecision": "section-source-page-range-and-explicit-markers",
+      "orthographyModernized": false,
+      "transcriptionSha256": "4415b11d389a81785f338c3bb2d83ae17f8922147d484f345adcc8bbe5b854d7",
+      "pageSourceBundleSha256": "7d168e35f6903e62fbd761866c7b95bde55e99ba15b3b66bc34441cc3b190e3b",
+      "transcribedTextSha256": "dbebfd86069be59c0a9090c50c100ad3afcc1d61fec2216606e34cd29c5409db"
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "crito-es-azcarate1871",
+    "legacy_source_sha256_claim": "defcfced722c6292b97f8439c53e0ba50ea8d12577638179dee588a5343f6318",
+    "legacy_representation_sha256_claim": "36f90637d6f8c0d12e029f0a6f5a1dd08d2ea877c097940f7f39d9a0955df991",
+    "retained_json_payload_sha256": "226d9664fcfaa73052275f51c613f2afb8be06217b8e20529e3bdaba64957b40",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Critón",
+      "Obras completas de Platón"
+    ],
+    "authors": [
+      "Plato"
+    ],
+    "editors_or_translators": [],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.crito",
+    "expression_ref": "tos.expression.retained.antiquity.crito.crito-es-azcarate1871",
+    "edition_ref": "tos.edition.retained.antiquity.crito.crito-es-azcarate1871",
+    "legacy_book_title": "Критон",
+    "legacy_credit": "Перевод: Patricio de Azcárate Corral",
+    "publication": {
+      "titles": [
+        "Obras completas de Platón"
+      ],
+      "dates": [
+        "1871"
+      ],
+      "places": [
+        "Madrid"
+      ],
+      "publishers": [
+        "Medina y Navarro"
+      ],
+      "scans": [
+        "https://es.wikisource.org/wiki/%C3%8Dndice:Obras_completas_de_Plat%C3%B3n_-_Tomo_I_(1871).djvu"
+      ],
+      "scanIndex": "Obras completas de Platón - Tomo I (1871).djvu",
+      "volume": "I",
+      "series": null
+    }
+  },
+  "coverage": {
+    "historicalTranscription": true,
+    "headerKind": "generated-historical-provenance",
+    "coverageStatus": "complete-source-transclusion",
+    "coverageLimit": "Complete transclusion range; transcription accuracy was not checked against scan images. The Spanish volume index is marked Por corregir.",
+    "proofreadingStatus": "Por corregir",
+    "sourceIndex": {
+      "url": "https://es.wikisource.org/wiki/%C3%8Dndice:Obras_completas_de_Plat%C3%B3n_-_Tomo_I_(1871).djvu",
+      "observedStatus": "Por corregir",
+      "metadata": "Obras completas de Platón, 1871, tomo I, Madrid, Medina y Navarro; the index supplies scan-page coverage."
+    }
+  },
+  "terms_and_public_metadata_refs": [
+    "https://es.wikisource.org/wiki/Crit%C3%B3n?oldid=1274327",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "retained_json_counts": {
+    "section_count": 1,
+    "block_count": 190,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

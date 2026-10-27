@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.gorgias.gorgias-grc2-c0d1fc4fd562",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.gorgias.gorgias-grc2-c0d1fc4fd562",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.6a30a241f1e109255cd4800d227eac3c17cf097a73bda7849f5c53945445e5fa",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "gorgias-grc2-c0d1fc4fd562.json",
+      "media_type": "application/json",
+      "byte_size": 458614,
+      "sha256": "6a30a241f1e109255cd4800d227eac3c17cf097a73bda7849f5c53945445e5fa",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.29c0611949ca30b326164058e6fca943c54116e93ec73458d6c72c5d47139968",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 311534,
+      "sha256": "29c0611949ca30b326164058e6fca943c54116e93ec73458d6c72c5d47139968",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.gorgias-grc2-c0d1fc4fd562.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-grc2-c0d1fc4fd562/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-grc2-c0d1fc4fd562/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-grc2-c0d1fc4fd562/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-grc2-c0d1fc4fd562/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/gorgias/expressions/retained-gorgias-grc2-c0d1fc4fd562/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

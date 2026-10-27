@@ -1,0 +1,41 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.retained-antiquity.ancient-medicine.ancient-medicine-eng3-04ab4db8b597.20261027",
+  "scope_refs": [
+    "tos.item.retained.antiquity.ancient-medicine.ancient-medicine-eng3-04ab4db8b597",
+    "tos.file.sha256.87c607b1ce30ce5c968cf3e26640ef980a8ff15475eaf6cf3d29e4bc298a7c1f",
+    "tos.file.sha256.3994cc387bfb24b9cdf06769c926935d0ceea32f1afa2e5389617ac0dc1ead00"
+  ],
+  "assessment_status": "licensed",
+  "jurisdictions_reviewed": [
+    "US"
+  ],
+  "source_refs": [
+    "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-eng3.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/01b725d835e6e733062ffd79e0efdbae1ba06e5c/README.md"
+  ],
+  "permissions": [
+    "Attribution: Perseus Digital Library · Tufts University",
+    "Free public reading and adaptation under https://creativecommons.org/licenses/by-sa/4.0/",
+    "Perseus repository guidance asks users to offer modifications upstream; no upstream submission was made."
+  ],
+  "restrictions": [
+    "Give attribution, link the license, and indicate changes.",
+    "Distribute adaptations under the same CC BY-SA 4.0 license.",
+    "Mark the retained JSON to public reading-layer derivation.",
+    "No transcription, linguistic, semantic, canon or human-review claim."
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "codex.retained-antiquity-publication.20261027"
+  },
+  "assessed_at": "2026-10-27T06:31:44+00:00",
+  "rationale": "The exact legacy catalog version row carries CC BY-SA 4.0 and is included with its digest in the source metadata snapshot; the fixed source/header record is preserved in the exact retained JSON payload. This item is that retained JSON plus a separately hashed reader layer; the legacy raw-source digest is not represented as the JSON payload digest. Publication carries attribution, source and license routes. The reading layer is not a scholarly or human acceptance.",
+  "review_status": "unreviewed",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "record_version": 1
+}

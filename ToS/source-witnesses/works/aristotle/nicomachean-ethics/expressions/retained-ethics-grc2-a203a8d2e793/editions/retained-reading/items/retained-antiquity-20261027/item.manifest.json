@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.ethics.ethics-grc2-a203a8d2e793",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.ethics.ethics-grc2-a203a8d2e793",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.cbff1e5e653439d4c5179b7e3e43aa50068cd666dbde4c7f6e8b6a347db76c36",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "ethics-grc2-a203a8d2e793.json",
+      "media_type": "application/json",
+      "byte_size": 1119469,
+      "sha256": "cbff1e5e653439d4c5179b7e3e43aa50068cd666dbde4c7f6e8b6a347db76c36",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.0ddd4fb5f312166442a604309a5f3889bfd2b9e3bc52dd88cc5723b8b28bd58b",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 649824,
+      "sha256": "0ddd4fb5f312166442a604309a5f3889bfd2b9e3bc52dd88cc5723b8b28bd58b",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.ethics-grc2-a203a8d2e793.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/retained-ethics-grc2-a203a8d2e793/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/retained-ethics-grc2-a203a8d2e793/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/retained-ethics-grc2-a203a8d2e793/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/retained-ethics-grc2-a203a8d2e793/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/nicomachean-ethics/expressions/retained-ethics-grc2-a203a8d2e793/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

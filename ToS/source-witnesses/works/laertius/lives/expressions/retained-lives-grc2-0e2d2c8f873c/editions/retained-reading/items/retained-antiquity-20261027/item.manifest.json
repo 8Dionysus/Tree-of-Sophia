@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.lives.lives-grc2-0e2d2c8f873c",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.lives.lives-grc2-0e2d2c8f873c",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.46c2f16eec3832c6d3c8120ddfca501b5f0ff112d2ae8686747bfe30fe8fbec3",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "lives-grc2-0e2d2c8f873c.json",
+      "media_type": "application/json",
+      "byte_size": 2105668,
+      "sha256": "46c2f16eec3832c6d3c8120ddfca501b5f0ff112d2ae8686747bfe30fe8fbec3",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.73a45bd210a4d514b4500e01c0409a284d057d2fe0d9a150c318ec596a70109f",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 1377314,
+      "sha256": "73a45bd210a4d514b4500e01c0409a284d057d2fe0d9a150c318ec596a70109f",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.lives-grc2-0e2d2c8f873c.20261027",
+  "rights_ref": "ToS/source-witnesses/works/laertius/lives/expressions/retained-lives-grc2-0e2d2c8f873c/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/laertius/lives/expressions/retained-lives-grc2-0e2d2c8f873c/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/laertius/lives/expressions/retained-lives-grc2-0e2d2c8f873c/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/laertius/lives/expressions/retained-lives-grc2-0e2d2c8f873c/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/laertius/lives/expressions/retained-lives-grc2-0e2d2c8f873c/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

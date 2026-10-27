@@ -1,0 +1,1893 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-dc8daf41900e468a959677b147470ce2",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.eudemian-ethics",
+    "expression_ref": "tos.expression.retained.antiquity.eudemian-ethics.eudemian-ethics-grc2-13af0a98be83",
+    "edition_ref": "tos.edition.retained.antiquity.eudemian-ethics.eudemian-ethics-grc2-13af0a98be83",
+    "item_ref": "tos.item.retained.antiquity.eudemian-ethics.eudemian-ethics-grc2-13af0a98be83",
+    "file_ref": "tos.file.sha256.70124eac655b747800618207826d75e00b380085e4d0cd7ee3097e413ca30342",
+    "file_sha256": "70124eac655b747800618207826d75e00b380085e4d0cd7ee3097e413ca30342"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+    "language": "grc",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-c5fefc107b4a4727972f6b13820e94d3",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.eudemian-ethics-grc2-13af0a98be83.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-18ca526946984239935e7ec7f1f5fcfb",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 152290,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a5db1de0d2b54609ba66f15ed8ecfa00",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 2134,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d0e31903c5dd4da682303d0c719d6b1086b52054a2cb2bdc6ccce58433d1fa18",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b8e482277a2c4c2ca9343f4b19a510dc",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 2134,
+        "end": 3303,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "50b771e70ac7ae7d7ec089e8436d3f798444d7e9ad1f28c4b3ab42cb5674fd17",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0772e65e39a04664b1f1515f406a802f",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 3303,
+        "end": 4777,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6149aa59ef7b26ac10d3d2a088813f4f95ae7d0c3814442957755add60dcebbf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-dcd0179603a446d29a652d4b5bb89e66",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 4777,
+        "end": 6440,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "878cab660b540a6a47c0d3728c151aeef41d9f25be0266576d327614bdb2febd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9f30b6d4aed44f2eb12952d597261274",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 6440,
+        "end": 11277,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "610b08463fed49283d528bb8df38abeddbcbec801913e795e2a08c8d9be6977d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f674ca45d4c443f3836a03537600c996",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 11277,
+        "end": 13068,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ab52ddeb123ee8a592d3c9072328fe932eae0838f0e6341fa390b1b1341e7d8d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bc3eac9d4e554eaeb937273919ae6df3",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 13068,
+        "end": 14317,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a629c34e046669be441a0e726b374fee5c4024cbf4abd5cebacbf5f0b0532ede",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-10694a6eb2e54ea48e48ae49b602753a",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 14317,
+        "end": 20171,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4d6e350112bb1ce993ff615a31fe972406031c32937fa7e31e7b12e93a1d2a75",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a738744ac6034cd99d0b3e0ac97234c5",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 20171,
+        "end": 27062,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2e1d8a099a00979b4595838e1de9f3d900006e5de11065773e05456e0aa6d59a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-212f93951c0b4244b93a6dbda0fff4f5",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 27062,
+        "end": 28255,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2aa21ad2eccb1907aad824a262fa86bddeea98ea55fdc65811718a9dd4bfee5b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e5da914483ef4e9bb6ac4caeef1be7a0",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 28255,
+        "end": 32483,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e03c7e8b09de342eee7aeab97fea3c9d73590b47fb106a641055657db20a5536",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e70facdc505645afa1f983d61ab88718",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 32483,
+        "end": 33475,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b248d9db9c851f824a3fbf21d24ef6e20c34fb7bb00612c35447d66c3333a19b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-01c5a550647645c99e06151ed4b8bd73",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 33475,
+        "end": 36257,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a229d07aee4907fa7d696ff92fae0795923474ddbecd34cf416b3ce685ee6103",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7ad70003096744f5a4514724e4c2c63f",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 36257,
+        "end": 38954,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "96a0a585b568d21b9b5ef68d08005329d480469f6864506d13d75067db8af967",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9edf8d40240d4c3696fc839aa4899769",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 38954,
+        "end": 42078,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ebfcedeaca509e4d03804e0e29662e434657cb6fbe4c5f4ed07760337feb98f4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-903704c79f45436cad95c82601241ba2",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 42078,
+        "end": 48469,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4ff378713cf3767e1fd5565d3f1555b620a81c1c86ee007a0c08810562125cc4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-052bae626ccc426d8ddc56c3f719dbdf",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 48469,
+        "end": 49647,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c3aa053b818ba5d760b852c02b88043492e0ccaca48c9602c6f6aa85cdfc3445",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8de70d91f109498a9d9c6821d84bacdf",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 49647,
+        "end": 58085,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ab2d27bd66de85bfb027d7d4388d47c74006c137d182d991efcdd52b8518fbc8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4bad487525db434089275b35c3da6bb6",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 58085,
+        "end": 60824,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "beca5d0e75017415df3392d97ce8c2212dc434cda773272eebe955927d673415",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-738b381ed7c946bc80e8b8a0e01918f8",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 60824,
+        "end": 70415,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "111b6e30e9dbae2346b37d5bfde5b1009fb5966852593029201300b6431ebd8c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-53df3732ab9f4ea081a00d0dc348ac26",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 70415,
+        "end": 75200,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "531465545fe91b5bad10f84f7d840c9c7252eb736467e2fe6ea57aec30bb8332",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-521f07c7f8ac43ae9b869f225bf42429",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 75200,
+        "end": 76406,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fd52640ab9eada048f12f35508b94dd5b2737b27f9e2c6e832622f2707010384",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3edc2d9460d145658294681f52730bde",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 76406,
+        "end": 78067,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a9531d371acaff119b1b2c75e6215df0b7028f650f9be40309184f994104e3de",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3ecc7881c19848b5a35006bd5441a568",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 78067,
+        "end": 83049,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "db77499609db6961bce9c605074d74403dbb1d5d3b9815e4c1c188b6fe54db0c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ebb9f3dd62884522a3af24f7a29cb21a",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 83049,
+        "end": 84374,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1d3ec84a73c69e3a0d49a726c4cf16bf7af3acccc1c980b16e97b73c981685ca",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e9a2d26f144d42328538369c6ba23498",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 84374,
+        "end": 88372,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5cda77321423a092ebfbf35e2cce42392b0d5822c66c035e123ec637e3df13eb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-16e16c80fa4b49cfa4f1e87cbbefed29",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 88372,
+        "end": 92195,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e283425d9e581d43a8036aab6e5066dda6b0fb319b71fa78b2de56887b0f8386",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7fcc04330049432f90dfe41133897e68",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 92195,
+        "end": 105298,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1dc9315eaac55618af4aa3c3d2845079ae61626cf5310398feb36ab5540530ed",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ff094919695e49a097214dd5c66966ef",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 105298,
+        "end": 106695,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "de52c97d2fe683f528a14f1114a1da2b2496f1a0cdca48e9d395df5f464ce1ee",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d20e2672df604fa4bf3a509077b70f77",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 106695,
+        "end": 108979,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d53283141c687eee7ef2d06e1a25065e9f737ec0839671883ed53f62ff91bd00",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1c5da3c3bfc44344bc7fcc5edb557681",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 108979,
+        "end": 111263,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f9ec5952105b2e5ba1f140e2d004635eb8c2e30fd41032b4927e9000f6864623",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6585eec0737c46d9bb71cee063b271c6",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 111263,
+        "end": 115216,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3f7a124eb1f9c447d2d65c828401ccc1eedc821d9588cd7f7366b93fd4a109c5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7eb94fd198d148e4bb5cfdef951882b9",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 115216,
+        "end": 117139,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ea750b2b9f786e0f19f83d48dac930f39c3ad603f28061bbae4cdf370f63d0ae",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-66b581d95cf24162aad8d6f7923329c0",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 117139,
+        "end": 118027,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "afb04a817a5df20b264e33b993003409fc84385f46db57a323eecc1051cd489f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b8bd496b81cb427e8f2b0a46d3282fbb",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 118027,
+        "end": 119680,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "efef7bc54f5a0ee01f46f8c8f52f24da2f2793d3737c030ce4b22d56a1e59275",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-450151cb202c4b3b9ca2b5f1a17ff39d",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 119680,
+        "end": 128142,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "69e18ab2f0d1efe18ef3c406828f8fe74729e3d641720d5280e4d708ba5dca90",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4abaa714b98040b097ab074a77d206f0",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 128142,
+        "end": 130214,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5a2e433ef039e97fc9fdd4a3db62318b4fd76df13add6cc5b48553a464b7f36d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-575d1b891c974f72b1f07e8c3db2a887",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 130214,
+        "end": 137977,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "875ce6222a9ce0ed35f1f3b827e4b07ddd8fd4d3e693c57afb6614b33d013c66",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-760f98c0e31740cd99667f8863db3ceb",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 137977,
+        "end": 140621,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1a723390d37a8423885a6d84926b10b02cc6169c68ad53a9d71fccdb8e8d05a8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d49b747af5b646c7bf12674ca22f3e3b",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 140621,
+        "end": 147774,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "987ed1bd3bac7741cd7b2308f1e689afc6ae63ac870b50846d119d4437905ca1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6b2c7b3f248242338d42c23e702eadec",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "selector": {
+        "type": "text_position",
+        "start": 147774,
+        "end": 152290,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ebea5de13f4c1f0a981f5387a252068d013f61875c8dfc18b0351c49f6f5b55b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg009/tlg0086.tlg009.perseus-grc2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-d027bcaa73ed490dace74c7cf9112016",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a5db1de0d2b54609ba66f15ed8ecfa00"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e2ef21f3f8ef48e792e2441dd722387e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b8e482277a2c4c2ca9343f4b19a510dc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9406e65284c0469384d913598f7fe4e8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0772e65e39a04664b1f1515f406a802f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7f20eafb88d24cbda3f6ff31aa4e657c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-dcd0179603a446d29a652d4b5bb89e66"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7be035ace1f345c18855cecfb9bfef1a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9f30b6d4aed44f2eb12952d597261274"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f9b04f4be08f45f3ac51852ff9bc5439",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f674ca45d4c443f3836a03537600c996"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a5323ae325c0437c90ce813f31a40dc6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bc3eac9d4e554eaeb937273919ae6df3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-50677068f4124993b62116eb32185370",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-10694a6eb2e54ea48e48ae49b602753a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3b4828f0a1c4486983f86775cceda2be",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a738744ac6034cd99d0b3e0ac97234c5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-beefa23e922e41689485361c1a083ec7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-212f93951c0b4244b93a6dbda0fff4f5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d6fe31ee8fcf46a1b23ec8f45cee2e7e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e5da914483ef4e9bb6ac4caeef1be7a0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-99d3943cb7744131bae63139daf72749",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e70facdc505645afa1f983d61ab88718"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-84a71943bc794a9bbd5065479d10c3ac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-01c5a550647645c99e06151ed4b8bd73"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1cc61f00dbcd458285d109fbb62c7309",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7ad70003096744f5a4514724e4c2c63f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1775acbe37eb430797dac2bc76eba119",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9edf8d40240d4c3696fc839aa4899769"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2010179e42e148f396f48a5b06477c59",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-903704c79f45436cad95c82601241ba2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4d130f316d9b4e7aa9d46a4e4dcfffc6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-052bae626ccc426d8ddc56c3f719dbdf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4580340caf824041be881a91fb78ecd3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8de70d91f109498a9d9c6821d84bacdf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-87788a8b95d04be38d8f930bd9448bb6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4bad487525db434089275b35c3da6bb6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-23a01ec9f0ad45288e268633bdf8a6db",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-738b381ed7c946bc80e8b8a0e01918f8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ebb1afed20b443e7a3041dd0e1ec8f2c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-53df3732ab9f4ea081a00d0dc348ac26"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-997e4dd0a938481abad3c721a7363d5b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-521f07c7f8ac43ae9b869f225bf42429"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ecd78be9f6ae40278464060998d22ada",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3edc2d9460d145658294681f52730bde"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3fdf414ec3c8414fa7369ad1b0f21be8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3ecc7881c19848b5a35006bd5441a568"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-97b2caf543a646d1847286bcadc72671",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ebb9f3dd62884522a3af24f7a29cb21a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9fdd22b05f2e465e8f8ce891ca1eac40",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e9a2d26f144d42328538369c6ba23498"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-19f224792ce3440b94099a5c211323c8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-16e16c80fa4b49cfa4f1e87cbbefed29"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-52e0f8471dcb448fb1ef0cba9c731d85",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7fcc04330049432f90dfe41133897e68"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-81884975d6654c3ca14a84a7ff34fd8d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ff094919695e49a097214dd5c66966ef"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d5ed4c2a0ce04a10bdbe7de97949f8c9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d20e2672df604fa4bf3a509077b70f77"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e36549fce51d40a7a9807a098c173d9d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1c5da3c3bfc44344bc7fcc5edb557681"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ba6d509a00b94a40b3215b601272b534",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6585eec0737c46d9bb71cee063b271c6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4adfd5057295479d813fa33d013ed212",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7eb94fd198d148e4bb5cfdef951882b9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-886dcf5fe70f4e9799439982945c9209",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-66b581d95cf24162aad8d6f7923329c0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-11d327a8085d4c4fbd685678e558d3b2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b8bd496b81cb427e8f2b0a46d3282fbb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-178db4c5f4dc44d1a601b8bbc486dc02",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-450151cb202c4b3b9ca2b5f1a17ff39d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-31f8b04e904e4af8a845e5a3f9f3d4cb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4abaa714b98040b097ab074a77d206f0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ae297cf3418449cf82d705682f7f33ba",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-575d1b891c974f72b1f07e8c3db2a887"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-571c5a86fa8f49a286fc22893b2952e7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-760f98c0e31740cd99667f8863db3ceb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6521b98fc50a4df89f7a9b77577f9e8b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d49b747af5b646c7bf12674ca22f3e3b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4ff730c6a0ac471fa22d8058c083709e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6b2c7b3f248242338d42c23e702eadec"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-15a51dd331ca4617aa59aaf6d9119780",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-c5fefc107b4a4727972f6b13820e94d3",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-d027bcaa73ed490dace74c7cf9112016",
+        "tos.text-unit.sid-e2ef21f3f8ef48e792e2441dd722387e",
+        "tos.text-unit.sid-9406e65284c0469384d913598f7fe4e8",
+        "tos.text-unit.sid-7f20eafb88d24cbda3f6ff31aa4e657c",
+        "tos.text-unit.sid-7be035ace1f345c18855cecfb9bfef1a",
+        "tos.text-unit.sid-f9b04f4be08f45f3ac51852ff9bc5439",
+        "tos.text-unit.sid-a5323ae325c0437c90ce813f31a40dc6",
+        "tos.text-unit.sid-50677068f4124993b62116eb32185370",
+        "tos.text-unit.sid-3b4828f0a1c4486983f86775cceda2be",
+        "tos.text-unit.sid-beefa23e922e41689485361c1a083ec7",
+        "tos.text-unit.sid-d6fe31ee8fcf46a1b23ec8f45cee2e7e",
+        "tos.text-unit.sid-99d3943cb7744131bae63139daf72749",
+        "tos.text-unit.sid-84a71943bc794a9bbd5065479d10c3ac",
+        "tos.text-unit.sid-1cc61f00dbcd458285d109fbb62c7309",
+        "tos.text-unit.sid-1775acbe37eb430797dac2bc76eba119",
+        "tos.text-unit.sid-2010179e42e148f396f48a5b06477c59",
+        "tos.text-unit.sid-4d130f316d9b4e7aa9d46a4e4dcfffc6",
+        "tos.text-unit.sid-4580340caf824041be881a91fb78ecd3",
+        "tos.text-unit.sid-87788a8b95d04be38d8f930bd9448bb6",
+        "tos.text-unit.sid-23a01ec9f0ad45288e268633bdf8a6db",
+        "tos.text-unit.sid-ebb1afed20b443e7a3041dd0e1ec8f2c",
+        "tos.text-unit.sid-997e4dd0a938481abad3c721a7363d5b",
+        "tos.text-unit.sid-ecd78be9f6ae40278464060998d22ada",
+        "tos.text-unit.sid-3fdf414ec3c8414fa7369ad1b0f21be8",
+        "tos.text-unit.sid-97b2caf543a646d1847286bcadc72671",
+        "tos.text-unit.sid-9fdd22b05f2e465e8f8ce891ca1eac40",
+        "tos.text-unit.sid-19f224792ce3440b94099a5c211323c8",
+        "tos.text-unit.sid-52e0f8471dcb448fb1ef0cba9c731d85",
+        "tos.text-unit.sid-81884975d6654c3ca14a84a7ff34fd8d",
+        "tos.text-unit.sid-d5ed4c2a0ce04a10bdbe7de97949f8c9",
+        "tos.text-unit.sid-e36549fce51d40a7a9807a098c173d9d",
+        "tos.text-unit.sid-ba6d509a00b94a40b3215b601272b534",
+        "tos.text-unit.sid-4adfd5057295479d813fa33d013ed212",
+        "tos.text-unit.sid-886dcf5fe70f4e9799439982945c9209",
+        "tos.text-unit.sid-11d327a8085d4c4fbd685678e558d3b2",
+        "tos.text-unit.sid-178db4c5f4dc44d1a601b8bbc486dc02",
+        "tos.text-unit.sid-31f8b04e904e4af8a845e5a3f9f3d4cb",
+        "tos.text-unit.sid-ae297cf3418449cf82d705682f7f33ba",
+        "tos.text-unit.sid-571c5a86fa8f49a286fc22893b2952e7",
+        "tos.text-unit.sid-6521b98fc50a4df89f7a9b77577f9e8b",
+        "tos.text-unit.sid-4ff730c6a0ac471fa22d8058c083709e"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-18ca526946984239935e7ec7f1f5fcfb",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.eudemian-ethics-grc2-13af0a98be83.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

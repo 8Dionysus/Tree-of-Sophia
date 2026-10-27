@@ -1,5 +1,6 @@
 // Bounded source-supplied structure. The browser never infers a book's chapters
 // from paragraph ordinals, labels, or the shape of the graph.
+import {corpusSectionLabel} from '../observatory/human-presentation.mjs';
 export function mountCorpusContents({reader,provider,locale=()=> 'ru'}) {
   const root=reader.element;
   if(!root)throw new TypeError('Reader element is required.');
@@ -25,7 +26,7 @@ export function mountCorpusContents({reader,provider,locale=()=> 'ru'}) {
     if(page){
       const list=el('ol');list.className='cr-contents-list';
       for(const item of page.items){const row=el('li');row.style.paddingInlineStart=`${Math.min(item.level??0,6)*.6}rem`;
-        row.append(button(item.label,()=>{const address={documentId:page.documentId,versionId:page.versionId,unitId:item.unitId,revision:page.revision};close();void reader.open(address);}));list.append(row);}
+        row.append(button(corpusSectionLabel(item.label,locale(),page.versionId),()=>{const address={documentId:page.documentId,versionId:page.versionId,unitId:item.unitId,revision:page.revision};close();void reader.open(address);}));list.append(row);}
       panel.append(list);
       const controls=el('nav');controls.setAttribute('aria-label',words().title);
       const previous=button(words().back,()=>{const cursor=back.pop();void load(cursor,false);});previous.disabled=!back.length;

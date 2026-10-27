@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.metaphysics.metaphysics-grc2-d643d407fae3",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.metaphysics.metaphysics-grc2-d643d407fae3",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.3065c1c0856c96a52e52664de4fdecc175908edc1971f07f2ea9833cc1743f6b",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "metaphysics-grc2-d643d407fae3.json",
+      "media_type": "application/json",
+      "byte_size": 1575196,
+      "sha256": "3065c1c0856c96a52e52664de4fdecc175908edc1971f07f2ea9833cc1743f6b",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.11e5b6663bcde9db1896d0f69344677e95fcc6765512f117e30bf299a5bab25a",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 860721,
+      "sha256": "11e5b6663bcde9db1896d0f69344677e95fcc6765512f117e30bf299a5bab25a",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.metaphysics-grc2-d643d407fae3.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/metaphysics/expressions/retained-metaphysics-grc2-d643d407fae3/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/metaphysics/expressions/retained-metaphysics-grc2-d643d407fae3/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/metaphysics/expressions/retained-metaphysics-grc2-d643d407fae3/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/metaphysics/expressions/retained-metaphysics-grc2-d643d407fae3/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/metaphysics/expressions/retained-metaphysics-grc2-d643d407fae3/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

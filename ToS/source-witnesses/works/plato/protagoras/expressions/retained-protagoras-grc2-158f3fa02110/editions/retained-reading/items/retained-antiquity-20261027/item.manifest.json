@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.protagoras.protagoras-grc2-158f3fa02110",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.protagoras.protagoras-grc2-158f3fa02110",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.17f080687b2a7147c1d8c06d748aed29b5667f77b5dbb1bc42f9ac8e34275103",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "protagoras-grc2-158f3fa02110.json",
+      "media_type": "application/json",
+      "byte_size": 443091,
+      "sha256": "17f080687b2a7147c1d8c06d748aed29b5667f77b5dbb1bc42f9ac8e34275103",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.01986b67ab58b596fa443afd26da83dcf5043f7b1d975d3d461d2760c49e6d60",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 206907,
+      "sha256": "01986b67ab58b596fa443afd26da83dcf5043f7b1d975d3d461d2760c49e6d60",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.protagoras-grc2-158f3fa02110.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-grc2-158f3fa02110/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-grc2-158f3fa02110/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-grc2-158f3fa02110/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-grc2-158f3fa02110/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/protagoras/expressions/retained-protagoras-grc2-158f3fa02110/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.sacred-disease.sacred-disease-eng2-b8ea5e9ced0b",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/sacred-disease-eng2-b8ea5e9ced0b.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-eng2.xml",
+    "file_ref": "tos.file.sha256.55ef363bf818bf609486a24969803e6be7aca70641ee08bde95a5e218dcbed66",
+    "byte_size": 39629,
+    "sha256": "55ef363bf818bf609486a24969803e6be7aca70641ee08bde95a5e218dcbed66"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=sacred-disease-eng2-b8ea5e9ced0b",
+    "record_sha256": "9081d4d0aef18b883435bd163e4740a787a86ceeabf81dabc361fba23764af2e",
+    "record": {
+      "id": "sacred-disease-eng2-b8ea5e9ced0b",
+      "language": "en",
+      "title": "Английский · Фрэнсис Адамс",
+      "credit": "Перевод: Фрэнсис Адамс",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-eng2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "The Genuine Works of Hippocrates"
+        ],
+        "dates": [
+          "1886"
+        ],
+        "places": [
+          "New York"
+        ],
+        "publishers": [
+          "William Wood and Company"
+        ],
+        "scans": [
+          "https://babel.hathitrust.org/cgi/pt?id=uc1.b4034265&seq=344"
+        ],
+        "authors": [
+          "Hippocrates"
+        ],
+        "editors": [
+          {
+            "name": "Francis Adams",
+            "role": "translator"
+          }
+        ]
+      },
+      "item": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-eng2.xml",
+      "file": "sha256:b8ea5e9ced0b2af0bb9eea2ad4fc304aff4e3e9a18165cdb5bb4ee30287d4560",
+      "sha256": "b8ea5e9ced0b2af0bb9eea2ad4fc304aff4e3e9a18165cdb5bb4ee30287d4560",
+      "representationSha256": "1fc55e978d10c11661bc920240c6756689ff951e5d7cd814f83590af787db4ca",
+      "sourceRef": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-eng2.xml",
+      "sectionCount": 18
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "sacred-disease-eng2-b8ea5e9ced0b",
+    "legacy_source_sha256_claim": "b8ea5e9ced0b2af0bb9eea2ad4fc304aff4e3e9a18165cdb5bb4ee30287d4560",
+    "legacy_representation_sha256_claim": "1fc55e978d10c11661bc920240c6756689ff951e5d7cd814f83590af787db4ca",
+    "retained_json_payload_sha256": "55ef363bf818bf609486a24969803e6be7aca70641ee08bde95a5e218dcbed66",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "On the Sacred Disease",
+      "The Genuine Works of Hippocrates"
+    ],
+    "authors": [
+      "Hippocrates"
+    ],
+    "editors_or_translators": [
+      "Francis Adams"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.sacred-disease",
+    "expression_ref": "tos.expression.retained.antiquity.sacred-disease.sacred-disease-eng2-b8ea5e9ced0b",
+    "edition_ref": "tos.edition.retained.antiquity.sacred-disease.sacred-disease-eng2-b8ea5e9ced0b",
+    "legacy_book_title": "О священной болезни",
+    "legacy_credit": "Перевод: Фрэнсис Адамс",
+    "publication": {
+      "titles": [
+        "The Genuine Works of Hippocrates"
+      ],
+      "dates": [
+        "1886"
+      ],
+      "places": [
+        "New York"
+      ],
+      "publishers": [
+        "William Wood and Company"
+      ],
+      "scans": [
+        "https://babel.hathitrust.org/cgi/pt?id=uc1.b4034265&seq=344"
+      ],
+      "authors": [
+        "Hippocrates"
+      ],
+      "editors": [
+        {
+          "name": "Francis Adams",
+          "role": "translator"
+        }
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-eng2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/01b725d835e6e733062ffd79e0efdbae1ba06e5c/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 18,
+    "block_count": 21,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

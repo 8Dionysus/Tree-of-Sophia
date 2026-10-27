@@ -1,11 +1,60 @@
 {
   "schema_version": "tos_public_corpus_snapshot_v1",
-  "revision": "e7214cd6ac92fb0497587e916c043a931e0bc56a907427c43df2a853b938bcc5",
+  "revision": "5519804c4505022b9083de8b43aa53db0fdae45482884810472fb0fa82f0c8dd",
   "profiles": {
     "zarathustra": {
       "label": "Заратустра",
       "documentIds": [
-        "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "tos.work.plato.meno",
+        "tos.work.aristotle.nicomachean-ethics",
+        "tos.work.plato.apology",
+        "tos.work.retained-antiquity.crito",
+        "tos.work.retained-antiquity.symposium",
+        "tos.work.retained-antiquity.phaedo",
+        "tos.work.retained-antiquity.republic",
+        "tos.work.retained-antiquity.phaedrus",
+        "tos.work.retained-antiquity.gorgias",
+        "tos.work.retained-antiquity.theaetetus",
+        "tos.work.retained-antiquity.sophist",
+        "tos.work.retained-antiquity.parmenides",
+        "tos.work.retained-antiquity.timaeus",
+        "tos.work.retained-antiquity.protagoras",
+        "tos.work.retained-antiquity.philebus",
+        "tos.work.retained-antiquity.laws",
+        "tos.work.retained-antiquity.euthyphro",
+        "tos.work.retained-antiquity.laches",
+        "tos.work.retained-antiquity.lysis",
+        "tos.work.retained-antiquity.cratylus",
+        "tos.work.retained-antiquity.ion",
+        "tos.work.retained-antiquity.poetics",
+        "tos.work.retained-antiquity.metaphysics",
+        "tos.work.retained-antiquity.politics",
+        "tos.work.retained-antiquity.rhetoric",
+        "tos.work.retained-antiquity.eudemian-ethics",
+        "tos.work.retained-antiquity.athenian-constitution",
+        "tos.work.retained-antiquity.economics",
+        "tos.work.retained-antiquity.enchiridion",
+        "tos.work.retained-antiquity.discourses",
+        "tos.work.retained-antiquity.meditations",
+        "tos.work.retained-antiquity.on-nature",
+        "tos.work.retained-antiquity.lives",
+        "tos.work.retained-antiquity.de-beneficiis",
+        "tos.work.retained-antiquity.de-clementia",
+        "tos.work.retained-antiquity.academica",
+        "tos.work.retained-antiquity.de-amicitia",
+        "tos.work.retained-antiquity.de-fato",
+        "tos.work.retained-antiquity.de-finibus-bonorum-et-malorum",
+        "tos.work.retained-antiquity.de-natura-deorum",
+        "tos.work.retained-antiquity.de-officiis",
+        "tos.work.retained-antiquity.adversus-coloten",
+        "tos.work.retained-antiquity.de-stoicorum-repugnantiis",
+        "tos.work.retained-antiquity.de-virtute-morali",
+        "tos.work.retained-antiquity.lucullus",
+        "tos.work.retained-antiquity.ancient-medicine",
+        "tos.work.retained-antiquity.sacred-disease",
+        "tos.work.retained-antiquity.isagoge",
+        "tos.work.retained-antiquity.enneads"
       ],
       "initialDocumentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.zarathustra.v1.json",
@@ -192,9 +241,56 @@
     "antiquity": {
       "label": "Античность",
       "documentIds": [
+        "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
         "tos.work.plato.meno",
         "tos.work.aristotle.nicomachean-ethics",
-        "tos.work.plato.apology"
+        "tos.work.plato.apology",
+        "tos.work.retained-antiquity.crito",
+        "tos.work.retained-antiquity.symposium",
+        "tos.work.retained-antiquity.phaedo",
+        "tos.work.retained-antiquity.republic",
+        "tos.work.retained-antiquity.phaedrus",
+        "tos.work.retained-antiquity.gorgias",
+        "tos.work.retained-antiquity.theaetetus",
+        "tos.work.retained-antiquity.sophist",
+        "tos.work.retained-antiquity.parmenides",
+        "tos.work.retained-antiquity.timaeus",
+        "tos.work.retained-antiquity.protagoras",
+        "tos.work.retained-antiquity.philebus",
+        "tos.work.retained-antiquity.laws",
+        "tos.work.retained-antiquity.euthyphro",
+        "tos.work.retained-antiquity.laches",
+        "tos.work.retained-antiquity.lysis",
+        "tos.work.retained-antiquity.cratylus",
+        "tos.work.retained-antiquity.ion",
+        "tos.work.retained-antiquity.poetics",
+        "tos.work.retained-antiquity.metaphysics",
+        "tos.work.retained-antiquity.politics",
+        "tos.work.retained-antiquity.rhetoric",
+        "tos.work.retained-antiquity.eudemian-ethics",
+        "tos.work.retained-antiquity.athenian-constitution",
+        "tos.work.retained-antiquity.economics",
+        "tos.work.retained-antiquity.enchiridion",
+        "tos.work.retained-antiquity.discourses",
+        "tos.work.retained-antiquity.meditations",
+        "tos.work.retained-antiquity.on-nature",
+        "tos.work.retained-antiquity.lives",
+        "tos.work.retained-antiquity.de-beneficiis",
+        "tos.work.retained-antiquity.de-clementia",
+        "tos.work.retained-antiquity.academica",
+        "tos.work.retained-antiquity.de-amicitia",
+        "tos.work.retained-antiquity.de-fato",
+        "tos.work.retained-antiquity.de-finibus-bonorum-et-malorum",
+        "tos.work.retained-antiquity.de-natura-deorum",
+        "tos.work.retained-antiquity.de-officiis",
+        "tos.work.retained-antiquity.adversus-coloten",
+        "tos.work.retained-antiquity.de-stoicorum-repugnantiis",
+        "tos.work.retained-antiquity.de-virtute-morali",
+        "tos.work.retained-antiquity.lucullus",
+        "tos.work.retained-antiquity.ancient-medicine",
+        "tos.work.retained-antiquity.sacred-disease",
+        "tos.work.retained-antiquity.isagoge",
+        "tos.work.retained-antiquity.enneads"
       ],
       "initialDocumentId": "tos.work.plato.meno",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.antiquity.v1.json",
@@ -377,9 +473,9 @@
       "title": "Менон",
       "author": "Plato",
       "manifest": {
-        "path": "documents/ce31d47d4f0a954b286107928383a22dfba588e45adae7c919fc5fe2e30cdf61.json",
-        "sha256": "ce31d47d4f0a954b286107928383a22dfba588e45adae7c919fc5fe2e30cdf61",
-        "bytes": 18801
+        "path": "documents/a916010a45527397f52fcf849cd6a02b1b19fb585b974dd3c5003b80618d2b57.json",
+        "sha256": "a916010a45527397f52fcf849cd6a02b1b19fb585b974dd3c5003b80618d2b57",
+        "bytes": 37152
       }
     },
     {
@@ -387,9 +483,9 @@
       "title": "Никомахова этика",
       "author": "Aristotle",
       "manifest": {
-        "path": "documents/38bd6bb15dad81a1ca3b429af453038c01b79a5eed75862d9bcaca7d75633f66.json",
-        "sha256": "38bd6bb15dad81a1ca3b429af453038c01b79a5eed75862d9bcaca7d75633f66",
-        "bytes": 303533
+        "path": "documents/b620c197b31800aede77dd72d3435a2c6fa9cfd713a3cb6c00b4c85277258b85.json",
+        "sha256": "b620c197b31800aede77dd72d3435a2c6fa9cfd713a3cb6c00b4c85277258b85",
+        "bytes": 367669
       }
     },
     {
@@ -397,9 +493,469 @@
       "title": "Апология Сократа",
       "author": "Plato",
       "manifest": {
-        "path": "documents/a17aef6ca8a91711d1368d1e95a5810d35cc1aca5ac4f280446ea89aedbaab4f.json",
-        "sha256": "a17aef6ca8a91711d1368d1e95a5810d35cc1aca5ac4f280446ea89aedbaab4f",
-        "bytes": 8114
+        "path": "documents/c8aa8d331b70b232ef0234d964e061cd78af08575fcfbc6030f740bb21b1bca1.json",
+        "sha256": "c8aa8d331b70b232ef0234d964e061cd78af08575fcfbc6030f740bb21b1bca1",
+        "bytes": 28790
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.crito",
+      "title": "Критон",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/a533106f975ebb92aa8df136eb22ff0ceab43bc46c074933fc30a8ee7cd999ca.json",
+        "sha256": "a533106f975ebb92aa8df136eb22ff0ceab43bc46c074933fc30a8ee7cd999ca",
+        "bytes": 13710
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.symposium",
+      "title": "Пир",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/32311a5ae1d1d902ff9c8287b5cd0cd5282d5923e56e20a3b877958c01caa5c7.json",
+        "sha256": "32311a5ae1d1d902ff9c8287b5cd0cd5282d5923e56e20a3b877958c01caa5c7",
+        "bytes": 29165
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.phaedo",
+      "title": "Федон",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/a89cd008499b6e0bfde28bf96cfcf216982ab0fc2b3d0020f523d5e202123034.json",
+        "sha256": "a89cd008499b6e0bfde28bf96cfcf216982ab0fc2b3d0020f523d5e202123034",
+        "bytes": 33830
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.republic",
+      "title": "Государство",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/70bc50553d600ddc15bc3689979ef9e80660fc75915176d008ddfffd697b7d2d.json",
+        "sha256": "70bc50553d600ddc15bc3689979ef9e80660fc75915176d008ddfffd697b7d2d",
+        "bytes": 149470
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.phaedrus",
+      "title": "Федр",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/60eb14b1f7f3739423ddcb04a83532b04bc709cd5604767f1319f29cda459fad.json",
+        "sha256": "60eb14b1f7f3739423ddcb04a83532b04bc709cd5604767f1319f29cda459fad",
+        "bytes": 29618
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.gorgias",
+      "title": "Горгий",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/dfc3233acb641375ac13c8a89ba0d37b78eee8373f7bec5cbfd0ccb24b1d7060.json",
+        "sha256": "dfc3233acb641375ac13c8a89ba0d37b78eee8373f7bec5cbfd0ccb24b1d7060",
+        "bytes": 43517
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.theaetetus",
+      "title": "Теэтет",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/dd81cc2efce14a7e3728e784a07662f544b9ef386be98170ec4be3931df78e1c.json",
+        "sha256": "dd81cc2efce14a7e3728e784a07662f544b9ef386be98170ec4be3931df78e1c",
+        "bytes": 37409
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.sophist",
+      "title": "Софист",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/5e7b1693ba9913a672bc82eeda8e58412f86ad7b16a5940043b796d74063fb74.json",
+        "sha256": "5e7b1693ba9913a672bc82eeda8e58412f86ad7b16a5940043b796d74063fb74",
+        "bytes": 29633
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.parmenides",
+      "title": "Парменид",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/2b0ec5cb11526e1df56dc5b9383e80c8b8e34cd26310c7ec2657363871622516.json",
+        "sha256": "2b0ec5cb11526e1df56dc5b9383e80c8b8e34cd26310c7ec2657363871622516",
+        "bytes": 23880
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.timaeus",
+      "title": "Тимей",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/1073cc47e0f118c0a17ba5e31c1c2b996227f290fecb26db819a59dddb34332a.json",
+        "sha256": "1073cc47e0f118c0a17ba5e31c1c2b996227f290fecb26db819a59dddb34332a",
+        "bytes": 40533
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.protagoras",
+      "title": "Протагор",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/167afa88cbb12da4c971393026d4bf6459041d8bbc87d0289ce11d5d448131bb.json",
+        "sha256": "167afa88cbb12da4c971393026d4bf6459041d8bbc87d0289ce11d5d448131bb",
+        "bytes": 30160
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.philebus",
+      "title": "Филеб",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/f81d1256c46e13ef2c3ccceea88a8714c6a6f2ef050119e4b680c2a912391450.json",
+        "sha256": "f81d1256c46e13ef2c3ccceea88a8714c6a6f2ef050119e4b680c2a912391450",
+        "bytes": 31434
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.laws",
+      "title": "Законы",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/948f9c9fa3291d60072ab7ffef37b6e74816f0f7bdd8d12169803a88a01128ce.json",
+        "sha256": "948f9c9fa3291d60072ab7ffef37b6e74816f0f7bdd8d12169803a88a01128ce",
+        "bytes": 175600
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.euthyphro",
+      "title": "Евтифрон",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/84012aba77670800e1b92fb5f9fcdc7710ca55ecb12564f1e723e9ecc7a28fd2.json",
+        "sha256": "84012aba77670800e1b92fb5f9fcdc7710ca55ecb12564f1e723e9ecc7a28fd2",
+        "bytes": 10871
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.laches",
+      "title": "Лахет",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/5520655aed51dd070810a77b4fffd4d3c3725dc6e2681d5c36ace477fe02cb93.json",
+        "sha256": "5520655aed51dd070810a77b4fffd4d3c3725dc6e2681d5c36ace477fe02cb93",
+        "bytes": 15196
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.lysis",
+      "title": "Лисид",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/14ae3369857bfc522e028eebdb1d8bc6e28d2f104348aee222732a61f64a2a82.json",
+        "sha256": "14ae3369857bfc522e028eebdb1d8bc6e28d2f104348aee222732a61f64a2a82",
+        "bytes": 13729
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.cratylus",
+      "title": "Кратил",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/db00caa89849f6a80aa841b90d707a941e04ac8616a088f2d9ecebc4ad80f188.json",
+        "sha256": "db00caa89849f6a80aa841b90d707a941e04ac8616a088f2d9ecebc4ad80f188",
+        "bytes": 32032
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.ion",
+      "title": "Ион",
+      "author": "Plato",
+      "manifest": {
+        "path": "documents/9c3e056dd81398f38551adbe789741d4e0fce6a631946a358bd92b7031a29401.json",
+        "sha256": "9c3e056dd81398f38551adbe789741d4e0fce6a631946a358bd92b7031a29401",
+        "bytes": 9828
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.poetics",
+      "title": "Поэтика",
+      "author": "Aristotle",
+      "manifest": {
+        "path": "documents/9a7f8730ad0d1de928625b7e33c81c57e2532d2084e5535ecacb1a12e632d92b.json",
+        "sha256": "9a7f8730ad0d1de928625b7e33c81c57e2532d2084e5535ecacb1a12e632d92b",
+        "bytes": 16764
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.metaphysics",
+      "title": "Метафизика",
+      "author": "Aristotle",
+      "manifest": {
+        "path": "documents/5e33be88bd365183fdce6600501f8c09710b3c3e09f6ba45db09c1edb9ddaaad.json",
+        "sha256": "5e33be88bd365183fdce6600501f8c09710b3c3e09f6ba45db09c1edb9ddaaad",
+        "bytes": 78248
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.politics",
+      "title": "Политика",
+      "author": "Aristotle",
+      "manifest": {
+        "path": "documents/6ca37d0865900eabf8b997c4598d307ae7e2c7f8fdbc122051f092a0cde6c90d.json",
+        "sha256": "6ca37d0865900eabf8b997c4598d307ae7e2c7f8fdbc122051f092a0cde6c90d",
+        "bytes": 108332
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.rhetoric",
+      "title": "Риторика",
+      "author": "Aristotle",
+      "manifest": {
+        "path": "documents/6475c7281628772267ca4d61d5b6c527f52ddedf6ac8f8fdaf8b4c3eed7570c5.json",
+        "sha256": "6475c7281628772267ca4d61d5b6c527f52ddedf6ac8f8fdaf8b4c3eed7570c5",
+        "bytes": 36098
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.eudemian-ethics",
+      "title": "Евдемова этика",
+      "author": "Aristotle",
+      "manifest": {
+        "path": "documents/84966f4f504f98d61cb998b1b64dd02613dd1e887dfefd4c050b031f8918fd97.json",
+        "sha256": "84966f4f504f98d61cb998b1b64dd02613dd1e887dfefd4c050b031f8918fd97",
+        "bytes": 25410
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.athenian-constitution",
+      "title": "Афинская полития",
+      "author": "Aristotle",
+      "manifest": {
+        "path": "documents/e9b9acf5dbe5f98ca0e24b6f70c87c04dd9428cbc44c55cce2c06aef6740f25c.json",
+        "sha256": "e9b9acf5dbe5f98ca0e24b6f70c87c04dd9428cbc44c55cce2c06aef6740f25c",
+        "bytes": 19951
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.economics",
+      "title": "Экономика",
+      "author": "Aristotle",
+      "manifest": {
+        "path": "documents/366f1b08e98e4b1babbd810ebf83c97367850c0298103c6ac872a3d5b8e67718.json",
+        "sha256": "366f1b08e98e4b1babbd810ebf83c97367850c0298103c6ac872a3d5b8e67718",
+        "bytes": 7894
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.enchiridion",
+      "title": "Руководство",
+      "author": "Epictetus",
+      "manifest": {
+        "path": "documents/49e89cca1ba84f219198498f120992b758353a80c22d1339dafc65ba844b70bd.json",
+        "sha256": "49e89cca1ba84f219198498f120992b758353a80c22d1339dafc65ba844b70bd",
+        "bytes": 48909
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.discourses",
+      "title": "Беседы",
+      "author": "Epictetus",
+      "manifest": {
+        "path": "documents/3615c07037f8f9fb024969914d5509436c3c372f62fdcdd57cf951e34b1c745c.json",
+        "sha256": "3615c07037f8f9fb024969914d5509436c3c372f62fdcdd57cf951e34b1c745c",
+        "bytes": 84314
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.meditations",
+      "title": "К самому себе",
+      "author": "Marcus Aurelius",
+      "manifest": {
+        "path": "documents/e2d502a51436cdcd40b18e318b214604c78fff82b5e12a27f9fdddb8f3c6cfce.json",
+        "sha256": "e2d502a51436cdcd40b18e318b214604c78fff82b5e12a27f9fdddb8f3c6cfce",
+        "bytes": 134678
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.on-nature",
+      "title": "О природе вещей",
+      "author": "Lucretius",
+      "manifest": {
+        "path": "documents/a29d2725ad67a742c0cdf8af3fb918b62b42ef9e9ae22319faf7cc5d1f809943.json",
+        "sha256": "a29d2725ad67a742c0cdf8af3fb918b62b42ef9e9ae22319faf7cc5d1f809943",
+        "bytes": 123292
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.lives",
+      "title": "О жизни, учениях и изречениях знаменитых философов",
+      "author": "Diogenes Laertius",
+      "manifest": {
+        "path": "documents/455010fca7d639c41f6826a6c488b44777021432d3cbaa2f282b7e64de7f6fca.json",
+        "sha256": "455010fca7d639c41f6826a6c488b44777021432d3cbaa2f282b7e64de7f6fca",
+        "bytes": 50765
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-beneficiis",
+      "title": "О благодеяниях",
+      "author": "Seneca",
+      "manifest": {
+        "path": "documents/a7ea5e8d38b11196fe56f26c2d1ffe76002240e2089b8f51044812f654a385b4.json",
+        "sha256": "a7ea5e8d38b11196fe56f26c2d1ffe76002240e2089b8f51044812f654a385b4",
+        "bytes": 63928
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-clementia",
+      "title": "О милосердии",
+      "author": "Seneca",
+      "manifest": {
+        "path": "documents/a43b90239382b1f0faf460ff1a0882a1ae3003b0ca9a49ed9a0aeba55b058a6e.json",
+        "sha256": "a43b90239382b1f0faf460ff1a0882a1ae3003b0ca9a49ed9a0aeba55b058a6e",
+        "bytes": 10726
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.academica",
+      "title": "Академические исследования",
+      "author": "Cicero",
+      "manifest": {
+        "path": "documents/1800b7a1da7571031b19673ff38faa2334deb3a9b5a97153a382b6cb3cf0751a.json",
+        "sha256": "1800b7a1da7571031b19673ff38faa2334deb3a9b5a97153a382b6cb3cf0751a",
+        "bytes": 20795
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-amicitia",
+      "title": "О дружбе",
+      "author": "Cicero",
+      "manifest": {
+        "path": "documents/831b283de3fc1d1474bfdefc998c304a01a49e1f11b035bcb6e00e59a7e8fa86.json",
+        "sha256": "831b283de3fc1d1474bfdefc998c304a01a49e1f11b035bcb6e00e59a7e8fa86",
+        "bytes": 55015
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-fato",
+      "title": "О судьбе",
+      "author": "Cicero",
+      "manifest": {
+        "path": "documents/9553354aa04dc56b1debdcba9ec1289fe44b12bc77552292a95069a0e5907786.json",
+        "sha256": "9553354aa04dc56b1debdcba9ec1289fe44b12bc77552292a95069a0e5907786",
+        "bytes": 13773
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-finibus-bonorum-et-malorum",
+      "title": "О пределах блага и зла",
+      "author": "Cicero",
+      "manifest": {
+        "path": "documents/bc77f6968276a0796d9529c03c6d5b4c53d8e39e3482f0a26da82c3e6e6e6aec.json",
+        "sha256": "bc77f6968276a0796d9529c03c6d5b4c53d8e39e3482f0a26da82c3e6e6e6aec",
+        "bytes": 119093
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-natura-deorum",
+      "title": "О природе богов",
+      "author": "Cicero",
+      "manifest": {
+        "path": "documents/ebd47e5333eb6928ee5b26238937054a1d5c0c7439cbd09604f53f24a15271fc.json",
+        "sha256": "ebd47e5333eb6928ee5b26238937054a1d5c0c7439cbd09604f53f24a15271fc",
+        "bytes": 104129
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-officiis",
+      "title": "Об обязанностях",
+      "author": "Cicero",
+      "manifest": {
+        "path": "documents/3f6f5f89a5d4291e71fb60d4adfdb64c504ab697674812468a02c8d549919082.json",
+        "sha256": "3f6f5f89a5d4291e71fb60d4adfdb64c504ab697674812468a02c8d549919082",
+        "bytes": 103083
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.adversus-coloten",
+      "title": "Против Колота",
+      "author": "Plutarch",
+      "manifest": {
+        "path": "documents/d142185017ad4dd3de539d2beb780e0d42f6847b3bc1d5926342390f6a1b78e9.json",
+        "sha256": "d142185017ad4dd3de539d2beb780e0d42f6847b3bc1d5926342390f6a1b78e9",
+        "bytes": 20295
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-stoicorum-repugnantiis",
+      "title": "О противоречиях стоиков",
+      "author": "Plutarch",
+      "manifest": {
+        "path": "documents/b26c877117517f3308c29fc9169182feeebe9d5dfd2031c968011d22fa8d7830.json",
+        "sha256": "b26c877117517f3308c29fc9169182feeebe9d5dfd2031c968011d22fa8d7830",
+        "bytes": 27214
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.de-virtute-morali",
+      "title": "О нравственной добродетели",
+      "author": "Plutarch",
+      "manifest": {
+        "path": "documents/4a8a3c150a58d120139257812dcbe7557b2d027ba61af7bc13d04174df3942f3.json",
+        "sha256": "4a8a3c150a58d120139257812dcbe7557b2d027ba61af7bc13d04174df3942f3",
+        "bytes": 14698
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.lucullus",
+      "title": "Лукулл",
+      "author": "Cicero",
+      "manifest": {
+        "path": "documents/55b776ffd2f5fdd647fd4584109e60a8a706c327ad7b9b7e51d01d15a241eb1e.json",
+        "sha256": "55b776ffd2f5fdd647fd4584109e60a8a706c327ad7b9b7e51d01d15a241eb1e",
+        "bytes": 38436
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.ancient-medicine",
+      "title": "О древней медицине",
+      "author": "Hippocratic corpus",
+      "manifest": {
+        "path": "documents/fcd93314e29582a9d4570b1059352ebc8867164ff74d69fb549b88ea799a7634.json",
+        "sha256": "fcd93314e29582a9d4570b1059352ebc8867164ff74d69fb549b88ea799a7634",
+        "bytes": 15510
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.sacred-disease",
+      "title": "О священной болезни",
+      "author": "Hippocratic corpus",
+      "manifest": {
+        "path": "documents/0b7839b8ae869c73f9a695475a41778bbce8746bbd35c0427a875a66d0789665.json",
+        "sha256": "0b7839b8ae869c73f9a695475a41778bbce8746bbd35c0427a875a66d0789665",
+        "bytes": 12576
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.isagoge",
+      "title": "Введение (Isagoge)",
+      "author": "Porphyry",
+      "manifest": {
+        "path": "documents/84f7d8623a44ce811fd7f488586170eccf12b80e3440967efd829120e9470a91.json",
+        "sha256": "84f7d8623a44ce811fd7f488586170eccf12b80e3440967efd829120e9470a91",
+        "bytes": 4604
+      }
+    },
+    {
+      "id": "tos.work.retained-antiquity.enneads",
+      "title": "Эннеады",
+      "author": "Plotinus",
+      "manifest": {
+        "path": "documents/95bfe95fc273304df668fdf058bf760a35054e75d078fd4a25f0cca7a0c9f5fa.json",
+        "sha256": "95bfe95fc273304df668fdf058bf760a35054e75d078fd4a25f0cca7a0c9f5fa",
+        "bytes": 19605
       }
     }
   ]

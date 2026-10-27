@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.poetics.poetics-grc2-ae13b91f8ddc",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.poetics.poetics-grc2-ae13b91f8ddc",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.583bc55ecaa436e912f3d1cd7ad3bf3708416a48c544bdc80816fa6e5f6f93bd",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "poetics-grc2-ae13b91f8ddc.json",
+      "media_type": "application/json",
+      "byte_size": 197784,
+      "sha256": "583bc55ecaa436e912f3d1cd7ad3bf3708416a48c544bdc80816fa6e5f6f93bd",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.85b3aa54cda4707e618bf94d5f1a20809c0f0d4fa55e65364408058a0cb57bf9",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 118527,
+      "sha256": "85b3aa54cda4707e618bf94d5f1a20809c0f0d4fa55e65364408058a0cb57bf9",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.poetics-grc2-ae13b91f8ddc.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-grc2-ae13b91f8ddc/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-grc2-ae13b91f8ddc/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-grc2-ae13b91f8ddc/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-grc2-ae13b91f8ddc/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/poetics/expressions/retained-poetics-grc2-ae13b91f8ddc/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.retained-antiquity.de-amicitia.de-amicitia-eng2-6a03bcb9876b.20261027",
+  "scope_refs": [
+    "tos.item.retained.antiquity.de-amicitia.de-amicitia-eng2-6a03bcb9876b",
+    "tos.file.sha256.cc1014dffac34c987eb43ae842263a3db06df680f5b359cfd8cd462ed9964ff6",
+    "tos.file.sha256.db436dfa2a4342930060a5fc50405312bda2e6025dfb0403645b9d8d3b7fbb1e"
+  ],
+  "assessment_status": "licensed",
+  "jurisdictions_reviewed": [
+    "US"
+  ],
+  "source_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "permissions": [
+    "Attribution: Perseus Digital Library · Tufts University",
+    "Free public reading and adaptation under https://creativecommons.org/licenses/by-sa/4.0/",
+    "Perseus repository guidance asks users to offer modifications upstream; no upstream submission was made."
+  ],
+  "restrictions": [
+    "Give attribution, link the license, and indicate changes.",
+    "Distribute adaptations under the same CC BY-SA 4.0 license.",
+    "Mark the retained JSON to public reading-layer derivation.",
+    "No transcription, linguistic, semantic, canon or human-review claim."
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "codex.retained-antiquity-publication.20261027"
+  },
+  "assessed_at": "2026-10-27T06:31:44+00:00",
+  "rationale": "The exact legacy catalog version row carries CC BY-SA 4.0 and is included with its digest in the source metadata snapshot; the fixed source/header record is preserved in the exact retained JSON payload. This item is that retained JSON plus a separately hashed reader layer; the legacy raw-source digest is not represented as the JSON payload digest. Publication carries attribution, source and license routes. The reading layer is not a scholarly or human acceptance.",
+  "review_status": "unreviewed",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "record_version": 1
+}

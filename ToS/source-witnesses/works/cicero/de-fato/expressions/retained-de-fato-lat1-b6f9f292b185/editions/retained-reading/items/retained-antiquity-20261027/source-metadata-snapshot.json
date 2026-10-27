@@ -1,0 +1,109 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-fato.de-fato-lat1-b6f9f292b185",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-fato-lat1-b6f9f292b185.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi054/phi0474.phi054.perseus-lat1.xml",
+    "file_ref": "tos.file.sha256.714ebe37a1b4a9cefd50fc966739ee9ecb42fcad620580763e3455016a1d2ad0",
+    "byte_size": 62030,
+    "sha256": "714ebe37a1b4a9cefd50fc966739ee9ecb42fcad620580763e3455016a1d2ad0"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-fato-lat1-b6f9f292b185",
+    "record_sha256": "d533a68a0b528cf0c301af860af368c1819b33dabaf311ee2a89c01c4920f62a",
+    "record": {
+      "id": "de-fato-lat1-b6f9f292b185",
+      "language": "la",
+      "title": "Латинский · Карл Фридрих Вильгельм Мюллер",
+      "credit": "Издание: Карл Фридрих Вильгельм Мюллер",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi054/phi0474.phi054.perseus-lat1.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "De Fato"
+        ],
+        "dates": [
+          "1915"
+        ],
+        "places": [
+          "Leipzig"
+        ],
+        "publishers": [
+          "Teubner"
+        ],
+        "scans": []
+      },
+      "item": "tos.item.cicero.de-fato.la-perseus-phi0474-phi054.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.b6f9f292b185e249928f351ae36e8083153e35a284d928b254312dd165f99b78",
+      "sha256": "b6f9f292b185e249928f351ae36e8083153e35a284d928b254312dd165f99b78",
+      "representationSha256": "80bb56120facc8d960005348be4c992f6fd824180839a18eb1cb52ba2ea1d570",
+      "sourceRef": "ToS/source-witnesses/works/cicero/de-fato/expressions/la-perseus-phi0474-phi054/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi054.perseus-lat1.xml",
+      "sectionCount": 48
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-fato-lat1-b6f9f292b185",
+    "legacy_source_sha256_claim": "b6f9f292b185e249928f351ae36e8083153e35a284d928b254312dd165f99b78",
+    "legacy_representation_sha256_claim": "80bb56120facc8d960005348be4c992f6fd824180839a18eb1cb52ba2ea1d570",
+    "retained_json_payload_sha256": "714ebe37a1b4a9cefd50fc966739ee9ecb42fcad620580763e3455016a1d2ad0",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "De Fato"
+    ],
+    "authors": [
+      "M. Tullius Cicero"
+    ],
+    "editors_or_translators": [
+      "Carl Friedrich Wilhelm Müller"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-fato",
+    "expression_ref": "tos.expression.retained.antiquity.de-fato.de-fato-lat1-b6f9f292b185",
+    "edition_ref": "tos.edition.retained.antiquity.de-fato.de-fato-lat1-b6f9f292b185",
+    "legacy_book_title": "О судьбе",
+    "legacy_credit": "Издание: Карл Фридрих Вильгельм Мюллер",
+    "publication": {
+      "titles": [
+        "De Fato"
+      ],
+      "dates": [
+        "1915"
+      ],
+      "places": [
+        "Leipzig"
+      ],
+      "publishers": [
+        "Teubner"
+      ],
+      "scans": []
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi054/phi0474.phi054.perseus-lat1.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 48,
+    "block_count": 57,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 10
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

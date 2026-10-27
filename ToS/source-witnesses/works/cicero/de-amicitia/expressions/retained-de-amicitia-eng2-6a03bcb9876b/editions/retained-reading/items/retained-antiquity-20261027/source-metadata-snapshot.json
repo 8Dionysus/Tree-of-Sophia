@@ -1,0 +1,115 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-amicitia.de-amicitia-eng2-6a03bcb9876b",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-amicitia-eng2-6a03bcb9876b.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+    "file_ref": "tos.file.sha256.cc1014dffac34c987eb43ae842263a3db06df680f5b359cfd8cd462ed9964ff6",
+    "byte_size": 163885,
+    "sha256": "cc1014dffac34c987eb43ae842263a3db06df680f5b359cfd8cd462ed9964ff6"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-amicitia-eng2-6a03bcb9876b",
+    "record_sha256": "ebc3657fd58eace68a1b6ee10b8d657d6013e50bf7da07cac04cc6db3bf4ec62",
+    "record": {
+      "id": "de-amicitia-eng2-6a03bcb9876b",
+      "language": "en",
+      "title": "Английский · Уильям Армистед Фолконер",
+      "credit": "Перевод: Уильям Армистед Фолконер",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "De Senectute De Amicitia De Divinatione, With An English Translation"
+        ],
+        "dates": [
+          "1923"
+        ],
+        "places": [
+          "Cambridge"
+        ],
+        "publishers": [
+          "Harvard University Press; Cambridge, Mass., London, England"
+        ],
+        "scans": [
+          "https://archive.org/details/desenectutedeami0000cice/page/108"
+        ]
+      },
+      "item": "tos.item.cicero.de-amicitia.en-perseus-phi0474-phi052-perseus-eng2.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.6a03bcb9876b2740c94ddf3039b7a4bad916eb339b5468109af636ced73d998a",
+      "sha256": "6a03bcb9876b2740c94ddf3039b7a4bad916eb339b5468109af636ced73d998a",
+      "representationSha256": "2e0ebe9af725074d83136f7c4a184acee4c6a1e9a8c14c848038ac3afde5ff9d",
+      "sourceRef": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/en-perseus-phi0474-phi052-perseus-eng2/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi052.perseus-eng2.xml",
+      "sectionCount": 104
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-amicitia-eng2-6a03bcb9876b",
+    "legacy_source_sha256_claim": "6a03bcb9876b2740c94ddf3039b7a4bad916eb339b5468109af636ced73d998a",
+    "legacy_representation_sha256_claim": "2e0ebe9af725074d83136f7c4a184acee4c6a1e9a8c14c848038ac3afde5ff9d",
+    "retained_json_payload_sha256": "cc1014dffac34c987eb43ae842263a3db06df680f5b359cfd8cd462ed9964ff6",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Laelius on Friendship",
+      "De Senectute De Amicitia De Divinatione, With An English Translation"
+    ],
+    "authors": [
+      "M. Tullius Cicero",
+      "Cicero (Marcus Tullius)"
+    ],
+    "editors_or_translators": [
+      "William Armistead Falconer"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-amicitia",
+    "expression_ref": "tos.expression.retained.antiquity.de-amicitia.de-amicitia-eng2-6a03bcb9876b",
+    "edition_ref": "tos.edition.retained.antiquity.de-amicitia.de-amicitia-eng2-6a03bcb9876b",
+    "legacy_book_title": "О дружбе",
+    "legacy_credit": "Перевод: Уильям Армистед Фолконер",
+    "publication": {
+      "titles": [
+        "De Senectute De Amicitia De Divinatione, With An English Translation"
+      ],
+      "dates": [
+        "1923"
+      ],
+      "places": [
+        "Cambridge"
+      ],
+      "publishers": [
+        "Harvard University Press; Cambridge, Mass., London, England"
+      ],
+      "scans": [
+        "https://archive.org/details/desenectutedeami0000cice/page/108"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi052/phi0474.phi052.perseus-eng2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 104,
+    "block_count": 133,
+    "apparatus": {
+      "headings": 0,
+      "notes": 68,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

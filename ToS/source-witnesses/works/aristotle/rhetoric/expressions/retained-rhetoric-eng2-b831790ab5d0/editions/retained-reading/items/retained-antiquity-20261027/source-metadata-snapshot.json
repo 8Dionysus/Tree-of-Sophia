@@ -1,0 +1,122 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.rhetoric.rhetoric-eng2-b831790ab5d0",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/rhetoric-eng2-b831790ab5d0.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg038/tlg0086.tlg038.perseus-eng2.xml",
+    "file_ref": "tos.file.sha256.fdaa5a96d9bbd683b9de8216037b43444f6bc885d3200d692ceee92ff86f4058",
+    "byte_size": 906958,
+    "sha256": "fdaa5a96d9bbd683b9de8216037b43444f6bc885d3200d692ceee92ff86f4058"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=rhetoric-eng2-b831790ab5d0",
+    "record_sha256": "2688a24ed14f1ee1505954911a1b616746837f863e142ce953f4f5624827c195",
+    "record": {
+      "id": "rhetoric-eng2-b831790ab5d0",
+      "language": "en",
+      "title": "Английский · Джон Генри Фриз",
+      "credit": "Перевод: Джон Генри Фриз",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg038/tlg0086.tlg038.perseus-eng2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "The \"Art\" of Rhetoric",
+          "Loeb Classical Library"
+        ],
+        "dates": [
+          "1926",
+          "1947"
+        ],
+        "places": [
+          "London",
+          "Cambridge, MA"
+        ],
+        "publishers": [
+          "William Heinemann, Ltd.",
+          "Harvard University Press"
+        ],
+        "scans": [
+          "https://archive.org/details/aristotleartofrh0000aris/page/n53/mode/2up"
+        ]
+      },
+      "item": "tos.item.aristotle.rhetoric.en-perseus-tlg0086-tlg038-perseus-eng2.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.b831790ab5d0a7d9ab8e17b97bd5ab9c6ee33af3ded0facaa523268995c8aa4b",
+      "sha256": "b831790ab5d0a7d9ab8e17b97bd5ab9c6ee33af3ded0facaa523268995c8aa4b",
+      "representationSha256": "f0e9207f538ffa13e5e0f7a3169aba20d4e5fcdcc3ec12d78e83077d7e361264",
+      "sourceRef": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/en-perseus-tlg0086-tlg038-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0086.tlg038.perseus-eng2.xml",
+      "sectionCount": 60
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "rhetoric-eng2-b831790ab5d0",
+    "legacy_source_sha256_claim": "b831790ab5d0a7d9ab8e17b97bd5ab9c6ee33af3ded0facaa523268995c8aa4b",
+    "legacy_representation_sha256_claim": "f0e9207f538ffa13e5e0f7a3169aba20d4e5fcdcc3ec12d78e83077d7e361264",
+    "retained_json_payload_sha256": "fdaa5a96d9bbd683b9de8216037b43444f6bc885d3200d692ceee92ff86f4058",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "The \"Art\" of Rhetoric",
+      "Loeb Classical Library"
+    ],
+    "authors": [
+      "Aristotle"
+    ],
+    "editors_or_translators": [
+      "John Henry Freese"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.rhetoric",
+    "expression_ref": "tos.expression.retained.antiquity.rhetoric.rhetoric-eng2-b831790ab5d0",
+    "edition_ref": "tos.edition.retained.antiquity.rhetoric.rhetoric-eng2-b831790ab5d0",
+    "legacy_book_title": "Риторика",
+    "legacy_credit": "Перевод: Джон Генри Фриз",
+    "publication": {
+      "titles": [
+        "The \"Art\" of Rhetoric",
+        "Loeb Classical Library"
+      ],
+      "dates": [
+        "1926",
+        "1947"
+      ],
+      "places": [
+        "London",
+        "Cambridge, MA"
+      ],
+      "publishers": [
+        "William Heinemann, Ltd.",
+        "Harvard University Press"
+      ],
+      "scans": [
+        "https://archive.org/details/aristotleartofrh0000aris/page/n53/mode/2up"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg038/tlg0086.tlg038.perseus-eng2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 60,
+    "block_count": 913,
+    "apparatus": {
+      "headings": 0,
+      "notes": 639,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

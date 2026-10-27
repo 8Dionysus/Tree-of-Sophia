@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.discourses.discourses-eng3-0a015f293584",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.discourses.discourses-eng3-0a015f293584",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.b55166debac150910df95d4c273fd180f3382d90dd5feca0e0cf045eee3bae24",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "discourses-eng3-0a015f293584.json",
+      "media_type": "application/json",
+      "byte_size": 1538171,
+      "sha256": "b55166debac150910df95d4c273fd180f3382d90dd5feca0e0cf045eee3bae24",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e86b290c316a13b30b0bc2486d6691f0a8a8b0135ccebfe20fba17964184ad9a",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 842034,
+      "sha256": "e86b290c316a13b30b0bc2486d6691f0a8a8b0135ccebfe20fba17964184ad9a",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.discourses-eng3-0a015f293584.20261027",
+  "rights_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/retained-discourses-eng3-0a015f293584/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/retained-discourses-eng3-0a015f293584/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/retained-discourses-eng3-0a015f293584/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/epictetus/discourses/expressions/retained-discourses-eng3-0a015f293584/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/epictetus/discourses/expressions/retained-discourses-eng3-0a015f293584/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

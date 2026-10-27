@@ -1,0 +1,117 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.lucullus.lucullus-lat2-188a8e14f1e5",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/lucullus-lat2-188a8e14f1e5.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi046/phi0474.phi046.perseus-lat2.xml",
+    "file_ref": "tos.file.sha256.fd5e749a66b6bbe066a7838a53ca67b0b3aad5d4799d4b4c2cd2cc0380eb2edd",
+    "byte_size": 426607,
+    "sha256": "fd5e749a66b6bbe066a7838a53ca67b0b3aad5d4799d4b4c2cd2cc0380eb2edd"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=lucullus-lat2-188a8e14f1e5",
+    "record_sha256": "690497ba98cae230a1a8ac4e7fe86160129aafb82194ffc861502cc1f6f23cce",
+    "record": {
+      "id": "lucullus-lat2-188a8e14f1e5",
+      "language": "la",
+      "title": "Латинский · Отто Пласберг",
+      "credit": "Издание: Отто Пласберг",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi046/phi0474.phi046.perseus-lat2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Scripta Quae Manserunt Omnia, Fasc. 42",
+          "Academicorum reliquiae cum Lucullo"
+        ],
+        "dates": [
+          "1922"
+        ],
+        "places": [
+          "Leipzig"
+        ],
+        "publishers": [
+          "Teubner"
+        ],
+        "scans": [
+          "https://babel.hathitrust.org/cgi/pt?id=coo.31924006752632&seq=58"
+        ]
+      },
+      "item": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi046/phi0474.phi046.perseus-lat2.xml",
+      "file": "sha256:188a8e14f1e53344d8003145f51eec86be9d644ecb16a1b32b862279fd43040e",
+      "sha256": "188a8e14f1e53344d8003145f51eec86be9d644ecb16a1b32b862279fd43040e",
+      "representationSha256": "732f878321a0973866a3b8a754e99787ba06114db0dfc21e7adb8241cdf55038",
+      "sourceRef": "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi046/phi0474.phi046.perseus-lat2.xml",
+      "sectionCount": 148
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "lucullus-lat2-188a8e14f1e5",
+    "legacy_source_sha256_claim": "188a8e14f1e53344d8003145f51eec86be9d644ecb16a1b32b862279fd43040e",
+    "legacy_representation_sha256_claim": "732f878321a0973866a3b8a754e99787ba06114db0dfc21e7adb8241cdf55038",
+    "retained_json_payload_sha256": "fd5e749a66b6bbe066a7838a53ca67b0b3aad5d4799d4b4c2cd2cc0380eb2edd",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Lucullus",
+      "Scripta Quae Manserunt Omnia, Fasc. 42",
+      "Academicorum reliquiae cum Lucullo"
+    ],
+    "authors": [
+      "M. Tullius Cicero"
+    ],
+    "editors_or_translators": [
+      "Otto Plasberg"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.lucullus",
+    "expression_ref": "tos.expression.retained.antiquity.lucullus.lucullus-lat2-188a8e14f1e5",
+    "edition_ref": "tos.edition.retained.antiquity.lucullus.lucullus-lat2-188a8e14f1e5",
+    "legacy_book_title": "Лукулл",
+    "legacy_credit": "Издание: Отто Пласберг",
+    "publication": {
+      "titles": [
+        "Scripta Quae Manserunt Omnia, Fasc. 42",
+        "Academicorum reliquiae cum Lucullo"
+      ],
+      "dates": [
+        "1922"
+      ],
+      "places": [
+        "Leipzig"
+      ],
+      "publishers": [
+        "Teubner"
+      ],
+      "scans": [
+        "https://babel.hathitrust.org/cgi/pt?id=coo.31924006752632&seq=58"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://raw.githubusercontent.com/PerseusDL/canonical-latinLit/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi046/phi0474.phi046.perseus-lat2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 148,
+    "block_count": 171,
+    "apparatus": {
+      "headings": 0,
+      "notes": 796,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

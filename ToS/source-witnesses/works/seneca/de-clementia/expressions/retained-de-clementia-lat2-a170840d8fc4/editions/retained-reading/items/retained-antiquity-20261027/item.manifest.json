@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-clementia.de-clementia-lat2-a170840d8fc4",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-clementia.de-clementia-lat2-a170840d8fc4",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.284c74a38fb0e8d4b35ef2b09899b20c880ae9d368ca4a56860479a42d9a77d3",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-clementia-lat2-a170840d8fc4.json",
+      "media_type": "application/json",
+      "byte_size": 96198,
+      "sha256": "284c74a38fb0e8d4b35ef2b09899b20c880ae9d368ca4a56860479a42d9a77d3",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.dff84f24224394557b5009e99cddb22c6c37e5f56f8b0c0a95e175b1e9d218c3",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 59069,
+      "sha256": "dff84f24224394557b5009e99cddb22c6c37e5f56f8b0c0a95e175b1e9d218c3",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-clementia-lat2-a170840d8fc4.20261027",
+  "rights_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-lat2-a170840d8fc4/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-lat2-a170840d8fc4/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-lat2-a170840d8fc4/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-lat2-a170840d8fc4/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/seneca/de-clementia/expressions/retained-de-clementia-lat2-a170840d8fc4/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

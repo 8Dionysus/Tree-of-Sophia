@@ -1,0 +1,109 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-natura-deorum.de-natura-deorum-lat1-65b3bfade332",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-natura-deorum-lat1-65b3bfade332.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi050/phi0474.phi050.perseus-lat1.xml",
+    "file_ref": "tos.file.sha256.a6220823d3ff109b676ca1e724fb120558e74ac034d21f072e4fa5555b5f8e7b",
+    "byte_size": 385219,
+    "sha256": "a6220823d3ff109b676ca1e724fb120558e74ac034d21f072e4fa5555b5f8e7b"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-natura-deorum-lat1-65b3bfade332",
+    "record_sha256": "782a1cdf770d27c746477ecc53c273228dfb3e1d783be58f90ae56d5dfa3c2a4",
+    "record": {
+      "id": "de-natura-deorum-lat1-65b3bfade332",
+      "language": "la",
+      "title": "Латинский · Отто Пласберг",
+      "credit": "Издание: Отто Пласберг",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi050/phi0474.phi050.perseus-lat1.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "de Natura Deorum"
+        ],
+        "dates": [
+          "1917"
+        ],
+        "places": [
+          "Leipzig"
+        ],
+        "publishers": [
+          "Teubner"
+        ],
+        "scans": []
+      },
+      "item": "tos.item.cicero.de-natura-deorum.la-perseus-phi0474-phi050.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.65b3bfade332d8798172750148102a28a4d5e9dd312cbb8f1734f365dee41767",
+      "sha256": "65b3bfade332d8798172750148102a28a4d5e9dd312cbb8f1734f365dee41767",
+      "representationSha256": "a5672b42c42429f73c515ce22880a6c1f7dc9230430bb30130332369fb85e2d1",
+      "sourceRef": "ToS/source-witnesses/works/cicero/de-natura-deorum/expressions/la-perseus-phi0474-phi050/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi050.perseus-lat1.xml",
+      "sectionCount": 387
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-natura-deorum-lat1-65b3bfade332",
+    "legacy_source_sha256_claim": "65b3bfade332d8798172750148102a28a4d5e9dd312cbb8f1734f365dee41767",
+    "legacy_representation_sha256_claim": "a5672b42c42429f73c515ce22880a6c1f7dc9230430bb30130332369fb85e2d1",
+    "retained_json_payload_sha256": "a6220823d3ff109b676ca1e724fb120558e74ac034d21f072e4fa5555b5f8e7b",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "de Natura Deorum"
+    ],
+    "authors": [
+      "M. Tullius Cicero"
+    ],
+    "editors_or_translators": [
+      "Otto Plasberg"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-natura-deorum",
+    "expression_ref": "tos.expression.retained.antiquity.de-natura-deorum.de-natura-deorum-lat1-65b3bfade332",
+    "edition_ref": "tos.edition.retained.antiquity.de-natura-deorum.de-natura-deorum-lat1-65b3bfade332",
+    "legacy_book_title": "О природе богов",
+    "legacy_credit": "Издание: Отто Пласберг",
+    "publication": {
+      "titles": [
+        "de Natura Deorum"
+      ],
+      "dates": [
+        "1917"
+      ],
+      "places": [
+        "Leipzig"
+      ],
+      "publishers": [
+        "Teubner"
+      ],
+      "scans": []
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi050/phi0474.phi050.perseus-lat1.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 387,
+    "block_count": 476,
+    "apparatus": {
+      "headings": 0,
+      "notes": 2,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 36
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

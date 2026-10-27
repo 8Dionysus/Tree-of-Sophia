@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.athenian-constitution.athenian-constitution-grc2-6e0c298a511e",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.athenian-constitution.athenian-constitution-grc2-6e0c298a511e",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.44e13c3b889e7afceb2e45e64c6f45e31791587b5c26d600b029d93ba97704c4",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "athenian-constitution-grc2-6e0c298a511e.json",
+      "media_type": "application/json",
+      "byte_size": 314328,
+      "sha256": "44e13c3b889e7afceb2e45e64c6f45e31791587b5c26d600b029d93ba97704c4",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.48d5e7c0cbd364402d2e8d70a3bd1e30eaf1bb9e44c7dd2458d174da743a3652",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 208897,
+      "sha256": "48d5e7c0cbd364402d2e8d70a3bd1e30eaf1bb9e44c7dd2458d174da743a3652",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.athenian-constitution-grc2-6e0c298a511e.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-grc2-6e0c298a511e/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-grc2-6e0c298a511e/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-grc2-6e0c298a511e/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-grc2-6e0c298a511e/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/athenian-constitution/expressions/retained-athenian-constitution-grc2-6e0c298a511e/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

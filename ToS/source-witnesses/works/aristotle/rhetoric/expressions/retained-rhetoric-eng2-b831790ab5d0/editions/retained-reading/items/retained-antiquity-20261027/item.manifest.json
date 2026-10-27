@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.rhetoric.rhetoric-eng2-b831790ab5d0",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.rhetoric.rhetoric-eng2-b831790ab5d0",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.fdaa5a96d9bbd683b9de8216037b43444f6bc885d3200d692ceee92ff86f4058",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "rhetoric-eng2-b831790ab5d0.json",
+      "media_type": "application/json",
+      "byte_size": 906958,
+      "sha256": "fdaa5a96d9bbd683b9de8216037b43444f6bc885d3200d692ceee92ff86f4058",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.013539fb1bf3b13060bb16da528aab15f95b2fcb3082bfd0316f276ce393e69f",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 470372,
+      "sha256": "013539fb1bf3b13060bb16da528aab15f95b2fcb3082bfd0316f276ce393e69f",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.rhetoric-eng2-b831790ab5d0.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-eng2-b831790ab5d0/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-eng2-b831790ab5d0/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-eng2-b831790ab5d0/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-eng2-b831790ab5d0/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-eng2-b831790ab5d0/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

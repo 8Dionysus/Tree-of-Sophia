@@ -1,0 +1,118 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-beneficiis.de-beneficiis-lat2-ffde84f4348b",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-beneficiis-lat2-ffde84f4348b.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi1017/phi013/phi1017.phi013.perseus-lat2.xml",
+    "file_ref": "tos.file.sha256.d0628767b669ae9bd398bf0407527e99c7911e7e79a02ac43beadbbc370b288b",
+    "byte_size": 486577,
+    "sha256": "d0628767b669ae9bd398bf0407527e99c7911e7e79a02ac43beadbbc370b288b"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-beneficiis-lat2-ffde84f4348b",
+    "record_sha256": "45e54b39aedf297a7201d844d202061e2a6c67227ee233c34066e88766a9d8c6",
+    "record": {
+      "id": "de-beneficiis-lat2-ffde84f4348b",
+      "language": "la",
+      "title": "Латинский · Джон Уильям Бейсор",
+      "credit": "Издание: Джон Уильям Бейсор",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi1017/phi013/phi1017.phi013.perseus-lat2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Moral Essays",
+          "Loeb Classical Library"
+        ],
+        "dates": [
+          "1935"
+        ],
+        "places": [
+          "London",
+          "New York"
+        ],
+        "publishers": [
+          "G. P. Putnam's Sons",
+          "William Heinemann"
+        ],
+        "scans": []
+      },
+      "item": "tos.item.seneca.de-beneficiis.la-perseus-phi1017-phi013.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.ffde84f4348baba656686ef968340f93839f5e011b8a16a28620b161679e4620",
+      "sha256": "ffde84f4348baba656686ef968340f93839f5e011b8a16a28620b161679e4620",
+      "representationSha256": "c46a9844fbf98bdca450546066897814f4b4153efa1dc92fdf76ae4474c66f14",
+      "sourceRef": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/la-perseus-phi1017-phi013/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi1017.phi013.perseus-lat2.xml",
+      "sectionCount": 228
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-beneficiis-lat2-ffde84f4348b",
+    "legacy_source_sha256_claim": "ffde84f4348baba656686ef968340f93839f5e011b8a16a28620b161679e4620",
+    "legacy_representation_sha256_claim": "c46a9844fbf98bdca450546066897814f4b4153efa1dc92fdf76ae4474c66f14",
+    "retained_json_payload_sha256": "d0628767b669ae9bd398bf0407527e99c7911e7e79a02ac43beadbbc370b288b",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "De Beneficiis",
+      "Moral Essays",
+      "Loeb Classical Library"
+    ],
+    "authors": [
+      "Seneca, Lucius Annaeus",
+      "L. Annaeus Seneca"
+    ],
+    "editors_or_translators": [
+      "John William Basore"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-beneficiis",
+    "expression_ref": "tos.expression.retained.antiquity.de-beneficiis.de-beneficiis-lat2-ffde84f4348b",
+    "edition_ref": "tos.edition.retained.antiquity.de-beneficiis.de-beneficiis-lat2-ffde84f4348b",
+    "legacy_book_title": "О благодеяниях",
+    "legacy_credit": "Издание: Джон Уильям Бейсор",
+    "publication": {
+      "titles": [
+        "Moral Essays",
+        "Loeb Classical Library"
+      ],
+      "dates": [
+        "1935"
+      ],
+      "places": [
+        "London",
+        "New York"
+      ],
+      "publishers": [
+        "G. P. Putnam's Sons",
+        "William Heinemann"
+      ],
+      "scans": []
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi1017/phi013/phi1017.phi013.perseus-lat2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 228,
+    "block_count": 906,
+    "apparatus": {
+      "headings": 0,
+      "notes": 91,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

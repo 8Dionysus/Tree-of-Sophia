@@ -1,9 +1,12 @@
 import collection from './antiquity-collection-data.json' with {type:'json'};
+import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 import {CLOSE_READING_GUIDES} from '../../constructor/close-reading-guides.mjs';
 
 const bi=(ru,en)=>({ru,en});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value)))),x=>x.toString(16).padStart(2,'0')).join('');
 const publicIds={apology:'tos.work.plato.apology',meno:'tos.work.plato.meno',ethics:'tos.work.aristotle.nicomachean-ethics'};
+// Reading availability is separate from saved material identity.
+const retainedBooks=new Map(retained.books.map(book=>[book.legacyId,book]));
 const periods={classical:bi('Классическая Греция','Classical Greece'),hellenistic:bi('Эллинистический мир','Hellenistic world'),roman:bi('Римский мир','Roman world'),late:bi('Поздняя Античность','Late Antiquity')};
 const modelKinds={author:'figure',school:'tradition',era:'dossier',translator:'figure',translation:'work',original:'work',edition:'work',passage:'fragment'};
 const refs=entry=>(entry.sourceRefs??[]).map(ref=>({...ref,label:ref.label??entry.title}));
@@ -14,6 +17,16 @@ function sectionEntry(document,version,structure,locator){
   if(document.id===publicIds.ethics){const match=/^([IVX]+)\.(\d+)\b/.exec(locator),books={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10};if(match&&books[match[1]])label=`${books[match[1]]}.${match[2]}.1`;}
   const matches=structure?.filter(item=>item.label===label)??[];
   return matches.length===1?{documentId:document.id,versionId:version.id,revision:version.revision,unitId:matches[0].unitId,precision:'section-entry'}:null;
+}
+function retainedEntry(book,version,locator){
+  if(!locator)return null;
+  const roman=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'];
+  const raw=String(locator).trim(),first=raw.split(/[–—–-]/)[0].trim();
+  const numeric=first.replace(/^([IVX]+)(?=\.|\s*·)/,value=>String(roman.indexOf(value)+1)).replace(/\s*·\s*(?:§§?\s*)?/g,'.').replace(/^(?:Глава|Chapter)\s+|^§§?\s*/i,'');
+  const candidates=new Set([raw,first,numeric,numeric.replace(/([0-9])[a-e]$/,'$1')]);
+  const matches=(version.structure??[]).filter(section=>[section.sectionId,section.label,[section.group,section.label].filter(Boolean).join(' · '),...(section.markers??[])].some(label=>candidates.has(label)));
+  const unitIds=[...new Set(matches.map(section=>section.unitId))];
+  return unitIds.length===1?{documentId:book.documentId,versionId:version.versionId,revision:version.revision,unitId:unitIds[0],precision:'section-entry'}:null;
 }
 const materialId=entry=>entry.kind==='passage'?`antiquity:reading:${entry.id}`:entry.kind==='work'&&publicIds[entry.id]?`antiquity:work:${publicIds[entry.id]}`:`antiquity:catalog:${entry.id}`;
 const entries=()=>[...collection.entities,...collection.eras,...collection.passages,...collection.questions,
@@ -33,6 +46,10 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     const publicId=publicIds[item.workId??item.id],document=documents.get(publicId)?.document;
     const version=document?.versions.find(v=>v.language==='en')??document?.versions[0];
     if(document&&version){item.publicDocumentId=publicId;item.publicVersionId=version.id;const address=sectionEntry(document,version,sourceStructures.get(publicId),item.meta?.ru);if(address){item.publicAddress=address;bindings.set(item.materialId,address);}}
+    else{
+      const book=retainedBooks.get(item.workId??item.id),edition=book?.versions.find(value=>value.language==='en')??book?.versions[0];
+      if(book&&edition&&sources.manifest.documents.some(value=>value.id===book.documentId)){item.publicDocumentId=book.documentId;item.publicVersionId=edition.versionId;const address=retainedEntry(book,edition,item.meta?.ru);if(address){item.publicAddress=address;bindings.set(item.materialId,address);}}
+    }
   }
   if(profile==='zarathustra'){
     const own=library.nodes.map(node=>({...node,materialId:node.id,kind:node.kind==='figure'?'author':node.kind==='tradition'?'school':node.kind,
@@ -44,6 +61,13 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
   }
   const predecessor=library.fingerprint;
   const compatibleMaterialIds=library.nodes.map(node=>node.id);
+  for(const node of library.nodes){
+    const book=retainedBooks.get(node.workId),edition=book?.versions.find(value=>value.language==='en')??book?.versions[0];
+    if(!book||!edition||documentBindings.has(node.id))continue;
+    node.publicDocumentId=book.documentId;node.publicVersionId=edition.versionId;node.sourceAccess='public-document';
+    documentBindings.set(node.id,{documentId:book.documentId,versionId:edition.versionId});
+    const address=retainedEntry(book,edition,node.locator);if(address)bindings.set(node.id,address);
+  }
   const routeCluster=library.atlas.clusters.find(cluster=>cluster.id==='routes');if(routeCluster)routeCluster.subtitle=bi('Ветви вопросов Античности','Branches of questions in Antiquity');
   let offset=0;
   for(const item of items){
@@ -53,6 +77,7 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
       library.nodes.push(node);byId.set(node.id,node);offset++;
     }
     const bound=byId.get(item.materialId);
+    if(item.publicDocumentId){bound.publicDocumentId=item.publicDocumentId;bound.publicVersionId=item.publicVersionId;bound.sourceAccess='public-document';documentBindings.set(bound.id,{documentId:item.publicDocumentId,versionId:item.publicVersionId});}
     for(const field of ['readingSteps','argument','workMap','voice'])if(item[field])bound[field]=item[field];
     if(bound.publicDocumentId&&!item.publicDocumentId){item.publicDocumentId=bound.publicDocumentId;item.publicVersionId=bound.publicVersionId;}
   }
@@ -86,6 +111,6 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
   // Released collection before the English CE-label correction; material IDs,
   // witness addresses and graph content are unchanged. Prefer its newer saved
   // personal work over the original six-branch namespace.
-  prepared.graphPredecessors=[{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
+  prepared.graphPredecessors=[{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
   return prepared;
 }

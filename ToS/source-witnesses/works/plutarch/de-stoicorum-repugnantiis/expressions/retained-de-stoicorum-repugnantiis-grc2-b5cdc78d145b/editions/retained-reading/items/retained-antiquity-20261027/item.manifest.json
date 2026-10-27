@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-grc2-b5cdc78d145b",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-grc2-b5cdc78d145b",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.0a016c1a1bd9a7bf6a694f9d060774ed2bf0454b593af4798fccb57852a08539",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-stoicorum-repugnantiis-grc2-b5cdc78d145b.json",
+      "media_type": "application/json",
+      "byte_size": 209953,
+      "sha256": "0a016c1a1bd9a7bf6a694f9d060774ed2bf0454b593af4798fccb57852a08539",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.d07982196ba35e9bdbfb5788687cc09c9e60083c285679f5eba1e4228153b600",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 149645,
+      "sha256": "d07982196ba35e9bdbfb5788687cc09c9e60083c285679f5eba1e4228153b600",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-stoicorum-repugnantiis-grc2-b5cdc78d145b.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-grc2-b5cdc78d145b/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-grc2-b5cdc78d145b/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-grc2-b5cdc78d145b/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-grc2-b5cdc78d145b/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-grc2-b5cdc78d145b/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.sacred-disease.sacred-disease-grc2-e4cb3d67f410",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/sacred-disease-grc2-e4cb3d67f410.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml",
+    "file_ref": "tos.file.sha256.049b2fe27e8e80ee854b55da1b93910d321f6621d867452a70d9ab66e5c87722",
+    "byte_size": 63445,
+    "sha256": "049b2fe27e8e80ee854b55da1b93910d321f6621d867452a70d9ab66e5c87722"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=sacred-disease-grc2-e4cb3d67f410",
+    "record_sha256": "79b67e1794d41681999e36b36dae4bf6a9ec711205830fdfed833ef98f0bb32c",
+    "record": {
+      "id": "sacred-disease-grc2-e4cb3d67f410",
+      "language": "grc",
+      "title": "Древнегреческий · Эмиль Литтре",
+      "credit": "Издание: Эмиль Литтре",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Oeuvres complètes d’Hippocrate"
+        ],
+        "dates": [
+          "1961"
+        ],
+        "places": [
+          "Amsterdam"
+        ],
+        "publishers": [
+          "Adolf M. Hakkert"
+        ],
+        "scans": [
+          "https://archive.org/details/oeuvrescomplte06hippuoft/page/352/mode/2up"
+        ],
+        "authors": [
+          "Hippocrates"
+        ],
+        "editors": [
+          {
+            "name": "Émile Littré"
+          }
+        ]
+      },
+      "item": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml",
+      "file": "sha256:e4cb3d67f410164356eb0f1b968d6e336ced2f96947160898f75186b1a1a5830",
+      "sha256": "e4cb3d67f410164356eb0f1b968d6e336ced2f96947160898f75186b1a1a5830",
+      "representationSha256": "99f05cb3b15e3593be370bb280633c369c7d5dea650924c0f16bae1c97b787bd",
+      "sourceRef": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml",
+      "sectionCount": 18
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "sacred-disease-grc2-e4cb3d67f410",
+    "legacy_source_sha256_claim": "e4cb3d67f410164356eb0f1b968d6e336ced2f96947160898f75186b1a1a5830",
+    "legacy_representation_sha256_claim": "99f05cb3b15e3593be370bb280633c369c7d5dea650924c0f16bae1c97b787bd",
+    "retained_json_payload_sha256": "049b2fe27e8e80ee854b55da1b93910d321f6621d867452a70d9ab66e5c87722",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Περὶ ἱερῆς νούσου",
+      "Oeuvres complètes d’Hippocrate"
+    ],
+    "authors": [
+      "Hippocrates"
+    ],
+    "editors_or_translators": [
+      "Émile Littré"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.sacred-disease",
+    "expression_ref": "tos.expression.retained.antiquity.sacred-disease.sacred-disease-grc2-e4cb3d67f410",
+    "edition_ref": "tos.edition.retained.antiquity.sacred-disease.sacred-disease-grc2-e4cb3d67f410",
+    "legacy_book_title": "О священной болезни",
+    "legacy_credit": "Издание: Эмиль Литтре",
+    "publication": {
+      "titles": [
+        "Oeuvres complètes d’Hippocrate"
+      ],
+      "dates": [
+        "1961"
+      ],
+      "places": [
+        "Amsterdam"
+      ],
+      "publishers": [
+        "Adolf M. Hakkert"
+      ],
+      "scans": [
+        "https://archive.org/details/oeuvrescomplte06hippuoft/page/352/mode/2up"
+      ],
+      "authors": [
+        "Hippocrates"
+      ],
+      "editors": [
+        {
+          "name": "Émile Littré"
+        }
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/01b725d835e6e733062ffd79e0efdbae1ba06e5c/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 18,
+    "block_count": 36,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

@@ -2,6 +2,7 @@ import {bindCorpusProvider,CorpusProviderError,CorpusProviderCursorError,CorpusP
 import {createReference,validateReference,referenceKey} from './model.mjs';
 import {findInParagraphs} from '../reader/occurrences-rust.mjs';
 import {readBoundedJSON,withAbort} from '../observatory/bounded-response.mjs';
+import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 
 // A delivery adapter for an explicitly selected, immutable public export.
 // Source identities, order, rights, wording and structure come from the native
@@ -312,7 +313,7 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
       await describe({signal:args.signal});
       const selected=new Set(manifest.profiles[profile].documentIds);
       let items=manifest.documents.filter(value=>selected.has(value.id));
-      if(args.query){const found=new Set(findInParagraphs(items.map(value=>`${value.title} ${value.author??''}`),args.query,{limit:500}).matches.map(value=>value.paragraph));items=items.filter((_,index)=>found.has(index));}
+      if(args.query){const found=new Set(findInParagraphs(items.map(value=>`${value.title} ${corpusWorkTitle(value,'ru')} ${corpusWorkTitle(value,'en')} ${value.author??''}`),args.query,{limit:500}).matches.map(value=>value.paragraph));items=items.filter((_,index)=>found.has(index));}
       const binding={profile,query:args.query},offset=position(args.cursor,'catalog',manifest.revision,binding);
       return {items:items.slice(offset,offset+args.limit).map(({id,title,author})=>({id,title,author,status:'available',visibility:'public',textAvailable:true,unitCount:null})),total:items.length,
         nextCursor:offset+args.limit<items.length?cursor('catalog',manifest.revision,binding,offset+args.limit):null};

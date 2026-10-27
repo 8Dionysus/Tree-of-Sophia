@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.laws.laws-grc2-d04a58a42557",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.laws.laws-grc2-d04a58a42557",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.5571b119a4c5c1423da5a9c01d16fbcb3ca00fa9a8a04f6492c4bd84aa850a72",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "laws-grc2-d04a58a42557.json",
+      "media_type": "application/json",
+      "byte_size": 1883900,
+      "sha256": "5571b119a4c5c1423da5a9c01d16fbcb3ca00fa9a8a04f6492c4bd84aa850a72",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.b7597977047d24b57582b8c779791f4ecfee6a0d30a75f1bf1c37cddc9c54ee5",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 1247808,
+      "sha256": "b7597977047d24b57582b8c779791f4ecfee6a0d30a75f1bf1c37cddc9c54ee5",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.laws-grc2-d04a58a42557.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-grc2-d04a58a42557/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-grc2-d04a58a42557/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-grc2-d04a58a42557/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-grc2-d04a58a42557/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/laws/expressions/retained-laws-grc2-d04a58a42557/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.enneads.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/enneads-tlg2000.tlg001.1st1K-grc1-29a60f460974.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml",
+    "file_ref": "tos.file.sha256.d6b6f65aad095bd7697b96d053860eb7a003faa4eab73418503d73b4e8a91ed0",
+    "byte_size": 3935234,
+    "sha256": "d6b6f65aad095bd7697b96d053860eb7a003faa4eab73418503d73b4e8a91ed0"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=enneads-tlg2000.tlg001.1st1K-grc1-29a60f460974",
+    "record_sha256": "32fd555d1b3cd093a632eabaf435552994a5da52461be23f2204baf03a58db62",
+    "record": {
+      "id": "enneads-tlg2000.tlg001.1st1K-grc1-29a60f460974",
+      "language": "grc",
+      "title": "Древнегреческий · Рихард Фолькман",
+      "credit": "Издание: Рихард Фолькман",
+      "source": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Open Greek and Latin · First1KGreek",
+      "publication": {
+        "titles": [
+          "Plotini Enneades"
+        ],
+        "dates": [
+          "1883-1884"
+        ],
+        "places": [
+          "Leipzig"
+        ],
+        "publishers": [
+          "Teubner"
+        ],
+        "scans": [
+          "https://archive.org/details/plotinienneadesp00plot",
+          "http://www.archive.org/details/enneadespraemiss02plotuoft"
+        ],
+        "authors": [
+          "Plotinus"
+        ],
+        "editors": [
+          {
+            "name": "Richard Volkmann"
+          }
+        ]
+      },
+      "item": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml",
+      "file": "sha256:29a60f4609740c4a858f1cc517182b7fc90d19333ebbf47ae09f927520600bec",
+      "sha256": "29a60f4609740c4a858f1cc517182b7fc90d19333ebbf47ae09f927520600bec",
+      "representationSha256": "f62161c8bc161b4b4d4f7145efe16876c78b6b0af25c16cd2fb2cef5ad349489",
+      "sourceRef": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml",
+      "sectionCount": 54
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "enneads-tlg2000.tlg001.1st1K-grc1-29a60f460974",
+    "legacy_source_sha256_claim": "29a60f4609740c4a858f1cc517182b7fc90d19333ebbf47ae09f927520600bec",
+    "legacy_representation_sha256_claim": "f62161c8bc161b4b4d4f7145efe16876c78b6b0af25c16cd2fb2cef5ad349489",
+    "retained_json_payload_sha256": "d6b6f65aad095bd7697b96d053860eb7a003faa4eab73418503d73b4e8a91ed0",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Enneades",
+      "Plotini Enneades"
+    ],
+    "authors": [
+      "Plotinus"
+    ],
+    "editors_or_translators": [
+      "Richard Volkmann"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.enneads",
+    "expression_ref": "tos.expression.retained.antiquity.enneads.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974",
+    "edition_ref": "tos.edition.retained.antiquity.enneads.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974",
+    "legacy_book_title": "Эннеады",
+    "legacy_credit": "Издание: Рихард Фолькман",
+    "publication": {
+      "titles": [
+        "Plotini Enneades"
+      ],
+      "dates": [
+        "1883-1884"
+      ],
+      "places": [
+        "Leipzig"
+      ],
+      "publishers": [
+        "Teubner"
+      ],
+      "scans": [
+        "https://archive.org/details/plotinienneadesp00plot",
+        "http://www.archive.org/details/enneadespraemiss02plotuoft"
+      ],
+      "authors": [
+        "Plotinus"
+      ],
+      "editors": [
+        {
+          "name": "Richard Volkmann"
+        }
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "retained_json_counts": {
+    "section_count": 54,
+    "block_count": 653,
+    "apparatus": {
+      "headings": 57,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

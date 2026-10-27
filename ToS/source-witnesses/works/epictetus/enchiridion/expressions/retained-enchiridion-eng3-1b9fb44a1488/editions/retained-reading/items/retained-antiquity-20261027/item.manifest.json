@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.enchiridion.enchiridion-eng3-1b9fb44a1488",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.enchiridion.enchiridion-eng3-1b9fb44a1488",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.44919d9fb06ab5f9c9095dce90167abc2466be72da9b5381c59789cf2441d9cb",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "enchiridion-eng3-1b9fb44a1488.json",
+      "media_type": "application/json",
+      "byte_size": 92869,
+      "sha256": "44919d9fb06ab5f9c9095dce90167abc2466be72da9b5381c59789cf2441d9cb",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ed6a8d731df5f90447652ede5950f9e5cb524d925c618416cca53037996467ba",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 50970,
+      "sha256": "ed6a8d731df5f90447652ede5950f9e5cb524d925c618416cca53037996467ba",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.enchiridion-eng3-1b9fb44a1488.20261027",
+  "rights_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-eng3-1b9fb44a1488/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-eng3-1b9fb44a1488/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-eng3-1b9fb44a1488/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-eng3-1b9fb44a1488/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/epictetus/enchiridion/expressions/retained-enchiridion-eng3-1b9fb44a1488/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

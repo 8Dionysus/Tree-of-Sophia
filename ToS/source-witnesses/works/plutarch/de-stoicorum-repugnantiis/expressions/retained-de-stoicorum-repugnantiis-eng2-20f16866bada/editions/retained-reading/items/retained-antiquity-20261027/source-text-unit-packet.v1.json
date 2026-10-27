@@ -1,0 +1,2145 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-6fe3d42f862847bb9ca3ac41d7e1d847",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.de-stoicorum-repugnantiis",
+    "expression_ref": "tos.expression.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-eng2-20f16866bada",
+    "edition_ref": "tos.edition.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-eng2-20f16866bada",
+    "item_ref": "tos.item.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-eng2-20f16866bada",
+    "file_ref": "tos.file.sha256.18ace4ecbae23a1db8b46037e14f08dce4c0756b276adc179e2ba6da384e939a",
+    "file_sha256": "18ace4ecbae23a1db8b46037e14f08dce4c0756b276adc179e2ba6da384e939a"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-9646f5d20ba24c739067a40fef5fc418",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-stoicorum-repugnantiis-eng2-20f16866bada.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-68229d950985444b8a62380aec1f31ba",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 93506,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f544b5f332f44d3aad8500df97953882",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 546,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "24a8560cee97ef0232ede033b4f7f04e8ccb5f3fb278a4623eb286f59999b771",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f52c7c82a8ad4e478c10c2e472e74dcd",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 546,
+        "end": 2780,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "92e40e31f95977ba2879a93d381db0d989551de7023ac486f11888b700c4e3b2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f1c64f7bab0f4608a5541428463ee168",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 2780,
+        "end": 3361,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c27018d3358d87e16d426527db436a5d9722cd60478aa68351219d0a4ebff85d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-320361edda6a43abaf47052aec682dd9",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 3361,
+        "end": 4110,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b2767cb0d70e5d72f21ddb3ddf18ccd28a623b6091dc61491418815851647003",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-751e220884e94956a9a870df9ff84ea4",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 4110,
+        "end": 4424,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cde8e51d58e78e2fc130964a6be83098c168ee8801983ea15630b15b368b71d3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-96f63c6638df47b49b6e9c2b9e1d1854",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 4424,
+        "end": 5218,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "44dad5671e4f153812416bdbf4c5b10e74bfc4a41e79b07860eda29e17f503ac",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-94ce0f64ff6a4602b7be6633606cac05",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 5218,
+        "end": 6403,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ddc93844b8510461f1e27d2ec346db1494b1cebbbe1fdef8891e39e2ad99b710",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-005fe41e045e42e59b1531b52855f195",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 6403,
+        "end": 7296,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "059c7f602675edc34523346ae0c6fef3a697450792e8059f75663b1b7eae6232",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b930662aa2ae40f48269c369278adad7",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 7296,
+        "end": 10999,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fefc6b459dd8b84df44b6cb25a506a0059155e11cc767182084daff1b69dd493",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2ad44162dfb7411fb35423bf63706e3d",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 10999,
+        "end": 16687,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8c0a2a0373549816276f5fd3d1f6f8dab3d3b31dbbd560506424ba3feb319a16",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-524efe6e56a0495082ec47ca56faeba1",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 16687,
+        "end": 18979,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a6f482065fb7eb9dc63bb363b30f8c635728d458ca658cd90ddf7b6dfd1d4762",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-be3ff745424c46fa92ec60c3ce6a521a",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 18979,
+        "end": 20167,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "309943752218d86d22b66d5b19ee74c03f99511c2306d53e2f6cc3e51c230ebc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cd3850660f664ea48e61bcfcfb9eddc6",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 20167,
+        "end": 24514,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6b979402a72af75697b51f29590e3b03b9b4af0ed242d97b3cbb05df61164d31",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4a185aee80e147b3bb892f5a3386faee",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 24514,
+        "end": 26607,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bd52ab6c95d7bf82d88268542c5cbc3c4150f3fb57ab7e6714059f9d768b06df",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7e1fcc0290c84b158fad9f5dc4cb2b36",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 26607,
+        "end": 30841,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9c785abf72d9dd598b510fe413662732af7c5248ef02b20f85e611874b458b76",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8c92eb7fb8484406b8d9d7252c9c3ac3",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 30841,
+        "end": 32626,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "939f5800381c41455fe090f4eb17ccbc2be89d9961bcb50dc66459e480cd9c31",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c9026e907bb04528a087d0a9f6ded354",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 32626,
+        "end": 33865,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f698613ad4f2292759810110fe6ff3c0f98669d7261585d62be3fcdac4622a03",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b39ee9ea1f7d4cd4899cec960c90a499",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 33865,
+        "end": 36498,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a89b0ae218a9710cd67fb591101c4e6cd981f753844e26081c22a8ed57b132a2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-edd28b10d5264f7c97e6ee5e7dd32a69",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 36498,
+        "end": 38061,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "80b06e3ab69368d9897d9b3b4a5adc1b73450b2e14d50e026c81626e7580b8b3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2f52c0feca984acc97c665a3fc41b113",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 38061,
+        "end": 42101,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b804c2f525f06e292df89c7438fb1901fa99ef239fc6d13ff8709fccd768e14d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9790553c3a224b92bb59ed0b04a93526",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 42101,
+        "end": 45172,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "14500597952e973e88d3fbfe4412c17c7bd87351d3dd481288d440cb163e22d7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1103b248c32b491c874491edc9f3cf8e",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 45172,
+        "end": 46302,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "25d2db663dd6b47c099585d866b6e2aaf5ff6cf9a237e86edcda4d98498f9643",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4b0fe4c7a7834a5bb8e2f4469a63e90d",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 46302,
+        "end": 49138,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a74c28c188911604d6591eeb22434071a3e838b5bcd7fd0147d776b6057a5e9c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-03635e1ee0e84a439d9762b3bcc52219",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 49138,
+        "end": 50185,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "817762888d0456987110661b9e64b17f3d327d4ae009de35982ea07ce4b14a9c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cf45f8c36201488ab9aa3ac7c5755899",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 50185,
+        "end": 51034,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "763dc1290b38260c588a774dc1bab2510077a3203187da5a729b55184837a2dd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-39a4a8defa80433b9a3e0f7886c8912b",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 51034,
+        "end": 52358,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cb8e1649708e61b459d48290a5722a33db22013149b63b63d1834e7c627b2dd8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3d28c429c48446f1861d6d8c27eea55d",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 52358,
+        "end": 53415,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c482cae44d1a9fdab6581ecdf442e8974b758a0e3c8623174713339cf6c6e8ab",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b0ef86a8d1664f01b5da284b7ded986d",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 53415,
+        "end": 54578,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "141d62b1533ca6eb06f499d70cd5a333f5b3566a4421af688ccf2268b4c37d54",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-90980f72c0414dd5b6db7a98d712d143",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 54578,
+        "end": 55890,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d24860bc83933f36768038c08c0535504fe1ad13c7b079a15613a11467a26217",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c48f894528334cf79a88b6ddcf0efa8b",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 55890,
+        "end": 58704,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "baedbc986df8e604715abda1b336f3aa18910ea98919379f4cbba9fea4be4d40",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bd499952bc8e434c986b98760c76a51d",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 58704,
+        "end": 60708,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "80021e31b69e16d12001005b2eff777e7906598aaadcdc3ad9cd777a92858d32",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-18a770996cd64a0294a8b7071730ff6e",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 60708,
+        "end": 62848,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "26954848251423d02588ea86306ee3f5a4d7b3924680aa546ac7449654e8def6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-51d8828c1c174ea3a6f2e2c706630a7f",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 62848,
+        "end": 64076,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8ba35f9a6cef5ceae14865a1a8bfe99de5210fa2c90187a815f3bbf24644c405",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ebbdc57accfa41a6a6f70f1c1bd87e42",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 64076,
+        "end": 67169,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "227ae0c192ded3bc77ee99caa5e22f99a86f3564ec31c06640337f4e54b67890",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-479b750bdd6f41e7bd3360fc1c9e6246",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 67169,
+        "end": 68881,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fa545d9edb2492251cbc73359af02671b0846e147491aaff592052815ff768c2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-07c93693269c41b2b28e9405efe6d89d",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 68881,
+        "end": 69466,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7605cf1e64c3415ec4d25472a023dc31db9bb62c1811cba2ee59f1f8a0f3f668",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-98c977ab152d44628a0c63303bd52469",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 69466,
+        "end": 70988,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3edd6ca931eafde1d1ae8931f6df96f31f5c4bbdb15b58b6e3b7b91c2d24cae0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3d00c64d65914bb9909a03c0fda0913c",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 70988,
+        "end": 73249,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4f092f886addeb6211bdd00fa8e23da3270a69aba006c1e35bf852f10ce711fb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7c9cabca3da3442b9d6146685ac65236",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 73249,
+        "end": 75088,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "659462d144e5f2e3234967cd4df03e931c23e2bf3ace6932aa0b58140d16e7aa",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1155d5df000e41b9a39afc957bb2af7f",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 75088,
+        "end": 75699,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cd0562eb8b93ac0115f3f2f07232a519cb508255064398aeed35ffb048770e58",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-50a1b4f20aaf4dffa15401c092d13aa8",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 75699,
+        "end": 78970,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c66a4450dac3697244e9cab98b4deb6f09b20818189e4ef3c21b94591ebd94b8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2a1fcc9bdb1b4d66bb1ebcef50e3a532",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 78970,
+        "end": 79386,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "575ee61dc6fa808c7695b0fbd7afee16f3663658b70d7c5d7ca046b83614abf1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-164808e5826d46e5a583f9e3cd7b050f",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 79386,
+        "end": 81148,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "62f9f8cc3ec4292d2a7197c5963a0878edb8b078a04dab28839ab6c57bab60fb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3aaa47d443e3418a9b4aeda3473656d6",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 81148,
+        "end": 86268,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4ed7786b9507d4baeb7465d1cb02d2575d3b51b9f1f4aad8ed52e9a0514aa42b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f746fdfee32a4eb4bc89242ebb4ac6ce",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 86268,
+        "end": 86894,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9611748b4c57f6caeef9a3bedf5dc64401a3864cae1932ba94303fbb36eabd0a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ce9bb7ab084649b28e0cda5882107ee9",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 86894,
+        "end": 87858,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b4b5b603a56007e597776ec2b8ebaf5bf106d07f7d1b914cb7d48bdd09b989ac",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bbba574afe1d4ba7852796bced502fb9",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "2c29d16f66e990d261b6847711d67b00029fd47a0ad4b7c620fd17791be01caa",
+      "selector": {
+        "type": "text_position",
+        "start": 87858,
+        "end": 93506,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6a78d6141b6ee0fb0666c916e199653ec7c510ee61f06667279eb9ecb38e559b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-6bb03a1fb4df4b4f870fd61c649541a7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f544b5f332f44d3aad8500df97953882"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9e16705b0d5e44f4a8651484fd1442de",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f52c7c82a8ad4e478c10c2e472e74dcd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d85c796935ff484b90ba7af2548e4216",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f1c64f7bab0f4608a5541428463ee168"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-444993851b784102b14b1cd514016b31",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-320361edda6a43abaf47052aec682dd9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1823c49961d6413daaeb0b6a265ac121",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-751e220884e94956a9a870df9ff84ea4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4b07b636912f42559d194315940c55c2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-96f63c6638df47b49b6e9c2b9e1d1854"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f740d55c7d524d55af1c0bbe1088f9e8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-94ce0f64ff6a4602b7be6633606cac05"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bd49b2aa7e0b4f2f912501a786ff3ec0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-005fe41e045e42e59b1531b52855f195"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4b794ec1923246a0bdaee26d82ee4f4c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b930662aa2ae40f48269c369278adad7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-19d70cd9430d481c9fb702df6ae2835c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2ad44162dfb7411fb35423bf63706e3d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a7e524a47d9f456a8a175cbdc00f5ec3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-524efe6e56a0495082ec47ca56faeba1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0c39e08d859046ecbb4b1df96209f40b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-be3ff745424c46fa92ec60c3ce6a521a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a042e7f6ae604325b83622423b617d0a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cd3850660f664ea48e61bcfcfb9eddc6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e16470524eab42799823ff54e14cbc5b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4a185aee80e147b3bb892f5a3386faee"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fece36f908084a3086f5ad51bcac7dde",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7e1fcc0290c84b158fad9f5dc4cb2b36"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3b59977c9ea84035a33de1169b51fbda",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8c92eb7fb8484406b8d9d7252c9c3ac3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fa2c6a60c8d94375b1e6865f226ed6c4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c9026e907bb04528a087d0a9f6ded354"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-50872cd6934a4d0f86678543b8b08602",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b39ee9ea1f7d4cd4899cec960c90a499"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-21defd49f4e44c9dabc06d5639e76655",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-edd28b10d5264f7c97e6ee5e7dd32a69"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d8b26ef405d049ee9cd0c24fed7db3a3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2f52c0feca984acc97c665a3fc41b113"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8c901aef5a75413c99241f206226bfa8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9790553c3a224b92bb59ed0b04a93526"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3010bc57a37c4a0584a9e94c7d6fc9b6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1103b248c32b491c874491edc9f3cf8e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8f7d1ce61c96425c9898d84cf2ea6002",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4b0fe4c7a7834a5bb8e2f4469a63e90d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ce2c5014c23748388f3f493a3931f26e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-03635e1ee0e84a439d9762b3bcc52219"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-39c9531574c746afb488608b9c8d79c8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cf45f8c36201488ab9aa3ac7c5755899"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-75e545d324e4464b81475d8886762a77",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-39a4a8defa80433b9a3e0f7886c8912b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a555348c998a4a20bd7747415a035f88",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3d28c429c48446f1861d6d8c27eea55d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8e0f2da0d73f46f5bf8260e0108ef111",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b0ef86a8d1664f01b5da284b7ded986d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6892ca2a199c45ac833e71a6fc26fa67",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-90980f72c0414dd5b6db7a98d712d143"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-75cd26cdd1ae4c7687fa00f3e92014ac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c48f894528334cf79a88b6ddcf0efa8b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-70cb70ce8e894b35b592036f8efb5d06",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bd499952bc8e434c986b98760c76a51d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-03023374167345fab9b787b00970e7ef",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-18a770996cd64a0294a8b7071730ff6e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8f0cafac876c4a208f8f093733e2a71b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-51d8828c1c174ea3a6f2e2c706630a7f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-71b1f1a65b23401580a7c0852e014d55",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ebbdc57accfa41a6a6f70f1c1bd87e42"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d6806929f2eb463f9238052570718023",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-479b750bdd6f41e7bd3360fc1c9e6246"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ca8c1550c3ce49bc8a6bcd036e025399",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-07c93693269c41b2b28e9405efe6d89d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1b2277c4656c4159852a94a819747ff7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-98c977ab152d44628a0c63303bd52469"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-12a2e85f4bff4d3fa358791876620b1e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3d00c64d65914bb9909a03c0fda0913c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-450d75c037f04614b1c5b53467fedd4f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7c9cabca3da3442b9d6146685ac65236"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-81799b756c904484ad2849c660f1aa42",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1155d5df000e41b9a39afc957bb2af7f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-413d54e63c674dea967325122d8e3689",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-50a1b4f20aaf4dffa15401c092d13aa8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-845664f2155d49179b38226cd46200f2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2a1fcc9bdb1b4d66bb1ebcef50e3a532"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2bdda12c69aa40ae8246bac0c7493c89",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-164808e5826d46e5a583f9e3cd7b050f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-71d4bc85c3eb435fb9aba846c3372aaa",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3aaa47d443e3418a9b4aeda3473656d6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6a0e81809a064048903c69e51cf0903f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f746fdfee32a4eb4bc89242ebb4ac6ce"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-32b03e811cbf4a26a5b2a4ca508bc5c3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ce9bb7ab084649b28e0cda5882107ee9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fbd292fae16146d68854f7e9d8a6da72",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bbba574afe1d4ba7852796bced502fb9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-3a02a0b0619c4a1ca13511cf2a3a6d00",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-9646f5d20ba24c739067a40fef5fc418",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-6bb03a1fb4df4b4f870fd61c649541a7",
+        "tos.text-unit.sid-9e16705b0d5e44f4a8651484fd1442de",
+        "tos.text-unit.sid-d85c796935ff484b90ba7af2548e4216",
+        "tos.text-unit.sid-444993851b784102b14b1cd514016b31",
+        "tos.text-unit.sid-1823c49961d6413daaeb0b6a265ac121",
+        "tos.text-unit.sid-4b07b636912f42559d194315940c55c2",
+        "tos.text-unit.sid-f740d55c7d524d55af1c0bbe1088f9e8",
+        "tos.text-unit.sid-bd49b2aa7e0b4f2f912501a786ff3ec0",
+        "tos.text-unit.sid-4b794ec1923246a0bdaee26d82ee4f4c",
+        "tos.text-unit.sid-19d70cd9430d481c9fb702df6ae2835c",
+        "tos.text-unit.sid-a7e524a47d9f456a8a175cbdc00f5ec3",
+        "tos.text-unit.sid-0c39e08d859046ecbb4b1df96209f40b",
+        "tos.text-unit.sid-a042e7f6ae604325b83622423b617d0a",
+        "tos.text-unit.sid-e16470524eab42799823ff54e14cbc5b",
+        "tos.text-unit.sid-fece36f908084a3086f5ad51bcac7dde",
+        "tos.text-unit.sid-3b59977c9ea84035a33de1169b51fbda",
+        "tos.text-unit.sid-fa2c6a60c8d94375b1e6865f226ed6c4",
+        "tos.text-unit.sid-50872cd6934a4d0f86678543b8b08602",
+        "tos.text-unit.sid-21defd49f4e44c9dabc06d5639e76655",
+        "tos.text-unit.sid-d8b26ef405d049ee9cd0c24fed7db3a3",
+        "tos.text-unit.sid-8c901aef5a75413c99241f206226bfa8",
+        "tos.text-unit.sid-3010bc57a37c4a0584a9e94c7d6fc9b6",
+        "tos.text-unit.sid-8f7d1ce61c96425c9898d84cf2ea6002",
+        "tos.text-unit.sid-ce2c5014c23748388f3f493a3931f26e",
+        "tos.text-unit.sid-39c9531574c746afb488608b9c8d79c8",
+        "tos.text-unit.sid-75e545d324e4464b81475d8886762a77",
+        "tos.text-unit.sid-a555348c998a4a20bd7747415a035f88",
+        "tos.text-unit.sid-8e0f2da0d73f46f5bf8260e0108ef111",
+        "tos.text-unit.sid-6892ca2a199c45ac833e71a6fc26fa67",
+        "tos.text-unit.sid-75cd26cdd1ae4c7687fa00f3e92014ac",
+        "tos.text-unit.sid-70cb70ce8e894b35b592036f8efb5d06",
+        "tos.text-unit.sid-03023374167345fab9b787b00970e7ef",
+        "tos.text-unit.sid-8f0cafac876c4a208f8f093733e2a71b",
+        "tos.text-unit.sid-71b1f1a65b23401580a7c0852e014d55",
+        "tos.text-unit.sid-d6806929f2eb463f9238052570718023",
+        "tos.text-unit.sid-ca8c1550c3ce49bc8a6bcd036e025399",
+        "tos.text-unit.sid-1b2277c4656c4159852a94a819747ff7",
+        "tos.text-unit.sid-12a2e85f4bff4d3fa358791876620b1e",
+        "tos.text-unit.sid-450d75c037f04614b1c5b53467fedd4f",
+        "tos.text-unit.sid-81799b756c904484ad2849c660f1aa42",
+        "tos.text-unit.sid-413d54e63c674dea967325122d8e3689",
+        "tos.text-unit.sid-845664f2155d49179b38226cd46200f2",
+        "tos.text-unit.sid-2bdda12c69aa40ae8246bac0c7493c89",
+        "tos.text-unit.sid-71d4bc85c3eb435fb9aba846c3372aaa",
+        "tos.text-unit.sid-6a0e81809a064048903c69e51cf0903f",
+        "tos.text-unit.sid-32b03e811cbf4a26a5b2a4ca508bc5c3",
+        "tos.text-unit.sid-fbd292fae16146d68854f7e9d8a6da72"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-68229d950985444b8a62380aec1f31ba",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-stoicorum-repugnantiis-eng2-20f16866bada.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/retained-de-stoicorum-repugnantiis-eng2-20f16866bada/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

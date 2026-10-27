@@ -37,7 +37,11 @@ async function selectedDocuments(provider, profile) {
   const page = await provider.catalog({query: '', limit: 100});
   const catalog = new Map(page.items.map(item => [item.id, item]));
   const documents = new Map();
-  for (const id of selected.documentIds) {
+  // The scene's existing anchors stay stable as the shared reading catalogue
+  // grows. Other books open lazily in the same reader when selected.
+  const anchors=profile==='zarathustra'?[PUBLIC_PROFILE_IDS.zarathustra]:[PUBLIC_PROFILE_IDS.antiquity.meno,PUBLIC_PROFILE_IDS.antiquity.ethics,PUBLIC_PROFILE_IDS.antiquity.apology];
+  for (const id of anchors) {
+    if(!selected.documentIds.includes(id))throw new Error(`Public scene anchor is missing: ${id}`);
     const entry = manifest.documents.find(item => item.id === id);
     const listed = catalog.get(id);
     if (!entry || !listed) throw new Error(`Public source metadata is missing for ${id}`);

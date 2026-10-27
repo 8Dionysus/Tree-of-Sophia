@@ -12,11 +12,19 @@ import {
   unitReference,
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
-import {languageName,sourceLinkLabel,corpusWorkTitle} from '../observatory/human-presentation.mjs';
+import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm} from './philology.mjs';
+import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+
+const retainedApparatus=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>[
+  ...(version.bookNotesUnitIds??[]).map(id=>[id,'workNotes']),
+  ...(version.adjustmentUnitIds??[]).map(id=>[id,'textualAdjustments']),
+])));
+const apparatusLabel=(unit,locale)=>{const key=retainedApparatus.get(unit?.unitId??unit?.id);return key?WORDING[String(locale).startsWith('en')?'en':'ru'][key]:'';};
 
 const WORDING = {
   ru: {
+    workNotes:'Примечания к произведению',textualAdjustments:'Текстологические сведения',
     reading: 'Чтение', close: 'Вернуться к Древу', library: 'Корпус', find: 'Найти произведение', loadMore: 'Ещё',
     previous: 'Предыдущий фрагмент', next: 'Следующий фрагмент', one: 'Один текст', parallel: 'Рядом', compare: 'Сравнить с',
     search: 'Поиск', searchPlaceholder: 'Искать в открытом тексте', loaded: 'Загруженный фрагмент', version: 'Всё произведение',
@@ -35,6 +43,7 @@ const WORDING = {
     select: 'Выбрать фрагмент в тексте', noCatalog: 'Произведения не найдены', works: 'Произведений',
   },
   en: {
+    workNotes:'Notes on the work',textualAdjustments:'Textual adjustments',
     reading: 'Reading', close: 'Return to the tree', library: 'Corpus', find: 'Find a work', loadMore: 'More',
     previous: 'Previous passage', next: 'Next passage', one: 'One text', parallel: 'Side by side', compare: 'Compare with',
     search: 'Search', searchPlaceholder: 'Search the open text', loaded: 'Loaded passage', version: 'This work',
@@ -113,10 +122,10 @@ function selectedOffsets(row, node, offset) {
 }
 
 function quoteAttribution({document, version, unit, quote, locale}) {
-  const title = localized(document?.title, locale) || document?.id || '';
+  const title = corpusWorkTitle(document, locale) || document?.id || '';
   const work = localized(document?.work, locale);
   const edition = localized(version?.edition, locale) || version?.label || version?.id || '';
-  const locator = localized(unit?.label || version?.locator || document?.locator, locale) || unit?.sourceReference || unit?.unitId || '';
+  const locator = apparatusLabel(unit,locale) || localized(unit?.label || version?.locator || document?.locator, locale) || unit?.sourceReference || unit?.unitId || '';
   const source = safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
   const licenseUrl = safeExternalUrl(attr(version?.license?.url));
   const license = licenseUrl ? `${localized(version?.license?.label, locale) || (String(locale).startsWith('en') ? 'License' : 'Лицензия')}: ${licenseUrl}` : '';
@@ -215,7 +224,8 @@ export function mountCorpusReader({
   };
   const versionLanguage = version => readableLanguage(version?.language, uiLocale());
   const unitLabel = unit => {
-    if (typeof unit?.label === 'string' && unit.label.trim()) return unit.label;
+    const apparatus=apparatusLabel(unit,uiLocale());if(apparatus)return apparatus;
+    if (typeof unit?.label === 'string' && unit.label.trim()) return corpusSectionLabel(unit.label,uiLocale(),modelState().activeVersionId);
     if (Number.isSafeInteger(unit?.ordinal) && unit.ordinal >= 0) return `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}`;
     return t('passage');
   };
@@ -667,6 +677,7 @@ export function mountCorpusReader({
     await ensureVisiblePanes();
     if(disposed)return null;
     render();
+    emitLocation();
     return result;
   }
 
@@ -683,6 +694,7 @@ export function mountCorpusReader({
     await ensureVisiblePanes();
     if(disposed)return null;
     render();
+    emitLocation();
     return result;
   }
 
@@ -816,7 +828,7 @@ export function mountCorpusReader({
     row.dataset.reference = referenceKey(reference); row.dataset.unitId = unit.unitId || ''; row.dataset.kind = unit.kind || ''; row.__readerUnit = unit;
     if (selected && sameReference(selected.reference, reference)) row.dataset.selected = 'true';
     const ordinal = Number.isSafeInteger(unit.ordinal) && unit.ordinal > 0 ? unit.ordinal : Number.isSafeInteger(unit.ordinal) ? unit.ordinal + 1 : null;
-    const markerLabel = unit.label || (ordinal === null ? '·' : String(ordinal));
+    const markerLabel = apparatusLabel(unit,uiLocale()) || corpusSectionLabel(unit.label,uiLocale(),versionId) || (ordinal === null ? '·' : String(ordinal));
     const marker = button(markerLabel, () => selectUnit(unit, versionId, {focus: true}), 'cr-unit-marker');
     marker.setAttribute('aria-label', `${t('select')} ${markerLabel}`);
     const content = element(unit.heading?'span':'div', 'cr-unit-text');

@@ -1,0 +1,132 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.ancient-medicine.ancient-medicine-eng3-04ab4db8b597",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/ancient-medicine-eng3-04ab4db8b597.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-eng3.xml",
+    "file_ref": "tos.file.sha256.87c607b1ce30ce5c968cf3e26640ef980a8ff15475eaf6cf3d29e4bc298a7c1f",
+    "byte_size": 54753,
+    "sha256": "87c607b1ce30ce5c968cf3e26640ef980a8ff15475eaf6cf3d29e4bc298a7c1f"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=ancient-medicine-eng3-04ab4db8b597",
+    "record_sha256": "d894125f836af4256ae7abb70599901277ac6ed8ae46d4d07954c4213ad9702b",
+    "record": {
+      "id": "ancient-medicine-eng3-04ab4db8b597",
+      "language": "en",
+      "title": "Английский · Фрэнсис Адамс",
+      "credit": "Перевод: Фрэнсис Адамс",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-eng3.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "The Genuine Works of Hippocrates"
+        ],
+        "dates": [
+          "1886"
+        ],
+        "places": [
+          "New York"
+        ],
+        "publishers": [
+          "William Wood and Company"
+        ],
+        "scans": [
+          "https://archive.org/details/genuineworksofhi00tran/page/132/mode/2up"
+        ],
+        "authors": [
+          "Hippocrates"
+        ],
+        "editors": [
+          {
+            "name": "Francis Adams",
+            "role": "translator"
+          }
+        ]
+      },
+      "item": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-eng3.xml",
+      "file": "sha256:04ab4db8b5976a46596c9a1d5685a7e48bcb142d58994ed6ecace1f57686f55f",
+      "sha256": "04ab4db8b5976a46596c9a1d5685a7e48bcb142d58994ed6ecace1f57686f55f",
+      "representationSha256": "c675d44456ad9e2b46bfdcef3861f9f8d2190ed710793e1b5721deb7e7d7cfdb",
+      "sourceRef": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-eng3.xml",
+      "sectionCount": 24
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "ancient-medicine-eng3-04ab4db8b597",
+    "legacy_source_sha256_claim": "04ab4db8b5976a46596c9a1d5685a7e48bcb142d58994ed6ecace1f57686f55f",
+    "legacy_representation_sha256_claim": "c675d44456ad9e2b46bfdcef3861f9f8d2190ed710793e1b5721deb7e7d7cfdb",
+    "retained_json_payload_sha256": "87c607b1ce30ce5c968cf3e26640ef980a8ff15475eaf6cf3d29e4bc298a7c1f",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "On Ancient Medicine",
+      "The Genuine Works of Hippocrates"
+    ],
+    "authors": [
+      "Hippocrates"
+    ],
+    "editors_or_translators": [
+      "Francis Adams"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.ancient-medicine",
+    "expression_ref": "tos.expression.retained.antiquity.ancient-medicine.ancient-medicine-eng3-04ab4db8b597",
+    "edition_ref": "tos.edition.retained.antiquity.ancient-medicine.ancient-medicine-eng3-04ab4db8b597",
+    "legacy_book_title": "О древней медицине",
+    "legacy_credit": "Перевод: Фрэнсис Адамс",
+    "publication": {
+      "titles": [
+        "The Genuine Works of Hippocrates"
+      ],
+      "dates": [
+        "1886"
+      ],
+      "places": [
+        "New York"
+      ],
+      "publishers": [
+        "William Wood and Company"
+      ],
+      "scans": [
+        "https://archive.org/details/genuineworksofhi00tran/page/132/mode/2up"
+      ],
+      "authors": [
+        "Hippocrates"
+      ],
+      "editors": [
+        {
+          "name": "Francis Adams",
+          "role": "translator"
+        }
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-eng3.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/01b725d835e6e733062ffd79e0efdbae1ba06e5c/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 24,
+    "block_count": 24,
+    "apparatus": {
+      "headings": 0,
+      "notes": 4,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

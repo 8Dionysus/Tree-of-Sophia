@@ -6,9 +6,13 @@ It does not admit a source, translation, interpretation or canon claim. The
 new curated records live with `ToS/source-witnesses/`; journey questions live
 with `ToS/research-packets/public-prototypes-20261026/`.
 
-The initial selection contains complete German and English *Zarathustra*,
-Greek and English *Meno*, Rackham's English *Nicomachean Ethics*, and Fowler's
-English *Apology*. Gutenberg's electronic editions and the pinned Perseus
+Both profiles select the same 50 works: German and English *Zarathustra* and
+all 49 books in the retained Antiquity collection, in 96 retained versions.
+The six previously published reading layers remain available with their
+original IDs and revisions. Four of those layers describe editions also in
+the retained collection; they are distinct reading representations, not four
+additional historical editions. The complete selection has 102 reading layers.
+Gutenberg's electronic editions and the pinned Perseus
 repository revision are identified in `acquisition-index.v1.json` and the
 individual source metadata snapshots. These are the selected electronic
 representations, without a claim to critical-edition or transcription accuracy.
@@ -31,7 +35,7 @@ tos-access public-corpus-build \
   --source-root /absolute/Tree-of-Sophia \
   --selection access/public-corpus/selection.v1.json \
   --output /absolute/fresh-public-corpus \
-  --max-input-bytes 67108864 --max-output-bytes 16777216 --max-seconds 120
+  --max-input-bytes 536870912 --max-output-bytes 268435456 --max-seconds 180
 ```
 
 Only explicitly public, publication-authorized packets covered by the selected
@@ -53,6 +57,20 @@ steps, recorded separately in each item's provenance. The public snapshot is
 native-generated; the metadata inventories themselves do not claim native
 source-catalog admission. That protected owner check needs its own issued
 invocation and stage ticket.
+
+`prepare_retained_corpus.py` imports the explicitly selected 96 saved reading
+JSON files from the separate Antiquity worktree. It retains their exact bytes
+as physical source items and records their upstream TEI or historical-page
+provenance separately. Missing upstream TEI bytes are not represented as
+retained files. Reading text, notes, headings and variant information are
+carried into source-bound native units; large sections are split without
+discarding text. The companion `retained-library-map.v1.json` contains only
+navigation metadata. It connects the existing collection material IDs to
+the native work, version and section IDs without renaming saved graph nodes.
+
+Completeness here means all sections of the saved reading representations.
+It does not certify transcription quality against scans or critical editions.
+Historical Wikisource transclusions retain their recorded proofreading limits.
 
 ## Morphology and dictionaries
 
