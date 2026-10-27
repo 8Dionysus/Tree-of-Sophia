@@ -83,6 +83,9 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
   library.space.intro=bi('Пятнадцать ветвей вопросов, произведения, авторы, школы и подробные прочтения в одном исследовании.','Fifteen branches of questions, works, authors, schools and close readings in one research space.');
   library.space.inquiryFoundation={question:bi('От какого вопроса начнётся ваше исследование?','Which question will begin your inquiry?'),orientation:bi('Выберите ветвь, прочитайте исходное место, затем проследите объяснённые переходы. Вопросы и прочтения остаются предложениями для проверки по источнику.','Choose a branch, read its starting passage and follow the explained transitions. Questions and readings remain proposals to examine against their sources.')};
   library.fingerprint=await digest({...library,fingerprint:undefined});
-  prepared.graphPredecessors=[{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
+  // Released collection before the English CE-label correction; material IDs,
+  // witness addresses and graph content are unchanged. Prefer its newer saved
+  // personal work over the original six-branch namespace.
+  prepared.graphPredecessors=[{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
   return prepared;
 }
