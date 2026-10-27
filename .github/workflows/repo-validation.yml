@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
 
 # One native CI profile for owner binaries, same-run executors and test consumers.
 env:
@@ -35,6 +37,19 @@ jobs:
       executor_manifest_sha256: ${{ steps.executors.outputs.executor_manifest_sha256 }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Test source CI proof adapter
+        run: node --test .github/scripts/verified-pr-tree.test.mjs
+      - name: Verify prior PR source CI for the landed tree
+        id: main_ci
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        timeout-minutes: 2
+        continue-on-error: true
+        with:
+          script: |
+            const { pathToFileURL } = await import('node:url');
+            const { verifiedPrTree } = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/.github/scripts/verified-pr-tree.mjs`).href);
+            core.setOutput('validated_tree', await verifiedPrTree({ github, context, core }));
       - name: Identify Cargo cache platform
         id: cargo_platform
         run: |
@@ -93,12 +108,17 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           FULL_RELEASE: ${{ github.event_name == 'workflow_dispatch' }}
+          VALIDATED_TREE: ${{ steps.main_ci.outputs.validated_tree }}
         run: |
           if [ "$FULL_RELEASE" = true ] || [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = 0000000000000000000000000000000000000000 ]; then
             "$TOS_SOFTWARE_CI_EXECUTOR" plan --repo-root "$GITHUB_WORKSPACE" --base HEAD --full
           else
             git fetch --no-tags --depth=1 origin "$BASE_SHA"
-            "$TOS_SOFTWARE_CI_EXECUTOR" plan --repo-root "$GITHUB_WORKSPACE" --base "$BASE_SHA"
+            args=()
+            if [ -n "$VALIDATED_TREE" ]; then
+              args+=(--validated-tree "$VALIDATED_TREE")
+            fi
+            "$TOS_SOFTWARE_CI_EXECUTOR" plan --repo-root "$GITHUB_WORKSPACE" --base "$BASE_SHA" "${args[@]}"
           fi
 
       - name: Validate selected documentation owners

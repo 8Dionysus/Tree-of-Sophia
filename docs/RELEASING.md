@@ -139,6 +139,25 @@ owner surfaces.
    resetting another session's dirty checkout. Record the merge commit and
    the software candidate identity separately.
 
+### PR, main and release qualification
+
+PRs run their normal selected checks. A main push may reuse source CI only
+after verifying the merged PR, one unambiguous successful workflow/required gate
+at its latest attempt,
+the gate's actual pinned checkout commit and its PR parents, and equality of
+that tested tree with the landed tree. The native selector checks the tree
+again. Changed-document and selected documentation-owner checks still run.
+Missing, ambiguous or inaccessible evidence uses normal main selection.
+Read-only API failure cannot accept an unverified prior result.
+
+This source result does not qualify a package for the landed SHA. Run the
+complete `Repo Validation` workflow with `workflow_dispatch` on the exact main
+SHA before selecting its software candidate for release. Explicit full runs
+ignore reuse evidence and retain all build, receipt, determinism, install,
+browser, Worker, Rust and PostgreSQL checks. Publication and deployment are
+separate actions. [D0073](decisions/TOS-D-0073-verified-pr-source-ci-and-exact-sha-releases.md)
+records the tested-tree and package-provenance boundary.
+
 ### Checks selected for a change
 
 The workflow always checks changed Markdown for conflict markers and newly

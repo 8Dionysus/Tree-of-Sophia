@@ -33,6 +33,8 @@ pub struct Selection {
     pub documentation_family: bool,
     pub changed_paths: Vec<String>,
     pub forced_full: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validated_tree: Option<String>,
 }
 
 /// The ordered path rules are the maintained software selector, including
@@ -199,7 +201,43 @@ fn select_checked(
         documentation_family,
         changed_paths: paths,
         forced_full,
+        validated_tree: None,
     })
+}
+
+/// The workflow supplies a tree only after verifying a completed merged-PR run.
+/// Check that tree against this actual checkout; keep document checks and full runs.
+pub fn reuse_validated_tree(
+    root: &Path,
+    selection: &mut Selection,
+    tree: &str,
+    cancel: &AtomicI32,
+) -> io::Result<()> {
+    if tree.len() != 40
+        || !tree
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(invalid(
+            "validated tree must be a lowercase SHA-1 object ID",
+        ));
+    }
+    if selection.forced_full {
+        return Ok(());
+    }
+    let mut budget = Budget {
+        deadline: Instant::now() + Duration::from_secs(10),
+        bytes: 0,
+        cancel,
+    };
+    let (code, actual) = budget.git(root, &["rev-parse", "--verify", "HEAD^{tree}"], 64)?;
+    if code == 0 && std::str::from_utf8(&actual).is_ok_and(|actual| actual.trim() == tree) {
+        selection.software_mode = "none";
+        selection.worker = false;
+        selection.rust = false;
+        selection.validated_tree = Some(tree.to_owned());
+    }
+    Ok(())
 }
 
 /// Failure/cancellation/missing and unexpected skipping are never accepted.
