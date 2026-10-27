@@ -145,17 +145,20 @@ jobs:
           fi
 
 
-  software:
+  software_prepare:
     needs: plan
     if: ${{ needs.plan.outputs.software_mode != 'none' }}
-    name: Software Contracts, Browser and Installed Package
-    runs-on: ubuntu-latest
+    name: Prepare exact Software inputs
+    # Match the Ubuntu 26.04 baseline and both consumers of these host images.
+    runs-on: ubuntu-26.04
+    outputs:
+      software_stage_manifest_sha256: ${{ steps.stage.outputs.software_stage_manifest_sha256 }}
     steps:
       - name: Checkout software and bounded test fixtures
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         # Select complete implementation modules, not their current import graph.
         # Corpus inputs remain limited to contracts and named synthetic fixtures.
-        with:
+        with: &software_fixture_checkout
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /access/
@@ -225,18 +228,20 @@ jobs:
             /tests/fixtures/decision_records_oracle/expected/by-surface.md.txt
             /tests/fixtures/decision_records_oracle/expected/by-tos-layer.md.txt
             /tests/fixtures/decision_records_oracle/expected/by-tree-class.md.txt
-
-      - name: Configure Cargo paths
+      - &configure_software_cargo
+        name: Configure Cargo paths
         run: |
           printf 'CARGO_HOME=%s/software-cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           # Test features cannot replace images already bound by package receipts.
           printf 'CARGO_TARGET_DIR=%s/software-test-cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Fetch same-run native CI executors
+      - &fetch_software_ci_executors
+        name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: tos-ci-executors-${{ github.sha }}
           path: ${{ runner.temp }}/tos-ci-executors
-      - name: Verify and bind exact native CI executors
+      - &bind_software_ci_executors
+        name: Verify and bind exact native CI executors
         env:
           TOS_CI_EXECUTOR_SHA256: ${{ needs.plan.outputs.executor_sha256 }}
           TOS_CI_MANIFEST_SHA256: ${{ needs.plan.outputs.executor_manifest_sha256 }}
@@ -250,51 +255,245 @@ jobs:
           "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
             --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
           chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
-
-      - name: Setup Node
+      - &setup_software_node
+        name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: access/web/package-lock.json
-
-      - name: Install software test dependencies
-        run: |
-          npm ci --prefer-offline --no-audit --no-fund --prefix access/web
-          npm install --prefix "$RUNNER_TEMP/tos-e2e-deps" --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0
-          "$RUNNER_TEMP/tos-e2e-deps/node_modules/.bin/playwright" install --with-deps chromium
-          echo "TOS_E2E_NODE_MODULES=$RUNNER_TEMP/tos-e2e-deps/node_modules" >> "$GITHUB_ENV"
-
-      - name: Prepare pinned native software and browser rules
-        env:
-          CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
-          CARGO_BUILD_JOBS: "2"
+      - name: Install browser asset build dependencies
+        run: npm ci --prefer-offline --no-audit --no-fund --prefix access/web
+      - &software_toolchain
+        name: Install pinned Software Rust toolchain
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
           rustup default 1.98.1
+      - &cargo_resource_profile
+        name: Measure runner resources and choose Cargo parallelism
+        env:
+          CI_CARGO_GROUP: ${{ matrix.group || github.job }}
+        run: |
+          profile_dir="$RUNNER_TEMP/cargo-resource-profile"
+          mkdir -m 700 -p "$profile_dir"
+          rustc +1.98.1 --version --verbose > "$profile_dir/rustc-version.txt"
+          cargo +1.98.1 --version > "$profile_dir/cargo-version.txt"
+          uname -a > "$profile_dir/uname.txt"
+          CARGO_RESOURCE_DIR="$profile_dir" node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import os from 'node:os';
+          import path from 'node:path';
+
+          const GIB = 1024 ** 3;
+          const read = file => {
+            try { return fs.readFileSync(file, 'utf8').trim(); }
+            catch { return null; }
+          };
+          const decodeMount = value => value
+            .replace(/\\040/g, ' ')
+            .replace(/\\011/g, '\t')
+            .replace(/\\012/g, '\n')
+            .replace(/\\134/g, '\\');
+          const cgroupMembership = (read('/proc/self/cgroup') ?? '').split('\n').find(line => line.startsWith('0::'));
+          const cgroup2Mount = (read('/proc/self/mountinfo') ?? '').split('\n').map(line => {
+            const [left, right] = line.split(' - ');
+            if (!right || right.split(' ')[0] !== 'cgroup2') return null;
+            const fields = left.split(' ');
+            return { root: decodeMount(fields[3] ?? '/'), point: decodeMount(fields[4] ?? '') };
+          }).find(Boolean);
+          const memberPath = cgroupMembership?.slice(3) ?? null;
+          const mountRoot = cgroup2Mount?.root.replace(/\/+$/, '') || '/';
+          const mountPoint = cgroup2Mount?.point ?? null;
+          const memberMatchesMount = memberPath !== null && mountPoint !== null
+            && (mountRoot === '/' || memberPath === mountRoot || memberPath.startsWith(`${mountRoot}/`));
+          const cgroupLeaf = memberMatchesMount
+            ? path.join(mountPoint, mountRoot === '/' ? memberPath.replace(/^\/+/, '') : memberPath.slice(mountRoot.length).replace(/^\/+/, ''))
+            : null;
+          const cgroupPaths = [];
+          for (let current = cgroupLeaf; current && mountPoint && (current === mountPoint || current.startsWith(`${mountPoint}${path.sep}`)); current = path.dirname(current)) {
+            cgroupPaths.push(current);
+            if (current === mountPoint) break;
+          }
+          const cgroupScopeComplete = cgroupLeaf !== null && mountRoot === '/' && cgroupPaths.at(-1) === mountPoint;
+          const cpuAncestorPaths = cgroupPaths;
+          const memoryAncestorPaths = cgroupPaths;
+          const integer = raw => raw && /^\d+$/.test(raw) ? BigInt(raw) : null;
+          const bytes = raw => {
+            const value = integer(raw);
+            return value === null || value > (1n << 60n) ? null : Number(value);
+          };
+          const cpuQuotaLevels = cpuAncestorPaths.map(directory => {
+            const raw = read(path.join(directory, 'cpu.max'));
+            if (raw === null) {
+              const hierarchyRoot = cgroupScopeComplete && directory === mountPoint;
+              return { path: directory, raw: null, unlimited: hierarchyRoot, assumed_unlimited: hierarchyRoot, cores: null, observed: hierarchyRoot };
+            }
+            const [quota, period] = raw.split(/\s+/);
+            const unlimited = quota === 'max';
+            const cores = !unlimited && Number(quota) > 0 && Number(period) > 0 ? Number(quota) / Number(period) : null;
+            return { path: directory, raw, unlimited, assumed_unlimited: false, cores, observed: unlimited || cores !== null };
+          });
+          const cpuQuotaObserved = cpuQuotaLevels.length > 0 && cpuQuotaLevels.every(level => level.observed);
+          const finiteCpuQuotas = cpuQuotaLevels.filter(level => level.cores !== null).map(level => level.cores);
+          const cpuQuotaCores = finiteCpuQuotas.length ? Math.min(...finiteCpuQuotas) : null;
+          const cpuQuotaUnlimited = cpuQuotaObserved && finiteCpuQuotas.length === 0;
+          const status = read('/proc/self/status') ?? '';
+          const affinityList = status.match(/^Cpus_allowed_list:\s*(.+)$/m)?.[1] ?? null;
+          const affinityCount = affinityList === null ? null : affinityList.split(',').reduce((sum, part) => {
+            const [first, last = first] = part.split('-').map(Number);
+            return sum + (Number.isInteger(first) && Number.isInteger(last) && last >= first ? last - first + 1 : 0);
+          }, 0);
+          let availableParallelism = null;
+          try { availableParallelism = os.availableParallelism(); } catch {}
+          const cpuBounds = [availableParallelism, affinityCount, cpuQuotaCores].filter(value => Number.isFinite(value) && value > 0);
+          const effectiveCpuCores = cpuBounds.length ? Math.min(...cpuBounds) : null;
+          const meminfo = read('/proc/meminfo') ?? '';
+          const memAvailableKiB = Number(meminfo.match(/^MemAvailable:\s*(\d+)\s+kB$/m)?.[1]);
+          const hostAvailableBytes = Number.isFinite(memAvailableKiB) && memAvailableKiB > 0
+            ? memAvailableKiB * 1024
+            : os.freemem();
+          function memoryLimitAt(directory) {
+            const limitRaw = read(path.join(directory, 'memory.max'));
+            const currentRaw = read(path.join(directory, 'memory.current'));
+            const limitBytes = bytes(limitRaw);
+            const currentBytes = bytes(currentRaw);
+            const unlimited = limitRaw === 'max'
+              || (limitBytes === null && limitRaw !== null && /^\d+$/.test(limitRaw))
+              || (limitRaw === null && cgroupScopeComplete && directory === mountPoint);
+            const assumedUnlimited = limitRaw === null && cgroupScopeComplete && directory === mountPoint;
+            const observed = assumedUnlimited || (limitRaw !== null && (unlimited || currentBytes !== null));
+            const headroomBytes = unlimited
+              ? null
+              : limitBytes !== null && currentBytes !== null
+                ? Math.max(0, limitBytes - currentBytes)
+                : null;
+            return { path: directory, limit_raw: limitRaw, current_raw: currentRaw, limit_bytes: limitBytes, headroom_bytes: headroomBytes, unlimited, assumed_unlimited: assumedUnlimited, observed };
+          }
+          const memoryLimitLevels = memoryAncestorPaths.map(memoryLimitAt);
+          const memoryObservedAtEveryLevel = memoryLimitLevels.length > 0 && memoryLimitLevels.every(level => level.observed);
+          const finiteMemoryHeadroom = memoryLimitLevels.filter(level => level.headroom_bytes !== null).map(level => level.headroom_bytes);
+          const cgroupHeadroomBytes = finiteMemoryHeadroom.length ? Math.min(...finiteMemoryHeadroom) : null;
+          const cgroupMemoryObserved = memoryObservedAtEveryLevel && cgroupScopeComplete;
+          const availableMemoryBytes = cgroupMemoryObserved
+            ? Math.min(hostAvailableBytes, cgroupHeadroomBytes ?? Number.POSITIVE_INFINITY)
+            : null;
+          const cpuFourConfirmed = availableParallelism >= 4 && affinityCount >= 4
+            && cpuQuotaObserved && cgroupScopeComplete && (cpuQuotaUnlimited || cpuQuotaCores >= 4);
+          const memoryTwelveGiBConfirmed = availableMemoryBytes !== null && availableMemoryBytes >= 12 * GIB;
+          const buildJobs = cpuFourConfirmed && memoryTwelveGiBConfirmed
+            ? 4
+            : effectiveCpuCores !== null && effectiveCpuCores < 2
+              ? 1
+              : availableMemoryBytes !== null && availableMemoryBytes < 6 * GIB
+                ? 1
+                : 2;
+          const rustResourceDir = process.env.CARGO_RESOURCE_DIR;
+          const profile = {
+            schema_version: 'tos_ci_cargo_resource_profile_v1',
+            group: process.env.CI_CARGO_GROUP ?? null,
+            runner: {
+              os: process.env.RUNNER_OS ?? null,
+              arch: process.env.RUNNER_ARCH ?? null,
+              node_arch: process.arch,
+              kernel: os.release(),
+              uname: read(path.join(rustResourceDir, 'uname.txt')),
+            },
+            toolchain: {
+              rustc: read(path.join(rustResourceDir, 'rustc-version.txt')),
+              cargo: read(path.join(rustResourceDir, 'cargo-version.txt')),
+            },
+            cpu: {
+              available_parallelism: availableParallelism,
+              affinity_cpu_list: affinityList,
+              affinity_cpu_count: affinityCount,
+              cgroup_path: cgroupLeaf,
+              cgroup_ancestor_paths: cpuAncestorPaths,
+              cgroup_ancestor_scope_complete: cgroupScopeComplete,
+              cgroup_cpu_max: cpuQuotaLevels[0]?.raw ?? null,
+              cgroup_quota_levels: cpuQuotaLevels,
+              cgroup_quota_cores: cpuQuotaCores,
+              cgroup_quota_unlimited: cpuQuotaUnlimited,
+              cgroup_quota_observed: cpuQuotaObserved,
+              effective_cpu_cores: effectiveCpuCores,
+              four_jobs_confirmed: cpuFourConfirmed,
+              cargo_build_jobs: buildJobs,
+            },
+            memory: {
+              host_available_bytes: hostAvailableBytes,
+              cgroup_path: cgroupLeaf,
+              cgroup_ancestor_paths: memoryAncestorPaths,
+              cgroup_ancestor_scope_complete: cgroupScopeComplete,
+              cgroup_limit_levels: memoryLimitLevels,
+              cgroup_limit_raw: memoryLimitLevels[0]?.limit_raw ?? null,
+              cgroup_current_raw: memoryLimitLevels[0]?.current_raw ?? null,
+              cgroup_limit_bytes: memoryLimitLevels[0]?.limit_bytes ?? null,
+              cgroup_headroom_bytes: cgroupHeadroomBytes,
+              effective_available_bytes: availableMemoryBytes,
+              twelve_gib_confirmed: memoryTwelveGiBConfirmed,
+            },
+            lane: { before: null, after: null, cpu_stat_delta: null, memory_peak_delta_bytes: null },
+            notes: [
+              'The four-job setting requires observed availableParallelism, affinity, CPU quota at every visible ancestor, a mount exposing the cgroup root, and at least 12 GiB effective memory headroom at every visible ancestor.',
+              'Otherwise Cargo uses at most two jobs, or one when fewer than two effective CPUs or less than 6 GiB measured memory are available.',
+              'Resource limits and cpu.stat/memory.peak snapshots cover the current cgroup and visible ancestors. If the mount hides ancestors above its root, four-job confirmation is disabled and the missing scope is recorded.',
+              'Cgroup cpu.stat snapshots bracket the lane but can include other work charged to the runner cgroup. memory.peak may include setup earlier in this job and is not reset.',
+              'This artifact is diagnostic and does not establish validation, product identity, or authority.',
+            ],
+          };
+          fs.writeFileSync(path.join(rustResourceDir, 'resource-profile.json'), `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `CARGO_BUILD_JOBS=${buildJobs}\n`);
+          console.log(`Cargo resource profile selected CARGO_BUILD_JOBS=${buildJobs}.`);
+          JS
+      - &cargo_resource_before
+        name: Capture pre-lane cgroup counters
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const dir = path.join(process.env.RUNNER_TEMP, 'cargo-resource-profile');
+          const file = path.join(dir, 'resource-profile.json');
+          if (!fs.existsSync(file)) process.exit(0);
+          const profile = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const read = file => { try { return fs.readFileSync(file, 'utf8').trim(); } catch { return null; } };
+          const capture = (directories, name) => directories.map(directory => ({
+            path: directory,
+            raw: read(path.join(directory, name)),
+          }));
+          const snapshot = () => ({
+            captured_at: new Date().toISOString(),
+            cpu_stat: capture(profile.cpu.cgroup_ancestor_paths ?? [], 'cpu.stat'),
+            memory_peak: capture(profile.memory.cgroup_ancestor_paths ?? [], 'memory.peak'),
+          });
+          profile.lane.before = snapshot();
+          fs.writeFileSync(file, `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
+          JS
+      - name: Prepare pinned native software and browser rules
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
+        run: |
           # Keep test-only features outside the production receipt stream.
-          cargo build --locked -p tos-access --bin tos-e2e-fixture --features e2e-fixture --target x86_64-unknown-linux-gnu
+          cargo build --locked -p tos-access --bin tos-e2e-fixture --features e2e-fixture --target x86_64-unknown-linux-gnu --message-format=json --timings > "$RUNNER_TEMP/software-fixture-cargo-messages.jsonl"
           trap 'cargo_status=$?; if [ "$cargo_status" -ne 0 ]; then tail -c 33554432 "$RUNNER_TEMP/software-cargo-messages.jsonl" >&2 || true; fi; exit "$cargo_status"' EXIT
-          cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
+          cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu --message-format=json --timings > "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu --message-format=json --timings >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json --timings >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked --no-default-features -p tos-ops-mechanics-plan --timings \
             --bin tos-unicode-tables --bin tos-constructor-desktop \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked --no-default-features --features mechanics -p tos-ops-mechanics-plan \
+          cargo build --locked --no-default-features --features mechanics -p tos-ops-mechanics-plan --timings \
             --bin tos-kag-release --bin tos-stats-release \
             --bin tos-route-cards --bin tos-agents-route-harness \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked -p tos-ops-mechanics-plan \
+          cargo build --locked -p tos-ops-mechanics-plan --timings \
             --bin tos-ops-mechanics-plan --bin tos-source-registry --bin tos-open-work-queue \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked -p tos-compiler --features source-tools --bin tos-constructor-library --bin tos-constructor-fragments \
+          cargo build --locked -p tos-compiler --features source-tools --bin tos-constructor-library --bin tos-constructor-fragments --timings \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked -p tos-reader --bin tos-reader \
+          cargo build --locked -p tos-reader --bin tos-reader --timings \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked --no-default-features -p tos-access --features research-tools --bin tos-research \
+          cargo build --locked --no-default-features -p tos-access --features research-tools --bin tos-research --timings \
             --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
-          cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+          cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown --timings
           archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
           curl --fail --location --silent --show-error \
             'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
@@ -320,33 +519,121 @@ jobs:
           printf 'TOS_NATIVE_OWNER_COMMAND_PATH=%s\nTOS_NATIVE_OWNER_COMMAND_BIN=%s\n' \
             "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-native-owner-command" \
             "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-native-owner-command" >> "$GITHUB_ENV"
-
-      - name: Preserve unqualified native Stage 1 inputs
-        # These build receipts and binaries are separate from downstream validation and release qualification.
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: tos-native-stage1-unqualified-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/software-cargo-target/x86_64-unknown-linux-gnu/debug/tos-access
-            ${{ runner.temp }}/software-cargo-target/x86_64-unknown-linux-gnu/debug/tos-native-owner-command
-            ${{ runner.temp }}/software-cargo-target/x86_64-unknown-linux-gnu/debug/tos-schema-worker
-            ${{ runner.temp }}/tos-native-build.json
-            ${{ runner.temp }}/tos-native-owner-command-build.json
-            ${{ runner.temp }}/tos-schema-worker-build.json
-          if-no-files-found: error
-          retention-days: 1
-
       - name: Check canonical definition topology and generated registry pair
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
-          CARGO_BUILD_JOBS: "2"
         run: |
           cargo run --locked --no-default-features -p tos-ops-mechanics-plan --bin tos-definition-tree -- check-compatibility ToS/doctrine/semantic-interchange/definitions ToS/doctrine/semantic-interchange
-
       - name: Validate software contracts and build browser assets
         run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase checks'
+      - name: Admit bounded Software stage inputs
+        id: stage
+        run: |
+          "$TOS_SOFTWARE_CI_EXECUTOR" software-stage-manifest --repo-root "$GITHUB_WORKSPACE" \
+            --stage-root "$RUNNER_TEMP/software-stage" \
+            --image-root "$RUNNER_TEMP/software-cargo-target/x86_64-unknown-linux-gnu/debug" \
+            --receipt-root "$RUNNER_TEMP" --fixture-messages "$RUNNER_TEMP/software-fixture-cargo-messages.jsonl" \
+            --rustc-version "$RUNNER_TEMP/software-rustc-version.txt" \
+            --web-dist "$GITHUB_WORKSPACE/access/web/dist" \
+            --worker-generated "$GITHUB_WORKSPACE/access/deploy/cloudflare-worker/generated" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Preserve unqualified native Stage 1 inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tos-native-stage1-unqualified-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/software-stage/
+          if-no-files-found: error
+          include-hidden-files: true
+          compression-level: 1
+          retention-days: 1
+      - &cargo_resource_after
+        name: Capture post-lane cgroup counters
+        if: ${{ always() }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const dir = path.join(process.env.RUNNER_TEMP, 'cargo-resource-profile');
+          const file = path.join(dir, 'resource-profile.json');
+          if (!fs.existsSync(file)) process.exit(0);
+          const profile = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const read = file => { try { return fs.readFileSync(file, 'utf8').trim(); } catch { return null; } };
+          const capture = (directories, name) => directories.map(directory => ({
+            path: directory,
+            raw: read(path.join(directory, name)),
+          }));
+          const snapshot = () => ({
+            captured_at: new Date().toISOString(),
+            cpu_stat: capture(profile.cpu.cgroup_ancestor_paths ?? [], 'cpu.stat'),
+            memory_peak: capture(profile.memory.cgroup_ancestor_paths ?? [], 'memory.peak'),
+          });
+          profile.lane.after = snapshot();
+          const values = raw => Object.fromEntries((raw ?? '').split('\n').map(line => line.trim().split(/\s+/)).filter(pair => pair.length === 2 && /^\d+$/.test(pair[1])).map(([key, value]) => [key, BigInt(value)]));
+          const beforeCpu = new Map((profile.lane.before?.cpu_stat ?? []).map(level => [level.path, values(level.raw)]));
+          profile.lane.cpu_stat_delta = profile.lane.after.cpu_stat.map(level => {
+            const before = beforeCpu.get(level.path) ?? {};
+            const after = values(level.raw);
+            return {
+              path: level.path,
+              counters: Object.fromEntries(Object.entries(after).filter(([key]) => before[key] !== undefined).map(([key, value]) => [key, (value - before[key]).toString()])),
+            };
+          });
+          const beforePeaks = new Map((profile.lane.before?.memory_peak ?? []).map(level => [level.path, level.raw]));
+          profile.lane.memory_peak_delta_bytes = profile.lane.after.memory_peak.map(level => {
+            const before = beforePeaks.get(level.path);
+            const delta = /^\d+$/.test(before ?? '') && /^\d+$/.test(level.raw ?? '')
+              ? (BigInt(level.raw) - BigInt(before)).toString()
+              : null;
+            return { path: level.path, delta_bytes: delta };
+          });
+          fs.writeFileSync(file, `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
+          JS
+      - &cargo_diagnostics
+        name: Upload non-authoritative Cargo diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ github.job }}-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.group || 'single' }}
+          path: |
+            ${{ runner.temp }}/cargo-resource-profile/resource-profile.json
+            ${{ runner.temp }}/cargo-target/cargo-timings/
+            ${{ runner.temp }}/software-cargo-target/cargo-timings/
+            ${{ runner.temp }}/software-test-cargo-target/cargo-timings/
+          if-no-files-found: warn
+          retention-days: 14
 
-      - name: Prepare isolated fs-verity test filesystem
+  software:
+    needs: [plan, software_prepare]
+    if: ${{ needs.plan.outputs.software_mode != 'none' }}
+    name: Software fixture contracts
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout software consumer sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with: *software_fixture_checkout
+      - *configure_software_cargo
+      - *fetch_software_ci_executors
+      - *bind_software_ci_executors
+      - *setup_software_node
+      - *software_toolchain
+      - *cargo_resource_profile
+      - *cargo_resource_before
+      - &fetch_software_stage
+        name: Fetch same-run Software stage
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-native-stage1-unqualified-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/software-stage
+      - &bind_software_stage
+        name: Verify and bind exact Software stage
+        run: |
+          "$TOS_SOFTWARE_CI_EXECUTOR" software-stage-bind --repo-root "$GITHUB_WORKSPACE" \
+            --stage-root "$RUNNER_TEMP/software-stage" \
+            --manifest-sha256 "${{ needs.software_prepare.outputs.software_stage_manifest_sha256 }}" \
+            --image-root "$RUNNER_TEMP/software-cargo-target/x86_64-unknown-linux-gnu/debug" \
+            --receipt-root "$RUNNER_TEMP" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+      - &prepare_native_verity
+        name: Prepare isolated fs-verity test filesystem
         run: |
           # Native immutable-file tests require a filesystem with fs-verity.
           # Format only this job-owned image; leave the runner filesystem alone.
@@ -361,12 +648,53 @@ jobs:
           echo "TMPDIR=$root/mounted" >> "$GITHUB_ENV"
       - name: Test shared software and data-operation code on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'full' }}
-        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase tests --command-timeout-ms 900000'
-
+        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase tests --command-timeout-ms 900000 --cargo-timings'
       - name: Test reader and API behavior on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
-        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_reader'
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_reader --cargo-timings'
+      - *cargo_resource_after
+      - *cargo_diagnostics
+      - &cleanup_native_verity
+        name: Unmount isolated fs-verity test filesystem
+        if: ${{ always() }}
+        run: |
+          root="$RUNNER_TEMP/tos-verity-tests"
+          if mountpoint -q "$root/mounted"; then
+            sudo umount "$root/mounted"
+          fi
 
+  software_package:
+    needs: [plan, software_prepare]
+    if: ${{ needs.plan.outputs.software_mode != 'none' }}
+    name: Software package and installed browser
+    runs-on: ubuntu-26.04
+    outputs:
+      candidate_sha256: ${{ steps.candidate.outputs.candidate_sha256 }}
+      candidate_sidecar_sha256: ${{ steps.candidate.outputs.candidate_sidecar_sha256 }}
+      candidate_bytes: ${{ steps.candidate.outputs.candidate_bytes }}
+      candidate_sidecar_bytes: ${{ steps.candidate.outputs.candidate_sidecar_bytes }}
+    steps:
+      - name: Checkout software consumer sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with: *software_fixture_checkout
+      - *configure_software_cargo
+      - *fetch_software_ci_executors
+      - *bind_software_ci_executors
+      - *setup_software_node
+      - *software_toolchain
+      - *cargo_resource_profile
+      - *cargo_resource_before
+      - *fetch_software_stage
+      - *bind_software_stage
+      - name: Install software test dependencies
+        run: |
+          # Keep signed Ubuntu packages; avoid the measured slow Azure HTTP mirror.
+          sudo sed -i 's@http://azure.archive.ubuntu.com/ubuntu@https://archive.ubuntu.com/ubuntu@g' /etc/apt/apt-mirrors.txt
+          npm ci --prefer-offline --no-audit --no-fund --prefix access/web
+          npm install --prefix "$RUNNER_TEMP/tos-e2e-deps" --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0
+          "$RUNNER_TEMP/tos-e2e-deps/node_modules/.bin/playwright" install --with-deps chromium
+          echo "TOS_E2E_NODE_MODULES=$RUNNER_TEMP/tos-e2e-deps/node_modules" >> "$GITHUB_ENV"
+      - *prepare_native_verity
       - name: Build and install the native software artifact without corpus data
         env:
           CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
@@ -409,30 +737,35 @@ jobs:
           printf 'TOS_RESEARCH_EXECUTOR=%s\n' "$RUNNER_TEMP/tos-native-install/bin/tos-research" >> "$GITHUB_ENV"
           printf 'TOS_E2E_FIXTURE_BIN=%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-e2e-fixture" >> "$GITHUB_ENV"
           printf 'TOS_E2E_SITE_EXECUTABLE=%s\n' "$RUNNER_TEMP/tos-native-install/software/access/src/tos_access/tos-access" >> "$GITHUB_ENV"
-
       - name: Test browser behavior with bounded native fixtures
         # The complete real-browser cohort exceeds the generic five-minute
         # command default on the hosted software-WebGL renderer.
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_browser --command-timeout-ms 900000'
-
-      - name: Preserve validated software candidate
+      - name: Bind unqualified candidate digests
+        id: candidate
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          for (const [key, file] of [['candidate', 'dist/tree-of-sophia-software.zip'], ['candidate_sidecar', 'dist/tree-of-sophia-software.zip.manifest.json']]) {
+            const hash = crypto.createHash('sha256');
+            for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `${key}_sha256=${hash.digest('hex')}\n${key}_bytes=${fs.statSync(file).size}\n`);
+          }
+          JS
+      - name: Preserve unqualified Software candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: tree-of-sophia-software-${{ github.sha }}
+          name: tos-software-candidate-unqualified-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             dist/tree-of-sophia-software.zip
             dist/tree-of-sophia-software.zip.manifest.json
           if-no-files-found: error
-          retention-days: 14
-
-      - name: Unmount isolated fs-verity test filesystem
-        if: ${{ always() }}
-        run: |
-          root="$RUNNER_TEMP/tos-verity-tests"
-          if mountpoint -q "$root/mounted"; then
-            sudo umount "$root/mounted"
-          fi
-
+          compression-level: 0
+          retention-days: 1
+      - *cargo_resource_after
+      - *cargo_diagnostics
+      - *cleanup_native_verity
 
   worker:
     needs: plan
@@ -897,180 +1230,7 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
-      - name: Measure runner resources and choose Cargo parallelism
-        env:
-          RUST_CI_GROUP: ${{ matrix.group }}
-        run: |
-          profile_dir="$RUNNER_TEMP/rust-resource-profile"
-          mkdir -m 700 -p "$profile_dir"
-          rustc +1.98.1 --version --verbose > "$profile_dir/rustc-version.txt"
-          cargo +1.98.1 --version > "$profile_dir/cargo-version.txt"
-          uname -a > "$profile_dir/uname.txt"
-          RUST_RESOURCE_DIR="$profile_dir" node --input-type=module <<'JS'
-          import fs from 'node:fs';
-          import os from 'node:os';
-          import path from 'node:path';
-
-          const GIB = 1024 ** 3;
-          const read = file => {
-            try { return fs.readFileSync(file, 'utf8').trim(); }
-            catch { return null; }
-          };
-          const decodeMount = value => value
-            .replace(/\\040/g, ' ')
-            .replace(/\\011/g, '\t')
-            .replace(/\\012/g, '\n')
-            .replace(/\\134/g, '\\');
-          const cgroupMembership = (read('/proc/self/cgroup') ?? '').split('\n').find(line => line.startsWith('0::'));
-          const cgroup2Mount = (read('/proc/self/mountinfo') ?? '').split('\n').map(line => {
-            const [left, right] = line.split(' - ');
-            if (!right || right.split(' ')[0] !== 'cgroup2') return null;
-            const fields = left.split(' ');
-            return { root: decodeMount(fields[3] ?? '/'), point: decodeMount(fields[4] ?? '') };
-          }).find(Boolean);
-          const memberPath = cgroupMembership?.slice(3) ?? null;
-          const mountRoot = cgroup2Mount?.root.replace(/\/+$/, '') || '/';
-          const mountPoint = cgroup2Mount?.point ?? null;
-          const memberMatchesMount = memberPath !== null && mountPoint !== null
-            && (mountRoot === '/' || memberPath === mountRoot || memberPath.startsWith(`${mountRoot}/`));
-          const cgroupLeaf = memberMatchesMount
-            ? path.join(mountPoint, mountRoot === '/' ? memberPath.replace(/^\/+/, '') : memberPath.slice(mountRoot.length).replace(/^\/+/, ''))
-            : null;
-          const cgroupPaths = [];
-          for (let current = cgroupLeaf; current && mountPoint && (current === mountPoint || current.startsWith(`${mountPoint}${path.sep}`)); current = path.dirname(current)) {
-            cgroupPaths.push(current);
-            if (current === mountPoint) break;
-          }
-          const cgroupScopeComplete = cgroupLeaf !== null && mountRoot === '/' && cgroupPaths.at(-1) === mountPoint;
-          const cpuAncestorPaths = cgroupPaths;
-          const memoryAncestorPaths = cgroupPaths;
-          const integer = raw => raw && /^\d+$/.test(raw) ? BigInt(raw) : null;
-          const bytes = raw => {
-            const value = integer(raw);
-            return value === null || value > (1n << 60n) ? null : Number(value);
-          };
-          const cpuQuotaLevels = cpuAncestorPaths.map(directory => {
-            const raw = read(path.join(directory, 'cpu.max'));
-            if (raw === null) {
-              const hierarchyRoot = cgroupScopeComplete && directory === mountPoint;
-              return { path: directory, raw: null, unlimited: hierarchyRoot, assumed_unlimited: hierarchyRoot, cores: null, observed: hierarchyRoot };
-            }
-            const [quota, period] = raw.split(/\s+/);
-            const unlimited = quota === 'max';
-            const cores = !unlimited && Number(quota) > 0 && Number(period) > 0 ? Number(quota) / Number(period) : null;
-            return { path: directory, raw, unlimited, assumed_unlimited: false, cores, observed: unlimited || cores !== null };
-          });
-          const cpuQuotaObserved = cpuQuotaLevels.length > 0 && cpuQuotaLevels.every(level => level.observed);
-          const finiteCpuQuotas = cpuQuotaLevels.filter(level => level.cores !== null).map(level => level.cores);
-          const cpuQuotaCores = finiteCpuQuotas.length ? Math.min(...finiteCpuQuotas) : null;
-          const cpuQuotaUnlimited = cpuQuotaObserved && finiteCpuQuotas.length === 0;
-          const status = read('/proc/self/status') ?? '';
-          const affinityList = status.match(/^Cpus_allowed_list:\s*(.+)$/m)?.[1] ?? null;
-          const affinityCount = affinityList === null ? null : affinityList.split(',').reduce((sum, part) => {
-            const [first, last = first] = part.split('-').map(Number);
-            return sum + (Number.isInteger(first) && Number.isInteger(last) && last >= first ? last - first + 1 : 0);
-          }, 0);
-          let availableParallelism = null;
-          try { availableParallelism = os.availableParallelism(); } catch {}
-          const cpuBounds = [availableParallelism, affinityCount, cpuQuotaCores].filter(value => Number.isFinite(value) && value > 0);
-          const effectiveCpuCores = cpuBounds.length ? Math.min(...cpuBounds) : null;
-          const meminfo = read('/proc/meminfo') ?? '';
-          const memAvailableKiB = Number(meminfo.match(/^MemAvailable:\s*(\d+)\s+kB$/m)?.[1]);
-          const hostAvailableBytes = Number.isFinite(memAvailableKiB) && memAvailableKiB > 0
-            ? memAvailableKiB * 1024
-            : os.freemem();
-          function memoryLimitAt(directory) {
-            const limitRaw = read(path.join(directory, 'memory.max'));
-            const currentRaw = read(path.join(directory, 'memory.current'));
-            const limitBytes = bytes(limitRaw);
-            const currentBytes = bytes(currentRaw);
-            const unlimited = limitRaw === 'max'
-              || (limitBytes === null && limitRaw !== null && /^\d+$/.test(limitRaw))
-              || (limitRaw === null && cgroupScopeComplete && directory === mountPoint);
-            const assumedUnlimited = limitRaw === null && cgroupScopeComplete && directory === mountPoint;
-            const observed = assumedUnlimited || (limitRaw !== null && (unlimited || currentBytes !== null));
-            const headroomBytes = unlimited
-              ? null
-              : limitBytes !== null && currentBytes !== null
-                ? Math.max(0, limitBytes - currentBytes)
-                : null;
-            return { path: directory, limit_raw: limitRaw, current_raw: currentRaw, limit_bytes: limitBytes, headroom_bytes: headroomBytes, unlimited, assumed_unlimited: assumedUnlimited, observed };
-          }
-          const memoryLimitLevels = memoryAncestorPaths.map(memoryLimitAt);
-          const memoryObservedAtEveryLevel = memoryLimitLevels.length > 0 && memoryLimitLevels.every(level => level.observed);
-          const finiteMemoryHeadroom = memoryLimitLevels.filter(level => level.headroom_bytes !== null).map(level => level.headroom_bytes);
-          const cgroupHeadroomBytes = finiteMemoryHeadroom.length ? Math.min(...finiteMemoryHeadroom) : null;
-          const cgroupMemoryObserved = memoryObservedAtEveryLevel && cgroupScopeComplete;
-          const availableMemoryBytes = cgroupMemoryObserved
-            ? Math.min(hostAvailableBytes, cgroupHeadroomBytes ?? Number.POSITIVE_INFINITY)
-            : null;
-          const cpuFourConfirmed = availableParallelism >= 4 && affinityCount >= 4
-            && cpuQuotaObserved && cgroupScopeComplete && (cpuQuotaUnlimited || cpuQuotaCores >= 4);
-          const memoryTwelveGiBConfirmed = availableMemoryBytes !== null && availableMemoryBytes >= 12 * GIB;
-          const buildJobs = cpuFourConfirmed && memoryTwelveGiBConfirmed
-            ? 4
-            : effectiveCpuCores !== null && effectiveCpuCores < 2
-              ? 1
-              : availableMemoryBytes !== null && availableMemoryBytes < 6 * GIB
-                ? 1
-                : 2;
-          const rustResourceDir = process.env.RUST_RESOURCE_DIR;
-          const profile = {
-            schema_version: 'tos_rust_ci_resource_profile_v1',
-            group: process.env.RUST_CI_GROUP ?? null,
-            runner: {
-              os: process.env.RUNNER_OS ?? null,
-              arch: process.env.RUNNER_ARCH ?? null,
-              node_arch: process.arch,
-              kernel: os.release(),
-              uname: read(path.join(rustResourceDir, 'uname.txt')),
-            },
-            toolchain: {
-              rustc: read(path.join(rustResourceDir, 'rustc-version.txt')),
-              cargo: read(path.join(rustResourceDir, 'cargo-version.txt')),
-            },
-            cpu: {
-              available_parallelism: availableParallelism,
-              affinity_cpu_list: affinityList,
-              affinity_cpu_count: affinityCount,
-              cgroup_path: cgroupLeaf,
-              cgroup_ancestor_paths: cpuAncestorPaths,
-              cgroup_ancestor_scope_complete: cgroupScopeComplete,
-              cgroup_cpu_max: cpuQuotaLevels[0]?.raw ?? null,
-              cgroup_quota_levels: cpuQuotaLevels,
-              cgroup_quota_cores: cpuQuotaCores,
-              cgroup_quota_unlimited: cpuQuotaUnlimited,
-              cgroup_quota_observed: cpuQuotaObserved,
-              effective_cpu_cores: effectiveCpuCores,
-              four_jobs_confirmed: cpuFourConfirmed,
-              cargo_build_jobs: buildJobs,
-            },
-            memory: {
-              host_available_bytes: hostAvailableBytes,
-              cgroup_path: cgroupLeaf,
-              cgroup_ancestor_paths: memoryAncestorPaths,
-              cgroup_ancestor_scope_complete: cgroupScopeComplete,
-              cgroup_limit_levels: memoryLimitLevels,
-              cgroup_limit_raw: memoryLimitLevels[0]?.limit_raw ?? null,
-              cgroup_current_raw: memoryLimitLevels[0]?.current_raw ?? null,
-              cgroup_limit_bytes: memoryLimitLevels[0]?.limit_bytes ?? null,
-              cgroup_headroom_bytes: cgroupHeadroomBytes,
-              effective_available_bytes: availableMemoryBytes,
-              twelve_gib_confirmed: memoryTwelveGiBConfirmed,
-            },
-            lane: { before: null, after: null, cpu_stat_delta: null, memory_peak_delta_bytes: null },
-            notes: [
-              'The four-job setting requires observed availableParallelism, affinity, CPU quota at every visible ancestor, a mount exposing the cgroup root, and at least 12 GiB effective memory headroom at every visible ancestor.',
-              'Otherwise Cargo uses at most two jobs, or one when fewer than two effective CPUs or less than 6 GiB measured memory are available.',
-              'Resource limits and cpu.stat/memory.peak snapshots cover the current cgroup and visible ancestors. If the mount hides ancestors above its root, four-job confirmation is disabled and the missing scope is recorded.',
-              'Cgroup cpu.stat snapshots bracket the lane but can include other work charged to the runner cgroup. memory.peak may include setup earlier in this job and is not reset.',
-              'This artifact is diagnostic and does not establish validation, product identity, or authority.',
-            ],
-          };
-          fs.writeFileSync(path.join(rustResourceDir, 'resource-profile.json'), `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
-          fs.appendFileSync(process.env.GITHUB_ENV, `CARGO_BUILD_JOBS=${buildJobs}\n`);
-          console.log(`Rust resource profile selected CARGO_BUILD_JOBS=${buildJobs}.`);
-          JS
+      - *cargo_resource_profile
       - name: Prepare retained source-cut fixture
         run: |
           source_ref="$(cat tests/conformance/rust/retained-opening-source.txt)"
@@ -1105,42 +1265,8 @@ jobs:
           printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
           tar -xzf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
-      - &prepare_native_verity
-        name: Prepare isolated fs-verity test filesystem
-        run: |
-          # Native immutable-file tests require a filesystem with fs-verity.
-          # Format only this job-owned image; leave the runner filesystem alone.
-          root="$RUNNER_TEMP/tos-verity-tests"
-          mkdir -m 700 "$root"
-          truncate -s 4G "$root/volume.ext4"
-          mkfs.ext4 -q -F -O verity "$root/volume.ext4"
-          mkdir -m 700 "$root/mounted"
-          sudo mount -o loop,nodev,nosuid "$root/volume.ext4" "$root/mounted"
-          sudo chown "$(id -u):$(id -g)" "$root/mounted"
-          chmod 700 "$root/mounted"
-          echo "TMPDIR=$root/mounted" >> "$GITHUB_ENV"
-      - name: Capture pre-lane cgroup counters
-        run: |
-          node --input-type=module <<'JS'
-          import fs from 'node:fs';
-          import path from 'node:path';
-          const dir = path.join(process.env.RUNNER_TEMP, 'rust-resource-profile');
-          const file = path.join(dir, 'resource-profile.json');
-          if (!fs.existsSync(file)) process.exit(0);
-          const profile = JSON.parse(fs.readFileSync(file, 'utf8'));
-          const read = file => { try { return fs.readFileSync(file, 'utf8').trim(); } catch { return null; } };
-          const capture = (directories, name) => directories.map(directory => ({
-            path: directory,
-            raw: read(path.join(directory, name)),
-          }));
-          const snapshot = () => ({
-            captured_at: new Date().toISOString(),
-            cpu_stat: capture(profile.cpu.cgroup_ancestor_paths ?? [], 'cpu.stat'),
-            memory_peak: capture(profile.memory.cgroup_ancestor_paths ?? [], 'memory.peak'),
-          });
-          profile.lane.before = snapshot();
-          fs.writeFileSync(file, `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
-          JS
+      - *prepare_native_verity
+      - *cargo_resource_before
       - name: Verify Rust workspace, conformance products and isolated install
         env:
           TOS_NATIVE_OWNER_COMMAND_PATH: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
@@ -1148,66 +1274,10 @@ jobs:
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --rust-group "${{ matrix.group }}" --growth-jobs 2 --lane-timeout-ms 10800000 --cargo-timings'
-      - name: Capture post-lane cgroup counters
-        if: ${{ always() }}
-        run: |
-          node --input-type=module <<'JS'
-          import fs from 'node:fs';
-          import path from 'node:path';
-          const dir = path.join(process.env.RUNNER_TEMP, 'rust-resource-profile');
-          const file = path.join(dir, 'resource-profile.json');
-          if (!fs.existsSync(file)) process.exit(0);
-          const profile = JSON.parse(fs.readFileSync(file, 'utf8'));
-          const read = file => { try { return fs.readFileSync(file, 'utf8').trim(); } catch { return null; } };
-          const capture = (directories, name) => directories.map(directory => ({
-            path: directory,
-            raw: read(path.join(directory, name)),
-          }));
-          const snapshot = () => ({
-            captured_at: new Date().toISOString(),
-            cpu_stat: capture(profile.cpu.cgroup_ancestor_paths ?? [], 'cpu.stat'),
-            memory_peak: capture(profile.memory.cgroup_ancestor_paths ?? [], 'memory.peak'),
-          });
-          profile.lane.after = snapshot();
-          const values = raw => Object.fromEntries((raw ?? '').split('\n').map(line => line.trim().split(/\s+/)).filter(pair => pair.length === 2 && /^\d+$/.test(pair[1])).map(([key, value]) => [key, BigInt(value)]));
-          const beforeCpu = new Map((profile.lane.before?.cpu_stat ?? []).map(level => [level.path, values(level.raw)]));
-          profile.lane.cpu_stat_delta = profile.lane.after.cpu_stat.map(level => {
-            const before = beforeCpu.get(level.path) ?? {};
-            const after = values(level.raw);
-            return {
-              path: level.path,
-              counters: Object.fromEntries(Object.entries(after).filter(([key]) => before[key] !== undefined).map(([key, value]) => [key, (value - before[key]).toString()])),
-            };
-          });
-          const beforePeaks = new Map((profile.lane.before?.memory_peak ?? []).map(level => [level.path, level.raw]));
-          profile.lane.memory_peak_delta_bytes = profile.lane.after.memory_peak.map(level => {
-            const before = beforePeaks.get(level.path);
-            const delta = /^\d+$/.test(before ?? '') && /^\d+$/.test(level.raw ?? '')
-              ? (BigInt(level.raw) - BigInt(before)).toString()
-              : null;
-            return { path: level.path, delta_bytes: delta };
-          });
-          fs.writeFileSync(file, `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
-          JS
-      - name: Upload non-authoritative Rust diagnostics
-        if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: rust-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.group }}
-          path: |
-            ${{ runner.temp }}/rust-resource-profile/resource-profile.json
-            ${{ runner.temp }}/cargo-target/cargo-timings/
-          if-no-files-found: warn
-          retention-days: 14
+      - *cargo_resource_after
+      - *cargo_diagnostics
 
-      - &cleanup_native_verity
-        name: Unmount isolated fs-verity test filesystem
-        if: ${{ always() }}
-        run: |
-          root="$RUNNER_TEMP/tos-verity-tests"
-          if mountpoint -q "$root/mounted"; then
-            sudo umount "$root/mounted"
-          fi
+      - *cleanup_native_verity
 
   postgres:
     needs: plan
@@ -1297,7 +1367,7 @@ jobs:
   required_gate:
     name: Repo Validation
     if: ${{ always() }}
-    needs: [plan, software, worker, rust, postgres]
+    needs: [plan, software_prepare, software, software_package, worker, rust, postgres]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -1329,3 +1399,44 @@ jobs:
         env:
           CI_NEEDS: ${{ toJSON(needs) }}
         run: '"$TOS_SOFTWARE_CI_EXECUTOR" gate'
+      - name: Fetch candidate after every selected check
+        if: ${{ success() && needs.plan.outputs.software_mode != 'none' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-software-candidate-unqualified-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/qualified-software-candidate
+      - name: Verify candidate against package job outputs
+        if: ${{ success() && needs.plan.outputs.software_mode != 'none' }}
+        env:
+          CANDIDATE_SHA256: ${{ needs.software_package.outputs.candidate_sha256 }}
+          CANDIDATE_SIDECAR_SHA256: ${{ needs.software_package.outputs.candidate_sidecar_sha256 }}
+          CANDIDATE_BYTES: ${{ needs.software_package.outputs.candidate_bytes }}
+          CANDIDATE_SIDECAR_BYTES: ${{ needs.software_package.outputs.candidate_sidecar_bytes }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import crypto from 'node:crypto';
+          import assert from 'node:assert/strict';
+          const root = path.join(process.env.RUNNER_TEMP, 'qualified-software-candidate');
+          const files = [['tree-of-sophia-software.zip', 'CANDIDATE'], ['tree-of-sophia-software.zip.manifest.json', 'CANDIDATE_SIDECAR']];
+          assert.deepEqual(fs.readdirSync(root).sort(), files.map(([name]) => name).sort());
+          for (const [name, prefix] of files) {
+            const expected = process.env[`${prefix}_SHA256`], bytes = process.env[`${prefix}_BYTES`];
+            assert.match(expected, /^[a-f0-9]{64}$/); assert.match(bytes, /^[1-9][0-9]*$/);
+            const file = path.join(root, name), stat = fs.lstatSync(file);
+            assert(stat.isFile() && !stat.isSymbolicLink()); assert.equal(stat.size, Number(bytes));
+            const hash = crypto.createHash('sha256');
+            for await (const chunk of fs.createReadStream(file)) hash.update(chunk);
+            assert.equal(hash.digest('hex'), expected, `${name} differs from the admitted package job`);
+          }
+          JS
+      - name: Preserve validated software candidate
+        if: ${{ success() && needs.plan.outputs.software_mode != 'none' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tree-of-sophia-software-${{ github.sha }}
+          path: ${{ runner.temp }}/qualified-software-candidate/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

@@ -28,7 +28,8 @@ owner surfaces.
    with the exact `CI_NEEDS` job results. CI authenticates and invokes the
    same-run native executor directly. Native source-history tests cover
    selection, Unicode links, failure propagation and required-job outcomes.
-   Workflow topology assertions remain separate checks.
+   Workflow topology assertions separately cover the source-bound software
+   producer, its fixture and package consumers, and final candidate admission.
    Documentation-only work needs the selected documentation checks. For the
    software suite, install locked browser dependencies with
    `npm ci --prefix access/web` and run `tos-release-check --repo-root "$PWD"`.
@@ -107,14 +108,27 @@ owner surfaces.
    JSON and web closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.
-   CI uses this native route with the eighteen native command roles for its software
-   candidate. It builds receipts for the exact feature sets in the shared native command
-   descriptor, and derives package byte limits from the actual nineteen
-   executables, web assets and bounded software inputs; it does not reuse an
+   CI uses this native route with the eighteen native command roles for its
+   software candidate. The `software_prepare` job produces exact-source native products,
+   their receipts, the E2E fixture executable and browser assets once. The
+   `software` fixture job and `software_package` job consume those staged inputs
+   from the same source checkout after verifying and binding the stage manifest.
+   The fixture job runs only the canonical native Cargo tests; browser npm and
+   Playwright installation belongs to the package/browser job.
+   That job uses the official HTTPS Ubuntu archive for the runner mirror route;
+   APT signature and package verification stay enabled.
+   `software_prepare` builds receipts for the exact feature sets in the shared
+   native command descriptor. The package job derives byte limits from the
+   actual nineteen executables, web assets and bounded software inputs; it does not reuse an
    access-only byte cap. The job builds the same native archive and sidecar
    twice and compares their bytes before verify/install, retaining the legacy
-   builder's determinism assertion on the maintained artifact. There is no
-   Python wheel reference package in the release candidate path. Historical
+   builder's determinism assertion on the maintained artifact. `software_package`
+   uploads the archive and sidecar as a provisional candidate with their digests.
+   The required gate waits for `software_prepare`, `software` and
+   `software_package` to succeed, verifies both candidate digests against the
+   downloaded artifact, then uploads the qualified software artifact under the
+   source SHA. A provisional artifact alone does not qualify a release. There is
+   no Python wheel reference package in the release candidate path. Historical
    Python oracle tools remain optional comparison tools outside the native prefix.
    Public reading pages also have an independent static-only Cloudflare route.
    From `access/deploy/cloudflare-worker`, build them with
@@ -172,12 +186,22 @@ use the full suite; a missing or failed selector fails the required gate.
 | `AGENTS.md` in those homes | Source card shape, inventory, inheritance, script references and task-route harness; no unrelated package/browser/Worker build |
 | `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or Questbook's `QUESTBOOK_TOS_INTEGRATION.md` | Complete Rust consumer lane and installs; ToS cards additionally select the source route checks |
 | `.agents/agents-route.current.json`, `.agents/agent-surface.current.json`, `docs/validation/documentation-family.current.json` | Check the changed carrier through its existing owner builder/validator; route-carrier changes also check cards and task routes |
-| `access/web/` or `access/e2e/` code/configuration | Software contracts, browser build/unit/types/behavior, isolated software package install |
-| `access/src/` or `access/tests/` | The browser/package checks, reader/API fixture tests, and Worker cross-adapter tests |
+| `access/web/` or `access/e2e/` code/configuration | Source-bound software preparation, fixture tests, browser build/unit/types/behavior, and isolated package install |
+| `access/src/` or `access/tests/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
 | Rust source under `rust/crates/tos-reader/src/` | Rust workspace and isolated exact reader install; the independent browser/package job is omitted |
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install |
 | Shared contracts/profiles, packaging, dependencies, executable scripts, workflow, structured source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
+
+The software selection runs one exact-source producer followed by two required
+consumers. `software_prepare` produces the native products and receipts, E2E
+fixture and browser assets once. `software` runs the selected native fixture
+cohort; `software_package` builds and installs the candidate and runs browser
+behavior against that installed package. The required gate requires all three
+results when software is selected and requires them to be skipped otherwise.
+The package consumer reports the provisional archive and sidecar digests; only
+the required gate publishes the qualified artifact after it checks those
+digests and every selected job result.
 
 The Rust selection runs three named matrix checks under the required `rust`
 aggregate: `conformance`, `workspace` and `cold-install`. Each runner performs
@@ -196,10 +220,11 @@ Every run first prepares the three native CI executors with the pinned Rust
 compiler and `--no-default-features`. This selection retains command custody,
 source identity and required-job checks without compiling mechanics, storage
 or schema-validation families. The plan job records their source commit/tree, lock digest, toolchain
-and binary sizes/digests; software, Rust and the required gate reuse that same
-run's artifact and verify its identity before placing the native executors on PATH.
-The software package reuses these three products as its corresponding command
-roles. Receipt generation rechecks their source-bound manifest and copied bytes;
+and binary sizes/digests; software preparation and both software consumers,
+Rust, and the required gate reuse that same run's artifact and verify its
+identity before placing the native executors on PATH.
+The package builder reuses these three products as its corresponding command
+roles. Producer receipt generation rechecks their source-bound manifest and copied bytes;
 the other native roles still require their completed Cargo artifact streams.
 Missing products or a failed plan fail closed. Documentation-only changes skip
 the software package and browser/Worker jobs, but still need this native selector
@@ -237,26 +262,32 @@ software and documentation changes do not acquire a repository-wide currentness
 dependency. All selected documentation checks run inside the required plan job;
 failure, missing selection outputs or cancellation still reject the gate.
 Each Rust matrix runner uses the existing sparse checkout and its own temporary
-Cargo target. The host-program fixtures use the qualified Ubuntu 24.04 runner
-explicitly; changing its distribution is a separate validation step. The
-installed reader checks exact old/current bytes from a tiny synthetic store.
+Cargo target. The software producer and its fixture/package consumers share
+their source checkout scope and use the pinned Ubuntu 26.04 image that matched
+the measured software baseline. Rust host-program fixtures use the qualified
+Ubuntu 24.04 runner explicitly; changing its distribution is a separate
+validation step. The installed reader checks exact old/current bytes from a tiny
+synthetic store.
 The Worker job checks the shipped `tos-web-rules` WASM product with the matching
 `wasm-bindgen` CLI verified against its pinned release digest.
 Browser/Worker bundle installation, public access and larger runtime profiles
 remain subject to later gates.
 
-Each Rust runner records `os.availableParallelism()`, the process CPU affinity,
-the cgroup CPU quota, host available memory and cgroup memory limit/headroom.
-Cargo uses four build jobs only when the runner confirms at least four CPUs and
-12 GiB of available memory across the visible cgroup v2 hierarchy; otherwise
+Software producer/consumer jobs and Rust runners share one resource-profile
+script and diagnostics route. Software profiles identify the job; Rust profiles
+identify the matrix group. The profile records `os.availableParallelism()`, the
+process CPU affinity, the cgroup CPU quota, host available memory and cgroup
+memory limit/headroom. Cargo uses four build jobs only when the runner confirms
+at least four CPUs and 12 GiB of available memory across the visible cgroup v2 hierarchy; otherwise
 it uses at most two, lowering to one when fewer than two effective CPUs or
 less than 6 GiB of measured memory are available. An absent quota at the
 verified hierarchy root is recorded as unbounded. If the mount hides ancestors
 or the cgroup capacity is otherwise unknown, four jobs are not enabled. Resource
-JSON and Cargo timing reports are
-uploaded under unique run, attempt and group names, including when a lane fails.
-The cgroup `cpu.stat` snapshots bracket the lane but can include work charged to
-the runner cgroup outside the lane. `memory.peak` is recorded before and after
+JSON and Cargo timing reports are uploaded under unique run and attempt names,
+using the software job or Rust matrix group for separation, including when a
+software check or Rust lane fails. The cgroup `cpu.stat` snapshots bracket the
+measured validation work but can include work charged to the runner cgroup
+outside it. `memory.peak` is recorded before and after
 without resetting the job cgroup, so its high-watermark may include setup that
 ran earlier in that job and is not a lane-only maximum. These artifacts help
 explain cost and limits; they do not prove validation, product identity or
@@ -268,8 +299,10 @@ plus the browser and Worker routes above. A documentation-only green check is
 not an installable release artifact: run the full release route when publishing
 software, even when the last change was documentation.
 
-When the software job is selected, the workflow uploads
-`tree-of-sophia-software.zip` and its digest manifest.
+When software is selected, `software_package` uploads a provisional archive and
+sidecar. After the required gate accepts all selected work and verifies both
+reported digests, it uploads `tree-of-sophia-software.zip` and its digest
+manifest as the qualified artifact.
 It contains program code, API contracts, static schemas and browser assets;
 `data_included` is false. Production activation, tags and public releases require their intended scope
 and authorization. Standalone ToS software follows this repository's release
