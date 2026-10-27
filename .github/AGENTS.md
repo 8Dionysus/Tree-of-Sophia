@@ -22,7 +22,20 @@ TOS-D-0062 separates software checks from corpus and downstream releases.
 Changed paths select software checks through `tos-software-ci` and the
 table in `docs/RELEASING.md`. The selector and documentation check must succeed.
 Selected jobs must succeed; only explicitly unselected jobs may be skipped.
-Unknown/shared paths and manual full-release runs select all software checks.
+Rust selection requires all three `rust` matrix groups (`conformance`,
+`workspace`, and `cold-install`) plus the independent PostgreSQL job. The
+single `rust` result remains the required-gate aggregate for every matrix
+child; a failed or cancelled child cannot pass through the gate.
+Selected software requires `software_prepare`, `software` and
+`software_package`: the first produces source-bound native products, receipts,
+fixture executable and browser assets; the latter two consume that staged
+output for fixture checks and package/browser checks. All three must succeed
+when software is selected and be skipped when it is not. The package job
+uploads a provisional archive and sidecar with digests; `required_gate` verifies
+those digests after every selected job succeeds and publishes the qualified
+artifact.
+Unknown/shared paths select all software checks before verified main reuse;
+manual full-release runs always select all software checks.
 Known human guides and owner cards select their documentation/source-route
 checks. ToS source Markdown and Questbook inputs retain their Rust consumers.
 Generated documentation parity is selected only when that carrier changes;
@@ -30,6 +43,10 @@ an untouched carrier does not gate ordinary source or software work.
 Absent, failed or cancelled selected jobs cannot be aggregated as success. Do not add a KAG,
 stats, complete corpus or generated documentation currentness dependency to
 the software gate. Data/integration workflows validate their own exact inputs.
+On main, D0073 allows source-CI reuse only after the prior successful required
+gate's actual PR checkout tree equals the landed tree. Missing proof keeps
+normal selection. A release still requires fresh full qualification for its
+exact main SHA; source reuse does not create or qualify that artifact.
 
 When workflow or repository-policy files change, report:
 

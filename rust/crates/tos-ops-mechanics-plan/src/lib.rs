@@ -84,6 +84,7 @@ pub mod route_harness;
 #[cfg(feature = "mechanics")]
 pub mod semantic_registry_transition;
 pub mod software_ci;
+pub mod software_stage;
 #[cfg(feature = "mechanics")]
 pub mod source_home;
 #[cfg(feature = "mechanics")]
@@ -499,6 +500,20 @@ mod tests {
             ),
         ];
         let expanded = growth_native_plan::expand_steps(&root, &steps).unwrap();
+        // A workspace group has only exclusions; a conformance group may not
+        // contain an isolated test assigned to another job. Both must use the
+        // same complete partition as the full lane, without executing siblings.
+        for index in 0..steps.len() {
+            assert_eq!(
+                growth_native_plan::expand_selected_steps(&root, &steps[index..=index], &steps)
+                    .unwrap(),
+                expanded[index..=index]
+            );
+        }
+        assert!(growth_native_plan::expand_steps(&root, &steps[..1]).is_err());
+        let mut changed = steps[..1].to_vec();
+        changed[0].1 = Some(1);
+        assert!(growth_native_plan::expand_selected_steps(&root, &changed, &steps).is_err());
         assert!(
             expanded[0]
                 .0

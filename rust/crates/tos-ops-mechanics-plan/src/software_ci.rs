@@ -33,6 +33,8 @@ pub struct Selection {
     pub documentation_family: bool,
     pub changed_paths: Vec<String>,
     pub forced_full: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validated_tree: Option<String>,
 }
 
 /// The ordered path rules are the maintained software selector, including
@@ -199,7 +201,43 @@ fn select_checked(
         documentation_family,
         changed_paths: paths,
         forced_full,
+        validated_tree: None,
     })
+}
+
+/// The workflow supplies a tree only after verifying a completed merged-PR run.
+/// Check that tree against this actual checkout; keep document checks and full runs.
+pub fn reuse_validated_tree(
+    root: &Path,
+    selection: &mut Selection,
+    tree: &str,
+    cancel: &AtomicI32,
+) -> io::Result<()> {
+    if tree.len() != 40
+        || !tree
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err(invalid(
+            "validated tree must be a lowercase SHA-1 object ID",
+        ));
+    }
+    if selection.forced_full {
+        return Ok(());
+    }
+    let mut budget = Budget {
+        deadline: Instant::now() + Duration::from_secs(10),
+        bytes: 0,
+        cancel,
+    };
+    let (code, actual) = budget.git(root, &["rev-parse", "--verify", "HEAD^{tree}"], 64)?;
+    if code == 0 && std::str::from_utf8(&actual).is_ok_and(|actual| actual.trim() == tree) {
+        selection.software_mode = "none";
+        selection.worker = false;
+        selection.rust = false;
+        selection.validated_tree = Some(tree.to_owned());
+    }
+    Ok(())
 }
 
 /// Failure/cancellation/missing and unexpected skipping are never accepted.
@@ -237,9 +275,12 @@ pub fn gate(needs: &Value) -> io::Result<()> {
         return Err(invalid("missing or invalid check selection"));
     }
     for (job, required) in [
+        ("software_prepare", mode != Some("none")),
         ("software", mode != Some("none")),
+        ("software_package", mode != Some("none")),
         ("worker", worker == Some("true")),
         ("rust", rust == Some("true")),
+        ("postgres", rust == Some("true")),
     ] {
         let expected = if required { "success" } else { "skipped" };
         if needs
@@ -1008,9 +1049,12 @@ mod tests {
             ("none", true, false),
         ] {
             let needs = serde_json::json!({"plan":{"result":"success","outputs":{"software_mode":mode,"worker":worker.to_string(),"rust":rust.to_string(),"route_docs":"none","agent_surface":"false","documentation_family":"false"}},
+                "software_prepare":{"result":if mode=="none" {"skipped"} else {"success"}},
                 "software":{"result":if mode=="none" {"skipped"} else {"success"}},
+                "software_package":{"result":if mode=="none" {"skipped"} else {"success"}},
                 "worker":{"result":if worker {"success"} else {"skipped"}},
-                "rust":{"result":if rust {"success"} else {"skipped"}}});
+                "rust":{"result":if rust {"success"} else {"skipped"}},
+                "postgres":{"result":if rust {"success"} else {"skipped"}}});
             gate(&needs).unwrap();
             for field in ["route_docs", "agent_surface", "documentation_family"] {
                 let mut bad = needs.clone();
@@ -1022,7 +1066,15 @@ mod tests {
                 bad["plan"]["outputs"][field] = "unclassified".into();
                 assert!(gate(&bad).is_err());
             }
-            for job in ["plan", "software", "worker", "rust"] {
+            for job in [
+                "plan",
+                "software_prepare",
+                "software",
+                "software_package",
+                "worker",
+                "rust",
+                "postgres",
+            ] {
                 for failure in [Some("failure"), Some("cancelled"), None] {
                     let mut bad = needs.clone();
                     if let Some(failure) = failure {

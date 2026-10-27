@@ -46,6 +46,40 @@ pub(crate) fn preparation(argv: &[String]) -> bool {
 pub(crate) fn execution(argv: &[String]) -> bool {
     cargo_test(argv) && !argv.iter().any(|p| p == "--no-run")
 }
+/// Exact validation-lane command that builds the native consumer used by
+/// conformance fixtures. It is also the sole source of PreparedAccess state.
+pub(crate) fn access_preparation(argv: &[String]) -> bool {
+    argv.first().is_some_and(|program| {
+        Path::new(program)
+            .file_name()
+            .is_some_and(|name| name == "cargo")
+    }) && argv.iter().skip(1).map(String::as_str).eq([
+        "build",
+        "--locked",
+        "-p",
+        "tos-access",
+        "--bin",
+        "tos-access",
+    ])
+}
+/// Workspace tests that explicitly remove the conformance package consume the
+/// current lane's Access image without requiring the conformance test image.
+/// Cargo options must occur before the libtest separator.
+pub(crate) fn prepared_access_execution(argv: &[String]) -> bool {
+    if !cargo_test(argv) {
+        return false;
+    }
+    let end = argv
+        .iter()
+        .position(|part| part == "--")
+        .unwrap_or(argv.len());
+    let cargo_args = &argv[2..end];
+    cargo_args.iter().any(|part| part == "--workspace")
+        && cargo_args
+            .windows(2)
+            .any(|pair| pair[0].as_str() == "--exclude" && pair[1].as_str() == "tos-conformance")
+        && !cargo_args.iter().any(|part| part == "--no-run")
+}
 fn target() -> io::Result<PathBuf> {
     let path = PathBuf::from(
         std::env::var_os("CARGO_TARGET_DIR")
@@ -103,12 +137,79 @@ fn image(path: &Path, target: &Path, deadline: Instant, cancel: &AtomicI32) -> i
     }
     Ok(digest.finalize().to_hex())
 }
+
+#[derive(Clone)]
+pub(crate) struct PreparedAccess {
+    target: PathBuf,
+    executable: PathBuf,
+    executable_sha: String,
+}
+impl PreparedAccess {
+    pub(crate) fn select(deadline: Instant, cancel: &AtomicI32) -> io::Result<Self> {
+        Self::select_for_target(target()?, deadline, cancel)
+    }
+
+    fn select_for_target(
+        target_dir: PathBuf,
+        deadline: Instant,
+        cancel: &AtomicI32,
+    ) -> io::Result<Self> {
+        if target()? != target_dir {
+            return Err(invalid(
+                "conformance target changed during Access selection",
+            ));
+        }
+        let executable = target_dir.join("debug/tos-access");
+        let executable_sha = image(&executable, &target_dir, deadline, cancel)?;
+        if target()? != target_dir {
+            return Err(invalid(
+                "conformance target changed during Access selection",
+            ));
+        }
+        Ok(Self {
+            target: target_dir,
+            executable,
+            executable_sha,
+        })
+    }
+
+    pub(crate) fn environment(
+        &self,
+        deadline: Instant,
+        cancel: &AtomicI32,
+        publication_case_sha: &str,
+    ) -> io::Result<Vec<(String, String)>> {
+        if target()? != self.target
+            || image(&self.executable, &self.target, deadline, cancel)? != self.executable_sha
+        {
+            return Err(invalid("prepared Access consumer changed after selection"));
+        }
+        Ok(vec![
+            (
+                "TOS_NATIVE_PREPARED_CONSUMER_BIN".into(),
+                self.executable
+                    .to_str()
+                    .ok_or_else(|| invalid("non UTF-8 executable"))?
+                    .into(),
+            ),
+            (
+                "TOS_NATIVE_PREPARED_CONSUMER_SHA256".into(),
+                self.executable_sha.clone(),
+            ),
+            (
+                "TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256".into(),
+                publication_case_sha.into(),
+            ),
+        ])
+    }
+}
+
+#[derive(Clone)]
 pub(crate) struct Products {
     target: PathBuf,
     executable: PathBuf,
     executable_sha: String,
-    access: PathBuf,
-    access_sha: String,
+    access: PreparedAccess,
     command_tests: Option<(String, PathBuf, String)>,
 }
 impl Products {
@@ -174,9 +275,8 @@ impl Products {
         }
         let executable = executable
             .ok_or_else(|| invalid("current Cargo stream lacks conformance executable"))?;
-        let access = target.join("debug/tos-access");
         let executable_sha = image(&executable, &target, deadline, cancel)?;
-        let access_sha = image(&access, &target, deadline, cancel)?;
+        let access = PreparedAccess::select_for_target(target.clone(), deadline, cancel)?;
         let command_tests = command_tests
             .map(|(name, path)| {
                 let digest = image(&path, &target, deadline, cancel)?;
@@ -188,7 +288,6 @@ impl Products {
             executable,
             executable_sha,
             access,
-            access_sha,
             command_tests,
         })
     }
@@ -257,28 +356,13 @@ impl Products {
         cancel: &AtomicI32,
     ) -> io::Result<Vec<(String, String)>> {
         if target()? != self.target
+            || self.access.target != self.target
             || image(&self.executable, &self.target, deadline, cancel)? != self.executable_sha
-            || image(&self.access, &self.target, deadline, cancel)? != self.access_sha
         {
             return Err(invalid("conformance products changed after preparation"));
         }
-        Ok(vec![
-            (
-                "TOS_NATIVE_PREPARED_CONSUMER_BIN".into(),
-                self.access
-                    .to_str()
-                    .ok_or_else(|| invalid("non UTF-8 executable"))?
-                    .into(),
-            ),
-            (
-                "TOS_NATIVE_PREPARED_CONSUMER_SHA256".into(),
-                self.access_sha.clone(),
-            ),
-            (
-                "TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256".into(),
-                self.executable_sha.clone(),
-            ),
-        ])
+        self.access
+            .environment(deadline, cancel, &self.executable_sha)
     }
 }
 

@@ -337,13 +337,28 @@ pub(crate) fn expand_steps(
     root: &Path,
     steps: &[crate::validation_lanes::BudgetedCommandStep],
 ) -> io::Result<Vec<crate::validation_lanes::BudgetedCommandStep>> {
+    expand_selected_steps(root, steps, steps)
+}
+
+/// A CI group executes a subset, but Growth exclusions and isolated assertion
+/// counts still derive from the complete source-owned partition.
+pub(crate) fn expand_selected_steps(
+    root: &Path,
+    steps: &[crate::validation_lanes::BudgetedCommandStep],
+    partition: &[crate::validation_lanes::BudgetedCommandStep],
+) -> io::Result<Vec<crate::validation_lanes::BudgetedCommandStep>> {
+    if steps.iter().any(|step| !partition.contains(step)) {
+        return Err(invalid(
+            "selected Growth steps differ from the complete partition",
+        ));
+    }
     if !steps.iter().any(|((_, argv), _)| {
         argv.iter()
             .any(|arg| arg == CLASS_SEQUENCE || arg == EXCLUSIONS)
     }) {
         return Ok(steps.to_vec());
     }
-    if steps
+    if partition
         .iter()
         .filter(|((_, argv), _)| argv.first().is_some_and(|arg| arg == CLASS_SEQUENCE))
         .count()
@@ -354,7 +369,7 @@ pub(crate) fn expand_steps(
         ));
     }
     let native = discover(root)?;
-    let isolated: Vec<(String, Option<String>)> = steps
+    let isolated: Vec<(String, Option<String>)> = partition
         .iter()
         .filter_map(|((_, argv), _)| {
             if !argv.iter().any(|arg| arg == "--exact") {

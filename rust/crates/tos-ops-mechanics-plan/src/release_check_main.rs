@@ -18,10 +18,11 @@ struct Options {
     root: PathBuf,
     phase: validation_lanes::ReleasePhase,
     limits: executor::Limits,
+    cargo_timings: bool,
 }
 
 fn usage() -> &'static str {
-    "usage: tos-release-check --repo-root PATH [--phase all|checks|tests] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-release-check --repo-root PATH [--phase all|checks|tests] [--cargo-timings] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
@@ -29,8 +30,10 @@ fn options() -> Result<Options, String> {
     let mut root = None;
     let mut phase = validation_lanes::ReleasePhase::All;
     let mut limits = executor::Limits::default();
+    let mut cargo_timings = false;
     while let Some(argument) = args.next() {
         match argument.as_str() {
+            "--cargo-timings" => cargo_timings = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--phase" => {
                 phase = match args.next().ok_or("missing phase")?.as_str() {
@@ -70,6 +73,7 @@ fn options() -> Result<Options, String> {
         root: root.ok_or("--repo-root is required")?,
         phase,
         limits,
+        cargo_timings,
     })
 }
 
@@ -96,11 +100,17 @@ fn main() {
             }
         }
     }
-    let code = executor::run_release_sequence(&options.root, &steps, options.limits, &CANCEL)
-        .unwrap_or_else(|error| {
-            eprintln!("error: release sequence: {error}");
-            let signal = CANCEL.load(Ordering::Relaxed);
-            std::process::exit(if signal == 0 { 1 } else { 128 + signal });
-        });
+    let code = executor::run_release_sequence_with_timings(
+        &options.root,
+        &steps,
+        options.limits,
+        &CANCEL,
+        options.cargo_timings,
+    )
+    .unwrap_or_else(|error| {
+        eprintln!("error: release sequence: {error}");
+        let signal = CANCEL.load(Ordering::Relaxed);
+        std::process::exit(if signal == 0 { 1 } else { 128 + signal });
+    });
     std::process::exit(code);
 }

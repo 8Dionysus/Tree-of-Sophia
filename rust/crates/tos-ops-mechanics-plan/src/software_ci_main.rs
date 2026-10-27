@@ -13,7 +13,7 @@ extern "C" fn cancelled(signal: i32) {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install} --repo-root ABS [--installed-prefix ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
+    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] [--validated-tree HEX40] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits|software-stage-manifest|software-stage-bind} --repo-root ABSOLUTE_PATH [operation paths] | tos-software-ci {verify-reader-install|verify-mechanics-install} --repo-root ABS [--installed-prefix ABS] [--command-entries-only] [--command-timeout-ms N --lane-timeout-ms N --max-output-bytes N]"
 }
 
 fn output_cancel_check() -> io::Result<()> {
@@ -78,6 +78,8 @@ fn run() -> Result<(), String> {
         "executor-bind",
         "software-receipts",
         "software-limits",
+        "software-stage-manifest",
+        "software-stage-bind",
     ]
     .contains(&mode.as_str())
     {
@@ -141,11 +143,15 @@ fn run() -> Result<(), String> {
     let mut root = None;
     let mut base = None;
     let mut full = false;
+    let mut validated_tree = None;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--base" => base = Some(args.next().ok_or("missing base")?),
             "--full" => full = true,
+            "--validated-tree" => {
+                validated_tree = Some(args.next().ok_or("missing validated tree")?)
+            }
             _ => return Err(format!("unknown argument: {arg}")),
         }
     }
@@ -168,7 +174,12 @@ fn run() -> Result<(), String> {
             }
         }
     }
-    let selection = software_ci::plan(&root, &base, full, &CANCEL).map_err(|e| e.to_string())?;
+    let mut selection =
+        software_ci::plan(&root, &base, full, &CANCEL).map_err(|e| e.to_string())?;
+    if let Some(tree) = validated_tree {
+        software_ci::reuse_validated_tree(&root, &mut selection, &tree, &CANCEL)
+            .map_err(|e| e.to_string())?;
+    }
     // Python's json.dumps defaults to ensure_ascii=True. JSON syntax is ASCII;
     // escaping every non-ASCII scalar (and DEL) preserves literal semantics.
     let json = serde_json::to_string_pretty(&selection).map_err(|e| e.to_string())?;

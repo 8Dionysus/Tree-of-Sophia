@@ -92,6 +92,47 @@ Rust CI selects a three-hour aggregate budget with
 The validation manifest owns the separate command limits and test groups.
 The executor caps each command by the remaining lane time.
 
+The full local route remains `--run rust_workspace` with no group selector. CI
+may fan it out with `--run rust_workspace --rust-group conformance|workspace|cold-install`.
+Every selection runs the six-step common `prepare` prefix before its group:
+formatting, both WASM target checks, and exact schema-worker, owner CLI and
+Access builds. The three jobs build their own products and do not share
+artifacts or authority. Only the `conformance` group then prepares the Cargo
+JSON-selected test images needed by its consumers. The manifest owns the
+ordered group labels, argv and command limits;
+`--sequence rust_workspace --rust-group <group>` prints the selected commands
+for review. Add `--cargo-timings` to a run when Cargo timing reports are useful.
+Growth exclusions and assertion counts always derive from the complete lane,
+including isolated tests assigned to another group; only the selected commands
+execute. A changed selection or incomplete Growth partition fails closed.
+
+The initial conformance preparation excludes the Access package's test harnesses
+with `--exclude tos-access`; the exact Access CLI is still built first and its
+dependencies remain available to conformance. Explicit `tos-query/test-fixture`
+retains the original workspace feature union contributed by Access's development
+dependencies, so the next conformance command can reuse the prepared image.
+The workspace test run retains Access's default features plus
+research/load-readiness coverage and explicitly excludes `tos-conformance`.
+It receives only the exact Access path and digest fixed after its successful
+current-lane default build, rechecked before execution; it does not acquire a
+Conformance case digest from inherited environment values. Actual Conformance
+and Growth execution still require the current Cargo JSON-selected test images.
+The default release-actions fixture runs separately as the first `cold-install`
+step, with its unchanged exact invocation and no research/load feature union.
+The ungrouped full route preserves the original commands, relative order and
+budgets. A locked dependency fetch runs immediately before the
+offline mechanics install; that input preparation does not compile conformance
+images or allow the install verifier to access the network.
+
+`tos-validation-lanes --run rust_workspace --growth-jobs 2` runs at most two
+source-derived Growth classes concurrently, each in its own supervisor process.
+The default is one. Each class retains its exact prepared
+image, declared assertion/ignored counts, single test thread, output cap,
+timeout and descendant custody. The parent joins the complete group before
+later commands can rebuild its shared Cargo products. The first observed
+failure cancels the group and stops the lane. CI opts into two; local callers
+should choose that setting only within their admitted resource budget.
+
 The PostgreSQL integration target requires the explicit `postgres-lab` feature
 and a dedicated ephemeral database. The ordinary workspace lane excludes this
 target; it does not establish PostgreSQL execution. CI runs the durable

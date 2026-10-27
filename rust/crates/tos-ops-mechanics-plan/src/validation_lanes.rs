@@ -19,6 +19,32 @@ pub enum ReleasePhase {
     Tests,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RustGroup {
+    Conformance,
+    Workspace,
+    ColdInstall,
+}
+
+impl RustGroup {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "conformance" => Some(Self::Conformance),
+            "workspace" => Some(Self::Workspace),
+            "cold-install" => Some(Self::ColdInstall),
+            _ => None,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Conformance => "conformance",
+            Self::Workspace => "workspace",
+            Self::ColdInstall => "cold-install",
+        }
+    }
+}
+
 const MANIFEST: &str = "docs/validation/validation_lanes.json";
 const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 const FOUNDATION_INVOCATION_ARGUMENT: &str = "{foundation_invocation}";
@@ -228,6 +254,59 @@ fn command_timeout_ms(
         .filter(|value| *value > 0 && *value <= 3_600_000)
         .ok_or_else(|| invalid("command_timeout_ms must be an integer in 1..=3600000"))?;
     Ok(Some(value))
+}
+
+/// Validate the optional Rust CI fan-out annotations. Legacy manifests with
+/// no annotations remain valid; once any step is annotated, the whole
+/// rust_workspace sequence must be partitioned into the complete ordered set.
+fn validate_rust_grouping(sequence_id: &str, steps: &[Value], required: bool) -> io::Result<()> {
+    let annotated = steps.iter().any(|step| {
+        step.as_object()
+            .is_some_and(|step| step.contains_key("rust_group"))
+    });
+    if !annotated {
+        return if required {
+            Err(invalid("rust_workspace grouping annotations are required"))
+        } else {
+            Ok(())
+        };
+    }
+    if sequence_id != "rust_workspace" {
+        return Err(invalid("rust_group is only supported for rust_workspace"));
+    }
+
+    let mut counts = [0usize; 4];
+    let mut previous = None;
+    for (index, step) in steps.iter().enumerate() {
+        let object = step
+            .as_object()
+            .ok_or_else(|| invalid(format!("rust_workspace[{index}] must be an object")))?;
+        let group = object
+            .get("rust_group")
+            .and_then(Value::as_str)
+            .ok_or_else(|| invalid(format!("rust_workspace[{index}] is missing rust_group")))?;
+        let group_index = match group {
+            "prepare" => 0,
+            "conformance" => 1,
+            "workspace" => 2,
+            "cold-install" => 3,
+            _ => return Err(invalid(format!("unknown rust_group: {group}"))),
+        };
+        if previous.is_some_and(|previous| group_index < previous) {
+            return Err(invalid("rust_workspace groups are out of order"));
+        }
+        if previous.is_some_and(|previous| group_index > previous + 1) {
+            return Err(invalid("rust_workspace grouping skips a required group"));
+        }
+        counts[group_index] += 1;
+        previous = Some(group_index);
+    }
+    if counts.contains(&0) {
+        return Err(invalid(
+            "rust_workspace grouping must include prepare, conformance, workspace, and cold-install",
+        ));
+    }
+    Ok(())
 }
 
 /// Ordered mechanical findings matching the maintained validation-lanes
@@ -440,6 +519,13 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
                 issue(&mut issues, MANIFEST, format!("{location}: {error}"))?;
             }
         }
+        if let Err(error) = validate_rust_grouping(sequence_id, steps, false) {
+            issue(
+                &mut issues,
+                MANIFEST,
+                format!("{sequence_id} grouping: {error}"),
+            )?;
+        }
     }
     Ok(issues)
 }
@@ -458,6 +544,16 @@ pub fn command_sequence(root: &Path, sequence_id: &str) -> io::Result<Vec<Comman
 pub fn command_sequence_with_budgets(
     root: &Path,
     sequence_id: &str,
+) -> io::Result<Vec<BudgetedCommandStep>> {
+    command_sequence_with_rust_group(root, sequence_id, None)
+}
+
+/// Select a Rust CI group with the complete preparation prefix. The group
+/// selector is intentionally limited to the canonical rust_workspace lane.
+pub fn command_sequence_with_rust_group(
+    root: &Path,
+    sequence_id: &str,
+    rust_group: Option<RustGroup>,
 ) -> io::Result<Vec<BudgetedCommandStep>> {
     let manifest = read_manifest(root)?.ok_or_else(|| {
         io::Error::new(
@@ -483,8 +579,25 @@ pub fn command_sequence_with_budgets(
             "{sequence_id} must contain at least one command"
         )));
     }
-    let mut resolved = Vec::with_capacity(steps.len());
-    for step in steps {
+    let selected_steps: Vec<&Value> = if let Some(group) = rust_group {
+        if sequence_id != "rust_workspace" {
+            return Err(invalid("--rust-group is only supported for rust_workspace"));
+        }
+        validate_rust_grouping(sequence_id, steps, true)?;
+        steps
+            .iter()
+            .filter(|step| {
+                step.as_object()
+                    .and_then(|step| step.get("rust_group"))
+                    .and_then(Value::as_str)
+                    .is_some_and(|value| value == "prepare" || value == group.as_str())
+            })
+            .collect()
+    } else {
+        steps.iter().collect()
+    };
+    let mut resolved = Vec::with_capacity(selected_steps.len());
+    for step in selected_steps {
         let step = step
             .as_object()
             .ok_or_else(|| invalid(format!("{sequence_id} contains a non-object step")))?;
