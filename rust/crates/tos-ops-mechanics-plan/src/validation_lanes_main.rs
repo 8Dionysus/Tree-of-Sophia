@@ -17,12 +17,14 @@ struct Options {
     check: bool,
     sequence: Option<String>,
     run: Option<String>,
+    rust_group: Option<validation_lanes::RustGroup>,
     limits: executor::Limits,
     growth_jobs: usize,
+    cargo_timings: bool,
 }
 
 fn usage() -> &'static str {
-    "usage: tos-validation-lanes --repo-root PATH [--check] [--sequence ID] [--run ID] [--growth-jobs 1|2] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-validation-lanes --repo-root PATH [--check] [--sequence ID] [--run ID] [--rust-group conformance|workspace|cold-install] [--growth-jobs 1|2] [--cargo-timings] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
@@ -31,14 +33,24 @@ fn options() -> Result<Options, String> {
     let mut check = false;
     let mut sequence = None;
     let mut run = None;
+    let mut rust_group = None;
     let mut limits = executor::Limits::default();
     let mut growth_jobs = 1;
+    let mut cargo_timings = false;
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--check" => check = true,
             "--sequence" => sequence = Some(args.next().ok_or("missing sequence ID")?),
             "--run" => run = Some(args.next().ok_or("missing run ID")?),
+            "--rust-group" => {
+                let value = args.next().ok_or("missing Rust group")?;
+                rust_group = Some(
+                    validation_lanes::RustGroup::parse(&value)
+                        .ok_or("Rust group must be conformance, workspace, or cold-install")?,
+                );
+            }
+            "--cargo-timings" => cargo_timings = true,
             "--growth-jobs" => {
                 growth_jobs = args
                     .next()
@@ -75,13 +87,28 @@ fn options() -> Result<Options, String> {
             _ => return Err(format!("unknown argument: {argument}")),
         }
     }
+    if rust_group.is_some()
+        && ((sequence.is_none() && run.is_none())
+            || sequence
+                .as_deref()
+                .into_iter()
+                .chain(run.as_deref())
+                .any(|id| id != "rust_workspace"))
+    {
+        return Err("--rust-group requires --sequence/--run rust_workspace".into());
+    }
+    if cargo_timings && run.is_none() {
+        return Err("--cargo-timings requires --run".into());
+    }
     Ok(Options {
         root: root.ok_or("--repo-root is required")?,
         check,
         sequence,
         run,
+        rust_group,
         limits,
         growth_jobs,
+        cargo_timings,
     })
 }
 
@@ -115,21 +142,29 @@ fn main() {
         }
     }
     if let Some(sequence) = options.sequence.as_deref() {
-        let steps =
-            validation_lanes::command_sequence(&options.root, sequence).unwrap_or_else(|error| {
-                eprintln!("error: {error}");
-                std::process::exit(1);
-            });
-        for (label, command) in steps {
+        let steps = validation_lanes::command_sequence_with_rust_group(
+            &options.root,
+            sequence,
+            options.rust_group,
+        )
+        .unwrap_or_else(|error| {
+            eprintln!("error: {error}");
+            std::process::exit(1);
+        });
+        for ((label, command), _) in steps {
             println!("{label}: {}", command.join(" "));
         }
     }
     if let Some(sequence) = options.run.as_deref() {
-        let steps = validation_lanes::command_sequence_with_budgets(&options.root, sequence)
-            .unwrap_or_else(|error| {
-                eprintln!("error: {error}");
-                std::process::exit(1);
-            });
+        let steps = validation_lanes::command_sequence_with_rust_group(
+            &options.root,
+            sequence,
+            options.rust_group,
+        )
+        .unwrap_or_else(|error| {
+            eprintln!("error: {error}");
+            std::process::exit(1);
+        });
         let _ = io::stdout().flush();
         #[cfg(target_os = "linux")]
         unsafe {
@@ -143,12 +178,13 @@ fn main() {
                 }
             }
         }
-        let code = executor::run_validation_sequence_with_growth_jobs(
+        let code = executor::run_validation_sequence_with_options(
             &options.root,
             &steps,
             options.limits,
             &CANCEL,
             options.growth_jobs,
+            options.cargo_timings,
         )
         .unwrap_or_else(|error| {
             eprintln!("error: validation sequence: {error}");

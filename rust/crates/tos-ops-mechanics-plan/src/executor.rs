@@ -70,6 +70,19 @@ pub fn run_validation_sequence_with_growth_jobs(
     cancel: &AtomicI32,
     growth_jobs: usize,
 ) -> io::Result<i32> {
+    run_validation_sequence_with_options(root, steps, limits, cancel, growth_jobs, false)
+}
+
+/// Cargo timings are optional diagnostic output. They do not alter the source
+/// command used to recognize and admit current-lane conformance products.
+pub fn run_validation_sequence_with_options(
+    root: &Path,
+    steps: &[crate::validation_lanes::BudgetedCommandStep],
+    limits: Limits,
+    cancel: &AtomicI32,
+    growth_jobs: usize,
+    cargo_timings: bool,
+) -> io::Result<i32> {
     if !(1..=2).contains(&growth_jobs) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -103,12 +116,20 @@ pub fn run_validation_sequence_with_growth_jobs(
             &plan,
             limits,
             cancel,
-            native::Style::Validation(&timeouts, growth_jobs),
+            native::Style::Validation(&timeouts, growth_jobs, cargo_timings),
         )
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = (root, plan, limits, cancel, timeouts, growth_jobs);
+        let _ = (
+            root,
+            plan,
+            limits,
+            cancel,
+            timeouts,
+            growth_jobs,
+            cargo_timings,
+        );
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "execution requires Linux subreaper/pidfd custody",
@@ -231,7 +252,7 @@ mod native {
     #[derive(Clone, Copy)]
     pub(super) enum Style<'a> {
         Mechanics,
-        Validation(&'a [Option<Duration>], usize),
+        Validation(&'a [Option<Duration>], usize, bool),
         Release,
         Capture,
     }
@@ -857,7 +878,7 @@ mod native {
                     &plan,
                     limits,
                     cancel,
-                    Style::Validation(&[timeout], 1),
+                    Style::Validation(&[timeout], 1, false),
                     None,
                     Some(deadline),
                     child_overrides,
@@ -1259,7 +1280,7 @@ mod native {
                 return Err(error("execution wall deadline during setup"));
             }
             let mut products = initial_products;
-            if let Style::Validation(timeouts, _) = style {
+            if let Style::Validation(timeouts, _, _) = style {
                 if timeouts.len() != plan.commands.len() {
                     return Err(error("validation timeout/command count differs"));
                 }
@@ -1267,7 +1288,7 @@ mod native {
             let mut index = 0;
             while index < plan.commands.len() {
                 let command = &plan.commands[index];
-                if let Style::Validation(timeouts, 2) = style {
+                if let Style::Validation(timeouts, 2, _) = style {
                     if command
                         .argv
                         .first()
@@ -1297,7 +1318,7 @@ mod native {
                     }
                 }
                 let explicit_timeout = match style {
-                    Style::Validation(timeouts, _) => timeouts[index],
+                    Style::Validation(timeouts, _, _) => timeouts[index],
                     _ => None,
                 };
                 let command_wall = explicit_timeout.unwrap_or(limits.command_wall);
@@ -1334,7 +1355,7 @@ mod native {
                         .argv
                         .first()
                         .is_some_and(|arg| arg == crate::growth_native_plan::NATIVE_CLASS);
-                let argv = if growth_class {
+                let mut argv = if growth_class {
                     products
                         .as_ref()
                         .ok_or_else(|| {
@@ -1344,6 +1365,30 @@ mod native {
                 } else {
                     command.argv.clone()
                 };
+                if matches!(style, Style::Validation(_, _, true))
+                    && argv
+                        .first()
+                        .and_then(|program| Path::new(program).file_name())
+                        .is_some_and(|name| name == "cargo")
+                    && argv
+                        .get(1)
+                        .is_some_and(|action| matches!(action.as_str(), "build" | "check" | "test"))
+                {
+                    // Insert before the libtest separator, if any: diagnostics
+                    // belong to Cargo, never to the test harness.
+                    let position = argv
+                        .iter()
+                        .position(|arg| arg == "--")
+                        .unwrap_or(argv.len());
+                    argv.insert(position, "--timings".into());
+                    write(
+                        1,
+                        format!("[cargo-timings] {}: {}\n", command.home, argv.join(" "))
+                            .as_bytes(),
+                        deadline,
+                        cancel,
+                    )?;
+                }
                 let overrides = if matches!(style, Style::Validation(..))
                     && (crate::conformance_products::execution(&command.argv) || growth_class)
                 {

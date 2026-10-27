@@ -22,7 +22,10 @@ TOS-D-0062 separates software checks from corpus and downstream releases.
 Changed paths select software checks through `tos-software-ci` and the
 table in `docs/RELEASING.md`. The selector and documentation check must succeed.
 Selected jobs must succeed; only explicitly unselected jobs may be skipped.
-Rust selection requires both the workspace and independent PostgreSQL jobs.
+Rust selection requires all three `rust` matrix groups (`conformance`,
+`workspace`, and `cold-install`) plus the independent PostgreSQL job. The
+single `rust` result remains the required-gate aggregate for every matrix
+child; a failed or cancelled child cannot pass through the gate.
 Unknown/shared paths select all software checks before verified main reuse;
 manual full-release runs always select all software checks.
 Known human guides and owner cards select their documentation/source-route

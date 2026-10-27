@@ -536,12 +536,14 @@ jobs:
   rust:
     needs: plan
     if: ${{ needs.plan.outputs.rust == 'true' }}
-    name: Rust Workspace, Reader and WebAssembly Host
+    name: Rust / ${{ matrix.group }}
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [conformance, workspace, cold-install]
     # Native exec fixtures run host ELF programs through sealed memfds.
     # Keep their qualified platform stable across ubuntu-latest migrations.
     runs-on: ubuntu-24.04
-    env:
-      CARGO_BUILD_JOBS: "2"
     steps:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -895,6 +897,180 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
+      - name: Measure runner resources and choose Cargo parallelism
+        env:
+          RUST_CI_GROUP: ${{ matrix.group }}
+        run: |
+          profile_dir="$RUNNER_TEMP/rust-resource-profile"
+          mkdir -m 700 -p "$profile_dir"
+          rustc +1.98.1 --version --verbose > "$profile_dir/rustc-version.txt"
+          cargo +1.98.1 --version > "$profile_dir/cargo-version.txt"
+          uname -a > "$profile_dir/uname.txt"
+          RUST_RESOURCE_DIR="$profile_dir" node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import os from 'node:os';
+          import path from 'node:path';
+
+          const GIB = 1024 ** 3;
+          const read = file => {
+            try { return fs.readFileSync(file, 'utf8').trim(); }
+            catch { return null; }
+          };
+          const decodeMount = value => value
+            .replace(/\\040/g, ' ')
+            .replace(/\\011/g, '\t')
+            .replace(/\\012/g, '\n')
+            .replace(/\\134/g, '\\');
+          const cgroupMembership = (read('/proc/self/cgroup') ?? '').split('\n').find(line => line.startsWith('0::'));
+          const cgroup2Mount = (read('/proc/self/mountinfo') ?? '').split('\n').map(line => {
+            const [left, right] = line.split(' - ');
+            if (!right || right.split(' ')[0] !== 'cgroup2') return null;
+            const fields = left.split(' ');
+            return { root: decodeMount(fields[3] ?? '/'), point: decodeMount(fields[4] ?? '') };
+          }).find(Boolean);
+          const memberPath = cgroupMembership?.slice(3) ?? null;
+          const mountRoot = cgroup2Mount?.root.replace(/\/+$/, '') || '/';
+          const mountPoint = cgroup2Mount?.point ?? null;
+          const memberMatchesMount = memberPath !== null && mountPoint !== null
+            && (mountRoot === '/' || memberPath === mountRoot || memberPath.startsWith(`${mountRoot}/`));
+          const cgroupLeaf = memberMatchesMount
+            ? path.join(mountPoint, mountRoot === '/' ? memberPath.replace(/^\/+/, '') : memberPath.slice(mountRoot.length).replace(/^\/+/, ''))
+            : null;
+          const cgroupPaths = [];
+          for (let current = cgroupLeaf; current && mountPoint && (current === mountPoint || current.startsWith(`${mountPoint}${path.sep}`)); current = path.dirname(current)) {
+            cgroupPaths.push(current);
+            if (current === mountPoint) break;
+          }
+          const cgroupScopeComplete = cgroupLeaf !== null && mountRoot === '/' && cgroupPaths.at(-1) === mountPoint;
+          const cpuAncestorPaths = cgroupPaths;
+          const memoryAncestorPaths = cgroupPaths;
+          const integer = raw => raw && /^\d+$/.test(raw) ? BigInt(raw) : null;
+          const bytes = raw => {
+            const value = integer(raw);
+            return value === null || value > (1n << 60n) ? null : Number(value);
+          };
+          const cpuQuotaLevels = cpuAncestorPaths.map(directory => {
+            const raw = read(path.join(directory, 'cpu.max'));
+            if (raw === null) {
+              const hierarchyRoot = cgroupScopeComplete && directory === mountPoint;
+              return { path: directory, raw: null, unlimited: hierarchyRoot, assumed_unlimited: hierarchyRoot, cores: null, observed: hierarchyRoot };
+            }
+            const [quota, period] = raw.split(/\s+/);
+            const unlimited = quota === 'max';
+            const cores = !unlimited && Number(quota) > 0 && Number(period) > 0 ? Number(quota) / Number(period) : null;
+            return { path: directory, raw, unlimited, assumed_unlimited: false, cores, observed: unlimited || cores !== null };
+          });
+          const cpuQuotaObserved = cpuQuotaLevels.length > 0 && cpuQuotaLevels.every(level => level.observed);
+          const finiteCpuQuotas = cpuQuotaLevels.filter(level => level.cores !== null).map(level => level.cores);
+          const cpuQuotaCores = finiteCpuQuotas.length ? Math.min(...finiteCpuQuotas) : null;
+          const cpuQuotaUnlimited = cpuQuotaObserved && finiteCpuQuotas.length === 0;
+          const status = read('/proc/self/status') ?? '';
+          const affinityList = status.match(/^Cpus_allowed_list:\s*(.+)$/m)?.[1] ?? null;
+          const affinityCount = affinityList === null ? null : affinityList.split(',').reduce((sum, part) => {
+            const [first, last = first] = part.split('-').map(Number);
+            return sum + (Number.isInteger(first) && Number.isInteger(last) && last >= first ? last - first + 1 : 0);
+          }, 0);
+          let availableParallelism = null;
+          try { availableParallelism = os.availableParallelism(); } catch {}
+          const cpuBounds = [availableParallelism, affinityCount, cpuQuotaCores].filter(value => Number.isFinite(value) && value > 0);
+          const effectiveCpuCores = cpuBounds.length ? Math.min(...cpuBounds) : null;
+          const meminfo = read('/proc/meminfo') ?? '';
+          const memAvailableKiB = Number(meminfo.match(/^MemAvailable:\s*(\d+)\s+kB$/m)?.[1]);
+          const hostAvailableBytes = Number.isFinite(memAvailableKiB) && memAvailableKiB > 0
+            ? memAvailableKiB * 1024
+            : os.freemem();
+          function memoryLimitAt(directory) {
+            const limitRaw = read(path.join(directory, 'memory.max'));
+            const currentRaw = read(path.join(directory, 'memory.current'));
+            const limitBytes = bytes(limitRaw);
+            const currentBytes = bytes(currentRaw);
+            const unlimited = limitRaw === 'max'
+              || (limitBytes === null && limitRaw !== null && /^\d+$/.test(limitRaw))
+              || (limitRaw === null && cgroupScopeComplete && directory === mountPoint);
+            const assumedUnlimited = limitRaw === null && cgroupScopeComplete && directory === mountPoint;
+            const observed = assumedUnlimited || (limitRaw !== null && (unlimited || currentBytes !== null));
+            const headroomBytes = unlimited
+              ? null
+              : limitBytes !== null && currentBytes !== null
+                ? Math.max(0, limitBytes - currentBytes)
+                : null;
+            return { path: directory, limit_raw: limitRaw, current_raw: currentRaw, limit_bytes: limitBytes, headroom_bytes: headroomBytes, unlimited, assumed_unlimited: assumedUnlimited, observed };
+          }
+          const memoryLimitLevels = memoryAncestorPaths.map(memoryLimitAt);
+          const memoryObservedAtEveryLevel = memoryLimitLevels.length > 0 && memoryLimitLevels.every(level => level.observed);
+          const finiteMemoryHeadroom = memoryLimitLevels.filter(level => level.headroom_bytes !== null).map(level => level.headroom_bytes);
+          const cgroupHeadroomBytes = finiteMemoryHeadroom.length ? Math.min(...finiteMemoryHeadroom) : null;
+          const cgroupMemoryObserved = memoryObservedAtEveryLevel && cgroupScopeComplete;
+          const availableMemoryBytes = cgroupMemoryObserved
+            ? Math.min(hostAvailableBytes, cgroupHeadroomBytes ?? Number.POSITIVE_INFINITY)
+            : null;
+          const cpuFourConfirmed = availableParallelism >= 4 && affinityCount >= 4
+            && cpuQuotaObserved && cgroupScopeComplete && (cpuQuotaUnlimited || cpuQuotaCores >= 4);
+          const memoryTwelveGiBConfirmed = availableMemoryBytes !== null && availableMemoryBytes >= 12 * GIB;
+          const buildJobs = cpuFourConfirmed && memoryTwelveGiBConfirmed
+            ? 4
+            : effectiveCpuCores !== null && effectiveCpuCores < 2
+              ? 1
+              : availableMemoryBytes !== null && availableMemoryBytes < 6 * GIB
+                ? 1
+                : 2;
+          const rustResourceDir = process.env.RUST_RESOURCE_DIR;
+          const profile = {
+            schema_version: 'tos_rust_ci_resource_profile_v1',
+            group: process.env.RUST_CI_GROUP ?? null,
+            runner: {
+              os: process.env.RUNNER_OS ?? null,
+              arch: process.env.RUNNER_ARCH ?? null,
+              node_arch: process.arch,
+              kernel: os.release(),
+              uname: read(path.join(rustResourceDir, 'uname.txt')),
+            },
+            toolchain: {
+              rustc: read(path.join(rustResourceDir, 'rustc-version.txt')),
+              cargo: read(path.join(rustResourceDir, 'cargo-version.txt')),
+            },
+            cpu: {
+              available_parallelism: availableParallelism,
+              affinity_cpu_list: affinityList,
+              affinity_cpu_count: affinityCount,
+              cgroup_path: cgroupLeaf,
+              cgroup_ancestor_paths: cpuAncestorPaths,
+              cgroup_ancestor_scope_complete: cgroupScopeComplete,
+              cgroup_cpu_max: cpuQuotaLevels[0]?.raw ?? null,
+              cgroup_quota_levels: cpuQuotaLevels,
+              cgroup_quota_cores: cpuQuotaCores,
+              cgroup_quota_unlimited: cpuQuotaUnlimited,
+              cgroup_quota_observed: cpuQuotaObserved,
+              effective_cpu_cores: effectiveCpuCores,
+              four_jobs_confirmed: cpuFourConfirmed,
+              cargo_build_jobs: buildJobs,
+            },
+            memory: {
+              host_available_bytes: hostAvailableBytes,
+              cgroup_path: cgroupLeaf,
+              cgroup_ancestor_paths: memoryAncestorPaths,
+              cgroup_ancestor_scope_complete: cgroupScopeComplete,
+              cgroup_limit_levels: memoryLimitLevels,
+              cgroup_limit_raw: memoryLimitLevels[0]?.limit_raw ?? null,
+              cgroup_current_raw: memoryLimitLevels[0]?.current_raw ?? null,
+              cgroup_limit_bytes: memoryLimitLevels[0]?.limit_bytes ?? null,
+              cgroup_headroom_bytes: cgroupHeadroomBytes,
+              effective_available_bytes: availableMemoryBytes,
+              twelve_gib_confirmed: memoryTwelveGiBConfirmed,
+            },
+            lane: { before: null, after: null, cpu_stat_delta: null, memory_peak_delta_bytes: null },
+            notes: [
+              'The four-job setting requires observed availableParallelism, affinity, CPU quota at every visible ancestor, a mount exposing the cgroup root, and at least 12 GiB effective memory headroom at every visible ancestor.',
+              'Otherwise Cargo uses at most two jobs, or one when fewer than two effective CPUs or less than 6 GiB measured memory are available.',
+              'Resource limits and cpu.stat/memory.peak snapshots cover the current cgroup and visible ancestors. If the mount hides ancestors above its root, four-job confirmation is disabled and the missing scope is recorded.',
+              'Cgroup cpu.stat snapshots bracket the lane but can include other work charged to the runner cgroup. memory.peak may include setup earlier in this job and is not reset.',
+              'This artifact is diagnostic and does not establish validation, product identity, or authority.',
+            ],
+          };
+          fs.writeFileSync(path.join(rustResourceDir, 'resource-profile.json'), `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `CARGO_BUILD_JOBS=${buildJobs}\n`);
+          console.log(`Rust resource profile selected CARGO_BUILD_JOBS=${buildJobs}.`);
+          JS
       - name: Prepare retained source-cut fixture
         run: |
           source_ref="$(cat tests/conformance/rust/retained-opening-source.txt)"
@@ -943,13 +1119,86 @@ jobs:
           sudo chown "$(id -u):$(id -g)" "$root/mounted"
           chmod 700 "$root/mounted"
           echo "TMPDIR=$root/mounted" >> "$GITHUB_ENV"
+      - name: Capture pre-lane cgroup counters
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const dir = path.join(process.env.RUNNER_TEMP, 'rust-resource-profile');
+          const file = path.join(dir, 'resource-profile.json');
+          if (!fs.existsSync(file)) process.exit(0);
+          const profile = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const read = file => { try { return fs.readFileSync(file, 'utf8').trim(); } catch { return null; } };
+          const capture = (directories, name) => directories.map(directory => ({
+            path: directory,
+            raw: read(path.join(directory, name)),
+          }));
+          const snapshot = () => ({
+            captured_at: new Date().toISOString(),
+            cpu_stat: capture(profile.cpu.cgroup_ancestor_paths ?? [], 'cpu.stat'),
+            memory_peak: capture(profile.memory.cgroup_ancestor_paths ?? [], 'memory.peak'),
+          });
+          profile.lane.before = snapshot();
+          fs.writeFileSync(file, `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
+          JS
       - name: Verify Rust workspace, conformance products and isolated install
         env:
           TOS_NATIVE_OWNER_COMMAND_PATH: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
-        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --growth-jobs 2 --lane-timeout-ms 10800000'
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --rust-group "${{ matrix.group }}" --growth-jobs 2 --lane-timeout-ms 10800000 --cargo-timings'
+      - name: Capture post-lane cgroup counters
+        if: ${{ always() }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const dir = path.join(process.env.RUNNER_TEMP, 'rust-resource-profile');
+          const file = path.join(dir, 'resource-profile.json');
+          if (!fs.existsSync(file)) process.exit(0);
+          const profile = JSON.parse(fs.readFileSync(file, 'utf8'));
+          const read = file => { try { return fs.readFileSync(file, 'utf8').trim(); } catch { return null; } };
+          const capture = (directories, name) => directories.map(directory => ({
+            path: directory,
+            raw: read(path.join(directory, name)),
+          }));
+          const snapshot = () => ({
+            captured_at: new Date().toISOString(),
+            cpu_stat: capture(profile.cpu.cgroup_ancestor_paths ?? [], 'cpu.stat'),
+            memory_peak: capture(profile.memory.cgroup_ancestor_paths ?? [], 'memory.peak'),
+          });
+          profile.lane.after = snapshot();
+          const values = raw => Object.fromEntries((raw ?? '').split('\n').map(line => line.trim().split(/\s+/)).filter(pair => pair.length === 2 && /^\d+$/.test(pair[1])).map(([key, value]) => [key, BigInt(value)]));
+          const beforeCpu = new Map((profile.lane.before?.cpu_stat ?? []).map(level => [level.path, values(level.raw)]));
+          profile.lane.cpu_stat_delta = profile.lane.after.cpu_stat.map(level => {
+            const before = beforeCpu.get(level.path) ?? {};
+            const after = values(level.raw);
+            return {
+              path: level.path,
+              counters: Object.fromEntries(Object.entries(after).filter(([key]) => before[key] !== undefined).map(([key, value]) => [key, (value - before[key]).toString()])),
+            };
+          });
+          const beforePeaks = new Map((profile.lane.before?.memory_peak ?? []).map(level => [level.path, level.raw]));
+          profile.lane.memory_peak_delta_bytes = profile.lane.after.memory_peak.map(level => {
+            const before = beforePeaks.get(level.path);
+            const delta = /^\d+$/.test(before ?? '') && /^\d+$/.test(level.raw ?? '')
+              ? (BigInt(level.raw) - BigInt(before)).toString()
+              : null;
+            return { path: level.path, delta_bytes: delta };
+          });
+          fs.writeFileSync(file, `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
+          JS
+      - name: Upload non-authoritative Rust diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rust-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.group }}
+          path: |
+            ${{ runner.temp }}/rust-resource-profile/resource-profile.json
+            ${{ runner.temp }}/cargo-target/cargo-timings/
+          if-no-files-found: warn
+          retention-days: 14
 
       - &cleanup_native_verity
         name: Unmount isolated fs-verity test filesystem

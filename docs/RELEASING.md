@@ -179,11 +179,18 @@ use the full suite; a missing or failed selector fails the required gate.
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install |
 | Shared contracts/profiles, packaging, dependencies, executable scripts, workflow, structured source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
 
-The Rust selection starts two independent jobs: the workspace/reader/WASM
-checks and the PostgreSQL durable-command laboratory. Both must succeed.
-The laboratory retains its own pinned PostgreSQL 16 service, fs-verity volume,
-exact schema worker and two fresh restore databases. The jobs share checkout
-and fs-verity setup/cleanup definitions; each uses its own runtime resources.
+The Rust selection runs three named matrix checks under the required `rust`
+aggregate: `conformance`, `workspace` and `cold-install`. Each runner performs
+the common pinned-toolchain, retained-history, wasm-bindgen and fs-verity
+preparation, then the native lane executor selects the common preparation
+prefix and only that group's ordered suffix from the single `rust_workspace`
+route. The group filter preserves each selected step's command, order and
+budget. Matrix fail-fast is disabled so all three checks report their outcome.
+The independent PostgreSQL durable-command laboratory remains a separate
+required job; its pinned PostgreSQL 16 service, fs-verity volume, exact schema
+worker and two fresh restore databases are unchanged. The required gate still
+consumes one `rust` aggregate result, which succeeds only when all matrix
+children succeed, as well as the PostgreSQL result.
 
 Every run first prepares the three native CI executors with the pinned Rust
 compiler and `--no-default-features`. This selection retains command custody,
@@ -229,14 +236,31 @@ itself changes, CI selects that owner's parity check explicitly. Ordinary
 software and documentation changes do not acquire a repository-wide currentness
 dependency. All selected documentation checks run inside the required plan job;
 failure, missing selection outputs or cancellation still reject the gate.
-The Rust job uses its own sparse checkout and temporary Cargo cache. The
-host-program fixtures use the qualified Ubuntu 24.04 runner explicitly;
-changing its distribution is a separate validation step. The
+Each Rust matrix runner uses the existing sparse checkout and its own temporary
+Cargo target. The host-program fixtures use the qualified Ubuntu 24.04 runner
+explicitly; changing its distribution is a separate validation step. The
 installed reader checks exact old/current bytes from a tiny synthetic store.
 The Worker job checks the shipped `tos-web-rules` WASM product with the matching
 `wasm-bindgen` CLI verified against its pinned release digest.
 Browser/Worker bundle installation, public access and larger runtime profiles
 remain subject to later gates.
+
+Each Rust runner records `os.availableParallelism()`, the process CPU affinity,
+the cgroup CPU quota, host available memory and cgroup memory limit/headroom.
+Cargo uses four build jobs only when the runner confirms at least four CPUs and
+12 GiB of available memory across the visible cgroup v2 hierarchy; otherwise
+it uses at most two, lowering to one when fewer than two effective CPUs or
+less than 6 GiB of measured memory are available. An absent quota at the
+verified hierarchy root is recorded as unbounded. If the mount hides ancestors
+or the cgroup capacity is otherwise unknown, four jobs are not enabled. Resource
+JSON and Cargo timing reports are
+uploaded under unique run, attempt and group names, including when a lane fails.
+The cgroup `cpu.stat` snapshots bracket the lane but can include work charged to
+the runner cgroup outside the lane. `memory.peak` is recorded before and after
+without resetting the job cgroup, so its high-watermark may include setup that
+ran earlier in that job and is not a lane-only maximum. These artifacts help
+explain cost and limits; they do not prove validation, product identity or
+release authority.
 
 PR and `main` checks use the same rules. `workflow_dispatch` explicitly runs the
 full release suite, as does the local `tos-release-check --repo-root "$PWD"` command

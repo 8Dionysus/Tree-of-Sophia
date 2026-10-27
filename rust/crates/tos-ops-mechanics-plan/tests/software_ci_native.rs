@@ -180,6 +180,35 @@ fn software_ci_actual_history_and_required_gate_are_native() {
             );
         }
     }
+    let selected_rust = serde_json::json!({
+        "plan":{"result":"success","outputs":{"software_mode":"full","worker":"true","rust":"true","route_docs":"none","agent_surface":"false","documentation_family":"false"}},
+        "software":{"result":"success"},
+        "worker":{"result":"success"},
+        "rust":{"result":"success"},
+        "postgres":{"result":"success"}
+    });
+    assert_eq!(
+        invoke("gate", Some(&selected_rust.to_string()), false, None)
+            .status
+            .code(),
+        Some(0),
+        "the selected Rust matrix aggregate and PostgreSQL result must succeed"
+    );
+    for result in [Some("failure"), Some("cancelled"), None] {
+        let mut bad = selected_rust.clone();
+        if let Some(result) = result {
+            bad["rust"]["result"] = result.into();
+        } else {
+            bad.as_object_mut().unwrap().remove("rust");
+        }
+        assert_eq!(
+            invoke("gate", Some(&bad.to_string()), false, None)
+                .status
+                .code(),
+            Some(1),
+            "the aggregate result for all Rust matrix children must fail closed"
+        );
+    }
     assert!(
         Command::new(root.join("missing-native"))
             .arg("gate")
@@ -617,9 +646,105 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     );
     assert!(!jobs["postgres"]["services"]["postgres"].is_badvalue());
     assert!(jobs["rust"]["services"].is_badvalue());
-    let rust_run = run(one_step(steps(jobs, "rust"), "--run rust_workspace"));
+    let rust_job = &jobs["rust"];
+    assert_eq!(
+        rust_job["name"].as_str(),
+        Some("Rust / ${{ matrix.group }}")
+    );
+    assert_eq!(rust_job["needs"].as_str(), Some("plan"));
+    assert_eq!(rust_job["strategy"]["fail-fast"].as_bool(), Some(false));
+    assert_eq!(
+        rust_job["strategy"]["matrix"]["group"]
+            .as_vec()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["cold-install", "conformance", "workspace"])
+    );
+    let rust_steps = steps(jobs, "rust");
+    let resource_profile = one_step(rust_steps, "os.availableParallelism()");
+    let resource_run = run(resource_profile);
+    assert_eq!(
+        resource_profile["env"]["RUST_CI_GROUP"].as_str(),
+        Some("${{ matrix.group }}")
+    );
+    for evidence in [
+        "Cpus_allowed_list",
+        "cpu.max",
+        "MemAvailable",
+        "memory.max",
+        "cgroup_ancestor_paths",
+        "cgroup_ancestor_scope_complete",
+        "assumed_unlimited",
+        "12 * GIB",
+        "CARGO_BUILD_JOBS=${buildJobs}",
+        "rustc-version.txt",
+        "cargo-version.txt",
+    ] {
+        assert!(
+            resource_run.contains(evidence),
+            "missing Rust resource evidence: {evidence}"
+        );
+    }
+    let lane_index = rust_steps
+        .iter()
+        .position(|step| run(step).contains("--run rust_workspace"))
+        .unwrap();
+    for preparation in [
+        "Install pinned Rust toolchain and WASM target",
+        "Prepare retained source-cut fixture",
+        "Install verified wasm-bindgen CLI",
+        "Prepare isolated fs-verity test filesystem",
+    ] {
+        let position = rust_steps
+            .iter()
+            .position(|step| step["name"].as_str() == Some(preparation))
+            .unwrap();
+        assert!(
+            position < lane_index,
+            "matrix lane lost preparation step: {preparation}"
+        );
+    }
+    let rust_run = run(one_step(rust_steps, "--run rust_workspace"));
+    assert!(rust_run.contains("--rust-group \"${{ matrix.group }}\""));
+    assert!(rust_run.contains("--cargo-timings"));
     assert!(rust_run.contains("--growth-jobs 2"));
     assert!(rust_run.contains("--lane-timeout-ms 10800000"));
+    let before_lane = rust_steps
+        .iter()
+        .find(|step| step["name"].as_str() == Some("Capture pre-lane cgroup counters"))
+        .unwrap();
+    assert!(run(before_lane).contains("cpu.stat"));
+    assert!(run(before_lane).contains("memory.peak"));
+    let after_lane = rust_steps
+        .iter()
+        .find(|step| step["name"].as_str() == Some("Capture post-lane cgroup counters"))
+        .unwrap();
+    assert!(run(after_lane).contains("cpu.stat"));
+    assert!(run(after_lane).contains("memory.peak"));
+    assert!(after_lane["if"].as_str().unwrap().contains("always()"));
+    let diagnostics = rust_steps
+        .iter()
+        .find(|step| step["name"].as_str() == Some("Upload non-authoritative Rust diagnostics"))
+        .unwrap();
+    assert!(diagnostics["if"].as_str().unwrap().contains("always()"));
+    let artifact_name = diagnostics["with"]["name"].as_str().unwrap();
+    assert!(artifact_name.contains("${{ github.run_id }}"));
+    assert!(artifact_name.contains("${{ github.run_attempt }}"));
+    assert!(artifact_name.contains("${{ matrix.group }}"));
+    assert!(
+        diagnostics["with"]["path"]
+            .as_str()
+            .unwrap()
+            .contains("resource-profile.json")
+    );
+    assert!(
+        diagnostics["with"]["path"]
+            .as_str()
+            .unwrap()
+            .contains("cargo-timings")
+    );
     assert_eq!(sparse(jobs, "postgres"), sparse(jobs, "rust"));
     assert!(
         run(one_step(postgres_steps, "cargo build"))
