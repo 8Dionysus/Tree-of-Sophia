@@ -160,6 +160,12 @@ use the full suite; a missing or failed selector fails the required gate.
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install |
 | Shared contracts/profiles, packaging, dependencies, executable scripts, workflow, structured source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
 
+The Rust selection starts two independent jobs: the workspace/reader/WASM
+checks and the PostgreSQL durable-command laboratory. Both must succeed.
+The laboratory retains its own pinned PostgreSQL 16 service, fs-verity volume,
+exact schema worker and two fresh restore databases. The jobs share checkout
+and fs-verity setup/cleanup definitions; each uses its own runtime resources.
+
 Every run first prepares the three native CI executors with the pinned Rust
 compiler and `--no-default-features`. This selection retains command custody,
 source identity and required-job checks without compiling mechanics, storage

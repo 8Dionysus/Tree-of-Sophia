@@ -22,6 +22,7 @@ TOS-D-0062 separates software checks from corpus and downstream releases.
 Changed paths select software checks through `tos-software-ci` and the
 table in `docs/RELEASING.md`. The selector and documentation check must succeed.
 Selected jobs must succeed; only explicitly unselected jobs may be skipped.
+Rust selection requires both the workspace and independent PostgreSQL jobs.
 Unknown/shared paths and manual full-release runs select all software checks.
 Known human guides and owner cards select their documentation/source-route
 checks. ToS source Markdown and Questbook inputs retain their Rust consumers.

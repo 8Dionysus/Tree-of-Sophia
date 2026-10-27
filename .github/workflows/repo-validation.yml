@@ -522,25 +522,10 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CARGO_BUILD_JOBS: "2"
-    services:
-      postgres:
-        # Docker Official Image, pinned to the verified upstream OCI index digest.
-        image: docker.io/library/postgres:16.14@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
-        env:
-          POSTGRES_DB: tos_cmd_lab
-          POSTGRES_USER: tos_cmd_lab
-          POSTGRES_PASSWORD: synthetic_lab_only
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U tos_cmd_lab -d tos_cmd_lab"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
+        with: &rust_fixture_checkout
           # Keep external include_* inputs and selected tos-validation fixtures within bounded owner paths.
           sparse-checkout-cone-mode: false
           sparse-checkout: |
@@ -924,7 +909,8 @@ jobs:
           printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
           tar -xzf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
-      - name: Prepare isolated fs-verity test filesystem
+      - &prepare_native_verity
+        name: Prepare isolated fs-verity test filesystem
         run: |
           # Native immutable-file tests require a filesystem with fs-verity.
           # Format only this job-owned image; leave the runner filesystem alone.
@@ -944,6 +930,51 @@ jobs:
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --lane-timeout-ms 10800000'
+
+      - &cleanup_native_verity
+        name: Unmount isolated fs-verity test filesystem
+        if: ${{ always() }}
+        run: |
+          root="$RUNNER_TEMP/tos-verity-tests"
+          if mountpoint -q "$root/mounted"; then
+            sudo umount "$root/mounted"
+          fi
+
+  postgres:
+    needs: plan
+    if: ${{ needs.plan.outputs.rust == 'true' }}
+    name: PostgreSQL Durable Command Laboratory
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_BUILD_JOBS: "2"
+    services:
+      postgres:
+        # Docker Official Image, pinned to the verified upstream OCI index digest.
+        image: docker.io/library/postgres:16.14@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
+        env:
+          POSTGRES_DB: tos_cmd_lab
+          POSTGRES_USER: tos_cmd_lab
+          POSTGRES_PASSWORD: synthetic_lab_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tos_cmd_lab -d tos_cmd_lab"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout bounded Rust and PostgreSQL fixtures
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with: *rust_fixture_checkout
+      - name: Configure Cargo paths
+        run: |
+          printf 'CARGO_HOME=%s/cargo-home\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'CARGO_TARGET_DIR=%s/cargo-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.98.1 --profile minimal
+      - name: Build exact native schema worker
+        run: cargo build --locked -p tos-validation --bin tos-schema-worker
+      - *prepare_native_verity
       - name: Verify durable command transactions against PostgreSQL
         env:
           # Apply the native fixture process contract to test executables only.
@@ -991,19 +1022,13 @@ jobs:
             grep -Fq "test $metadata_test ... ok" "$RUNNER_TEMP/tos-pg-owner-metadata.log"
           done
 
-      - name: Unmount isolated fs-verity test filesystem
-        if: ${{ always() }}
-        run: |
-          root="$RUNNER_TEMP/tos-verity-tests"
-          if mountpoint -q "$root/mounted"; then
-            sudo umount "$root/mounted"
-          fi
+      - *cleanup_native_verity
 
 
   required_gate:
     name: Repo Validation
     if: ${{ always() }}
-    needs: [plan, software, worker, rust]
+    needs: [plan, software, worker, rust, postgres]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
