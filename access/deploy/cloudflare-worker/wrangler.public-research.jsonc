@@ -8,16 +8,10 @@
     "directory": "./dist-public-research",
     "binding": "ASSETS",
     "not_found_handling": "none",
-    "run_worker_first": ["/", "/zarathustra*", "/antiquity*", "/__research/*"]
+    "run_worker_first": ["/*"]
   },
   "routes": [
-    { "pattern": "treeofsophia.com/", "zone_name": "treeofsophia.com" },
-    { "pattern": "treeofsophia.com/zarathustra*", "zone_name": "treeofsophia.com" },
-    { "pattern": "treeofsophia.com/antiquity*", "zone_name": "treeofsophia.com" },
-    { "pattern": "treeofsophia.com/__research/*", "zone_name": "treeofsophia.com" },
-    { "pattern": "www.treeofsophia.com/", "zone_name": "treeofsophia.com" },
-    { "pattern": "www.treeofsophia.com/zarathustra*", "zone_name": "treeofsophia.com" },
-    { "pattern": "www.treeofsophia.com/antiquity*", "zone_name": "treeofsophia.com" },
-    { "pattern": "www.treeofsophia.com/__research/*", "zone_name": "treeofsophia.com" }
+    { "pattern": "treeofsophia.com/*", "zone_name": "treeofsophia.com" },
+    { "pattern": "www.treeofsophia.com/*", "zone_name": "treeofsophia.com" }
   ]
 }

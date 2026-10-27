@@ -15,6 +15,15 @@ function textResponse(message: string, status: number, method: string): Response
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const page = url.pathname === "/" ? "/zarathustra/" : publicPrototypeAsset(url.pathname);
+    const researchPath = page || url.pathname.startsWith("/__research/")
+      || url.pathname.startsWith("/zarathustra") || url.pathname.startsWith("/antiquity");
+    if (!researchPath) {
+      // The access Worker owns the Custom Domain. Route fetch() reaches that
+      // origin Worker without re-entering this route, preserving its APIs.
+      if (["treeofsophia.com", "www.treeofsophia.com"].includes(url.hostname.toLowerCase())) return fetch(request);
+      return textResponse("not found", 404, request.method);
+    }
     if (url.hostname.toLowerCase() === "www.treeofsophia.com") {
       url.hostname = "treeofsophia.com";
       return withReaderSecurity(Response.redirect(url.toString(), 308));
@@ -25,7 +34,6 @@ export default {
 
     // The public site's main address opens the research space, too.
     // Fetch the directory directly to avoid ASSETS index canonicalization.
-    const page = url.pathname === "/" ? "/zarathustra/" : publicPrototypeAsset(url.pathname);
     if (page) {
       return withReaderSecurity(await env.ASSETS.fetch(new Request(new URL(page, request.url), request)));
     }

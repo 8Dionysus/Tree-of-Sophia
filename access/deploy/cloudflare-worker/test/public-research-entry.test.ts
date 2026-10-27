@@ -17,6 +17,7 @@ test("public page paths map to their MPA HTML and receive security headers", asy
   }));
   for (const [path, expected] of [
     ["/", "/zarathustra/"],
+    ["/?lang=en", "/zarathustra/"],
     ["/zarathustra", "/zarathustra/"],
     ["/zarathustra/", "/zarathustra/"],
     ["/antiquity", "/antiquity/"],
@@ -44,7 +45,9 @@ test("research bundle and public corpus URLs lose only the public prefix", async
   }
 });
 
-test("unmatched paths do not call assets and www redirects preserve path and query", async () => {
+test("unmatched paths reach the origin and www research redirects preserve path and query", async (t) => {
+  const originRequests: Request[] = [];
+  t.mock.method(globalThis, "fetch", async (request: Request) => { originRequests.push(request); return new Response("origin"); });
   const app = fixture(request => new URL(request.url).pathname === "/missing.json"
     ? new Response("not found", { status: 404 }) : new Response("unexpected"));
   const response = await app.fetch(new Request("https://www.treeofsophia.com/antiquity/?lang=en"));
@@ -55,8 +58,12 @@ test("unmatched paths do not call assets and www redirects preserve path and que
   assert.equal(home.headers.get("Location"), "https://treeofsophia.com/?lang=ru");
   for (const path of ["/api/health", "/static/reader.js"]) {
     const missing = await app.fetch(new Request(`https://treeofsophia.com${path}`));
-    assert.equal(missing.status, 404);
+    assert.equal(await missing.text(), "origin");
   }
+  const post = new Request("https://treeofsophia.com/api/query?x=1", {method: "POST", body: "preserved"});
+  assert.equal(await (await app.fetch(post)).text(), "origin");
+  assert.equal(originRequests.at(-1), post);
+  assert.equal(await originRequests.at(-1)!.text(), "preserved");
   assert.equal(app.paths.length, 0);
   assert.equal((await app.fetch(new Request("https://treeofsophia.com/__research/missing.json"))).status, 404);
   assert.deepEqual(app.paths, ["/missing.json"]);
