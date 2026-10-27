@@ -604,6 +604,10 @@
           "test",
           "--no-run",
           "--workspace",
+          "--exclude",
+          "tos-access",
+          "--features",
+          "tos-query/test-fixture",
           "--locked",
           "--message-format=json"
         ]

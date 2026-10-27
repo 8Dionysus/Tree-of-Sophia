@@ -18,10 +18,11 @@ struct Options {
     sequence: Option<String>,
     run: Option<String>,
     limits: executor::Limits,
+    growth_jobs: usize,
 }
 
 fn usage() -> &'static str {
-    "usage: tos-validation-lanes --repo-root PATH [--check] [--sequence ID] [--run ID] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-validation-lanes --repo-root PATH [--check] [--sequence ID] [--run ID] [--growth-jobs 1|2] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
@@ -31,12 +32,23 @@ fn options() -> Result<Options, String> {
     let mut sequence = None;
     let mut run = None;
     let mut limits = executor::Limits::default();
+    let mut growth_jobs = 1;
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--check" => check = true,
             "--sequence" => sequence = Some(args.next().ok_or("missing sequence ID")?),
             "--run" => run = Some(args.next().ok_or("missing run ID")?),
+            "--growth-jobs" => {
+                growth_jobs = args
+                    .next()
+                    .ok_or("missing Growth jobs")?
+                    .parse()
+                    .map_err(|_| "invalid Growth jobs")?;
+                if !(1..=2).contains(&growth_jobs) {
+                    return Err("Growth jobs must be 1 or 2".into());
+                }
+            }
             "--command-timeout-ms"
             | "--lane-timeout-ms"
             | "--cleanup-grace-ms"
@@ -69,6 +81,7 @@ fn options() -> Result<Options, String> {
         sequence,
         run,
         limits,
+        growth_jobs,
     })
 }
 
@@ -130,13 +143,18 @@ fn main() {
                 }
             }
         }
-        let code =
-            executor::run_validation_sequence(&options.root, &steps, options.limits, &CANCEL)
-                .unwrap_or_else(|error| {
-                    eprintln!("error: validation sequence: {error}");
-                    let signal = CANCEL.load(Ordering::Relaxed);
-                    std::process::exit(if signal == 0 { 1 } else { 128 + signal });
-                });
+        let code = executor::run_validation_sequence_with_growth_jobs(
+            &options.root,
+            &steps,
+            options.limits,
+            &CANCEL,
+            options.growth_jobs,
+        )
+        .unwrap_or_else(|error| {
+            eprintln!("error: validation sequence: {error}");
+            let signal = CANCEL.load(Ordering::Relaxed);
+            std::process::exit(if signal == 0 { 1 } else { 128 + signal });
+        });
         std::process::exit(code);
     }
 }

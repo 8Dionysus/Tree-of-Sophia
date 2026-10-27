@@ -949,7 +949,7 @@ jobs:
           TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
-        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --lane-timeout-ms 10800000'
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --growth-jobs 2 --lane-timeout-ms 10800000'
 
       - &cleanup_native_verity
         name: Unmount isolated fs-verity test filesystem
