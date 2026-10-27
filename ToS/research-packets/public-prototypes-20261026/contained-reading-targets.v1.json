@@ -1,0 +1,45 @@
+{
+  "schema": "tos.provisional-contained-reading-targets.v1",
+  "review": {
+    "date": "2026-10-27",
+    "reviewer": "Codex source-visible agent review",
+    "scope": "Navigation to a passage already retained inside its containing witness; not a new standalone work, edition, rights assessment or canon admission.",
+    "basis": "G12 root/EPICURUS-EMBEDDED-TEXT.md and the exact reopened KD31 bookmark."
+  },
+  "targets": [
+    {
+      "entryId": "doctrines",
+      "containerTitle": {
+        "ru": "О жизни, учениях и изречениях знаменитых философов",
+        "en": "Lives and Opinions of Eminent Philosophers"
+      },
+      "locator": {
+        "ru": "Книга X · Главные мысли · 31",
+        "en": "Book X · Principal Doctrines · 31"
+      },
+      "reference": {
+        "schemaVersion": "tos.corpus.reader.reference.v1",
+        "target": {
+          "workId": "tos.work.retained-antiquity.lives",
+          "expressionId": "tos.expression.retained.antiquity.lives.lives-eng2-102e405ff1f2",
+          "editionId": "tos.edition.retained.antiquity.lives.lives-eng2-102e405ff1f2",
+          "itemId": "tos.item.retained.antiquity.lives.lives-eng2-102e405ff1f2",
+          "fileId": "tos.file.sha256.28177adf361cbb1b26305e3d4c6ae3dc96bcf26c0669171ac0aff11f194fa67a",
+          "fileSha256": "28177adf361cbb1b26305e3d4c6ae3dc96bcf26c0669171ac0aff11f194fa67a",
+          "textLayerRef": "ToS/source-witnesses/works/laertius/lives/expressions/retained-lives-eng2-102e405ff1f2/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+          "textLayerSha256": "9899e0c350dc086386ff837651bb0423766b16c82499d846be17e76561533499"
+        },
+        "versionId": "retained-lives-eng2-102e405ff1f2",
+        "unitId": "tos.text-unit.sid-61221bb7d6504c128f8368ba8078bf53",
+        "selector": {
+          "type": "text_position",
+          "start": 50139,
+          "end": 50255,
+          "positionUnit": "unicode_code_point",
+          "interval": "half_open"
+        }
+      },
+      "expectedQuote": "Natural justice is a symbol or expression of expediency, to prevent one man from harming or being harmed by another."
+    }
+  ]
+}

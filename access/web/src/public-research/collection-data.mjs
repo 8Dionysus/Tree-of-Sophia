@@ -1,5 +1,6 @@
 import collection from './antiquity-collection-data.json' with {type:'json'};
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+import containedReadings from '../../../../ToS/research-packets/public-prototypes-20261026/contained-reading-targets.v1.json' with {type:'json'};
 import {CLOSE_READING_GUIDES} from '../../constructor/close-reading-guides.mjs';
 
 const bi=(ru,en)=>({ru,en});
@@ -50,6 +51,16 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
       const book=retainedBooks.get(item.workId??item.id),edition=book?.versions.find(value=>value.language==='en')??book?.versions[0];
       if(book&&edition&&sources.manifest.documents.some(value=>value.id===book.documentId)){item.publicDocumentId=book.documentId;item.publicVersionId=edition.versionId;const address=retainedEntry(book,edition,item.meta?.ru);if(address){item.publicAddress=address;bindings.set(item.materialId,address);}}
     }
+  }
+  // Navigation to an existing containing witness does not create a new book
+  // identity or alter the constructor fingerprint or saved graph namespace.
+  for(const target of containedReadings.targets){
+    const item=items.find(value=>value.legacyId===target.entryId),reference=target.reference;
+    const book=[...retainedBooks.values()].find(value=>value.documentId===reference.target.workId);
+    const version=book?.versions.find(value=>value.versionId===reference.versionId&&value.revision===reference.target.textLayerSha256);
+    if(!item||!version||!sources.manifest.documents.some(value=>value.id===book.documentId))continue;
+    bindings.set(item.materialId,{documentId:book.documentId,versionId:version.versionId,revision:version.revision,unitId:reference.unitId,reference,
+      containerTitle:target.containerTitle,containerLocator:target.locator});
   }
   if(profile==='zarathustra'){
     const own=library.nodes.map(node=>({...node,materialId:node.id,kind:node.kind==='figure'?'author':node.kind==='tradition'?'school':node.kind,
@@ -115,6 +126,6 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
   // Keep the prior released Antiquity namespace upgradeable after source-link
   // and reading-copy corrections. Existing material IDs and source anchors are
   // retained, so saved work is validated against the current library in place.
-  prepared.graphPredecessors=[{fingerprint:'5674759af32d0c1ad4a79dc0b8da4202040b75407da8434a291a0aac8df186f6',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'cc89b903fad44969370ad6a8414817f2f54dcbb977a5544efe28a70ec10f5d85',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
+  prepared.graphPredecessors=[{fingerprint:'0c6b2341c0825bcd1c871dc3efb77cb06697c9dc90b17ff3b7b22ab1d20d8446',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'5674759af32d0c1ad4a79dc0b8da4202040b75407da8434a291a0aac8df186f6',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'cc89b903fad44969370ad6a8414817f2f54dcbb977a5544efe28a70ec10f5d85',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
   return prepared;
 }

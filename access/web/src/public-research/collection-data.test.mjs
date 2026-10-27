@@ -22,6 +22,9 @@ it('connects every retained book lazily while preserving existing collection mat
   const works=prepared.library.space.collection.filter(item=>item.kind==='work');
   for(const book of retained.books){const work=works.find(item=>item.legacyId===book.legacyId);expect(work?.publicDocumentId).toBe(book.documentId);expect(work?.publicVersionId).toBeTruthy();}
   expect(retained.books).toHaveLength(49);
+  const doctrines=works.find(item=>item.legacyId==='doctrines');
+  expect(doctrines.publicDocumentId).toBeUndefined(); // The containing witness is not a new standalone edition.
+  expect(prepared.bindings.get(doctrines.materialId)).toMatchObject({documentId:'tos.work.retained-antiquity.lives',versionId:'retained-lives-eng2-102e405ff1f2',reference:{selector:{start:50139,end:50255}}});
   expect(works.find(item=>item.legacyId==='theaetetus')?.materialId).toBe('antiquity:catalog:theaetetus');
 });
 

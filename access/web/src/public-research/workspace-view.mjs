@@ -34,7 +34,7 @@ export function createPublicResearchOwners() {
 
 function labels(locale) {
   return String(locale() || 'ru').toLowerCase().startsWith('en') ? {
-    heading: 'My research', intro: 'Your questions and interpretations stay personal. Every source link reopens its exact text version.',
+    heading: 'My research', intro: 'Your questions and interpretations stay personal. Every source link reopens its exact text version. A manual-entry label does not verify that the author is human.',
     thesis: 'Thesis', objection: 'Objection', revision: 'Reply or revised thesis', grounds: 'Exact grounds', save: 'Save this thought',
     empty: 'No personal hypotheses yet.', proposals: 'Source-linked proposals', history: 'Recent workspace history', graph: 'My research links',
     source: 'Exact source', open: 'Open exact text', review: 'Local proposal · pending review · not canon',
@@ -42,7 +42,7 @@ function labels(locale) {
     add: 'Add selected passage', question: 'Question', pick: 'Open the reader, select a passage, and add it here. A thesis needs at least two exact grounds.', graphSpace: 'Tree graphs and layout',
     noProposal: 'No proposals yet.', emptyGrounds: 'Select exact passages above before saving.', undo: 'Undo research action', redo: 'Redo research action',
   } : {
-    heading: 'Моё исследование', intro: 'Ваши вопросы и выводы остаются личными. Каждая ссылка открывает точную версию текста.',
+    heading: 'Моё исследование', intro: 'Ваши вопросы и выводы остаются личными. Каждая ссылка открывает точную версию текста. Метка ручного ввода не удостоверяет, что автор — человек.',
     thesis: 'Тезис', objection: 'Возражение', revision: 'Ответ или пересмотренный тезис', grounds: 'Точные основания', save: 'Сохранить эту мысль',
     empty: 'Личных гипотез пока нет.', proposals: 'Предложения с источниками', history: 'Последние действия', graph: 'Связи моего исследования',
     source: 'Точный источник', open: 'Открыть точный текст', review: 'Личное предложение · ожидает проверки · не канон',

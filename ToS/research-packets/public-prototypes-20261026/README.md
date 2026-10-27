@@ -52,3 +52,9 @@ records a source-visible agent comparison of one phrase in Adams' *Sacred
 Disease* against the 1886 printed witness. The reader shows both readings
 without changing the retained digital layer, its revision, or existing
 selectors. This provisional note is not a complete collation or canon admission.
+
+The [contained-reading targets](contained-reading-targets.v1.json) point from
+the separate *Principal Doctrines* catalogue entry to an exact, already retained
+passage in Diogenes Laertius' Book X. The containing Hicks witness keeps its
+existing work, version, revision and selector; this navigation does not create
+a standalone edition or replace the catalogue entry's external references.
