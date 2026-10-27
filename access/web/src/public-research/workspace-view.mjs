@@ -36,6 +36,8 @@ function labels(locale) {
   return String(locale() || 'ru').toLowerCase().startsWith('en') ? {
     heading: 'My research', intro: 'Your questions and interpretations stay personal. Every source link reopens its exact text version. A manual-entry label does not verify that the author is human.',
     thesis: 'Thesis', objection: 'Objection', revision: 'Reply or revised thesis', grounds: 'Exact grounds', save: 'Save this thought',
+    replyGrounds: 'Reply · exact grounds', chooseReplyGrounds: 'Choose at least one exact source for the reply.',
+    replyGroundsHint: 'Choose the passages supporting this reply; sources are not inherited automatically.',
     empty: 'No personal hypotheses yet.', proposals: 'Source-linked proposals', history: 'Recent workspace history', graph: 'My research links',
     source: 'Exact source', open: 'Open exact text', review: 'Local proposal · pending review · not canon',
     export: 'Export complete research', exportDraft: 'Export unsaved draft', import: 'Import complete research', preview: 'Review import', apply: 'Apply available imports',
@@ -44,6 +46,8 @@ function labels(locale) {
   } : {
     heading: 'Моё исследование', intro: 'Ваши вопросы и выводы остаются личными. Каждая ссылка открывает точную версию текста. Метка ручного ввода не удостоверяет, что автор — человек.',
     thesis: 'Тезис', objection: 'Возражение', revision: 'Ответ или пересмотренный тезис', grounds: 'Точные основания', save: 'Сохранить эту мысль',
+    replyGrounds: 'Ответ · точные основания', chooseReplyGrounds: 'Выберите хотя бы один точный источник для ответа.',
+    replyGroundsHint: 'Выберите фрагменты, подтверждающие ответ: источники не наследуются автоматически.',
     empty: 'Личных гипотез пока нет.', proposals: 'Предложения с источниками', history: 'Последние действия', graph: 'Связи моего исследования',
     source: 'Точный источник', open: 'Открыть точный текст', review: 'Личное предложение · ожидает проверки · не канон',
     export: 'Экспорт полного исследования', exportDraft: 'Экспорт несохранённого черновика', import: 'Импорт полного исследования', preview: 'Проверить импорт', apply: 'Применить доступный импорт',
@@ -151,7 +155,7 @@ async function sourceFingerprint(locators) {
 }
 
 /** Check generated proposal statements before saving the thought to its existing owners. */
-export async function savePublicThought({thesis, grounds, objection, objectionSources, revision, api, workspace, shelf, notebook, labels: t}) {
+export async function savePublicThought({thesis, grounds, objection, objectionSources, revision, revisionSources, api, workspace, shelf, notebook, labels: t}) {
   const inputText = (value, limit, field) => {
     if (typeof value !== 'string') throw new TypeError(`${field} must be text.`);
     const checked = value.trim();
@@ -164,6 +168,9 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
   if (!claim) throw new TypeError('The thesis must not be empty.');
   if (!Array.isArray(grounds) || grounds.length < 2) throw new TypeError(t().pick);
   if (objectionText && (!Array.isArray(objectionSources) || objectionSources.length < 1)) throw new TypeError('Choose an exact source for the objection.');
+  if (revisionText && revisionSources !== undefined && (!Array.isArray(revisionSources) || revisionSources.length < 1)) {
+    throw Object.assign(new TypeError('Choose an exact source for the reply.'), {code:'missing-reply-source'});
+  }
 
   const objectionStatement = objectionText ? `${OBJECTION_PREFIX}${objectionText}` : '';
   const revisionStatement = revisionText ? `${REVISION_PREFIX}${revisionText}` : '';
@@ -178,7 +185,11 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
     return {reference, locator: JSON.stringify(reference), key: referenceKey(reference), source};
   });
   const groundRefs = toRefs(grounds), objectionRefs = objectionText ? toRefs(objectionSources) : [];
-  for (const item of [...groundRefs, ...objectionRefs]) {
+  // Existing programmatic callers without the new argument keep their old
+  // fallback; the UI always supplies an explicit selection for a reply.
+  const revisionRefs = revisionText ? (revisionSources === undefined
+    ? (objectionRefs.length ? objectionRefs : groundRefs) : toRefs(revisionSources)) : [];
+  for (const item of [...groundRefs, ...objectionRefs, ...revisionRefs]) {
     const result = await api.provider.resolve({reference: item.reference});
     if (result.status !== 'exact') throw new Error(t().open + ': stale source references cannot be retargeted.');
   }
@@ -189,14 +200,14 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
   const title = thoughtTitle(`${api.getQuestion().trim() || t().thesis}: ${claim}`);
 
   const sourceLocators = new Map();
-  for (const item of [...groundRefs, ...objectionRefs]) {
+  for (const item of [...groundRefs, ...objectionRefs, ...revisionRefs]) {
     if (!sourceLocators.has(item.key)) sourceLocators.set(item.key, await ensureSourceRecord(shelf, item.reference, item.source.title));
   }
   const compactRefs = sources => [...new Set(sources.map(item => sourceLocators.get(item.key)))];
   const fingerprints = {
     grounds: await sourceFingerprint(compactRefs(groundRefs)),
     ...(objectionText ? {objection: await sourceFingerprint(compactRefs(objectionRefs))} : {}),
-    ...(revisionText ? {revision: await sourceFingerprint(compactRefs(objectionRefs.length ? objectionRefs : groundRefs))} : {}),
+    ...(revisionText ? {revision: await sourceFingerprint(compactRefs(revisionRefs))} : {}),
   };
   const stage = ({id, kind, targetId, fromId, toId, statement, refs, dataFingerprint}) => {
     const sourceRefs = compactRefs(refs);
@@ -212,8 +223,7 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
   }
   if (revisionId) {
     workspace.addHypothesis({id: revisionId, title: thoughtTitle(`${t().revision}: ${revisionText}`), body: revisionText});
-    const refs = objectionRefs.length ? objectionRefs : groundRefs;
-    stage({id: makeId('revision-link'), kind: 'relation', fromId: objectionId || thesisId, toId: revisionId, statement: revisionStatement, refs, dataFingerprint: fingerprints.revision});
+    stage({id: makeId('revision-link'), kind: 'relation', fromId: objectionId || thesisId, toId: revisionId, statement: revisionStatement, refs: revisionRefs, dataFingerprint: fingerprints.revision});
   }
   for (const item of groundRefs) await notebook.putNote({id: makeId('research-ground'), kind: 'note', reference: item.reference,
     quote: item.source.quote || undefined, text: noteText});
@@ -306,21 +316,23 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     for (const source of sourceItems) { const label = el('label', 'pr-workspace-checkbox'); const input = document.createElement('input'); input.type = 'checkbox'; input.value = source.id; label.append(input, el('span', '', sourceLabel(source))); objectionGroup.append(label); }
     const revisionLabel = el('label', 'pr-workspace-field', t().revision); const revision = document.createElement('textarea'); revision.maxLength = MAX_REVISION_TEXT; revision.rows = 2; revision.value = previousFields[2] ?? ''; revisionLabel.append(revision,
       el('small', 'pr-workspace-muted', String(locale() || 'ru').toLowerCase().startsWith('en') ? `Up to ${MAX_REVISION_TEXT} characters.` : `До ${MAX_REVISION_TEXT} знаков.`));
-    for (const group of [sourceGroup, objectionGroup]) {
+    const revisionGroup = el('fieldset', 'pr-workspace-source-picker'); revisionGroup.append(el('legend', '', t().replyGrounds), el('p', 'pr-workspace-muted', t().replyGroundsHint));
+    for (const source of sourceItems) { const label = el('label', 'pr-workspace-checkbox'); const input = document.createElement('input'); input.type = 'checkbox'; input.value = source.id; label.append(input, el('span', '', sourceLabel(source))); revisionGroup.append(label); }
+    for (const group of [sourceGroup, objectionGroup, revisionGroup]) {
       const priorIds = previousGroups.shift() || [];
       for (const input of group.querySelectorAll('input[type="checkbox"]')) input.checked = priorIds.includes(input.value);
     }
     const save = btn(t().save, 'pr-workspace-button pr-workspace-primary');
     save.type = 'submit'; save.disabled = savingThought;
-    form.append(question, thesisLabel, sourceGroup, objectionLabel, objectionGroup, revisionLabel, save);
+    form.append(question, thesisLabel, sourceGroup, objectionLabel, objectionGroup, revisionLabel, revisionGroup, save);
     form.addEventListener('submit', event => {
       event.preventDefault();
       if (savingThought) return;
-      const submitted = {thesis: thesis.value, grounds: selectedRefs(sourceGroup), objection: objection.value, objectionSources: selectedRefs(objectionGroup), revision: revision.value};
+      const submitted = {thesis: thesis.value, grounds: selectedRefs(sourceGroup), objection: objection.value, objectionSources: selectedRefs(objectionGroup), revision: revision.value, revisionSources: selectedRefs(revisionGroup)};
       const signature = draftSignature(); savingThought = true; save.disabled = true; undo.disabled = true; redo.disabled = true;
       void saveThought(submitted).then(() => {
         if (draftSignature() === signature) { proposalForm = null; render(); }
-      }).catch(error => message(displayPublicError(error, locale))).finally(() => {
+      }).catch(error => message(error?.code === 'missing-reply-source' ? t().chooseReplyGrounds : displayPublicError(error, locale))).finally(() => {
         savingThought = false;
         const currentSave = proposalForm?.querySelector('button[type="submit"]'); if (currentSave) currentSave.disabled = false;
         const summary = workspace.summary(); undo.disabled = !summary.can_undo; redo.disabled = !summary.can_redo;
@@ -334,13 +346,13 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   const hasUnsavedDraft = () => Boolean(proposalForm && ([...proposalForm.querySelectorAll('.pr-workspace-field textarea')].some(node => node.value.trim())
     || proposalForm.querySelector('.pr-workspace-source-picker input:checked')));
 
-  async function saveThought({thesis, grounds, objection, objectionSources, revision}) {
+  async function saveThought({thesis, grounds, objection, objectionSources, revision, revisionSources}) {
     if (api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) throw new Error('The research question has unsaved changes or changed in another tab.');
     const storedWorkspace = globalThis.localStorage.getItem(WORKSPACE_KEY);
     if (workspace.persistenceError?.() || (storedWorkspace !== null && storedWorkspace !== workspace.exportPacket())) {
       throw new Error('The research workspace changed in another tab. Review the saved state before continuing.');
     }
-    await savePublicThought({thesis, grounds, objection, objectionSources, revision, api, workspace, shelf, notebook, labels: t});
+    await savePublicThought({thesis, grounds, objection, objectionSources, revision, revisionSources, api, workspace, shelf, notebook, labels: t});
     await api.reader?.refreshNotebook?.();
     if (workspace.persistenceError?.()) throw new Error('The research workspace changed in another tab. Export your unsaved workspace draft before reloading.');
     lastThoughtGroup = {state:'applied', revision:workspace.summary().revision,
@@ -406,6 +418,9 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
       const card = el('article', 'pr-workspace-card pr-workspace-proposal');
       card.dataset.proposalId = proposal.id; card.tabIndex = -1;
       card.append(el('h4', '', kindLabel(proposal.kind, locale)), el('p', '', proposalStatement(proposal.statement, locale)), el('small', 'pr-workspace-muted', t().review));
+      if (proposal.statement.startsWith(REVISION_PREFIX)) card.append(el('p', 'pr-workspace-muted', isEnglish(locale)
+        ? 'These are the sources saved with the reply. Earlier records may have inherited sources from the objection or thesis.'
+        : 'Это источники, сохранённые с ответом. В старых записях они могли наследоваться от возражения или тезиса.'));
       const targetMatch = proposalResponseTarget(proposal, state.proposals);
       if (targetMatch) {
         const targetProposal = targetMatch.proposal;

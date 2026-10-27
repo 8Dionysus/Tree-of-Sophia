@@ -33,7 +33,7 @@
 .cr-editorial-addition{text-decoration:underline dotted;text-underline-offset:3px}
 .cr-editorial-deletion{text-decoration:line-through;text-decoration-thickness:1px}
 .cr-editorial-gap{color:var(--cr-accent)}
-.cr-editorial-fragments{border-bottom:1px dotted var(--cr-accent)}
+.cr-editorial-fragments,.cr-editorial-laterWitness{border-bottom:1px dotted var(--cr-accent)}
 .cr-editorial-start::before{content:'[' attr(data-editorial-label) '] ';color:var(--cr-accent);font:11px/1.4 system-ui,sans-serif}
 .cr-editorial-notice,.cr-textual-variant{display:block;margin-top:7px!important;color:var(--cr-muted);font:11px/1.5 system-ui,sans-serif}
 .cr-textual-variant{padding:8px 10px;margin-bottom:10px!important;border-inline-start:2px solid var(--cr-accent);background:var(--cr-rule)}

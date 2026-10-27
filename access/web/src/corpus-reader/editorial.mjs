@@ -9,10 +9,10 @@ const apparatus = new Map(retained.books.flatMap(book=>book.versions.flatMap(ver
 const labels = {
   ru:{note:'Примечание Rackham',addition:'Редакторское дополнение',deletion:'Исключение издателя',gap:'Пропуск в издании',
     notes:'Примечания к произведению',adjustments:'Сведения обработки текста',publication:'Материалы публикации и лицензии Project Gutenberg',
-    fragments:'Редакторское собрание фрагментов и свидетельств'},
+    fragments:'Редакторское собрание фрагментов и свидетельств',laterWitness:'Позднее свидетельство: письмо Гильдеберта и переданные фрагменты'},
   en:{note:'Note by Rackham',addition:'Editorial addition',deletion:'Editorial deletion',gap:'Gap in the edition',
     notes:'Notes on the work',adjustments:'Text processing information',publication:'Project Gutenberg publication and license material',
-    fragments:'Editorial collection of fragments and testimonies'},
+    fragments:'Editorial collection of fragments and testimonies',laterWitness:'Later witness: Hildebert’s letter and transmitted fragments'},
 };
 const language=locale=>String(locale||'ru').toLowerCase().startsWith('en')?'en':'ru';
 const unitId=unit=>unit?.unitId||unit?.id;
@@ -34,6 +34,14 @@ export function editorialRanges(version,unit){
   if(version?.id==='retained-de-fato-lat1-b6f9f292b185' && revision(version)==='dc65d650f24a16ca9d017debfe1c880191fa4eebdccd94d070731884e13d04e0'
     && unitId(unit)==='tos.text-unit.sid-d3bc0bc17eff4b6ca63c698e89b0f3de' && text.slice(619,628).join('')==='Fragmenta'){
     ranges.push({start:619,end:text.length,kind:'fragments'});
+  }
+  // Basore's retained II.7 continues after the surviving chapter with a
+  // later letter and the fragments it transmits. Preserve the whole carrier
+  // and mark only the independently identified boundary in this exact layer.
+  const letter='Hildebertus Cenomanensis ep. 1.3 (CLXXI. 145 Mign.)';
+  if(version?.id==='retained-de-clementia-lat2-a170840d8fc4' && revision(version)==='dff84f24224394557b5009e99cddb22c6c37e5f56f8b0c0a95e175b1e9d218c3'
+    && unitId(unit)==='tos.text-unit.sid-19fbcffd2c0f44c2bf340365636cc66b' && text.slice(2074,2074+points(letter).length).join('')===letter){
+    ranges.push({start:2074,end:text.length,kind:'laterWitness'});
   }
   return ranges.sort((a,b)=>a.start-b.start || a.end-b.end);
 }

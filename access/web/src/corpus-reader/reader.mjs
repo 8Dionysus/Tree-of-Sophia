@@ -931,7 +931,7 @@ export function mountCorpusReader({
         const unit = currentWindow(state.activeVersionId)?.units?.find(value => (value.unitId || value.id) === item.unitId);
         const kind=item.sourceLayer || (unit && editorialKindForMatch(activeVersion(state.activeVersionId),unit,item.start,item.end))
           || sourceLayerKind(activeVersion(state.activeVersionId),item,item.start);
-        result.append(element('strong', '', item.label || unitLabel(unit || item)));
+        result.append(element('strong', '', corpusSectionLabel(item.label,uiLocale(),state.activeVersionId) || unitLabel(unit || item)));
         if(kind)result.append(element('small','cr-search-layer',editorialLabel(kind,uiLocale())));
         result.append(element('span', '', item.snippet || item.excerpt || ''));
         results.append(result);

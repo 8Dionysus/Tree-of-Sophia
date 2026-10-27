@@ -72,11 +72,39 @@ it('undoes and redoes a newly saved thought together while keeping source notes'
       labels:()=>({pick:'Choose grounds',open:'Open',thesis:'Thesis',objection:'Objection',revision:'Reply'})});
     const saved=workspace.getState(),notes=(await notebook.exportPacket()).notes;
     expect(saved.hypotheses).toHaveLength(3); expect(saved.proposals).toHaveLength(3);
+    // Existing API callers that omit revisionSources retain the old fallback.
+    expect(saved.proposals[2].sourceRefs).toEqual(saved.proposals[1].sourceRefs);
     const undone=changeResearchHistory(workspace,'undo',{state:'applied',revision:workspace.summary().revision,actions:6});
     expect(undone.grouped).toBe(true); expect(workspace.getState().hypotheses).toHaveLength(0); expect(workspace.getState().proposals).toHaveLength(0);
     expect((await notebook.exportPacket()).notes).toEqual(notes);
     const redone=changeResearchHistory(workspace,'redo',undone.group);
     expect(redone.grouped).toBe(true); expect(workspace.getState().hypotheses).toEqual(saved.hypotheses); expect(workspace.getState().proposals).toEqual(saved.proposals);
     expect((await notebook.exportPacket()).notes).toEqual(notes);
+  } finally {workspace.dispose();await notebook.close();await shelf.close();}
+});
+
+it('requires an explicit reply source in the new form path and stores a distinct third source', async () => {
+  const workspace=createBrowserResearchWorkspace({persistence:false}),notebook=createCorpusNotebook({adapter:'memory'}),shelf=createResearchShelfStore({adapter:'memory'});
+  const reference=unit=>createReference({source:{workId:'work-1',expressionId:'expression-1',editionId:'edition-1',itemId:'item-1',
+    fileId:'file-1',fileSha256:'a'.repeat(64),textLayerRef:'fixture/source.txt',textLayerSha256:'b'.repeat(64)},versionId:'version-1',unitId:unit,start:0,end:4});
+  const sources=['unit-1','unit-2','unit-3'].map(unit=>({reference:reference(unit),title:unit,quote:'text'}));
+  const api={getQuestion:()=> 'A question',provider:{resolve:async ({reference})=>({status:'exact',reference})}};
+  const labels=()=>({pick:'Choose grounds',open:'Open',thesis:'Thesis',objection:'Objection',revision:'Reply'});
+  const args={thesis:'A thesis',grounds:sources.slice(0,2),objection:'A counterargument',objectionSources:[sources[1]],
+    revision:'A reply',api,workspace,shelf,notebook,labels};
+  try {
+    await expect(savePublicThought({...args,revisionSources:[]})).rejects.toMatchObject({code:'missing-reply-source'});
+    expect(workspace.getState().hypotheses).toHaveLength(0);expect((await shelf.exportPacket()).records).toHaveLength(0);expect((await notebook.exportPacket()).notes).toHaveLength(0);
+    const changedApi={...api,provider:{resolve:async ({reference})=>({status:reference.unitId==='unit-3'?'changed':'exact',reference})}};
+    await expect(savePublicThought({...args,api:changedApi,revisionSources:[sources[2]]})).rejects.toThrow('stale source references');
+    expect(workspace.getState().hypotheses).toHaveLength(0);expect((await shelf.exportPacket()).records).toHaveLength(0);
+    await savePublicThought({...args,revisionSources:[sources[2]]});
+    const proposals=workspace.getState().proposals,objection=proposals[1],reply=proposals[2];
+    expect(reply.sourceRefs).toEqual(reply.evidenceRefs);expect(reply.sourceRefs).toHaveLength(1);
+    expect(reply.sourceRefs).not.toEqual(objection.sourceRefs);
+    const replyRecord=await shelf.get(reply.sourceRefs[0].slice('research-shelf:'.length));
+    const objectionRecord=await shelf.get(objection.sourceRefs[0].slice('research-shelf:'.length));
+    expect(replyRecord.target.reference).toEqual(sources[2].reference);
+    expect(objectionRecord.target.reference).toEqual(sources[1].reference);
   } finally {workspace.dispose();await notebook.close();await shelf.close();}
 });

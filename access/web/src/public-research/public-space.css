@@ -166,7 +166,7 @@
   #tree .ps-header .pr-wordmark{min-width:0;gap:6px;font-size:10px;letter-spacing:.08em}
   #tree .ps-header .pr-wordmark::before{font-size:28px}
   #tree .ps-header .main-tools{order:0;margin-left:auto;gap:6px;min-width:0}
-  #tree .ps-header .ps-profile-switch{display:block;max-width:115px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:8px;font-size:10px}
+  #tree .ps-header .ps-profile-switch{display:block;max-width:115px;white-space:normal;overflow:visible;text-align:center;padding:8px;font-size:10px}
   #tree .ps-language{gap:7px;margin-left:0}
   #tree .ps-language button{min-height:40px;font-size:10px}
   #tree .ps-search{top:58px;left:14px;width:calc(100% - 28px);height:40px;padding:0 12px;font-size:13px}
@@ -210,7 +210,7 @@
 }
 #tree .ps-header{min-height:0;border:0}
 @media(max-width:760px){
-  #tree .ps-header .pr-switch{min-height:38px;max-width:110px;padding:5px 8px;font:11px/1.2 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tree .ps-header .pr-switch{min-height:38px;max-width:110px;padding:5px 8px;font:11px/1.2 system-ui,sans-serif;white-space:normal;overflow:visible;text-align:center;flex:0 1 110px}
   #tree .ps-header .corpus-open{min-height:38px;padding:5px 8px;font-size:10px}
   #tree .ps-relations .relation-toggle{overflow:hidden;white-space:nowrap;text-indent:-9999px;position:relative}
   #tree .ps-relations .relation-toggle::before{content:'⌘';position:absolute;inset:0;text-indent:0;display:grid;place-items:center;font-size:18px}
@@ -269,3 +269,8 @@
 .ps-personal-grounds,.ps-personal-proposals,.ps-endpoint-source{margin:1.3rem 0;padding-top:.8rem;border-top:1px solid #8fa1b42b}
 .ps-personal-grounds .text-button,.ps-endpoint-source .text-button,.ps-personal-proposals .text-button{display:block;white-space:normal;text-align:start;overflow-wrap:anywhere;margin:.6rem 0}
 .ps-personal-proposal+.ps-personal-proposal{margin-top:1rem;padding-top:1rem;border-top:1px solid #8fa1b422}
+
+@media(max-width:380px){
+  #tree .ps-header .pr-wordmark{font-size:0;gap:0;min-width:30px}
+  #tree .ps-header .pr-wordmark::before{font-size:28px}
+}
