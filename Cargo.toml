@@ -30,3 +30,8 @@ strip = "debuginfo"
 # validation; unoptimized SIMD wrappers dominate these short operations.
 [profile.dev.package.sha2]
 opt-level = 3
+
+# Real package and fixture archives also run in dev/test builds.
+# Optimize their Deflate backend while retaining the archive format and level.
+[profile.dev.package.miniz_oxide]
+opt-level = 3
