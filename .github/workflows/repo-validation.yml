@@ -632,13 +632,6 @@ jobs:
             --manifest-sha256 "${{ needs.software_prepare.outputs.software_stage_manifest_sha256 }}" \
             --image-root "$RUNNER_TEMP/software-cargo-target/x86_64-unknown-linux-gnu/debug" \
             --receipt-root "$RUNNER_TEMP" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
-      - &install_software_test_dependencies
-        name: Install software test dependencies
-        run: |
-          npm ci --prefer-offline --no-audit --no-fund --prefix access/web
-          npm install --prefix "$RUNNER_TEMP/tos-e2e-deps" --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0
-          "$RUNNER_TEMP/tos-e2e-deps/node_modules/.bin/playwright" install --with-deps chromium
-          echo "TOS_E2E_NODE_MODULES=$RUNNER_TEMP/tos-e2e-deps/node_modules" >> "$GITHUB_ENV"
       - &prepare_native_verity
         name: Prepare isolated fs-verity test filesystem
         run: |
@@ -693,7 +686,12 @@ jobs:
       - *cargo_resource_before
       - *fetch_software_stage
       - *bind_software_stage
-      - *install_software_test_dependencies
+      - name: Install software test dependencies
+        run: |
+          npm ci --prefer-offline --no-audit --no-fund --prefix access/web
+          npm install --prefix "$RUNNER_TEMP/tos-e2e-deps" --no-save --no-package-lock --no-audit --no-fund playwright@1.63.0
+          "$RUNNER_TEMP/tos-e2e-deps/node_modules/.bin/playwright" install --with-deps chromium
+          echo "TOS_E2E_NODE_MODULES=$RUNNER_TEMP/tos-e2e-deps/node_modules" >> "$GITHUB_ENV"
       - *prepare_native_verity
       - name: Build and install the native software artifact without corpus data
         env:

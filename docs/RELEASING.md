@@ -113,6 +113,8 @@ owner surfaces.
    their receipts, the E2E fixture executable and browser assets once. The
    `software` fixture job and `software_package` job consume those staged inputs
    from the same source checkout after verifying and binding the stage manifest.
+   The fixture job runs only the canonical native Cargo tests; browser npm and
+   Playwright installation belongs to the package/browser job.
    `software_prepare` builds receipts for the exact feature sets in the shared
    native command descriptor. The package job derives byte limits from the
    actual nineteen executables, web assets and bounded software inputs; it does not reuse an
