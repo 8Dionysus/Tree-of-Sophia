@@ -5,8 +5,11 @@ import {createPublicCorpusProvider} from '../corpus-reader/public-provider.mjs';
 import {unitReference} from '../corpus-reader/view-model.mjs';
 import {createResearchShelfStore} from '../research-shelf/storage.mjs';
 import {createBrowserResearchWorkspace} from '../research-workspace-rust.ts';
+import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
+import {createReference} from '../corpus-reader/model.mjs';
 import {ensureSourceRecord, resolveSourceLocator} from './source-address.mjs';
 import {createCompareAndSwapPersistence} from './workspace-persistence.mjs';
+import {savePublicThought} from './workspace-view.mjs';
 
 const corpusRoot = new URL('../../public/public-corpus/', import.meta.url);
 
@@ -68,5 +71,42 @@ describe('public research shelf source addresses', () => {
     first.save('first-tab');
     expect(() => second.save('stale-tab')).toThrow(/Another tab changed/);
     expect(storage.getItem('workspace')).toBe('first-tab');
+  });
+
+  it.each(['objection', 'revision'])('rejects an oversized generated %s statement before any owner mutation', async field => {
+    const calls = {resolve: 0, shelf: 0, workspace: 0, notebook: 0};
+    const workspace = {getState: () => { calls.workspace++; return {hypotheses: [], proposals: [], notes: []}; },
+      addHypothesis: () => { calls.workspace++; }, stageProposal: () => { calls.workspace++; }};
+    const shelf = {get: async () => null, list: async () => { calls.shelf++; return {items: [], nextCursor: null}; },
+      save: async () => { calls.shelf++; }};
+    const notebook = {exportPacket: async () => { calls.notebook++; return {notes: []}; }, putNote: async () => { calls.notebook++; }};
+    const draft = {thesis: 'A thesis', grounds: [{}, {}], objection: '', objectionSources: [], revision: ''};
+    draft[field] = 'x'.repeat(field === 'objection' ? 4_000 - 'Objection to thesis: '.length + 1 : 4_000 - 'Revises earlier thesis: '.length + 1);
+    await expect(savePublicThought({ ...draft, api: {provider: {resolve: async () => { calls.resolve++; return {status: 'exact'}; }}, getQuestion: () => ''},
+      workspace, shelf, notebook, labels: () => ({pick: 'pick', open: 'open', thesis: 'Thesis', objection: 'Objection', revision: 'Revision'}) }))
+      .rejects.toThrow(/at most/);
+    expect(calls).toEqual({resolve: 0, shelf: 0, workspace: 0, notebook: 0});
+  });
+
+  it('stages objection and revision statements at their exact Rust workspace boundary', async () => {
+    const makeReference = suffix => createReference({source: {workId: `work-${suffix}`, expressionId: `expression-${suffix}`,
+      editionId: `edition-${suffix}`, itemId: `item-${suffix}`, fileId: `file-${suffix}`, fileSha256: 'a'.repeat(64),
+      textLayerRef: `${suffix}/text.txt`, textLayerSha256: 'b'.repeat(64)}, versionId: `version-${suffix}`, unitId: `unit-${suffix}`, start: 0, end: 1});
+    const sources = ['one', 'two'].map(suffix => ({reference: makeReference(suffix), title: `Source ${suffix}`, quote: 'x'}));
+    const shelf = createResearchShelfStore({adapter: 'memory'});
+    const workspace = createBrowserResearchWorkspace({persistence: false});
+    const notebook = createCorpusNotebook({indexedDB: null, dbName: `tos-boundary-${Date.now()}`});
+    try {
+      await savePublicThought({thesis: 'A thesis', grounds: sources, objection: 'o'.repeat(4_000 - 'Objection to thesis: '.length),
+        objectionSources: [sources[0]], revision: 'r'.repeat(4_000 - 'Revises earlier thesis: '.length),
+        api: {provider: {resolve: async ({reference}) => ({status: 'exact', reference})}, getQuestion: () => 'Boundary test'},
+        workspace, shelf, notebook, labels: () => ({pick: 'pick', open: 'open', thesis: 'Thesis', objection: 'Objection', revision: 'Revision'})});
+      const statements = workspace.getState().proposals.map(item => item.statement);
+      expect(statements.map(value => value.length)).toEqual([8, 4_000, 4_000]);
+    } finally {
+      workspace.dispose();
+      await shelf.close();
+      await notebook.close();
+    }
   });
 });

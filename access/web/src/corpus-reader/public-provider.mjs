@@ -259,11 +259,16 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
     if(!['document','version'].includes(args.scope))throw new CorpusProviderUnsupportedScopeError(args.scope);
     const {document,version}=await versionData(args),binding={documentId:document.id,versionId:version.id,query:args.query,scope:args.scope};
     // A word-form index is a compact source-derived carrier, not source text.
-    // Phrases fall back to one bounded text page per explicit continuation.
+    // Prove the literal query fits inside an indexed form before using the
+    // optimization. Otherwise scan a bounded page without duplicating the
+    // publisher's delimiter rules (including punctuation and spelling variants).
+    let index=null;
     if(version.searchIndex&&!/\s/.test(args.query)){
       const key=version.searchIndex.sha256;
-      let index=cacheGet(indices,key);
+      index=cacheGet(indices,key);
       if(!index){index=await read(version.searchIndex.path,version.searchIndex,INDEX_BYTES,args.signal);if(!Array.isArray(index.terms))fail('invalid_response','Invalid public surface index.');cacheSet(indices,key,index,2);}
+    }
+    if(index&&index.terms.some(term=>typeof term?.form==='string'&&term.form.includes(args.query))){
       const saved=position(args.cursor,'search',version.revision,binding,{term:0,match:0,occurrence:0});
       if(!object(saved)||![saved.term,saved.match,saved.occurrence].every(value=>Number.isSafeInteger(value)&&value>=0)||saved.term>index.terms.length)throw new CorpusProviderCursorError();
       const matched=findInParagraphs(index.terms.slice(saved.term).map(value=>value.form),args.query,{limit:500});

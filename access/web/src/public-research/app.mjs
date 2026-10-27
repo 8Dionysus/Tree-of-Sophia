@@ -89,6 +89,7 @@ let profileDocumentIds = new Set();
 read.disabled = true;
 let saveTimer = null;
 let questionTouched = false;
+let questionRestored = false;
 let questionSequence = 0;
 let questionWrite = Promise.resolve();
 
@@ -103,6 +104,7 @@ function validRoute(value) {
 function persistQuestion() {
   clearTimeout(saveTimer);
   saveTimer = null;
+  if (!questionRestored && !questionTouched) return Promise.resolve(true);
   const sequence = ++questionSequence;
   const value = question.value;
   questionWrite = questionWrite.catch(() => {}).then(() => notebook.setPreference(QUESTION_KEY, value));
@@ -221,6 +223,13 @@ function openReader() {
 }
 
 async function start() {
+  try {
+    const savedQuestion = await notebook.getPreference(QUESTION_KEY);
+    if (!questionTouched && typeof savedQuestion === 'string') question.value = savedQuestion;
+    questionRestored = true;
+  } catch {
+    saveState.textContent = english ? 'Notebook storage is unavailable. Your question may not persist.' : 'Блокнот недоступен. Вопрос может не сохраниться.';
+  }
   await initializePublicReaderRules();
   const provider = createPublicCorpusProvider({baseUrl: `${import.meta.env.BASE_URL}public-corpus/`, profile, fetch: globalThis.fetch.bind(globalThis)});
   let manifest = null;
@@ -243,7 +252,7 @@ async function start() {
         saveState.textContent = english ? 'Could not save this reading position.' : 'Не удалось сохранить это место чтения.';
       });
     }});
-  read.addEventListener('click', openReader, {once: true});
+  read.addEventListener('click', openReader);
   window.tosPublicResearch = Object.freeze({profile, getQuestion: () => question.value, setQuestion, open: openAddress, reader: entry.reader, provider, notebook: entry.notebook});
   publicOwners = createPublicResearchOwners();
   agentBridge = mountPublicAgentBridge({root:hero, api:window.tosPublicResearch, notebook:entry.notebook,
@@ -251,12 +260,6 @@ async function start() {
   workspaceView = mountPublicWorkspaceView({root:hero, api:window.tosPublicResearch, notebook:entry.notebook,
     workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>english?'en':'ru'});
   workspaceView.connectAgentBridge(agentBridge);
-  try {
-    const savedQuestion = await notebook.getPreference(QUESTION_KEY);
-    if (!questionTouched && typeof savedQuestion === 'string') question.value = savedQuestion;
-  } catch {
-    saveState.textContent = english ? 'Notebook storage is unavailable. Your question may not persist.' : 'Блокнот недоступен. Вопрос может не сохраниться.';
-  }
   workspaceView?.render();
   if (manifest && profileInfo) {
     const workCount = Array.isArray(profileInfo?.documentIds) ? profileInfo.documentIds.length : null;
@@ -278,7 +281,7 @@ window.addEventListener('pagehide', event => {
   workspaceView?.destroy();
   delete window.tosPublicResearch;
   void persistQuestion().finally(() => Promise.resolve(entry?.destroy()).finally(() => notebook.close()));
-}, {once: true});
+});
 question.addEventListener('input', scheduleQuestionSave);
 
 void start().catch(error => {

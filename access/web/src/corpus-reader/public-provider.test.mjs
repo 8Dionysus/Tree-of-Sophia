@@ -8,13 +8,13 @@ import {describe,it,expect} from 'vitest';
 import {createHash} from 'node:crypto';
 installReaderOccurrenceRules(rules);
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-function fixture({corrupt=false}={}){
+function fixture({corrupt=false,text='🌳 Kreis und Kreis.',terms=[{form:'Kreis',occurrences:[[1,2,7],[1,12,17]]}]}={}){
  const files=new Map(),calls=[];
  const member=(path,value)=>{const bytes=Buffer.from(JSON.stringify(value)+'\n');files.set('/static/public-corpus/'+path,bytes);return {path,sha256:hash(bytes),bytes:bytes.length};};
  const source={workId:'work',expressionId:'expression',editionId:'edition',itemId:'item',fileId:'file',fileSha256:'a'.repeat(64),textLayerRef:'source.txt',textLayerSha256:'b'.repeat(64)};
- const units=[{id:'unit',ordinal:1,text:'🌳 Kreis und Kreis.',kind:'paragraph',reference:'Section 1'}];
+ const units=[{id:'unit',ordinal:1,text,kind:'paragraph',reference:'Section 1'}];
  const page=member('pages/text.json',{documentId:'work',versionId:'v1',revision:source.textLayerSha256,units});
- const index=member('indexes/forms.json',{terms:[{form:'Kreis',occurrences:[[1,2,7],[1,12,17]]}]});
+ const index=member('indexes/forms.json',{terms});
  const version={id:'v1',label:'Edition',language:'de',revision:source.textLayerSha256,source,unitCount:1,pages:[{...page,firstOrdinal:1,count:1}],units:[{id:'unit',ordinal:1,page:0}],structure:[],searchIndex:index};
  const document={id:'work',title:'Work',author:'Author',versions:[version]};
  const descriptor=member('documents/work.json',document);
@@ -62,6 +62,14 @@ function mappingFixture({targetStale=false,analysis=false}={}){
  return {provider:createPublicCorpusProvider({fetch}),sourceReference,targetReference};
 }
 describe('immutable public corpus delivery',()=>{
+ it('searches source text across indexed form delimiters without losing exact Unicode offsets',async()=>{
+  const {provider,calls}=fixture({text:'🌳 sense-organs and sense organs.',terms:[{form:'sense',occurrences:[[1,2,7]]},{form:'organs',occurrences:[[1,8,14]]}]});
+  const result=await provider.search({documentId:'work',versionId:'v1',query:'sense-organs',scope:'version',limit:10});
+  expect(result.items).toHaveLength(1);
+  expect(result.items[0].exactReference.selector).toMatchObject({start:2,end:14});
+  expect((await provider.resolve({reference:result.items[0].exactReference})).status).toBe('exact');
+  expect(calls.some(path=>path.includes('/pages/'))).toBe(true);
+ });
  it('keeps the second equal word and its code-point coordinates through search, view and exact resolve',async()=>{
   const {provider,source,document,version,calls}=fixture();
   const page=await provider.search({documentId:'work',versionId:'v1',query:'Kreis',scope:'version',limit:1});

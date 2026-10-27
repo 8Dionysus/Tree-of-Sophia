@@ -11,6 +11,10 @@ export const PUBLIC_WORKSPACE_VERSION = 1;
 const WORKSPACE_KEY = 'tos-research-workspace-v1';
 const MAX_EXPORT_BYTES = 12_000_000;
 const MAX_NOTE_TEXT = 4_000;
+const OBJECTION_PREFIX = 'Objection to thesis: ';
+const REVISION_PREFIX = 'Revises earlier thesis: ';
+const MAX_OBJECTION_TEXT = MAX_NOTE_TEXT - OBJECTION_PREFIX.length;
+const MAX_REVISION_TEXT = MAX_NOTE_TEXT - REVISION_PREFIX.length;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const only = (value, fields) => object(value) && Object.keys(value).length === fields.length && fields.every(field => Object.hasOwn(value, field));
 const makeId = prefix => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`}`;
@@ -103,6 +107,75 @@ async function sourceFingerprint(locators) {
   return `sha256:${[...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('')}`;
 }
 
+/** Check generated proposal statements before saving the thought to its existing owners. */
+export async function savePublicThought({thesis, grounds, objection, objectionSources, revision, api, workspace, shelf, notebook, labels: t}) {
+  const inputText = (value, limit, field) => {
+    if (typeof value !== 'string') throw new TypeError(`${field} must be text.`);
+    const checked = value.trim();
+    if (checked.length > limit) throw new TypeError(`${field} must contain at most ${limit} characters.`);
+    return checked;
+  };
+  const claim = inputText(thesis, MAX_NOTE_TEXT, 'The thesis');
+  const objectionText = inputText(objection, MAX_OBJECTION_TEXT, 'The objection');
+  const revisionText = inputText(revision, MAX_REVISION_TEXT, 'The revision');
+  if (!claim) throw new TypeError('The thesis must not be empty.');
+  if (!Array.isArray(grounds) || grounds.length < 2) throw new TypeError(t().pick);
+  if (objectionText && (!Array.isArray(objectionSources) || objectionSources.length < 1)) throw new TypeError('Choose an exact source for the objection.');
+
+  const objectionStatement = objectionText ? `${OBJECTION_PREFIX}${objectionText}` : '';
+  const revisionStatement = revisionText ? `${REVISION_PREFIX}${revisionText}` : '';
+  for (const [field, value] of [['the thesis proposal', claim], ['the objection proposal', objectionStatement], ['the revision proposal', revisionStatement]]) {
+    if (value.length > MAX_NOTE_TEXT) throw new TypeError(`${field} exceeds the 4,000-character workspace statement limit.`);
+  }
+  const noteText = `${t().thesis}: ${claim}${objectionText ? `\n\n${t().objection}: ${objectionText}` : ''}${revisionText ? `\n\n${t().revision}: ${revisionText}` : ''}`;
+
+  const toRefs = sources => sources.map(source => {
+    if (!source || typeof source !== 'object') throw new TypeError('An exact source selection is invalid.');
+    const reference = validateReference(source.reference);
+    return {reference, locator: JSON.stringify(reference), key: referenceKey(reference), source};
+  });
+  const groundRefs = toRefs(grounds), objectionRefs = objectionText ? toRefs(objectionSources) : [];
+  for (const item of [...groundRefs, ...objectionRefs]) {
+    const result = await api.provider.resolve({reference: item.reference});
+    if (result.status !== 'exact') throw new Error(t().open + ': stale source references cannot be retargeted.');
+  }
+
+  const thesisId = makeId('thesis');
+  const objectionId = objectionText ? makeId('objection') : null;
+  const revisionId = revisionText ? makeId('revision') : null;
+  const title = `${api.getQuestion().trim() || t().thesis}: ${claim}`.slice(0, 512);
+
+  const sourceLocators = new Map();
+  for (const item of [...groundRefs, ...objectionRefs]) {
+    if (!sourceLocators.has(item.key)) sourceLocators.set(item.key, await ensureSourceRecord(shelf, item.reference, item.source.title));
+  }
+  const compactRefs = sources => [...new Set(sources.map(item => sourceLocators.get(item.key)))];
+  const fingerprints = {
+    grounds: await sourceFingerprint(compactRefs(groundRefs)),
+    ...(objectionText ? {objection: await sourceFingerprint(compactRefs(objectionRefs))} : {}),
+    ...(revisionText ? {revision: await sourceFingerprint(compactRefs(objectionRefs.length ? objectionRefs : groundRefs))} : {}),
+  };
+  const stage = ({id, kind, targetId, fromId, toId, statement, refs, dataFingerprint}) => {
+    const sourceRefs = compactRefs(refs);
+    workspace.stageProposal({id, kind, parentHypothesisId: thesisId, ...(targetId ? {targetId} : {}), ...(fromId ? {fromId} : {}), ...(toId ? {toId} : {}),
+      statement, sourceRefs, evidenceRefs: [...sourceRefs], confidencePosture: {value: 'unknown', meaning: 'maker_declared_uncertainty_not_truth_probability'},
+      actorOrigin: 'human', basePageRevision: 0, baseWorkspaceRevision: workspace.summary().revision, dataFingerprint});
+  };
+  workspace.addHypothesis({id: thesisId, title, body: claim});
+  stage({id: makeId('ground'), kind: 'interpretation', targetId: thesisId, statement: claim, refs: groundRefs, dataFingerprint: fingerprints.grounds});
+  if (objectionId) {
+    workspace.addHypothesis({id: objectionId, title: `${t().objection}: ${objectionText}`.slice(0, 512), body: objectionText});
+    stage({id: makeId('objection-link'), kind: 'relation', fromId: thesisId, toId: objectionId, statement: objectionStatement, refs: objectionRefs, dataFingerprint: fingerprints.objection});
+  }
+  if (revisionId) {
+    workspace.addHypothesis({id: revisionId, title: `${t().revision}: ${revisionText}`.slice(0, 512), body: revisionText});
+    const refs = objectionRefs.length ? objectionRefs : groundRefs;
+    stage({id: makeId('revision-link'), kind: 'relation', fromId: objectionId || thesisId, toId: revisionId, statement: revisionStatement, refs, dataFingerprint: fingerprints.revision});
+  }
+  for (const item of groundRefs) await notebook.putNote({id: makeId('research-ground'), kind: 'note', reference: item.reference,
+    quote: item.source.quote || undefined, text: noteText});
+}
+
 export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf, locale = () => 'ru'} = {}) {
   if (!root || !api || !notebook || !workspace || !shelf) throw new TypeError('The personal workspace needs the shared Rust workspace, notebook, and shelf owners.');
   const t = () => labels(locale);
@@ -176,10 +249,12 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     const sourceGroup = el('fieldset', 'pr-workspace-source-picker'); sourceGroup.append(el('legend', '', t().grounds));
     if (!sourceItems.length) sourceGroup.append(el('p', 'pr-workspace-muted', t().pick));
     for (const source of sourceItems) { const label = el('label', 'pr-workspace-checkbox'); const input = document.createElement('input'); input.type = 'checkbox'; input.value = source.id; label.append(input, el('span', '', `${source.title} · ${source.versionLabel}`)); label.append(sourceButton(source)); sourceGroup.append(label); }
-    const objectionLabel = el('label', 'pr-workspace-field', t().objection); const objection = document.createElement('textarea'); objection.maxLength = MAX_NOTE_TEXT; objection.rows = 2; objection.value = previousFields[1] ?? ''; objectionLabel.append(objection);
+    const objectionLabel = el('label', 'pr-workspace-field', t().objection); const objection = document.createElement('textarea'); objection.maxLength = MAX_OBJECTION_TEXT; objection.rows = 2; objection.value = previousFields[1] ?? ''; objectionLabel.append(objection,
+      el('small', 'pr-workspace-muted', String(locale() || 'ru').toLowerCase().startsWith('en') ? `Up to ${MAX_OBJECTION_TEXT} characters.` : `До ${MAX_OBJECTION_TEXT} знаков.`));
     const objectionGroup = el('fieldset', 'pr-workspace-source-picker'); objectionGroup.append(el('legend', '', `${t().objection} · ${t().grounds}`));
     for (const source of sourceItems) { const label = el('label', 'pr-workspace-checkbox'); const input = document.createElement('input'); input.type = 'checkbox'; input.value = source.id; label.append(input, el('span', '', `${source.title} · ${source.versionLabel}`)); objectionGroup.append(label); }
-    const revisionLabel = el('label', 'pr-workspace-field', t().revision); const revision = document.createElement('textarea'); revision.maxLength = MAX_NOTE_TEXT; revision.rows = 2; revision.value = previousFields[2] ?? ''; revisionLabel.append(revision);
+    const revisionLabel = el('label', 'pr-workspace-field', t().revision); const revision = document.createElement('textarea'); revision.maxLength = MAX_REVISION_TEXT; revision.rows = 2; revision.value = previousFields[2] ?? ''; revisionLabel.append(revision,
+      el('small', 'pr-workspace-muted', String(locale() || 'ru').toLowerCase().startsWith('en') ? `Up to ${MAX_REVISION_TEXT} characters.` : `До ${MAX_REVISION_TEXT} знаков.`));
     for (const group of [sourceGroup, objectionGroup]) {
       const priorIds = previousGroups.shift() || [];
       for (const input of group.querySelectorAll('input[type="checkbox"]')) input.checked = priorIds.includes(input.value);
@@ -192,59 +267,8 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   };
 
   async function saveThought({thesis, grounds, objection, objectionSources, revision}) {
-    const claim = thesis.trim();
-    if (!claim || claim.length > MAX_NOTE_TEXT) throw new TypeError('The thesis must contain up to 4,000 characters.');
-    if (grounds.length < 2) throw new TypeError(t().pick);
-    if (objection.trim() && objectionSources.length < 1) throw new TypeError('Choose an exact source for the objection.');
-    const toRefs = sources => sources.map(source => {
-      const reference = validateReference(source.reference);
-      const locator = JSON.stringify(reference);
-      return {reference, locator, key: referenceKey(reference), source};
-    });
-    const groundRefs = toRefs(grounds), objectionRefs = objection.trim() ? toRefs(objectionSources) : [];
-    for (const item of [...groundRefs, ...objectionRefs]) {
-      const result = await api.provider.resolve({reference: item.reference});
-      if (result.status !== 'exact') throw new Error(t().open + ': stale source references cannot be retargeted.');
-    }
-    for (const item of [...groundRefs, ...objectionRefs]) {
-      item.locator = await ensureSourceRecord(shelf, item.reference, item.source.title);
-    }
-    const dataFingerprint = await sourceFingerprint([...groundRefs, ...objectionRefs].map(item => item.locator));
-    const thesisId = makeId('thesis');
-    const currentQuestion = api.getQuestion().trim();
-    const titleText = `${currentQuestion || t().thesis}: ${claim}`.slice(0, 512);
-    workspace.addHypothesis({id: thesisId, title: titleText, body: claim});
-    await stage({id: makeId('ground'), kind: 'interpretation', parentHypothesisId: thesisId, targetId: thesisId,
-      statement: claim, refs: groundRefs, baseWorkspaceRevision: workspace.summary().revision});
-    let objectionId = null;
-    if (objection.trim()) {
-      objectionId = makeId('objection');
-      workspace.addHypothesis({id: objectionId, title: `${t().objection}: ${objection.trim()}`.slice(0, 512), body: objection.trim()});
-      await stage({id: makeId('objection-link'), kind: 'relation', parentHypothesisId: thesisId, fromId: thesisId, toId: objectionId,
-        statement: `Objection to thesis: ${objection.trim()}`, refs: objectionRefs, baseWorkspaceRevision: workspace.summary().revision});
-    }
-    if (revision.trim()) {
-      const revisionId = makeId('revision');
-      workspace.addHypothesis({id: revisionId, title: `${t().revision}: ${revision.trim()}`.slice(0, 512), body: revision.trim()});
-      const refs = objectionRefs.length ? objectionRefs : groundRefs;
-      await stage({id: makeId('revision-link'), kind: 'relation', parentHypothesisId: thesisId, fromId: objectionId || thesisId, toId: revisionId,
-        statement: `Revises earlier thesis: ${revision.trim()}`, refs, baseWorkspaceRevision: workspace.summary().revision});
-    }
-    for (const item of groundRefs) {
-      const noteId = makeId('research-ground');
-      await notebook.putNote({id: noteId, kind: 'note', reference: item.reference,
-        quote: item.source.quote || undefined,
-        text: `${t().thesis}: ${claim}${objection.trim() ? `\n\n${t().objection}: ${objection.trim()}` : ''}${revision.trim() ? `\n\n${t().revision}: ${revision.trim()}` : ''}`.slice(0, 16_000)});
-    }
+    await savePublicThought({thesis, grounds, objection, objectionSources, revision, api, workspace, shelf, notebook, labels: t});
     render(); message('Saved locally. Earlier hypotheses remain in history; proposals are pending review.');
-  }
-
-  async function stage({id, kind, parentHypothesisId, targetId, fromId, toId, statement, refs, baseWorkspaceRevision}) {
-    const sourceRefs = refs.map(item => item.locator);
-    const dataFingerprint = await sourceFingerprint(sourceRefs);
-    workspace.stageProposal({id, kind, parentHypothesisId, ...(targetId ? {targetId} : {}), ...(fromId ? {fromId} : {}), ...(toId ? {toId} : {}),
-      statement, sourceRefs, evidenceRefs: [...sourceRefs], confidencePosture: {value: 'unknown', meaning: 'maker_declared_uncertainty_not_truth_probability'},
-      actorOrigin: 'human', basePageRevision: 0, baseWorkspaceRevision, dataFingerprint});
   }
 
   const renderGraph = state => {
