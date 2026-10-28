@@ -2,9 +2,11 @@ import {expect, test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {localizePublicJourney} from './journey-i18n.mjs';
 import {actionLabel, hypothesisTitle, kindLabel, proposalDisplay, proposalStatement, researchQuestionLine} from './presentation-i18n.mjs';
-const files=['antiquity','zarathustra'].map(name=>new URL(`../../../../ToS/research-packets/public-prototypes-20261026/journeys.${name}.v1.json`,import.meta.url));
-test('all public journeys have English presentation without changing source addresses',()=>{
- for(const file of files) for(const source of JSON.parse(readFileSync(file)).journeys) {
+const published=JSON.parse(readFileSync(new URL('../../public/public-corpus/manifest.json',import.meta.url),'utf8'));
+test('all published journeys have English presentation without changing source addresses',()=>{
+ for(const name of ['antiquity','zarathustra']) {
+ const profile=published.profiles[name]; expect(profile.journeys.length).toBeGreaterThan(0);
+ for(const source of profile.journeys) {
   const translated=localizePublicJourney(source,'en');
   for(const field of ['title','question','readingHypothesis','strongAlternative']) { expect(translated[field]).not.toEqual(source[field]); expect(translated[field]).not.toMatch(/[А-Яа-я]/); }
   const {title,question,readingHypothesis,strongAlternative,steps,...rest}=translated;
@@ -12,6 +14,7 @@ test('all public journeys have English presentation without changing source addr
   expect(rest).toEqual(sourceRest); expect(steps).toHaveLength(ss.length);
   for(const [index,step] of steps.entries()) { for(const field of ['title','voice','prompt']) {expect(step[field]).not.toEqual(ss[index][field]); expect(step[field]).not.toMatch(/[А-Яа-я]/);} const {title,voice,prompt,...address}=step; const {title:a,voice:b,prompt:c,...original}=ss[index]; expect(address).toEqual(original); }
   expect(localizePublicJourney(source,'ru')).toEqual(source);
+ }
  }
 });
 test('only generated relation prefixes are localized',()=>{
