@@ -1,0 +1,23 @@
+{
+  "schema": "tos.provisional-reader-textual-variants.v1",
+  "review": {
+    "date": "2026-10-27",
+    "reviewer": "Codex source-visible agent review",
+    "scope": "One phrase in the Adams translation. The printed and electronic witnesses were compared visually; this is not a complete collation, human review, or canon admission.",
+    "basis": "G12 research, researcher report R-16; the selected text layer and its anchors remain unchanged."
+  },
+  "variants": [
+    {
+      "versionId": "retained-sacred-disease-eng2-b8ea5e9ced0b",
+      "revision": "4f4deb51971bc1a6d7c3bbfd72266f52d3ec5891e9b6890e56d0623d73abfa1c",
+      "unitId": "tos.text-unit.sid-3ffe7c7f480e44ddb86ec2a9971bb970",
+      "selector": {"start": 156, "end": 175, "unit": "unicode_code_point", "interval": "half_open"},
+      "digitalReading": "from the originates",
+      "digitalWitness": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-eng2.xml",
+      "printReading": "from which it originates",
+      "printWitness": "The Genuine Works of Hippocrates, Francis Adams, vol. 2, William Wood, 1886, p. 334",
+      "printUrl": "https://babel.hathitrust.org/cgi/pt?id=uc1.b4034265&seq=344",
+      "status": "reviewed witness difference; cause of transcription discrepancy not established"
+    }
+  ]
+}

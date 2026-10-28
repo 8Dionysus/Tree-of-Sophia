@@ -97,6 +97,22 @@ The reader preserves and attributes the digital reading while showing the
 different reading in the linked printed witness. This is not a complete
 collation or a replacement text layer.
 
+The software reader consumes the byte-identical derived companion
+[`reader-textual-variants.v1.json`](reader-textual-variants.v1.json), together
+with [`contained-reading-targets.v1.json`](contained-reading-targets.v1.json).
+Their authored owners remain the same-named packets under
+`ToS/research-packets/public-prototypes-20261026/`. Refresh only these bounded
+metadata projections, then verify their byte parity:
+
+```sh
+python3 access/public-corpus/prepare_reader_companions.py --write
+python3 access/public-corpus/prepare_reader_companions.py
+```
+
+This route does not rebuild texts or change references. Software builds consume
+the derived files under Access and do not require the authored research-packet
+checkout.
+
 ## Morphology and dictionaries
 
 The two `morphology.*.v1.json` files contain retained, unranked tool candidates,

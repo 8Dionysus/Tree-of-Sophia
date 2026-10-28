@@ -19,7 +19,7 @@ import {readableUnitLocator} from './location-label.mjs';
 import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
 import {selectedSourceContext} from './source-context.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
-import variants from '../../../../ToS/research-packets/public-prototypes-20261026/reader-textual-variants.v1.json' with {type:'json'};
+import variants from '../../../public-corpus/reader-textual-variants.v1.json' with {type:'json'};
 
 const retainedApparatus=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>[
   ...(version.bookNotesUnitIds??[]).map(id=>[id,{key:'workNotes',versionId:version.versionId,revision:version.revision}]),

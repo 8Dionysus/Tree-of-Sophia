@@ -1,6 +1,6 @@
 import collection from './antiquity-collection-data.json' with {type:'json'};
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
-import containedReadings from '../../../../ToS/research-packets/public-prototypes-20261026/contained-reading-targets.v1.json' with {type:'json'};
+import containedReadings from '../../../public-corpus/contained-reading-targets.v1.json' with {type:'json'};
 import {CLOSE_READING_GUIDES} from '../../constructor/close-reading-guides.mjs';
 
 const bi=(ru,en)=>({ru,en});
