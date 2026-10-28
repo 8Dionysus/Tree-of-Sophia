@@ -1,7 +1,7 @@
 import {kindLabel, displayPublicError} from './presentation-i18n.mjs';
 import {referenceKey, validateReference} from '../corpus-reader/model.mjs';
 import {editorialLabel} from '../corpus-reader/editorial.mjs';
-import {describeSourceLocator, ensureSourceRecord} from './source-address.mjs';
+import {describeSourceReference, ensureSourceRecord} from './source-address.mjs';
 import {WORKSPACE_KEY} from './workspace-view.mjs';
 import './agent-bridge.css';
 
@@ -422,7 +422,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     if (!api.provider) return;
     const language = english() ? 'en' : 'ru', key = `${language}:${referenceKey(source.reference)}`;
     if (!sourceLabels.has(key)) sourceLabels.set(key,
-      describeSourceLocator(JSON.stringify(source.reference), shelf, api.provider, language).catch(() => null));
+      describeSourceReference(source.reference, api.provider, language).catch(() => null));
     void sourceLabels.get(key).then(result => {
       if (node.isConnected && language === (english() ? 'en' : 'ru') && result?.status === 'exact' && result.label) node.textContent = result.label;
     });

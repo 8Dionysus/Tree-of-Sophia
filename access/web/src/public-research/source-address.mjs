@@ -78,6 +78,21 @@ export async function resolveSourceLocator(locator, shelf, provider) {
 /** Describe the existing exact source without changing or inferring its identity. */
 export async function describeSourceLocator(locator, shelf, provider, locale = 'ru') {
   const result = await resolveSourceLocator(locator, shelf, provider);
+  return describeResolvedSource(result, shelf, provider, locale);
+}
+
+/** Describe an already typed reference without imposing the compact-locator cap. */
+export async function describeSourceReference(value, provider, locale = 'ru') {
+  let reference;
+  try { reference = validateReference(value); }
+  catch { return {status:'invalid', reference:null}; }
+  let result;
+  try { result = await provider.resolve({reference}); }
+  catch { result = {status:'unavailable', reference}; }
+  return describeResolvedSource({...result, reference:result.reference ?? reference}, null, provider, locale);
+}
+
+async function describeResolvedSource(result, shelf, provider, locale) {
   const english = String(locale).toLowerCase().startsWith('en');
   const unavailable = english ? 'Source details unavailable' : 'Сведения об источнике недоступны';
   const reference = result.reference;
