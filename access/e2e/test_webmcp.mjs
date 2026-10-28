@@ -8,7 +8,7 @@ import {readFileSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {test} from 'node:test';
+import {describe,test} from 'node:test';
 
 const HERE=path.dirname(fileURLToPath(import.meta.url));
 const ROOT=path.resolve(HERE,'../..');
@@ -93,7 +93,7 @@ async function withNative(scenario,fn,{webmcp=true,locale='en-US',scenarioTimeou
     const state=opened?await opened.page.evaluate(()=>({url:location.href,observatory:document.getElementById('sophia-gestures')?.dataset,tree:document.getElementById('tree')?.dataset,text:document.body.innerText.slice(0,3000)})).catch(()=>null):null;
     error.message+=`\nBrowser diagnostics: ${JSON.stringify({events:opened?.diagnostics??[],state})}`;
     throw error;
-  }finally{clearTimeout(timer);if(opened)await opened.close();await host.close();}
+  }finally{clearTimeout(timer);try{if(opened)await opened.close();}finally{await host.close();}}
 }
 async function withVite(fn){const host=await startVite();try{await fn(host.base);}finally{await host.close();}}
 async function idbReadings(page,dbName,store='readings'){
@@ -102,6 +102,10 @@ async function idbReadings(page,dbName,store='readings'){
 async function waitForReading(page,dbName,predicate,store='readings',timeout=15000){const until=Date.now()+timeout;while(Date.now()<until){const items=await idbReadings(page,dbName,store);if(items.some(predicate))return items;await page.waitForTimeout(100);}throw new Error(`IndexedDB reading did not settle for ${dbName}`);}
 async function firstEdgeAndNode(page){const payload=await page.evaluate(async()=>await(await fetch('/api/philosophy/views/chronology?limit=1000')).json());const edge=payload.edges.find(item=>item.edge_id&&item.from_id&&item.to_id);assert.ok(edge);return [String(edge.edge_id),String(edge.from_id)];}
 async function downloadJson(page,button){const [download]=await Promise.all([page.waitForEvent('download'),button.click()]);return JSON.parse(await readFile(await download.path(),'utf8'));}
+
+// Each case owns its native host, browser process/context and ephemeral port.
+// Bound concurrent software WebGL renderers; sequences within a case stay serial.
+describe('installed native browser behavior',{concurrency:2},()=>{
 
 // 1. WebMCP registration, bounded command output, route staging and stale deixis.
 test('test_real_browser_webmcp_loop_and_stale_deixis',async()=>withNative('default',async page=>{
@@ -253,6 +257,11 @@ test('test_real_browser_graceful_without_webmcp',async()=>withNative('default',a
   await page.waitForTimeout(500);assert.equal(await page.evaluate('document.modelContext === undefined'),true);assert.equal(await page.locator('#app').count(),1);assert.equal(await page.locator('#agent-surface').getAttribute('data-webmcp-state'),'unavailable');const fallback=await readText(page,'#agent-surface');assert.match(fallback,/Codex WebMCP unavailable/);assert.match(fallback,/no API key or model API is required/);assert.match(fallback,/Optional off-page access/);assert.match(await readText(page,'body'),/Tree of Sophia/);
 },{webmcp:false}));
 
+});
+
+// These hosts share Vite's dependency cache and run serially after the native suite.
+describe('static reader browser behavior',()=>{
+
 // 15. Pagehide and interrupted IndexedDB writes recover exactly one draft.
 test('test_corpus_note_exit_recovers_exact_draft',async()=>withVite(async base=>{
   const url=base+'/static/fixtures/corpus-reader.html';const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.TOS_E2E_CHROMIUM?{executablePath:process.env.TOS_E2E_CHROMIUM}:{})});
@@ -294,3 +303,5 @@ test('test_reader_positions_survive_pagehide_before_debounce',async()=>withVite(
   const native=await context.newPage();await native.goto(nativeUrl,{waitUntil:'domcontentloaded'});await native.getByRole('button',{name:'Открыть текст',exact:true}).click();await native.locator('.native-reader:not([hidden])').waitFor();await native.locator('.native-reader[data-native-state="available"]').waitFor();await native.locator('.nr-article').waitFor();const nativePos=await native.evaluate(()=>{const article=document.querySelector('.nr-article');article.scrollTop=Math.min(420,article.scrollHeight-article.clientHeight);article.dispatchEvent(new Event('scroll'));window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:false}));return {top:article.scrollTop};});assert.ok(nativePos.top>0);const nativeReads=await waitForReading(native,'tos-native-reader-validation-v1',item=>item.offset===nativePos.top);const nativeSaved=nativeReads.find(item=>item.offset===nativePos.top);assert.equal(nativeSaved.reference.schemaVersion,'tos.corpus.reader.native-reference.v1');await native.evaluate("history.replaceState(history.state,'',location.pathname+location.search)");await native.reload({waitUntil:'domcontentloaded'});await native.getByRole('button',{name:'Открыть текст',exact:true}).click();await native.locator('.native-reader[data-native-state="available"]').waitFor();await waitFor(native,expected=>Math.abs(document.querySelector('.nr-article').scrollTop-expected)<1,30000,nativePos.top);await context.close();
   }finally{await browser.close();}
 }));
+
+});

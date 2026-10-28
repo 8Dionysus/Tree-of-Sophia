@@ -131,7 +131,13 @@ owner surfaces.
    actual nineteen executables, web assets and bounded software inputs; it does not reuse an
    access-only byte cap. The job builds the same native archive and sidecar
    twice and compares their bytes before verify/install, retaining the legacy
-   builder's determinism assertion on the maintained artifact. `software_package`
+   builder's determinism assertion on the maintained artifact. Assembly uses
+   fixed DEFLATE level 3: compressed bytes can differ from earlier builders,
+   while repeat builds must still match exactly and retain all member, digest,
+   custody and byte-budget checks. Installed browser scenarios run in a bounded
+   pair of isolated hosts/browsers; the five Vite cases remain serial, and every
+   scenario keeps its original actions, assertions and timeout.
+   `software_package`
    uploads the archive and sidecar as a provisional candidate with their digests.
    The required gate waits for `software_prepare`, `software` and
    `software_package` to succeed, verifies both candidate digests against the

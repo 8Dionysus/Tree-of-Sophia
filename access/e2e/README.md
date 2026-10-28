@@ -20,6 +20,12 @@ This fixture host exercises the production Rust HTTP and installed-site
 handlers; its synthetic API packets remain test fixtures and do not claim
 owner-selected source authority.
 
+The installed native cases run with at most two concurrent scenarios. Each
+case owns a fresh fixture process, ephemeral listener and Chromium process/context;
+actions and reloads within each case remain sequential. The five Vite reader
+cases run serially after that suite to keep their shared dependency cache out
+of concurrent startup. The same lane still runs every case and assertion.
+
 Set `TOS_E2E_CHROMIUM` when Chromium is installed at a non-standard path.
 The harness does not prove a browser vendor's native WebMCP implementation or
 agent model tool-choice quality; those remain separate compatibility and eval
