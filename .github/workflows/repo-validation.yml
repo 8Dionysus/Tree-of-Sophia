@@ -742,8 +742,9 @@ jobs:
           printf 'TOS_E2E_FIXTURE_BIN=%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-e2e-fixture" >> "$GITHUB_ENV"
           printf 'TOS_E2E_SITE_EXECUTABLE=%s\n' "$RUNNER_TEMP/tos-native-install/software/access/src/tos_access/tos-access" >> "$GITHUB_ENV"
       - name: Test browser behavior with bounded native fixtures
-        # The complete real-browser cohort exceeds the generic five-minute
-        # command default on the hosted software-WebGL renderer.
+        # The harness bounds fresh native host/browser pairs to two, then runs
+        # shared-cache Vite scenarios serially. Keep every original case and
+        # the complete cohort's existing slow-renderer timeout envelope.
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_browser --command-timeout-ms 900000'
       - name: Bind unqualified candidate digests
         id: candidate

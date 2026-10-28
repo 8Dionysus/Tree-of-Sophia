@@ -1023,7 +1023,8 @@ pub fn build_with_commands(
         };
         let opts = SimpleFileOptions::default()
             .compression_method(CompressionMethod::Deflated)
-            .compression_level(Some(9))
+            // Keep deterministic DEFLATE while bounding package CPU cost.
+            .compression_level(Some(3))
             .last_modified_time(DateTime::from_date_and_time(2020, 1, 1, 0, 0, 0).checked()?)
             .unix_permissions(mode)
             .large_file(size >= 0x7fff_ffff);
