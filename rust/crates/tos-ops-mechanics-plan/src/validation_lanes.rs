@@ -20,6 +20,32 @@ pub enum ReleasePhase {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SoftwareTestGroup {
+    Access,
+    Query,
+    Command,
+}
+
+impl SoftwareTestGroup {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "access" => Some(Self::Access),
+            "query" => Some(Self::Query),
+            "command" => Some(Self::Command),
+            _ => None,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Access => "access",
+            Self::Query => "query",
+            Self::Command => "command",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RustGroup {
     Conformance,
     Workspace,
@@ -309,6 +335,65 @@ fn validate_rust_grouping(sequence_id: &str, steps: &[Value], required: bool) ->
     Ok(())
 }
 
+fn release_test_label(label: &str) -> bool {
+    label == "run tests" || label.starts_with("run tests: ")
+}
+
+/// An annotated release test suffix must partition every test into one of the
+/// three independent package cohorts. Unannotated legacy routes stay readable.
+fn validate_software_grouping(
+    sequence_id: &str,
+    steps: &[Value],
+    required: bool,
+) -> io::Result<()> {
+    if !steps
+        .iter()
+        .any(|step| step.get("software_test_group").is_some())
+    {
+        return if required {
+            Err(invalid(
+                "release_check software_test_group annotations are required",
+            ))
+        } else {
+            Ok(())
+        };
+    }
+    if sequence_id != "release_check" {
+        return Err(invalid(
+            "software_test_group is only supported for release_check",
+        ));
+    }
+    let mut present = [false; 3];
+    for step in steps {
+        let is_test = step
+            .get("label")
+            .and_then(Value::as_str)
+            .is_some_and(release_test_label);
+        if !is_test {
+            if step.get("software_test_group").is_some() {
+                return Err(invalid("software_test_group cannot select a checks step"));
+            }
+            continue;
+        }
+        let group = step
+            .get("software_test_group")
+            .and_then(Value::as_str)
+            .and_then(SoftwareTestGroup::parse)
+            .ok_or_else(|| invalid("every release test must have a known software_test_group"))?;
+        present[match group {
+            SoftwareTestGroup::Access => 0,
+            SoftwareTestGroup::Query => 1,
+            SoftwareTestGroup::Command => 2,
+        }] = true;
+    }
+    if !present.into_iter().all(|value| value) {
+        return Err(invalid(
+            "release test grouping must include access, query, and command",
+        ));
+    }
+    Ok(())
+}
+
 /// Ordered mechanical findings matching the maintained validation-lanes
 /// checker on an admissible manifest. A malformed JSON syntax refusal is
 /// typed but is not represented as a successful manifest.
@@ -526,6 +611,13 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
                 format!("{sequence_id} grouping: {error}"),
             )?;
         }
+        if let Err(error) = validate_software_grouping(sequence_id, steps, false) {
+            issue(
+                &mut issues,
+                MANIFEST,
+                format!("{sequence_id} grouping: {error}"),
+            )?;
+        }
     }
     Ok(issues)
 }
@@ -561,6 +653,15 @@ pub fn command_sequence_with_rust_group(
             "validation lane manifest is missing",
         )
     })?;
+    command_sequence_from_manifest(root, sequence_id, rust_group, &manifest)
+}
+
+fn command_sequence_from_manifest(
+    root: &Path,
+    sequence_id: &str,
+    rust_group: Option<RustGroup>,
+    manifest: &Value,
+) -> io::Result<Vec<BudgetedCommandStep>> {
     let sequences = manifest
         .get("command_sequences")
         .and_then(Value::as_object)
@@ -670,16 +771,41 @@ pub fn command_sequence_with_rust_group(
 /// Preserve the maintained release_check phase split. Only the split phases
 /// require a final test-step suffix; `all` executes authored order.
 pub fn release_steps(root: &Path, phase: ReleasePhase) -> io::Result<Vec<CommandStep>> {
-    let mut steps = command_sequence(root, "release_check")?;
+    release_steps_with_test_group(root, phase, None)
+}
+
+/// A CI package cohort selects from the same complete test suffix and snapshot;
+/// the ungrouped all/checks/tests routes retain their authored commands/order.
+pub fn release_steps_with_test_group(
+    root: &Path,
+    phase: ReleasePhase,
+    test_group: Option<SoftwareTestGroup>,
+) -> io::Result<Vec<CommandStep>> {
+    if test_group.is_some() && phase != ReleasePhase::Tests {
+        return Err(invalid("--test-group requires --phase tests"));
+    }
+    let manifest = read_manifest(root)?.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::NotFound,
+            "validation lane manifest is missing",
+        )
+    })?;
+    let mut steps: Vec<CommandStep> =
+        command_sequence_from_manifest(root, "release_check", None, &manifest)?
+            .into_iter()
+            .map(|(step, _)| step)
+            .collect();
+    let raw_steps = manifest["command_sequences"]["release_check"]
+        .as_array()
+        .expect("resolved release sequence");
+    validate_software_grouping("release_check", raw_steps, test_group.is_some())?;
     if phase == ReleasePhase::All {
         return Ok(steps);
     }
     let positions: Vec<usize> = steps
         .iter()
         .enumerate()
-        .filter_map(|(index, (label, _))| {
-            (label == "run tests" || label.starts_with("run tests: ")).then_some(index)
-        })
+        .filter_map(|(index, (label, _))| release_test_label(label).then_some(index))
         .collect();
     let labels: Vec<&str> = positions
         .iter()
@@ -707,7 +833,17 @@ pub fn release_steps(root: &Path, phase: ReleasePhase) -> io::Result<Vec<Command
     }
     let test_start = positions[0];
     if phase == ReleasePhase::Tests {
-        Ok(steps.split_off(test_start))
+        let selected = steps.split_off(test_start);
+        Ok(if let Some(group) = test_group {
+            selected
+                .into_iter()
+                .zip(&raw_steps[test_start..])
+                .filter(|(_, raw)| raw["software_test_group"].as_str() == Some(group.as_str()))
+                .map(|(step, _)| step)
+                .collect()
+        } else {
+            selected
+        })
     } else {
         steps.truncate(test_start);
         Ok(steps)

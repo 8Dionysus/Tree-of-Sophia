@@ -26,7 +26,7 @@ Rust selection requires all three `rust` matrix groups (`conformance`,
 `workspace`, and `cold-install`) plus the independent PostgreSQL job. The
 single `rust` result remains the required-gate aggregate for every matrix
 child; a failed or cancelled child cannot pass through the gate.
-Selected software requires `software_prepare`, `software` and
+Selected software requires the `software_prepare`, `software` and
 `software_package`: the first produces source-bound native products, receipts,
 fixture executable and browser assets; the latter two consume that staged
 output for fixture checks and package/browser checks. All three must succeed
@@ -34,6 +34,13 @@ when software is selected and be skipped when it is not. The package job
 uploads a provisional archive and sidecar with digests; `required_gate` verifies
 those digests after every selected job succeeds and publishes the qualified
 artifact.
+For full software selection, `software` is an Access/Query/Command fixture
+matrix with fail-fast disabled. Its single required result aggregates every
+child; failed, cancelled or unexpectedly skipped selected work cannot pass.
+The complete authored test suffix owns group membership and unchanged argv.
+Reader/browser selection retains one `single` child: reader runs its selected
+wires; browser-only verifies the stage without adding native fixture tests.
+Only the static package job owns candidate outputs.
 Unknown/shared paths select all software checks before verified main reuse;
 manual full-release runs always select all software checks.
 Known human guides and owner cards select their documentation/source-route

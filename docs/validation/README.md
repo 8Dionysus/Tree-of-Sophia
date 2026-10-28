@@ -32,6 +32,14 @@ A sequence step selects either inline `command` or a direct `command_ref`;
 its label, deadline and position remain part of that sequence. Every selected
 sequence executes all its ordered steps. Unknown or ambiguous references refuse.
 
+The `release_check` test suffix may declare `software_test_group` as `access`,
+`query` or `command` for CI package cohorts. Once annotated, every test must
+have a known group and all three groups must be present; checks cannot carry
+that tag. `tos-release-check --phase tests --test-group NAME` validates the
+whole suffix before selecting a cohort from the same manifest snapshot.
+Ungrouped `all`, `checks` and `tests` retain their authored commands and order.
+The release procedure owns the required CI matrix and aggregate gate.
+
 The `source_witness_foundation` lane runs the native full audit and catalog
 parity through `tos-native-owner-command foundation`. Run it inside the
 ToS private-tmpfs owner launcher, which supplies the sealed

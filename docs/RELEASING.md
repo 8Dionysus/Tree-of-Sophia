@@ -50,7 +50,11 @@ owner surfaces.
    changes from the workload and retain the manifest's per-step limits.
    A timeout is incomplete validation. `--phase checks` or `--phase tests` can
    select a phase when the preceding phase already passed on the same candidate.
-   The tests phase runs the complete ordered test suffix.
+   The ungrouped tests phase runs the complete ordered test suffix. CI may
+   select `--phase tests --test-group access|query|command` from that same
+   suffix. Group selection validates the entire partition before executing;
+   missing/unknown tags or a missing cohort refuse. The original full route
+   and per-command limits remain unchanged.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
    `tos-validation-lanes --repo-root "$PWD" --run software_browser`.
@@ -113,7 +117,12 @@ owner surfaces.
    their receipts, the E2E fixture executable and browser assets once. The
    `software` fixture job and `software_package` job consume those staged inputs
    from the same source checkout after verifying and binding the stage manifest.
-   The fixture job runs only the canonical native Cargo tests; browser npm and
+   The full fixture matrix runs the canonical native Cargo tests in three
+   independent package cohorts: Access (including the separate default
+   release-actions fixture), Query, and Command/source (including the separate
+   process-cold Work37 fixture). Each runner verifies the same source-bound
+   stage and retains a private test Cargo target and fs-verity fixture volume.
+   Browser npm and
    Playwright installation belongs to the package/browser job.
    That job uses the official HTTPS Ubuntu archive for the runner mirror route;
    APT signature and package verification stay enabled.
@@ -197,9 +206,19 @@ use the full suite; a missing or failed selector fails the required gate.
 | Shared contracts/profiles, packaging, dependencies, executable scripts, workflow, structured source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
 
 The software selection runs one exact-source producer followed by two required
-consumers. `software_prepare` produces the native products and receipts, E2E
+consumer aggregates. `software_prepare` produces the native products and receipts, E2E
 fixture and browser assets once. `software` runs the selected native fixture
-cohort; `software_package` builds and installs the candidate and runs browser
+cohorts; full mode selects the `access`, `query` and `command` matrix children
+with fail-fast disabled. `software_test_group` annotates every test-suffix step
+in the canonical manifest; each child retains its commands, feature contexts,
+within-group order and limits. Reader/browser modes retain one `single` child:
+reader runs the unchanged `software_reader` route; browser-only verifies its
+stage without adding native fixture tests. None mode selects no software jobs.
+The `software` result aggregates all selected children, without matrix outputs.
+Independent runners repeat some Cargo dependency compilation; preparation
+plus the slowest fixture/package child determines elapsed time, while summed
+job time accounts for that repeated work.
+`software_package` stays static, builds and installs the candidate and runs browser
 behavior against that installed package. The required gate requires all three
 results when software is selected and requires them to be skipped otherwise.
 The package consumer reports the provisional archive and sidecar digests; only

@@ -6,6 +6,11 @@ Software behavior runs on bounded fixtures:
 tos-release-check --repo-root "$PWD" --phase tests
 ```
 
+This runs the complete ordered test suffix. Full CI partitions it by the
+manifest's Access/Query/Command cohorts with `--test-group`; all cohorts remain
+required. Group execution and stage prerequisites follow the
+[release procedure](../docs/RELEASING.md).
+
 For a changed source builder or validator, run the affected native owner test
 module or command. Ordinary ToS source and command behavior is covered by Rust
 owner tests and the `rust_workspace` route. Python's default test discovery is
