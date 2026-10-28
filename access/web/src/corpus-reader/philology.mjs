@@ -8,7 +8,7 @@ const COPY = {
     unavailable: 'Разбор для этого слова недоступен.', choose: 'Выделите слово в тексте, чтобы запросить разбор.',
     loading: 'Загружаем предоставленный разбор…', candidates: 'Варианты анализа', analysisSource: 'Источник анализа',
     version: 'Версия данных', lemma: 'Лемма', morphology: 'Морфология', gloss: 'Значение',
-    source: 'Источник кандидата', alternatives: 'Альтернативы', dictionary: 'Словарная статья',
+    source: 'Источник кандидата', alternatives: 'Альтернативы', dictionary: 'Словарная статья', rawAnalysis:'Исходный разбор анализатора',
     concordance: 'Найти буквальные употребления', more: 'Ещё совпадения', noConcordance: 'Употреблений не найдено.',
     noSearch: 'Поиск по версии недоступен.', noExact: 'Совпадение не содержит точного адреса; перейти нельзя.',
     returnContext: 'Открыть это употребление в тексте',
@@ -28,7 +28,7 @@ const COPY = {
     unavailable: 'Analysis is unavailable for this word.', choose: 'Select a word in the text to request analysis.',
     loading: 'Loading supplied analysis…', candidates: 'Analysis candidates', analysisSource: 'Analysis source',
     version: 'Data version', lemma: 'Lemma', morphology: 'Morphology', gloss: 'Gloss',
-    source: 'Candidate source', alternatives: 'Alternatives', dictionary: 'Dictionary entry',
+    source: 'Candidate source', alternatives: 'Alternatives', dictionary: 'Dictionary entry', rawAnalysis:'Original analyzer output',
     concordance: 'Find literal occurrences', more: 'More matches', noConcordance: 'No occurrences found.',
     noSearch: 'Version search is unavailable.', noExact: 'This match has no exact address and cannot be opened.',
     returnContext: 'Open this occurrence in the text',
@@ -170,14 +170,19 @@ const TAGS={NN:'noun',V:'verb',ADJ:'adjective',ADV:'adverb',ART:'article',PRO:'p
 export function morphologyLabel(value, locale) {
  const en=String(locale||'ru').toLowerCase().startsWith('en');
  if (typeof value !== 'string') return localized(value,locale);
- if (value.includes('<')) { const tags=[...value.matchAll(/<([^<>]+)>/g)].map(m=>TAGS[m[1]]).filter(Boolean); return [...new Set(tags)].map(tag=>MORPH[tag][en?1:0]).join(' · ') || (en?'Morphological analysis available':'Морфологический разбор доступен'); }
- return value.split(/(\s*[·/]\s*|\s+)/).map(part=>MORPH[part]?.[en?1:0] ?? (/[A-Za-z]/.test(part) && !en ? 'другая грамматическая характеристика' : part)).join('');
+ if (value.includes('<')) return value.split(/(\s*\/\s*)/).map((analysis,index)=>{
+   if(index%2)return analysis;
+   const tags=[...analysis.matchAll(/<([^<>]+)>/g)];
+   return tags.map(match=>MORPH[TAGS[match[1]]]?.[en?1:0]??match[0]).join(' · ')||analysis;
+ }).join('');
+ return value.split(/(\s*[·/]\s*|\s+)/).map(part=>MORPH[part]?.[en?1:0] ?? part).join('');
 }
 
 function renderCandidate(parent, candidate, index, locale, words) {
   if (!object(candidate)) return;
   const card = element('article', 'cr-philology-candidate');
   card.append(element('h3', '', localized(candidate.lemma, locale) || `${words.candidates} ${index + 1}`));
+  const alternatives = Array.isArray(candidate.alternatives) ? candidate.alternatives : [];
   const fields = [
     [words.morphology, candidate.morphology],
     [words.gloss, candidate.gloss ?? candidate.meaning],
@@ -186,13 +191,18 @@ function renderCandidate(parent, candidate, index, locale, words) {
     const text = label === words.morphology ? morphologyLabel(value, locale) : localized(value, locale);
     if (text) { const row = element('p', ''); row.append(element('strong', '', `${label}: `), document.createTextNode(text)); card.append(row); }
   }
+  if(typeof candidate.morphology==='string' && candidate.morphology.includes('<')){
+    const original=element('details','cr-philology-source');
+    const raw=[candidate.morphology,...alternatives.filter(value=>typeof value==='string'&&value.includes('<'))].join('\n');
+    const text=element('p','cr-philology-meta',raw);text.style.whiteSpace='pre-wrap';
+    original.append(element('summary','',words.rawAnalysis),text);card.append(original);
+  }
   appendMetadata(card, words.source, candidate.source ?? candidate.provenance ?? candidate.sourceRef, locale, {});
-  const alternatives = Array.isArray(candidate.alternatives) ? candidate.alternatives : [];
   if (alternatives.length) {
     const list = element('ul', 'cr-philology-alternatives');
     for (const alternative of alternatives) {
       const text = typeof alternative === 'string' ? alternative : localized(alternative?.label ?? alternative?.lemma, locale);
-      if (text) list.append(element('li', '', text));
+      if (text) list.append(element('li', '', typeof alternative==='string'&&alternative.includes('<')?morphologyLabel(alternative,locale):text));
     }
     if (list.childElementCount) { card.append(element('h4', '', words.alternatives), list); }
   }
