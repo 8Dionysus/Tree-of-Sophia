@@ -720,6 +720,117 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     let timed_out = String::from_utf8(timed.stdout).unwrap();
     assert!(timed_out.contains("[cargo-timings] run tests: timing:"));
     assert!(timed_out.contains("[ok] run tests: timing\n"));
+    let grouped = json!({"command_sequences":{"release_check":[
+        {"label":"software contracts","command":[adapter,"checks"]},
+        {"label":"run tests: access first","software_test_group":"access","command":[adapter,"first"]},
+        {"label":"run tests: access failure","software_test_group":"access","command":[adapter,"fail"]},
+        {"label":"run tests: access later","software_test_group":"access","command":[adapter,"later"]},
+        {"label":"run tests: query","software_test_group":"query","command":[adapter,"query"]},
+        {"label":"run tests: command","software_test_group":"command","command":[adapter,"command"]}
+    ]}});
+    let write_manifest = |value: &serde_json::Value| {
+        fs::write(&manifest, serde_json::to_vec(value).unwrap()).unwrap()
+    };
+    let group_run = |phase: &str, group: &str, fail: bool| {
+        Command::new(&executable)
+            .arg("--repo-root")
+            .arg(&root)
+            .args([
+                "--phase",
+                phase,
+                "--test-group",
+                group,
+                "--command-timeout-ms",
+                "2000",
+                "--lane-timeout-ms",
+                "5000",
+            ])
+            .env("FAIL_SECOND", if fail { "1" } else { "0" })
+            .env("TOS_RELEASE_TEST_INHERITED", "group")
+            .output()
+            .unwrap()
+    };
+    write_manifest(&grouped);
+    for (group, expected) in [
+        ("access", "first|group\nfail|group\nlater|group\n"),
+        ("query", "query|group\n"),
+        ("command", "command|group\n"),
+    ] {
+        let result = group_run("tests", group, false);
+        assert_eq!(
+            result.status.code(),
+            Some(0),
+            "{}",
+            String::from_utf8_lossy(&result.stdout)
+        );
+        assert_eq!(fs::read_to_string(root.join("trace")).unwrap(), expected);
+        fs::remove_file(root.join("trace")).unwrap();
+    }
+    let failed = group_run("tests", "access", true);
+    assert_eq!(failed.status.code(), Some(17));
+    assert_eq!(
+        fs::read_to_string(root.join("trace")).unwrap(),
+        "first|group\nfail|group\n"
+    );
+    fs::remove_file(root.join("trace")).unwrap();
+    let ungrouped = invoke("tests", false, Some("0"));
+    assert!(ungrouped.status.success());
+    assert_eq!(
+        fs::read_to_string(root.join("trace")).unwrap(),
+        "first|0\nfail|0\nlater|0\nquery|0\ncommand|0\n"
+    );
+    fs::remove_file(root.join("trace")).unwrap();
+    for (phase, group) in [
+        ("checks", "access"),
+        ("all", "access"),
+        ("tests", "unknown"),
+        ("tests", ""),
+    ] {
+        assert_eq!(group_run(phase, group, false).status.code(), Some(2));
+        assert!(!root.join("trace").exists());
+    }
+    for scenario in [
+        "missing",
+        "unknown",
+        "null",
+        "absent",
+        "checks",
+        "reference",
+    ] {
+        let mut invalid = grouped.clone();
+        let steps = invalid["command_sequences"]["release_check"]
+            .as_array_mut()
+            .unwrap();
+        match scenario {
+            "missing" => {
+                steps[5]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("software_test_group");
+            }
+            "unknown" => steps[5]["software_test_group"] = json!("other"),
+            "null" => steps[5]["software_test_group"] = json!(null),
+            "absent" => {
+                steps.pop();
+            }
+            "checks" => steps[0]["software_test_group"] = json!("access"),
+            "reference" => {
+                steps[5].as_object_mut().unwrap().remove("command");
+                steps[5]["command_ref"] = json!("missing-command");
+            }
+            _ => unreachable!(),
+        }
+        write_manifest(&invalid);
+        assert_eq!(
+            group_run("tests", "access", false).status.code(),
+            Some(2),
+            "{scenario}"
+        );
+        assert!(
+            !root.join("trace").exists(),
+            "unselected {scenario} must refuse before execution"
+        );
+    }
     fs::write(
         &manifest,
         serde_json::to_vec(&json!({"command_sequences":{"release_check":[

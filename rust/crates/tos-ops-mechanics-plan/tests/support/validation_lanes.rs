@@ -673,7 +673,17 @@ fn native_verifier_consumes_installed_symlink_entries_and_preserves_command_beha
         ("tos-release-check", env!("CARGO_BIN_EXE_tos-release-check")),
         ("tos-software-ci", env!("CARGO_BIN_EXE_tos-software-ci")),
     ] {
-        fs::copy(executable, payload.join(name)).unwrap();
+        // A separate copy process keeps writable image FDs out of other test
+        // threads' fork/exec windows. Wait for it before executing the image.
+        assert!(
+            Command::new("/bin/cp")
+                .arg("--")
+                .arg(executable)
+                .arg(payload.join(name))
+                .status()
+                .unwrap()
+                .success()
+        );
         symlink(format!("../software/native/bin/{name}"), bin.join(name)).unwrap();
     }
     let out = Command::new(bin.join("tos-software-ci"))

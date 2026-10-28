@@ -1366,19 +1366,23 @@
           "--",
           "--skip",
           "native_release_prepare_and_status_cli_bind_exact_pair_and_refuse_bad_candidates"
-        ]
+        ],
+        "software_test_group": "access"
       },
       {
         "label": "run tests: native software/data release actions fixture",
-        "command_ref": "native_release_actions"
+        "command_ref": "native_release_actions",
+        "software_test_group": "access"
       },
       {
         "label": "run tests: native query package",
-        "command_ref": "native_query_tests"
+        "command_ref": "native_query_tests",
+        "software_test_group": "query"
       },
       {
         "label": "run tests: isolated process-cold Work37 fixture",
-        "command_ref": "work37_cold_replay"
+        "command_ref": "work37_cold_replay",
+        "software_test_group": "command"
       },
       {
         "label": "run tests: native source and command packages excluding isolated Work37 fixture",
@@ -1393,7 +1397,8 @@
           "--",
           "--skip",
           "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending"
-        ]
+        ],
+        "software_test_group": "command"
       }
     ],
     "mechanics_local": [

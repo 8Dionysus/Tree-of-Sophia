@@ -597,11 +597,30 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
             needs(&jobs[consumer]).contains("software_prepare"),
             "{consumer} must consume the prepared software stage"
         );
-        assert!(
-            jobs[consumer]["strategy"]["matrix"].is_badvalue(),
-            "{consumer} is a static software job with trusted independent outputs"
-        );
     }
+    assert!(
+        jobs["software_package"]["strategy"]["matrix"].is_badvalue(),
+        "candidate outputs must come from the static package job"
+    );
+    assert!(
+        jobs["software"]["outputs"].is_badvalue(),
+        "fixture matrix has only an aggregate result, not candidate outputs"
+    );
+    assert_eq!(
+        jobs["software"]["strategy"]["fail-fast"].as_bool(),
+        Some(false)
+    );
+    assert_eq!(
+        jobs["software"]["strategy"]["matrix"]["group"].as_str(),
+        Some(
+            "${{ fromJSON(needs.plan.outputs.software_mode == 'full' && '[\"access\",\"query\",\"command\"]' || '[\"single\"]') }}"
+        )
+    );
+    assert_eq!(
+        jobs["software"]["name"].as_str(),
+        Some("Software fixture contracts / ${{ matrix.group }}")
+    );
+    assert!(jobs["software"]["continue-on-error"].is_badvalue());
     let plan = steps(jobs, "plan");
     one_step(
         plan,
@@ -778,8 +797,31 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
 
     let full = one_step(software, "--phase tests");
     assert!(full["if"].as_str().unwrap().contains("== 'full'"));
+    assert!(run(full).contains("--test-group \"${{ matrix.group }}\""));
+    assert!(run(full).contains("--command-timeout-ms 900000 --cargo-timings"));
+    assert!(full["continue-on-error"].is_badvalue());
     let reader = one_step(software, "--run software_reader");
     assert!(reader["if"].as_str().unwrap().contains("== 'reader'"));
+    assert!(!run(reader).contains("--test-group"));
+    let root = repository();
+    use tos_ops_mechanics_plan::validation_lanes::{
+        ReleasePhase, SoftwareTestGroup, release_steps, release_steps_with_test_group,
+    };
+    let mut grouped = Vec::new();
+    for group in [
+        SoftwareTestGroup::Access,
+        SoftwareTestGroup::Query,
+        SoftwareTestGroup::Command,
+    ] {
+        grouped.extend(
+            release_steps_with_test_group(&root, ReleasePhase::Tests, Some(group)).unwrap(),
+        );
+    }
+    assert_eq!(
+        grouped,
+        release_steps(&root, ReleasePhase::Tests).unwrap(),
+        "matrix must partition the complete authored test suffix without altering argv or order"
+    );
     let receipts = run(one_step(software_prepare, "software-receipts"));
     let production_target =
         one_step(software_prepare, "software-receipts")["env"]["CARGO_TARGET_DIR"]
