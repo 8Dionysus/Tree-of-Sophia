@@ -124,14 +124,17 @@ budgets. A locked dependency fetch runs immediately before the
 offline mechanics install; that input preparation does not compile conformance
 images or allow the install verifier to access the network.
 
-`tos-validation-lanes --run rust_workspace --growth-jobs 2` runs at most two
+`tos-validation-lanes --run rust_workspace --growth-jobs N` supports one to four
 source-derived Growth classes concurrently, each in its own supervisor process.
 The default is one. Each class retains its exact prepared
 image, declared assertion/ignored counts, single test thread, output cap,
 timeout and descendant custody. The parent joins the complete group before
 later commands can rebuild its shared Cargo products. The first observed
-failure cancels the group and stops the lane. CI opts into two; local callers
-should choose that setting only within their admitted resource budget.
+failure cancels the group and stops the lane. CI selects one, two or four from
+the same observed CPU and memory profile as Cargo: four requires at least four
+confirmed CPUs and 12 GiB of effective available memory across the visible
+cgroup hierarchy. This changes concurrent resource use, so local callers should
+choose a setting within their admitted resource budget.
 
 The PostgreSQL integration target requires the explicit `postgres-lab` feature
 and a dedicated ephemeral database. The ordinary workspace lane excludes this

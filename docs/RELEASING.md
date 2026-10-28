@@ -319,7 +319,13 @@ process CPU affinity, the cgroup CPU quota, host available memory and cgroup
 memory limit/headroom. Cargo uses four build jobs only when the runner confirms
 at least four CPUs and 12 GiB of available memory across the visible cgroup v2 hierarchy; otherwise
 it uses at most two, lowering to one when fewer than two effective CPUs or
-less than 6 GiB of measured memory are available. An absent quota at the
+less than 6 GiB of measured memory are available. The native Growth pool uses
+that same selected count, exported as `TOS_GROWTH_JOBS` and recorded beside
+`cargo_build_jobs` in the resource profile. Its one-to-four worker bound preserves
+the per-class process, assertion counts, deadlines and descendant custody; all
+workers join before later Cargo commands can rebuild their products. Increasing
+concurrency trades simultaneous resource use for elapsed time; it does not
+remove compilation targets or test scenarios. An absent quota at the
 verified hierarchy root is recorded as unbounded. If the mount hides ancestors
 or the cgroup capacity is otherwise unknown, four jobs are not enabled. Resource
 JSON and Cargo timing reports are uploaded under unique run and attempt names,

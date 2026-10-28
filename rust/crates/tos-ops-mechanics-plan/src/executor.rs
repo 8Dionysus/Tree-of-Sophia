@@ -84,10 +84,10 @@ pub fn run_validation_sequence_with_options(
     cargo_timings: bool,
     rust_group: Option<crate::validation_lanes::RustGroup>,
 ) -> io::Result<i32> {
-    if !(1..=2).contains(&growth_jobs) {
+    if !(1..=4).contains(&growth_jobs) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "Growth jobs must be 1 or 2",
+            "Growth jobs must be between 1 and 4",
         ));
     }
     // Only validation selections carry source-owned per-step budgets. Other
@@ -1055,6 +1055,7 @@ mod native {
         root: &Path,
         commands: &[crate::Command],
         timeouts: &[Option<Duration>],
+        growth_jobs: usize,
         products: &crate::conformance_products::Products,
         limits: Limits,
         cancel: &AtomicI32,
@@ -1065,7 +1066,7 @@ mod native {
         write(
             1,
             format!(
-                "[parallel] native Growth batch: classes={} jobs=2\n",
+                "[parallel] native Growth batch: classes={} jobs={growth_jobs}\n",
                 commands.len()
             )
             .as_bytes(),
@@ -1105,7 +1106,7 @@ mod native {
                     .iter()
                     .filter(|w| w.status.is_none() || !w.eof.iter().all(|v| *v))
                     .count();
-                while active < 2 && batch.workers.len() < commands.len() {
+                while active < growth_jobs && batch.workers.len() < commands.len() {
                     let index = batch.workers.len();
                     batch.workers.push(fork_growth_worker(
                         root,
@@ -1226,7 +1227,7 @@ mod native {
             write(
                 1,
                 format!(
-                    "[ok] native Growth batch: classes={} jobs=2 elapsed_ms={}\n",
+                    "[ok] native Growth batch: classes={} jobs={growth_jobs} elapsed_ms={}\n",
                     commands.len(),
                     started.elapsed().as_millis()
                 )
@@ -1324,11 +1325,12 @@ mod native {
             let mut index = 0;
             while index < plan.commands.len() {
                 let command = &plan.commands[index];
-                if let Style::Validation(timeouts, 2, _) = style {
-                    if command
-                        .argv
-                        .first()
-                        .is_some_and(|arg| arg == crate::growth_native_plan::NATIVE_CLASS)
+                if let Style::Validation(timeouts, growth_jobs, _) = style {
+                    if growth_jobs > 1
+                        && command
+                            .argv
+                            .first()
+                            .is_some_and(|arg| arg == crate::growth_native_plan::NATIVE_CLASS)
                     {
                         let end = index
                             + plan.commands[index..]
@@ -1341,7 +1343,7 @@ mod native {
                                 .count();
                         if end - index > 1 {
                             let code = run_growth_batch(
-                                root, &plan.commands[index..end], &timeouts[index..end],
+                                root, &plan.commands[index..end], &timeouts[index..end], growth_jobs,
                                 products.as_ref().ok_or_else(|| error("native Growth requires current-lane Cargo product preparation"))?,
                                 limits, cancel, lane_deadline, child_overrides,
                             )?;

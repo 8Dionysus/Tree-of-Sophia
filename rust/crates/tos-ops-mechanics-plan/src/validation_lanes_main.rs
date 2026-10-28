@@ -24,7 +24,7 @@ struct Options {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-validation-lanes --repo-root PATH [--check] [--sequence ID] [--run ID] [--rust-group conformance|workspace|cold-install] [--growth-jobs 1|2] [--cargo-timings] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-validation-lanes --repo-root PATH [--check] [--sequence ID] [--run ID] [--rust-group conformance|workspace|cold-install] [--growth-jobs 1|2|3|4] [--cargo-timings] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
@@ -57,8 +57,8 @@ fn options() -> Result<Options, String> {
                     .ok_or("missing Growth jobs")?
                     .parse()
                     .map_err(|_| "invalid Growth jobs")?;
-                if !(1..=2).contains(&growth_jobs) {
-                    return Err("Growth jobs must be 1 or 2".into());
+                if !(1..=4).contains(&growth_jobs) {
+                    return Err("Growth jobs must be between 1 and 4".into());
                 }
             }
             "--command-timeout-ms"
