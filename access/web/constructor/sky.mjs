@@ -7,8 +7,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
   if(!ctx)throw new Error('Canvas unavailable');
+  let rendererName='';try{const gl=ctx.renderer?.getContext?.(),debug=gl?.getExtension('WEBGL_debug_renderer_info');if(debug)rendererName=gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)||'';}catch{}
+  const softwareRenderer=!rendererName||/swiftshader|llvmpipe|softpipe|lavapipe|software rasterizer/i.test(rendererName);
+  if(ctx instanceof SophiaGpuCanvas&&softwareRenderer){
+    ctx.dispose();const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas2d-fallback';
+    if(!ctx)throw new Error('Canvas unavailable');
+  }
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  const design={atmosphere:'midnight',density:.85};
+  const design={atmosphere:'midnight',density:softwareRenderer?.34:.58};
   const FOCAL=1250;
   let seed=7239;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   const smooth=(a,b,v)=>{const x=Math.max(0,Math.min(1,(v-a)/(b-a)));return x*x*(3-2*x)};
@@ -60,7 +66,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
 
   let w=1,h=1,dpr=1,base=1,skyTime=0,yaw=0,pitch=-.055,zoom=1;
   let tyaw=0,tpitch=-.055,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0;
-  let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,raf=0,hover=null,playing=!reduced.matches,drag=null,disposed=false;
+  let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
   let frameCount=0,drawSum=0,frameSum=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const makeLayer=className=>{let el=root.querySelector('.'+className);if(!el){el=document.createElement('div');el.className=className;root.append(el);}Object.assign(el.style,{position:'absolute',inset:'0',pointerEvents:'none'});return el;};
@@ -114,7 +120,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     return {x:(viewport.left+viewport.right)*.5+rx*base*zoom*depth*stretchX+pan.x,y:(viewport.top+viewport.bottom)*.5+ry*base*zoom*depth+pan.y,s:scale,sX:scale*stretchX};
   }
   function resize(){
-    const first=w===1;w=Math.max(1,root.clientWidth);h=Math.max(1,root.clientHeight);dpr=Math.min(devicePixelRatio||1,1.5);
+    const first=w===1;w=Math.max(1,root.clientWidth);h=Math.max(1,root.clientHeight);dpr=Math.min(devicePixelRatio||1,softwareRenderer?1:1.25);
     const cw=Math.round(w*dpr),ch=Math.round(h*dpr);if(canvas.width!==cw)canvas.width=cw;if(canvas.height!==ch)canvas.height=ch;
     const desktop=w>760,cinema=root.dataset.cinema==='true',reading=!cinema&&root.dataset.reading==='true',deck=!cinema&&root.dataset.deck==='true',journey=!cinema&&root.dataset.journey==='true';
     targetViewport={left:desktop?166:24,right:w-(desktop?(reading?350:30):24),top:desktop?185:145,bottom:h-(desktop?(journey?260:deck?225:90):(reading?Math.max(180,h*.48):deck?150:65))};
@@ -215,6 +221,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
 
   function draw(now,still=false){
     raf=0;if(disposed||(document.hidden&&!still))return;
+    const frameInterval=softwareRenderer?1000/28:1000/36;if(!still&&lastFrame&&now-lastFrame<frameInterval){raf=requestAnimationFrame(draw);return;}lastFrame=now;
     const started=performance.now(),elapsed=last?(now-last)/1000:1/60,dt=Math.min(elapsed,.05),ease=(reduced.matches||still)?1:1-Math.exp(-dt*5);last=now;
     if(playing&&!still)skyTime+=dt*.60;
     yaw+=(tyaw-yaw)*ease;pitch+=(tpitch-pitch)*ease;zoom+=(tzoom-zoom)*ease;pan.x+=(tpan.x-pan.x)*ease;pan.y+=(tpan.y-pan.y)*ease;
@@ -263,7 +270,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
     if(!still&&(playing||unsettled||layoutMoving||drag))kick();else last=0;
   }
-  function kick(){if(disposed)return;if(document.hidden){draw(performance.now(),true);return;}if(!raf)raf=requestAnimationFrame(draw)}
+  function kick(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
   canvas.addEventListener('wheel',e=>{e.preventDefault();tzoom=clamp(tzoom*Math.exp(-e.deltaY*.0012),.65,2.2);kick()},{passive:false});
   const pointer=e=>{const rect=canvas.getBoundingClientRect();return{x:e.clientX-rect.left,y:e.clientY-rect.top};};
   canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging')});
@@ -281,6 +288,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     select(id){selectedId=id;kick()},
     selectEdge(id){selectedEdgeId=id;kick()},
     link(id){linkFrom=id;kick()},
+    zoomBy(factor){if(Number.isFinite(factor)&&factor>0){tzoom=clamp(tzoom*factor,.65,2.2);kick();}},
     frame(){if(nodes.length){const min=[0,1,2].map(i=>Math.min(...nodes.map(n=>n.target[i]))),max=[0,1,2].map(i=>Math.max(...nodes.map(n=>n.target[i])));targetCenter=min.map((v,i)=>(v+max[i])/2);targetFit=Math.min(1.6,810/Math.max(510,max[0]-min[0]),455/Math.max(285,max[1]-min[1]),900/Math.max(560,max[2]-min[2]));}tyaw=0;tpitch=-.055;tzoom=1;tpan={x:0,y:0};resize()},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     refresh:resize,

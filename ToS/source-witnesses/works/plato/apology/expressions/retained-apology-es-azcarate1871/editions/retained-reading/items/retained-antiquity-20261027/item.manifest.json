@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.apology.apology-es-azcarate1871",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.apology.apology-es-azcarate1871",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.887e0b62bb56f27b8bb398f9d57013d239f01b238209dfcd7ab089db82287fd5",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "apology-es-azcarate1871.json",
+      "media_type": "application/json",
+      "byte_size": 77215,
+      "sha256": "887e0b62bb56f27b8bb398f9d57013d239f01b238209dfcd7ab089db82287fd5",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.b91d88e28dc6383145bbab4d33f3670b7ab9991af9ceaf0a287887f24c163685",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 64288,
+      "sha256": "b91d88e28dc6383145bbab4d33f3670b7ab9991af9ceaf0a287887f24c163685",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.apology-es-azcarate1871.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-es-azcarate1871/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-es-azcarate1871/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-es-azcarate1871/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-es-azcarate1871/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-es-azcarate1871/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

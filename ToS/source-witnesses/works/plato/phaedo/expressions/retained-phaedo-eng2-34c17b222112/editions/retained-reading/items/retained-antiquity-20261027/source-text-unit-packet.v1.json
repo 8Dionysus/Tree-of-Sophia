@@ -1,0 +1,2775 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-069a79ff66c140b48875739ebacf2fbb",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.phaedo",
+    "expression_ref": "tos.expression.retained.antiquity.phaedo.phaedo-eng2-34c17b222112",
+    "edition_ref": "tos.edition.retained.antiquity.phaedo.phaedo-eng2-34c17b222112",
+    "item_ref": "tos.item.retained.antiquity.phaedo.phaedo-eng2-34c17b222112",
+    "file_ref": "tos.file.sha256.90bcbaeb06b9f8db0ffa099eb1d5f80cdf784a144ccfbf921ff4dda110a3e2cd",
+    "file_sha256": "90bcbaeb06b9f8db0ffa099eb1d5f80cdf784a144ccfbf921ff4dda110a3e2cd"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-10d46f2342c5487fa2ea53d4a1b43338",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.phaedo-eng2-34c17b222112.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-421157ee6537407585c1b52ca314be14",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 147622,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8013c2701ac047689867886c92beee1a",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 518,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "012ecc99c8e87abf400feacc906c6ec103a87ed74e9ebcf60eb4ced8f0d7e355",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c5fa7ade48ff42ee83d9c4a354e5e020",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 518,
+        "end": 2916,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e159052c0b2b4d66e412b1bf33ef051186c01d876a5ea0c842140708ce6b6c1d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8b301432a3484ba0b8a990a6be0c194e",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 2916,
+        "end": 5172,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "02cfd02b2adce9847b26694579588996a4c7a176962d1b5b27458412832618df",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7927c90ad30f420490d347c4e8c35109",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 5172,
+        "end": 7616,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2e5d90baf1986b126c447119cec772ab150ae8e2b00b563198c9447c577ba565",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d21fce69cb5a4ceda7f455f5395cfccb",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 7616,
+        "end": 10253,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e648ee43f657aed387303d0e081f9699d690b55854a8e64877c9b1a558fbc7fd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3719e54697fe4f249fe2fc7b59b8c5b2",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 10253,
+        "end": 12700,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c87fd0243167637a552ec4f08b624b570d410247375401521033923cf0deba9f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ca51e6f50384426199fee88c03abfa83",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 12700,
+        "end": 15190,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "25c4f3d3dd70015e154dec3b051a26cedb9226c91511f2b048413a7e5ca86b0f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f668c3134c244dad854198ee90d79023",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 15190,
+        "end": 17749,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1f29adaa3d37e82e76350615e5dea996fa384943332fd6ce174a24f954e787b5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-47a122d4906d4988bdff417179a324c4",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 17749,
+        "end": 19991,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0aa59853dcd42ccb4e1abd91e6e81e83f19b7c046d2b4d716e28add616bacaa7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2841273c732145d5aeab8dade3829d0f",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 19991,
+        "end": 22200,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6615951a6c3eb7eff777686b09c0820bfa054ddee4790a22fe271d21c72054df",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-63c079c788fb4d87a71575b825a168d2",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 22200,
+        "end": 24647,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "309bbe5ff76e542410296690d6cdb3a860adea4a9771c6b48a54e9750c59c798",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7c45925e40fb49469919140f79b55fa0",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 24647,
+        "end": 27269,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "af7e5c7ebab5165a80148e13cd6efcfb8e9cb614406fc7e36b62af9f2e688105",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-abf7b9752a3c4dbcbe0427b468b071a6",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 27269,
+        "end": 29515,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a428a58b292e77cb56074bd40698d190d52d1d3e68131311f636d63c34bae6d2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-51da8885774747268c0b2b54f2cb79d1",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 29515,
+        "end": 32104,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ef95b59218b99cfd536386478dae1cbe24371276612dc0c8eaba55f6445742f7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-42b934845d094061970ab484502243ff",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 32104,
+        "end": 34798,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "012f2aa3652169c77dba05f84b5f6706830b49eaf34009424d0cd973cd7bf61a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cd092c642d4b44598c83bc76ba8bae7a",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 34798,
+        "end": 37213,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "35e90a1181bbfdffe5219efee8610143a1626aafd10e8430be33a7618c359b41",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b35fbfdfe49d4ed29844c13533794143",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 37213,
+        "end": 39714,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f10f958151afcaf82c3a030cde72e306ad82f05b8faee57a96dfe69fc5f95789",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-31a54ccdc85344a38c06d396c308c44e",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 39714,
+        "end": 42354,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3b0b35030561fed0765416b61bd888963fd1134cec2a7ec8ef673289a1b6fd0c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-160d9d7b89b54699b308366c18dd43d0",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 42354,
+        "end": 44863,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "aeb720c93f447d57b76ed8e7834562129da7154913bb21d1dff558408497cd4d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-364f7da1ba324a96aec799275c6b2654",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 44863,
+        "end": 47437,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "86a68f550d6edbbb3e83385ecc7a4a9ec700093f3ffe85a1a694143f54d4d2a6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-37a2e32ed72b4946941f8e6b5e7c896b",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 47437,
+        "end": 49995,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ebf2164fccdf7685e8d3b6a82cf0bc11f15896fb207666be90ccc7d93daddedc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1207fda97e274dc6a55cb362b6d7ee26",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 49995,
+        "end": 52449,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "97581737fa5f41f0ad44f9f84a9783cec38868ff6f65409ba864896c4ce31756",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-259e982ed87849b59d2ca051b6186935",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 52449,
+        "end": 54871,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f48c214d0c5b1ca6500962ba4d2538d0f431dad05780b62fe0614e1c18b3e2cd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6c48fab97f3b406f81f799b8bec82376",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 54871,
+        "end": 57417,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "28e09304daa6c9dab343c5e1a344b172311b6f09656c6dc98536f10ad4870687",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d0eb1297ab9e48a3b42562966c1d111b",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 57417,
+        "end": 59800,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2371b66bdaaf09166f425c72002c840b2b7cc56e099ac27dc9db66400a5f7ec3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-97f034b1e5844cc6bc1dad191484d038",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 59800,
+        "end": 62233,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "97a568cd50a79c1310f256c52cf76a34ead3bdec2a4fe211e04a92014abb13e7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2611adeabe9d4259ae9fbe8e55743b78",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 62233,
+        "end": 64634,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cf54081118cde1007febd1ac2653d61e676ba9c0bb04d947ed83950229c77c0b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d21ac97577e64d5c8eab1caf41fe74ad",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 64634,
+        "end": 67121,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7f9dcaa31aef8f64235f7a7c6f7bb07b8c4dee2896b940ea1804c3e374470861",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-15abcdfdd83f47f0bd1efdf85d39c183",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 67121,
+        "end": 69287,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "476ef2ce24c8779f7a317776077d2af598894cc7ee32c1dcfeaf7ced93a20bbc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d441b2056c53443ea33b82fcad944411",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 69287,
+        "end": 71686,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "154a96d5d46fe22afc26a3dd34701d766d5bcca2a6c417bccf09e09e1eaca1a3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ee9303393d9844eb9399e06921ec2f76",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 71686,
+        "end": 74176,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "33c6e8c23fd4b88c5ad27d6d383b694f3af40b7fc66b0dc9bc85d78d24afbdcb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f8f1870d32764b01ab192d1204d15075",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 74176,
+        "end": 76566,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4802316fe5552c858fcfe9baf87bf418aa5f38f41369841fa65c03361d231209",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5f1333755ce545c8a86a972a9b8ca1b1",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 76566,
+        "end": 79158,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "90aca1e474c701db8cec0da123415d4065e20ac70a80ec65cb748ad761af51ff",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-601c0d415d444ab198a1269a9fe89507",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 79158,
+        "end": 81753,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d598d1bd49584b64f63e21a03b32eb27165615125a2affa443dc90a7720d827e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d464049a2b2b453ea6c3af1790513330",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 81753,
+        "end": 83664,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4fb4be35023a6a8e45778dfe6cf6bb297249d0aa52dd3b532feac2a08f3a6395",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7906dffca3a7482c8f45ddc63d413962",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 83664,
+        "end": 86170,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d863fef6546fc8f618c74584512ffb34989a727648659cb688267172476d8863",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4296713c3e394323ace4522e8822cec1",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 86170,
+        "end": 88697,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7580554799015df52c82aec97531fb9a8c6a59da647ff13a56b6ac6b0f3b3273",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b93dbbca7ad94979a6074e15f32786c0",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 88697,
+        "end": 91068,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bbc087cbfbef942ccc43a66e282da9a6053934fd24f4bede23fac43f62eb90aa",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-496b57736bf64bd39526f2debc28e80f",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 91068,
+        "end": 93681,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "07a2ef9784bd21f6854a96ea1dc71d54e2b7b50987678fb54ef06a01e249fa8d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2871304c14ae456fa7e350e219fd7f23",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 93681,
+        "end": 96029,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "634352d585910f58c0fd8216ffbe77d79af59587e3c971029aa394e2bc6a60ea",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fd3c831c06104344a4401038931ea762",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 96029,
+        "end": 98565,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "18392821235ff8b7746513128d107d89692aa433c5935bee83275ea9cc3edb81",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1ce091c5d0d5435b8a394f019b1f97ae",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 98565,
+        "end": 100941,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "68a45f04f24e479d4b5b82f541438302d51edf9a314c588d32dcc5982b0e3664",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fc38cb3de8bc4c9cad274cb01815be74",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 100941,
+        "end": 103155,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9739297069a5570567b402cbfce3d94127d4897a7c18bf2a1c61404ce42ce58c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-087396e514674b6082c2a624f97e50a1",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 103155,
+        "end": 105654,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f51da7530d9a0e179b401362e54d8d0c47bd3996cc9cb28691565a0a014e768a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-611be0bd0e744f109eefffd04d5719ea",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 105654,
+        "end": 108484,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e565d14d5979052d30305da8666f894765f540c7f7f639b644a278773f5b2247",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-20b4a87f5f924c3f90e5e3d2b9adaf31",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 108484,
+        "end": 110990,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8df7819c406c068154cb1cc9b14e8ebc917389000ef75c008846cda519962833",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9376b47eca024f3cbb412d38c191d330",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 110990,
+        "end": 113463,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c3e5535ffaedbdae2619fa3e0598d10883e7555193653b3673c8fb0a8a0a2ef2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7dd97ad6de454d5db228853bb39591fc",
+      "ordinal": 49,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 113463,
+        "end": 115884,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2ac758238786e914181da553f8d6b6f34efdade77827b09841a3f5e8a8d4f51c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f2d6aa9905094f96a4c90f5b9d83ffbd",
+      "ordinal": 50,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 115884,
+        "end": 118619,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7859013e1c8deaac7fab92cf8ffcdca5bef65c06c0726bd1f3ad506c48892128",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1009310899394536a4aa58817e3827a7",
+      "ordinal": 51,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 118619,
+        "end": 120961,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "92ac3251ca5e8738876b1bbf81609c13dcc69836ab93a0c9f2dd5f0a3eab6de3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1b77e7bd0307485e8b0588efa6a59b75",
+      "ordinal": 52,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 120961,
+        "end": 123253,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b969ebb20975239a7c3b853639373c7457e5d24ecc0a9fd28653473f7cb05164",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4bfc0adc6a504d578ad428ef341dea1c",
+      "ordinal": 53,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 123253,
+        "end": 125427,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "63ec9608249e925415effc02a14429629cdc31cb834c81abf316e4e25659bc59",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-12cbc413a3604ec0a3919a48af4b824f",
+      "ordinal": 54,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 125427,
+        "end": 128011,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1a72be6923a4e8f4dba7afdc3a72b45a85d52ed867441a0ef25cc63c16f8084e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-aeda26d9f7b74f8490ff16f6fccfe8f2",
+      "ordinal": 55,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 128011,
+        "end": 130238,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "56bd9f373174fda18dae8a3e57dff1a79f812cbb8399a12b001313cdbaedcf83",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-26449842b579404c8538bc39d5dd7af2",
+      "ordinal": 56,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 130238,
+        "end": 132350,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c247e0f599b5c8f6fd7f5c3ae80a2dc877169921d88755d59e9ac38f5e31cec9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4b2759bc310b4a39ad3263bb493e27f9",
+      "ordinal": 57,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 132350,
+        "end": 134408,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d4207295fd560aabdb34fee9b4cdacb7c4c8757ddc0d7423edd9c3f14e62d91f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2e9d7fa98e9a436394026507d6f44ad9",
+      "ordinal": 58,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 134408,
+        "end": 137097,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "934fe009bb24b0ded391b821b67cb14c3e59a54f521a86f649656171dc07f882",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-dad53966f04c4676be9d1ceb053d030c",
+      "ordinal": 59,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 137097,
+        "end": 139626,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "125f9eb211d0d9dc55906c4516cc8affc66f56fdf778403058d4b564b5299592",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7f5f785ffe754f3f898a394664e7ac2a",
+      "ordinal": 60,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 139626,
+        "end": 141851,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b323d107e996a252ac02c160d737c2419bfed953b5a1c0851924dfcb6b7fdaf1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b8e76796d8064c8f807088fa6e002783",
+      "ordinal": 61,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 141851,
+        "end": 144147,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "87f718e4f38031c0f8e79ff394ce55963995d4804b4e05e11d8aa3aa2dcff21c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9eb42657b0dd4b05ba1e7d8676c0a158",
+      "ordinal": 62,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 144147,
+        "end": 146805,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1e85a921e86dd724d050ab9fa842f9e479804330c18891434737297bf6a66f9b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5e56cb1c193d40dc8953183db433828f",
+      "ordinal": 63,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "selector": {
+        "type": "text_position",
+        "start": 146805,
+        "end": 147622,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cf4bc256f5d8a8c525205c0aebf9b164d0ece694c246b0ce54f7f6d5d32d8991",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg004/tlg0059.tlg004.perseus-eng2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-dbe904fb129d42ef9c3213bef8f91ace",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8013c2701ac047689867886c92beee1a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b719e93e70904d13ac3ed0b25c1ef1a4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c5fa7ade48ff42ee83d9c4a354e5e020"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d6bed7564226434f86819dc70d6c75db",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8b301432a3484ba0b8a990a6be0c194e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0707876f5ff64bc38b3805754e46a662",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7927c90ad30f420490d347c4e8c35109"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9c6baad84a7c462bbfd8cf47295d7695",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d21fce69cb5a4ceda7f455f5395cfccb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c9eadbd93c66443bbb1831b68d194927",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3719e54697fe4f249fe2fc7b59b8c5b2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0a8c06293a0741508ffbbc33bd0852ba",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ca51e6f50384426199fee88c03abfa83"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-673daa074daf436e80fb8ecee184c86c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f668c3134c244dad854198ee90d79023"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7419ff3627ad4d8c9c505645ff048953",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-47a122d4906d4988bdff417179a324c4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-463a0c73f3424040ae214b157eff3b27",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2841273c732145d5aeab8dade3829d0f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bf9dd7ebf15f4d5d938c45af8cef349a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-63c079c788fb4d87a71575b825a168d2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c90f75f80e1b4981933a60206bb58998",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7c45925e40fb49469919140f79b55fa0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ae58b2f24289420fbf0880b3e2b3d204",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-abf7b9752a3c4dbcbe0427b468b071a6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-47cbcbb294324bdba951bcd7861560a6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-51da8885774747268c0b2b54f2cb79d1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6acf434e08c74125905d52fdbc1a0dfd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-42b934845d094061970ab484502243ff"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bcdb867c92db46dd91b6d6e714a94f0e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cd092c642d4b44598c83bc76ba8bae7a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b51a4b18f03a4044a3dec6fa52e3a18b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b35fbfdfe49d4ed29844c13533794143"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b583088a17c74571b068d3109444bea5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-31a54ccdc85344a38c06d396c308c44e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6e860fbff0694fde8a299d1c2ccb97ea",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-160d9d7b89b54699b308366c18dd43d0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-34af8d700c264de488c17bc90f581022",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-364f7da1ba324a96aec799275c6b2654"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4dddbdff41c84243be22cf4be0cf03ef",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-37a2e32ed72b4946941f8e6b5e7c896b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2e3e07b7ed614c9cbc8c7cbad700cb43",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1207fda97e274dc6a55cb362b6d7ee26"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-00081ce0bccf4348a633bffceea63f39",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-259e982ed87849b59d2ca051b6186935"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-14d51e88172247e0bb22906b691d6fb6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6c48fab97f3b406f81f799b8bec82376"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c965ec40d8194840ace2b9b84d7f2a68",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d0eb1297ab9e48a3b42562966c1d111b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ff5834d2dd0e41fd84264a910ca36dd0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-97f034b1e5844cc6bc1dad191484d038"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-55de49228cb94971ba9973b5feba9e09",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2611adeabe9d4259ae9fbe8e55743b78"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-94f6fd499ee441c98e46aa7ac61e3109",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d21ac97577e64d5c8eab1caf41fe74ad"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0240f92e98aa43eb9c20a4bf26d6a606",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-15abcdfdd83f47f0bd1efdf85d39c183"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-39327be2297846fc937e9035325120a2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d441b2056c53443ea33b82fcad944411"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c353a0f865074a5e8ddfe05892e06434",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ee9303393d9844eb9399e06921ec2f76"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-06e27fdc0f69443b9553ead6f2df0f7d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f8f1870d32764b01ab192d1204d15075"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ced15454b64841dfbaf62b5fdf03251d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5f1333755ce545c8a86a972a9b8ca1b1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-697e6518a00b41faa346d73d365a5d8f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-601c0d415d444ab198a1269a9fe89507"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1c5c86cb61bf40aeaa4f2ccd0d4d495c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d464049a2b2b453ea6c3af1790513330"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6994a448ca2d4f89abdd03c430629bdc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7906dffca3a7482c8f45ddc63d413962"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e0d8f2767b28475db7667cd9ae93f337",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4296713c3e394323ace4522e8822cec1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-86a491bee9e743eebff0ff954c2952b1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b93dbbca7ad94979a6074e15f32786c0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-93db62ea6930450bbc833b0513aa90c7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-496b57736bf64bd39526f2debc28e80f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dc61a2c83acc4bc69e3dd53e2a2ee674",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2871304c14ae456fa7e350e219fd7f23"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a5ab561061d04161b13d9ce22dd19bf1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fd3c831c06104344a4401038931ea762"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e1ba77970da640ac9cd7618e75d6cdea",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1ce091c5d0d5435b8a394f019b1f97ae"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-525fd4e9e77846c4bad5c8abfe4c6936",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fc38cb3de8bc4c9cad274cb01815be74"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-97e04b703a27425f92ac6993267c97a8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-087396e514674b6082c2a624f97e50a1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f729164fff8940ed8840099844af0846",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-611be0bd0e744f109eefffd04d5719ea"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f2b58233141c46d5a10fe3bbc7e5d902",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-20b4a87f5f924c3f90e5e3d2b9adaf31"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2c065b7af8b147ac8d6f787f52b97a20",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9376b47eca024f3cbb412d38c191d330"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0b58cb820ee84299889ff39a9c805d39",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7dd97ad6de454d5db228853bb39591fc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e3908c9685d1483a87f4b24670baad10",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f2d6aa9905094f96a4c90f5b9d83ffbd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b6ccd57462344ccaaf4bd7382d977ebd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1009310899394536a4aa58817e3827a7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-92477e4f2d6146c2b1ef31719b0cd431",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1b77e7bd0307485e8b0588efa6a59b75"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0d9e2ddfcfb3470f898edea5c02ecc3a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4bfc0adc6a504d578ad428ef341dea1c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-00f63a5e622f4c4d886aec705668aa7f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-12cbc413a3604ec0a3919a48af4b824f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bcfceaf6fc7245428d5d038e5f1e7d8c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-aeda26d9f7b74f8490ff16f6fccfe8f2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e7a5c1c9ef624ed291eace6c7dc54d80",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-26449842b579404c8538bc39d5dd7af2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2d2319fd21464d56b0e924fcee44b54d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4b2759bc310b4a39ad3263bb493e27f9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-65c6b67f2a6d4b3b8522874bb7055c60",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2e9d7fa98e9a436394026507d6f44ad9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-891f4148a5544c86a913f7508eba6738",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-dad53966f04c4676be9d1ceb053d030c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b8a55bcdf79f47618aa681ad884d7688",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7f5f785ffe754f3f898a394664e7ac2a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-67a632652e764c558da98b6b523e9d4e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b8e76796d8064c8f807088fa6e002783"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-537e1fef846347bdaab0f460fc369393",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9eb42657b0dd4b05ba1e7d8676c0a158"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7ed9cf0baa4548e289764038cab1c5ad",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5e56cb1c193d40dc8953183db433828f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-614efabf3e6641579f29eb792cf21072",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-10d46f2342c5487fa2ea53d4a1b43338",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-dbe904fb129d42ef9c3213bef8f91ace",
+        "tos.text-unit.sid-b719e93e70904d13ac3ed0b25c1ef1a4",
+        "tos.text-unit.sid-d6bed7564226434f86819dc70d6c75db",
+        "tos.text-unit.sid-0707876f5ff64bc38b3805754e46a662",
+        "tos.text-unit.sid-9c6baad84a7c462bbfd8cf47295d7695",
+        "tos.text-unit.sid-c9eadbd93c66443bbb1831b68d194927",
+        "tos.text-unit.sid-0a8c06293a0741508ffbbc33bd0852ba",
+        "tos.text-unit.sid-673daa074daf436e80fb8ecee184c86c",
+        "tos.text-unit.sid-7419ff3627ad4d8c9c505645ff048953",
+        "tos.text-unit.sid-463a0c73f3424040ae214b157eff3b27",
+        "tos.text-unit.sid-bf9dd7ebf15f4d5d938c45af8cef349a",
+        "tos.text-unit.sid-c90f75f80e1b4981933a60206bb58998",
+        "tos.text-unit.sid-ae58b2f24289420fbf0880b3e2b3d204",
+        "tos.text-unit.sid-47cbcbb294324bdba951bcd7861560a6",
+        "tos.text-unit.sid-6acf434e08c74125905d52fdbc1a0dfd",
+        "tos.text-unit.sid-bcdb867c92db46dd91b6d6e714a94f0e",
+        "tos.text-unit.sid-b51a4b18f03a4044a3dec6fa52e3a18b",
+        "tos.text-unit.sid-b583088a17c74571b068d3109444bea5",
+        "tos.text-unit.sid-6e860fbff0694fde8a299d1c2ccb97ea",
+        "tos.text-unit.sid-34af8d700c264de488c17bc90f581022",
+        "tos.text-unit.sid-4dddbdff41c84243be22cf4be0cf03ef",
+        "tos.text-unit.sid-2e3e07b7ed614c9cbc8c7cbad700cb43",
+        "tos.text-unit.sid-00081ce0bccf4348a633bffceea63f39",
+        "tos.text-unit.sid-14d51e88172247e0bb22906b691d6fb6",
+        "tos.text-unit.sid-c965ec40d8194840ace2b9b84d7f2a68",
+        "tos.text-unit.sid-ff5834d2dd0e41fd84264a910ca36dd0",
+        "tos.text-unit.sid-55de49228cb94971ba9973b5feba9e09",
+        "tos.text-unit.sid-94f6fd499ee441c98e46aa7ac61e3109",
+        "tos.text-unit.sid-0240f92e98aa43eb9c20a4bf26d6a606",
+        "tos.text-unit.sid-39327be2297846fc937e9035325120a2",
+        "tos.text-unit.sid-c353a0f865074a5e8ddfe05892e06434",
+        "tos.text-unit.sid-06e27fdc0f69443b9553ead6f2df0f7d",
+        "tos.text-unit.sid-ced15454b64841dfbaf62b5fdf03251d",
+        "tos.text-unit.sid-697e6518a00b41faa346d73d365a5d8f",
+        "tos.text-unit.sid-1c5c86cb61bf40aeaa4f2ccd0d4d495c",
+        "tos.text-unit.sid-6994a448ca2d4f89abdd03c430629bdc",
+        "tos.text-unit.sid-e0d8f2767b28475db7667cd9ae93f337",
+        "tos.text-unit.sid-86a491bee9e743eebff0ff954c2952b1",
+        "tos.text-unit.sid-93db62ea6930450bbc833b0513aa90c7",
+        "tos.text-unit.sid-dc61a2c83acc4bc69e3dd53e2a2ee674",
+        "tos.text-unit.sid-a5ab561061d04161b13d9ce22dd19bf1",
+        "tos.text-unit.sid-e1ba77970da640ac9cd7618e75d6cdea",
+        "tos.text-unit.sid-525fd4e9e77846c4bad5c8abfe4c6936",
+        "tos.text-unit.sid-97e04b703a27425f92ac6993267c97a8",
+        "tos.text-unit.sid-f729164fff8940ed8840099844af0846",
+        "tos.text-unit.sid-f2b58233141c46d5a10fe3bbc7e5d902",
+        "tos.text-unit.sid-2c065b7af8b147ac8d6f787f52b97a20",
+        "tos.text-unit.sid-0b58cb820ee84299889ff39a9c805d39",
+        "tos.text-unit.sid-e3908c9685d1483a87f4b24670baad10",
+        "tos.text-unit.sid-b6ccd57462344ccaaf4bd7382d977ebd",
+        "tos.text-unit.sid-92477e4f2d6146c2b1ef31719b0cd431",
+        "tos.text-unit.sid-0d9e2ddfcfb3470f898edea5c02ecc3a",
+        "tos.text-unit.sid-00f63a5e622f4c4d886aec705668aa7f",
+        "tos.text-unit.sid-bcfceaf6fc7245428d5d038e5f1e7d8c",
+        "tos.text-unit.sid-e7a5c1c9ef624ed291eace6c7dc54d80",
+        "tos.text-unit.sid-2d2319fd21464d56b0e924fcee44b54d",
+        "tos.text-unit.sid-65c6b67f2a6d4b3b8522874bb7055c60",
+        "tos.text-unit.sid-891f4148a5544c86a913f7508eba6738",
+        "tos.text-unit.sid-b8a55bcdf79f47618aa681ad884d7688",
+        "tos.text-unit.sid-67a632652e764c558da98b6b523e9d4e",
+        "tos.text-unit.sid-537e1fef846347bdaab0f460fc369393",
+        "tos.text-unit.sid-7ed9cf0baa4548e289764038cab1c5ad"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-421157ee6537407585c1b52ca314be14",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.phaedo-eng2-34c17b222112.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

@@ -33,6 +33,10 @@ may carry those IDs but does not own or revise their meaning.
 
 ## Compatibility boundaries
 
+- Personal workspace hypotheses may carry an optional `kind`, independently
+  of their local, unreviewed posture. Earlier v1 records without a kind remain
+  unspecified; the neutral `thought` kind does not infer that they are notes.
+  Constructor export retains an explicitly recorded draft kind and its ID.
 - Software and data are selected separately. `--root`/`TOS_DATA_ROOT`, a
   prepared publication and `--release-root` are distinct selection routes.
   Prepared and managed-release selectors cannot be silently combined.

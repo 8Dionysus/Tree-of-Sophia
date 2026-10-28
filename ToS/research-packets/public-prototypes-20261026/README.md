@@ -46,3 +46,15 @@ the source's sense that Socrates says silence would be disobedience to the god.
 Interpretations are hypotheses only. No direct source passage has been quoted
 or translated here; prompts paraphrase the supplied texts. No claim is made
 that the routes settle a philosophical reading.
+
+The separate [reader witness-difference note](reader-textual-variants.v1.json)
+records a source-visible agent comparison of one phrase in Adams' *Sacred
+Disease* against the 1886 printed witness. The reader shows both readings
+without changing the retained digital layer, its revision, or existing
+selectors. This provisional note is not a complete collation or canon admission.
+
+The [contained-reading targets](contained-reading-targets.v1.json) point from
+the separate *Principal Doctrines* catalogue entry to an exact, already retained
+passage in Diogenes Laertius' Book X. The containing Hicks witness keeps its
+existing work, version, revision and selector; this navigation does not create
+a standalone edition or replace the catalogue entry's external references.

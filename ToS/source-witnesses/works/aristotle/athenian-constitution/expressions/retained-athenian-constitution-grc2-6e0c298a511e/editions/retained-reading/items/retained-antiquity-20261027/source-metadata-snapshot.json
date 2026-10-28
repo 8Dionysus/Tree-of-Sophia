@@ -1,0 +1,117 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.athenian-constitution.athenian-constitution-grc2-6e0c298a511e",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/athenian-constitution-grc2-6e0c298a511e.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg003/tlg0086.tlg003.perseus-grc2.xml",
+    "file_ref": "tos.file.sha256.44e13c3b889e7afceb2e45e64c6f45e31791587b5c26d600b029d93ba97704c4",
+    "byte_size": 314328,
+    "sha256": "44e13c3b889e7afceb2e45e64c6f45e31791587b5c26d600b029d93ba97704c4"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=athenian-constitution-grc2-6e0c298a511e",
+    "record_sha256": "b4f5ae680821126ca20239d094347f7642888add83c2e1c72f50ce6ed527910a",
+    "record": {
+      "id": "athenian-constitution-grc2-6e0c298a511e",
+      "language": "grc",
+      "title": "Древнегреческий · Фредерик Кеньон",
+      "credit": "Издание: Фредерик Кеньон",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg003/tlg0086.tlg003.perseus-grc2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Aristotelis Atheniensium Respublica",
+          "Oxford Classical Texts"
+        ],
+        "dates": [
+          "1920"
+        ],
+        "places": [
+          "Oxford"
+        ],
+        "publishers": [
+          "Clarendon Press"
+        ],
+        "scans": [
+          "https://hdl.handle.net/2027/mdp.39015003886267?urlappend=%3Bseq=14%3Bownerid=13510798886841544-18"
+        ]
+      },
+      "item": "tos.item.aristotle.constitution-of-the-athenians.grc-perseus-tlg0086-tlg003.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.6e0c298a511e05d9e287860f1c98344f4c409ed5f6f18e8c9ef0cb6974ae8e1a",
+      "sha256": "6e0c298a511e05d9e287860f1c98344f4c409ed5f6f18e8c9ef0cb6974ae8e1a",
+      "representationSha256": "0af92170ab0a9e0a557ba33f2a2f04e298ec46cd7a6c1c17bcdc1548898aceb5",
+      "sourceRef": "ToS/source-witnesses/works/aristotle/constitution-of-the-athenians/expressions/grc-perseus-tlg0086-tlg003/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0086.tlg003.perseus-grc2.xml",
+      "sectionCount": 73
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "athenian-constitution-grc2-6e0c298a511e",
+    "legacy_source_sha256_claim": "6e0c298a511e05d9e287860f1c98344f4c409ed5f6f18e8c9ef0cb6974ae8e1a",
+    "legacy_representation_sha256_claim": "0af92170ab0a9e0a557ba33f2a2f04e298ec46cd7a6c1c17bcdc1548898aceb5",
+    "retained_json_payload_sha256": "44e13c3b889e7afceb2e45e64c6f45e31791587b5c26d600b029d93ba97704c4",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Ἀθηναίων πολιτεία",
+      "Aristotelis Atheniensium Respublica",
+      "Oxford Classical Texts"
+    ],
+    "authors": [
+      "Aristotle"
+    ],
+    "editors_or_translators": [
+      "Frederic G Kenyon"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.athenian-constitution",
+    "expression_ref": "tos.expression.retained.antiquity.athenian-constitution.athenian-constitution-grc2-6e0c298a511e",
+    "edition_ref": "tos.edition.retained.antiquity.athenian-constitution.athenian-constitution-grc2-6e0c298a511e",
+    "legacy_book_title": "Афинская полития",
+    "legacy_credit": "Издание: Фредерик Кеньон",
+    "publication": {
+      "titles": [
+        "Aristotelis Atheniensium Respublica",
+        "Oxford Classical Texts"
+      ],
+      "dates": [
+        "1920"
+      ],
+      "places": [
+        "Oxford"
+      ],
+      "publishers": [
+        "Clarendon Press"
+      ],
+      "scans": [
+        "https://hdl.handle.net/2027/mdp.39015003886267?urlappend=%3Bseq=14%3Bownerid=13510798886841544-18"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg003/tlg0086.tlg003.perseus-grc2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 73,
+    "block_count": 309,
+    "apparatus": {
+      "headings": 8,
+      "notes": 11,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

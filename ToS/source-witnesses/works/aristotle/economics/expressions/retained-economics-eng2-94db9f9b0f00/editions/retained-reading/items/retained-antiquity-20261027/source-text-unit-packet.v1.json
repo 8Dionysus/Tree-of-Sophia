@@ -1,0 +1,507 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-20668e08a5c045d8a21067e682f5a475",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.economics",
+    "expression_ref": "tos.expression.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+    "edition_ref": "tos.edition.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+    "item_ref": "tos.item.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+    "file_ref": "tos.file.sha256.a87fe36cff54763147ea9ca86f339c01893bbb7f74dafd6347b00cdc26a9dc6d",
+    "file_sha256": "a87fe36cff54763147ea9ca86f339c01893bbb7f74dafd6347b00cdc26a9dc6d"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-905f7fb6a2244439940028b7828ad05d",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.economics-eng2-94db9f9b0f00.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-d7eb5b83d9c04d9fb0831b11a921ddbb",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 58996,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2355e3853ae445be84478e4c1013e0fa",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 1577,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8aa3d2572a15b1ce55732bb3b84e3cd6b1ba91d6ce568bff3f5dd80e6be8911f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-571c8be5d594463097b40034ab416eed",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 1577,
+        "end": 3222,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "aa2f60dbc9f01fefc7cc966c1b6577bc1267f588750ff0e411ecb8b2e01d9ae1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0e1ae5385d5c4a6ab318d59d5a9300c2",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 3222,
+        "end": 5865,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "91a696e64a948ac10c114e09b43e67f501b2b21dec6439a47d51050070fea481",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a71a45f63bde41ecaaa82b68665b2f22",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 5865,
+        "end": 7016,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8d59f8545e6a5bd7eb6480beda7823537dd6fc7fbcb5516d394ba645e4d47ad1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8a4fe4e3a78d4633a3f573ce0c9e9fc9",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 7016,
+        "end": 9973,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5625e9c33fc49523d5e742e594758fd186452a3b0d1f28dfb3ad98c19341e0a9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ffcdea0ba4d84a069123a1f944707a06",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 9973,
+        "end": 13993,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1d7d3ecb004ee441a3a4e575924fc3b95584c54e82fbb158962d077891ed6bfd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6f132735218b491aa72bcdf892eb024f",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 13993,
+        "end": 18513,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "518a3d9cf7e02970e20f1fc1c987d62c499a5e42366e3cc8f2048d1db44b70bb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f486a783f77c4d2faf84f53d13d16129",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "selector": {
+        "type": "text_position",
+        "start": 18513,
+        "end": 58996,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bf7258d9461f92837f120b9046c41ef85257d2b24623d1d20977532e534cbb8f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-008cceed9a6b4607bf106786309ccf89",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2355e3853ae445be84478e4c1013e0fa"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-76aee1e86dbf47aeb22ddde06a7dbde8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-571c8be5d594463097b40034ab416eed"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-540a0dc1d32b44bfbdefc9a5d1a6d576",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0e1ae5385d5c4a6ab318d59d5a9300c2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7ac3f612640649ba978e93d116774e54",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a71a45f63bde41ecaaa82b68665b2f22"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-79e68d3dd7d84f49ae83c0a565a2127d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8a4fe4e3a78d4633a3f573ce0c9e9fc9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-934ab3caedc44d8a9b4ed4c6f3717118",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ffcdea0ba4d84a069123a1f944707a06"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-002f65bb2468470a9417301d4efd5233",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6f132735218b491aa72bcdf892eb024f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-66d5767738e54ad38d4e102f8f5e0e8b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f486a783f77c4d2faf84f53d13d16129"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-114b7c01f1914f91a99335ff4d009401",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-905f7fb6a2244439940028b7828ad05d",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-008cceed9a6b4607bf106786309ccf89",
+        "tos.text-unit.sid-76aee1e86dbf47aeb22ddde06a7dbde8",
+        "tos.text-unit.sid-540a0dc1d32b44bfbdefc9a5d1a6d576",
+        "tos.text-unit.sid-7ac3f612640649ba978e93d116774e54",
+        "tos.text-unit.sid-79e68d3dd7d84f49ae83c0a565a2127d",
+        "tos.text-unit.sid-934ab3caedc44d8a9b4ed4c6f3717118",
+        "tos.text-unit.sid-002f65bb2468470a9417301d4efd5233",
+        "tos.text-unit.sid-66d5767738e54ad38d4e102f8f5e0e8b"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-d7eb5b83d9c04d9fb0831b11a921ddbb",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.economics-eng2-94db9f9b0f00.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

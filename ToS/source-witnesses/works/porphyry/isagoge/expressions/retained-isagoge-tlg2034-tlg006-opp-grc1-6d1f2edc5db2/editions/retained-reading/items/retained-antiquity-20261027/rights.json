@@ -1,0 +1,39 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.retained-antiquity.isagoge.isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2.20261027",
+  "scope_refs": [
+    "tos.item.retained.antiquity.isagoge.isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2",
+    "tos.file.sha256.80b839d5e91d826b9b90e69e5882271bdfb72c2249e1e0a5a558272ac85673a6",
+    "tos.file.sha256.31b953b1bac6b4b8504dd867abe44a2df3328a109d8f30dd7f77631b2580763d"
+  ],
+  "assessment_status": "licensed",
+  "jurisdictions_reviewed": [
+    "US"
+  ],
+  "source_refs": [
+    "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2034/tlg006/tlg2034.tlg006.opp-grc1.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "permissions": [
+    "Attribution: Open Greek and Latin · First1KGreek",
+    "Free public reading and adaptation under https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "restrictions": [
+    "Give attribution, link the license, and indicate changes.",
+    "Distribute adaptations under the same CC BY-SA 4.0 license.",
+    "Mark the retained JSON to public reading-layer derivation.",
+    "No transcription, linguistic, semantic, canon or human-review claim."
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "codex.retained-antiquity-publication.20261027"
+  },
+  "assessed_at": "2026-10-27T06:31:44+00:00",
+  "rationale": "The exact legacy catalog version row carries CC BY-SA 4.0 and is included with its digest in the source metadata snapshot; the fixed source/header record is preserved in the exact retained JSON payload. This item is that retained JSON plus a separately hashed reader layer; the legacy raw-source digest is not represented as the JSON payload digest. Publication carries attribution, source and license routes. The reading layer is not a scholarly or human acceptance.",
+  "review_status": "unreviewed",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "record_version": 1
+}

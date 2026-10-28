@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.meditations.meditations-grc2-9752103971db",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.meditations.meditations-grc2-9752103971db",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.98e91ea361f8dcfaad485c05ba2178136c2a730b9b4ce717870c912fd6626a76",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "meditations-grc2-9752103971db.json",
+      "media_type": "application/json",
+      "byte_size": 533890,
+      "sha256": "98e91ea361f8dcfaad485c05ba2178136c2a730b9b4ce717870c912fd6626a76",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.7898064d41ae582ddbca7bf97cb787e32e9de78fb13d64c93a45e5e6cb87cc0b",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 354938,
+      "sha256": "7898064d41ae582ddbca7bf97cb787e32e9de78fb13d64c93a45e5e6cb87cc0b",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.meditations-grc2-9752103971db.20261027",
+  "rights_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-grc2-9752103971db/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-grc2-9752103971db/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-grc2-9752103971db/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-grc2-9752103971db/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/marcus/meditations/expressions/retained-meditations-grc2-9752103971db/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.euthyphro.euthyphro-grc1-855af2e1a7fd",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.euthyphro.euthyphro-grc1-855af2e1a7fd",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.b484c04a199a2104189fb327ddeb79e85e1863477e0d7e658d5bb7670d11bb37",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "euthyphro-grc1-855af2e1a7fd.json",
+      "media_type": "application/json",
+      "byte_size": 85424,
+      "sha256": "b484c04a199a2104189fb327ddeb79e85e1863477e0d7e658d5bb7670d11bb37",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ada4408df089a352396653d3e8fbc4475102814b31d14500cf9e77279f759e62",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 59184,
+      "sha256": "ada4408df089a352396653d3e8fbc4475102814b31d14500cf9e77279f759e62",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.euthyphro-grc1-855af2e1a7fd.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-grc1-855af2e1a7fd/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-grc1-855af2e1a7fd/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-grc1-855af2e1a7fd/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-grc1-855af2e1a7fd/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/euthyphro/expressions/retained-euthyphro-grc1-855af2e1a7fd/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

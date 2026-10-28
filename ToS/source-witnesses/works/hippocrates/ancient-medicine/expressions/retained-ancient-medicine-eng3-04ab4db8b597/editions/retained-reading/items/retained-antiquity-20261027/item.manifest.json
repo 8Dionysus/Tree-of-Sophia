@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.ancient-medicine.ancient-medicine-eng3-04ab4db8b597",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.ancient-medicine.ancient-medicine-eng3-04ab4db8b597",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.87c607b1ce30ce5c968cf3e26640ef980a8ff15475eaf6cf3d29e4bc298a7c1f",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "ancient-medicine-eng3-04ab4db8b597.json",
+      "media_type": "application/json",
+      "byte_size": 54753,
+      "sha256": "87c607b1ce30ce5c968cf3e26640ef980a8ff15475eaf6cf3d29e4bc298a7c1f",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3994cc387bfb24b9cdf06769c926935d0ceea32f1afa2e5389617ac0dc1ead00",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 40345,
+      "sha256": "3994cc387bfb24b9cdf06769c926935d0ceea32f1afa2e5389617ac0dc1ead00",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.ancient-medicine-eng3-04ab4db8b597.20261027",
+  "rights_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-eng3-04ab4db8b597/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-eng3-04ab4db8b597/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-eng3-04ab4db8b597/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-eng3-04ab4db8b597/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-eng3-04ab4db8b597/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

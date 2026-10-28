@@ -6,9 +6,13 @@ It does not admit a source, translation, interpretation or canon claim. The
 new curated records live with `ToS/source-witnesses/`; journey questions live
 with `ToS/research-packets/public-prototypes-20261026/`.
 
-The initial selection contains complete German and English *Zarathustra*,
-Greek and English *Meno*, Rackham's English *Nicomachean Ethics*, and Fowler's
-English *Apology*. Gutenberg's electronic editions and the pinned Perseus
+Both profiles select the same 50 works: German and English *Zarathustra* and
+all 49 books in the retained Antiquity collection, in 96 retained versions.
+The six previously published reading layers remain available with their
+original IDs and revisions. Four of those layers describe editions also in
+the retained collection; they are distinct reading representations, not four
+additional historical editions. The complete selection has 102 reading layers.
+Gutenberg's electronic editions and the pinned Perseus
 repository revision are identified in `acquisition-index.v1.json` and the
 individual source metadata snapshots. These are the selected electronic
 representations, without a claim to critical-edition or transcription accuracy.
@@ -31,7 +35,7 @@ tos-access public-corpus-build \
   --source-root /absolute/Tree-of-Sophia \
   --selection access/public-corpus/selection.v1.json \
   --output /absolute/fresh-public-corpus \
-  --max-input-bytes 67108864 --max-output-bytes 16777216 --max-seconds 120
+  --max-input-bytes 536870912 --max-output-bytes 268435456 --max-seconds 180
 ```
 
 Only explicitly public, publication-authorized packets covered by the selected
@@ -53,6 +57,61 @@ steps, recorded separately in each item's provenance. The public snapshot is
 native-generated; the metadata inventories themselves do not claim native
 source-catalog admission. That protected owner check needs its own issued
 invocation and stage ticket.
+
+`prepare_retained_corpus.py` imports the explicitly selected 96 saved reading
+JSON files from the separate Antiquity worktree. It retains their exact bytes
+as physical source items and records their upstream TEI or historical-page
+provenance separately. Missing upstream TEI bytes are not represented as
+retained files. Reading text, notes, headings and variant information are
+carried into source-bound native units; large sections are split without
+discarding text. The companion `retained-library-map.v1.json` contains only
+navigation metadata. It connects the existing collection material IDs to
+the native work, version and section IDs without renaming saved graph nodes.
+
+Completeness here means all sections of the saved reading representations.
+It does not certify transcription quality against scans or critical editions.
+Historical Wikisource transclusions retain their recorded proofreading limits.
+
+## Editorial marks in the reader
+
+`editorial-annotations.v1.json` is bounded presentation metadata, generated
+from the exact source and immutable reading-layer bytes by
+`python3 access/public-corpus/prepare_editorial_annotations.py`. It does not
+rebuild or change the public corpus. It records the source digest, version,
+layer digest, unit, Unicode-code-point range and exact text for every displayed
+mark. The reader applies a mark only when all these bindings still match.
+
+The pinned Rackham TEI maps 696 source `<note>` elements to their own units;
+an ambiguous note makes generation fail. The retained Athenian Constitution
+HTML maps 56 editorial additions and 26 gap marks; the retained Greek Ethics
+HTML maps 80 addition, deletion and gap spans. Three ambiguous Greek Ethics
+spans were rejected and are not displayed as editorial marks. The retained
+HTML is evidence of its own markup, not proof of an editor's identity, a full
+critical apparatus, or a semantic judgment. Text and existing selectors stay
+unchanged; quoted selected ranges identify any mapped editorial material.
+
+The provisional source-visible comparison of one phrase in Adams's
+*On the Sacred Disease* is separately recorded in
+`ToS/research-packets/public-prototypes-20261026/reader-textual-variants.v1.json`.
+The reader preserves and attributes the digital reading while showing the
+different reading in the linked printed witness. This is not a complete
+collation or a replacement text layer.
+
+The software reader consumes the byte-identical derived companion
+[`reader-textual-variants.v1.json`](reader-textual-variants.v1.json), together
+with [`contained-reading-targets.v1.json`](contained-reading-targets.v1.json).
+Their authored owners remain the same-named packets under
+`ToS/research-packets/public-prototypes-20261026/`. Refresh only these bounded
+metadata projections, then verify their byte parity:
+
+```sh
+python3 access/public-corpus/prepare_reader_companions.py --write
+python3 access/public-corpus/prepare_reader_companions.py
+```
+
+This route does not rebuild texts or change references. Software builds consume
+the derived files under Access and do not require the authored research-packet
+checkout.
 
 ## Morphology and dictionaries
 

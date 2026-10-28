@@ -1,0 +1,117 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-bonorum-et-malorum-lat2-3c7d3cbaeb78",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-finibus-bonorum-et-malorum-lat2-3c7d3cbaeb78.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi048/phi0474.phi048.perseus-lat2.xml",
+    "file_ref": "tos.file.sha256.ba1e84d72097c923f7ad148ec44274c5941cc311b49bfe9b2f30905a75e4fbe5",
+    "byte_size": 1086221,
+    "sha256": "ba1e84d72097c923f7ad148ec44274c5941cc311b49bfe9b2f30905a75e4fbe5"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-finibus-bonorum-et-malorum-lat2-3c7d3cbaeb78",
+    "record_sha256": "0bdd663a7a87e3aeecf698f04e6f90d6dcfd29b474fab8aa8c865965d2079368",
+    "record": {
+      "id": "de-finibus-bonorum-et-malorum-lat2-3c7d3cbaeb78",
+      "language": "la",
+      "title": "Латинский · Теодор Шихе",
+      "credit": "Издание: Теодор Шихе",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi048/phi0474.phi048.perseus-lat2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Scripta Quae Manserunt Omnia, Fasc. 43",
+          "De Finibus Bonorum et Malorum Libri Quinque"
+        ],
+        "dates": [
+          "1915"
+        ],
+        "places": [
+          "Leipzig"
+        ],
+        "publishers": [
+          "Teubner"
+        ],
+        "scans": [
+          "https://babel.hathitrust.org/cgi/pt?id=umn.31951002299499v&seq=20"
+        ]
+      },
+      "item": "tos.item.cicero.de-finibus-bonorum-et-malorum.la-perseus-phi0474-phi048.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.3c7d3cbaeb78489fcf1e3571bc17e7052e94c43aed065b22f57d3faa266fb72e",
+      "sha256": "3c7d3cbaeb78489fcf1e3571bc17e7052e94c43aed065b22f57d3faa266fb72e",
+      "representationSha256": "08b3ccb597de5dfa5e6f464ea30ee4d9f0d3fff7240ee367566cd72a6bd16144",
+      "sourceRef": "ToS/source-witnesses/works/cicero/de-finibus-bonorum-et-malorum/expressions/la-perseus-phi0474-phi048/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi048.perseus-lat2.xml",
+      "sectionCount": 443
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-finibus-bonorum-et-malorum-lat2-3c7d3cbaeb78",
+    "legacy_source_sha256_claim": "3c7d3cbaeb78489fcf1e3571bc17e7052e94c43aed065b22f57d3faa266fb72e",
+    "legacy_representation_sha256_claim": "08b3ccb597de5dfa5e6f464ea30ee4d9f0d3fff7240ee367566cd72a6bd16144",
+    "retained_json_payload_sha256": "ba1e84d72097c923f7ad148ec44274c5941cc311b49bfe9b2f30905a75e4fbe5",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "de Finibus Bonorum et Malorum",
+      "Scripta Quae Manserunt Omnia, Fasc. 43",
+      "De Finibus Bonorum et Malorum Libri Quinque"
+    ],
+    "authors": [
+      "M. Tullius Cicero"
+    ],
+    "editors_or_translators": [
+      "Theodor Schiche"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-finibus-bonorum-et-malorum",
+    "expression_ref": "tos.expression.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-bonorum-et-malorum-lat2-3c7d3cbaeb78",
+    "edition_ref": "tos.edition.retained.antiquity.de-finibus-bonorum-et-malorum.de-finibus-bonorum-et-malorum-lat2-3c7d3cbaeb78",
+    "legacy_book_title": "О пределах блага и зла",
+    "legacy_credit": "Издание: Теодор Шихе",
+    "publication": {
+      "titles": [
+        "Scripta Quae Manserunt Omnia, Fasc. 43",
+        "De Finibus Bonorum et Malorum Libri Quinque"
+      ],
+      "dates": [
+        "1915"
+      ],
+      "places": [
+        "Leipzig"
+      ],
+      "publishers": [
+        "Teubner"
+      ],
+      "scans": [
+        "https://babel.hathitrust.org/cgi/pt?id=umn.31951002299499v&seq=20"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi048/phi0474.phi048.perseus-lat2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 443,
+    "block_count": 621,
+    "apparatus": {
+      "headings": 0,
+      "notes": 1829,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

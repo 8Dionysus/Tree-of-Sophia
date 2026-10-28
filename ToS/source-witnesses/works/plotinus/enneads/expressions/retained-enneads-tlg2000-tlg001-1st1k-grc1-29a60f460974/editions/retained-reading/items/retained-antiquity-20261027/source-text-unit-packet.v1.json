@@ -1,0 +1,3153 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-c5080b664aab4fa28dffa339ba15363e",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.enneads",
+    "expression_ref": "tos.expression.retained.antiquity.enneads.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974",
+    "edition_ref": "tos.edition.retained.antiquity.enneads.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974",
+    "item_ref": "tos.item.retained.antiquity.enneads.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974",
+    "file_ref": "tos.file.sha256.d6b6f65aad095bd7697b96d053860eb7a003faa4eab73418503d73b4e8a91ed0",
+    "file_sha256": "d6b6f65aad095bd7697b96d053860eb7a003faa4eab73418503d73b4e8a91ed0"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+    "language": "grc",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-e93249f71001491b9636b4ee7658dcfe",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-ea8bea35a22940eaaeb4e03465ad48b3",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 1200895,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b6f5365db4c24779a19ee7a09b9a80c1",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 15247,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e11c472401a5a2c4268fd5bbd15956bc2cb4b50148d91a1305860e1ffa4a5fad",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-70f42e4222224df18d327d2e6f612e37",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 15247,
+        "end": 27218,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b15742af6f4b0152b7b0252a0b66d4b492bf28f6ff8c06cf09c40135a3654f82",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-47d9f28852cb414db56abf8162bf9826",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 27218,
+        "end": 33919,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a7e48b6fc21cfa6c598c24b1500af84d92460186fd734f402d56f9bf185ddf72",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c8f946b8fade4b26b635337d5cb18e1c",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 33919,
+        "end": 59423,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "dcf50428b5e6315f7db294e87361ac00652e405e833035f380a656144cd92279",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1db0df40476f45d1abf1c7062f95ada1",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 59423,
+        "end": 66023,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4514cd1c50b984922fa3c5f1d9f0d48173f7c7245b0070a31b1ab96a81fc6974",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e4ed993fb99e477cb52ee7a7abcdc314",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 66023,
+        "end": 83951,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "137793e2214a38b2a0974a926dde67ff8656ef55ea4ed559cdedfb7b9922f018",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c1b05fea35d84010b56821d256e4edc3",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 83951,
+        "end": 87238,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6ee604895dbae17b8ff5680a3ea9d45428772a0dfe884f4a7c4004cfd5bcec4f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b72b8b957cbf41be8b5e1beda13bcee5",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 87238,
+        "end": 111398,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d1533f81dab78e1c12ba74150374fac451a8697361a3b342c4a3715756ce84a5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e57514f6128f4982a81b2afc01c29507",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 111398,
+        "end": 112408,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fcf68415c899a4de64cefa5f24add8ebb46603ed3c7ace6f2d390a13e00c2983",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6a98db3ee54042d383cd44133e2dddca",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 112408,
+        "end": 127828,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1170e52678573a26c45811795c4eb03fee6eee93b78351ed9f67bda5d603b790",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0e7f3284eca242098edbe536fb8e9a62",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 127828,
+        "end": 133193,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9ab7c758454c420fde166dddad2c5e4e544ed7289abb0b540024706517286f27",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0d2ebefd696c4e06bc0bac1448401595",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 133193,
+        "end": 158795,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ce9e7aedede4dd1f875cc415f0ed202a52e3e8ced993572251ac733e058eca46",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cfea205ae4d4453abc70e9dfe9be71f5",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 158795,
+        "end": 181938,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "88a1bf36c21dd9d5e499adb81c46a98d0383700f0d9088a09d611441e6005f10",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5e8374bc6ca9493e954d5fdf4cfe1e06",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 181938,
+        "end": 190694,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "20754d9820035adc58ebb2f7563242721991becd78ffa51920ff3f0aab460636",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-367eb7697acc4b96893df35ca9befc4c",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 190694,
+        "end": 197163,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4599aff1498592ac9fe09552173d4056f5b9a538950061b98a031751129e025f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-775d6c3c42f74d78a52234687847ba23",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 197163,
+        "end": 203209,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "80ad21496891986fc6426764e88b03432385f5858e1af344a347902bdff5dfe6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0803425c342c435cad56200cd4968482",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 203209,
+        "end": 206907,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ffaadde582f3d25d01d440a877c7d95757a8ddfc10db2d7bc650cfea93fa6bbf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4b8677e2de7f48d0a77f3688f16e4a09",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 206907,
+        "end": 237471,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "41a3ab3b5c399c08014360faf88cc3d7ab5752ff7870826c8c37d41fe699ebdd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ac00cb3da5714bb9a0a44225e0b3441b",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 237471,
+        "end": 248898,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d0ee1581d50529dd428233d03050c1a58e4a731bf5ad0653fea0193b9a528983",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2d39074210d44ab0a3385e3850445ed2",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 248898,
+        "end": 264316,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "811fa8f4dda4979013a63a05d1d09e59c57274594358424cfbafdd43ab547297",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-139f961c7bd7415491b89032005fd2a2",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 264316,
+        "end": 294835,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "47f6863fd2fbc8e74af19d43e3790495fc9b8bb989f7ed8cf59f08db231f7de5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a4919864442e44579b4f233ca87b4232",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 294835,
+        "end": 302189,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "143eb8716ab755dedce434e47edaf73f6f8d985cc6ffe70304a3480362b081dc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6529288089844049869a039abc577976",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 302189,
+        "end": 315606,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8b3499df48a9bb8da99951bb336417c5c5a3fe84bfbd0373a41616533172dd1a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-319f6b2c38f047df988c19c0bfae56e3",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 315606,
+        "end": 324979,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b36af0506e65d5e93d107ee3e53449611805e006b829a02248cc3b4ae935b057",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6c56af9cf1474abab5557539019b5f09",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 324979,
+        "end": 344892,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e28c2c3ae732e0cd415bb0ceb148c77915d65ab59f6b60c26d487ddf031c1100",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e1e433e4ab094f07a311cfaa02284f90",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 344892,
+        "end": 375421,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "81f2bb65ee26f8228304d7c35c2a19140fac4dfd64d1f0c8d5b21b3b227ae009",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-833e7422a4dd4724b9801e3b53f3be40",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 375421,
+        "end": 387722,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "31296367a025f06efdcf82a6f7745e8dc0eb94774a70f571d05e5fa8934958e1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4db650f9f3254e2fbc7a20bfdedf5087",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 387722,
+        "end": 418320,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "615b9638af84256d6671292617070b8c2a28b2180ba3f2d468573e15fc93aebe",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-603caea4b35e4ff5a396bfd205553ae5",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 418320,
+        "end": 420419,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ceeecbb35c08f2265c95ccb82d5a0b1a27e3e5270e5cf563c963ff080cc2829c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5df1a5aa612849e1946ae51affbb0560",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 420419,
+        "end": 442170,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "be4d698a1b0f56e48e219b33b727659f62792950fdf94dbfa0de3a216c977388",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fe726e7c58a442d591fb58d7b6e5273e",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 442170,
+        "end": 448245,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "759796033ead62d540b5828aec9e33455ab0e6c6020a6ad2f0dd043c9bb9b6b1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9e1638409ea140c7a3905dd721daac5c",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 448245,
+        "end": 449398,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7b6955d660b4615992be81f61cfd692f320e324736fcf2e3293fd28e775744f7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c725e0eebb5b415090a0c9ce172a27f5",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 449398,
+        "end": 456335,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e176f0ff574bbba812fef6df12ba735339d11c8482bdd85ab746f6f858433ed6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-04c6e3aae3204c41a0ed1fb9e46a3fd8",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 456335,
+        "end": 486919,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "efab7d4b5439cb02def1622c4d03279e67b6c9278075a2b14afb4f7fb4e85343",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-104e6e7518db4265bfd600522456ef29",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 486919,
+        "end": 511973,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0650c245829a769e6d4e907dfe3097c7b3e5eb82339a1f04b6a92c2212ac0896",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-90e9b0b64c614ebb917c53f0eb2388d9",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 511973,
+        "end": 542549,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bdb561f3675d5b2581a27bfe7f19fa7fd1610519c3b84b61106329535856b1ce",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-43758d170c674117aad01938eddb4908",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 542549,
+        "end": 573154,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "081b8adf4abfe77e43c178479fd7c9bc1cb848f2809e7b90be0148b631933682",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-42ea208dc00a4603941d6e4b623ae0ed",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 573154,
+        "end": 592138,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7e90e1761771f9f7506f67ada40bbb55917f1ac006de1c7d98d1872826aa7ee6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6a60f4ac0cc24e549e04982c80738a3a",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 592138,
+        "end": 611100,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "33ef17023ee9464c0d6be1bfc61f27920bd812baa03dd334b02ce5caab351029",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bcc1a478169d41dc9b88f34a406990ea",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 611100,
+        "end": 618613,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f263327019e1e875346c059180c833819dc517fa7d0ad1e09c02b34c2a4ebc41",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-93d22eae61ce4a899ea38a5b7f24bde0",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 618613,
+        "end": 649246,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7959039e9f8c203e0da6936891800491d98d9efad53141d5ef51606957fbb39c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3ec99821b3e6402ab9ddffae834661be",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 649246,
+        "end": 650824,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f749690ed209e5b58a21bf8cd997d99c9bcf31c96def6bf2092d447d9eb5dc30",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8f03c4386cf748b18fc90ab39322dccc",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 650824,
+        "end": 666419,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "90b793b03879016b522531e1ddae4501f378b316d3a3860ddabc76e46b343f65",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-546dcf3c9ad24686be03028ebed1ffea",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 666419,
+        "end": 673693,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "67781951fefcd416d7e11919bed41b7c135ea973c42ee54e01a0434f5013f958",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-febc0a6e91934c1587c5f209a440f6d1",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 673693,
+        "end": 695107,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ab8fa50e106a5efe12c58bc50cc365f3d74f0c0a2d5c55e5a8cfcaa77eead856",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7d2f33c47888481ca4c8e8a7bb418b91",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 695107,
+        "end": 698331,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7a7a148d5ec04feaaa4ca4d02d5a8f66fee733159f8fb93616e5d96cecc5fc72",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3bca1dbc70bf45ecab75d4d053c84d00",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 698331,
+        "end": 728803,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c52678a46b0fc887fe4a64c50328d3f9446f9e51267a1de1a1a11b65ae7d5b7f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0de189022bea429195e3ece76f51200c",
+      "ordinal": 49,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 728803,
+        "end": 733490,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b4ca92b7b624b3e6656b1bd87283b91fcfee9c93d1dfc438178fb4ee916f2627",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ef4a9de9f0934af0bf1e71dd91e86956",
+      "ordinal": 50,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 733490,
+        "end": 738397,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b5adfe6db23e480829a28baaa4d8a7d1c3c0406181370412af958950825d7caf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e311ca2544f140399db6af45d92280c9",
+      "ordinal": 51,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 738397,
+        "end": 762642,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2f0885519c4ca8b3fb60b79401909cb60876f8578c286802abfa0ee5176c4a88",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c8d1d9c52c1c452f8fa8ddb422d7f7ec",
+      "ordinal": 52,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 762642,
+        "end": 770429,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "402cdfbbee2b6e63809174109e3f55cb8e2068bdf943501249ddcd735cb38c04",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f9f1f87f50654bbfa5f3de119a992b9e",
+      "ordinal": 53,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 770429,
+        "end": 774237,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d649837916e640920c6871d248449088695fd8d8a887353b44ed0fbd44ee29bb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0334059496de4393a24fa5c6e44fc884",
+      "ordinal": 54,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 774237,
+        "end": 799660,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f9f48ba973da6cedc3aed577809c64fd4d90102f641a6ef18757470f0d5324f4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e518d7b3f15a4114b9671722f531bd11",
+      "ordinal": 55,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 799660,
+        "end": 816925,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "262d7ad7c1bb09c16cf411bdc0a5e7c04f741f288b0da6b3859e0b116cdaffc0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2e66f5511fcf4b0ba42181ea9743a22c",
+      "ordinal": 56,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 816925,
+        "end": 847734,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bb2b5041f7009e3482f6eabf88f692af940eb9355e2618c828645a2eb37397e5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cb8d4bbb56f848f48d455a3060055dd0",
+      "ordinal": 57,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 847734,
+        "end": 870603,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "695a4c478d7a518a5fae19c035fbbebc473cde25a5f08162cc5c4924258cffd8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2229201a6a224f98aad1b77940b5e381",
+      "ordinal": 58,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 870603,
+        "end": 901238,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6548a2746141b1f20f6f29ef69f1a5f2cacd9a904649b97b3ef6d0ec15c6034b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-53e7dbe59eba4acb92184cf81e317ae0",
+      "ordinal": 59,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 901238,
+        "end": 909965,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a3ac8b7c171f78c1e9813a15b577efb2f6bf66905756c8cc8f8b2989e05690c8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a7645661e9544b7abbf4538659120e10",
+      "ordinal": 60,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 909965,
+        "end": 940655,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "de9695666596a249ffcd5c449145cbc01a76fdda96441c32fcc86944f0d102b3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1a3adc6d745940ff9b69ea6947cbc939",
+      "ordinal": 61,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 940655,
+        "end": 962178,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "123a273b9259f17f6dddb8d18a3e20fe3d85fdad74088d3131fcbdaabb549f69",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-19012f9740ed42be9e81d0820b63d71f",
+      "ordinal": 62,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 962178,
+        "end": 992694,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4c7ea2a9f6f1651bd886de0cb457a6fada2e3e62f96bb94940a0078f584384db",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b3310b9d821d42feba841093a6322ca3",
+      "ordinal": 63,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 992694,
+        "end": 994140,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "74b86163d5f683fc8a4a76ecd13f70de826d9f89a185bbc7c52ecd1d7a1d3214",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-88b801f2d51645f1b6c3f96a3833f944",
+      "ordinal": 64,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 994140,
+        "end": 1014722,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bc139c4c441d3c82da5616c4438710698c67813e621cd7b84b1ef733fcad55b7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6a7e0c84dcd3447cb64a7a921b5ec927",
+      "ordinal": 65,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1014722,
+        "end": 1045270,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "97eb0f48cd6e244b9251f1e82a2befa446880dd08b779447a42a58b5bd2d493a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7a43ae30219a4b11b0d0fe13e7193997",
+      "ordinal": 66,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1045270,
+        "end": 1052737,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9f752b8d5527d008a5d034bcd7fca6d94a5a5f379506e85d633e7591ea9634b0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a2a2bab4926e4342a45f00b2e6875001",
+      "ordinal": 67,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1052737,
+        "end": 1083365,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "582cb16e36c2dc7b6b59e979b71a6654e85cbfe6e1fb3848bb2680085df8fe28",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8bd27ac52387413ea82d00fa4ba38d72",
+      "ordinal": 68,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1083365,
+        "end": 1113826,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "77e460d2a835ee4c992bfddc3520b2a820e79d7df114714f13023ffff14785a8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-72a4d77648c448f08c8a2928eaf07de8",
+      "ordinal": 69,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1113826,
+        "end": 1131940,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "26031947124f27637e486ffafa7a1c615117e9799f12f13ce1a814b7ba422ed5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ff5c9a559c3c4e0fb88d58fe0622f771",
+      "ordinal": 70,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1131940,
+        "end": 1162363,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e95227c347d2d4a28c70c523b4a751dd5372895a8aa6c46f61f48717acdab952",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-23e1c0b7ba78422b8e536a033a805c5a",
+      "ordinal": 71,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1162363,
+        "end": 1174970,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7462f30aac47ed1f3cff1b13aa1756c9feca1910a1e9886f8fc03bd097a76686",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bd35b22d1f7b4916b858b9aeef739d7b",
+      "ordinal": 72,
+      "text_layer_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "ec43f81d4987f571d1dc70c516bb607c3681c15f6d76a0587ac03a422cb03052",
+      "selector": {
+        "type": "text_position",
+        "start": 1174970,
+        "end": 1200895,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1dd78447ac8ec75db7811130b3dd4bf7e654770d21c943c6404f9825e5a2db67",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2000/tlg001/tlg2000.tlg001.1st1K-grc1.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-554c89306e184a79a037a3f09a3533b7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b6f5365db4c24779a19ee7a09b9a80c1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1e6e18c558cf4eb7abe2b2d37a4d3ed5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-70f42e4222224df18d327d2e6f612e37"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-40382bcad6714a26911833b870be642d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-47d9f28852cb414db56abf8162bf9826"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dbcd7ed2bdb345bc979f62ad63762438",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c8f946b8fade4b26b635337d5cb18e1c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-62393ce6d6ce49428c6aa8517f37daa3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1db0df40476f45d1abf1c7062f95ada1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e4ed993fb99e477cb52ee7a7abcdc314"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-79b5d7bfe1dd4a459dc3558eefb34edf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c1b05fea35d84010b56821d256e4edc3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6a06b7899e894204b3ff53edb5cdb6c0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b72b8b957cbf41be8b5e1beda13bcee5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-187c382980254398930341cf52ecbdde",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e57514f6128f4982a81b2afc01c29507"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7172a09e00704c1fa9e03b6b6955bd5d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6a98db3ee54042d383cd44133e2dddca"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1781fc53f1e143f5979ffa46b3fa2774",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0e7f3284eca242098edbe536fb8e9a62"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-02b10b2531a64d848738cd1cc16d7c09",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0d2ebefd696c4e06bc0bac1448401595"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e1fd3eb361644bcaa7aa3ecd58597b0e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cfea205ae4d4453abc70e9dfe9be71f5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-649a3040c0c446568685fb5f0c5f827e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5e8374bc6ca9493e954d5fdf4cfe1e06"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ea35e93f6a20400b9956644690bfabac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-367eb7697acc4b96893df35ca9befc4c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-44beb0d46a66423cbe0dfe475909dea0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-775d6c3c42f74d78a52234687847ba23"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-59c2ae671ab147a3910f421c7ee06e7d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0803425c342c435cad56200cd4968482"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a5ef340211bd4989b46c13b68774a5ca",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4b8677e2de7f48d0a77f3688f16e4a09"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c9c2d7f9215f414cb5038f21d155307f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ac00cb3da5714bb9a0a44225e0b3441b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c7de283582c3448fb84f135df92d67f3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2d39074210d44ab0a3385e3850445ed2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-40427ce53d084407b0900cb57591b1c0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-139f961c7bd7415491b89032005fd2a2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-458051c1bb3a42c4bf17945531f8564d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a4919864442e44579b4f233ca87b4232"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8d38c587ab1d454c8d0e54716e45dcb6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6529288089844049869a039abc577976"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-03fa7d544a4b49989d4d5f816c9b148a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-319f6b2c38f047df988c19c0bfae56e3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fa50ab686231443a83ebe66f8fc8e1db",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6c56af9cf1474abab5557539019b5f09"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-462d0758e2b94d0296894a2b153b5d1f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e1e433e4ab094f07a311cfaa02284f90"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b3f33d432a6947c5bdc01b93bf588274",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-833e7422a4dd4724b9801e3b53f3be40"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9e587a0df8934ad4a43c467416ca11ba",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4db650f9f3254e2fbc7a20bfdedf5087"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1f475fc3ca6b49a59dd84a102d30360f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-603caea4b35e4ff5a396bfd205553ae5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fc1eb340739749cbb9fb410d19488ab4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5df1a5aa612849e1946ae51affbb0560"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-50060502427249418eddd059fa2acd9b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fe726e7c58a442d591fb58d7b6e5273e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-574c3122ab5e4565b9c82a4620ceef36",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9e1638409ea140c7a3905dd721daac5c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e7af0d0bddf2467ea3c86dc57cac9501",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c725e0eebb5b415090a0c9ce172a27f5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-899d3a2816a24d56af03e44fc43c6c1c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-04c6e3aae3204c41a0ed1fb9e46a3fd8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b06dcbb269074e058ba7f9ea9fdf038e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-104e6e7518db4265bfd600522456ef29"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-16f87eaf5a094bf49036a16015f671a0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-90e9b0b64c614ebb917c53f0eb2388d9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9ba3d18d79e34f5bbdedccf7b4e626b3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-43758d170c674117aad01938eddb4908"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c72f131746ef4009b119a735c89d159c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-42ea208dc00a4603941d6e4b623ae0ed"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-699084cc03b0484794b8e8dcc5822772",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6a60f4ac0cc24e549e04982c80738a3a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-208b5c010e73497e882b47a5ede36a50",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bcc1a478169d41dc9b88f34a406990ea"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-65e3955634a44c65a0b412f74f9a5f8a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-93d22eae61ce4a899ea38a5b7f24bde0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6ddae0c004db43d8aa7c593b5c7ef029",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3ec99821b3e6402ab9ddffae834661be"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-24c0f42ae0a14e868bcc92ef0e802341",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8f03c4386cf748b18fc90ab39322dccc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e4c0922fd4d44453873de592d9b5a57f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-546dcf3c9ad24686be03028ebed1ffea"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-201b129612c349a28ba476fcb817ebad",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-febc0a6e91934c1587c5f209a440f6d1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4e006159bd45411baca3ff593b9a7a50",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7d2f33c47888481ca4c8e8a7bb418b91"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f2ea4dd2168843e391339cea93c54169",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3bca1dbc70bf45ecab75d4d053c84d00"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7dfaee90be3e436db1eb91d1066980f2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0de189022bea429195e3ece76f51200c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1ddfb759991c42629b1578f86b67a1f3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ef4a9de9f0934af0bf1e71dd91e86956"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6260a5c8bb114934baa0dad5bfa6b230",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e311ca2544f140399db6af45d92280c9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-82bb57ae5f6f404aa37833ffa4833973",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c8d1d9c52c1c452f8fa8ddb422d7f7ec"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ad73663789d84e59bf611fc791892bb7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f9f1f87f50654bbfa5f3de119a992b9e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0c90a6a607e04e7ba75e81ab2afde3f2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0334059496de4393a24fa5c6e44fc884"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-78c83af083d847f0be7570689d2fba21",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e518d7b3f15a4114b9671722f531bd11"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1b3df63d4db14477888a008df211f3a0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2e66f5511fcf4b0ba42181ea9743a22c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2e63a2b8d8d74b998d0490772bdf011e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cb8d4bbb56f848f48d455a3060055dd0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-adb51d714b374189b71c832368a1af0e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2229201a6a224f98aad1b77940b5e381"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e28dd5cd3c0f455aa1911dd21f43101a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-53e7dbe59eba4acb92184cf81e317ae0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b01fe8ab08ca41959641a72a36e1cb37",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a7645661e9544b7abbf4538659120e10"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-aee48f1922904cd5bfe1aad8b5088511",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1a3adc6d745940ff9b69ea6947cbc939"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c4e4d7e23bab4aabb970e91744fdac57",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-19012f9740ed42be9e81d0820b63d71f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bf14894d00d04f0587f7ba63c90893e8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b3310b9d821d42feba841093a6322ca3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0c9408c4f0a94ee7a3ef32124d5e46e2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-88b801f2d51645f1b6c3f96a3833f944"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-70589081412249f3b7b74cb162f4a054",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6a7e0c84dcd3447cb64a7a921b5ec927"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7e323d9eb7c24f2ebe2e97b0e4ee8876",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7a43ae30219a4b11b0d0fe13e7193997"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c01db527c8d14542b8fa7a99a282d272",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a2a2bab4926e4342a45f00b2e6875001"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1231f1327bfb4744ba9a8f66545903d7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8bd27ac52387413ea82d00fa4ba38d72"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9401c5fb7eb8472c82f0ff86a9a4660f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-72a4d77648c448f08c8a2928eaf07de8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c3f747e47edd419e9483bd9ef3ddd343",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ff5c9a559c3c4e0fb88d58fe0622f771"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-efb208a287df4e8fa86c3a59d4546281",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-23e1c0b7ba78422b8e536a033a805c5a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-899ace30b8b640849cc0f16c588d17b7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bd35b22d1f7b4916b858b9aeef739d7b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-08b58721b9e34fa88c21080276e37fe7",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-e93249f71001491b9636b4ee7658dcfe",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-554c89306e184a79a037a3f09a3533b7",
+        "tos.text-unit.sid-1e6e18c558cf4eb7abe2b2d37a4d3ed5",
+        "tos.text-unit.sid-40382bcad6714a26911833b870be642d",
+        "tos.text-unit.sid-dbcd7ed2bdb345bc979f62ad63762438",
+        "tos.text-unit.sid-62393ce6d6ce49428c6aa8517f37daa3",
+        "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+        "tos.text-unit.sid-79b5d7bfe1dd4a459dc3558eefb34edf",
+        "tos.text-unit.sid-6a06b7899e894204b3ff53edb5cdb6c0",
+        "tos.text-unit.sid-187c382980254398930341cf52ecbdde",
+        "tos.text-unit.sid-7172a09e00704c1fa9e03b6b6955bd5d",
+        "tos.text-unit.sid-1781fc53f1e143f5979ffa46b3fa2774",
+        "tos.text-unit.sid-02b10b2531a64d848738cd1cc16d7c09",
+        "tos.text-unit.sid-e1fd3eb361644bcaa7aa3ecd58597b0e",
+        "tos.text-unit.sid-649a3040c0c446568685fb5f0c5f827e",
+        "tos.text-unit.sid-ea35e93f6a20400b9956644690bfabac",
+        "tos.text-unit.sid-44beb0d46a66423cbe0dfe475909dea0",
+        "tos.text-unit.sid-59c2ae671ab147a3910f421c7ee06e7d",
+        "tos.text-unit.sid-a5ef340211bd4989b46c13b68774a5ca",
+        "tos.text-unit.sid-c9c2d7f9215f414cb5038f21d155307f",
+        "tos.text-unit.sid-c7de283582c3448fb84f135df92d67f3",
+        "tos.text-unit.sid-40427ce53d084407b0900cb57591b1c0",
+        "tos.text-unit.sid-458051c1bb3a42c4bf17945531f8564d",
+        "tos.text-unit.sid-8d38c587ab1d454c8d0e54716e45dcb6",
+        "tos.text-unit.sid-03fa7d544a4b49989d4d5f816c9b148a",
+        "tos.text-unit.sid-fa50ab686231443a83ebe66f8fc8e1db",
+        "tos.text-unit.sid-462d0758e2b94d0296894a2b153b5d1f",
+        "tos.text-unit.sid-b3f33d432a6947c5bdc01b93bf588274",
+        "tos.text-unit.sid-9e587a0df8934ad4a43c467416ca11ba",
+        "tos.text-unit.sid-1f475fc3ca6b49a59dd84a102d30360f",
+        "tos.text-unit.sid-fc1eb340739749cbb9fb410d19488ab4",
+        "tos.text-unit.sid-50060502427249418eddd059fa2acd9b",
+        "tos.text-unit.sid-574c3122ab5e4565b9c82a4620ceef36",
+        "tos.text-unit.sid-e7af0d0bddf2467ea3c86dc57cac9501",
+        "tos.text-unit.sid-899d3a2816a24d56af03e44fc43c6c1c",
+        "tos.text-unit.sid-b06dcbb269074e058ba7f9ea9fdf038e",
+        "tos.text-unit.sid-16f87eaf5a094bf49036a16015f671a0",
+        "tos.text-unit.sid-9ba3d18d79e34f5bbdedccf7b4e626b3",
+        "tos.text-unit.sid-c72f131746ef4009b119a735c89d159c",
+        "tos.text-unit.sid-699084cc03b0484794b8e8dcc5822772",
+        "tos.text-unit.sid-208b5c010e73497e882b47a5ede36a50",
+        "tos.text-unit.sid-65e3955634a44c65a0b412f74f9a5f8a",
+        "tos.text-unit.sid-6ddae0c004db43d8aa7c593b5c7ef029",
+        "tos.text-unit.sid-24c0f42ae0a14e868bcc92ef0e802341",
+        "tos.text-unit.sid-e4c0922fd4d44453873de592d9b5a57f",
+        "tos.text-unit.sid-201b129612c349a28ba476fcb817ebad",
+        "tos.text-unit.sid-4e006159bd45411baca3ff593b9a7a50",
+        "tos.text-unit.sid-f2ea4dd2168843e391339cea93c54169",
+        "tos.text-unit.sid-7dfaee90be3e436db1eb91d1066980f2",
+        "tos.text-unit.sid-1ddfb759991c42629b1578f86b67a1f3",
+        "tos.text-unit.sid-6260a5c8bb114934baa0dad5bfa6b230",
+        "tos.text-unit.sid-82bb57ae5f6f404aa37833ffa4833973",
+        "tos.text-unit.sid-ad73663789d84e59bf611fc791892bb7",
+        "tos.text-unit.sid-0c90a6a607e04e7ba75e81ab2afde3f2",
+        "tos.text-unit.sid-78c83af083d847f0be7570689d2fba21",
+        "tos.text-unit.sid-1b3df63d4db14477888a008df211f3a0",
+        "tos.text-unit.sid-2e63a2b8d8d74b998d0490772bdf011e",
+        "tos.text-unit.sid-adb51d714b374189b71c832368a1af0e",
+        "tos.text-unit.sid-e28dd5cd3c0f455aa1911dd21f43101a",
+        "tos.text-unit.sid-b01fe8ab08ca41959641a72a36e1cb37",
+        "tos.text-unit.sid-aee48f1922904cd5bfe1aad8b5088511",
+        "tos.text-unit.sid-c4e4d7e23bab4aabb970e91744fdac57",
+        "tos.text-unit.sid-bf14894d00d04f0587f7ba63c90893e8",
+        "tos.text-unit.sid-0c9408c4f0a94ee7a3ef32124d5e46e2",
+        "tos.text-unit.sid-70589081412249f3b7b74cb162f4a054",
+        "tos.text-unit.sid-7e323d9eb7c24f2ebe2e97b0e4ee8876",
+        "tos.text-unit.sid-c01db527c8d14542b8fa7a99a282d272",
+        "tos.text-unit.sid-1231f1327bfb4744ba9a8f66545903d7",
+        "tos.text-unit.sid-9401c5fb7eb8472c82f0ff86a9a4660f",
+        "tos.text-unit.sid-c3f747e47edd419e9483bd9ef3ddd343",
+        "tos.text-unit.sid-efb208a287df4e8fa86c3a59d4546281",
+        "tos.text-unit.sid-899ace30b8b640849cc0f16c588d17b7"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-ea8bea35a22940eaaeb4e03465ad48b3",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-tlg2000-tlg001-1st1k-grc1-29a60f460974/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

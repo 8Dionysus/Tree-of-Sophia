@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-officiis.de-officiis-eng1-2b4576da006d",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-officiis.de-officiis-eng1-2b4576da006d",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.adf119939296ee70eeecee601454ede4e5e2ebbb0828c53a15510fade5ea4b88",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-officiis-eng1-2b4576da006d.json",
+      "media_type": "application/json",
+      "byte_size": 717916,
+      "sha256": "adf119939296ee70eeecee601454ede4e5e2ebbb0828c53a15510fade5ea4b88",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e760e4c4ac70a7590219aef393ecb83c7d2ebf6179c456cf26965fb74cdcb5eb",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 353904,
+      "sha256": "e760e4c4ac70a7590219aef393ecb83c7d2ebf6179c456cf26965fb74cdcb5eb",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-officiis-eng1-2b4576da006d.20261027",
+  "rights_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/retained-de-officiis-eng1-2b4576da006d/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/retained-de-officiis-eng1-2b4576da006d/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/retained-de-officiis-eng1-2b4576da006d/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/cicero/de-officiis/expressions/retained-de-officiis-eng1-2b4576da006d/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/cicero/de-officiis/expressions/retained-de-officiis-eng1-2b4576da006d/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

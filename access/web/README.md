@@ -11,6 +11,8 @@ Shared renderers under `src/observatory/` present validated backend packets.
 Interface labels follow the selected UI language. Source titles, quotations,
 form wording and vocabulary labels keep their delivered wording; the UI does
 not translate them. Missing language variants show their actual fallback.
+The public profiles provide Russian and English display names for the selected
+works; source metadata and quoted text remain unchanged.
 
 Readable context keeps source qualifications, exact number lexemes and field
 order. Recognized fields receive interface labels, unknown fields remain
@@ -23,6 +25,50 @@ semantic assessment or rights decision. The
 selection, revision and context requirements.
 
 ## Observatory and research space
+
+The published `/` and `/zarathustra/` entries open the Zarathustra research
+space; `/antiquity/` opens the Antiquity space. Both reuse the constructor's
+Rust graph model, live sky, lenses, typed relations, comparisons and personal
+branches alongside the shared public corpus reader and research workspace.
+Prepared readings remain proposals. A bibliographic pointer becomes an exact
+reading action only when it binds to a unit in the selected public version.
+Unavailable works retain their metadata without substituting private text.
+The interface and prepared paths support Russian and English. Source passages
+keep their edition language. Plain entry and profile switching open the space;
+an explicit reading hash opens its exact passage.
+
+The shared Library also exposes the retained research collection: all fifteen
+Antiquity branches, author and era browsing, work maps, close-reading prompts,
+argument readings and lexical dossiers, with Russian and English presentation.
+`antiquity-collection-data.json` records its authored source revision and excludes
+witness text and quotation anchors. Published section entries use the separate
+provider structure; they are not exact word-span alignments. The readable corpus
+selection remains separate from this larger bibliographic collection.
+Zarathustra's source pointers and independently grounded alternatives use the
+same reading actions. Extending the Antiquity graph copies its explicitly
+compatible predecessor through the current Rust validator and retains the
+original namespace; browsing a route does not fill the personal graph.
+
+The scene uses Canvas2D when only a software WebGL renderer is available;
+the same graph and actions remain available. Browser-local graph exports and
+the complete research transfer preserve personal work without source admission.
+
+The complete research export contains saved notebook, workspace, shelf and graph
+records. An open thought form has its own guarded export/import. The temporary
+exact-source basket survives profile changes in the same tab; saving a thought
+or task includes its references in the corresponding saved owner. Import previews
+name conflicts and add only available records. Question-history groups retain
+every editing snapshot; restoring one archives the current saved question.
+
+New external-agent tasks use `tos.public_research.agent_task.v2`. Their sources
+carry the unchanged quote and exact reference, a bounded surrounding context,
+`contextRange` and verified `editorialAnnotations`. Ranges are half-open Unicode
+code-point offsets in the exact version/unit; annotations do not claim a complete
+critical apparatus. Saved v1 tasks and v1 responses remain readable against their
+original task IDs. Changed questions or workspace revisions require a new task.
+Nested objections can be selected separately; the original received response is
+retained locally even when an objection is omitted from application. The strict
+packet shapes and bounds live in [`agent-bridge.mjs`](src/public-research/agent-bridge.mjs).
 
 The default entry is the Observatory: a full-window star field with bounded
 knowledge neighborhoods and floating search, source and research panels. The

@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.laches.laches-grc2-5999aba6e5c1",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.laches.laches-grc2-5999aba6e5c1",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.8c3810acd5178838b2951aa8d249ac19df808de51f11051568475749dcdd23d5",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "laches-grc2-5999aba6e5c1.json",
+      "media_type": "application/json",
+      "byte_size": 129710,
+      "sha256": "8c3810acd5178838b2951aa8d249ac19df808de51f11051568475749dcdd23d5",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.bc2bc47c8dd9e8b5eb57827579e4a82e1abe0857bc2367c16e094a30a371852b",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 89975,
+      "sha256": "bc2bc47c8dd9e8b5eb57827579e4a82e1abe0857bc2367c16e094a30a371852b",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.laches-grc2-5999aba6e5c1.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-grc2-5999aba6e5c1/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-grc2-5999aba6e5c1/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-grc2-5999aba6e5c1/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-grc2-5999aba6e5c1/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/laches/expressions/retained-laches-grc2-5999aba6e5c1/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

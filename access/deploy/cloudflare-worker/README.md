@@ -27,7 +27,7 @@ From this directory, the maintained package commands are:
 | `npm run verify:local` | Run the native verifier with an explicit owner selection |
 | `npm run check:local` | Run local build/check/import and the selected native verifier |
 | `npm run deploy:edge:plan` | Compare revision and show the remote deployment plan without mutation |
-| `npm run build:public-research` | Build only the public reader into its isolated static-asset directory |
+| `npm run build:public-research` | Build only the public research spaces into its isolated static-asset directory |
 | `npm run deploy:public-research:plan` | Build and validate the separate asset-only Worker with Wrangler dry-run; no publication |
 | `npm run load:remote` | Import the generated full read model to remote D1 |
 | `npm run deploy:edge` | Run revision-aware import/deploy flow |
@@ -70,15 +70,17 @@ gateway does not grant publication authority or change source admission.
 
 ## Production flow
 
-The public reading pages have a separate, asset-only Worker configured by
-[`wrangler.public-research.jsonc`](wrangler.public-research.jsonc). Its narrow
-routes cover `/zarathustra*`, `/antiquity*` and `/__research/*` on the apex and
-`www`; the `www` handler redirects those paths to the apex. Vite writes its
-`/__research/`-based bundle to `dist-public-research`, and the Worker removes
-that prefix only for the asset binding. The binding uses `not_found_handling:
-none`, so a missing corpus JSON or chunk stays a 404. This Worker has no D1,
-R2, analytics or secret bindings, and its path routes leave `/`, `/api/*`,
-`/static/*` and the existing atlas route to their current owners.
+The public research spaces have a separate, asset-only Worker configured by
+[`wrangler.public-research.jsonc`](wrangler.public-research.jsonc). Its routes
+cover the apex and `www` with `/*` so the root also works with query strings.
+The handler owns `/`, `/zarathustra*`, `/antiquity*` and `/__research/*`;
+`www` research paths redirect to the apex. Other requests pass unchanged to
+the existing access Worker on its Custom Domain via `fetch(request)`.
+Vite writes its `/__research/`-based bundle to `dist-public-research`, and the
+Worker removes that prefix only for the asset binding. Missing corpus JSON
+or chunks stay a 404. This Worker has no D1, R2, analytics or secret bindings.
+The source for this routing constraint is the
+[Cloudflare route matching and Custom Domain guide](https://developers.cloudflare.com/workers/configuration/routing/routes/).
 
 Build with `npm run build:public-research`; validate the local upload package
 with `npm run deploy:public-research:plan`. After the source passes the normal
@@ -88,6 +90,9 @@ This command does not run the D1 importer or alter the existing access Worker.
 Record the published version ID. To roll back, select that Worker version
 with `wrangler rollback VERSION_ID --name tree-of-sophia-public-research` or
 the Cloudflare Deployments panel; its path routes remain scoped to this Worker.
+Version rollback does not restore route patterns. Before rolling back to a
+version predating the root proxy, restore that version's narrow route patterns
+as well; its handler cannot forward the existing access APIs under `/*`.
 Verify the two HTML routes, chunk/WASM and corpus JSON paths, unknown-JSON 404,
 and `www` redirect after deployment. Keep the previous Worker and its routes
 in place during rollback; D1 state is untouched.

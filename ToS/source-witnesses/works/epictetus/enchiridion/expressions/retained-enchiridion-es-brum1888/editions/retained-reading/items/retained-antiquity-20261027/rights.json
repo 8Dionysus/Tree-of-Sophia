@@ -1,0 +1,39 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.retained-antiquity.enchiridion.enchiridion-es-brum1888.20261027",
+  "scope_refs": [
+    "tos.item.retained.antiquity.enchiridion.enchiridion-es-brum1888",
+    "tos.file.sha256.5dafee747974959b71c90bac8bbee787a793f69d443e08b33c4a0fb1e9a1c4b1",
+    "tos.file.sha256.14e6c9afd9025e8f00e72b8e13f946474fad1e62fffc5def89bb58bdcbf97ead"
+  ],
+  "assessment_status": "licensed",
+  "jurisdictions_reviewed": [
+    "US"
+  ],
+  "source_refs": [
+    "https://es.wikisource.org/wiki/Enquiridi%C3%B3n/M%C3%A1ximas?oldid=1504782",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "permissions": [
+    "Attribution: Wikisource contributors; Antonio Brum (the section title page transcription credits “Versión del crieco al castellano”; spelling is preserved as captured); cite the pinned page revisions in the source manifest.\nComplete transclusion range only; all 39 pages have ProofreadPage quality level 1, the index is marked Por corregir, and scan images were not collated.",
+    "Free public reading and adaptation under https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "restrictions": [
+    "Give attribution, link the license, and indicate changes.",
+    "Distribute adaptations under the same CC BY-SA 4.0 license.",
+    "Mark the retained JSON to public reading-layer derivation.",
+    "No transcription, linguistic, semantic, canon or human-review claim."
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "codex.retained-antiquity-publication.20261027"
+  },
+  "assessed_at": "2026-10-27T06:31:44+00:00",
+  "rationale": "The exact legacy catalog version row carries CC BY-SA 4.0 and is included with its digest in the source metadata snapshot; the fixed source/header record is preserved in the exact retained JSON payload. This item is that retained JSON plus a separately hashed reader layer; the legacy raw-source digest is not represented as the JSON payload digest. Publication carries attribution, source and license routes. The reading layer is not a scholarly or human acceptance.",
+  "review_status": "unreviewed",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "record_version": 1
+}

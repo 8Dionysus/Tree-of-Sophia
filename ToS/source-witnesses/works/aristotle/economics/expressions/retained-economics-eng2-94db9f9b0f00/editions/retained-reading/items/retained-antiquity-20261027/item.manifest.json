@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.a87fe36cff54763147ea9ca86f339c01893bbb7f74dafd6347b00cdc26a9dc6d",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "economics-eng2-94db9f9b0f00.json",
+      "media_type": "application/json",
+      "byte_size": 101089,
+      "sha256": "a87fe36cff54763147ea9ca86f339c01893bbb7f74dafd6347b00cdc26a9dc6d",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 59393,
+      "sha256": "3eaee099bb7f4c29446759e4aa910a4d2c0d44d01f2a3630454aaa100f296be4",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.economics-eng2-94db9f9b0f00.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/economics/expressions/retained-economics-eng2-94db9f9b0f00/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

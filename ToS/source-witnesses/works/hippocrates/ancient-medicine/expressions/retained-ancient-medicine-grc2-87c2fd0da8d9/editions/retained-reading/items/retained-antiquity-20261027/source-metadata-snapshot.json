@@ -1,0 +1,137 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.ancient-medicine.ancient-medicine-grc2-87c2fd0da8d9",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/ancient-medicine-grc2-87c2fd0da8d9.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml",
+    "file_ref": "tos.file.sha256.8c9218d58de8b61e9bc8856e9dd5bf5e02bc3785a781ecf668ba4a6d443b1ccd",
+    "byte_size": 72900,
+    "sha256": "8c9218d58de8b61e9bc8856e9dd5bf5e02bc3785a781ecf668ba4a6d443b1ccd"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=ancient-medicine-grc2-87c2fd0da8d9",
+    "record_sha256": "2d797d24f7ae74b80c1ec0969d2caf70144ab90e196369e4fa3db698553ce655",
+    "record": {
+      "id": "ancient-medicine-grc2-87c2fd0da8d9",
+      "language": "grc",
+      "title": "Древнегреческий · Уильям Генри Сэмюэл Джонс",
+      "credit": "Издание: Уильям Генри Сэмюэл Джонс",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Hippocrates",
+          "Loeb Classical Library"
+        ],
+        "dates": [
+          "1923"
+        ],
+        "places": [
+          "London",
+          "Cambridge, MA"
+        ],
+        "publishers": [
+          "William Heinemann Ltd.",
+          "Harvard University Press"
+        ],
+        "scans": [
+          "https://archive.org/details/hippocrates01hippuoft/hippocrates01hippuoft/page/n87/mode/2up"
+        ],
+        "authors": [
+          "Hippocrates"
+        ],
+        "editors": [
+          {
+            "name": "William Henry Samuel Jones"
+          }
+        ]
+      },
+      "item": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml",
+      "file": "sha256:87c2fd0da8d9a00618a3d78dc55ac6234e7326608355c7f56d7b0053ec681c94",
+      "sha256": "87c2fd0da8d9a00618a3d78dc55ac6234e7326608355c7f56d7b0053ec681c94",
+      "representationSha256": "ccb0b0dd8d3916aefe80184e7ecb094251e2e59f9fad60b74cf4bb0e265229bf",
+      "sourceRef": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml",
+      "sectionCount": 24
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "ancient-medicine-grc2-87c2fd0da8d9",
+    "legacy_source_sha256_claim": "87c2fd0da8d9a00618a3d78dc55ac6234e7326608355c7f56d7b0053ec681c94",
+    "legacy_representation_sha256_claim": "ccb0b0dd8d3916aefe80184e7ecb094251e2e59f9fad60b74cf4bb0e265229bf",
+    "retained_json_payload_sha256": "8c9218d58de8b61e9bc8856e9dd5bf5e02bc3785a781ecf668ba4a6d443b1ccd",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Περὶ ἀρχαίας ἰατρικῆς",
+      "Hippocrates",
+      "Loeb Classical Library"
+    ],
+    "authors": [
+      "Hippocrates"
+    ],
+    "editors_or_translators": [
+      "William Henry Samuel Jones"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.ancient-medicine",
+    "expression_ref": "tos.expression.retained.antiquity.ancient-medicine.ancient-medicine-grc2-87c2fd0da8d9",
+    "edition_ref": "tos.edition.retained.antiquity.ancient-medicine.ancient-medicine-grc2-87c2fd0da8d9",
+    "legacy_book_title": "О древней медицине",
+    "legacy_credit": "Издание: Уильям Генри Сэмюэл Джонс",
+    "publication": {
+      "titles": [
+        "Hippocrates",
+        "Loeb Classical Library"
+      ],
+      "dates": [
+        "1923"
+      ],
+      "places": [
+        "London",
+        "Cambridge, MA"
+      ],
+      "publishers": [
+        "William Heinemann Ltd.",
+        "Harvard University Press"
+      ],
+      "scans": [
+        "https://archive.org/details/hippocrates01hippuoft/hippocrates01hippuoft/page/n87/mode/2up"
+      ],
+      "authors": [
+        "Hippocrates"
+      ],
+      "editors": [
+        {
+          "name": "William Henry Samuel Jones"
+        }
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/01b725d835e6e733062ffd79e0efdbae1ba06e5c/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 24,
+    "block_count": 25,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

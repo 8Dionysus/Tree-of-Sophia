@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-beneficiis.de-beneficiis-lat2-ffde84f4348b",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-beneficiis.de-beneficiis-lat2-ffde84f4348b",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.d0628767b669ae9bd398bf0407527e99c7911e7e79a02ac43beadbbc370b288b",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-beneficiis-lat2-ffde84f4348b.json",
+      "media_type": "application/json",
+      "byte_size": 486577,
+      "sha256": "d0628767b669ae9bd398bf0407527e99c7911e7e79a02ac43beadbbc370b288b",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.29b38c2684f685e96f7958346881a16aeac3940439db0a339adfb79aafff38db",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 313592,
+      "sha256": "29b38c2684f685e96f7958346881a16aeac3940439db0a339adfb79aafff38db",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-beneficiis-lat2-ffde84f4348b.20261027",
+  "rights_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-lat2-ffde84f4348b/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-lat2-ffde84f4348b/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-lat2-ffde84f4348b/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-lat2-ffde84f4348b/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/seneca/de-beneficiis/expressions/retained-de-beneficiis-lat2-ffde84f4348b/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

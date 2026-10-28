@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.phaedo.phaedo-eng2-34c17b222112",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.phaedo.phaedo-eng2-34c17b222112",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.90bcbaeb06b9f8db0ffa099eb1d5f80cdf784a144ccfbf921ff4dda110a3e2cd",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "phaedo-eng2-34c17b222112.json",
+      "media_type": "application/json",
+      "byte_size": 345951,
+      "sha256": "90bcbaeb06b9f8db0ffa099eb1d5f80cdf784a144ccfbf921ff4dda110a3e2cd",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 147770,
+      "sha256": "bd19c5efc5ce5f1b3f80b64080cabca2bf4ee8f94e766a7b79db79732165fae6",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.phaedo-eng2-34c17b222112.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/phaedo/expressions/retained-phaedo-eng2-34c17b222112/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

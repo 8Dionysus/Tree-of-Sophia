@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.phaedrus.phaedrus-grc2-15eb5b0c09bc",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.phaedrus.phaedrus-grc2-15eb5b0c09bc",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.cbb7da4204d1d0344e172b91348ae4228dab5d6c402afd28675e4ffc0adba342",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "phaedrus-grc2-15eb5b0c09bc.json",
+      "media_type": "application/json",
+      "byte_size": 343472,
+      "sha256": "cbb7da4204d1d0344e172b91348ae4228dab5d6c402afd28675e4ffc0adba342",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2eecba0b49c6bbc3e7b6f6419554ae3b071d49779ca0af7fdf88b2d54cd23517",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 198162,
+      "sha256": "2eecba0b49c6bbc3e7b6f6419554ae3b071d49779ca0af7fdf88b2d54cd23517",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.phaedrus-grc2-15eb5b0c09bc.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/phaedrus/expressions/retained-phaedrus-grc2-15eb5b0c09bc/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/phaedrus/expressions/retained-phaedrus-grc2-15eb5b0c09bc/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/phaedrus/expressions/retained-phaedrus-grc2-15eb5b0c09bc/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/phaedrus/expressions/retained-phaedrus-grc2-15eb5b0c09bc/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/phaedrus/expressions/retained-phaedrus-grc2-15eb5b0c09bc/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

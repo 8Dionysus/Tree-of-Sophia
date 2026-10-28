@@ -1,0 +1,114 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.discourses.discourses-grc2-8b4749107af1",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/discourses-grc2-8b4749107af1.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-grc2.xml",
+    "file_ref": "tos.file.sha256.cfc9599169b4618f377c33bbf737b3b70cdd123d557284fb8144c39fc7fb9abc",
+    "byte_size": 1290244,
+    "sha256": "cfc9599169b4618f377c33bbf737b3b70cdd123d557284fb8144c39fc7fb9abc"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=discourses-grc2-8b4749107af1",
+    "record_sha256": "713f09d0c819c6c74805f72007dd59fa0a921fcd50b75cc806a334a2b7545128",
+    "record": {
+      "id": "discourses-grc2-8b4749107af1",
+      "language": "grc",
+      "title": "Древнегреческий · Генрих Шенкль",
+      "credit": "Издание: Генрих Шенкль",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-grc2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Epicteti dissertationes ab Arriano digestae, editio maior"
+        ],
+        "dates": [
+          "1916"
+        ],
+        "places": [
+          "Leipzig"
+        ],
+        "publishers": [
+          "Teubner"
+        ],
+        "scans": [
+          "https://archive.org/details/ldpd_10922736_000/page/126"
+        ]
+      },
+      "item": "tos.item.epictetus.discourses.grc-perseus-tlg0557-tlg001.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.8b4749107af1c96221c5fdb95341627c035e67b32498baf86cea9a9b694239d8",
+      "sha256": "8b4749107af1c96221c5fdb95341627c035e67b32498baf86cea9a9b694239d8",
+      "representationSha256": "06a9445a727c82e1e00ff746f5345cc47b69a79f438936f1ccbcb4679ceb6307",
+      "sourceRef": "ToS/source-witnesses/works/epictetus/discourses/expressions/grc-perseus-tlg0557-tlg001/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg001.perseus-grc2.xml",
+      "sectionCount": 96
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "discourses-grc2-8b4749107af1",
+    "legacy_source_sha256_claim": "8b4749107af1c96221c5fdb95341627c035e67b32498baf86cea9a9b694239d8",
+    "legacy_representation_sha256_claim": "06a9445a727c82e1e00ff746f5345cc47b69a79f438936f1ccbcb4679ceb6307",
+    "retained_json_payload_sha256": "cfc9599169b4618f377c33bbf737b3b70cdd123d557284fb8144c39fc7fb9abc",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Ἀρριανοῦ τῶν Ἐπικτήτου Διατριβῶν",
+      "Epicteti dissertationes ab Arriano digestae, editio maior"
+    ],
+    "authors": [
+      "Epictetus"
+    ],
+    "editors_or_translators": [
+      "Heinrich Schenkl"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.discourses",
+    "expression_ref": "tos.expression.retained.antiquity.discourses.discourses-grc2-8b4749107af1",
+    "edition_ref": "tos.edition.retained.antiquity.discourses.discourses-grc2-8b4749107af1",
+    "legacy_book_title": "Беседы",
+    "legacy_credit": "Издание: Генрих Шенкль",
+    "publication": {
+      "titles": [
+        "Epicteti dissertationes ab Arriano digestae, editio maior"
+      ],
+      "dates": [
+        "1916"
+      ],
+      "places": [
+        "Leipzig"
+      ],
+      "publishers": [
+        "Teubner"
+      ],
+      "scans": [
+        "https://archive.org/details/ldpd_10922736_000/page/126"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg001/tlg0557.tlg001.perseus-grc2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 96,
+    "block_count": 2645,
+    "apparatus": {
+      "headings": 96,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

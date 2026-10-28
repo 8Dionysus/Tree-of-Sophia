@@ -1,12 +1,20 @@
 import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {expect, test} from 'vitest';
 import {createReference} from './model.mjs';
-import {bindPhilologyResult, philologyMarkIntervals, selectedPhilologyForm} from './philology.mjs';
+import {bindPhilologyResult, philologyMarkIntervals, selectedPhilologyForm, morphologyLabel, isSingleWordSelection} from './philology.mjs';
 
 const source = {
   workId:'work-1', expressionId:'expression-1', editionId:'edition-1', itemId:'item-1', fileId:'file-1',
   fileSha256:'a'.repeat(64), textLayerRef:'source.txt', textLayerSha256:'b'.repeat(64),
 };
+
+test('dictionary analysis distinguishes a word from a selected phrase', () => {
+  expect(isSingleWordSelection('ἀρετή')).toBe(true);
+  expect(isSingleWordSelection('Seele')).toBe(true);
+  expect(isSingleWordSelection('e\u0301')).toBe(true);
+  expect(isSingleWordSelection('ἆρα διδακτὸν ἡ ἀρετή')).toBe(false);
+  expect(isSingleWordSelection('unterredete sich')).toBe(false);
+});
 
 test('selected form follows the exact Unicode-code-point occurrence', () => {
   const text = 'Kreis 😀Kreis e\u0301';
@@ -58,4 +66,25 @@ test('the selected second occurrence owns its mark and search highlights do not 
   for(const interval of intervals){rendered.push(points.slice(cursor,interval.start).join(''),points.slice(interval.start,interval.end).join(''));cursor=interval.end;}
   rendered.push(points.slice(cursor).join(''));
   expect(rendered.join('')).toBe(text);
+});
+
+test('morphology renders readable language labels without changing the supplied analysis', () => {
+  expect(morphologyLabel('noun · accusative · feminine · singular', 'ru')).toBe('существительное · винительный падеж · женский род · единственное число');
+  expect(morphologyLabel('Gold<NN><Neut><Nom><Sg>', 'en')).toBe('noun · neuter · nominative · singular');
+});
+
+test('tagged morphology keeps alternative boundaries, order, and unfamiliar source tags',()=>{
+  const original='d<~>ie<REL><Subst><Fem><Dat><Sg><St> / d<~>ie<REL><Subst><Masc><Nom><Sg><St> / d<~>ie<DEM><Subst><Fem><Dat><Sg><St>';
+  expect(morphologyLabel(original,'en').split(' / ')).toEqual([
+    '<~> · <REL> · <Subst> · feminine · dative · singular · <St>',
+    '<~> · <REL> · <Subst> · masculine · nominative · singular · <St>',
+    '<~> · <DEM> · <Subst> · feminine · dative · singular · <St>',
+  ]);
+  expect(morphologyLabel(original,'ru').split(' / ')).toEqual([
+    '<~> · <REL> · <Subst> · женский род · дательный падеж · единственное число · <St>',
+    '<~> · <REL> · <Subst> · мужской род · именительный падеж · единственное число · <St>',
+    '<~> · <DEM> · <Subst> · женский род · дательный падеж · единственное число · <St>',
+  ]);
+  expect(morphologyLabel('x<Nom><Nom> / unrecognized','en')).toBe('nominative · nominative / unrecognized');
+  expect(morphologyLabel('noun · provider-specific','ru')).toBe('существительное · provider-specific');
 });

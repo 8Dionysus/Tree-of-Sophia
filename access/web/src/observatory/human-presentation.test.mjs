@@ -1,6 +1,17 @@
 import {test,expect} from 'vitest';
-import {catalogNodeKindLabel,languageName,sourceLinkLabel,relationLabel,fileLabel,sourceTitle} from './human-presentation.mjs';
+import {catalogNodeKindLabel,languageName,sourceLinkLabel,relationLabel,fileLabel,sourceTitle,corpusSectionLabel} from './human-presentation.mjs';
 import {displayTitleForm} from './knowledge-client.mjs';
+
+test('retained section locators use the interface language without translating edition names',()=>{
+  const version='retained-de-clementia-lat2-a170840d8fc4';
+  expect(corpusSectionLabel('Книга 2 · Глава 7','en',version)).toBe('Book 2 · Chapter 7');
+  expect(corpusSectionLabel('Book 2 · Chapter 7','ru',version)).toBe('Книга 2 · Глава 7');
+  expect(corpusSectionLabel('Книга 1 · Предисловие','en',version)).toBe('Book 1 · Prologue');
+  expect(corpusSectionLabel('Книга 1 · Предисловие','ru',version)).toBe('Книга 1 · Предисловие');
+  expect(corpusSectionLabel('Предисловие к изданию','en','other-version')).toBe('Предисловие к изданию');
+  expect(corpusSectionLabel('Moral Essays · 1928','ru',version)).toBe('Moral Essays · 1928');
+  expect(corpusSectionLabel('Книга 2 · Глава 7','en','other-version')).toBe('Книга 2 · Глава 7');
+});
 
 test('language and source labels are human without exposing paths',()=>{
   expect(languageName('en','ru')).toBe('английский');

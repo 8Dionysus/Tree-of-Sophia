@@ -1,0 +1,114 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.academica.academica-lat2-ac7a3da67ef5",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/academica-lat2-ac7a3da67ef5.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi045/phi0474.phi045.perseus-lat2.xml",
+    "file_ref": "tos.file.sha256.34f5976c3b7d374e7fba821a55d9c718b8c39546dd8077d4cae13684545d4652",
+    "byte_size": 157442,
+    "sha256": "34f5976c3b7d374e7fba821a55d9c718b8c39546dd8077d4cae13684545d4652"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=academica-lat2-ac7a3da67ef5",
+    "record_sha256": "f582c73fa5888e4de3bb3cd8b337eb1ec233221449ef79c178bfc9c2bfbc76c9",
+    "record": {
+      "id": "academica-lat2-ac7a3da67ef5",
+      "language": "la",
+      "title": "Латинский · Отто Пласберг",
+      "credit": "Издание: Отто Пласберг",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi045/phi0474.phi045.perseus-lat2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Academicorum reliquiae cum Lucullo"
+        ],
+        "dates": [
+          "1922"
+        ],
+        "places": [
+          "Leipzig"
+        ],
+        "publishers": [
+          "Teubner"
+        ],
+        "scans": [
+          "https://babel.hathitrust.org/cgi/pt?id=coo.31924006752632&seq=32"
+        ]
+      },
+      "item": "tos.item.cicero.academica.la-perseus-phi0474-phi045.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.ac7a3da67ef56bf4e1d23e6563c73a9bea05e725944fc500d90f74bba1e602e3",
+      "sha256": "ac7a3da67ef56bf4e1d23e6563c73a9bea05e725944fc500d90f74bba1e602e3",
+      "representationSha256": "620e6f7f9c2d2623f45b78cb9b89754bc8009d76614d4ec7efd165a282ab8d95",
+      "sourceRef": "ToS/source-witnesses/works/cicero/academica/expressions/la-perseus-phi0474-phi045/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi045.perseus-lat2.xml",
+      "sectionCount": 70
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "academica-lat2-ac7a3da67ef5",
+    "legacy_source_sha256_claim": "ac7a3da67ef56bf4e1d23e6563c73a9bea05e725944fc500d90f74bba1e602e3",
+    "legacy_representation_sha256_claim": "620e6f7f9c2d2623f45b78cb9b89754bc8009d76614d4ec7efd165a282ab8d95",
+    "retained_json_payload_sha256": "34f5976c3b7d374e7fba821a55d9c718b8c39546dd8077d4cae13684545d4652",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Academica",
+      "Academicorum reliquiae cum Lucullo"
+    ],
+    "authors": [
+      "M. Tullius Cicero"
+    ],
+    "editors_or_translators": [
+      "Otto Plasberg"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.academica",
+    "expression_ref": "tos.expression.retained.antiquity.academica.academica-lat2-ac7a3da67ef5",
+    "edition_ref": "tos.edition.retained.antiquity.academica.academica-lat2-ac7a3da67ef5",
+    "legacy_book_title": "Академические исследования",
+    "legacy_credit": "Издание: Отто Пласберг",
+    "publication": {
+      "titles": [
+        "Academicorum reliquiae cum Lucullo"
+      ],
+      "dates": [
+        "1922"
+      ],
+      "places": [
+        "Leipzig"
+      ],
+      "publishers": [
+        "Teubner"
+      ],
+      "scans": [
+        "https://babel.hathitrust.org/cgi/pt?id=coo.31924006752632&seq=32"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi045/phi0474.phi045.perseus-lat2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 70,
+    "block_count": 91,
+    "apparatus": {
+      "headings": 0,
+      "notes": 356,
+      "variants": 0,
+      "bookNotes": 1,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

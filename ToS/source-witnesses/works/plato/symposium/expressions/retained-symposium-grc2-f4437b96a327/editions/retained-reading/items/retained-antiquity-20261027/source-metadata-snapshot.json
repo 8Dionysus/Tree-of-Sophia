@@ -1,0 +1,114 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.symposium.symposium-grc2-f4437b96a327",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/symposium-grc2-f4437b96a327.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+    "file_ref": "tos.file.sha256.a4981601e3ba989985a1cf74bcb82f550d41268dc1a9b7c76d98bdd010ea816d",
+    "byte_size": 415187,
+    "sha256": "a4981601e3ba989985a1cf74bcb82f550d41268dc1a9b7c76d98bdd010ea816d"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=symposium-grc2-f4437b96a327",
+    "record_sha256": "eee73b29bed34d1f2161313fe9393959bb70c20d8f29149c33b79cbbb3a704ba",
+    "record": {
+      "id": "symposium-grc2-f4437b96a327",
+      "language": "grc",
+      "title": "Древнегреческий · Джон Бёрнет",
+      "credit": "Издание: Джон Бёрнет",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Platonis Opera"
+        ],
+        "dates": [
+          "1910"
+        ],
+        "places": [
+          "Oxford"
+        ],
+        "publishers": [
+          "Clarendon Press"
+        ],
+        "scans": [
+          "http://www.archive.org/stream/operarecognovitb02platuoft#page/149/mode/2up"
+        ]
+      },
+      "item": "tos.item.plato.symposium.grc-perseus-burnet.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.f4437b96a3271a63dc04410cae3ec149851cb0f650bef0d47b24273a4c49ce5b",
+      "sha256": "f4437b96a3271a63dc04410cae3ec149851cb0f650bef0d47b24273a4c49ce5b",
+      "representationSha256": "a5032b392bed2de59a22a1c7509ae297b64621352f673841187e4ec594e68360",
+      "sourceRef": "ToS/source-witnesses/works/plato/symposium/expressions/grc-perseus-burnet/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0059.tlg011.perseus-grc2.xml",
+      "sectionCount": 52
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "symposium-grc2-f4437b96a327",
+    "legacy_source_sha256_claim": "f4437b96a3271a63dc04410cae3ec149851cb0f650bef0d47b24273a4c49ce5b",
+    "legacy_representation_sha256_claim": "a5032b392bed2de59a22a1c7509ae297b64621352f673841187e4ec594e68360",
+    "retained_json_payload_sha256": "a4981601e3ba989985a1cf74bcb82f550d41268dc1a9b7c76d98bdd010ea816d",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Συμπόσιον",
+      "Platonis Opera"
+    ],
+    "authors": [
+      "Plato"
+    ],
+    "editors_or_translators": [
+      "John Burnet"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.symposium",
+    "expression_ref": "tos.expression.retained.antiquity.symposium.symposium-grc2-f4437b96a327",
+    "edition_ref": "tos.edition.retained.antiquity.symposium.symposium-grc2-f4437b96a327",
+    "legacy_book_title": "Пир",
+    "legacy_credit": "Издание: Джон Бёрнет",
+    "publication": {
+      "titles": [
+        "Platonis Opera"
+      ],
+      "dates": [
+        "1910"
+      ],
+      "places": [
+        "Oxford"
+      ],
+      "publishers": [
+        "Clarendon Press"
+      ],
+      "scans": [
+        "http://www.archive.org/stream/operarecognovitb02platuoft#page/149/mode/2up"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg011/tlg0059.tlg011.perseus-grc2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 52,
+    "block_count": 56,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

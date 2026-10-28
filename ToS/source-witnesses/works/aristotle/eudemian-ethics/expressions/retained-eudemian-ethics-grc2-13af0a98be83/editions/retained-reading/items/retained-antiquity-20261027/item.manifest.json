@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.eudemian-ethics.eudemian-ethics-grc2-13af0a98be83",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.eudemian-ethics.eudemian-ethics-grc2-13af0a98be83",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.70124eac655b747800618207826d75e00b380085e4d0cd7ee3097e413ca30342",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "eudemian-ethics-grc2-13af0a98be83.json",
+      "media_type": "application/json",
+      "byte_size": 554250,
+      "sha256": "70124eac655b747800618207826d75e00b380085e4d0cd7ee3097e413ca30342",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 297671,
+      "sha256": "5bf6f9ac4644a761d3ea16fd26cc6c0626d1c4f2eb72b7788aebbd9733898132",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.eudemian-ethics-grc2-13af0a98be83.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/eudemian-ethics/expressions/retained-eudemian-ethics-grc2-13af0a98be83/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

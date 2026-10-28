@@ -1,0 +1,39 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.retained-antiquity.crito.crito-es-azcarate1871.20261027",
+  "scope_refs": [
+    "tos.item.retained.antiquity.crito.crito-es-azcarate1871",
+    "tos.file.sha256.226d9664fcfaa73052275f51c613f2afb8be06217b8e20529e3bdaba64957b40",
+    "tos.file.sha256.dbebfd86069be59c0a9090c50c100ad3afcc1d61fec2216606e34cd29c5409db"
+  ],
+  "assessment_status": "licensed",
+  "jurisdictions_reviewed": [
+    "US"
+  ],
+  "source_refs": [
+    "https://es.wikisource.org/wiki/Crit%C3%B3n?oldid=1274327",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "permissions": [
+    "Attribution: Wikisource contributors; Patricio de Azcárate Corral; pinned page revisions listed in source manifest.\nComplete transclusion range; transcription accuracy was not checked against scan images. The Spanish volume index is marked Por corregir.",
+    "Free public reading and adaptation under https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "restrictions": [
+    "Give attribution, link the license, and indicate changes.",
+    "Distribute adaptations under the same CC BY-SA 4.0 license.",
+    "Mark the retained JSON to public reading-layer derivation.",
+    "No transcription, linguistic, semantic, canon or human-review claim."
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "codex.retained-antiquity-publication.20261027"
+  },
+  "assessed_at": "2026-10-27T06:31:44+00:00",
+  "rationale": "The exact legacy catalog version row carries CC BY-SA 4.0 and is included with its digest in the source metadata snapshot; the fixed source/header record is preserved in the exact retained JSON payload. This item is that retained JSON plus a separately hashed reader layer; the legacy raw-source digest is not represented as the JSON payload digest. Publication carries attribution, source and license routes. The reading layer is not a scholarly or human acceptance.",
+  "review_status": "unreviewed",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "record_version": 1
+}

@@ -171,3 +171,23 @@ export function relationLabel(raw,locale=uiLanguage()){
   if(value&&value!==id&&!(Object.hasOwn(predicates,id)&&value===id.replaceAll('_',' '))&&value!==raw?.relation_type_id)return value;
   return local(predicates,id,locale,locale==='ru'?'Связь':locale==='es'?'Relación':'Relation');
 }
+// Display names only; corpus identities and source-edition titles stay intact.
+const PUBLIC_WORK_NAMES = {
+  ...retainedWorkNames,
+  'tos.work.friedrich-nietzsche.also-sprach-zarathustra': ['Так говорил Заратустра', 'Thus Spoke Zarathustra'],
+  'tos.work.plato.meno': ['Менон', 'Meno'],
+  'tos.work.aristotle.nicomachean-ethics': ['Никомахова этика', 'Nicomachean Ethics'],
+  'tos.work.plato.apology': ['Апология Сократа', 'Apology'],
+};
+export function corpusWorkTitle(document, locale = 'ru') {
+  const value = document?.title;
+  if (value && typeof value === 'object') return value[locale] ?? value.en ?? value.ru ?? '';
+  const names = PUBLIC_WORK_NAMES[document?.id];
+  return names ? names[String(locale).startsWith('en') ? 1 : 0] : value ?? '';
+}
+export function corpusSectionLabel(value,locale='ru',versionId=''){
+  if(typeof value!=='string'||typeof versionId!=='string'||!versionId.startsWith('retained-'))return value;
+  if(String(locale).startsWith('en'))return value.replace(/Книга\s+(\d+)/g,'Book $1').replace(/Глава\s+(\d+)/g,'Chapter $1').replace(/Раздел\s+(\d+)/g,'Section $1').replace(/(^|[\s·])Предисловие(?=$|[\s·:,.])/gu,'$1Prologue');
+  return value.replace(/^Notes on the work$/,'Примечания к произведению').replace(/^Textual adjustments$/,'Текстологические сведения').replace(/Book\s+(\d+)/g,'Книга $1').replace(/Chapter\s+(\d+)/g,'Глава $1').replace(/Section\s+(\d+)/g,'Раздел $1');
+}
+import retainedWorkNames from './retained-work-names.json' with {type:'json'};

@@ -91,6 +91,18 @@ describe('local constructor state', () => {
     expect(tree.getState().revision).toBeGreaterThan(edited.revision);
   });
 
+  it('keeps unspecified personal records neutral when connected and exported', () => {
+    const tree = model();
+    const neutral = tree.addDraft({ kind: 'thought', title: 'Earlier personal record', body: 'Its original type is unspecified.' });
+    const question = tree.addDraft({ kind: 'question', title: 'Why?', body: 'An explicitly typed question.' });
+    tree.connect(neutral, question, 'relates');
+    const restored = model(); restored.importPacket(tree.exportPacket());
+    expect(restored.getState().nodes.find(node => node.id === neutral).kind).toBe('thought');
+    const exported = JSON.parse(restored.exportResearch());
+    expect(exported.hypotheses.find(item => item.id === neutral).kind).toBe('thought');
+    expect(exported.hypotheses.find(item => item.id === question).kind).toBe('question');
+  });
+
   it('removes incident edges and citations atomically, restores them on undo, and clears undoably', () => {
     const tree = model(); const source = tree.addMaterial('chapter');
     const id = tree.addDraft({ kind: 'question', title: 'Почему?', sourceIds: [source] });

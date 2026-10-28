@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.politics.politics-eng2-bc208045921e",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.politics.politics-eng2-bc208045921e",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.d8085030b87994329e8e64f39f3f2a69c4b654c1fdb8f325c5311dd55146fda1",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "politics-eng2-bc208045921e.json",
+      "media_type": "application/json",
+      "byte_size": 1317094,
+      "sha256": "d8085030b87994329e8e64f39f3f2a69c4b654c1fdb8f325c5311dd55146fda1",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.73e1d731fdaebcd5cda878fb3e8ee0165ea2287c23afd7f180c2cf6b578eff69",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 611044,
+      "sha256": "73e1d731fdaebcd5cda878fb3e8ee0165ea2287c23afd7f180c2cf6b578eff69",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.politics-eng2-bc208045921e.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/politics/expressions/retained-politics-eng2-bc208045921e/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/politics/expressions/retained-politics-eng2-bc208045921e/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/politics/expressions/retained-politics-eng2-bc208045921e/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/politics/expressions/retained-politics-eng2-bc208045921e/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/politics/expressions/retained-politics-eng2-bc208045921e/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

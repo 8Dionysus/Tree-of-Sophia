@@ -8,7 +8,7 @@ import {describe,it,expect} from 'vitest';
 import {createHash} from 'node:crypto';
 installReaderOccurrenceRules(rules);
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-function fixture({corrupt=false,text='🌳 Kreis und Kreis.',terms=[{form:'Kreis',occurrences:[[1,2,7],[1,12,17]]}]}={}){
+function fixture({corrupt=false,author='Author',text='🌳 Kreis und Kreis.',terms=[{form:'Kreis',occurrences:[[1,2,7],[1,12,17]]}]}={}){
  const files=new Map(),calls=[];
  const member=(path,value)=>{const bytes=Buffer.from(JSON.stringify(value)+'\n');files.set('/static/public-corpus/'+path,bytes);return {path,sha256:hash(bytes),bytes:bytes.length};};
  const source={workId:'work',expressionId:'expression',editionId:'edition',itemId:'item',fileId:'file',fileSha256:'a'.repeat(64),textLayerRef:'source.txt',textLayerSha256:'b'.repeat(64)};
@@ -16,9 +16,9 @@ function fixture({corrupt=false,text='🌳 Kreis und Kreis.',terms=[{form:'Kreis
  const page=member('pages/text.json',{documentId:'work',versionId:'v1',revision:source.textLayerSha256,units});
  const index=member('indexes/forms.json',{terms});
  const version={id:'v1',label:'Edition',language:'de',revision:source.textLayerSha256,source,unitCount:1,pages:[{...page,firstOrdinal:1,count:1}],units:[{id:'unit',ordinal:1,page:0}],structure:[],searchIndex:index};
- const document={id:'work',title:'Work',author:'Author',versions:[version]};
+ const document={id:'work',title:'Work',author,versions:[version]};
  const descriptor=member('documents/work.json',document);
- member('manifest.json',{schema_version:'tos_public_corpus_snapshot_v1',revision:'c'.repeat(64),profiles:{zarathustra:{documentIds:['work'],initialDocumentId:'work'},antiquity:{documentIds:['work'],initialDocumentId:'work'}},documents:[{id:'work',title:'Work',author:'Author',manifest:descriptor}]});
+ member('manifest.json',{schema_version:'tos_public_corpus_snapshot_v1',revision:'c'.repeat(64),profiles:{zarathustra:{documentIds:['work'],initialDocumentId:'work'},antiquity:{documentIds:['work'],initialDocumentId:'work'}},documents:[{id:'work',title:'Work',author,manifest:descriptor}]});
  if(corrupt)files.set('/static/public-corpus/pages/text.json',Buffer.from(JSON.stringify({documentId:'work',units:[{text:'changed'}]})+'\n'));
  const fetch=async path=>{calls.push(path);const body=files.get(path);return new Response(body??'{}',{status:body?200:404,headers:{'Content-Type':'application/json'}});};
  return {provider:createPublicCorpusProvider({fetch}),source,document,version,calls};
@@ -62,6 +62,12 @@ function mappingFixture({targetStale=false,analysis=false}={}){
  return {provider:createPublicCorpusProvider({fetch}),sourceReference,targetReference};
 }
 describe('immutable public corpus delivery',()=>{
+ it('finds a work by a localized author alias without changing its source metadata',async()=>{
+  const {provider}=fixture({author:'Diogenes Laertius'});
+  expect((await provider.catalog({query:'Диоген',limit:24})).items).toMatchObject([{id:'work',author:'Diogenes Laertius'}]);
+  expect((await provider.catalog({query:'Laertius',limit:24})).items).toHaveLength(1);
+  expect((await provider.catalog({query:'Платон',limit:24})).items).toHaveLength(0);
+ });
  it('searches source text across indexed form delimiters without losing exact Unicode offsets',async()=>{
   const {provider,calls}=fixture({text:'🌳 sense-organs and sense organs.',terms:[{form:'sense',occurrences:[[1,2,7]]},{form:'organs',occurrences:[[1,8,14]]}]});
   const result=await provider.search({documentId:'work',versionId:'v1',query:'sense-organs',scope:'version',limit:10});

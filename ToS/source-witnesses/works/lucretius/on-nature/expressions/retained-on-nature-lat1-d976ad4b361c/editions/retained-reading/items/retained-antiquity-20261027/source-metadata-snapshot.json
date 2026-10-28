@@ -1,0 +1,99 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.on-nature.on-nature-lat1-d976ad4b361c",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/on-nature-lat1-d976ad4b361c.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-lat1.xml",
+    "file_ref": "tos.file.sha256.49d85f2249c4de5d44bae30cebeca8b904101c1c9f00b474c0393fc2847e7f31",
+    "byte_size": 1114831,
+    "sha256": "49d85f2249c4de5d44bae30cebeca8b904101c1c9f00b474c0393fc2847e7f31"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=on-nature-lat1-d976ad4b361c",
+    "record_sha256": "a3470ee310a020d573ed64349de4dae26da51f8a83ae0f8913c5ad97e5731190",
+    "record": {
+      "id": "on-nature-lat1-d976ad4b361c",
+      "language": "la",
+      "title": "Латинский · Perseus",
+      "credit": "Электронный текст: Perseus",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-lat1.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "De Rerum Natura"
+        ],
+        "dates": [],
+        "places": [],
+        "publishers": [
+          "Lost information"
+        ],
+        "scans": []
+      },
+      "item": "tos.item.lucretius.de-rerum-natura.la-perseus-phi0550-phi001.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.d976ad4b361c7f5ebc253e0308a91b7178034a894f749a49c408460c9f7241a6",
+      "sha256": "d976ad4b361c7f5ebc253e0308a91b7178034a894f749a49c408460c9f7241a6",
+      "representationSha256": "b53903628bd9b16f5aebd7eb791f8a032e5387394dd1c2ba94a3addcb148682a",
+      "sourceRef": "ToS/source-witnesses/works/lucretius/de-rerum-natura/expressions/la-perseus-phi0550-phi001/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0550.phi001.perseus-lat1.xml",
+      "sectionCount": 213
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "on-nature-lat1-d976ad4b361c",
+    "legacy_source_sha256_claim": "d976ad4b361c7f5ebc253e0308a91b7178034a894f749a49c408460c9f7241a6",
+    "legacy_representation_sha256_claim": "b53903628bd9b16f5aebd7eb791f8a032e5387394dd1c2ba94a3addcb148682a",
+    "retained_json_payload_sha256": "49d85f2249c4de5d44bae30cebeca8b904101c1c9f00b474c0393fc2847e7f31",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "De Rerum Natura"
+    ],
+    "authors": [
+      "Lucretius"
+    ],
+    "editors_or_translators": [],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.on-nature",
+    "expression_ref": "tos.expression.retained.antiquity.on-nature.on-nature-lat1-d976ad4b361c",
+    "edition_ref": "tos.edition.retained.antiquity.on-nature.on-nature-lat1-d976ad4b361c",
+    "legacy_book_title": "О природе вещей",
+    "legacy_credit": "Электронный текст: Perseus",
+    "publication": {
+      "titles": [
+        "De Rerum Natura"
+      ],
+      "dates": [],
+      "places": [],
+      "publishers": [
+        "Lost information"
+      ],
+      "scans": []
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0550/phi001/phi0550.phi001.perseus-lat1.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 213,
+    "block_count": 7432,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 110,
+      "bookNotes": 0,
+      "adjustments": 6
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.meno.meno-grc2-789e95e17b74",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.meno.meno-grc2-789e95e17b74",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.77694b5e7f1b4ab87d7ae06ba3e07d31e125d1023d86d9bbd25177022c7d12eb",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "meno-grc2-789e95e17b74.json",
+      "media_type": "application/json",
+      "byte_size": 165658,
+      "sha256": "77694b5e7f1b4ab87d7ae06ba3e07d31e125d1023d86d9bbd25177022c7d12eb",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.af5a4c9668e65ed873709ae0ddde953ab53e31c8026602a06c849e07bc532564",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 115073,
+      "sha256": "af5a4c9668e65ed873709ae0ddde953ab53e31c8026602a06c849e07bc532564",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.meno-grc2-789e95e17b74.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-grc2-789e95e17b74/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-grc2-789e95e17b74/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-grc2-789e95e17b74/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-grc2-789e95e17b74/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/meno/expressions/retained-meno-grc2-789e95e17b74/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

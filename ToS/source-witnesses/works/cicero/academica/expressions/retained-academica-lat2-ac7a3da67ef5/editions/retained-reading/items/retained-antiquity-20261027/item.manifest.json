@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.academica.academica-lat2-ac7a3da67ef5",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.academica.academica-lat2-ac7a3da67ef5",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.34f5976c3b7d374e7fba821a55d9c718b8c39546dd8077d4cae13684545d4652",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "academica-lat2-ac7a3da67ef5.json",
+      "media_type": "application/json",
+      "byte_size": 157442,
+      "sha256": "34f5976c3b7d374e7fba821a55d9c718b8c39546dd8077d4cae13684545d4652",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.294a695b9157f4707e68b27eb5cf041d5a865fb85cc813bf9f7af79b6b940002",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 48406,
+      "sha256": "294a695b9157f4707e68b27eb5cf041d5a865fb85cc813bf9f7af79b6b940002",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.academica-lat2-ac7a3da67ef5.20261027",
+  "rights_ref": "ToS/source-witnesses/works/cicero/academica/expressions/retained-academica-lat2-ac7a3da67ef5/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/cicero/academica/expressions/retained-academica-lat2-ac7a3da67ef5/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/cicero/academica/expressions/retained-academica-lat2-ac7a3da67ef5/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/cicero/academica/expressions/retained-academica-lat2-ac7a3da67ef5/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/cicero/academica/expressions/retained-academica-lat2-ac7a3da67ef5/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

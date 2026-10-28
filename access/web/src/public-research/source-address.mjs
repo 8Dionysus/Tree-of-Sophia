@@ -1,4 +1,6 @@
 import {referenceKey, validateReference} from '../corpus-reader/model.mjs';
+import {readableUnitLocator} from '../corpus-reader/location-label.mjs';
+import {corpusSectionLabel, corpusWorkTitle, languageName} from '../observatory/human-presentation.mjs';
 
 export const RESEARCH_SHELF_SOURCE_PREFIX = 'research-shelf:';
 
@@ -71,4 +73,52 @@ export async function resolveSourceLocator(locator, shelf, provider) {
   } catch {
     return {status: 'unavailable', reference, recordId};
   }
+}
+
+/** Describe the existing exact source without changing or inferring its identity. */
+export async function describeSourceLocator(locator, shelf, provider, locale = 'ru') {
+  const result = await resolveSourceLocator(locator, shelf, provider);
+  return describeResolvedSource(result, shelf, provider, locale);
+}
+
+/** Describe an already typed reference without imposing the compact-locator cap. */
+export async function describeSourceReference(value, provider, locale = 'ru') {
+  let reference;
+  try { reference = validateReference(value); }
+  catch { return {status:'invalid', reference:null}; }
+  let result;
+  try { result = await provider.resolve({reference}); }
+  catch { result = {status:'unavailable', reference}; }
+  return describeResolvedSource({...result, reference:result.reference ?? reference}, null, provider, locale);
+}
+
+async function describeResolvedSource(result, shelf, provider, locale) {
+  const english = String(locale).toLowerCase().startsWith('en');
+  const unavailable = english ? 'Source details unavailable' : 'Сведения об источнике недоступны';
+  const reference = result.reference;
+  if (!reference) return {...result, label: unavailable};
+  let document, version, unit;
+  try {
+    document = await provider.document({documentId: reference.target?.workId});
+    version = document?.versions?.find(item => item.id === reference.versionId);
+    if (result.status === 'exact') {
+      const page = await provider.window({documentId: reference.target.workId, versionId: reference.versionId,
+        unitId: reference.unitId, revision: reference.target.textLayerSha256, reference, limit: 1});
+      unit = page?.units?.find(item => (item.unitId || item.id) === reference.unitId);
+    }
+  } catch { /* Keep the exact stored reference and use the available metadata. */ }
+  let shelfTitle = '';
+  if (result.recordId) {
+    try { shelfTitle = (await shelf.get(result.recordId))?.title || ''; } catch { /* optional presentation metadata */ }
+  }
+  const localized = value => typeof value === 'string' ? value : value?.[locale] ?? value?.[english ? 'en' : 'ru'] ?? value?.en ?? value?.ru ?? '';
+  const title = corpusWorkTitle(document, english ? 'en' : 'ru') || shelfTitle || unavailable;
+  const edition = [version?.language ? languageName(version.language, english ? 'en' : 'ru') : '',
+    localized(version?.edition) || localized(version?.label)].filter(Boolean).join(' · ');
+  const rawUnit = readableUnitLocator(unit, locale) || (Number.isSafeInteger(unit?.ordinal) ? String(unit.ordinal) : '');
+  const place = rawUnit ? corpusSectionLabel(rawUnit, locale, reference.versionId) : '';
+  const {start, end} = reference.selector || {};
+  const range = Number.isSafeInteger(start) && Number.isSafeInteger(end) && end > start
+    ? `${start}–${end} ${english ? 'characters' : 'знаков'}` : '';
+  return {...result, label: [title, edition, place, range].filter(Boolean).join(' · ')};
 }

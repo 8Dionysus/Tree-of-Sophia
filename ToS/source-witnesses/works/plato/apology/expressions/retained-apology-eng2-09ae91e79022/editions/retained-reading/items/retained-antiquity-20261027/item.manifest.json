@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.apology.apology-eng2-09ae91e79022",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.apology.apology-eng2-09ae91e79022",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.8d6991b8e98287d9e8235298ae5c025cb29c6f8e56794a448477cf0d7904b8b5",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "apology-eng2-09ae91e79022.json",
+      "media_type": "application/json",
+      "byte_size": 135896,
+      "sha256": "8d6991b8e98287d9e8235298ae5c025cb29c6f8e56794a448477cf0d7904b8b5",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.540f83118151bf91d96c84316f0ddb77594ed6019c2db458a2e12db9a3285fc9",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 60692,
+      "sha256": "540f83118151bf91d96c84316f0ddb77594ed6019c2db458a2e12db9a3285fc9",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.apology-eng2-09ae91e79022.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-eng2-09ae91e79022/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-eng2-09ae91e79022/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-eng2-09ae91e79022/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-eng2-09ae91e79022/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-eng2-09ae91e79022/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

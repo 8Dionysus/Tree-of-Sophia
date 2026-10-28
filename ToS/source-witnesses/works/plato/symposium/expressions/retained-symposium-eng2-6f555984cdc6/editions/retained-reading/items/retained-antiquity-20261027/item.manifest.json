@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.symposium.symposium-eng2-6f555984cdc6",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.symposium.symposium-eng2-6f555984cdc6",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.4cdd327283fd826116a8c36606e1b7ee91643b2eb43aeb0b1be07d5f910f5fc8",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "symposium-eng2-6f555984cdc6.json",
+      "media_type": "application/json",
+      "byte_size": 311505,
+      "sha256": "4cdd327283fd826116a8c36606e1b7ee91643b2eb43aeb0b1be07d5f910f5fc8",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2cc1e7a102faa02276c9428df37afdb17bae4f9b1138596dbf4fa2a65eccfa9f",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 133258,
+      "sha256": "2cc1e7a102faa02276c9428df37afdb17bae4f9b1138596dbf4fa2a65eccfa9f",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.symposium-eng2-6f555984cdc6.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-eng2-6f555984cdc6/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-eng2-6f555984cdc6/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-eng2-6f555984cdc6/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-eng2-6f555984cdc6/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/symposium/expressions/retained-symposium-eng2-6f555984cdc6/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

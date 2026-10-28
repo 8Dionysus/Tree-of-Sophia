@@ -12,13 +12,41 @@ import {
   unitReference,
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
-import {languageName,sourceLinkLabel} from '../observatory/human-presentation.mjs';
-import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm} from './philology.mjs';
+import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
+import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm,isSingleWordSelection} from './philology.mjs';
+import {editionRepresentationKind,groupEditionRepresentations} from './edition-groups.mjs';
+import {readableUnitLocator} from './location-label.mjs';
+import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
+import {selectedSourceContext} from './source-context.mjs';
+import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+import variants from '../../../public-corpus/reader-textual-variants.v1.json' with {type:'json'};
+
+const retainedApparatus=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>[
+  ...(version.bookNotesUnitIds??[]).map(id=>[id,{key:'workNotes',versionId:version.versionId,revision:version.revision}]),
+  ...(version.adjustmentUnitIds??[]).map(id=>[id,{key:'textualAdjustments',versionId:version.versionId,revision:version.revision}]),
+])));
+const apparatusLabel=(unit,locale)=>{const item=retainedApparatus.get(unit?.unitId??unit?.id),reference=unit?.reference;
+  return item && reference?.versionId===item.versionId && reference?.target?.textLayerSha256===item.revision
+    ? WORDING[String(locale).startsWith('en')?'en':'ru'][item.key] : '';};
+// Structural section IDs can include an earlier scholarly marker. Show the
+// range supplied by the retained navigation metadata without changing the
+// unit's identity or claiming an offset for an individual marker.
+const retainedEarlierMarkers=new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>
+  version.structure.flatMap(section=>{
+    const first=section.markers?.[0],last=section.markers?.at(-1);
+    const sectionNumber=/^\d+$/.test(section.sectionId??'')?Number(section.sectionId):null;
+    const firstNumber=typeof first==='string'?Number(first.match(/^\d+/)?.[0]):NaN;
+    return sectionNumber!==null && Number.isFinite(firstNumber) && firstNumber<sectionNumber && last
+      ? [[`${version.versionId}\u0000${version.revision}\u0000${section.unitId}`,`${first}–${last}`]] : [];
+  }))));
+const earlierMarkerRange=(unit,versionId)=>retainedEarlierMarkers.get(`${versionId}\u0000${unit?.reference?.target?.textLayerSha256}\u0000${unit?.unitId??unit?.id}`) || '';
+const withMarkerRange=(label,unit,versionId)=>{const range=earlierMarkerRange(unit,versionId);return range?`${label} (${range})`:label;};
 
 const WORDING = {
   ru: {
+    workNotes:'Примечания к произведению',textualAdjustments:'Текстологические сведения',
     reading: 'Чтение', close: 'Вернуться к Древу', library: 'Корпус', find: 'Найти произведение', loadMore: 'Ещё',
-    previous: 'Предыдущий фрагмент', next: 'Следующий фрагмент', one: 'Один текст', parallel: 'Рядом', compare: 'Сравнить с',
+    previous: 'Предыдущий фрагмент', next: 'Следующий фрагмент', one: 'Один текст', parallel: 'Сравнить тексты', compare: 'Сравнить с',
     search: 'Поиск', searchPlaceholder: 'Искать в открытом тексте', loaded: 'Загруженный фрагмент', version: 'Всё произведение',
     corpus: 'Весь корпус', noSearch: 'Совпадений нет', searchUnavailable: 'Поиск недоступен для этого источника',
     notes: 'Блокнот', context: 'Контекст', source: 'Источник', word: 'Слово', settings: 'Вид текста', bookmark: 'Закладка', bookmarked: 'Закладка снята',
@@ -30,13 +58,16 @@ const WORDING = {
     empty: 'В этой области пока нет текста.', loading: 'Загрузка…', error: 'Не удалось загрузить фрагмент',
     previousChunk: 'Назад', nextChunk: 'Дальше', edition: 'Издание', provenance: 'Происхождение текста', language: 'Язык', original: 'Оригинал', translation: 'Перевод',
     unknown: 'не указано', continuation: 'Есть продолжение', metadataOnly: 'Только метаданные', restricted: 'Доступ ограничен', unavailableVersion: 'Текст недоступен', availabilityUnknown: 'Доступность уточняется',
-    untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент', characters: 'символов',
+    untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент', characters: 'символов', location: 'Место',
+    editionVersions: 'текстовых представления', sourceTextLayer: 'Текст из издания', retainedTextLayer: 'Сохранённый слой · старые привязки сохранены',
+    selectedEdition: 'выбрано', currentLocation: 'Текущее место', loadedPassage: 'Загруженный фрагмент', selectedPassage: 'Выбранный фрагмент', independentColumns: 'Колонки читаются независимо; соответствие мест не задано.', mobileEditions: 'Выбрать текстовое представление', jumpToText:'К тексту', searchEdition:'Искать в издании',
     font: 'Размер', leading: 'Интервал', width: 'Ширина', theme: 'Тема', paper: 'Бумага', night: 'Ночь',
     select: 'Выбрать фрагмент в тексте', noCatalog: 'Произведения не найдены', works: 'Произведений',
   },
   en: {
+    workNotes:'Notes on the work',textualAdjustments:'Textual adjustments',
     reading: 'Reading', close: 'Return to the tree', library: 'Corpus', find: 'Find a work', loadMore: 'More',
-    previous: 'Previous passage', next: 'Next passage', one: 'One text', parallel: 'Side by side', compare: 'Compare with',
+    previous: 'Previous passage', next: 'Next passage', one: 'One text', parallel: 'Compare texts', compare: 'Compare with',
     search: 'Search', searchPlaceholder: 'Search the open text', loaded: 'Loaded passage', version: 'This work',
     corpus: 'Entire corpus', noSearch: 'No matches', searchUnavailable: 'Search is unavailable for this source',
     notes: 'Notebook', context: 'Context', source: 'Source', word: 'Word', settings: 'Text appearance', bookmark: 'Bookmark', bookmarked: 'Bookmark removed',
@@ -49,7 +80,9 @@ const WORDING = {
     unknown: 'unknown', continuation: 'More pages available', metadataOnly: 'Metadata only', restricted: 'Restricted', unavailableVersion: 'Text unavailable',
     font: 'Type size', leading: 'Line spacing', width: 'Line width', theme: 'Theme', paper: 'Paper', night: 'Night',
     select: 'Select a passage in the text', noCatalog: 'No works found', works: 'Works', availabilityUnknown: 'Availability is being checked',
-    untitled: 'Untitled', units: 'Units', passage: 'Passage', characters: 'characters',
+    untitled: 'Untitled', units: 'Units', passage: 'Passage', characters: 'characters', location: 'Location',
+    editionVersions: 'saved text versions', sourceTextLayer: 'Edition source text', retainedTextLayer: 'Retained layer · older links remain valid',
+    selectedEdition: 'selected', currentLocation: 'Current location', loadedPassage: 'Loaded passage', selectedPassage: 'Selected passage', independentColumns: 'Each column keeps its own reading location; no alignment is implied.', mobileEditions: 'Choose a text representation', jumpToText:'Skip to text', searchEdition:'Search edition',
   },
 };
 
@@ -113,14 +146,16 @@ function selectedOffsets(row, node, offset) {
 }
 
 function quoteAttribution({document, version, unit, quote, locale}) {
-  const title = localized(document?.title, locale) || document?.id || '';
+  const title = corpusWorkTitle(document, locale) || document?.id || '';
+  const author = localized(document?.author, locale);
   const work = localized(document?.work, locale);
+  const originalTitle = localized(document?.title, locale);
   const edition = localized(version?.edition, locale) || version?.label || version?.id || '';
-  const locator = localized(unit?.label || version?.locator || document?.locator, locale) || unit?.sourceReference || unit?.unitId || '';
+  const locator = withMarkerRange(apparatusLabel(unit,locale) || corpusSectionLabel(readableUnitLocator(unit,locale),locale,version?.id) || localized(version?.locator || document?.locator, locale) || unit?.unitId || '',unit,version?.id);
   const source = safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
   const licenseUrl = safeExternalUrl(attr(version?.license?.url));
-  const license = licenseUrl ? `${localized(version?.license?.label, locale) || 'License'}: ${licenseUrl}` : '';
-  return [quote ? `«${quote}»` : '', `${title}${work && work !== title ? ` · ${work}` : ''}`, edition, locator, source, license].filter(Boolean).join('\n');
+  const license = licenseUrl ? `${localized(version?.license?.label, locale) || (String(locale).startsWith('en') ? 'License' : 'Лицензия')}: ${licenseUrl}` : '';
+  return [quote ? `«${quote}»` : '', [author,title,work && work !== title && work !== originalTitle ? work : ''].filter(Boolean).join(' · '), edition, locator, source, license].filter(Boolean).join('\n');
 }
 
 /**
@@ -134,6 +169,7 @@ export function mountCorpusReader({
   locale = () => 'ru',
   onGraphRequest,
   onClose,
+  onReturnFocusFallback,
   onLocation,
   onNativeReference,
 } = {}) {
@@ -152,9 +188,11 @@ export function mountCorpusReader({
   let renderSerial = 0;
   let catalogCancel = null;
   let searchCancel = null;
+  let searchGeneration = 0;
   let currentTab = 'context';
   let searchOpen = false;
   let searchScope = 'loaded';
+  let searchVersionId = null;
   let searchQuery = '';
   let searchResult = {items: []};
   let comparison = new Map();
@@ -210,15 +248,19 @@ export function mountCorpusReader({
   const activeDocument = () => modelState().document;
   const activeVersion = versionId => activeDocument()?.versions?.find(item => item.id === versionId) || null;
   const documentTitle = (document, aliases = []) => {
-    const value = localized(document?.title, uiLocale());
+    const value = corpusWorkTitle(document, uiLocale());
     return value && ![document?.id, ...aliases].includes(value) ? value : t('untitled');
   };
   const versionLanguage = version => readableLanguage(version?.language, uiLocale());
   const unitLabel = unit => {
-    if (typeof unit?.label === 'string' && unit.label.trim()) return unit.label;
+    const apparatus=apparatusLabel(unit,uiLocale());if(apparatus)return apparatus;
+    if (typeof unit?.label === 'string' && unit.label.trim()) return withMarkerRange(corpusSectionLabel(unit.label,uiLocale(),selected?.versionId || modelState().activeVersionId),unit,selected?.versionId || modelState().activeVersionId);
     if (Number.isSafeInteger(unit?.ordinal) && unit.ordinal >= 0) return `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}`;
     return t('passage');
   };
+  const paneUnitLabel = (unit, version) => withMarkerRange(apparatusLabel(unit,uiLocale())
+    || corpusSectionLabel(readableUnitLocator(unit,uiLocale()), uiLocale(), version?.id || '')
+    || (Number.isSafeInteger(unit?.ordinal) ? `${t('passage')} ${unit.ordinal + (unit.ordinal === 0 ? 1 : 0)}` : ''),unit,version?.id);
   const locationLabel = reference => {
     if (!reference) return '';
     const state = modelState();
@@ -288,13 +330,19 @@ export function mountCorpusReader({
     });
   }
 
+  function visiblePaneRow(pane) {
+    const paneTop=pane.getBoundingClientRect().top;
+    const stickyBottom=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??paneTop;
+    const boundary=Math.max(paneTop,stickyBottom)+2;
+    return [...pane.querySelectorAll('.cr-unit')].find(item=>item.getBoundingClientRect().bottom>boundary);
+  }
+
   function capturePanePositions() {
     if (disposed || !root) return paneSaveWork;
     const writes=[],document=modelState().document;
     for (const [index, pane] of [...root.querySelectorAll('.cr-pane')].entries()) {
       remember(panePositions,pane.dataset.versionId, pane.scrollTop);
-      const visibleStart=pane.getBoundingClientRect().top + 18;
-      const row = [...pane.querySelectorAll('.cr-unit')].find(item => item.getBoundingClientRect().bottom > visibleStart);
+      const row=visiblePaneRow(pane);
       if (row?.__readerUnit) {
         const version = document?.versions?.find(item=>item.id===pane.dataset.versionId);
         const reference = unitReference(row.__readerUnit, version, document, {});
@@ -338,7 +386,13 @@ export function mountCorpusReader({
   function selectedRecord() {
     if (!selected?.reference) return null;
     const items = notebookItems();
-    return items.notes.find(item => sameNoteReference(item, selected.reference)) || null;
+    if (Object.hasOwn(selected, 'noteId')) {
+      return items.notes.find(item => item.id === selected.noteId && sameNoteReference(item, selected.reference)) || null;
+    }
+    const item = items.notes.find(note => sameNoteReference(note, selected.reference)) || null;
+    selected.noteId = item?.id ?? null;
+    selected.noteRevision = item?.revision;
+    return item;
   }
 
   async function flushNote() {
@@ -346,9 +400,22 @@ export function mountCorpusReader({
     while (noteFlushPromise) { const saved=await noteFlushPromise; if(!saved)return false; }
     if (!noteDirty || !draft || !selected?.reference) return true;
     const target=selected.reference, value=draft.text, key=referenceKey(target), quote=selected.quote || '';
+    const recordId=draft.recordId, recordRevision=draft.recordRevision;
     const task=(async()=>{
       try {
-        if(value.trim())await model.saveNote(target,value,quote);else await model.deleteNote(target);
+        const result=value.trim()
+          ? await model.saveNote(target,value,quote,{id:recordId,revision:recordRevision})
+          : recordId ? await model.deleteNote(target,{id:recordId,revision:recordRevision}) : null;
+        const savedId=result?.item?.id ?? null, savedRevision=result?.item?.revision;
+        if (selected?.reference === target && selected.noteId === recordId) {
+          selected.noteId=savedId; selected.noteRevision=savedRevision;
+        }
+        if (draft?.key===key && draft.recordId===recordId) {
+          draft.recordId=savedId; draft.recordRevision=savedRevision;
+          if (draft.text!==value) {
+            try{draftJournal.capture({reference:target,text:draft.text,quote,originalNoteId:savedId});}catch{}
+          }
+        }
         if(notebook?.status?.().persistent){
           // A failed cleanup retains a recovery copy; it does not undo the
           // notebook transaction that has already committed successfully.
@@ -365,6 +432,7 @@ export function mountCorpusReader({
     noteFlushPromise=task;
     const result=await task;
     if(noteFlushPromise===task)noteFlushPromise=null;
+    if(result && !disposed)refreshNotebookList();
     if(!disposed)updateFooter();
     return result;
   }
@@ -376,11 +444,13 @@ export function mountCorpusReader({
     const startOffset = Number.isSafeInteger(start) ? codePointOffset(unit.text, start) : 0;
     const endOffset = Number.isSafeInteger(end) ? codePointOffset(unit.text, end) : startOffset;
     const reference = unitReference(unit, version, document, {start: startOffset, end: Math.max(startOffset, endOffset)});
+    if (!reference) return;
     selected = {reference, unit, versionId, quote:quote||unit.text.slice(0,READER_LIMITS.quote)};
     philologyController?.abort();
     philologyController = null;
     philology = {busy:false,result:null,concordance:null,error:null};
     inspectorOpen = true;
+    if (window.innerWidth <= 850) libraryOpen = false;
     currentTab = endOffset > startOffset ? 'word' : 'notes';
     mode = mode || 'single';
     emitLocation(reference);
@@ -402,6 +472,11 @@ export function mountCorpusReader({
     const version = activeVersion(selected?.versionId);
     if (!reference || !unit || !version) return;
     const form = selectedPhilologyForm(unit.text, reference);
+    if(form && !isSingleWordSelection(form)) {
+      philology = {busy:false,result:null,concordance:null,error:null};
+      renderInspector();
+      return;
+    }
     if (!form || typeof provider?.analyze !== 'function') {
       philology = {busy:false,result:{status:'unavailable',candidates:[]},concordance:null,error:null};
       renderInspector();
@@ -459,6 +534,7 @@ export function mountCorpusReader({
       || !Number.isSafeInteger(reference.selector.start) || !Number.isSafeInteger(reference.selector.end)
       || reference.selector.end <= reference.selector.start) return;
     if (!(await flushNote()) || selected?.reference !== origin) return;
+    selectionSequence++;
     capturePanePositions();
     const result = await model.loadWindow({documentId:state.document.id,versionId:reference.versionId,reference});
     if (selected?.reference !== origin) return;
@@ -484,6 +560,7 @@ export function mountCorpusReader({
         return;
       }
       if(!(await flushNote())||selected?.reference!==origin)return;
+      selectionSequence++;
       capturePanePositions();
       const opened=await model.open({documentId:target.target.workId,versionId:target.versionId,reference:target});
       if(selected?.reference!==origin||!opened)return;
@@ -505,10 +582,13 @@ export function mountCorpusReader({
     if (!row) return;
     const mark = row.querySelector('[data-selected-occurrence]');
     (mark || row).scrollIntoView({block:mark?'center':'start',inline:'nearest'});
+    const boundary=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top;
+    if(row.getBoundingClientRect().top<boundary && !mark)pane.scrollTop-=boundary-row.getBoundingClientRect().top+2;
+    refreshPaneLocation(pane,activeVersion(reference.versionId));
   }
 
   function markSelection() {
-    for (const row of root.querySelectorAll('.cr-unit')) row.dataset.selected = String(selected && row.dataset.unitId===selected.reference.unitId && row.closest('.cr-pane')?.dataset.versionId===selected.versionId);
+    for (const row of root.querySelectorAll('.cr-unit')) row.dataset.selected = String(selected?.reference && row.dataset.unitId===selected.reference.unitId && row.closest('.cr-pane')?.dataset.versionId===selected.versionId);
   }
 
   function unitFromSelection() {
@@ -539,8 +619,16 @@ export function mountCorpusReader({
     if (!item) return;
     const document = activeDocument();
     const version = activeVersion(selected.versionId);
-    const quote = selected.quote || item.text;
-    const value = quoteAttribution({document, version, unit: item, quote, locale: uiLocale()});
+    const reference = selected.reference;
+    if (!version || reference?.target?.workId !== document?.id || reference.versionId !== version.id
+      || reference.unitId !== (item.unitId || item.id)
+      || (version.source?.textLayerSha256 && reference.target.textLayerSha256!==version.source.textLayerSha256)) { announce(t('changedCurrent')); return; }
+    const quote = quotationWithEditorialRoles(version,item,reference.selector,uiLocale());
+    let value = quoteAttribution({document, version, unit: item, quote, locale: uiLocale()});
+    const difference=variants.variants.find(entry=>entry.versionId===version.id && entry.revision===version.revision && entry.unitId===reference.unitId
+      && codePointSlice(item.text,entry.selector.start,entry.selector.end)===entry.digitalReading
+      && (reference.selector.end===reference.selector.start || reference.selector.start<entry.selector.end && reference.selector.end>entry.selector.start));
+    if(difference)value+=`\n${uiLocale()==='en'?'Reviewed witness difference':'Проверенное различие свидетелей'}: “${difference.digitalReading}” / “${difference.printReading}” · ${difference.printWitness} · ${difference.printUrl}`;
     try { await navigator.clipboard.writeText(value); }
     catch {
       const fallback = element('textarea', 'cr-copy-fallback', value);
@@ -573,7 +661,8 @@ export function mountCorpusReader({
 
   function renderHeader(state) {
     const header = element('header', 'cr-header');
-    const menu = button('☰', () => { libraryOpen = !libraryOpen; render(); }, 'cr-icon cr-menu');
+    const menu = button('☰', () => { libraryOpen = !libraryOpen; if (libraryOpen && window.innerWidth <= 850) inspectorOpen = false; render(); }, 'cr-icon cr-menu');
+    menu.dataset.focusKey='library-toggle';
     menu.hidden=!state.document;
     menu.setAttribute('aria-label', t('library')); menu.setAttribute('aria-expanded', String(libraryOpen));
     const title = element('div', 'cr-title');
@@ -581,7 +670,9 @@ export function mountCorpusReader({
     title.append(element('h1', '', state.document ? documentTitle(state.document) : t('reading')));
     const author = localized(state.document?.author, uiLocale());
     if (author) title.append(element('p', '', author));
-    header.append(menu, title, button('×', () => close(), 'cr-close'));
+    const jump=button(t('jumpToText'),()=>root.querySelector('.cr-pane')?.focus({preventScroll:true}),'cr-jump-text');
+    jump.disabled=!state.document;
+    header.append(menu, jump, title, button('×', () => close(), 'cr-close'));
     header.querySelector('.cr-close').setAttribute('aria-label', t('close'));
     return header;
   }
@@ -604,11 +695,11 @@ export function mountCorpusReader({
     aside.setAttribute('aria-label', t('library'));
     aside.append(element('h2', 'cr-panel-title', t('library')));
     aside.append(element('p', 'cr-library-count', `${t('works')}: ${countLabel(state.catalog.total)}`));
-    const input = element('input', 'cr-library-search'); input.type = 'search'; input.placeholder = t('find'); input.value = state.catalog.query || '';
+    const input = element('input', 'cr-library-search'); input.type = 'search'; input.placeholder = t('find'); input.setAttribute('aria-label',t('find')); input.value = state.catalog.query || '';
     input.addEventListener('input', () => {
       catalogCancel?.(); catalogCancel = wait(240, () => model.catalog({query: input.value}).catch(error => announce(friendlyError(error))));
     });
-    aside.append(input);
+    const inputLabel=element('label','cr-library-search-label');inputLabel.append(element('span','',t('find')),input);aside.append(inputLabel);
     const list = element('div', 'cr-library-list');
     const items = catalogItems();
     if (!items.length && !state.catalog.busy) {
@@ -622,7 +713,8 @@ export function mountCorpusReader({
       const author = localized(document.author, uiLocale());
       const descriptor = localized(document.locator, uiLocale()) || author;
       const availability = catalogAvailability(document);
-      const count = `${t('units')}: ${countLabel(document.unitCount)}`;
+      const count = Number.isSafeInteger(document.unitCount) && document.unitCount >= 0
+        ? `${t('units')}: ${document.unitCount}` : '';
       const meta = [descriptor, availability, count].filter(Boolean).join(' · ');
       if (meta) item.append(element('small', '', meta));
       list.append(item);
@@ -659,14 +751,16 @@ export function mountCorpusReader({
     if(window.innerWidth<=850)libraryOpen=false;
     await capturePanePositions();
     if(disposed)return null;
-    selected = null;
-    searchQuery = '';
+    selectionSequence++; selected = null;
+    searchCancel?.(); searchGeneration++;
+    searchQuery = ''; searchVersionId = null;
     searchResult = {items: []};
     const result = await model.open({documentId});
     if(disposed)return null;
     await ensureVisiblePanes();
     if(disposed)return null;
     render();
+    emitLocation();
     return result;
   }
 
@@ -675,14 +769,16 @@ export function mountCorpusReader({
     if(window.innerWidth<=850){libraryOpen=false;inspectorOpen=false;}
     await capturePanePositions();
     if(disposed)return null;
-    selected = null;
-    searchQuery = '';
+    selectionSequence++; selected = null;
+    searchCancel?.(); searchGeneration++;
+    searchQuery = ''; searchVersionId = null;
     searchResult = {items: []};
     const result = await model.open({documentId, versionId});
     if(disposed)return null;
     await ensureVisiblePanes();
     if(disposed)return null;
     render();
+    emitLocation();
     return result;
   }
 
@@ -709,50 +805,128 @@ export function mountCorpusReader({
     return [language, role, edition, status].filter(Boolean).join(' · ') || t('edition');
   }
 
+  function versionChoice(version) {
+    const choice = button(versionLabel(version), () => {
+      const picker = root.querySelector('.cr-edition-picker');
+      if (picker) picker.open = false;
+      openVersion(modelState().document.id, version.id).catch(error => announce(friendlyError(error)));
+    }, 'cr-version');
+    choice.dataset.versionId = version.id;
+    choice.dataset.focusKey = `version:${version.id}`;
+    choice.setAttribute('aria-pressed', String(version.id === modelState().activeVersionId));
+    choice.dataset.available = String(isTextAvailable(version));
+    if (!isTextAvailable(version)) choice.title = catalogAvailability(version);
+    return choice;
+  }
+
+  function editionRepresentationLabel(version) {
+    const kind = editionRepresentationKind(version);
+    return kind === 'retained' ? t('retainedTextLayer') : kind === 'source' ? t('sourceTextLayer') : '';
+  }
+
+  function renderVersionChoices(versions, className = 'cr-edition-options') {
+    const nav = element('nav', className);
+    nav.setAttribute('aria-label', t('edition'));
+    for (const group of groupEditionRepresentations(versions)) {
+      if (group.versions.length === 1) {
+        const choice=versionChoice(group.versions[0]);
+        if(className==='cr-edition-options')choice.dataset.focusKey='mobile-edition';
+        nav.append(choice);
+        continue;
+      }
+      const details = element('details', 'cr-edition-group');
+      const sourceVersion = group.versions.find(item => editionRepresentationKind(item) === 'source') || group.versions[0];
+      const selectedVersion = group.versions.find(item => item.id === modelState().activeVersionId);
+      const selectedLayer = selectedVersion ? editionRepresentationLabel(selectedVersion) : '';
+      const label = element('summary', '', `${selectedLayer ? `${t('selectedEdition')}: ${selectedLayer} · ` : ''}${versionLabel(sourceVersion)} · ${group.versions.length} ${t('editionVersions')}`);
+      label.dataset.focusKey=`edition-group:${sourceVersion.id}`;
+      details.append(label);
+      const layers = element('div', 'cr-edition-layers');
+      for (const version of group.versions) {
+        const descriptor = editionRepresentationLabel(version);
+        const choice = versionChoice(version);
+        choice.dataset.focusKey=className==='cr-edition-options'?'mobile-edition':label.dataset.focusKey;
+        if (descriptor) choice.prepend(element('small', 'cr-edition-layer-kind', descriptor));
+        layers.append(choice);
+      }
+      details.append(layers);
+      nav.append(details);
+    }
+    return nav;
+  }
+
   function renderVersionBar(state, versions) {
     const toolbar = element('nav', 'cr-toolbar'); toolbar.setAttribute('aria-label', t('edition'));
-    for (const version of state.document?.versions || []) {
-      const b = button(versionLabel(version), () => {
-        openVersion(state.document.id, version.id).catch(error => announce(friendlyError(error)));
-      }, 'cr-version');
-      b.setAttribute('aria-pressed', String(version.id === state.activeVersionId)); b.dataset.available = String(isTextAvailable(version));
-      if (!isTextAvailable(version)) b.title = catalogAvailability(version);
-      toolbar.append(b);
-    }
+    const allVersions = state.document?.versions || [];
+    toolbar.append(renderVersionChoices(allVersions, 'cr-desktop-editions'));
+    const picker = element('details', 'cr-edition-picker');
+    picker.setAttribute('aria-label', t('mobileEditions'));
+    const active = allVersions.find(version => version.id === state.activeVersionId);
+    const activeLayer = active ? editionRepresentationLabel(active) : '';
+    const mobileSummary=element('summary', '', `${t('edition')} · ${activeLayer ? `${activeLayer} · ` : ''}${active ? versionLabel(active) : t('edition')}`);
+    mobileSummary.dataset.focusKey='mobile-edition';picker.append(mobileSummary);
+    picker.append(renderVersionChoices(allVersions));
+    toolbar.append(picker);
     if ((state.document?.versions || []).length > 1) {
       toolbar.append(button(mode === 'parallel' ? t('one') : t('parallel'), async () => {
         if(!(await flushNote()))return;
         capturePanePositions();
         mode = mode === 'parallel' ? 'single' : 'parallel';
+        searchCancel?.(); searchGeneration++; searchVersionId=null; searchResult={items:[]};
         render();
+        if(searchOpen && searchQuery)queueSearch();
         void ensureVisiblePanes();
       }, 'cr-mode'));
+      toolbar.lastChild.dataset.focusKey='compare-toggle';
     }
     if (mode === 'parallel' && versions.length > 1) {
       const label = element('label', 'cr-compare'); label.append(element('span', '', t('compare')));
       const select = element('select'); select.setAttribute('aria-label', t('compare'));
+      select.dataset.focusKey='compare-target';
       for (const version of state.document.versions.filter(item => item.id !== state.activeVersionId && isTextAvailable(item))) {
-        const option = element('option', '', versionLabel(version)); option.value = version.id; select.append(option);
+        const option = element('option', '', [editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · ')); option.value = version.id; select.append(option);
       }
       select.value = versions[1]?.id || '';
-      select.addEventListener('change', async () => { if(!(await flushNote()))return; capturePanePositions(); remember(comparison,state.document.id, select.value); render(); void ensureVisiblePanes(); }); label.append(select); toolbar.append(label);
+      select.addEventListener('change', async () => { if(!(await flushNote()))return; capturePanePositions(); remember(comparison,state.document.id, select.value); searchCancel?.();searchGeneration++;searchVersionId=null;searchResult={items:[]}; render(); if(searchOpen && searchQuery)queueSearch();void ensureVisiblePanes(); }); label.append(select); toolbar.append(label);
     }
     toolbar.append(element('span', 'cr-grow'));
     toolbar.append(button('⌕', () => { searchOpen = !searchOpen; if (!searchOpen) { searchQuery = ''; searchResult = {items: []}; } render(); root.querySelector('.cr-search-input')?.focus(); }, 'cr-icon cr-search-open'));
-    toolbar.lastChild.setAttribute('aria-label',t('search'));
+    toolbar.lastChild.setAttribute('aria-label',t('search')); toolbar.lastChild.setAttribute('aria-expanded',String(searchOpen));toolbar.lastChild.dataset.focusKey='search-toggle';
     toolbar.append(button('Aa', () => { settingsOpen = !settingsOpen; render(); }, 'cr-settings-button'));
-    toolbar.lastChild.setAttribute('aria-label',t('settings'));
-    toolbar.append(button('✧', () => { inspectorOpen = !inspectorOpen; render(); }, 'cr-icon'));
-    toolbar.lastChild.setAttribute('aria-label', t('notes')); toolbar.lastChild.setAttribute('aria-expanded', String(inspectorOpen));
+    toolbar.lastChild.setAttribute('aria-label',t('settings')); toolbar.lastChild.setAttribute('aria-expanded',String(settingsOpen));toolbar.lastChild.dataset.focusKey='settings-toggle';
+    toolbar.append(button('✧', () => { inspectorOpen = !inspectorOpen; if (inspectorOpen && window.innerWidth <= 850) libraryOpen = false; render(); }, 'cr-icon cr-notes-toggle'));
+    toolbar.lastChild.setAttribute('aria-label', t('notes')); toolbar.lastChild.setAttribute('aria-expanded', String(inspectorOpen));toolbar.lastChild.dataset.focusKey='notebook-toggle';
     return toolbar;
+  }
+
+  function queueSearch() {
+    searchCancel?.();
+    const generation=++searchGeneration, query=searchQuery, selectedScope=searchScope;
+    const documentId=modelState().document?.id,versionId=searchVersionId;
+    searchResult={items:[],total:null};
+    const current=()=>generation===searchGeneration && modelState().document?.id===documentId
+      && searchVersionId===versionId && chooseVersions(modelState().document,modelState()).some(version=>version.id===versionId) && searchQuery===query && searchScope===selectedScope;
+    searchCancel = wait(180, () => model.search({documentId,versionId,query,scope:selectedScope}).then(result => {
+      if(current()){searchResult = result || {items: []}; render();}
+    }).catch(error => { if(current()){searchResult = {items: [], nextCursor: null, total: null}; announce(friendlyError(error)); render();} }));
   }
 
   function renderSearch(state) {
     const bar = element('section', 'cr-search');
-    const stored = state.document ? state.searches[stateKey(state.document.id, state.activeVersionId)] : null;
+    const visibleVersions=chooseVersions(state.document,state);
+    if(!visibleVersions.some(version=>version.id===searchVersionId))searchVersionId=state.activeVersionId;
+    const targetVersionId=searchVersionId;
+    const stored = state.document ? state.searches[stateKey(state.document.id, targetVersionId)] : null;
     if (stored?.query === searchQuery && stored?.scope === searchScope) searchResult = stored;
-    const input = element('input', 'cr-search-input'); input.type = 'search'; input.placeholder = t('searchPlaceholder'); input.value = searchQuery; input.maxLength = READER_LIMITS.query;
+    const input = element('input', 'cr-search-input'); input.type = 'search'; input.placeholder = t('searchPlaceholder'); input.setAttribute('aria-label',t('searchPlaceholder'));input.value = searchQuery; input.maxLength = READER_LIMITS.query;
     const scope = element('select', 'cr-search-scope');scope.setAttribute('aria-label',uiLocale()==='en'?'Search scope':'Область поиска');
+    let edition=null;
+    if(visibleVersions.length>1){
+      const label=element('label','cr-search-edition');label.append(element('span','',t('searchEdition')));
+      edition=element('select','cr-search-version');edition.setAttribute('aria-label',t('searchEdition'));
+      for(const version of visibleVersions){const option=element('option','',[editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · '));option.value=version.id;edition.append(option);}
+      edition.value=targetVersionId;label.append(edition);bar.append(label);
+    }
     const capabilities = model.searchCapabilities();
     for (const [value, label, enabled] of [['loaded', t('loaded'), capabilities.loaded], ['version', t('version'), capabilities.version], ['corpus', t('corpus'), capabilities.corpus]]) {
       const option = element('option', '', label); option.value = value; option.disabled = !enabled; scope.append(option);
@@ -764,24 +938,44 @@ export function mountCorpusReader({
       : `${resultCount} / ${searchResult.total}`;
     const count = element('span', 'cr-search-count', searchQuery ? countValue : ''); count.setAttribute('role', 'status');
     const update = () => {
-      searchCancel?.(); searchQuery = input.value; searchScope = scope.value;
-      searchCancel = wait(180, () => model.search({query: searchQuery, scope: searchScope}).then(result => { searchResult = result || {items: []}; render(); }).catch(error => { searchResult = {items: [], nextCursor: null, total: null}; announce(friendlyError(error)); render(); }));
+      searchQuery = input.value; searchScope = scope.value;queueSearch();
     };
-    input.addEventListener('input', update); scope.addEventListener('change', update); input.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation();event.preventDefault();searchOpen = false; searchQuery = ''; searchResult = {items: []}; render(); } });
-    bar.append(input, scope, count);
+    input.addEventListener('input', update); scope.addEventListener('change', update);
+    edition?.addEventListener('change',()=>{searchVersionId=edition.value;update();});
+    input.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation();event.preventDefault();searchOpen = false; searchQuery = ''; searchResult = {items: []}; render();root.querySelector('.cr-search-open')?.focus(); } });
+    const inputLabel=element('label','cr-search-query');inputLabel.append(element('span','',t('searchPlaceholder')),input);
+    bar.append(inputLabel, scope, count);
     const hasContinuation = Boolean(searchResult.nextCursor);
     if (searchResult.items?.length || hasContinuation) {
       const results = element('div', 'cr-search-results');
       for (const item of searchResult.items.slice(-READER_LIMITS.searchResults)) {
-        const result = button('', () => {
-          const version = activeVersion(state.activeVersionId);
-          model.loadWindow({versionId: state.activeVersionId, unitId: item.unitId, revision: version?.revision}).then(window => {
-            const unit = window?.units?.find(value => value.unitId === item.unitId || value.id === item.unitId) || window?.units?.[0];
-            if (unit) { selected = null; emitLocation(unitReference(unit, version, state.document, {})); render(); }
-          }).catch(() => announce(t('error')));
+        const result = button('', async () => {
+          const sequence=++selectionSequence;
+          if(!(await flushNote()) || sequence!==selectionSequence || disposed)return;
+          const version = activeVersion(targetVersionId);
+          const expectedDocument=state.document.id, expectedVersion=version?.id;
+          const isCurrent=()=>sequence===selectionSequence && !disposed && modelState().document?.id===expectedDocument && searchVersionId===expectedVersion
+            && chooseVersions(modelState().document,modelState()).some(item=>item.id===expectedVersion);
+          if(!expectedVersion || !isCurrent())return;
+          const exact=exactReference(item.reference);
+          try {
+            const page=await model.loadWindow({documentId:expectedDocument,versionId:expectedVersion,
+              commitGuard:isCurrent,
+              ...(exact?{reference:exact}:{unitId:item.unitId,revision:version.revision})});
+            if(!isCurrent())return;
+            const unit=page?.units?.find(value=>value.unitId===item.unitId||value.id===item.unitId);
+            if(!unit){announce(t('error'));return;}
+            const reference=exact || unitReference(unit,version,state.document,{start:item.start||0,end:item.end||0});
+            selected={reference,unit,versionId:expectedVersion,quote:selectedPhilologyForm(unit.text,reference).slice(0,READER_LIMITS.quote)};
+            emitLocation(reference); render(); revealSelectedSource();
+          } catch { announce(t('error')); }
         }, 'cr-search-result');
-        const unit = currentWindow(state.activeVersionId)?.units?.find(value => (value.unitId || value.id) === item.unitId);
-        result.append(element('strong', '', item.label || unitLabel(unit || item)), element('span', '', item.snippet || item.excerpt || ''));
+        const unit = currentWindow(targetVersionId)?.units?.find(value => (value.unitId || value.id) === item.unitId);
+        const kind=item.sourceLayer || (unit && editorialKindForMatch(activeVersion(targetVersionId),unit,item.start,item.end))
+          || sourceLayerKind(activeVersion(targetVersionId),item,item.start);
+        result.append(element('strong', '', corpusSectionLabel(item.label,uiLocale(),targetVersionId) || paneUnitLabel(unit || item,activeVersion(targetVersionId))));
+        if(kind)result.append(element('small','cr-search-layer',editorialLabel(kind,uiLocale())));
+        result.append(element('span', '', item.snippet || item.excerpt || ''));
         results.append(result);
       }
       if (!searchResult.items?.length && hasContinuation) results.append(element('span', 'cr-muted', t('continuation')));
@@ -789,9 +983,12 @@ export function mountCorpusReader({
       if (hasContinuation) {
         bar.append(button(t('loadMore'), async event => {
           const trigger = event.currentTarget;
+          const generation=searchGeneration,query=searchQuery,selectedScope=searchScope,documentId=state.document?.id,versionId=targetVersionId;
           trigger.disabled = true;
           try {
-            searchResult = await model.search({query: searchQuery, scope: searchScope, cursor: searchResult.nextCursor}) || searchResult;
+            const result=await model.search({documentId,versionId,query,scope:selectedScope,cursor:searchResult.nextCursor});
+            if(generation!==searchGeneration || modelState().document?.id!==documentId || searchVersionId!==versionId || searchQuery!==query || searchScope!==selectedScope)return;
+            searchResult = result || searchResult;
             render();
           } catch (error) {
             trigger.disabled = false;
@@ -803,11 +1000,11 @@ export function mountCorpusReader({
     return bar;
   }
 
-  function unitMatches(unit) {
-    return (searchResult.items || []).filter(item => item.unitId && item.unitId === (unit.unitId || unit.id));
+  function unitMatches(unit,versionId) {
+    return versionId===searchVersionId ? (searchResult.items || []).filter(item => item.unitId && item.unitId === (unit.unitId || unit.id)) : [];
   }
 
-  function renderUnit(unit, version, sourceDocument) {
+  function renderUnit(unit, version, sourceDocument, {showWholeLayer=true} = {}) {
     const versionId=version.id;
     const row = element(unit.heading ? 'h3' : 'div', `cr-unit${unit.heading ? ' cr-heading' : ''}${unit.kind === 'verse_line' ? ' cr-verse-line' : ''}`);
     // All units in this render share its validated snapshot. Looking up the
@@ -816,11 +1013,12 @@ export function mountCorpusReader({
     row.dataset.reference = referenceKey(reference); row.dataset.unitId = unit.unitId || ''; row.dataset.kind = unit.kind || ''; row.__readerUnit = unit;
     if (selected && sameReference(selected.reference, reference)) row.dataset.selected = 'true';
     const ordinal = Number.isSafeInteger(unit.ordinal) && unit.ordinal > 0 ? unit.ordinal : Number.isSafeInteger(unit.ordinal) ? unit.ordinal + 1 : null;
-    const markerLabel = unit.label || (ordinal === null ? '·' : String(ordinal));
+    const markerLabel = withMarkerRange(apparatusLabel(unit,uiLocale()) || corpusSectionLabel(unit.label,uiLocale(),versionId) || (ordinal === null ? '·' : String(ordinal)),unit,versionId);
     const marker = button(markerLabel, () => selectUnit(unit, versionId, {focus: true}), 'cr-unit-marker');
+    if(Array.from(markerLabel).length>7)marker.classList.add('cr-unit-marker-long');
     marker.setAttribute('aria-label', `${t('select')} ${markerLabel}`);
     const content = element(unit.heading?'span':'div', 'cr-unit-text');
-    const matches = unitMatches(unit).filter(match => Number.isSafeInteger(match.start) && Number.isSafeInteger(match.end) && match.end >= match.start).sort((a, b) => a.start - b.start);
+    const matches = unitMatches(unit,versionId).filter(match => Number.isSafeInteger(match.start) && Number.isSafeInteger(match.end) && match.end >= match.start).sort((a, b) => a.start - b.start);
     const codePoints = Array.from(unit.text).length;
     const selectedReference = selected?.versionId === versionId && selected.reference?.unitId === reference?.unitId
       ? exactReference({...reference, selector:selected.reference.selector})
@@ -829,18 +1027,36 @@ export function mountCorpusReader({
       ? {start:selected.reference.selector.start,end:selected.reference.selector.end}
       : null;
     const intervals = philologyMarkIntervals(codePoints,matches,selectedSpan,Boolean(searchQuery));
-    let cursor = 0;
-    for (const interval of intervals) {
-      const start = Math.max(cursor, interval.start);
-      const end = Math.max(start, interval.end);
-      if (end <= start) continue;
-      content.append(document.createTextNode(codePointSlice(unit.text, cursor, start)));
-      const mark = element('mark', interval.selected ? 'cr-selected-occurrence' : '', codePointSlice(unit.text, start, end));
-      if (interval.selected) mark.dataset.selectedOccurrence = 'true';
-      content.append(mark); cursor = end;
+    const editorial=editorialRanges(version,unit);
+    const boundaries=[...new Set([0,codePoints,...intervals.flatMap(value=>[value.start,value.end]),...editorial.flatMap(value=>[value.start,value.end])])].sort((a,b)=>a-b);
+    for(let index=0;index<boundaries.length-1;index++){
+      const start=boundaries[index],end=boundaries[index+1];if(end<=start)continue;
+      const selectedMark=intervals.find(value=>value.start<=start&&value.end>=end);
+      const annotation=editorial.find(value=>value.start<=start&&value.end>=end);
+      let piece=document.createTextNode(codePointSlice(unit.text,start,end));
+      if(selectedMark){const mark=element('mark',selectedMark.selected?'cr-selected-occurrence':'');
+        if(selectedMark.selected)mark.dataset.selectedOccurrence='true';mark.append(piece);piece=mark;}
+      if(annotation){const span=element('span',`cr-editorial-${annotation.kind}${start===annotation.start?' cr-editorial-start':''}`);
+        const label=editorialLabel(annotation.kind,uiLocale());span.title=label;span.dataset.editorialLabel=label;
+        span.setAttribute('role','note');span.setAttribute('aria-label',`${label}: ${codePointSlice(unit.text,start,end)}`);
+        span.append(piece);piece=span;}
+      content.append(piece);
     }
-    content.append(document.createTextNode(codePointSlice(unit.text, cursor)));
     row.append(marker, content);
+    const kinds=[...new Set(editorial.map(value=>value.kind))];
+    const wholeLayer=sourceLayerKind(version,unit);
+    if(showWholeLayer && wholeLayer && !kinds.includes(wholeLayer))kinds.unshift(wholeLayer);
+    if(kinds.length){const notice=element('small','cr-editorial-notice',kinds.map(kind=>editorialLabel(kind,uiLocale())).join(' · '));row.append(notice);}
+    const difference=variants.variants.find(value=>value.versionId===version.id && value.revision===version.revision && value.unitId===(unit.unitId||unit.id)
+      && codePointSlice(unit.text,value.selector.start,value.selector.end)===value.digitalReading);
+    if(difference){
+      const notice=element('p','cr-textual-variant');
+      notice.append(document.createTextNode(uiLocale()==='en'
+        ? `Reviewed witness difference: this digital text reads “${difference.digitalReading}”; the printed edition reads “${difference.printReading}”. `
+        : `Проверенное различие свидетелей: в цифровом тексте «${difference.digitalReading}», в печатном издании «${difference.printReading}». `));
+      const link=element('a','',uiLocale()==='en'?'Printed witness, p. 334':'Печатный свидетель, с. 334');
+      link.href=difference.printUrl;link.target='_blank';link.rel='noopener noreferrer';notice.append(link);row.insertBefore(notice,content);
+    }
     return row;
   }
 
@@ -848,10 +1064,30 @@ export function mountCorpusReader({
     const pane=element('article','cr-pane');pane.dataset.versionId=version.id;pane.lang=version.language||'';
     pane.dir=/^(ar|he|fa|ur)(-|$)/i.test(version.language||'')?'rtl':'ltr';
     pane.tabIndex=0;pane.setAttribute('aria-label',`${documentTitle(state.document)} · ${versionLabel(version)}`);
-    const head=element('header','cr-pane-head');head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
+    const currentLocation=element('div','cr-current-location');
+    currentLocation.append(element('span','cr-kicker',t('currentLocation')),element('strong','',t('loading')));
+    pane.append(currentLocation);
+    const head=element('header','cr-pane-head');
+    const layer=editionRepresentationLabel(version);
+    if(layer)head.append(element('span','cr-layer-badge',layer));
+    head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
+    if(hasEditorialProjection(version))head.append(element('p','cr-editorial-notice',uiLocale()==='en'
+      ?'Source markup is shown where matched; consult the edition for its complete apparatus.'
+      :'Пометы источника показаны там, где их удалось сопоставить; полный аппарат проверяйте в издании.'));
     const page=state.windows[stateKey(state.document.id,version.id)];pane.dataset.windowStart=page?.units?.[0]?.id||'';
+    const selectedHere = selected?.versionId === version.id ? selected.unit : null;
+    const firstUnit = page?.units?.[0];
+    const lastUnit = page?.units?.at(-1);
+    const exactLocation = selectedHere ? paneUnitLabel(selectedHere, version) : '';
+    const firstLocation = firstUnit ? paneUnitLabel(firstUnit, version) : '';
+    const lastLocation = lastUnit ? paneUnitLabel(lastUnit, version) : '';
+    const loadedLocation = firstLocation
+      ? `${firstLocation}${lastLocation && lastLocation !== firstLocation ? `–${lastLocation}` : ''}`
+      : firstUnit ? paneUnitLabel(firstUnit, version) : '';
+    if (loadedLocation) head.append(element('p', 'cr-column-location', `${t('loadedPassage')}: ${loadedLocation}`));
+    if(exactLocation)head.append(element('p','cr-column-location',`${t('selectedPassage')}: ${exactLocation}`));
     const referenceStatus=state.referenceStates[stateKey(state.document.id,version.id)]||'exact';
     const stale=['changed','unavailable'].includes(referenceStatus);
     if(stale){
@@ -865,7 +1101,9 @@ export function mountCorpusReader({
     }
     if(!page&&!stale)pane.append(element('div','cr-loading',state.error?t('error'):t('loading')));
     else if(page&&!page.units.length)pane.append(element('p','cr-empty',t('empty')));
-    else if(page){const body=element('div','cr-text-page');for(const unit of page.units)body.append(renderUnit(unit,version,state.document));pane.append(body);}
+    else if(page){const body=element('div','cr-text-page');let previousLayer=null;
+      for(const unit of page.units){const layer=sourceLayerKind(version,unit);body.append(renderUnit(unit,version,state.document,{showWholeLayer:layer!==previousLayer}));previousLayer=layer;}
+      pane.append(body);}
     const windowError = state.windowErrors?.[stateKey(state.document.id, version.id)];
     if (page && windowError) {
       const notice = element('p', 'cr-notice cr-window-error', friendlyError(windowError));
@@ -873,15 +1111,24 @@ export function mountCorpusReader({
       pane.insertBefore(notice, pane.querySelector('.cr-pane-nav'));
     }
     const move=async direction=>{if(!(await flushNote()))return;capturePanePositions();try{
-      const result=await model.loadWindow({versionId:version.id,direction});if(result){selected=null;panePositions.delete(version.id);const first=result.units[0];emitLocation(first?unitReference(first,activeVersion(version.id),activeDocument(),{}):null);render();}}
+      selectionSequence++;const result=await model.loadWindow({versionId:version.id,direction});if(result){selected=null;panePositions.delete(version.id);const first=result.units[0];emitLocation(first?unitReference(first,activeVersion(version.id),activeDocument(),{}):null);render();}}
       catch(error){announce(t('error'));}};
     const nav=element('footer','cr-pane-nav');const previous=button(`← ${t('previousChunk')}`,()=>move('previous'),'cr-nav');const next=button(`${t('nextChunk')} →`,()=>move('next'),'cr-nav');
     previous.disabled=stale||!page?.hasPrevious;next.disabled=stale||!page?.hasNext;
     const first=page?.units?.[0]?.ordinal,last=page?.units?.at(-1)?.ordinal,total=Number.isSafeInteger(page?.total)?page.total:null;
     const range = first && last ? `${first}–${last} / ${total ?? t('unknown')}` : `${page?.units?.length ? page.units.length : '—'} / ${total ?? t('unknown')}`;
     nav.append(previous,element('span','cr-muted',range),next);pane.append(nav);
-    pane.addEventListener('scroll',()=>{remember(panePositions,version.id,pane.scrollTop);clearTimeout(paneSaveTimers.get(version.id));paneSaveTimers.set(version.id,setTimeout(()=>{paneSaveTimers.delete(version.id);if(!disposed&&opened)capturePanePositions();},550));},{passive:true});
+    pane.addEventListener('scroll',()=>{refreshPaneLocation(pane,version);remember(panePositions,version.id,pane.scrollTop);clearTimeout(paneSaveTimers.get(version.id));paneSaveTimers.set(version.id,setTimeout(()=>{paneSaveTimers.delete(version.id);if(!disposed&&opened)capturePanePositions();},550));},{passive:true});
     return pane;
+  }
+
+  function refreshPaneLocation(pane,version) {
+    const value=pane.querySelector('.cr-current-location strong');
+    if(!value)return;
+    const row=visiblePaneRow(pane);
+    const unit=row?.__readerUnit,layer=unit&&sourceLayerKind(version,unit);
+    const label=unit?[paneUnitLabel(unit,version),layer?editorialLabel(layer,uiLocale()):''].filter(Boolean).join(' · '):'';
+    value.textContent=label||t('loading');
   }
 
   function renderContext(body, state) {
@@ -899,7 +1146,8 @@ export function mountCorpusReader({
       }
     }
     if (selected?.reference && selected?.unit) {
-      const quote = selectedPhilologyForm(selected.unit.text, selected.reference);
+      const quote = selectedPhilologyForm(selected.unit.text, selected.reference)
+        ? quotationWithEditorialRoles(activeVersion(selected.versionId),selected.unit,selected.reference.selector,uiLocale()) : '';
       if (quote) {
         const excerpt = element('blockquote','cr-quote',quote);
         excerpt.dataset.reference = JSON.stringify(selected.reference);
@@ -918,8 +1166,12 @@ export function mountCorpusReader({
     body.append(element('h2', 'cr-inspector-title', t('notes')));
     if (!selected?.reference) { body.append(element('p', 'cr-muted', t('noNotes'))); renderNotebookList(body); renderTransfer(body); return; }
     const selectedNote = selectedRecord();
-    const quote=selected.quote||selectedNote?.quote;
-    if(quote){const excerpt=element('blockquote','cr-quote',quote);excerpt.dataset.reference=JSON.stringify(selected.reference);body.append(excerpt);}
+    const rawQuote=selected.quote||selectedNote?.quote;
+    const full=selected.unit?quotationWithEditorialRoles(activeVersion(selected.versionId),selected.unit,selected.reference.selector,uiLocale()):rawQuote;
+    const quote=full?.slice(0,READER_LIMITS.quote);
+    if(quote){const excerpt=element('blockquote','cr-quote',quote);excerpt.dataset.reference=JSON.stringify(selected.reference);body.append(excerpt);
+      if(full.length>quote.length)body.append(element('p','cr-muted',uiLocale()==='en'?'Preview shortened; Copy quotation includes the full selection.':'Предпросмотр сокращён; кнопка копирует выделенный фрагмент целиком.'));
+    }
     const tools = element('div', 'cr-note-tools');
     const isBookmarked = notebookItems().bookmarks.some(item => sameNoteReference(item, selected.reference));
     tools.append(button(isBookmarked ? '◆' : '◇', async event => {
@@ -937,10 +1189,11 @@ export function mountCorpusReader({
     tools.lastChild.setAttribute('aria-label', t('bookmark'));
     tools.append(button(t('copy'), copySelected, 'cr-copy')); body.append(tools);
     const label = element('label', 'cr-note-label', `${t('addNote')} · ${unitLabel(selected.unit)}`);
-    noteEditor = element('textarea', 'cr-note-editor'); noteEditor.rows = 7; noteEditor.maxLength = READER_LIMITS.note; noteEditor.placeholder = t('notePlaceholder'); noteEditor.value = draft?.key===referenceKey(selected.reference)?draft.text:selectedNote?.text || '';
+    noteEditor = element('textarea', 'cr-note-editor'); noteEditor.rows = 7; noteEditor.maxLength = READER_LIMITS.note; noteEditor.placeholder = t('notePlaceholder'); noteEditor.value = draft?.key===referenceKey(selected.reference)&&draft.recordId===selected.noteId?draft.text:selectedNote?.text || '';
     noteEditor.addEventListener('input', () => {
-      draft={key:referenceKey(selected.reference),text:noteEditor.value};noteDirty = true;
-      try{draftJournal.capture({reference:selected.reference,text:draft.text,quote:selected.quote||'',originalNoteId:selectedRecord()?.id??null});}
+      selectedRecord();
+      draft={key:referenceKey(selected.reference),text:noteEditor.value,recordId:selected.noteId,recordRevision:selected.noteRevision};noteDirty = true;
+      try{draftJournal.capture({reference:selected.reference,text:draft.text,quote:selected.quote||'',originalNoteId:draft.recordId});}
       catch(error){announce(friendlyError(error));}
       clearTimeout(noteTimer);noteTimer=setTimeout(flushNote,450);updateFooter();
     }); label.append(noteEditor); body.append(label);
@@ -949,8 +1202,9 @@ export function mountCorpusReader({
       if (await flushNote()) { announce(notebookSaveLabel()); renderInspector(); updateFooter(); }
     }), button(t('delete'), async () => {
       if (!(await flushNote())) return;
-      try{await model.deleteNote(selected.reference);}catch(error){announce(error.code==='conflict'?(uiLocale()==='en'?'This note changed in another window.':'Заметка изменилась в другом окне.'):t('saveError'));return;}
-      selected = {...selected, quote: ''};
+      selectedRecord();
+      try{if(selected.noteId)await model.deleteNote(selected.reference,{id:selected.noteId,revision:selected.noteRevision});}catch(error){announce(error.code==='conflict'?(uiLocale()==='en'?'This note changed in another window.':'Заметка изменилась в другом окне.'):t('saveError'));return;}
+      selected = {...selected, noteId:null, noteRevision:undefined, quote: ''};
       announce(notebookSaveLabel());
       renderInspector();
     }));
@@ -977,15 +1231,16 @@ export function mountCorpusReader({
       const fallbackLabel=notebookFallbackLabel(item,{index,locale:uiLocale(),passage:t('passage'),rangeLabel:t('characters')});
       const label=element('strong','',`${prefix}${contextLabel||fallbackLabel}`);
       const entry=button('',async()=>{
-        if(!(await flushNote()))return;capturePanePositions();
+        if(!(await flushNote()))return;selectionSequence++;capturePanePositions();
         if(ref?.schemaVersion==='tos.corpus.reader.native-reference.v1'){await close();await onNativeReference?.(ref,item);return;}
         try{if(!documentId)throw new Error('invalid-reference');const openedReference=exactReference(ref);if(!openedReference)throw new Error('invalid-reference');
           const opened=await model.open({documentId,versionId:ref.versionId,reference:openedReference});
           const represented=modelState().document?.id===documentId&&activeVersion(ref.versionId);
           if(represented)emitLocation(openedReference);
-          if(!opened){selected={reference:openedReference,unit:null,versionId:ref.versionId,quote:item.quote||''};render();return;}
+          const noteTarget=item.kind==='note'?{noteId:item.id,noteRevision:item.revision}:{};
+          if(!opened){selected={reference:openedReference,unit:null,versionId:ref.versionId,quote:item.quote||'',...noteTarget};render();return;}
           await ensureVisiblePanes();
-          selected={reference:openedReference,unit:currentWindow(ref.versionId)?.units?.find(unit=>unit.id===ref.unitId)||null,versionId:ref.versionId,quote:item.quote||''};render();revealSelectedSource();}
+          selected={reference:openedReference,unit:currentWindow(ref.versionId)?.units?.find(unit=>unit.id===ref.unitId)||null,versionId:ref.versionId,quote:item.quote||'',...noteTarget};render();revealSelectedSource();}
         catch(error){announce(t('error'));}
       },'cr-note-entry');entry.append(label,element('span','',item.text||item.quote||t('bookmark')));details.append(entry);
       if(documentId && (!catalogDocument || !catalogDocument.versions?.length)){
@@ -1002,6 +1257,24 @@ export function mountCorpusReader({
       if(page.cursor)details.append(button(uiLocale()==='en'?'First notes':'К первым записям',async()=>{if(!(await flushNote()))return;await model.notebookPage();renderInspector();},'cr-more'));
     }
     body.append(details);
+  }
+
+  // Refresh the list after an autosave without replacing the editor or its
+  // draft/record identity. If the list itself owns focus, defer replacement
+  // until the user leaves it.
+  function refreshNotebookList() {
+    const previous=root?.querySelector('.cr-notebook-list');
+    if(!previous || !opened || disposed || currentTab!=='notes')return;
+    const items=notebookItems();
+    const summary=previous.querySelector('summary');
+    if(summary)summary.textContent=`${t('notes')} (${items.notes.length+items.bookmarks.length})`;
+    if(previous.contains(document.activeElement)){
+      previous.addEventListener('focusout',()=>queueMicrotask(refreshNotebookList),{once:true});
+      return;
+    }
+    const holder=element('div');renderNotebookList(holder);
+    const replacement=holder.firstElementChild;
+    if(replacement){replacement.open=previous.open;previous.replaceWith(replacement);}
   }
 
   function renderTransfer(body) {
@@ -1029,7 +1302,7 @@ export function mountCorpusReader({
     body.append(element('h2', 'cr-inspector-title', t('source')));
     for (const version of state.document?.versions || []) {
       const status = isTextAvailable(version) ? '' : catalogAvailability(version);
-      const section = element('section', 'cr-source'); section.append(element('h3', '', [versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
+      const section = element('section', 'cr-source'); section.append(element('h3', '', [editionRepresentationLabel(version),versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
       const sourceUrl = safeExternalUrl(attr(version.sourceUrl || version.source_url || version.source?.url || version.source?.href));
       if (version.attribution) section.append(element('p', '', localized(version.attribution, uiLocale())));
       if (sourceUrl) { const link = element('a', '', sourceLinkLabel(sourceUrl, uiLocale())); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
@@ -1076,7 +1349,7 @@ export function mountCorpusReader({
   function renderSettings() {
     const data = model.notebookState(); const preferences = data.preferences || {};
     const settings = element('section', 'cr-settings');
-    const adjust = (label, values, key) => { const row = element('div', 'cr-setting'); row.append(element('span', '', label)); for (const value of values) { const labelValue=({comfortable:uiLocale()==='en'?'Comfortable':'Обычная',wide:uiLocale()==='en'?'Wide':'Широкая',night:t('night'),paper:t('paper')})[value]||String(value);const b = button(labelValue, () => { model.setPreferences({[key]: value}); render(); }, 'cr-setting-button'); b.setAttribute('aria-pressed', String(preferences[key] === value)); row.append(b); } settings.append(row); };
+    const adjust = (label, values, key) => { const row = element('div', 'cr-setting'); row.append(element('span', '', label)); for (const value of values) { const labelValue=({comfortable:uiLocale()==='en'?'Comfortable':'Обычная',wide:uiLocale()==='en'?'Wide':'Широкая',night:t('night'),paper:t('paper')})[value]||String(value);const b = button(labelValue, () => { model.setPreferences({[key]: value}); render(); }, 'cr-setting-button'); b.dataset.focusKey=`setting:${key}:${value}`;b.setAttribute('aria-pressed', String(preferences[key] === value)); row.append(b); } settings.append(row); };
     adjust(t('font'), [16, 18, 20, 22], 'fontSize'); adjust(t('leading'), [1.6, 1.9, 2.2], 'lineHeight'); adjust(t('width'), ['comfortable', 'wide'], 'width'); adjust(t('theme'), ['night', 'paper'], 'theme'); return settings;
   }
 
@@ -1108,9 +1381,19 @@ export function mountCorpusReader({
   }
 
   function renderContents() {
-    const focused=document.activeElement;const focusClass=['cr-library-search','cr-search-input','cr-search-scope','cr-note-editor'].find(name=>focused?.classList?.contains(name));
+    const focused=document.activeElement;const focusClass=['cr-library-search','cr-search-input','cr-search-scope','cr-search-version','cr-note-editor'].find(name=>focused?.classList?.contains(name));
+    const focusKey=focused?.dataset?.focusKey;
     const selectionStart=focused?.selectionStart,selectionEnd=focused?.selectionEnd;
-    for(const pane of root.querySelectorAll('.cr-pane')){if(pane.dataset.windowStart===currentWindow(pane.dataset.versionId)?.units?.[0]?.id)remember(panePositions,pane.dataset.versionId,pane.scrollTop);else panePositions.delete(pane.dataset.versionId);}
+    const visualAnchors=[];
+    for(const pane of root.querySelectorAll('.cr-pane')){
+      if(pane.dataset.windowStart===currentWindow(pane.dataset.versionId)?.units?.[0]?.id){
+        remember(panePositions,pane.dataset.versionId,pane.scrollTop);
+        const row=visiblePaneRow(pane),rect=row?.getBoundingClientRect();
+        const boundary=Math.max(pane.getBoundingClientRect().top,pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??0)+2;
+        if(row && rect?.height){const offset=rect.top-boundary;visualAnchors.push({versionId:pane.dataset.versionId,unitId:row.dataset.unitId,
+          offset:offset>=0?offset:null,fraction:offset<0?Math.min(1,Math.max(0,-offset/rect.height)):0});}
+      }else panePositions.delete(pane.dataset.versionId);
+    }
     rendering=true;
     const state = modelState(); renderSerial += 1; const serial = renderSerial;
     root.replaceChildren(); root.className = `corpus-reader cr-theme-${model.notebookState().preferences?.theme || 'night'}`; root.dataset.mode = mode; root.dataset.library = String(libraryOpen); root.dataset.inspector = String(inspectorOpen);
@@ -1136,15 +1419,33 @@ export function mountCorpusReader({
     if (searchOpen) root.append(renderSearch(state));
     if (settingsOpen) root.append(renderSettings());
     const layout = element('div', 'cr-layout'); if (libraryOpen) layout.append(renderLibrary(state));
-    const main = element('main', 'cr-main'); const panes = element('div', 'cr-panes');
+    const main = element('main', 'cr-main');
+    if (versions.length > 1) {
+      const independent = element('p', 'cr-comparison-note', t('independentColumns'));
+      independent.setAttribute('role', 'note');
+      main.append(independent);
+    }
+    const panes = element('div', 'cr-panes');
     if (versions.length > 1) panes.classList.add('cr-parallel');
     for (const version of versions) panes.append(renderPane(version, state));
     main.append(panes); layout.append(main);
     if (inspectorOpen) layout.append(element('aside', 'cr-inspector'));
-    root.append(layout, renderFooter()); renderInspector(); restorePanePositions(); markSelection();
+    root.append(layout, renderFooter()); renderInspector(); restorePanePositions();
+    for(const anchor of visualAnchors){
+      const pane=[...root.querySelectorAll('.cr-pane')].find(item=>item.dataset.versionId===anchor.versionId);
+      const row=pane&&[...pane.querySelectorAll('.cr-unit')].find(item=>item.dataset.unitId===anchor.unitId);
+      if(!row)continue;
+      const boundary=Math.max(pane.getBoundingClientRect().top,pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??0)+2;
+      const rect=row.getBoundingClientRect();
+      pane.scrollTop+=anchor.offset===null?rect.top+anchor.fraction*rect.height-boundary:rect.top-boundary-anchor.offset;
+    }
+    for(const pane of root.querySelectorAll('.cr-pane'))refreshPaneLocation(pane,activeVersion(pane.dataset.versionId));
+    markSelection();
     const location = root.querySelector('.cr-location'); if (location) { location.textContent = locationLabel(currentRef()); }
     rendering=false;
-    if(focusClass){const target=root.querySelector('.'+focusClass);if(target){target.focus({preventScroll:true});if(Number.isInteger(selectionStart)&&typeof target.setSelectionRange==='function')target.setSelectionRange(selectionStart,selectionEnd);}}
+    const focusTarget=focusClass?root.querySelector('.'+focusClass):focusKey
+      ? [...root.querySelectorAll('[data-focus-key]')].find(item=>item.dataset.focusKey===focusKey && item.offsetParent!==null) : null;
+    if(focusTarget){focusTarget.focus({preventScroll:true});if(Number.isInteger(selectionStart)&&typeof focusTarget.setSelectionRange==='function')focusTarget.setSelectionRange(selectionStart,selectionEnd);}
     else if (serial === renderSerial && !root.contains(document.activeElement)) root.querySelector('.cr-pane, .cr-library-search, .cr-close')?.focus({preventScroll:true});
   }
 
@@ -1168,10 +1469,53 @@ export function mountCorpusReader({
         if (reference && unit) { selected={reference,unit,versionId:reference.versionId,quote:selectedPhilologyForm(unit.text,reference)}; currentTab='context'; }
       }
       const firstUnit = openedResult && !stale ? currentWindow(state.activeVersionId)?.units?.[0] : null;
-      if (firstUnit) emitLocation(unitReference(firstUnit, activeVersion(state.activeVersionId), state.document, {}));
+      const requestedUnit = args.unitId && !stale ? currentWindow(state.activeVersionId)?.units?.find(value => (value.unitId||value.id)===args.unitId) : null;
+      const location = args.reference && selected?.reference || (requestedUnit||firstUnit) && unitReference(requestedUnit||firstUnit, activeVersion(state.activeVersionId), state.document, {});
+      if (location) emitLocation(location);
       render();
       if (args.reference && !stale) revealSelectedSource();
+      else if(requestedUnit){
+        const pane=[...root.querySelectorAll('.cr-pane')].find(item=>item.dataset.versionId===state.activeVersionId);
+        const row=pane&&[...pane.querySelectorAll('.cr-unit')].find(item=>item.dataset.unitId===args.unitId);
+        row?.scrollIntoView({block:'start',inline:'nearest'});
+        if(row){const boundary=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top;
+          if(row.getBoundingClientRect().top<boundary)pane.scrollTop-=boundary-row.getBoundingClientRect().top+2;
+          refreshPaneLocation(pane,activeVersion(state.activeVersionId));}
+      }
     } catch (error) { announce(friendlyError(error)); render(); }
+  }
+
+  // Navigate an explicitly chosen visible comparison pane without promoting it
+  // to the primary edition or disturbing the other pane's reading position.
+  async function openPanePassage({documentId,versionId,unitId,revision} = {}) {
+    const state=modelState(),version=activeVersion(versionId);
+    if(!opened || disposed || documentId!==state.document?.id || !version || !unitId
+      || !chooseVersions(state.document,state).some(item=>item.id===versionId))return false;
+    if(revision && version.revision!==revision){announce(t('changedCurrent'));return false;}
+    const sequence=++selectionSequence;
+    if(!(await flushNote()) || disposed || sequence!==selectionSequence)return false;
+    await capturePanePositions();
+    if(disposed || sequence!==selectionSequence || modelState().document?.id!==documentId
+      || !chooseVersions(modelState().document,modelState()).some(item=>item.id===versionId))return false;
+    try{
+      const stillCurrent=()=>!disposed && sequence===selectionSequence && modelState().document?.id===documentId
+        && chooseVersions(modelState().document,modelState()).some(item=>item.id===versionId);
+      const page=await model.loadWindow({documentId,versionId,unitId,revision,commitGuard:stillCurrent});
+      if(disposed || sequence!==selectionSequence || modelState().document?.id!==documentId
+        || !chooseVersions(modelState().document,modelState()).some(item=>item.id===versionId))return false;
+      const unit=page?.units?.find(item=>(item.unitId||item.id)===unitId);
+      if(!unit){announce(modelState().referenceStates[stateKey(documentId,versionId)]==='changed'?t('changedCurrent'):t('error'));return false;}
+      selected=null;panePositions.delete(versionId);
+      const ref=unitReference(unit,version,modelState().document,{});if(ref)emitLocation(ref);
+      render();
+      const pane=[...root.querySelectorAll('.cr-pane')].find(item=>item.dataset.versionId===versionId);
+      const row=pane&&[...pane.querySelectorAll('.cr-unit')].find(item=>item.dataset.unitId===unitId);
+      row?.scrollIntoView({block:'start',inline:'nearest'});
+      if(row){const boundary=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top;
+        if(row.getBoundingClientRect().top<boundary)pane.scrollTop-=boundary-row.getBoundingClientRect().top+2;
+        refreshPaneLocation(pane,version);pane.focus({preventScroll:true});}
+      return Boolean(row);
+    }catch(error){announce(friendlyError(error));return false;}
   }
 
   async function close({notify = true} = {}) {
@@ -1180,10 +1524,11 @@ export function mountCorpusReader({
     if(disposed || !root)return true;
     await capturePanePositions();
     if(disposed || !root)return true;
-    opened=false; root.hidden=true; delete root.dataset.open;philologyController?.abort();philologyController=null;model.cancel();
+    opened=false; selectionSequence++; searchCancel?.(); searchGeneration++; root.hidden=true; delete root.dataset.open;philologyController?.abort();philologyController=null;model.cancel();
     if(notify)onClose?.();
     const focus=opener;opener=null;
-    if(focus?.isConnected&&!focus.closest('[hidden]')&&focus.offsetParent!==null)focus.focus?.({preventScroll:true});
+    if(focus?.isConnected&&focus!==document.body&&!focus.closest('[hidden], [inert]')&&focus.offsetParent!==null&&!focus.disabled)focus.focus?.({preventScroll:true});
+    if(!focus || document.activeElement!==focus)onReturnFocusFallback?.();
     return true;
   }
 
@@ -1220,11 +1565,11 @@ export function mountCorpusReader({
       if(opened)await capturePanePositions();
       if(disposed || !root)return this;
       const wasOpened=opened;
-      opener = document.activeElement;
+      if(!wasOpened)opener = args.returnFocus || document.activeElement;
       opened = true; root.hidden = false; root.dataset.open = 'true';
       if (args.mode === 'parallel' || args.mode === 'single') mode = args.mode;
-      if (args.reference || args.unitId) selected = null;
       const hasTarget = Boolean(args.documentId || args.versionId || args.reference || args.unitId || args.revision);
+      if (hasTarget) { selectionSequence++; selected=null; searchCancel?.(); searchGeneration++; searchVersionId=null;searchQuery=''; searchResult={items:[]}; }
       // Keep the last usable window during a new request. Rebuilding the same
       // old panes here forces layout before the incoming window is rendered.
       if(!wasOpened || !hasTarget)render();
@@ -1244,6 +1589,10 @@ export function mountCorpusReader({
       return loadInitial(initial).then(() => this);
     },
     close,
+    openPane: openPanePassage,
+    visibleVersions(state = modelState()) {
+      return state.document ? chooseVersions(state.document,state).map(version=>({id:version.id,label:[editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · ')})) : [];
+    },
     destroy() {
       if(destroyWork)return destroyWork;
       clearTimeout(noteTimer);
@@ -1258,6 +1607,28 @@ export function mountCorpusReader({
       destroyWork=saving.finally(()=>{root?.remove();root=null;model.destroy();});return destroyWork;
     },
     isOpen: () => opened,
+    refreshLocale() {
+      if (!opened || disposed) return;
+      const selection=window.getSelection(); let saved=null;
+      if (selection?.rangeCount && !selection.isCollapsed) {
+        const range=selection.getRangeAt(0), elementOf=node=>node.nodeType===1?node:node.parentElement;
+        const row=elementOf(range.startContainer)?.closest('.cr-unit');
+        const endRow=elementOf(range.endContainer)?.closest('.cr-unit');
+        const content=row?.querySelector('.cr-unit-text');
+        if (row && row===endRow && content?.contains(range.startContainer) && content.contains(range.endContainer)) {
+          const before=range.cloneRange(); before.selectNodeContents(content); before.setEnd(range.startContainer,range.startOffset);
+          saved={key:row.dataset.reference,start:before.toString().length,end:before.toString().length+range.toString().length};
+        }
+      }
+      lastMessage=''; render();
+      if (saved) {
+        const row=[...root.querySelectorAll('.cr-unit')].find(item=>item.dataset.reference===saved.key), content=row?.querySelector('.cr-unit-text');
+        if (content) { const walker=document.createTreeWalker(content,NodeFilter.SHOW_TEXT); let node,offset=0,start=null,end=null;
+          while ((node=walker.nextNode())) { const next=offset+node.data.length; if (!start && saved.start<=next) start=[node,saved.start-offset]; if (saved.end<=next) {end=[node,saved.end-offset]; break;} offset=next; }
+          if (start && end) {const range=document.createRange(); range.setStart(...start); range.setEnd(...end); selection.removeAllRanges(); selection.addRange(range);}
+        }
+      }
+    },
     async refreshNotebook() {
       if (disposed || !(await flushNote())) return false;
       await model.refreshNotebook();
@@ -1269,15 +1640,18 @@ export function mountCorpusReader({
       const state = modelState();
       const version = activeVersion(selected.versionId);
       const document = state.document;
-      if (!version || !document) return null;
+      if (!version || !document || selected.reference.target?.workId !== document.id) return null;
+      const context = selectedSourceContext({reference:selected.reference,version,unit:selected.unit});
+      if (!context) return null;
       return {
         reference: exactReference(selected.reference),
         quote: selectedPhilologyForm(selected.unit.text, selected.reference),
         text: String(selected.unit.text || ''),
+        ...context,
         language: version.language || selected.unit.language || '',
         documentId: document.id,
         versionId: version.id,
-        title: [localized(document.title, uiLocale()), selected.unit.label].filter(Boolean).join(' · '),
+        title: [documentTitle(document), paneUnitLabel(selected.unit,version)].filter(Boolean).join(' · '),
         versionLabel: versionLabel(version),
         edition: localized(version.edition, uiLocale()),
         source: version.source ? structuredClone(version.source) : null,

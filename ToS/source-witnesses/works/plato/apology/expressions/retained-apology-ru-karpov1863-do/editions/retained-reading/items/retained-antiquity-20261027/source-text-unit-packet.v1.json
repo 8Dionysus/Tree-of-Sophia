@@ -1,0 +1,255 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-d440ef82544f493fae6c900ed2cd2fee",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.plato.apology",
+    "expression_ref": "tos.expression.retained.antiquity.apology.apology-ru-karpov1863-do",
+    "edition_ref": "tos.edition.retained.antiquity.apology.apology-ru-karpov1863-do",
+    "item_ref": "tos.item.retained.antiquity.apology.apology-ru-karpov1863-do",
+    "file_ref": "tos.file.sha256.0168ad2efa99d24e0c1bd680300ced2656e1c63437c170a336ccee4aeb907ae1",
+    "file_sha256": "0168ad2efa99d24e0c1bd680300ced2656e1c63437c170a336ccee4aeb907ae1"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-ru-karpov1863-do/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "8a54ff3ec92a2d7e917bcb6c7c9f9d7a195348846afec8983a4beaa4b7e00dce",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-d6a34f30eacf462d91bf5afa8f63ec6b",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-ru-karpov1863-do/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.apology-ru-karpov1863-do.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-cfc14bf7883b47d7b80993ead6218752",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-ru-karpov1863-do/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a54ff3ec92a2d7e917bcb6c7c9f9d7a195348846afec8983a4beaa4b7e00dce",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 58296,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8a54ff3ec92a2d7e917bcb6c7c9f9d7a195348846afec8983a4beaa4b7e00dce",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%90%D0%BF%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%8F_%D0%A1%D0%BE%D0%BA%D1%80%D0%B0%D1%82%D0%B0_(%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD;_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2)/%D0%94%D0%9E?oldid=3714609"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-afc69a614a4041d9b753bdce108df8d4",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-ru-karpov1863-do/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a54ff3ec92a2d7e917bcb6c7c9f9d7a195348846afec8983a4beaa4b7e00dce",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 33288,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c31b16fc8cd2b353e3b3095726bc1d1938cb3f14330ad6d0c18164137a84409d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%90%D0%BF%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%8F_%D0%A1%D0%BE%D0%BA%D1%80%D0%B0%D1%82%D0%B0_(%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD;_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2)/%D0%94%D0%9E?oldid=3714609"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-804c0849a2884de1ab9685f03def4741",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-ru-karpov1863-do/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "8a54ff3ec92a2d7e917bcb6c7c9f9d7a195348846afec8983a4beaa4b7e00dce",
+      "selector": {
+        "type": "text_position",
+        "start": 33288,
+        "end": 58296,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "802aa970d065ea39e60ac4505203d9a5d8759cb54d3baea2d5420ed27c59043e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://ru.wikisource.org/wiki/%D0%90%D0%BF%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%8F_%D0%A1%D0%BE%D0%BA%D1%80%D0%B0%D1%82%D0%B0_(%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD;_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2)/%D0%94%D0%9E?oldid=3714609"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-a6c95408fb094ef2b606b78fa91d99e3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-afc69a614a4041d9b753bdce108df8d4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-12c223a7618046f08106174107b6f478",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-804c0849a2884de1ab9685f03def4741"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-183c8854f32d48d88cea9c04cade7b4b",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-d6a34f30eacf462d91bf5afa8f63ec6b",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-a6c95408fb094ef2b606b78fa91d99e3",
+        "tos.text-unit.sid-12c223a7618046f08106174107b6f478"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-cfc14bf7883b47d7b80993ead6218752",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-ru-karpov1863-do/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.apology-ru-karpov1863-do.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plato/apology/expressions/retained-apology-ru-karpov1863-do/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

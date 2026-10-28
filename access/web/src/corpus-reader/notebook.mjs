@@ -527,7 +527,46 @@ export function createCorpusNotebook({indexedDB=globalThis.indexedDB,dbName=DEFA
     },
     async loadReading(slot){const checked=checkSlot(slot);return read((stateOrTx)=>stateOrTx instanceof Object&&stateOrTx.readings instanceof Map?outputReading(stateOrTx.readings.get(checked)):requestResult(stateOrTx.objectStore(STORE_READINGS).get(checked)).then(outputReading));},
     async getPreference(key){const checked=checkKey(key);return read(stateOrTx=>stateOrTx instanceof Object&&stateOrTx.preferences instanceof Map?clone(stateOrTx.preferences.get(checked)):requestResult(stateOrTx.objectStore(STORE_PREFERENCES).get(checked)).then(value=>value===undefined?undefined:clone(value.value)));},
-    async setPreference(key,value){const checked=checkKey(key),checkedValue=checkPreference(value);const result=await mutate(undefined,(draftOrTx,actual,abort)=>{if(draftOrTx instanceof Object&&draftOrTx.preferences instanceof Map){draftOrTx.preferences.set(checked,clone(checkedValue));return clone(checkedValue);}putRequest(draftOrTx,STORE_PREFERENCES,{key:checked,value:clone(checkedValue)},abort);return ()=>clone(checkedValue);});return {key:checked,value:result.value,revision:result.revision};},
+    async setPreference(key,value,options={}){
+      if(!object(options)||Object.keys(options).some(name=>!['expectedValue','archivePreviousKey'].includes(name)))fail('invalid-input','The preference options are invalid.');
+      const checked=checkKey(key),checkedValue=checkPreference(value),hasExpected=hasOwn(options,'expectedValue');
+      const expected=hasExpected&&options.expectedValue!==undefined?checkPreference(options.expectedValue):undefined;
+      const archiveKey=options.archivePreviousKey===undefined?null:checkKey(options.archivePreviousKey);
+      if(archiveKey===checked)fail('invalid-input','A previous preference needs a distinct archive key.');
+      const checkCurrent=current=>{
+        if(hasExpected&&!sameRecord(current,expected))fail('conflict','This preference changed in another context.',{key:checked});
+      };
+      const result=await mutate(undefined,(draftOrTx,actual,abort)=>{
+        if(draftOrTx instanceof Object&&draftOrTx.preferences instanceof Map){
+          const current=draftOrTx.preferences.get(checked);checkCurrent(current);
+          if(archiveKey&&current!==undefined&&!sameRecord(current,checkedValue)){
+            if(draftOrTx.preferences.has(archiveKey))fail('conflict','The previous preference archive key is already in use.',{key:archiveKey});
+            draftOrTx.preferences.set(archiveKey,checkPreference({value:current,changedAt:now()}));
+          }
+          draftOrTx.preferences.set(checked,clone(checkedValue));
+          return clone(checkedValue);
+        }
+        if(!hasExpected&&!archiveKey)putRequest(draftOrTx,STORE_PREFERENCES,{key:checked,value:clone(checkedValue)},abort);
+        else {
+          const store=draftOrTx.objectStore(STORE_PREFERENCES);
+          const request=withRequest(store.get(checked),abort);
+          request.onsuccess=()=>{try{
+            const current=request.result?.value;checkCurrent(current);
+            if(archiveKey&&current!==undefined&&!sameRecord(current,checkedValue)){
+              const archived=checkPreference({value:current,changedAt:now()});
+              const prior=withRequest(store.get(archiveKey),abort);
+              prior.onsuccess=()=>{try{
+                if(prior.result!==undefined)fail('conflict','The previous preference archive key is already in use.',{key:archiveKey});
+                putRequest(draftOrTx,STORE_PREFERENCES,{key:archiveKey,value:archived},abort);
+                putRequest(draftOrTx,STORE_PREFERENCES,{key:checked,value:clone(checkedValue)},abort);
+              }catch(error){abort(error);}};
+            }else putRequest(draftOrTx,STORE_PREFERENCES,{key:checked,value:clone(checkedValue)},abort);
+          }catch(error){abort(error);}};
+        }
+        return ()=>clone(checkedValue);
+      });
+      return {key:checked,value:result.value,revision:result.revision};
+    },
     async exportPacket(){return read(stateOrTx=>{if(stateOrTx instanceof Object&&stateOrTx.notes instanceof Map)return makePacket(stateOrTx);const meta=stateOrTx.objectStore(STORE_META),notes=stateOrTx.objectStore(STORE_NOTES),readings=stateOrTx.objectStore(STORE_READINGS),preferences=stateOrTx.objectStore(STORE_PREFERENCES);return Promise.all([requestResult(meta.get(META_KEY)),requestResult(notes.getAll()),requestResult(readings.getAll()),requestResult(preferences.getAll())]).then(([m,n,r,p])=>makePacket({revision:checkMeta(m).revision,notes:new Map(n.map(v=>[v.id,v])),readings:new Map(r.map(v=>[v.slot,v])),preferences:new Map(p.map(v=>[v.key,v.value]))}));});},
     async importPacket(packet,options={}){
       if(!object(options)||Object.keys(options).some(key=>key!=='expectedRevision'))fail('invalid-input','The import options are invalid.');

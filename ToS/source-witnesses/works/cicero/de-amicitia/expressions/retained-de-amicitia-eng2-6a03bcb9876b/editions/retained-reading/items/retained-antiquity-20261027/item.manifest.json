@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-amicitia.de-amicitia-eng2-6a03bcb9876b",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-amicitia.de-amicitia-eng2-6a03bcb9876b",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.cc1014dffac34c987eb43ae842263a3db06df680f5b359cfd8cd462ed9964ff6",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-amicitia-eng2-6a03bcb9876b.json",
+      "media_type": "application/json",
+      "byte_size": 163885,
+      "sha256": "cc1014dffac34c987eb43ae842263a3db06df680f5b359cfd8cd462ed9964ff6",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.db436dfa2a4342930060a5fc50405312bda2e6025dfb0403645b9d8d3b7fbb1e",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 93318,
+      "sha256": "db436dfa2a4342930060a5fc50405312bda2e6025dfb0403645b9d8d3b7fbb1e",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-amicitia-eng2-6a03bcb9876b.20261027",
+  "rights_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/retained-de-amicitia-eng2-6a03bcb9876b/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/retained-de-amicitia-eng2-6a03bcb9876b/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/retained-de-amicitia-eng2-6a03bcb9876b/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/cicero/de-amicitia/expressions/retained-de-amicitia-eng2-6a03bcb9876b/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/cicero/de-amicitia/expressions/retained-de-amicitia-eng2-6a03bcb9876b/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

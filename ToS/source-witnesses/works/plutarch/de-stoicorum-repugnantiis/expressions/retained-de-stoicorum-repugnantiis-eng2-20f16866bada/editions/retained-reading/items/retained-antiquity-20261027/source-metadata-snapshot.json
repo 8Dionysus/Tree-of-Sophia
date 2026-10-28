@@ -1,0 +1,119 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-eng2-20f16866bada",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-stoicorum-repugnantiis-eng2-20f16866bada.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml",
+    "file_ref": "tos.file.sha256.18ace4ecbae23a1db8b46037e14f08dce4c0756b276adc179e2ba6da384e939a",
+    "byte_size": 127339,
+    "sha256": "18ace4ecbae23a1db8b46037e14f08dce4c0756b276adc179e2ba6da384e939a"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-stoicorum-repugnantiis-eng2-20f16866bada",
+    "record_sha256": "156cf185a5560b3edeea110c9983063b6aff45e060d74c3b42ac8dd879f18202",
+    "record": {
+      "id": "de-stoicorum-repugnantiis-eng2-20f16866bada",
+      "language": "en",
+      "title": "Английский · Э. Смит",
+      "credit": "Перевод: Э. Смит",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "Plutarch's Morals."
+        ],
+        "dates": [
+          "1878"
+        ],
+        "places": [
+          "Boston",
+          "Cambridge"
+        ],
+        "publishers": [
+          "Little, Brown, and Company",
+          "Press of John Wilson and Son"
+        ],
+        "scans": [
+          "https://archive.org/details/plutarchsmorals04plut/page/428"
+        ]
+      },
+      "item": "tos.item.plutarch.de-stoicorum-repugnantiis.en-perseus-tlg0007-tlg136-perseus-eng2.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.20f16866badac89fce8299a23bc7cacfca5792020c577fa6393595f1d44ff402",
+      "sha256": "20f16866badac89fce8299a23bc7cacfca5792020c577fa6393595f1d44ff402",
+      "representationSha256": "9f50da399fa90f3752033d7c3031d85dee82c802e5243cb624dfd7ca180e6ae0",
+      "sourceRef": "ToS/source-witnesses/works/plutarch/de-stoicorum-repugnantiis/expressions/en-perseus-tlg0007-tlg136-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0007.tlg136.perseus-eng2.xml",
+      "sectionCount": 47
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-stoicorum-repugnantiis-eng2-20f16866bada",
+    "legacy_source_sha256_claim": "20f16866badac89fce8299a23bc7cacfca5792020c577fa6393595f1d44ff402",
+    "legacy_representation_sha256_claim": "9f50da399fa90f3752033d7c3031d85dee82c802e5243cb624dfd7ca180e6ae0",
+    "retained_json_payload_sha256": "18ace4ecbae23a1db8b46037e14f08dce4c0756b276adc179e2ba6da384e939a",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "The contradictions of the Stoics",
+      "Plutarch's Morals."
+    ],
+    "authors": [
+      "Plutarch"
+    ],
+    "editors_or_translators": [
+      "William W. Goodwin",
+      "E. Smith"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-stoicorum-repugnantiis",
+    "expression_ref": "tos.expression.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-eng2-20f16866bada",
+    "edition_ref": "tos.edition.retained.antiquity.de-stoicorum-repugnantiis.de-stoicorum-repugnantiis-eng2-20f16866bada",
+    "legacy_book_title": "О противоречиях стоиков",
+    "legacy_credit": "Перевод: Э. Смит",
+    "publication": {
+      "titles": [
+        "Plutarch's Morals."
+      ],
+      "dates": [
+        "1878"
+      ],
+      "places": [
+        "Boston",
+        "Cambridge"
+      ],
+      "publishers": [
+        "Little, Brown, and Company",
+        "Press of John Wilson and Son"
+      ],
+      "scans": [
+        "https://archive.org/details/plutarchsmorals04plut/page/428"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg136/tlg0007.tlg136.perseus-eng2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 47,
+    "block_count": 64,
+    "apparatus": {
+      "headings": 0,
+      "notes": 13,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

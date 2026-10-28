@@ -1,0 +1,1179 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-20da26d2ca4c4d9f97383d59031d8c47",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.ancient-medicine",
+    "expression_ref": "tos.expression.retained.antiquity.ancient-medicine.ancient-medicine-grc2-87c2fd0da8d9",
+    "edition_ref": "tos.edition.retained.antiquity.ancient-medicine.ancient-medicine-grc2-87c2fd0da8d9",
+    "item_ref": "tos.item.retained.antiquity.ancient-medicine.ancient-medicine-grc2-87c2fd0da8d9",
+    "file_ref": "tos.file.sha256.8c9218d58de8b61e9bc8856e9dd5bf5e02bc3785a781ecf668ba4a6d443b1ccd",
+    "file_sha256": "8c9218d58de8b61e9bc8856e9dd5bf5e02bc3785a781ecf668ba4a6d443b1ccd"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+    "language": "grc",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-389018e947b44b4fac3223f52feeba3d",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.ancient-medicine-grc2-87c2fd0da8d9.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-6523114a478d46abb9a4f72d6f16555d",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 33487,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a305d99426f34b7aa6236b1ad55c9b83",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 1254,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2057737f8b0cbcf39d0c79bb4d067d6d40a6496af8cabb4b5789c8621972e240",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-185491a40d13468cbddf98b7592309f3",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 1254,
+        "end": 2435,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2f0229b042e66bc113dd8b4e1476598d146b640d0ded2f7cc68bdce71e7fec8d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7c3af3034a1f43269bc8e3632b1dff64",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 2435,
+        "end": 4884,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b6f4aac5d33a2d5a1797a095df7e9437b396aec03fc20cc51cc3b57f8081c6be",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9bf88b4965d6402fb3df462bf4029cde",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 4884,
+        "end": 5335,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cc890f8039b6ac4ab6c78c964b7f88844eabb9bfff9500e67c95187baa84b478",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-edcf44378b454758a009395e20fb16d5",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 5335,
+        "end": 6667,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6a5a2b788a86714576bf9e7e968744498c33aa34b5face37c131e98a9424b7f8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d38f9d49a0bc43e7861a3bd32c63f20c",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 6667,
+        "end": 7467,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "addf09efacc34d1873bfbfabb232a795f74ec632c49ccad186530006e4386803",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5e4707588be049c3ada0181614b5f5cf",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 7467,
+        "end": 8192,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d72a5cefaf72f3901c090710f0e012d828894bc2757855b9d422a656649b33c1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-210c72ba792e42839d5a60f056466f0f",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 8192,
+        "end": 9077,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "80bcee8a1f2ba7ce9435c5ed8b3a3e2d3f7f29370c1ef117890adc82616be98d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-585a2966f5f84268ad3e1400b8b958f8",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 9077,
+        "end": 10860,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f208a6ced7735ffc260f30112f3cfc3a80fa0e4160ce90533cb61b89cceffceb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7b88e07802184eaf96e923afd0b39206",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 10860,
+        "end": 12545,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "47eed6834cc6ce35d51d15dec900a246038f0b81a181c1789dfa5c55d742e830",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d9f8b70d9c124809901930177bd53945",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 12545,
+        "end": 13394,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f488af84970845406b3d9e6f42c5dfb2ffd9de945a2624186adea255a1776313",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fa4279e110304d509660bc96d3477e7d",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 13394,
+        "end": 14116,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "944e2749dfca8287017f8f695ad1a83ce6c0ac6196dd11f9e19d2180391b8c4b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-561696f7493a4d218875777d7db4b5ce",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 14116,
+        "end": 15692,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9c956d55d143b28d2ec8079396d819ef8be4dd966911b51f5052ca0fe714b35d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f7100bc48fc248c7ad6da27c6d2c9d82",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 15692,
+        "end": 18238,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d8be4203c4af74e018d615081a4a5f3ca991692478b5ea9e49ff454885ede50c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c1a6a23bd69146eb94e6052f687ff329",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 18238,
+        "end": 19575,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "55c2f7c802290cf780716cb01e43e87b66588cf631dd95aad8a6dfc7400ac8c0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-43adeb48314f48f88dc98340a2835023",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 19575,
+        "end": 21864,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f9294febecb1146c32058295e46b4eff3502307f822336bb16fe9791f481cc63",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7438bf630e534f40bc5041eddc9fb7a5",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 21864,
+        "end": 22536,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "729b351677145b5efcb605698dafad8f1b4526b420df4f42d046e8202728dd4c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-21b508bd8f2b4c9eb665e79f580e6b1b",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 22536,
+        "end": 23613,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0f32d429701ed4360382c58223dc9a97476012dea540691f98d36e243556cc1f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-268adebdc2794dab973d1aac087ed925",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 23613,
+        "end": 26163,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c08e8c429c7ed3f17f2fc38d148728648be46e8a7f4be9bf1e046a0bd844d1e2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d8e241865d154bfdaafbcf1f7a704b7b",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 26163,
+        "end": 28350,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "07eafc3069705c6abbe1b87d411ca91877dab75c91ee514a30d3c6344eaa3b21",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-139cb6f0a78640679a797d324a6ec03c",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 28350,
+        "end": 29170,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b918adaae6155b306959600b809a0201d54f8ef8bf667eb63dfb70c02da395fe",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-909ec68e88f7481db3d07c08113d4016",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 29170,
+        "end": 32487,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "19114ff36e5cb6527818be70f46bab251086795d3dc3ba1a91b9c08245ef0655",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fbb2d1c7ad534c05a6418669e60e5d54",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 32487,
+        "end": 32863,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "345dbb2f69397e25811dcbbbe620bce15d49719f19ba8bf5174b5a04d96ad239",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a50b923741014299935729a38c88962c",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "selector": {
+        "type": "text_position",
+        "start": 32863,
+        "end": 33487,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d51b00382348a19516e873a10cdd226998059f561606ea4fd76520fea508635b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-grc2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-668129b8020446cfb85aa9ce0562c375",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a305d99426f34b7aa6236b1ad55c9b83"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6443d5ea1b1b40fbaef4200d1095cbe7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-185491a40d13468cbddf98b7592309f3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b132e5a5b0f2405e99407e23c130d726",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7c3af3034a1f43269bc8e3632b1dff64"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-33aad518f58b46d6ae2b3ba04a6790ac",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9bf88b4965d6402fb3df462bf4029cde"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-92ab9d32c4c64e71b66d520aba2884a3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-edcf44378b454758a009395e20fb16d5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2d2fbe962eec4e018a7cd7ddd9646f08",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d38f9d49a0bc43e7861a3bd32c63f20c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9bdfa37c69c943eda3877a963039ed29",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5e4707588be049c3ada0181614b5f5cf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dff068be5ad4438dbc47946d932547ec",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-210c72ba792e42839d5a60f056466f0f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ca892e760ff946449248ce53b5ae740e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-585a2966f5f84268ad3e1400b8b958f8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8a111df8a47249ddae0907bf9b11bbff",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7b88e07802184eaf96e923afd0b39206"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c8472b353ca44b01b2022acc4683c074",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d9f8b70d9c124809901930177bd53945"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9163d8efe60d4fe5bc8e1e29b68c7599",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fa4279e110304d509660bc96d3477e7d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cefadcb71b7e4e36b37bb6be8ededf2d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-561696f7493a4d218875777d7db4b5ce"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d7708f8925c143618a6d71f70292798b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f7100bc48fc248c7ad6da27c6d2c9d82"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4c7d5d97beb549219d4f51f0d721d746",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c1a6a23bd69146eb94e6052f687ff329"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2819b75fe95c4b66886d89d1845a2500",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-43adeb48314f48f88dc98340a2835023"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b19f377cab49492f905d5bf4ed218111",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7438bf630e534f40bc5041eddc9fb7a5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d846c62e42394354889300885208d33b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-21b508bd8f2b4c9eb665e79f580e6b1b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-039b01b5cc424be0b93b4b9fecd066d4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-268adebdc2794dab973d1aac087ed925"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6a9808748b6c49459a6174bb1cbbafbc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d8e241865d154bfdaafbcf1f7a704b7b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c77d7f4e3cb843b1a4a7f883de739526",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-139cb6f0a78640679a797d324a6ec03c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5885a665487c4ea8ab96b0c7e7f7c006",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-909ec68e88f7481db3d07c08113d4016"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ae9fc0cce0614baa8b49a7d826aa06f1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fbb2d1c7ad534c05a6418669e60e5d54"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-decb12abb02945f4a86ceb54b68980d6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a50b923741014299935729a38c88962c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-f6347b334fee4b15b21a044f5620c2c2",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-389018e947b44b4fac3223f52feeba3d",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-668129b8020446cfb85aa9ce0562c375",
+        "tos.text-unit.sid-6443d5ea1b1b40fbaef4200d1095cbe7",
+        "tos.text-unit.sid-b132e5a5b0f2405e99407e23c130d726",
+        "tos.text-unit.sid-33aad518f58b46d6ae2b3ba04a6790ac",
+        "tos.text-unit.sid-92ab9d32c4c64e71b66d520aba2884a3",
+        "tos.text-unit.sid-2d2fbe962eec4e018a7cd7ddd9646f08",
+        "tos.text-unit.sid-9bdfa37c69c943eda3877a963039ed29",
+        "tos.text-unit.sid-dff068be5ad4438dbc47946d932547ec",
+        "tos.text-unit.sid-ca892e760ff946449248ce53b5ae740e",
+        "tos.text-unit.sid-8a111df8a47249ddae0907bf9b11bbff",
+        "tos.text-unit.sid-c8472b353ca44b01b2022acc4683c074",
+        "tos.text-unit.sid-9163d8efe60d4fe5bc8e1e29b68c7599",
+        "tos.text-unit.sid-cefadcb71b7e4e36b37bb6be8ededf2d",
+        "tos.text-unit.sid-d7708f8925c143618a6d71f70292798b",
+        "tos.text-unit.sid-4c7d5d97beb549219d4f51f0d721d746",
+        "tos.text-unit.sid-2819b75fe95c4b66886d89d1845a2500",
+        "tos.text-unit.sid-b19f377cab49492f905d5bf4ed218111",
+        "tos.text-unit.sid-d846c62e42394354889300885208d33b",
+        "tos.text-unit.sid-039b01b5cc424be0b93b4b9fecd066d4",
+        "tos.text-unit.sid-6a9808748b6c49459a6174bb1cbbafbc",
+        "tos.text-unit.sid-c77d7f4e3cb843b1a4a7f883de739526",
+        "tos.text-unit.sid-5885a665487c4ea8ab96b0c7e7f7c006",
+        "tos.text-unit.sid-ae9fc0cce0614baa8b49a7d826aa06f1",
+        "tos.text-unit.sid-decb12abb02945f4a86ceb54b68980d6"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-6523114a478d46abb9a4f72d6f16555d",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.ancient-medicine-grc2-87c2fd0da8d9.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/hippocrates/ancient-medicine/expressions/retained-ancient-medicine-grc2-87c2fd0da8d9/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

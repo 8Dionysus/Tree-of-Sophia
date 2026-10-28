@@ -1,0 +1,141 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.isagoge.isagoge-tlg2034-tlg006-opp-lat1-f4d6073fdf6a",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/isagoge-tlg2034.tlg006.opp-lat1-f4d6073fdf6a.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2034/tlg006/tlg2034.tlg006.opp-lat1.xml",
+    "file_ref": "tos.file.sha256.c3200e7887310474bc8d88c1f5269b951eab78d92a23314265ec59dcd5da40f5",
+    "byte_size": 120504,
+    "sha256": "c3200e7887310474bc8d88c1f5269b951eab78d92a23314265ec59dcd5da40f5"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=isagoge-tlg2034.tlg006.opp-lat1-f4d6073fdf6a",
+    "record_sha256": "69687c6f80aab1de179768a815f232a8dc0664200481049290c2319e18ab4cda",
+    "record": {
+      "id": "isagoge-tlg2034.tlg006.opp-lat1-f4d6073fdf6a",
+      "language": "la",
+      "title": "Латинский · Боэций",
+      "credit": "Перевод: Боэций",
+      "source": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2034/tlg006/tlg2034.tlg006.opp-lat1.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Open Greek and Latin · First1KGreek",
+      "publication": {
+        "titles": [
+          "Porphyrii isagoge et in Aristotelis categorias commentarium",
+          "Commentaria in Aristotelem graeca"
+        ],
+        "dates": [
+          "1887"
+        ],
+        "places": [
+          "Berlin"
+        ],
+        "publishers": [
+          "Reimer"
+        ],
+        "scans": [
+          "https://babel.hathitrust.org/cgi/pt?id=njp.32101075724227;view=1up;seq=83"
+        ],
+        "authors": [
+          "Porphyrius"
+        ],
+        "editors": [
+          {
+            "name": "Boethius",
+            "role": "translator"
+          },
+          {
+            "name": "Adolf Busse"
+          }
+        ]
+      },
+      "item": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2034/tlg006/tlg2034.tlg006.opp-lat1.xml",
+      "file": "sha256:f4d6073fdf6afe6a133260e9ce189ac3bc6aeb4819a75bfcf63c82dc72ed992f",
+      "sha256": "f4d6073fdf6afe6a133260e9ce189ac3bc6aeb4819a75bfcf63c82dc72ed992f",
+      "representationSha256": "3d992338267aa51463366fb0b5618acf51440b50f8d62fbaf918d5ed3dc64dd0",
+      "sourceRef": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2034/tlg006/tlg2034.tlg006.opp-lat1.xml",
+      "sectionCount": 1
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "isagoge-tlg2034.tlg006.opp-lat1-f4d6073fdf6a",
+    "legacy_source_sha256_claim": "f4d6073fdf6afe6a133260e9ce189ac3bc6aeb4819a75bfcf63c82dc72ed992f",
+    "legacy_representation_sha256_claim": "3d992338267aa51463366fb0b5618acf51440b50f8d62fbaf918d5ed3dc64dd0",
+    "retained_json_payload_sha256": "c3200e7887310474bc8d88c1f5269b951eab78d92a23314265ec59dcd5da40f5",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Isagoge sive quinque voces",
+      "Porphyrii isagoge et in Aristotelis categorias commentarium",
+      "Commentaria in Aristotelem graeca"
+    ],
+    "authors": [
+      "Porphyrius"
+    ],
+    "editors_or_translators": [
+      "Adolf Busse",
+      "Boethius"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.isagoge",
+    "expression_ref": "tos.expression.retained.antiquity.isagoge.isagoge-tlg2034-tlg006-opp-lat1-f4d6073fdf6a",
+    "edition_ref": "tos.edition.retained.antiquity.isagoge.isagoge-tlg2034-tlg006-opp-lat1-f4d6073fdf6a",
+    "legacy_book_title": "Введение (Isagoge)",
+    "legacy_credit": "Перевод: Боэций",
+    "publication": {
+      "titles": [
+        "Porphyrii isagoge et in Aristotelis categorias commentarium",
+        "Commentaria in Aristotelem graeca"
+      ],
+      "dates": [
+        "1887"
+      ],
+      "places": [
+        "Berlin"
+      ],
+      "publishers": [
+        "Reimer"
+      ],
+      "scans": [
+        "https://babel.hathitrust.org/cgi/pt?id=njp.32101075724227;view=1up;seq=83"
+      ],
+      "authors": [
+        "Porphyrius"
+      ],
+      "editors": [
+        {
+          "name": "Boethius",
+          "role": "translator"
+        },
+        {
+          "name": "Adolf Busse"
+        }
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/03776b39f4047c5cff06f5296fae4b2bae4b08fb/data/tlg2034/tlg006/tlg2034.tlg006.opp-lat1.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "retained_json_counts": {
+    "section_count": 1,
+    "block_count": 77,
+    "apparatus": {
+      "headings": 2,
+      "notes": 64,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

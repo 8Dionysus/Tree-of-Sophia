@@ -1,0 +1,114 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.enchiridion.enchiridion-eng4-3b4d896e1334",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/enchiridion-eng4-3b4d896e1334.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+    "file_ref": "tos.file.sha256.6d9ce1caa9695abd0dcf3acf2e02ed5258c30e3dcf9dfd671813c4a203e7e177",
+    "byte_size": 53298,
+    "sha256": "6d9ce1caa9695abd0dcf3acf2e02ed5258c30e3dcf9dfd671813c4a203e7e177"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=enchiridion-eng4-3b4d896e1334",
+    "record_sha256": "04658a382c73680161885519ab648c6bf51bae07f02a93e5652ff7050723a49a",
+    "record": {
+      "id": "enchiridion-eng4-3b4d896e1334",
+      "language": "en",
+      "title": "Английский · Томас Уэнтворт Хиггинсон",
+      "credit": "Перевод: Томас Уэнтворт Хиггинсон",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments."
+        ],
+        "dates": [
+          "1890"
+        ],
+        "places": [
+          "New York"
+        ],
+        "publishers": [
+          "Thomas Nelson and Sons"
+        ],
+        "scans": [
+          "https://archive.org/details/theworksofepicte00epicuoft/page/214"
+        ]
+      },
+      "item": "tos.item.epictetus.the-handbook.en-perseus-tlg0557-tlg002-perseus-eng4.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.3b4d896e1334e917b49a10f11fb6079af736a15981c4cfa1b345f1d5ddbbd25f",
+      "sha256": "3b4d896e1334e917b49a10f11fb6079af736a15981c4cfa1b345f1d5ddbbd25f",
+      "representationSha256": "fa636745faf0db206766422bce348a077d5512450f273ad6ce1707c0781372dd",
+      "sourceRef": "ToS/source-witnesses/works/epictetus/the-handbook/expressions/en-perseus-tlg0557-tlg002-perseus-eng4/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0557.tlg002.perseus-eng4.xml",
+      "sectionCount": 53
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "enchiridion-eng4-3b4d896e1334",
+    "legacy_source_sha256_claim": "3b4d896e1334e917b49a10f11fb6079af736a15981c4cfa1b345f1d5ddbbd25f",
+    "legacy_representation_sha256_claim": "fa636745faf0db206766422bce348a077d5512450f273ad6ce1707c0781372dd",
+    "retained_json_payload_sha256": "6d9ce1caa9695abd0dcf3acf2e02ed5258c30e3dcf9dfd671813c4a203e7e177",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "The Enchiridion",
+      "The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments."
+    ],
+    "authors": [
+      "Epictetus"
+    ],
+    "editors_or_translators": [
+      "Thomas Wentworth Higginson"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.enchiridion",
+    "expression_ref": "tos.expression.retained.antiquity.enchiridion.enchiridion-eng4-3b4d896e1334",
+    "edition_ref": "tos.edition.retained.antiquity.enchiridion.enchiridion-eng4-3b4d896e1334",
+    "legacy_book_title": "Руководство",
+    "legacy_credit": "Перевод: Томас Уэнтворт Хиггинсон",
+    "publication": {
+      "titles": [
+        "The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments."
+      ],
+      "dates": [
+        "1890"
+      ],
+      "places": [
+        "New York"
+      ],
+      "publishers": [
+        "Thomas Nelson and Sons"
+      ],
+      "scans": [
+        "https://archive.org/details/theworksofepicte00epicuoft/page/214"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0557/tlg002/tlg0557.tlg002.perseus-eng4.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 53,
+    "block_count": 69,
+    "apparatus": {
+      "headings": 0,
+      "notes": 2,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

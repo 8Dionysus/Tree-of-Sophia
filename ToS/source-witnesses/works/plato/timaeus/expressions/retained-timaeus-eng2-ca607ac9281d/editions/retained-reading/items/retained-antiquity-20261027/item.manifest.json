@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.timaeus.timaeus-eng2-ca607ac9281d",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.timaeus.timaeus-eng2-ca607ac9281d",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.d76fd8d190736d4a7149a6de14ee072d1be56b652959379a4a6cc55c92e69f92",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "timaeus-eng2-ca607ac9281d.json",
+      "media_type": "application/json",
+      "byte_size": 480102,
+      "sha256": "d76fd8d190736d4a7149a6de14ee072d1be56b652959379a4a6cc55c92e69f92",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f1ce956ba543ac078cbdc8180ccb9b81c8b290fb0c3673ae968513f3ce378ca8",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 210878,
+      "sha256": "f1ce956ba543ac078cbdc8180ccb9b81c8b290fb0c3673ae968513f3ce378ca8",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.timaeus-eng2-ca607ac9281d.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-eng2-ca607ac9281d/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-eng2-ca607ac9281d/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-eng2-ca607ac9281d/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-eng2-ca607ac9281d/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/timaeus/expressions/retained-timaeus-eng2-ca607ac9281d/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

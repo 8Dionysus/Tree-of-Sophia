@@ -1,0 +1,117 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.de-officiis.de-officiis-lat1-d38269c25f13",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/de-officiis-lat1-d38269c25f13.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-lat1.xml",
+    "file_ref": "tos.file.sha256.f6734768ee0bcdca5080a7dd236a2fee3ae9beee501872fd479744393d7488cb",
+    "byte_size": 356417,
+    "sha256": "f6734768ee0bcdca5080a7dd236a2fee3ae9beee501872fd479744393d7488cb"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=de-officiis-lat1-d38269c25f13",
+    "record_sha256": "74bd0c142e50f73e305c7d7bf08a2705523f11a855a078f38f8c11e809b56e4d",
+    "record": {
+      "id": "de-officiis-lat1-d38269c25f13",
+      "language": "la",
+      "title": "Латинский · Уолтер Миллер",
+      "credit": "Издание: Уолтер Миллер",
+      "source": "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-lat1.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "De Officiis"
+        ],
+        "dates": [
+          "1913"
+        ],
+        "places": [
+          "London",
+          "New York"
+        ],
+        "publishers": [
+          "William Heinemann",
+          "G.P. Putham's Sons"
+        ],
+        "scans": [
+          "https://archive.org/details/deofficiiswithen00ciceuoft"
+        ]
+      },
+      "item": "tos.item.cicero.de-officiis.la-perseus-phi0474-phi055.perseus-8668397510ca.git-tei-xml",
+      "file": "tos.file.sha256.d38269c25f13718a0643b7fb651b5edb68277c7d195e2ffe6c4466e7ce4a686d",
+      "sha256": "d38269c25f13718a0643b7fb651b5edb68277c7d195e2ffe6c4466e7ce4a686d",
+      "representationSha256": "d99e3d34656c00907f86b9a2c38011c16d886d9e070422ab8a0639fd87eaba3a",
+      "sourceRef": "ToS/source-witnesses/works/cicero/de-officiis/expressions/la-perseus-phi0474-phi055/editions/perseus-8668397510ca/items/git-tei-xml/payload/phi0474.phi055.perseus-lat1.xml",
+      "sectionCount": 371
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "de-officiis-lat1-d38269c25f13",
+    "legacy_source_sha256_claim": "d38269c25f13718a0643b7fb651b5edb68277c7d195e2ffe6c4466e7ce4a686d",
+    "legacy_representation_sha256_claim": "d99e3d34656c00907f86b9a2c38011c16d886d9e070422ab8a0639fd87eaba3a",
+    "retained_json_payload_sha256": "f6734768ee0bcdca5080a7dd236a2fee3ae9beee501872fd479744393d7488cb",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "De Officiis"
+    ],
+    "authors": [
+      "M. Tullius Cicero"
+    ],
+    "editors_or_translators": [
+      "Walter Miller"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.de-officiis",
+    "expression_ref": "tos.expression.retained.antiquity.de-officiis.de-officiis-lat1-d38269c25f13",
+    "edition_ref": "tos.edition.retained.antiquity.de-officiis.de-officiis-lat1-d38269c25f13",
+    "legacy_book_title": "Об обязанностях",
+    "legacy_credit": "Издание: Уолтер Миллер",
+    "publication": {
+      "titles": [
+        "De Officiis"
+      ],
+      "dates": [
+        "1913"
+      ],
+      "places": [
+        "London",
+        "New York"
+      ],
+      "publishers": [
+        "William Heinemann",
+        "G.P. Putham's Sons"
+      ],
+      "scans": [
+        "https://archive.org/details/deofficiiswithen00ciceuoft"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/data/phi0474/phi055/phi0474.phi055.perseus-lat1.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-latinLit/blob/8668397510ca77fec6406f7d48f405e50d296764/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 371,
+    "block_count": 563,
+    "apparatus": {
+      "headings": 0,
+      "notes": 0,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 13
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

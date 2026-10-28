@@ -1,0 +1,675 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-00a33c0f779d47c4bbd979d8bb2338fa",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.de-virtute-morali",
+    "expression_ref": "tos.expression.retained.antiquity.de-virtute-morali.de-virtute-morali-grc2-da8a3870d245",
+    "edition_ref": "tos.edition.retained.antiquity.de-virtute-morali.de-virtute-morali-grc2-da8a3870d245",
+    "item_ref": "tos.item.retained.antiquity.de-virtute-morali.de-virtute-morali-grc2-da8a3870d245",
+    "file_ref": "tos.file.sha256.ea171cd30e3008615b3b533970d815a2e4e0a816b496492e1db35fb0ef8417b2",
+    "file_sha256": "ea171cd30e3008615b3b533970d815a2e4e0a816b496492e1db35fb0ef8417b2"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+    "language": "grc",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-d207bba8120842a28cc47c72d5ab4aa8",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-virtute-morali-grc2-da8a3870d245.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-bb9919c6072d42c7bb9076c3008ea1d0",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 39885,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-eb02e86ed3f04c74bb23401f2e383aef",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 718,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "89b60eadd2283611dd520be72ec30ee71796ae1f45b3ee7659d582d559947e00",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8cccd130ef964dae8fd847fa4ee18c2e",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 718,
+        "end": 2397,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "546c71607a314cdcecd36a40a0e61a0c644c9512c87c0ba18d4ed5b12f1b785d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6513018b81b3460b80a6c65d419f10e0",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 2397,
+        "end": 6127,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "371a559a32e8be4dfc35f1d09cc646d28286fd51fb9669b779638f624d10bef6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e5a5eaa6298d4234a65f5fd09ac68ae2",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 6127,
+        "end": 10143,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "67a2ffa7cd95156f44af347b2920baac9061f9938c8b12078128a25ffed983bc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-797c013b081a4b2e9a067baa90714596",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 10143,
+        "end": 13410,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e05f7f73c3232f86cad972066923bd4b7e25f3bfe26cdcabff9eccf792817b1a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-48ad1a6dbb454f29a8ec72444109922d",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 13410,
+        "end": 19283,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bc768d57f19c8117dfd6af72b4dc4e450c2a899c18f5f01652042710e56f9ea5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-dea7256bd5b0437da4cdd64b9b52be6c",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 19283,
+        "end": 25702,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1cf75776fb682da072648e735759bd05789330cf8b930bb6e8c17d572fb1c5fd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-16801424a4f04755aa2fd37b052fa69b",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 25702,
+        "end": 27248,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "004bf4a842d764fdc64f2a2c522e0d555269329233de2a00bdba3f99e17c4caf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9275b2c0137443d6baab04744164f39b",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 27248,
+        "end": 29137,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "380379fb4f3599491a63cea957a3d91f63236c56f706c45ceaba9a8f3f98ff87",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b729ab45ebdb4bfb909a76bdce0070e5",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 29137,
+        "end": 33017,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "572f3e0b420b63a5fc188c4ab0bb88c1c5d32ff75272056a6c58966a17a39132",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-736b8ac9092f4e1297e5aedb18acfd87",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 33017,
+        "end": 35025,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f64a10b98ecc18f79a6435bd498422d2bb00cfb4c304612d1861b28334463fd7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a6da13218bb440f6a67e3b76df166b9b",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "selector": {
+        "type": "text_position",
+        "start": 35025,
+        "end": 39885,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a24f7e109592188babe2961b1035afbd5c0f982af254972cabeb5d22e1d5e7d9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0007/tlg094/tlg0007.tlg094.perseus-grc2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-d88199a904f54e8ba8efc261d8f80f6d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-eb02e86ed3f04c74bb23401f2e383aef"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1d12ea82b52a4388b1d40f7822a1ca26",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8cccd130ef964dae8fd847fa4ee18c2e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-61ffcd90b9ce44f994f3adbb8f29db22",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6513018b81b3460b80a6c65d419f10e0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-79531e25ca6046ab8eb8e37adf3de65d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e5a5eaa6298d4234a65f5fd09ac68ae2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d95d811f9621468c84544dedd1b4130b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-797c013b081a4b2e9a067baa90714596"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b7ea2766217741e6bee64e9e29b3cf34",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-48ad1a6dbb454f29a8ec72444109922d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0b26b52e6e3143b8bff46059f3a4c85f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-dea7256bd5b0437da4cdd64b9b52be6c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f367916c35a14a199bd5e1e8c392e6e7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-16801424a4f04755aa2fd37b052fa69b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5a72f5d486744e75a31c96a16ac51a25",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9275b2c0137443d6baab04744164f39b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a6d0f475519844bb8fe4580964c0d192",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b729ab45ebdb4bfb909a76bdce0070e5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c78f2e86b88c4d8d842b86a13ac0b925",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-736b8ac9092f4e1297e5aedb18acfd87"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f24730a262d1454b9105e57eed5c6fd9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a6da13218bb440f6a67e3b76df166b9b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-e723dabbaeb74b2c9333089553e0fa0e",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-d207bba8120842a28cc47c72d5ab4aa8",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-d88199a904f54e8ba8efc261d8f80f6d",
+        "tos.text-unit.sid-1d12ea82b52a4388b1d40f7822a1ca26",
+        "tos.text-unit.sid-61ffcd90b9ce44f994f3adbb8f29db22",
+        "tos.text-unit.sid-79531e25ca6046ab8eb8e37adf3de65d",
+        "tos.text-unit.sid-d95d811f9621468c84544dedd1b4130b",
+        "tos.text-unit.sid-b7ea2766217741e6bee64e9e29b3cf34",
+        "tos.text-unit.sid-0b26b52e6e3143b8bff46059f3a4c85f",
+        "tos.text-unit.sid-f367916c35a14a199bd5e1e8c392e6e7",
+        "tos.text-unit.sid-5a72f5d486744e75a31c96a16ac51a25",
+        "tos.text-unit.sid-a6d0f475519844bb8fe4580964c0d192",
+        "tos.text-unit.sid-c78f2e86b88c4d8d842b86a13ac0b925",
+        "tos.text-unit.sid-f24730a262d1454b9105e57eed5c6fd9"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-bb9919c6072d42c7bb9076c3008ea1d0",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-virtute-morali-grc2-da8a3870d245.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

@@ -347,7 +347,8 @@ export function searchUnits(units, query, {limit = READER_LIMITS.searchResults, 
       const matchReference = reference
         ? validateReference({...reference, selector: {...reference.selector, start, end}})
         : null;
-      items.push({id: `${scope}-${index}-${hit.index}`, unitId, label: text(unit?.label, ''), ordinal: Number.isSafeInteger(unit?.ordinal) ? unit.ordinal : null, start, end, snippet: value, reference: matchReference, scope});
+      const excerpt = Array.from(value).slice(Math.max(0, start - 20), end + 60).join('');
+      items.push({id: `${scope}-${index}-${hit.index}`, unitId, label: text(unit?.label, ''), ordinal: Number.isSafeInteger(unit?.ordinal) ? unit.ordinal : null, start, end, snippet: excerpt, reference: matchReference, scope});
       // The bounded local scan stops before it can establish a corpus total.
       // Keep that uncertainty visible instead of presenting the cache cap as
       // an exact number of matches.
@@ -505,7 +506,10 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       if (remembered?.reference) requestedReference = remembered.reference;
     }
     if (openToken !== latestOpen) return null;
-    if (state.document?.id !== document.id) state.referenceStates = {};
+    if (state.document?.id !== document.id) { state.referenceStates = {}; visibleWindowKeys.clear(); }
+    // The requested primary window must remain pinned while comparison panes
+    // from the preceding work are still on screen.
+    visibleWindowKeys.add(keyFor(document.id, active.id));
     state.document = document; state.activeVersionId = active.id; state.error = null;
     const linkReference = requestedReference || (unitId || revision ? {versionId: active.id, unitId, contentRevision: revision} : null);
     setReferenceStatus(document.id, active.id, changedReference(linkReference, active, document) ? 'changed' : 'exact');
@@ -552,6 +556,10 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     const key = keyFor(document.id, version.id);
     state.windows[key] = {...window, documentId: document.id, versionId: version.id, requestedReference: requestedReference ? exactReference(requestedReference) : null};
     delete state.windowErrors[key];
+    const previousSearch = state.searches[key];
+    if (previousSearch?.scope === 'loaded' && typeof previousSearch.query === 'string') {
+      state.searches[key] = {...searchUnits(window.units, previousSearch.query, {scope: 'loaded'}), query: previousSearch.query};
+    }
     windowUse.set(key, ++sequence);
     while (Object.keys(state.windows).length > 2) {
       const keys = Object.keys(state.windows);
@@ -566,26 +574,27 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     return state.windows[key];
   }
 
-  async function loadWindow({documentId = state.document?.id, versionId = state.activeVersionId, reference = null, unitId = null, revision = null, direction = 'current', cursor = null, acceptCurrent = false, openToken = null} = {}) {
+  async function loadWindow({documentId = state.document?.id, versionId = state.activeVersionId, reference = null, unitId = null, revision = null, direction = 'current', cursor = null, acceptCurrent = false, openToken = null, commitGuard = null} = {}) {
+    const obsolete=()=> (openToken !== null && openToken !== latestOpen) || (typeof commitGuard==='function' && !commitGuard());
     let document = state.document?.id === documentId ? state.document : state.catalog.items.find(item => item.id === documentId);
     let refreshedDocument = null;
     if (acceptCurrent && document?.id) {
       document = await readDocument(document.id, {refresh: true});
       refreshedDocument = document;
     }
-    if (openToken !== null && openToken !== latestOpen) return null;
+    if (obsolete()) return null;
     const version = availableVersion(document, versionId, locale);
     if (!document || !version) throw new Error('version-unavailable');
     if (direction === 'current' && !acceptCurrent && !reference && !unitId && !revision) {
       const remembered = await storedReading(document, version);
-      if (openToken !== null && openToken !== latestOpen) return null;
+      if (obsolete()) return null;
       if (remembered?.reference) {
         return loadWindow({
           documentId: document.id,
           versionId: version.id,
           unitId: remembered.reference.unitId,
           revision: remembered.reference.target.textLayerSha256,
-          openToken,
+          openToken,commitGuard,
         });
       }
     }
@@ -614,7 +623,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
         value = {units: version.units, reference};
       }
       if (!value) return null;
-      if (openToken !== null && openToken !== latestOpen) return null;
+      if (obsolete()) return null;
       // Commit a refreshed manifest in the same model notification as the
       // newly fetched text. This keeps the source digest used for location
       // links in lockstep with the displayed current window.
@@ -627,7 +636,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       }
       return result;
     } catch (error) {
-      if (openToken !== null && openToken !== latestOpen) return null;
+      if (obsolete()) return null;
       // Keep the last readable window. A transient failure must not blank a
       // passage that the researcher is already reading.
       if (error?.code === 'stale_reference') {
@@ -684,7 +693,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     const key = keyFor(document.id, version.id);
     const current = state.windows[key];
     if (scope === 'loaded') {
-      const result = searchUnits(current?.units || [], query, {scope});
+      const result = {...searchUnits(current?.units || [], query, {scope}), query};
       state.searches[key] = result; notify(); return result;
     }
     const capabilities = {
@@ -1009,23 +1018,36 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       if (Number.isSafeInteger(value?.revision)) notebookRevision = value.revision;
       notify(); return value;
     },
-    async saveNote(reference, value, quote = '') {
+    async saveNote(reference, value, quote = '', target = {}) {
       if (typeof value !== 'string' || value.length > READER_LIMITS.note) throw new Error('note-limit');
       if (typeof quote !== 'string' || quote.length > READER_LIMITS.quote) throw new Error('quote-limit');
       const checked = notebookReference(reference);
-      const old = notebookCache.notes.find(item => sameReference(item.reference || item.anchor, checked));
-      const item = {id: old?.id || `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: 'note', reference: clone(checked), text: value, ...(quote ? {quote: boundedText(quote, READER_LIMITS.quote)} : {})};
-      const result = notebook?.putNote ? await notebookCall('putNote', {...item, expectedRecordRevision: old?.revision ?? null}) : null;
+      const explicit = Object.hasOwn(target, 'id');
+      const old = explicit
+        ? notebookCache.notes.find(item => item.id === target.id)
+        : notebookCache.notes.find(item => sameReference(item.reference || item.anchor, checked));
+      if (explicit && target.id && (!old || !sameReference(old.reference || old.anchor, checked) || old.revision !== target.revision)) {
+        throw Object.assign(new Error('The selected note changed or is no longer available.'), {code: 'conflict'});
+      }
+      const savedQuote = old?.quote ?? quote;
+      const item = {id: old?.id || `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, kind: 'note', reference: clone(checked), text: value, ...(savedQuote ? {quote: boundedText(savedQuote, READER_LIMITS.quote)} : {})};
+      const result = notebook?.putNote ? await notebookCall('putNote', {...item, expectedRecordRevision: old ? (explicit ? target.revision : old.revision) : null}) : {item};
       const saved = result?.item || item;
       notebookCache.notes = [...notebookCache.notes.filter(entry => entry.id !== item.id), saved];
       if (Number.isSafeInteger(result?.revision)) notebookRevision = result.revision;
       notify(); return result;
     },
-    async deleteNote(reference) {
+    async deleteNote(reference, target = {}) {
       const checked = notebookReference(reference);
-      const removed = notebookCache.notes.find(item => sameReference(item.reference || item.anchor, checked));
+      const explicit = Object.hasOwn(target, 'id');
+      const removed = explicit
+        ? notebookCache.notes.find(item => item.id === target.id)
+        : notebookCache.notes.find(item => sameReference(item.reference || item.anchor, checked));
+      if (explicit && target.id && (!removed || !sameReference(removed.reference || removed.anchor, checked) || removed.revision !== target.revision)) {
+        throw Object.assign(new Error('The selected note changed or is no longer available.'), {code: 'conflict'});
+      }
       if (!removed) return null;
-      const value = notebook?.deleteNote ? await notebookCall('deleteNote', removed.id, undefined, removed.revision) : null;
+      const value = notebook?.deleteNote ? await notebookCall('deleteNote', removed.id, undefined, explicit ? target.revision : removed.revision) : null;
       notebookCache.notes = notebookCache.notes.filter(item => item.id !== removed.id);
       if (Number.isSafeInteger(value?.revision)) notebookRevision = value.revision;
       notify(); return value;

@@ -1,0 +1,927 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-07ae618a066c48fdb94cbee2c814128c",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.sacred-disease",
+    "expression_ref": "tos.expression.retained.antiquity.sacred-disease.sacred-disease-grc2-e4cb3d67f410",
+    "edition_ref": "tos.edition.retained.antiquity.sacred-disease.sacred-disease-grc2-e4cb3d67f410",
+    "item_ref": "tos.item.retained.antiquity.sacred-disease.sacred-disease-grc2-e4cb3d67f410",
+    "file_ref": "tos.file.sha256.049b2fe27e8e80ee854b55da1b93910d321f6621d867452a70d9ab66e5c87722",
+    "file_sha256": "049b2fe27e8e80ee854b55da1b93910d321f6621d867452a70d9ab66e5c87722"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+    "language": "grc",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-efc27750a85b4de1809ede6dcc189e33",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.sacred-disease-grc2-e4cb3d67f410.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-c199b1ee52744222b050e0d88f29d196",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 28903,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5cff642780744d09b2b28256bef43658",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 7174,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "27dc0fd9e020e914578c05484a284cba46e75acc730d94e402f82658cae56df0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0c5eefab55124bd79fc078afa5ddaf73",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 7174,
+        "end": 8203,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fb65790ca0236a0246ab75c768c089a8ed3d11625fe58214cbab6e84533891a4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ff5cb062b9334cecaba39a93a6d02c61",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 8203,
+        "end": 9517,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9e6060bdfc5d614aaf5b7765879dfcd6046756c2e727811642b43d6d6e0230b5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-29d06efb675145738dae54b251a36905",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 9517,
+        "end": 10042,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0e69a28e6081552c58c3805c49cbaa2e2bdd03a33e60af7e6c61da88f563f983",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1af7824c0aa2495e8af60406ecea8957",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 10042,
+        "end": 11322,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6fb161765df871b730756705cabafee81c79da40360880c26dac153c4a704d11",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b3347745e4bb491ea1d227069b56387d",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 11322,
+        "end": 12204,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "72ef6aa978fb7d5c2650faaf8b7918b2ba667f87a5035a4f2171b3afe575f4a4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f35f371811ab4acaa909e62d92151cbd",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 12204,
+        "end": 14659,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "227089438aa6739df8538cdb33dd12deac3d6d90dfb41a4c464b83d5c098efcb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d9be3bd2b5f5410fb19e399dfe1e4a3e",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 14659,
+        "end": 15837,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f68c3809bc41cf65391e31c0864352a39931f44fed5e38d2f7ec900a77eeca8a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-88903ab38ba14f1eb7841364557c6974",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 15837,
+        "end": 16759,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "22b0a055babf8ec5c84fffaad0612228fdc6fd3ca7bce5612dd9c284f1ec2d04",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-db4cd74a40e74eff9980959af4eb57db",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 16759,
+        "end": 18664,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9a6f005253972a3d36dc6ff8a1b1d6c98bfac44b34b5a1fe18b5f933487ff114",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-732a8ca7277b4e5ca81f18eca5b0e002",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 18664,
+        "end": 19870,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "31fc08c5c1cc014d066fa268cc97e21b38d924d9ee2f8ddc11958f10ad656491",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6d6a4a60f2ed4927b81d2328e8ab0ad3",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 19870,
+        "end": 20492,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "126af2782b7fbd81725c4d3fff524185779e35255e73ad65bac7f8a6acb805e3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-974aaedfb4f14f098ff776de9bf29b07",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 20492,
+        "end": 22554,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9df6755d8b27c5610a27df5f66ec1b033226f7876d1972758551ec93b8d33019",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-12b25fde32584f55b46b3bcc7aa48400",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 22554,
+        "end": 23787,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "010a96e2f4748daaf59e6610858aef73e7c60fcc12669e3d28a1a084c7d3f601",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-770a8d6f54564cf5b429c709b95d40b7",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 23787,
+        "end": 25173,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6e92d6d5f40389daa87b1accb32694d639e4e16c55d9d2aa5d068a89d0b197d0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-96a2e71219804cf7a777996fe773e0ea",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 25173,
+        "end": 26082,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "974d709ed180ad6338cd62aad5fc502b5b250ff26f7dbf70fdd2dc40dfd6eb21",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0b9557e2278d4120a977cc942cff479a",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 26082,
+        "end": 27676,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7aa5688faf1afbf411f5dd1c3e89482c05fc4d9d471c511367fceee40560cdd0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6ce48a97203044faa6a31b8ba633ac08",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "84ac70d8a3715d603da8476683baa9a525b4e0496a89c85cabf0ef1433ad1f4c",
+      "selector": {
+        "type": "text_position",
+        "start": 27676,
+        "end": 28903,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "39cf8213f7a808947a964eeebe456b1ba6fb7157a219c9ea903c2db7fa76842b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg027/tlg0627.tlg027.perseus-grc2.xml"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-c451c7ef20c64029a47d08c1b297d9c4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5cff642780744d09b2b28256bef43658"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-cc681125613147ef9ce858ab76d2fabd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0c5eefab55124bd79fc078afa5ddaf73"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d0d220381fd9460e956b56450dd76c53",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ff5cb062b9334cecaba39a93a6d02c61"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1bb05aab6d9046aab0ed2f1dafcc144e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-29d06efb675145738dae54b251a36905"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1236c479791d4ddf88d4b755e6968597",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1af7824c0aa2495e8af60406ecea8957"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0ecf7f5b65ac493188031c7c308683fd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b3347745e4bb491ea1d227069b56387d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a1d5dfcaa6964f9ab1a733dbb87c3235",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f35f371811ab4acaa909e62d92151cbd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1290ff8d2e2f48898d976c75c5bd0ada",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d9be3bd2b5f5410fb19e399dfe1e4a3e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4284453cca71485da8e9ace3dcca17d1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-88903ab38ba14f1eb7841364557c6974"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fe26085ecd004d38b3324094e52228e1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-db4cd74a40e74eff9980959af4eb57db"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3ba84018e9c14b67b6906183d3ecc815",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-732a8ca7277b4e5ca81f18eca5b0e002"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6b05c38ba7204ace8d8c8818fcd28216",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6d6a4a60f2ed4927b81d2328e8ab0ad3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f0b4e5d96e05478b94a898773a04bd09",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-974aaedfb4f14f098ff776de9bf29b07"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-51d661e7645f46f6946bdaf6f88398d3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-12b25fde32584f55b46b3bcc7aa48400"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-98ef59aac9364792a31bde70b203e65b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-770a8d6f54564cf5b429c709b95d40b7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c2cab6eb8f9745dd967989be9f44dd88",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-96a2e71219804cf7a777996fe773e0ea"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0d8f52dd462e4a30964b5a97875677e2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0b9557e2278d4120a977cc942cff479a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b9a8a8432d39449e80a16f6c0a586f9c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6ce48a97203044faa6a31b8ba633ac08"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-d7fc1500e01c442a8beef28c7c86ddc1",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-efc27750a85b4de1809ede6dcc189e33",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-c451c7ef20c64029a47d08c1b297d9c4",
+        "tos.text-unit.sid-cc681125613147ef9ce858ab76d2fabd",
+        "tos.text-unit.sid-d0d220381fd9460e956b56450dd76c53",
+        "tos.text-unit.sid-1bb05aab6d9046aab0ed2f1dafcc144e",
+        "tos.text-unit.sid-1236c479791d4ddf88d4b755e6968597",
+        "tos.text-unit.sid-0ecf7f5b65ac493188031c7c308683fd",
+        "tos.text-unit.sid-a1d5dfcaa6964f9ab1a733dbb87c3235",
+        "tos.text-unit.sid-1290ff8d2e2f48898d976c75c5bd0ada",
+        "tos.text-unit.sid-4284453cca71485da8e9ace3dcca17d1",
+        "tos.text-unit.sid-fe26085ecd004d38b3324094e52228e1",
+        "tos.text-unit.sid-3ba84018e9c14b67b6906183d3ecc815",
+        "tos.text-unit.sid-6b05c38ba7204ace8d8c8818fcd28216",
+        "tos.text-unit.sid-f0b4e5d96e05478b94a898773a04bd09",
+        "tos.text-unit.sid-51d661e7645f46f6946bdaf6f88398d3",
+        "tos.text-unit.sid-98ef59aac9364792a31bde70b203e65b",
+        "tos.text-unit.sid-c2cab6eb8f9745dd967989be9f44dd88",
+        "tos.text-unit.sid-0d8f52dd462e4a30964b5a97875677e2",
+        "tos.text-unit.sid-b9a8a8432d39449e80a16f6c0a586f9c"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-c199b1ee52744222b050e0d88f29d196",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "grc",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.sacred-disease-grc2-e4cb3d67f410.20261027",
+        "made_at": "2026-10-27T06:31:44+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/hippocrates/sacred-disease/expressions/retained-sacred-disease-grc2-e4cb3d67f410/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

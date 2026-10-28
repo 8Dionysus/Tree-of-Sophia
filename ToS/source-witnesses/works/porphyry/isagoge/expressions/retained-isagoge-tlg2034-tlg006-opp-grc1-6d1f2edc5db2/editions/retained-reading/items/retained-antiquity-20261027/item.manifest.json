@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.isagoge.isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.isagoge.isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.80b839d5e91d826b9b90e69e5882271bdfb72c2249e1e0a5a558272ac85673a6",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "isagoge-tlg2034.tlg006.opp-grc1-6d1f2edc5db2.json",
+      "media_type": "application/json",
+      "byte_size": 175828,
+      "sha256": "80b839d5e91d826b9b90e69e5882271bdfb72c2249e1e0a5a558272ac85673a6",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.31b953b1bac6b4b8504dd867abe44a2df3328a109d8f30dd7f77631b2580763d",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 112097,
+      "sha256": "31b953b1bac6b4b8504dd867abe44a2df3328a109d8f30dd7f77631b2580763d",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2.20261027",
+  "rights_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/porphyry/isagoge/expressions/retained-isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

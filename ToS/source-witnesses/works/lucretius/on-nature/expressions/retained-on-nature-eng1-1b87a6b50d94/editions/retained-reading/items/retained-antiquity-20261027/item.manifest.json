@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.on-nature.on-nature-eng1-1b87a6b50d94",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.on-nature.on-nature-eng1-1b87a6b50d94",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.79a30c1a1e9d8e0a45f92edf756e72318e1b208139b5e75cb93110e268746c88",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "on-nature-eng1-1b87a6b50d94.json",
+      "media_type": "application/json",
+      "byte_size": 862602,
+      "sha256": "79a30c1a1e9d8e0a45f92edf756e72318e1b208139b5e75cb93110e268746c88",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2fa8defb4a4d1523fdfaffa1f88f4ecafa49bcbce545681c874b0d932914b491",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 414904,
+      "sha256": "2fa8defb4a4d1523fdfaffa1f88f4ecafa49bcbce545681c874b0d932914b491",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.on-nature-eng1-1b87a6b50d94.20261027",
+  "rights_ref": "ToS/source-witnesses/works/lucretius/on-nature/expressions/retained-on-nature-eng1-1b87a6b50d94/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/lucretius/on-nature/expressions/retained-on-nature-eng1-1b87a6b50d94/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/lucretius/on-nature/expressions/retained-on-nature-eng1-1b87a6b50d94/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/lucretius/on-nature/expressions/retained-on-nature-eng1-1b87a6b50d94/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/lucretius/on-nature/expressions/retained-on-nature-eng1-1b87a6b50d94/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.de-virtute-morali.de-virtute-morali-grc2-da8a3870d245",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.de-virtute-morali.de-virtute-morali-grc2-da8a3870d245",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.ea171cd30e3008615b3b533970d815a2e4e0a816b496492e1db35fb0ef8417b2",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "de-virtute-morali-grc2-da8a3870d245.json",
+      "media_type": "application/json",
+      "byte_size": 175091,
+      "sha256": "ea171cd30e3008615b3b533970d815a2e4e0a816b496492e1db35fb0ef8417b2",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 77131,
+      "sha256": "5835b48d0ed8be855af116a2409c2746294051f73a814bbb51b2560d2a1642ec",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.de-virtute-morali-grc2-da8a3870d245.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plutarch/de-virtute-morali/expressions/retained-de-virtute-morali-grc2-da8a3870d245/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

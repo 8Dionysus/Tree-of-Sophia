@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.lysis.lysis-eng2-e9034a26b73c",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.lysis.lysis-eng2-e9034a26b73c",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.89580723fc584aced564b987d3c2e5f8895bc00ae054cc6ca7d00dc2664b056c",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "lysis-eng2-e9034a26b73c.json",
+      "media_type": "application/json",
+      "byte_size": 122770,
+      "sha256": "89580723fc584aced564b987d3c2e5f8895bc00ae054cc6ca7d00dc2664b056c",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f9e9e9a5f88c701f09a59219f2ddd5e77a5919655f2888d04c30aba53ddb0688",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 52290,
+      "sha256": "f9e9e9a5f88c701f09a59219f2ddd5e77a5919655f2888d04c30aba53ddb0688",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.lysis-eng2-e9034a26b73c.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-eng2-e9034a26b73c/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-eng2-e9034a26b73c/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-eng2-e9034a26b73c/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-eng2-e9034a26b73c/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/lysis/expressions/retained-lysis-eng2-e9034a26b73c/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

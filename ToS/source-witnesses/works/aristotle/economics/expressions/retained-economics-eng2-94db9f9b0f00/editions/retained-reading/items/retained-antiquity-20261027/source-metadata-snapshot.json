@@ -1,0 +1,121 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+  "captured_at": "2026-10-27T06:31:44+00:00",
+  "retained_copy": {
+    "local_record_ref": "access/web/antiquity/books/texts/economics-eng2-94db9f9b0f00.json",
+    "copy_origin": "local retained legacy export",
+    "legacy_json_fetch_time": "unknown",
+    "upstream_source_url_from_catalog": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+    "file_ref": "tos.file.sha256.a87fe36cff54763147ea9ca86f339c01893bbb7f74dafd6347b00cdc26a9dc6d",
+    "byte_size": 101089,
+    "sha256": "a87fe36cff54763147ea9ca86f339c01893bbb7f74dafd6347b00cdc26a9dc6d"
+  },
+  "legacy_catalog_record": {
+    "record_ref": "access/web/antiquity/books/catalog.json#version=economics-eng2-94db9f9b0f00",
+    "record_sha256": "426bd42822326d72a6e55cfabacef59d897746520cd3f3a36b7f176a231d97bc",
+    "record": {
+      "id": "economics-eng2-94db9f9b0f00",
+      "language": "en",
+      "title": "Английский · Джордж Сирил Армстронг",
+      "credit": "Перевод: Джордж Сирил Армстронг",
+      "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+      "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Perseus Digital Library · Tufts University",
+      "publication": {
+        "titles": [
+          "The Metaphysics; The Oeconomica and The Magna Moralia",
+          "Loeb Classical Library"
+        ],
+        "dates": [
+          "1935"
+        ],
+        "places": [
+          "London",
+          "Cambridge, MA"
+        ],
+        "publishers": [
+          "William Heinemann Ltd.",
+          "Harvard University Press"
+        ],
+        "scans": [
+          "https://archive.org/details/in.ernet.dli.2015.183332/page/325/mode/2up?view=theater"
+        ]
+      },
+      "item": "tos.item.aristotle.economics.en-perseus-tlg0086-tlg029-perseus-eng2.perseus-341e309c821d.git-tei-xml",
+      "file": "tos.file.sha256.94db9f9b0f009fdc8d27dea0316dac571723d2636a847e8d4162d19b9e33369d",
+      "sha256": "94db9f9b0f009fdc8d27dea0316dac571723d2636a847e8d4162d19b9e33369d",
+      "representationSha256": "011c8add7cbca459a812077b3a5545326ff026b6e6ae8e6324aedebd7a0c354f",
+      "sourceRef": "ToS/source-witnesses/works/aristotle/economics/expressions/en-perseus-tlg0086-tlg029-perseus-eng2/editions/perseus-341e309c821d/items/git-tei-xml/payload/tlg0086.tlg029.perseus-eng2.xml",
+      "sectionCount": 8
+    }
+  },
+  "legacy_source_identity": {
+    "legacy_version_id": "economics-eng2-94db9f9b0f00",
+    "legacy_source_sha256_claim": "94db9f9b0f009fdc8d27dea0316dac571723d2636a847e8d4162d19b9e33369d",
+    "legacy_representation_sha256_claim": "011c8add7cbca459a812077b3a5545326ff026b6e6ae8e6324aedebd7a0c354f",
+    "retained_json_payload_sha256": "a87fe36cff54763147ea9ca86f339c01893bbb7f74dafd6347b00cdc26a9dc6d",
+    "raw_source_payload_present": false
+  },
+  "source_header": {
+    "format": "retained header field from exact legacy JSON payload",
+    "titles": [
+      "Economics",
+      "The Metaphysics; The Oeconomica and The Magna Moralia",
+      "Loeb Classical Library"
+    ],
+    "authors": [
+      "Aristotle"
+    ],
+    "editors_or_translators": [
+      "George Cyril Armstrong"
+    ],
+    "header_retained_in": "payload/retained-reading.json"
+  },
+  "bibliography": {
+    "work_ref": "tos.work.retained-antiquity.economics",
+    "expression_ref": "tos.expression.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+    "edition_ref": "tos.edition.retained.antiquity.economics.economics-eng2-94db9f9b0f00",
+    "legacy_book_title": "Экономика",
+    "legacy_credit": "Перевод: Джордж Сирил Армстронг",
+    "publication": {
+      "titles": [
+        "The Metaphysics; The Oeconomica and The Magna Moralia",
+        "Loeb Classical Library"
+      ],
+      "dates": [
+        "1935"
+      ],
+      "places": [
+        "London",
+        "Cambridge, MA"
+      ],
+      "publishers": [
+        "William Heinemann Ltd.",
+        "Harvard University Press"
+      ],
+      "scans": [
+        "https://archive.org/details/in.ernet.dli.2015.183332/page/325/mode/2up?view=theater"
+      ]
+    }
+  },
+  "coverage": {},
+  "terms_and_public_metadata_refs": [
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg029/tlg0086.tlg029.perseus-eng2.xml",
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+    "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/README.md"
+  ],
+  "retained_json_counts": {
+    "section_count": 8,
+    "block_count": 118,
+    "apparatus": {
+      "headings": 0,
+      "notes": 34,
+      "variants": 0,
+      "bookNotes": 0,
+      "adjustments": 0
+    }
+  },
+  "snapshot_boundary": "Metadata describes the exact retained JSON and its reader-layer derivative. A legacy raw-source digest is a separate claim and no raw TEI payload is asserted present."
+}

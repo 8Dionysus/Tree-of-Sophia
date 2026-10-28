@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.theaetetus.theaetetus-grc2-a1b54593888b",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.theaetetus.theaetetus-grc2-a1b54593888b",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.c1f08c1f3581a1f4d87cf1dbe029d65bc577a880dc084355ca3d8533cb159262",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "theaetetus-grc2-a1b54593888b.json",
+      "media_type": "application/json",
+      "byte_size": 369843,
+      "sha256": "c1f08c1f3581a1f4d87cf1dbe029d65bc577a880dc084355ca3d8533cb159262",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.250f50db15571e2296d82bb84f1f2165dbe2844fe91b9bf2384616bafc2793a1",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 268037,
+      "sha256": "250f50db15571e2296d82bb84f1f2165dbe2844fe91b9bf2384616bafc2793a1",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.theaetetus-grc2-a1b54593888b.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-grc2-a1b54593888b/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-grc2-a1b54593888b/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-grc2-a1b54593888b/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-grc2-a1b54593888b/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/theaetetus/expressions/retained-theaetetus-grc2-a1b54593888b/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

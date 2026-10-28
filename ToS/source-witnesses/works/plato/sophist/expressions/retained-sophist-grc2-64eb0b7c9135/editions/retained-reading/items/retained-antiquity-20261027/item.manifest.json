@@ -1,0 +1,37 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.sophist.sophist-grc2-64eb0b7c9135",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.sophist.sophist-grc2-64eb0b7c9135",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.1d8a1fb2f66ad6474ef2a8cee7575430a8172f57fab11183f3a8441813a6be51",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "sophist-grc2-64eb0b7c9135.json",
+      "media_type": "application/json",
+      "byte_size": 295508,
+      "sha256": "1d8a1fb2f66ad6474ef2a8cee7575430a8172f57fab11183f3a8441813a6be51",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.bdae245b043162e3d7f373c9fbba82e963cad54120f74a4eb50672e35d42062c",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 194841,
+      "sha256": "bdae245b043162e3d7f373c9fbba82e963cad54120f74a4eb50672e35d42062c",
+      "fixity_verified_at": "2026-10-27T06:31:44+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.sophist-grc2-64eb0b7c9135.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-grc2-64eb0b7c9135/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-grc2-64eb0b7c9135/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-grc2-64eb0b7c9135/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-grc2-64eb0b7c9135/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plato/sophist/expressions/retained-sophist-grc2-64eb0b7c9135/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

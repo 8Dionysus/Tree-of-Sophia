@@ -138,7 +138,8 @@ export class SophiaGpuCanvas {
       this.lost=false;this.atlasTexture.needsUpdate=true;canvas.dataset.context='restored';
       canvas.dispatchEvent(new CustomEvent('sophia-renderer-restored'));
     });
-    addEventListener('pagehide',e=>{if(!e.persisted)this.dispose();});
+    this.pagehide=e=>{if(!e.persisted)this.dispose();};
+    addEventListener('pagehide',this.pagehide);
   }
   get font() {return this.measure.font;}
   set font(value) {this.measure.font=value;}
@@ -296,6 +297,7 @@ export class SophiaGpuCanvas {
   }
   dispose() {
     if(this.disposed)return;this.disposed=true;
+    removeEventListener('pagehide',this.pagehide);
     this.geometry.dispose();this.materials.forEach(m=>m.dispose());
     this.atlasTexture.dispose();this.images.clear();this.renderer.dispose();
   }

@@ -1,0 +1,39 @@
+{
+  "schema_version": "tos_rights_record_v1",
+  "rights_id": "tos.rights.retained-antiquity.crito.crito-ru-karpov1863-do.20261027",
+  "scope_refs": [
+    "tos.item.retained.antiquity.crito.crito-ru-karpov1863-do",
+    "tos.file.sha256.8a9d5df84089726743465a885206569cd651bc7578856bcd455b422c298232b6",
+    "tos.file.sha256.eb0ea92a7022d72a9021bd6183d213b81f38b90342a3eb4b802c30c9bf41b96a"
+  ],
+  "assessment_status": "licensed",
+  "jurisdictions_reviewed": [
+    "US"
+  ],
+  "source_refs": [
+    "https://ru.wikisource.org/wiki/%D0%9A%D1%80%D0%B8%D1%82%D0%BE%D0%BD_(%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD;_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2)/%D0%94%D0%9E?oldid=3732226",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "permissions": [
+    "Attribution: Wikisource contributors; В. Н. Карпов; pinned page revisions listed in source manifest.\nComplete transclusion range; volume II index status was not captured. Scan images were not collated.",
+    "Free public reading and adaptation under https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
+  "restrictions": [
+    "Give attribution, link the license, and indicate changes.",
+    "Distribute adaptations under the same CC BY-SA 4.0 license.",
+    "Mark the retained JSON to public reading-layer derivation.",
+    "No transcription, linguistic, semantic, canon or human-review claim."
+  ],
+  "visibility": "public_payload",
+  "redistribution_posture": "authorized_with_conditions",
+  "derivative_posture": "allowed_with_conditions",
+  "assessed_by": {
+    "maker_type": "model",
+    "agent_ref": "codex.retained-antiquity-publication.20261027"
+  },
+  "assessed_at": "2026-10-27T06:31:44+00:00",
+  "rationale": "The exact legacy catalog version row carries CC BY-SA 4.0 and is included with its digest in the source metadata snapshot; the fixed source/header record is preserved in the exact retained JSON payload. This item is that retained JSON plus a separately hashed reader layer; the legacy raw-source digest is not represented as the JSON payload digest. Publication carries attribution, source and license routes. The reading layer is not a scholarly or human acceptance.",
+  "review_status": "unreviewed",
+  "license_uri": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "record_version": 1
+}
