@@ -6,6 +6,9 @@ test('retained section locators use the interface language without translating e
   const version='retained-de-clementia-lat2-a170840d8fc4';
   expect(corpusSectionLabel('Книга 2 · Глава 7','en',version)).toBe('Book 2 · Chapter 7');
   expect(corpusSectionLabel('Book 2 · Chapter 7','ru',version)).toBe('Книга 2 · Глава 7');
+  expect(corpusSectionLabel('Книга 1 · Предисловие','en',version)).toBe('Book 1 · Prologue');
+  expect(corpusSectionLabel('Книга 1 · Предисловие','ru',version)).toBe('Книга 1 · Предисловие');
+  expect(corpusSectionLabel('Предисловие к изданию','en','other-version')).toBe('Предисловие к изданию');
   expect(corpusSectionLabel('Moral Essays · 1928','ru',version)).toBe('Moral Essays · 1928');
   expect(corpusSectionLabel('Книга 2 · Глава 7','en','other-version')).toBe('Книга 2 · Глава 7');
 });

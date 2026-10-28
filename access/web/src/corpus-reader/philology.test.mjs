@@ -1,12 +1,20 @@
 import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {expect, test} from 'vitest';
 import {createReference} from './model.mjs';
-import {bindPhilologyResult, philologyMarkIntervals, selectedPhilologyForm, morphologyLabel} from './philology.mjs';
+import {bindPhilologyResult, philologyMarkIntervals, selectedPhilologyForm, morphologyLabel, isSingleWordSelection} from './philology.mjs';
 
 const source = {
   workId:'work-1', expressionId:'expression-1', editionId:'edition-1', itemId:'item-1', fileId:'file-1',
   fileSha256:'a'.repeat(64), textLayerRef:'source.txt', textLayerSha256:'b'.repeat(64),
 };
+
+test('dictionary analysis distinguishes a word from a selected phrase', () => {
+  expect(isSingleWordSelection('ἀρετή')).toBe(true);
+  expect(isSingleWordSelection('Seele')).toBe(true);
+  expect(isSingleWordSelection('e\u0301')).toBe(true);
+  expect(isSingleWordSelection('ἆρα διδακτὸν ἡ ἀρετή')).toBe(false);
+  expect(isSingleWordSelection('unterredete sich')).toBe(false);
+});
 
 test('selected form follows the exact Unicode-code-point occurrence', () => {
   const text = 'Kreis 😀Kreis e\u0301';

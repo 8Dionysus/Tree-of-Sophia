@@ -59,3 +59,9 @@ button, textarea { font: inherit; }
 .pr-journey-step { padding: 10px 0 18px 8px; border-top: 1px solid #405155; }
 .pr-journey-voice { color: #d9c895; }
 .pr-agent > summary, .pr-workspace > summary { cursor: pointer; }
+
+.pr-question-history-group { margin: 12px 0; padding: 8px 10px; border: 1px solid #64727666; border-radius: 6px; }
+.pr-question-history-group > summary { overflow-wrap: anywhere; font-size: 13px; line-height: 1.6; }
+.pr-question-history-entry small { font-size: 12px; line-height: 1.5; }
+.pr-question-restore { min-height: 36px; padding: 7px 12px; border: 1px solid #c5aa6d; border-radius: 6px; color: #f0eadc; background: #111a20; cursor: pointer; font: 13px/1.5 system-ui, sans-serif; }
+.pr-question-restore:focus-visible { outline: 2px solid #e4cb8b; outline-offset: 3px; }

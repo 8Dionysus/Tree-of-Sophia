@@ -176,20 +176,78 @@ async function ensureCurrentQuestion() {
   return (await persistQuestion()) && (await refreshQuestion());
 }
 
+let questionHistoryRender = 0;
+let restoringHistoryQuestion = false;
 async function renderQuestionHistory() {
+  const request = ++questionHistoryRender;
+  const openGroups = new Set([...questionHistoryList.querySelectorAll('details[open]')].map(node => node.dataset.historyGroup));
   try {
     const packet = await notebook.exportPacket();
+    if (appDisposed || request !== questionHistoryRender) return;
     const entries = packet.preferences.filter(item => item.key.startsWith(QUESTION_HISTORY_PREFIX)
       && typeof item.value?.value === 'string').sort((a, b) => String(b.value.changedAt).localeCompare(String(a.value.changedAt)));
-    const rows = entries.map(item => {
+    const groups = [];
+    for (const item of entries) {
+      const previous = groups.at(-1)?.at(-1), at = Date.parse(item.value.changedAt), previousAt = Date.parse(previous?.value.changedAt);
+      // Group only presentation by editing time. Every original snapshot remains
+      // independently visible and restorable; no saved preference is rewritten.
+      if (previous && !item.value.unsaved && !previous.value.unsaved && Number.isFinite(at)
+        && Number.isFinite(previousAt) && previousAt - at >= 0 && previousAt - at < 120_000) groups.at(-1).push(item);
+      else groups.push([item]);
+    }
+    const renderEntry = item => {
       const row = h('div', 'pr-question-history-entry');
       const kind = item.value.unsaved ? (english ? 'Draft preserved after a conflict' : 'Черновик, сохранённый после конфликта')
-        : (english ? 'Previously saved question' : 'Прежний сохранённый вопрос');
-      row.append(h('small', '', [kind, item.value.changedAt].filter(Boolean).join(' · ')), h('p', '', item.value.value));
-      return row;
+        : (english ? 'Saved editing snapshot' : 'Сохранённый снимок редактирования');
+      const date = new Date(item.value.changedAt);
+      const timestamp = Number.isFinite(date.getTime()) ? date.toLocaleString(english ? 'en' : 'ru') : item.value.changedAt;
+      row.append(h('small', '', [kind, timestamp].filter(Boolean).join(' · ')), h('p', '', item.value.value));
+      const restore = button(english ? 'Use this question' : 'Сделать текущим вопросом', 'pr-question-restore');
+      const feedback = h('p', 'pr-save-state'); feedback.setAttribute('role', 'status');
+      restore.disabled = item.value.value.length > 4000;
+      restore.addEventListener('click', async () => {
+        if (restoringHistoryQuestion) return;
+        if (workspaceView?.hasUnsavedDraft?.()) {
+          feedback.textContent = english ? 'Save or export the current thought draft before changing its question.'
+            : 'Сохраните или экспортируйте текущий черновик мысли перед сменой его вопроса.';
+          return;
+        }
+        restoringHistoryQuestion = true; restore.disabled = true;
+        try {
+          const sequence = questionSequence, currentText = question.value;
+          if (!(await persistQuestion())) {
+            feedback.textContent = english ? 'The saved question could not be changed. Your current text remains here.'
+              : 'Не удалось сменить сохранённый вопрос. Текущий текст остаётся здесь.';
+            return;
+          }
+          if (sequence !== questionSequence || currentText !== question.value) {
+            feedback.textContent = english ? 'Your question changed while saving. The current edits remain here; choose the snapshot again when ready.'
+              : 'Во время сохранения вопрос изменился. Новые правки остаются здесь; выберите снимок снова, когда будете готовы.';
+            return;
+          }
+          if (!(await setQuestion(item.value.value))) {
+            feedback.textContent = english ? 'The saved question could not be changed. Your current text remains here.'
+              : 'Не удалось сменить сохранённый вопрос. Текущий текст остаётся здесь.';
+            return;
+          }
+          question.focus();
+        } catch {
+          feedback.textContent = english ? 'This snapshot could not be restored. Both saved versions remain in history.'
+            : 'Не удалось восстановить снимок. Обе сохранённые версии остаются в истории.';
+        } finally { restoringHistoryQuestion = false; restore.disabled = item.value.value.length > 4000; }
+      });
+      row.append(restore, feedback); return row;
+    };
+    const rows = groups.map(items => {
+      if (items.length === 1) return renderEntry(items[0]);
+      const group = h('details', 'pr-question-history-group'); group.dataset.historyGroup = items.at(-1).key;
+      group.open = openGroups.has(group.dataset.historyGroup);
+      const snippet = items[0].value.value.slice(0, 100);
+      group.append(h('summary', '', `${items.length} ${english ? 'editing snapshots' : 'снимков редактирования'} · ${snippet}${items[0].value.value.length > 100 ? '…' : ''}`), ...items.map(renderEntry));
+      return group;
     });
     questionHistoryList.replaceChildren(...(rows.length ? rows : [h('p', '', english ? 'No earlier saved questions.' : 'Ранее сохранённых вопросов нет.')]));
-  } catch { questionHistoryList.textContent = english ? 'Could not load previous questions.' : 'Не удалось загрузить предыдущие вопросы.'; }
+  } catch { if (request === questionHistoryRender) questionHistoryList.textContent = english ? 'Could not load previous questions.' : 'Не удалось загрузить предыдущие вопросы.'; }
 }
 
 async function retainQuestionDraftAndRefresh() {

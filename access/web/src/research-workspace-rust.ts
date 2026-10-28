@@ -34,7 +34,7 @@ function fromPacket(value:Record<string,any>):ResearchWorkspaceState {
     schema:value.schema,version:value.version,sessionId:value.session_id,revision:value.revision,
     selectedLens:value.selected_lens,excludedEdgeIds:value.excluded_edge_ids,
     routeSnapshots:value.route_snapshots.map((item:any)=>({id:item.id,label:item.label,fromId:item.from_id,toId:item.to_id,nodeIds:item.node_ids,edgeIds:item.edge_ids})),
-    hypotheses:value.hypotheses.map((item:any)=>({id:item.id,title:item.title,body:item.body,
+    hypotheses:value.hypotheses.map((item:any)=>({id:item.id,title:item.title,body:item.body,...optional('kind',item.kind),
       ...optional('targetId',item.target_id),...optional('fromId',item.from_id),...optional('toId',item.to_id),
       ...optional('predicateLabel',item.predicate_label),posture:item.posture})),
     proposals:value.proposals.map(proposalFromPacket),
@@ -90,7 +90,7 @@ export function createBrowserResearchWorkspace(options:ResearchWorkspaceOptions=
     excludeEdge:(id:string)=>apply('edge.exclude','edge_id',id.trim()).state,
     includeEdge:(id:string)=>apply('edge.include','edge_id',id.trim()).state,
     addHypothesis:(input:Omit<ResearchHypothesis,'posture'>):ResearchHypothesis=>{
-      const value=apply('hypothesis.add','hypothesis',{id:input.id.trim(),title:input.title.trim(),body:input.body.trim(),
+      const value=apply('hypothesis.add','hypothesis',{id:input.id.trim(),title:input.title.trim(),body:input.body.trim(),...optional('kind',trim(input.kind)),
         ...optional('target_id',trim(input.targetId)),...optional('from_id',trim(input.fromId)),
         ...optional('to_id',trim(input.toId)),...optional('predicate_label',trim(input.predicateLabel)),
         posture:{session_hypothesis:true,source:false,reviewed:false,canon:false}}).value;

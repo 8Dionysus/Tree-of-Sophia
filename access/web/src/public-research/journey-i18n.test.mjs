@@ -1,7 +1,7 @@
 import {expect, test} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {localizePublicJourney} from './journey-i18n.mjs';
-import {actionLabel, kindLabel, proposalStatement, researchQuestionLine} from './presentation-i18n.mjs';
+import {actionLabel, hypothesisTitle, kindLabel, proposalDisplay, proposalStatement, researchQuestionLine} from './presentation-i18n.mjs';
 const files=['antiquity','zarathustra'].map(name=>new URL(`../../../../ToS/research-packets/public-prototypes-20261026/journeys.${name}.v1.json`,import.meta.url));
 test('all public journeys have English presentation without changing source addresses',()=>{
  for(const file of files) for(const source of JSON.parse(readFileSync(file)).journeys) {
@@ -13,6 +13,14 @@ test('all public journeys have English presentation without changing source addr
   for(const [index,step] of steps.entries()) { for(const field of ['title','voice','prompt']) {expect(step[field]).not.toEqual(ss[index][field]); expect(step[field]).not.toMatch(/[А-Яа-я]/);} const {title,voice,prompt,...address}=step; const {title:a,voice:b,prompt:c,...original}=ss[index]; expect(address).toEqual(original); }
   expect(localizePublicJourney(source,'ru')).toEqual(source);
  }
+});
+test('only generated relation prefixes are localized',()=>{
+ const statement='Objection to thesis: моё чтение';
+ expect(proposalDisplay({id:'objection-link-123',kind:'relation',statement},'ru')).toBe('Возражение к тезису: моё чтение');
+ expect(proposalDisplay({id:'user-123',kind:'relation',statement},'ru')).toBe(statement);
+ expect(proposalDisplay({id:'objection-link-123',kind:'interpretation',statement},'ru')).toBe(statement);
+ expect(hypothesisTitle({id:'objection-123',title:'Objection: моё чтение'},'ru')).toBe('Возражение: моё чтение');
+ expect(hypothesisTitle({id:'user-123',title:'Objection: моё чтение'},'ru')).toBe('Objection: моё чтение');
 });
 test('presentation translates known labels and prefixes without mutating stored text',()=>{
  const stored='Objection to thesis: моя мысль'; expect(proposalStatement(stored,'ru')).toBe('Возражение к тезису: моя мысль'); expect(proposalStatement(stored,'en')).toBe(stored);

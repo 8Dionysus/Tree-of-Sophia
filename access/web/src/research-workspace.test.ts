@@ -13,6 +13,23 @@ function digest(value: unknown): string {
 }
 
 describe("portable research workspace", () => {
+  it("retains optional personal kinds without assigning a type to legacy records", () => {
+    const workspace = createResearchWorkspace({ persistence: false });
+    workspace.addHypothesis({ id: "legacy", title: "Earlier", body: "Keep the original." });
+    for (const kind of ["concept", "interpretation", "question", "note", "excerpt", "thought"] as const) {
+      workspace.addHypothesis({ id: `kind:${kind}`, kind, title: kind, body: "A personal record." });
+    }
+    const packet = workspace.exportPacket();
+    const restored = createResearchWorkspace({ persistence: false });
+    restored.importPacket(packet);
+    expect(restored.getState().hypotheses).toEqual(workspace.getState().hypotheses);
+    expect(JSON.parse(packet).hypotheses[0]).not.toHaveProperty("kind");
+    const before = restored.exportPacket();
+    const invalid = JSON.parse(packet); invalid.hypotheses[1].kind = "canon";
+    expect(() => restored.importPacket(JSON.stringify(invalid))).toThrow();
+    expect(restored.exportPacket()).toBe(before);
+  });
+
   it("keeps hypotheses explicitly session-local and outside ToS authority", () => {
     const workspace = createResearchWorkspace({ sessionId: "demo" });
     const hypothesis = workspace.addHypothesis({ id: "hyp:alternate-reading", title: "An alternate reading", body: "Treat this relation as a local possibility.", targetId: "edge:contested", fromId: "node:a", toId: "node:b", predicateLabel: "interprets" });

@@ -148,7 +148,8 @@
 #tree .ps-route-dock .collection-card strong{font-size:15px}
 
 #tree .ps-main-actions{position:absolute;z-index:9;top:68px;left:clamp(255px,34vw,530px);display:flex;align-items:center;gap:18px}
-#tree .ps-top-action{padding:5px 0;border-bottom:1px solid #a58c5c45;color:#d6c59c;font:10px/1.3 system-ui,sans-serif;white-space:nowrap}
+#tree .ps-top-action{min-height:30px;padding:5px 0;border-bottom:1px solid #a58c5c45;color:#d6c59c;font:13px/1.3 system-ui,sans-serif;white-space:nowrap}
+#tree .ps-tool-label{display:none}
 #tree .ps-top-action:hover{color:#f0dfb8;border-color:#e0c48c}
 @media(max-width:760px){#tree .ps-main-actions{display:none}}
 #tree .ps-route-dock .collection-card small{font-size:10px;white-space:normal}
@@ -186,6 +187,11 @@
   #tree .ps-footer .space-count{font-size:10px;align-self:center}
   #tree .ps-footer .footer-tools{grid-column:1/-1;width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;gap:3px;border:1px solid #8296ad2b;border-radius:5px;background:#081321e8;backdrop-filter:blur(12px)}
   #tree .ps-footer .footer-tools .icon{width:44px;height:42px;font-size:21px}
+  #tree .ps-footer .footer-tools>*{order:2;flex-shrink:0}
+  #tree .ps-footer .footer-tools [data-tool="routes"]{order:0}
+  #tree .ps-footer .footer-tools [data-tool="research"]{order:1}
+  #tree .ps-footer .footer-tools :is([data-tool="routes"],[data-tool="research"]){display:flex;align-items:center;gap:6px;width:auto;padding:0 10px}
+  #tree .ps-footer .ps-tool-label{display:inline;font:12px/1.3 system-ui,sans-serif;white-space:nowrap}
   #tree .ps-relations{left:12px;right:12px;bottom:80px;gap:8px}
   #tree .ps-relations .relation-toggle{min-width:36px;min-height:36px;font-size:14px}
   #tree .ps-relations .relation-chips{max-width:none;min-width:0;gap:12px}
@@ -274,3 +280,23 @@
   #tree .ps-header .pr-wordmark{font-size:0;gap:0;min-width:30px}
   #tree .ps-header .pr-wordmark::before{font-size:28px}
 }
+
+/* Keep the count and controls on separate rows where the desktop footer no
+   longer fits.  The horizontal tool row remains reachable at every width. */
+@media(min-width:761px) and (max-width:1150px){
+  #tree .ps-footer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;left:20px;right:20px;bottom:5px}
+  #tree .ps-footer .space-count{white-space:nowrap;justify-self:start}
+  #tree .ps-footer .footer-tools{grid-column:1/-1;min-width:0;width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+  #tree .ps-relations,#tree[data-journey=true] .ps-relations{bottom:80px}
+}
+#tree .ps-search-scope{margin:8px 12px;color:#aab9ca;font:12px/1.5 system-ui,sans-serif}
+#tree .ps-footer .footer-tools{scrollbar-width:thin}
+#tree .ps-panel .posture,#tree .ps-panel .ps-source-status,#tree .ps-panel .source-link{font-size:12px}
+#tree .ps-panel .reading-bottom .text-button{font-size:12px}
+#tree .ps-compare-bar>p,#tree .ps-compare-card .body{font-size:13px}
+#tree .ps-compare-card small,#tree .ps-personal-summary{font-size:12px}
+#tree .ps-pick-mode{position:absolute;z-index:12;top:116px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;max-width:min(640px,calc(100% - 28px));padding:10px 14px;border:1px solid #a4b4c250;border-radius:5px;background:#081321f5;color:#e4dccd;font:13px/1.5 system-ui,sans-serif}
+#tree .ps-pick-mode[hidden]{display:none}
+#tree .ps-pick-mode span{overflow-wrap:anywhere}
+#tree .ps-pick-mode button{flex:none;font-size:12px}
+@media(max-width:760px){#tree .ps-pick-mode{top:160px;width:calc(100% - 40px);justify-content:space-between}}

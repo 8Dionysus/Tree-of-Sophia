@@ -574,26 +574,27 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
     return state.windows[key];
   }
 
-  async function loadWindow({documentId = state.document?.id, versionId = state.activeVersionId, reference = null, unitId = null, revision = null, direction = 'current', cursor = null, acceptCurrent = false, openToken = null} = {}) {
+  async function loadWindow({documentId = state.document?.id, versionId = state.activeVersionId, reference = null, unitId = null, revision = null, direction = 'current', cursor = null, acceptCurrent = false, openToken = null, commitGuard = null} = {}) {
+    const obsolete=()=> (openToken !== null && openToken !== latestOpen) || (typeof commitGuard==='function' && !commitGuard());
     let document = state.document?.id === documentId ? state.document : state.catalog.items.find(item => item.id === documentId);
     let refreshedDocument = null;
     if (acceptCurrent && document?.id) {
       document = await readDocument(document.id, {refresh: true});
       refreshedDocument = document;
     }
-    if (openToken !== null && openToken !== latestOpen) return null;
+    if (obsolete()) return null;
     const version = availableVersion(document, versionId, locale);
     if (!document || !version) throw new Error('version-unavailable');
     if (direction === 'current' && !acceptCurrent && !reference && !unitId && !revision) {
       const remembered = await storedReading(document, version);
-      if (openToken !== null && openToken !== latestOpen) return null;
+      if (obsolete()) return null;
       if (remembered?.reference) {
         return loadWindow({
           documentId: document.id,
           versionId: version.id,
           unitId: remembered.reference.unitId,
           revision: remembered.reference.target.textLayerSha256,
-          openToken,
+          openToken,commitGuard,
         });
       }
     }
@@ -622,7 +623,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
         value = {units: version.units, reference};
       }
       if (!value) return null;
-      if (openToken !== null && openToken !== latestOpen) return null;
+      if (obsolete()) return null;
       // Commit a refreshed manifest in the same model notification as the
       // newly fetched text. This keeps the source digest used for location
       // links in lockstep with the displayed current window.
@@ -635,7 +636,7 @@ export function createCorpusReaderModel({provider, notebook = null, locale = 'ru
       }
       return result;
     } catch (error) {
-      if (openToken !== null && openToken !== latestOpen) return null;
+      if (obsolete()) return null;
       // Keep the last readable window. A transient failure must not blank a
       // passage that the researcher is already reading.
       if (error?.code === 'stale_reference') {

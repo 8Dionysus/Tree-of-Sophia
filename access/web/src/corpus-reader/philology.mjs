@@ -4,7 +4,7 @@ import {languageName} from '../observatory/human-presentation.mjs';
 
 const COPY = {
   ru: {
-    title: 'Выбранное слово', language: 'Язык источника', address: 'Точный адрес',
+    title: 'Выбранное слово', passage:'Выбранный фрагмент', selectWord:'Для разбора и словаря выделите одно слово.', passageConcordance:'Найти буквальные употребления фрагмента', language: 'Язык источника', address: 'Точный адрес',
     unavailable: 'Разбор для этого слова недоступен.', choose: 'Выделите слово в тексте, чтобы запросить разбор.',
     loading: 'Загружаем предоставленный разбор…', candidates: 'Варианты анализа', analysisSource: 'Источник анализа',
     version: 'Версия данных', lemma: 'Лемма', morphology: 'Морфология', gloss: 'Значение',
@@ -24,7 +24,7 @@ const COPY = {
     },
   },
   en: {
-    title: 'Selected word', language: 'Source language', address: 'Exact address',
+    title: 'Selected word', passage:'Selected passage', selectWord:'Select a single word for analysis and dictionary lookup.', passageConcordance:'Find literal occurrences of this passage', language: 'Source language', address: 'Exact address',
     unavailable: 'Analysis is unavailable for this word.', choose: 'Select a word in the text to request analysis.',
     loading: 'Loading supplied analysis…', candidates: 'Analysis candidates', analysisSource: 'Analysis source',
     version: 'Data version', lemma: 'Lemma', morphology: 'Morphology', gloss: 'Gloss',
@@ -84,6 +84,11 @@ export function selectedPhilologyForm(text, reference) {
     return Array.from(String(text ?? '')).slice(start, end).join('');
   } catch { return ''; }
 }
+
+// A phrase must not be presented to a dictionary or analyzer as one word.
+// Keep apostrophes and hyphens within an otherwise continuous word.
+export const isSingleWordSelection = value => typeof value==='string'
+  && /^[\p{L}\p{M}\p{N}]+(?:['’ʼ-][\p{L}\p{M}\p{N}]+)*$/u.test(value);
 
 /** Build non-overlapping marks, reserving the exact selected occurrence first. */
 export function philologyMarkIntervals(length, searchRanges = [], selectedRange = null, searchEnabled = false) {
@@ -206,7 +211,8 @@ export function renderPhilology(body, {
   onConcordance, onMore, onOccurrence, onMappingTarget,
 } = {}) {
   const words = COPY[String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru'];
-  body.append(element('h2', 'cr-inspector-title', words.title));
+  const multiword=Boolean(form) && !isSingleWordSelection(form);
+  body.append(element('h2', 'cr-inspector-title', multiword ? words.passage : words.title));
   const selected = element('blockquote', 'cr-philology-form', form || words.choose);
   body.append(selected);
   const source = reference?.target;
@@ -221,7 +227,8 @@ export function renderPhilology(body, {
   }
   if(language)body.append(element('p','cr-philology-muted',`${words.language}: ${languageName(language, locale)}`));
 
-  if (busy) body.append(element('p', 'cr-philology-muted', words.loading));
+  if (multiword) body.append(element('p','cr-philology-muted',words.selectWord));
+  else if (busy) body.append(element('p', 'cr-philology-muted', words.loading));
   else if (!form) body.append(element('p', 'cr-philology-muted', words.choose));
   else if (!result || result.status === 'unavailable') {
     body.append(element('p', 'cr-philology-muted', words.reasons?.[result?.reason] || words.unavailable));
@@ -241,7 +248,7 @@ export function renderPhilology(body, {
     }
   }
 
-  const dictionaryLinks = Array.isArray(result?.dictionaryLinks) ? result.dictionaryLinks : [];
+  const dictionaryLinks = !multiword && Array.isArray(result?.dictionaryLinks) ? result.dictionaryLinks : [];
   const usableDictionaryLinks = dictionaryLinks.flatMap(item => {
     const url = safeUrl(item?.url);
     const label = localized(item?.label, locale);
@@ -257,7 +264,7 @@ export function renderPhilology(body, {
     body.append(section);
   }
 
-  const mappings = Array.isArray(result?.mappings) ? result.mappings : [];
+  const mappings = !multiword && Array.isArray(result?.mappings) ? result.mappings : [];
   if (mappings.length) {
     const section=element('section','cr-philology-mappings');
     section.append(element('h3','',words.mappings));
@@ -270,7 +277,7 @@ export function renderPhilology(body, {
       if(targetScope&&targetReference.selector){
         const address=[targetScope.workId,targetScope.expressionId,targetScope.editionId,targetScope.itemId,targetScope.fileId,targetScope.textLayerRef,targetScope.fileSha256,targetScope.textLayerSha256,
           `${targetReference.selector.start}–${targetReference.selector.end} ${locale === 'en' ? 'code points' : 'символов'}`].filter(Boolean).join(' › ');
-        card.append(element('p','cr-philology-context-address',address));
+        const details=element('details','cr-philology-exact');details.append(element('summary','',words.address),element('p','cr-philology-context-address',address));card.append(details);
       }
       if(mapping.reviewBasis)card.append(element('p','cr-philology-muted',`${words.reviewBasis}: ${mapping.reviewBasis}`));
       for(const evidence of Array.isArray(mapping.evidence)?mapping.evidence:[]){if(typeof evidence?.description==='string')card.append(element('p','cr-philology-muted',evidence.description));}
@@ -279,10 +286,10 @@ export function renderPhilology(body, {
       section.append(card);
     }
     body.append(section);
-  } else if(form && !busy && result) body.append(element('p','cr-philology-muted',words.noExactMapping));
+  } else if(!multiword && form && !busy && result) body.append(element('p','cr-philology-muted',words.noExactMapping));
 
   const actions = element('div', 'cr-philology-actions');
-  const search = element('button', '', words.concordance); search.type = 'button'; search.disabled = !form || !searchAvailable;
+  const search = element('button', '', multiword ? words.passageConcordance : words.concordance); search.type = 'button'; search.disabled = !form || !searchAvailable;
   search.addEventListener('click', () => onConcordance?.(form)); actions.append(search);
   if (!searchAvailable) body.append(element('p', 'cr-philology-muted', words.noSearch));
   body.append(actions);

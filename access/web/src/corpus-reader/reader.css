@@ -43,3 +43,19 @@
 .cr-current-location strong{min-width:0;overflow:hidden;color:var(--cr-ink);font-weight:500;text-overflow:ellipsis;white-space:nowrap}
 .cr-comparison-note{margin:0;padding:8px 18px;border-bottom:1px solid var(--cr-rule);color:var(--cr-muted);font-size:11px;line-height:1.45}
 @media(max-width:850px){.cr-desktop-editions{display:none}.cr-edition-picker{display:block;position:relative;min-width:0;max-width:52vw;border:1px solid var(--cr-rule);border-radius:7px}.cr-edition-picker>summary{max-width:52vw;padding:7px 9px}.cr-edition-picker .cr-edition-group{border:0}.cr-edition-picker .cr-edition-group>summary{max-width:100%;white-space:normal;text-align:left}.cr-edition-picker .cr-edition-group>.cr-edition-layers{min-width:0}.cr-comparison-note{padding:6px 12px;font-size:10px}.cr-column-location{font-size:11px}}
+
+/* Long structural locators belong above the text, where neither direction of
+   writing can let them overlap a source word. Short markers remain in the gutter. */
+.cr-unit-marker:not(.cr-unit-marker-long){white-space:normal;overflow-wrap:anywhere}
+.cr-unit-marker-long,.cr-pane[dir=rtl] .cr-unit-marker-long{position:static;display:block;width:auto;max-width:100%;margin:0 0 4px;padding:2px 0!important;text-align:start;white-space:normal;overflow-wrap:anywhere;opacity:.8}
+.cr-panes.cr-parallel .cr-pane-head{padding-inline:50px 24px}
+.cr-panes.cr-parallel .cr-text-page{padding-inline:50px 24px}
+.cr-note-editor{font-size:clamp(14px,var(--cr-font-size),18px)!important}
+.cr-current-location,.cr-edition-group>summary,.cr-edition-picker>summary,.cr-note-label{font-size:12px}
+.cr-layer-badge{display:block;width:fit-content;max-width:100%;margin-bottom:8px;padding:3px 7px;border:1px solid var(--cr-rule);border-radius:5px;color:var(--cr-accent);font:12px/1.4 system-ui,sans-serif;overflow-wrap:anywhere}
+.cr-jump-text{color:var(--cr-accent);font-size:12px!important;white-space:nowrap}
+.cr-search-edition{display:flex;align-items:center;gap:6px;min-width:0;color:var(--cr-muted);font-size:12px}
+.cr-search-version{max-width:min(340px,60vw);font-size:12px}
+.cr-library-search-label,.cr-search-query{display:grid;gap:4px;min-width:0;color:var(--cr-muted);font-size:12px}.cr-search-query{flex:1 1 300px}.cr-search-query .cr-search-input{width:100%}
+.cr-contents-edition{display:grid;gap:5px;min-width:0;color:var(--cr-muted);font-size:12px}.cr-contents-edition select{max-width:100%;width:100%}
+@media(max-width:850px){.cr-panes.cr-parallel .cr-pane-head,.cr-panes.cr-parallel .cr-text-page{padding-inline:46px 27px}.cr-jump-text{font-size:11px!important}}

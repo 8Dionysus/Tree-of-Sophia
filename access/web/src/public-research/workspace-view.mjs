@@ -6,10 +6,11 @@ import {describeSourceLocator, ensureSourceRecord, resolveSourceLocator} from '.
 import {createCompareAndSwapPersistence} from './workspace-persistence.mjs';
 import {applyGraphSpace, exportGraphSpace, graphKeyInfo, inspectGraphSpace, shouldReloadImportedGraph, validateGraphSpace} from './graph-transfer.mjs';
 import './workspace-view.css';
-import {isEnglish, kindLabel, actionLabel, proposalStatement, researchQuestionLine, displayPublicError} from './presentation-i18n.mjs';
+import {isEnglish, kindLabel, actionLabel, proposalDisplay, hypothesisTitle, researchQuestionLine, displayPublicError} from './presentation-i18n.mjs';
 
 export const PUBLIC_WORKSPACE_SCHEMA = 'tos.public_research.personal_workspace.v1';
 export const PUBLIC_WORKSPACE_VERSION = 1;
+export const THOUGHT_DRAFT_SCHEMA = 'tos.public_research.thought_draft.v1';
 export const WORKSPACE_KEY = 'tos-research-workspace-v1';
 const MAX_EXPORT_BYTES = 12_000_000;
 const MAX_NOTE_TEXT = 4_000;
@@ -39,8 +40,8 @@ function labels(locale) {
     replyGrounds: 'Reply · exact grounds', chooseReplyGrounds: 'Choose at least one exact source for the reply.',
     replyGroundsHint: 'Choose the passages supporting this reply; sources are not inherited automatically.',
     empty: 'No personal hypotheses yet.', proposals: 'Source-linked proposals', history: 'Recent workspace history', graph: 'My research links',
-    source: 'Exact source', open: 'Open exact text', review: 'Local proposal · pending review · not canon',
-    export: 'Export complete research', exportDraft: 'Export unsaved draft', import: 'Import complete research', preview: 'Review import', apply: 'Apply available imports',
+    source: 'Exact source', open: 'Open exact text', review: 'Local proposal · pending review · not canon', summary: 'Research summary; the exact sources for each part are available in My research.',
+    export: 'Export complete research', exportDraft: 'Export unsaved workspace state', exportForm: 'Export thought form', importForm: 'Import thought form', import: 'Import complete research', preview: 'Review import', apply: 'Apply available imports',
     add: 'Add selected passage', question: 'Question', pick: 'Open the reader, select a passage, and add it here. A thesis needs at least two exact grounds.', graphSpace: 'Tree graphs and layout',
     noProposal: 'No proposals yet.', emptyGrounds: 'Select exact passages above before saving.', undo: 'Undo research action', redo: 'Redo research action',
   } : {
@@ -49,16 +50,36 @@ function labels(locale) {
     replyGrounds: 'Ответ · точные основания', chooseReplyGrounds: 'Выберите хотя бы один точный источник для ответа.',
     replyGroundsHint: 'Выберите фрагменты, подтверждающие ответ: источники не наследуются автоматически.',
     empty: 'Личных гипотез пока нет.', proposals: 'Предложения с источниками', history: 'Последние действия', graph: 'Связи моего исследования',
-    source: 'Точный источник', open: 'Открыть точный текст', review: 'Личное предложение · ожидает проверки · не канон',
-    export: 'Экспорт полного исследования', exportDraft: 'Экспорт несохранённого черновика', import: 'Импорт полного исследования', preview: 'Проверить импорт', apply: 'Применить доступный импорт',
+    source: 'Точный источник', open: 'Открыть точный текст', review: 'Личное предложение · ожидает проверки · не канон', summary: 'Конспект исследования; точные источники каждой части доступны в разделе «Моё исследование».',
+    export: 'Экспорт полного исследования', exportDraft: 'Экспорт несохранённого исследования', exportForm: 'Экспорт формы мысли', importForm: 'Импорт формы мысли', import: 'Импорт полного исследования', preview: 'Проверить импорт', apply: 'Применить доступный импорт',
     add: 'Добавить выбранный фрагмент', question: 'Вопрос', pick: 'Откройте чтение, выберите место и добавьте его здесь. Для тезиса нужны два точных основания.', graphSpace: 'Графы Древа и раскладка',
     noProposal: 'Предложений пока нет.', emptyGrounds: 'Перед сохранением выберите точные фрагменты.', undo: 'Отменить действие исследования', redo: 'Вернуть действие исследования',
   };
 }
 
-function workspaceEmpty(packet) {
+/** A separate form draft never masquerades as a complete research packet. */
+export function validateThoughtDraft(value) {
+  if (!only(value, ['schema','version','exportedAt','question','fields','sources','selections'])
+    || value.schema !== THOUGHT_DRAFT_SCHEMA || value.version !== 1 || typeof value.exportedAt !== 'string' || !Number.isFinite(Date.parse(value.exportedAt))
+    || typeof value.question !== 'string' || value.question.length > 4_000 || !only(value.fields, ['thesis','objection','revision'])
+    || !Array.isArray(value.sources) || value.sources.length > 8 || !only(value.selections, ['grounds','objection','revision'])) throw new TypeError('The thought form draft is invalid.');
+  for (const [name, limit] of [['thesis',MAX_NOTE_TEXT],['objection',MAX_OBJECTION_TEXT],['revision',MAX_REVISION_TEXT]])
+    if (typeof value.fields[name] !== 'string' || value.fields[name].length > limit) throw new TypeError('A thought form field is invalid.');
+  const ids = new Set();
+  for (const source of value.sources) {
+    if (!object(source) || typeof source.id !== 'string' || !source.id || ids.has(source.id)) throw new TypeError('A thought form source id is invalid.');
+    ids.add(source.id);
+  }
+  for (const name of ['grounds','objection','revision']) {
+    const selected = value.selections[name];
+    if (!Array.isArray(selected) || new Set(selected).size !== selected.length || selected.some(id => !ids.has(id))) throw new TypeError('A thought form source selection is invalid.');
+  }
+  return value;
+}
+
+export function workspaceEmpty(packet) {
   return !packet.selected_lens && !packet.excluded_edge_ids?.length && !packet.route_snapshots?.length
-    && !packet.hypotheses?.length && !packet.proposals?.length && !packet.notes?.length;
+    && !packet.hypotheses?.length && !packet.proposals?.length && !packet.notes?.length && !packet.journal?.length;
 }
 
 function ownerConflicts(current, incoming, owner) {
@@ -69,7 +90,7 @@ function ownerConflicts(current, incoming, owner) {
     if (equal(currentRows, incoming)) return conflicts;
     if (workspaceEmpty(incoming)) return conflicts;
     if (workspaceEmpty(currentRows)) return conflicts;
-    conflicts.push('The current Rust workspace is non-empty and differs from this packet.');
+    conflicts.push('The current research workspace is non-empty and differs from this packet.');
     return conflicts;
   }
   const records = by(current.records, 'id');
@@ -93,6 +114,19 @@ export function planNotebookImport(current, incoming) {
     counts[name] = tally;
   }
   return {packet, counts, conflicts};
+}
+
+/** Count actual additions, not owners whose packets merely happen to match. */
+export function importAvailability({incoming,current,conflicts,notebookPlan,graph}) {
+  const c = notebookPlan.counts;
+  const notebook = c.notes.added + c.readings.added + c.preferences.added;
+  const shelf = conflicts.shelf.length ? 0 : ['records','collections'].reduce((sum,kind) => {
+    const present = new Set(current.shelf[kind].map(item => item.id));
+    return sum + incoming.shelf[kind].filter(item => !present.has(item.id)).length;
+  }, 0);
+  const workspace = !conflicts.workspace.length && !workspaceEmpty(incoming.workspace) && !equal(current.workspace,incoming.workspace) ? 1 : 0;
+  const graphRecords = graph.addable;
+  return {notebook,shelf,workspace,graph:graphRecords,total:notebook+shelf+workspace+graphRecords};
 }
 
 /** Undo or redo a just-saved thought as one UI action while its group is current. */
@@ -177,8 +211,6 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
   for (const [field, value] of [['the thesis proposal', claim], ['the objection proposal', objectionStatement], ['the revision proposal', revisionStatement]]) {
     if (value.length > MAX_NOTE_TEXT) throw new TypeError(`${field} exceeds the 4,000-character workspace statement limit.`);
   }
-  const noteText = `${t().thesis}: ${claim}${objectionText ? `\n\n${t().objection}: ${objectionText}` : ''}${revisionText ? `\n\n${t().revision}: ${revisionText}` : ''}`;
-
   const toRefs = sources => sources.map(source => {
     if (!source || typeof source !== 'object') throw new TypeError('An exact source selection is invalid.');
     const reference = validateReference(source.reference);
@@ -189,6 +221,16 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
   // fallback; the UI always supplies an explicit selection for a reply.
   const revisionRefs = revisionText ? (revisionSources === undefined
     ? (objectionRefs.length ? objectionRefs : groundRefs) : toRefs(revisionSources)) : [];
+  const describeRefs = refs => refs.map(({reference,source}) => {
+    const {start,end} = reference.selector;
+    return [source.title || reference.unitId, source.versionLabel || reference.versionId,
+      end > start ? `${start}–${end}` : reference.unitId].filter(Boolean).join(' · ');
+  }).join('; ');
+  const summaryLabel = t().summary || 'Research summary; exact sources for each part are available in My research.';
+  const sourceLabel = t().source || 'Exact source';
+  const noteText = `${summaryLabel}\n\n${t().thesis}: ${claim}\n${sourceLabel}: ${describeRefs(groundRefs)}`
+    + (objectionText ? `\n\n${t().objection}: ${objectionText}\n${sourceLabel}: ${describeRefs(objectionRefs)}` : '')
+    + (revisionText ? `\n\n${t().revision}: ${revisionText}\n${sourceLabel}: ${describeRefs(revisionRefs)}` : '');
   for (const item of [...groundRefs, ...objectionRefs, ...revisionRefs]) {
     const result = await api.provider.resolve({reference: item.reference});
     if (result.status !== 'exact') throw new Error(t().open + ': stale source references cannot be retargeted.');
@@ -215,14 +257,14 @@ export async function savePublicThought({thesis, grounds, objection, objectionSo
       statement, sourceRefs, evidenceRefs: [...sourceRefs], confidencePosture: {value: 'unknown', meaning: 'maker_declared_uncertainty_not_truth_probability'},
       actorOrigin: 'human', basePageRevision: 0, baseWorkspaceRevision: workspace.summary().revision, dataFingerprint});
   };
-  workspace.addHypothesis({id: thesisId, title, body: claim});
+  workspace.addHypothesis({id: thesisId, kind:'interpretation', title, body: claim});
   stage({id: makeId('ground'), kind: 'interpretation', targetId: thesisId, statement: claim, refs: groundRefs, dataFingerprint: fingerprints.grounds});
   if (objectionId) {
-    workspace.addHypothesis({id: objectionId, title: thoughtTitle(`${t().objection}: ${objectionText}`), body: objectionText});
+    workspace.addHypothesis({id: objectionId, kind:'interpretation', title: thoughtTitle(`${t().objection}: ${objectionText}`), body: objectionText});
     stage({id: makeId('objection-link'), kind: 'relation', fromId: thesisId, toId: objectionId, statement: objectionStatement, refs: objectionRefs, dataFingerprint: fingerprints.objection});
   }
   if (revisionId) {
-    workspace.addHypothesis({id: revisionId, title: thoughtTitle(`${t().revision}: ${revisionText}`), body: revisionText});
+    workspace.addHypothesis({id: revisionId, kind:'interpretation', title: thoughtTitle(`${t().revision}: ${revisionText}`), body: revisionText});
     stage({id: makeId('revision-link'), kind: 'relation', fromId: objectionId || thesisId, toId: revisionId, statement: revisionStatement, refs: revisionRefs, dataFingerprint: fingerprints.revision});
   }
   for (const item of groundRefs) await notebook.putNote({id: makeId('research-ground'), kind: 'note', reference: item.reference,
@@ -240,13 +282,16 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   const addSource = btn(t().add, 'pr-workspace-button'); addSource.disabled = true;
   const exportButton = btn(t().export, 'pr-workspace-button pr-workspace-primary');
   const draftExportButton = btn(t().exportDraft, 'pr-workspace-button'); draftExportButton.hidden = true;
+  const exportFormButton = btn(t().exportForm, 'pr-workspace-button');
+  const importFormButton = btn(t().importForm, 'pr-workspace-button');
+  const importFormFile = document.createElement('input'); importFormFile.type = 'file'; importFormFile.accept = 'application/json,.json'; importFormFile.hidden = true;
   const importButton = btn(t().import, 'pr-workspace-button');
   const importFile = document.createElement('input'); importFile.type = 'file'; importFile.accept = 'application/json,.json'; importFile.hidden = true;
   const content = el('div', 'pr-workspace-content');
   const status = el('p', 'pr-workspace-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   const preview = el('div', 'pr-workspace-import-preview');
-  toolbar.append(undo, redo, addSource, exportButton, draftExportButton, importButton, importFile);
-  section.append(title, intro, toolbar, content, preview, status);
+  toolbar.append(undo, redo, addSource, exportButton, draftExportButton, exportFormButton, importFormButton, importFormFile, importButton, importFile);
+  section.append(title, intro, toolbar, status, preview, content);
   root.append(section);
 
   let sourceItems = [];
@@ -287,7 +332,8 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     return [source.title, source.versionLabel, range].filter(Boolean).join(' · ');
   };
   const sourceButton = source => {
-    const action = btn(sourceLabel(source), 'pr-workspace-source-link');
+    const action = btn(isEnglish(locale) ? 'Open' : 'Открыть', 'pr-workspace-source-link');
+    action.setAttribute('aria-label', `${t().open}: ${sourceLabel(source)}`);
     action.addEventListener('click', () => void resolveAndOpen(source.reference).catch(error => message(displayPublicError(error, locale))));
     return action;
   };
@@ -309,7 +355,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     const thesisLabel = el('label', 'pr-workspace-field', t().thesis); const thesis = document.createElement('textarea'); thesis.maxLength = MAX_NOTE_TEXT; thesis.rows = 3; thesis.required = true; thesis.value = previousFields[0] ?? ''; thesisLabel.append(thesis);
     const sourceGroup = el('fieldset', 'pr-workspace-source-picker'); sourceGroup.append(el('legend', '', t().grounds));
     if (!sourceItems.length) sourceGroup.append(el('p', 'pr-workspace-muted', t().pick));
-    for (const source of sourceItems) { const label = el('label', 'pr-workspace-checkbox'); const input = document.createElement('input'); input.type = 'checkbox'; input.value = source.id; label.append(input, el('span', '', sourceLabel(source))); label.append(sourceButton(source)); sourceGroup.append(label); }
+    for (const source of sourceItems) { const row = el('div', 'pr-workspace-source-row'); const label = el('label', 'pr-workspace-checkbox'); const input = document.createElement('input'); input.type = 'checkbox'; input.value = source.id; label.append(input, el('span', '', sourceLabel(source))); row.append(label, sourceButton(source)); sourceGroup.append(row); }
     const objectionLabel = el('label', 'pr-workspace-field', t().objection); const objection = document.createElement('textarea'); objection.maxLength = MAX_OBJECTION_TEXT; objection.rows = 2; objection.value = previousFields[1] ?? ''; objectionLabel.append(objection,
       el('small', 'pr-workspace-muted', String(locale() || 'ru').toLowerCase().startsWith('en') ? `Up to ${MAX_OBJECTION_TEXT} characters.` : `До ${MAX_OBJECTION_TEXT} знаков.`));
     const objectionGroup = el('fieldset', 'pr-workspace-source-picker'); objectionGroup.append(el('legend', '', `${t().objection} · ${t().grounds}`));
@@ -343,8 +389,8 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
 
   const draftSignature = () => json({fields: [...(proposalForm?.querySelectorAll('.pr-workspace-field textarea') || [])].map(node => node.value),
     groups: [...(proposalForm?.querySelectorAll('.pr-workspace-source-picker') || [])].map(group => [...group.querySelectorAll('input:checked')].map(node => node.value))});
-  const hasUnsavedDraft = () => Boolean(proposalForm && ([...proposalForm.querySelectorAll('.pr-workspace-field textarea')].some(node => node.value.trim())
-    || proposalForm.querySelector('.pr-workspace-source-picker input:checked')));
+  const hasUnsavedDraft = () => Boolean((proposalForm && ([...proposalForm.querySelectorAll('.pr-workspace-field textarea')].some(node => node.value.trim())
+    || proposalForm.querySelector('.pr-workspace-source-picker input:checked'))) || sourcePicker?.hasUnsavedSources?.());
 
   async function saveThought({thesis, grounds, objection, objectionSources, revision, revisionSources}) {
     if (api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) throw new Error('The research question has unsaved changes or changed in another tab.');
@@ -373,7 +419,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     for (const [i, entry] of [...index.values()].entries()) {
       const group = document.createElementNS('http://www.w3.org/2000/svg', 'g'); group.setAttribute('class', 'pr-workspace-node'); group.setAttribute('transform', `translate(${entry.x} 94)`);
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); circle.setAttribute('r', '32'); group.append(circle);
-      const caption = document.createElementNS('http://www.w3.org/2000/svg', 'text'); caption.setAttribute('y', '53'); caption.setAttribute('text-anchor', 'middle'); caption.textContent = `${entry.ordinal}`; const nodeTitle = document.createElementNS('http://www.w3.org/2000/svg', 'title'); nodeTitle.textContent = entry.node.title; group.append(nodeTitle); group.append(caption); graph.append(group);
+      const caption = document.createElementNS('http://www.w3.org/2000/svg', 'text'); caption.setAttribute('y', '53'); caption.setAttribute('text-anchor', 'middle'); caption.textContent = `${entry.ordinal}`; const nodeTitle = document.createElementNS('http://www.w3.org/2000/svg', 'title'); nodeTitle.textContent = hypothesisTitle(entry.node, locale); group.append(nodeTitle); group.append(caption); graph.append(group);
     }
     if (!nodes.length) { const empty = document.createElementNS('http://www.w3.org/2000/svg', 'text'); empty.setAttribute('class', 'pr-workspace-graph-empty'); empty.setAttribute('x', '18'); empty.setAttribute('y', '28'); empty.textContent = t().empty; graph.append(empty); }
     return graph;
@@ -408,7 +454,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     if (!state.hypotheses.length) hypotheses.append(el('p', 'pr-workspace-muted', t().empty));
     for (const [hypothesisIndex, hypothesis] of state.hypotheses.entries()) {
       const card = el('article', 'pr-workspace-card'); card.dataset.hypothesisId = hypothesis.id;
-      card.append(el('h4', '', `${hypothesisIndex + 1}. ${hypothesis.title}`), el('p', '', hypothesis.body), el('small', 'pr-workspace-muted', hypothesis.posture?.canon === false ? (isEnglish(locale) ? 'personal · unreviewed · not canon' : 'личное · не проверено · не канон') : (isEnglish(locale) ? 'personal' : 'личное')));
+      card.append(el('h4', '', `${hypothesisIndex + 1}. ${hypothesisTitle(hypothesis, locale)}`), el('p', '', hypothesis.body), el('small', 'pr-workspace-muted', hypothesis.posture?.canon === false ? (isEnglish(locale) ? 'personal · unreviewed · not canon' : 'личное · не проверено · не канон') : (isEnglish(locale) ? 'personal' : 'личное')));
       hypotheses.append(card);
     }
     content.append(hypotheses);
@@ -417,7 +463,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     for (const proposal of state.proposals) {
       const card = el('article', 'pr-workspace-card pr-workspace-proposal');
       card.dataset.proposalId = proposal.id; card.tabIndex = -1;
-      card.append(el('h4', '', kindLabel(proposal.kind, locale)), el('p', '', proposalStatement(proposal.statement, locale)), el('small', 'pr-workspace-muted', t().review));
+      card.append(el('h4', '', kindLabel(proposal.kind, locale)), el('p', '', proposalDisplay(proposal, locale)), el('small', 'pr-workspace-muted', t().review));
       if (proposal.statement.startsWith(REVISION_PREFIX)) card.append(el('p', 'pr-workspace-muted', isEnglish(locale)
         ? 'These are the sources saved with the reply. Earlier records may have inherited sources from the objection or thesis.'
         : 'Это источники, сохранённые с ответом. В старых записях они могли наследоваться от возражения или тезиса.'));
@@ -464,9 +510,47 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     if (new TextEncoder().encode(serialized).byteLength > MAX_EXPORT_BYTES) throw new TypeError('The complete research export exceeds 12 MB.');
     const link = el('a'); const url = URL.createObjectURL(new Blob([serialized], {type: 'application/json'}));
     link.href = url; link.download = `tos-public-research${draft ? '-unsaved-draft' : ''}-${new Date().toISOString().slice(0, 10)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-    message(isEnglish(locale)
+    const formNotice = (hasUnsavedDraft() || (sourcePicker?.selectedSources?.().length ?? 0) > 0) ? (isEnglish(locale)
+      ? ' An open thought form or temporary source selection is not included; export that form separately.'
+      : ' Открытая форма мысли или временная подборка источников в этот файл не включена; экспортируйте форму отдельно.') : '';
+    message((isEnglish(locale)
       ? (draft ? 'Unsaved workspace draft, source shelf and tree graphs were exported.' : `Complete notebook, workspace, source shelf and tree graphs/layout downloaded.${staleWorkspace ? ' The workspace was read from the latest saved state because this tab is older.' : ''}`)
-      : (draft ? 'Несохранённый черновик, полка источников и графы Древа экспортированы.' : `Полный экспорт блокнота, исследования, полки источников и графов Древа скачан.${staleWorkspace ? ' Исследование взято из последнего сохранённого состояния: эта вкладка устарела.' : ''}`));
+      : (draft ? 'Несохранённый черновик, полка источников и графы Древа экспортированы.' : `Полный экспорт блокнота, исследования, полки источников и графов Древа скачан.${staleWorkspace ? ' Исследование взято из последнего сохранённого состояния: эта вкладка устарела.' : ''}`)) + formNotice);
+  };
+
+  const exportThoughtForm = async () => {
+    if (api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) throw new Error('The question changed in another tab; copy your unsaved text before exporting.');
+    const fields = [...(proposalForm?.querySelectorAll('.pr-workspace-field textarea') || [])].map(node => node.value);
+    const groups = [...(proposalForm?.querySelectorAll('.pr-workspace-source-picker') || [])].map(group => [...group.querySelectorAll('input:checked')].map(node => node.value));
+    const packet = validateThoughtDraft({schema:THOUGHT_DRAFT_SCHEMA,version:1,exportedAt:new Date().toISOString(),question:String(api.getQuestion() || ''),
+      fields:{thesis:fields[0] || '',objection:fields[1] || '',revision:fields[2] || ''},sources:sourcePicker?.selectedSources?.() || [],
+      selections:{grounds:groups[0] || [],objection:groups[1] || [],revision:groups[2] || []}});
+    const serialized = JSON.stringify(packet, null, 2);
+    if (new TextEncoder().encode(serialized).byteLength > MAX_EXPORT_BYTES) throw new TypeError('The thought form exceeds the export limit.');
+    const link = el('a'), url = URL.createObjectURL(new Blob([serialized], {type:'application/json'}));
+    link.href = url; link.download = `tos-thought-form-${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+    message(isEnglish(locale) ? 'Thought form exported separately; it remains unsaved until you save the thought.' : 'Форма мысли экспортирована отдельно; сама мысль остаётся несохранённой до нажатия «Сохранить».');
+  };
+  const importThoughtForm = async file => {
+    if (file.size > MAX_EXPORT_BYTES) throw new TypeError('The thought form exceeds the import limit.');
+    const packet = validateThoughtDraft(JSON.parse(await file.text()));
+    if (api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) throw new Error('The question changed in another tab; copy your unsaved text before importing.');
+    if (String(api.getQuestion() || '') !== packet.question) throw Object.assign(new Error(isEnglish(locale)
+      ? `This form belongs to a different question: ${packet.question}. Set that question before restoring the form.`
+      : `Эта форма относится к другому вопросу: ${packet.question}. Сначала установите тот вопрос, затем восстановите форму.`), {code:'thought-form-question'});
+    const fields = [...(proposalForm?.querySelectorAll('.pr-workspace-field textarea') || [])];
+    if (fields.some(node => node.value.trim()) || proposalForm?.querySelector('.pr-workspace-source-picker input:checked')) throw Object.assign(new Error(isEnglish(locale)
+      ? 'Save or export the current form before replacing it.' : 'Сначала сохраните или экспортируйте текущую форму, прежде чем её заменить.'), {code:'thought-form-occupied'});
+    if (!sourcePicker?.importSources) throw new Error('The source selector is unavailable.');
+    const ids = sourcePicker.importSources(packet.sources);
+    const currentFields = [...proposalForm.querySelectorAll('.pr-workspace-field textarea')];
+    currentFields.forEach((node,index) => { node.value = packet.fields[['thesis','objection','revision'][index]]; });
+    const groups = [...proposalForm.querySelectorAll('.pr-workspace-source-picker')];
+    for (const [index,name] of ['grounds','objection','revision'].entries()) {
+      const selected = new Set(packet.selections[name].map(id => ids.get(id)));
+      for (const input of groups[index].querySelectorAll('input[type="checkbox"]')) input.checked = selected.has(input.value);
+    }
+    message(isEnglish(locale) ? 'Thought form restored; review it before saving.' : 'Форма мысли восстановлена; проверьте её перед сохранением.');
   };
 
   const packetCounts = packet => ({notes: packet.notebook.notes.length, readings: packet.notebook.readings.length, preferences: packet.notebook.preferences.length,
@@ -507,24 +591,36 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     preview.replaceChildren(); pendingImport = assessment; importRevision = assessment.expected;
     const summary = packet => { const c = packetCounts(packet); return isEnglish(locale) ? `notes ${c.notes}, readings ${c.readings}, hypotheses ${c.hypotheses}, proposals ${c.proposals}, shelf addresses ${c.shelfRecords}, collections ${c.collections}, graph packets ${c.graphs}` : `заметки: ${c.notes}, чтения: ${c.readings}, гипотезы: ${c.hypotheses}, предложения: ${c.proposals}, адреса на полке: ${c.shelfRecords}, коллекции: ${c.collections}, графы: ${c.graphs}`; };
     const ownerName = owner => ({workspace:isEnglish(locale)?'Research workspace':'Исследование',notebook:isEnglish(locale)?'Notebook':'Блокнот',shelf:isEnglish(locale)?'Source shelf':'Полка источников'})[owner];
-    const conflictText = conflict => { if (isEnglish(locale)) return conflict; if (conflict.startsWith('The current Rust workspace')) return 'Текущее исследование не пусто и отличается от импортируемого.'; if (conflict.startsWith('The workspace changed')) return 'Исследование изменилось в другой вкладке; заново откройте и проверьте файл.'; if (conflict.startsWith('workspace source address')) return 'Адрес источника нельзя импортировать: данные полки отсутствуют или конфликтуют.'; const [key,...rest]=conflict.split(': '); const label=({notes:'Заметка',readings:'Чтение',preferences:'Настройка','shelf record':'Запись полки','shelf collection':'Коллекция полки'})[key] || 'Конфликт'; return `${label}: ${rest.join(': ')}`; };
+    const conflictText = conflict => { if (isEnglish(locale)) return conflict; if (conflict.startsWith('The current research workspace')) return 'Текущее исследование не пусто и отличается от импортируемого.'; if (conflict.startsWith('The workspace changed')) return 'Исследование изменилось в другой вкладке; заново откройте и проверьте файл.'; if (conflict.startsWith('workspace source address')) return 'Адрес источника нельзя импортировать: данные полки отсутствуют или конфликтуют.'; const [key,...rest]=conflict.split(': '); const label=({notes:'Заметка',readings:'Чтение',preferences:'Настройка','shelf record':'Запись полки','shelf collection':'Коллекция полки'})[key] || 'Конфликт'; return `${label}: ${rest.join(': ')}`; };
     preview.append(el('p', '', isEnglish(locale) ? `Incoming: ${summary(assessment.incoming)}. Current: ${summary(assessment.current)}.` : `В файле: ${summary(assessment.incoming)}. Сейчас: ${summary(assessment.current)}.`));
     const list = el('ul', 'pr-workspace-conflicts');
-    let conflictCount = 0, readyOwners = 0;
+    const available = importAvailability(assessment);
+    let conflictCount = 0;
     for (const owner of ['workspace', 'notebook', 'shelf']) {
       if (owner === 'notebook') {
         const c = assessment.notebookPlan.counts;
-        const added = c.notes.added + c.readings.added + c.preferences.added;
         const skipped = c.notes.skipped + c.readings.skipped + c.preferences.skipped;
-        if (added || !skipped) readyOwners++;
         conflictCount += skipped;
         list.append(el('li', skipped ? 'pr-workspace-stale' : 'pr-workspace-owner-ok', isEnglish(locale)
           ? `Notebook: add ${c.notes.added} notes, ${c.readings.added} reading positions, ${c.preferences.added} settings; keep current records and skip ${skipped} conflicts. Original file remains unchanged.`
           : `Блокнот: добавить заметок ${c.notes.added}, позиций чтения ${c.readings.added}, настроек ${c.preferences.added}; сохранить текущие записи и пропустить конфликтов: ${skipped}. Исходный файл не изменится.`));
+        for (const conflict of assessment.notebookPlan.conflicts) {
+          const [kind, key] = conflict.split(': ');
+          if (kind === 'preferences' && key === 'tos.public-research.question.v1') {
+            const current = assessment.current.notebook.preferences.find(item => item.key === key)?.value;
+            const incoming = assessment.incoming.notebook.preferences.find(item => item.key === key)?.value;
+            list.append(el('li', 'pr-workspace-stale', isEnglish(locale)
+              ? `Question conflict. Current: ${String(current ?? '')} · In file: ${String(incoming ?? '')}`
+              : `Конфликт вопроса. Сейчас: ${String(current ?? '')} · В файле: ${String(incoming ?? '')}`));
+          } else list.append(el('li', 'pr-workspace-stale', conflictText(conflict)));
+        }
         continue;
       }
       const items = assessment.conflicts[owner];
-      if (!items.length) { readyOwners++; list.append(el('li', 'pr-workspace-owner-ok', `${ownerName(owner)}: ${isEnglish(locale) ? 'ready for additive import.' : 'готово к добавлению данных.'}`)); }
+      if (!items.length) {
+        const ownerAvailable = available[owner] > 0;
+        list.append(el('li', 'pr-workspace-owner-ok', `${ownerName(owner)}: ${ownerAvailable ? (isEnglish(locale) ? 'ready for additive import.' : 'готово к добавлению данных.') : (isEnglish(locale) ? 'no new records.' : 'новых записей нет.')}`));
+      }
       for (const conflict of items) { conflictCount++; list.append(el('li', 'pr-workspace-stale', `${ownerName(owner)}: ${conflictText(conflict)}`)); }
     }
     if (assessment.incoming.graphSpace) {
@@ -534,7 +630,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
           ? (isEnglish(locale) ? `Graph bindings ${info.profile} (${info.fingerprint.slice(0, 8)})` : `Связи графа ${info.profile} (${info.fingerprint.slice(0, 8)})`)
           : (isEnglish(locale) ? `Graph positions ${info.profile}` : `Позиции графа ${info.profile}`);
       const graphAvailable = assessment.graph.addable > 0;
-      if (graphAvailable) { readyOwners++; list.append(el('li', 'pr-workspace-owner-ok', `${t().graphSpace}: ${isEnglish(locale) ? `${assessment.graph.addable} records ready for additive import` : `к добавлению: ${assessment.graph.addable} записей`} `)); }
+      if (graphAvailable) { list.append(el('li', 'pr-workspace-owner-ok', `${t().graphSpace}: ${isEnglish(locale) ? `${assessment.graph.addable} records ready for additive import` : `к добавлению: ${assessment.graph.addable} записей`} `)); }
       else if (assessment.graph.equal) list.append(el('li', 'pr-workspace-owner-ok', `${t().graphSpace}: ${isEnglish(locale) ? 'already equal; current state kept' : 'данные совпадают; сохранено текущее состояние'}`));
       else if (!assessment.graph.conflicts.length) list.append(el('li', 'pr-workspace-owner-ok', `${t().graphSpace}: ${isEnglish(locale) ? 'no records in this file' : 'в файле нет записей'}`));
       for (const entry of assessment.graph.conflicts) {
@@ -548,10 +644,12 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
       list.append(el('li', 'pr-workspace-stale', t().graphSpace + ': ' + (isEnglish(locale) ? 'not included in this older v1 file' : 'не включены в этот старый файл v1')));
     }
     preview.append(list);
-    const apply = btn(t().apply, 'pr-workspace-button pr-workspace-primary'); apply.disabled = readyOwners === 0;
+    const apply = btn(t().apply, 'pr-workspace-button pr-workspace-primary'); apply.disabled = available.total === 0;
     apply.addEventListener('click', () => void applyImport().catch(error => message(displayPublicError(error, locale))));
-    preview.append(apply);
-    message(isEnglish(locale) ? (conflictCount ? 'Conflicting records will be kept; all available sections can still be imported.' : 'All included sections are valid for additive import.') : (conflictCount ? 'Конфликтующие записи останутся без изменений; доступные разделы можно добавить.' : 'Все включённые разделы проверены для добавления.'));
+    const cancel = btn(isEnglish(locale) ? 'Close preview' : 'Закрыть просмотр', 'pr-workspace-button');
+    cancel.addEventListener('click', () => { pendingImport = null; importRevision = null; preview.replaceChildren(); message(''); });
+    preview.append(apply, cancel);
+    message(!available.total ? (isEnglish(locale) ? 'No new records are available to import.' : 'Новых записей для импорта нет.') : (isEnglish(locale) ? (conflictCount ? 'Conflicting records will be kept; available additions can be imported.' : 'All included sections are valid for additive import.') : (conflictCount ? 'Конфликтующие записи останутся без изменений; доступные записи можно добавить.' : 'Все включённые разделы проверены для добавления.')));
   };
   const applyImport = async () => {
     if (!pendingImport || !importRevision) return;
@@ -560,6 +658,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
     if (fresh.expected.workspaceStorage !== importRevision.workspaceStorage || fresh.expected.notebookRevision !== importRevision.notebookRevision || fresh.expected.shelfGeneration !== importRevision.shelfGeneration || JSON.stringify(fresh.expected.graphStorage) !== JSON.stringify(importRevision.graphStorage)) {
       renderImportPreview(fresh); message(isEnglish(locale) ? 'Research changed after preview. Review the refreshed conflicts before importing.' : 'Исследование изменилось после просмотра. Перед импортом проверьте обновлённые конфликты.'); return;
     }
+    if (!importAvailability(fresh).total) { renderImportPreview(fresh); return; }
     const currentProfile = graphSpaceContext?.profile;
     const incomingGraphKeys = fresh.graph.entries.filter(item => item.status === 'missing' || item.status === 'pristine').map(item => item.key);
     if (hasUnsavedDraft() && shouldReloadImportedGraph(incomingGraphKeys, currentProfile)) {
@@ -602,8 +701,12 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   });
   const changeHistory = direction => {
     if (savingThought) return;
+    const before = new Set(workspace.getState().hypotheses.map(item => item.id));
     const result = changeResearchHistory(workspace, direction, lastThoughtGroup);
     if (!result.changed) return;
+    const after = new Set(workspace.getState().hypotheses.map(item => item.id));
+    root.dispatchEvent(new CustomEvent('public-research-workspace-history', {bubbles:true, detail:{direction,
+      removedHypothesisIds:[...before].filter(id => !after.has(id)), restoredHypothesisIds:[...after].filter(id => !before.has(id))}}));
     lastThoughtGroup = result.group;
     if (result.grouped) {
       message(isEnglish(locale)
@@ -621,6 +724,9 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   });
   exportButton.addEventListener('click', () => void exportPacket().catch(error => message(displayPublicError(error, locale))));
   draftExportButton.addEventListener('click', () => void exportPacket({draft: true}).catch(error => message(displayPublicError(error, locale))));
+  exportFormButton.addEventListener('click', () => void exportThoughtForm().catch(error => message(displayPublicError(error, locale))));
+  importFormButton.addEventListener('click', () => { importFormFile.value = ''; importFormFile.click(); });
+  importFormFile.addEventListener('change', () => { const file = importFormFile.files?.[0]; importFormFile.value = ''; if (file) void importThoughtForm(file).catch(error => message(['thought-form-question','thought-form-occupied'].includes(error?.code) ? error.message : displayPublicError(error, locale))); });
   importButton.addEventListener('click', () => { importFile.value = ''; importFile.click(); });
   importFile.addEventListener('change', async () => {
     const file = importFile.files?.[0]; importFile.value = ''; if (!file) return;
@@ -638,7 +744,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   } catch { /* the result remains in the current session when storage is unavailable */ }
   const unsubscribeWorkspace = workspace.subscribe(() => { render(); section.open=true; });
   let destroyed = false;
-  const refreshLocale = () => { title.textContent=t().heading; intro.textContent=t().intro; undo.textContent=t().undo; redo.textContent=t().redo; addSource.textContent=t().add; exportButton.textContent=t().export; draftExportButton.textContent=t().exportDraft; importButton.textContent=t().import; render(); if (pendingImport) renderImportPreview(pendingImport); else status.textContent=''; };
+  const refreshLocale = () => { title.textContent=t().heading; intro.textContent=t().intro; undo.textContent=t().undo; redo.textContent=t().redo; addSource.textContent=t().add; exportButton.textContent=t().export; draftExportButton.textContent=t().exportDraft; exportFormButton.textContent=t().exportForm; importFormButton.textContent=t().importForm; importButton.textContent=t().import; render(); if (pendingImport) renderImportPreview(pendingImport); else status.textContent=''; };
   return {workspace, shelf, connectAgentBridge: subscribeSourceList, render, refreshLocale, hasUnsavedDraft, destroy() {
     if (destroyed) return;
     destroyed = true; unsubscribeQuestion?.(); unsubSources?.(); unsubscribeWorkspace(); section.remove(); workspace.dispose(); void shelf.close();

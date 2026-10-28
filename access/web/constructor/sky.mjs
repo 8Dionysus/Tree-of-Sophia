@@ -288,6 +288,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     select(id){selectedId=id;kick()},
     selectEdge(id){selectedEdgeId=id;kick()},
     link(id){linkFrom=id;kick()},
+    zoomBy(factor){if(Number.isFinite(factor)&&factor>0){tzoom=clamp(tzoom*factor,.65,2.2);kick();}},
     frame(){if(nodes.length){const min=[0,1,2].map(i=>Math.min(...nodes.map(n=>n.target[i]))),max=[0,1,2].map(i=>Math.max(...nodes.map(n=>n.target[i])));targetCenter=min.map((v,i)=>(v+max[i])/2);targetFit=Math.min(1.6,810/Math.max(510,max[0]-min[0]),455/Math.max(285,max[1]-min[1]),900/Math.max(560,max[2]-min[2]));}tyaw=0;tpitch=-.055;tzoom=1;tpan={x:0,y:0};resize()},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     refresh:resize,

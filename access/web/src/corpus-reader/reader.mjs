@@ -13,10 +13,11 @@ import {
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
 import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
-import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm} from './philology.mjs';
+import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm,isSingleWordSelection} from './philology.mjs';
 import {editionRepresentationKind,groupEditionRepresentations} from './edition-groups.mjs';
 import {readableUnitLocator} from './location-label.mjs';
 import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
+import {selectedSourceContext} from './source-context.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 import variants from '../../../../ToS/research-packets/public-prototypes-20261026/reader-textual-variants.v1.json' with {type:'json'};
 
@@ -59,7 +60,7 @@ const WORDING = {
     unknown: 'не указано', continuation: 'Есть продолжение', metadataOnly: 'Только метаданные', restricted: 'Доступ ограничен', unavailableVersion: 'Текст недоступен', availabilityUnknown: 'Доступность уточняется',
     untitled: 'Без названия', units: 'Единиц', passage: 'Фрагмент', characters: 'символов', location: 'Место',
     editionVersions: 'текстовых представления', sourceTextLayer: 'Текст из издания', retainedTextLayer: 'Сохранённый слой · старые привязки сохранены',
-    selectedEdition: 'выбрано', currentLocation: 'Текущее место', loadedPassage: 'Загруженный фрагмент', independentColumns: 'Колонки читаются независимо; соответствие мест не задано.', mobileEditions: 'Выбрать текстовое представление',
+    selectedEdition: 'выбрано', currentLocation: 'Текущее место', loadedPassage: 'Загруженный фрагмент', selectedPassage: 'Выбранный фрагмент', independentColumns: 'Колонки читаются независимо; соответствие мест не задано.', mobileEditions: 'Выбрать текстовое представление', jumpToText:'К тексту', searchEdition:'Искать в издании',
     font: 'Размер', leading: 'Интервал', width: 'Ширина', theme: 'Тема', paper: 'Бумага', night: 'Ночь',
     select: 'Выбрать фрагмент в тексте', noCatalog: 'Произведения не найдены', works: 'Произведений',
   },
@@ -81,7 +82,7 @@ const WORDING = {
     select: 'Select a passage in the text', noCatalog: 'No works found', works: 'Works', availabilityUnknown: 'Availability is being checked',
     untitled: 'Untitled', units: 'Units', passage: 'Passage', characters: 'characters', location: 'Location',
     editionVersions: 'saved text versions', sourceTextLayer: 'Edition source text', retainedTextLayer: 'Retained layer · older links remain valid',
-    selectedEdition: 'selected', currentLocation: 'Current location', loadedPassage: 'Loaded passage', independentColumns: 'Each column keeps its own reading location; no alignment is implied.', mobileEditions: 'Choose a text representation',
+    selectedEdition: 'selected', currentLocation: 'Current location', loadedPassage: 'Loaded passage', selectedPassage: 'Selected passage', independentColumns: 'Each column keeps its own reading location; no alignment is implied.', mobileEditions: 'Choose a text representation', jumpToText:'Skip to text', searchEdition:'Search edition',
   },
 };
 
@@ -191,6 +192,7 @@ export function mountCorpusReader({
   let currentTab = 'context';
   let searchOpen = false;
   let searchScope = 'loaded';
+  let searchVersionId = null;
   let searchQuery = '';
   let searchResult = {items: []};
   let comparison = new Map();
@@ -430,6 +432,7 @@ export function mountCorpusReader({
     noteFlushPromise=task;
     const result=await task;
     if(noteFlushPromise===task)noteFlushPromise=null;
+    if(result && !disposed)refreshNotebookList();
     if(!disposed)updateFooter();
     return result;
   }
@@ -447,6 +450,7 @@ export function mountCorpusReader({
     philologyController = null;
     philology = {busy:false,result:null,concordance:null,error:null};
     inspectorOpen = true;
+    if (window.innerWidth <= 850) libraryOpen = false;
     currentTab = endOffset > startOffset ? 'word' : 'notes';
     mode = mode || 'single';
     emitLocation(reference);
@@ -468,6 +472,11 @@ export function mountCorpusReader({
     const version = activeVersion(selected?.versionId);
     if (!reference || !unit || !version) return;
     const form = selectedPhilologyForm(unit.text, reference);
+    if(form && !isSingleWordSelection(form)) {
+      philology = {busy:false,result:null,concordance:null,error:null};
+      renderInspector();
+      return;
+    }
     if (!form || typeof provider?.analyze !== 'function') {
       philology = {busy:false,result:{status:'unavailable',candidates:[]},concordance:null,error:null};
       renderInspector();
@@ -652,7 +661,8 @@ export function mountCorpusReader({
 
   function renderHeader(state) {
     const header = element('header', 'cr-header');
-    const menu = button('☰', () => { libraryOpen = !libraryOpen; render(); }, 'cr-icon cr-menu');
+    const menu = button('☰', () => { libraryOpen = !libraryOpen; if (libraryOpen && window.innerWidth <= 850) inspectorOpen = false; render(); }, 'cr-icon cr-menu');
+    menu.dataset.focusKey='library-toggle';
     menu.hidden=!state.document;
     menu.setAttribute('aria-label', t('library')); menu.setAttribute('aria-expanded', String(libraryOpen));
     const title = element('div', 'cr-title');
@@ -660,7 +670,9 @@ export function mountCorpusReader({
     title.append(element('h1', '', state.document ? documentTitle(state.document) : t('reading')));
     const author = localized(state.document?.author, uiLocale());
     if (author) title.append(element('p', '', author));
-    header.append(menu, title, button('×', () => close(), 'cr-close'));
+    const jump=button(t('jumpToText'),()=>root.querySelector('.cr-pane')?.focus({preventScroll:true}),'cr-jump-text');
+    jump.disabled=!state.document;
+    header.append(menu, jump, title, button('×', () => close(), 'cr-close'));
     header.querySelector('.cr-close').setAttribute('aria-label', t('close'));
     return header;
   }
@@ -683,11 +695,11 @@ export function mountCorpusReader({
     aside.setAttribute('aria-label', t('library'));
     aside.append(element('h2', 'cr-panel-title', t('library')));
     aside.append(element('p', 'cr-library-count', `${t('works')}: ${countLabel(state.catalog.total)}`));
-    const input = element('input', 'cr-library-search'); input.type = 'search'; input.placeholder = t('find'); input.value = state.catalog.query || '';
+    const input = element('input', 'cr-library-search'); input.type = 'search'; input.placeholder = t('find'); input.setAttribute('aria-label',t('find')); input.value = state.catalog.query || '';
     input.addEventListener('input', () => {
       catalogCancel?.(); catalogCancel = wait(240, () => model.catalog({query: input.value}).catch(error => announce(friendlyError(error))));
     });
-    aside.append(input);
+    const inputLabel=element('label','cr-library-search-label');inputLabel.append(element('span','',t('find')),input);aside.append(inputLabel);
     const list = element('div', 'cr-library-list');
     const items = catalogItems();
     if (!items.length && !state.catalog.busy) {
@@ -741,7 +753,7 @@ export function mountCorpusReader({
     if(disposed)return null;
     selectionSequence++; selected = null;
     searchCancel?.(); searchGeneration++;
-    searchQuery = '';
+    searchQuery = ''; searchVersionId = null;
     searchResult = {items: []};
     const result = await model.open({documentId});
     if(disposed)return null;
@@ -759,7 +771,7 @@ export function mountCorpusReader({
     if(disposed)return null;
     selectionSequence++; selected = null;
     searchCancel?.(); searchGeneration++;
-    searchQuery = '';
+    searchQuery = ''; searchVersionId = null;
     searchResult = {items: []};
     const result = await model.open({documentId, versionId});
     if(disposed)return null;
@@ -800,6 +812,7 @@ export function mountCorpusReader({
       openVersion(modelState().document.id, version.id).catch(error => announce(friendlyError(error)));
     }, 'cr-version');
     choice.dataset.versionId = version.id;
+    choice.dataset.focusKey = `version:${version.id}`;
     choice.setAttribute('aria-pressed', String(version.id === modelState().activeVersionId));
     choice.dataset.available = String(isTextAvailable(version));
     if (!isTextAvailable(version)) choice.title = catalogAvailability(version);
@@ -816,19 +829,23 @@ export function mountCorpusReader({
     nav.setAttribute('aria-label', t('edition'));
     for (const group of groupEditionRepresentations(versions)) {
       if (group.versions.length === 1) {
-        nav.append(versionChoice(group.versions[0]));
+        const choice=versionChoice(group.versions[0]);
+        if(className==='cr-edition-options')choice.dataset.focusKey='mobile-edition';
+        nav.append(choice);
         continue;
       }
       const details = element('details', 'cr-edition-group');
       const sourceVersion = group.versions.find(item => editionRepresentationKind(item) === 'source') || group.versions[0];
       const selectedVersion = group.versions.find(item => item.id === modelState().activeVersionId);
       const selectedLayer = selectedVersion ? editionRepresentationLabel(selectedVersion) : '';
-      const label = element('summary', '', `${versionLabel(sourceVersion)} · ${group.versions.length} ${t('editionVersions')}${selectedLayer ? ` · ${t('selectedEdition')}: ${selectedLayer}` : ''}`);
+      const label = element('summary', '', `${selectedLayer ? `${t('selectedEdition')}: ${selectedLayer} · ` : ''}${versionLabel(sourceVersion)} · ${group.versions.length} ${t('editionVersions')}`);
+      label.dataset.focusKey=`edition-group:${sourceVersion.id}`;
       details.append(label);
       const layers = element('div', 'cr-edition-layers');
       for (const version of group.versions) {
         const descriptor = editionRepresentationLabel(version);
         const choice = versionChoice(version);
+        choice.dataset.focusKey=className==='cr-edition-options'?'mobile-edition':label.dataset.focusKey;
         if (descriptor) choice.prepend(element('small', 'cr-edition-layer-kind', descriptor));
         layers.append(choice);
       }
@@ -846,7 +863,8 @@ export function mountCorpusReader({
     picker.setAttribute('aria-label', t('mobileEditions'));
     const active = allVersions.find(version => version.id === state.activeVersionId);
     const activeLayer = active ? editionRepresentationLabel(active) : '';
-    picker.append(element('summary', '', `${t('edition')} · ${active ? versionLabel(active) : t('edition')}${activeLayer ? ` · ${activeLayer}` : ''}`));
+    const mobileSummary=element('summary', '', `${t('edition')} · ${activeLayer ? `${activeLayer} · ` : ''}${active ? versionLabel(active) : t('edition')}`);
+    mobileSummary.dataset.focusKey='mobile-edition';picker.append(mobileSummary);
     picker.append(renderVersionChoices(allVersions));
     toolbar.append(picker);
     if ((state.document?.versions || []).length > 1) {
@@ -854,35 +872,61 @@ export function mountCorpusReader({
         if(!(await flushNote()))return;
         capturePanePositions();
         mode = mode === 'parallel' ? 'single' : 'parallel';
+        searchCancel?.(); searchGeneration++; searchVersionId=null; searchResult={items:[]};
         render();
+        if(searchOpen && searchQuery)queueSearch();
         void ensureVisiblePanes();
       }, 'cr-mode'));
+      toolbar.lastChild.dataset.focusKey='compare-toggle';
     }
     if (mode === 'parallel' && versions.length > 1) {
       const label = element('label', 'cr-compare'); label.append(element('span', '', t('compare')));
       const select = element('select'); select.setAttribute('aria-label', t('compare'));
+      select.dataset.focusKey='compare-target';
       for (const version of state.document.versions.filter(item => item.id !== state.activeVersionId && isTextAvailable(item))) {
-        const option = element('option', '', versionLabel(version)); option.value = version.id; select.append(option);
+        const option = element('option', '', [editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · ')); option.value = version.id; select.append(option);
       }
       select.value = versions[1]?.id || '';
-      select.addEventListener('change', async () => { if(!(await flushNote()))return; capturePanePositions(); remember(comparison,state.document.id, select.value); render(); void ensureVisiblePanes(); }); label.append(select); toolbar.append(label);
+      select.addEventListener('change', async () => { if(!(await flushNote()))return; capturePanePositions(); remember(comparison,state.document.id, select.value); searchCancel?.();searchGeneration++;searchVersionId=null;searchResult={items:[]}; render(); if(searchOpen && searchQuery)queueSearch();void ensureVisiblePanes(); }); label.append(select); toolbar.append(label);
     }
     toolbar.append(element('span', 'cr-grow'));
     toolbar.append(button('⌕', () => { searchOpen = !searchOpen; if (!searchOpen) { searchQuery = ''; searchResult = {items: []}; } render(); root.querySelector('.cr-search-input')?.focus(); }, 'cr-icon cr-search-open'));
-    toolbar.lastChild.setAttribute('aria-label',t('search'));
+    toolbar.lastChild.setAttribute('aria-label',t('search')); toolbar.lastChild.setAttribute('aria-expanded',String(searchOpen));toolbar.lastChild.dataset.focusKey='search-toggle';
     toolbar.append(button('Aa', () => { settingsOpen = !settingsOpen; render(); }, 'cr-settings-button'));
-    toolbar.lastChild.setAttribute('aria-label',t('settings'));
-    toolbar.append(button('✧', () => { inspectorOpen = !inspectorOpen; render(); }, 'cr-icon'));
-    toolbar.lastChild.setAttribute('aria-label', t('notes')); toolbar.lastChild.setAttribute('aria-expanded', String(inspectorOpen));
+    toolbar.lastChild.setAttribute('aria-label',t('settings')); toolbar.lastChild.setAttribute('aria-expanded',String(settingsOpen));toolbar.lastChild.dataset.focusKey='settings-toggle';
+    toolbar.append(button('✧', () => { inspectorOpen = !inspectorOpen; if (inspectorOpen && window.innerWidth <= 850) libraryOpen = false; render(); }, 'cr-icon cr-notes-toggle'));
+    toolbar.lastChild.setAttribute('aria-label', t('notes')); toolbar.lastChild.setAttribute('aria-expanded', String(inspectorOpen));toolbar.lastChild.dataset.focusKey='notebook-toggle';
     return toolbar;
+  }
+
+  function queueSearch() {
+    searchCancel?.();
+    const generation=++searchGeneration, query=searchQuery, selectedScope=searchScope;
+    const documentId=modelState().document?.id,versionId=searchVersionId;
+    searchResult={items:[],total:null};
+    const current=()=>generation===searchGeneration && modelState().document?.id===documentId
+      && searchVersionId===versionId && chooseVersions(modelState().document,modelState()).some(version=>version.id===versionId) && searchQuery===query && searchScope===selectedScope;
+    searchCancel = wait(180, () => model.search({documentId,versionId,query,scope:selectedScope}).then(result => {
+      if(current()){searchResult = result || {items: []}; render();}
+    }).catch(error => { if(current()){searchResult = {items: [], nextCursor: null, total: null}; announce(friendlyError(error)); render();} }));
   }
 
   function renderSearch(state) {
     const bar = element('section', 'cr-search');
-    const stored = state.document ? state.searches[stateKey(state.document.id, state.activeVersionId)] : null;
+    const visibleVersions=chooseVersions(state.document,state);
+    if(!visibleVersions.some(version=>version.id===searchVersionId))searchVersionId=state.activeVersionId;
+    const targetVersionId=searchVersionId;
+    const stored = state.document ? state.searches[stateKey(state.document.id, targetVersionId)] : null;
     if (stored?.query === searchQuery && stored?.scope === searchScope) searchResult = stored;
-    const input = element('input', 'cr-search-input'); input.type = 'search'; input.placeholder = t('searchPlaceholder'); input.value = searchQuery; input.maxLength = READER_LIMITS.query;
+    const input = element('input', 'cr-search-input'); input.type = 'search'; input.placeholder = t('searchPlaceholder'); input.setAttribute('aria-label',t('searchPlaceholder'));input.value = searchQuery; input.maxLength = READER_LIMITS.query;
     const scope = element('select', 'cr-search-scope');scope.setAttribute('aria-label',uiLocale()==='en'?'Search scope':'Область поиска');
+    let edition=null;
+    if(visibleVersions.length>1){
+      const label=element('label','cr-search-edition');label.append(element('span','',t('searchEdition')));
+      edition=element('select','cr-search-version');edition.setAttribute('aria-label',t('searchEdition'));
+      for(const version of visibleVersions){const option=element('option','',[editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · '));option.value=version.id;edition.append(option);}
+      edition.value=targetVersionId;label.append(edition);bar.append(label);
+    }
     const capabilities = model.searchCapabilities();
     for (const [value, label, enabled] of [['loaded', t('loaded'), capabilities.loaded], ['version', t('version'), capabilities.version], ['corpus', t('corpus'), capabilities.corpus]]) {
       const option = element('option', '', label); option.value = value; option.disabled = !enabled; scope.append(option);
@@ -894,33 +938,31 @@ export function mountCorpusReader({
       : `${resultCount} / ${searchResult.total}`;
     const count = element('span', 'cr-search-count', searchQuery ? countValue : ''); count.setAttribute('role', 'status');
     const update = () => {
-      searchCancel?.(); searchQuery = input.value; searchScope = scope.value;
-      const generation=++searchGeneration, query=searchQuery, selectedScope=searchScope;
-      const documentId=state.document?.id, versionId=state.activeVersionId;
-      searchResult={items:[],total:null};
-      const current=()=>generation===searchGeneration && modelState().document?.id===documentId
-        && modelState().activeVersionId===versionId && searchQuery===query && searchScope===selectedScope;
-      searchCancel = wait(180, () => model.search({documentId,versionId,query,scope:selectedScope}).then(result => {
-        if(current()){searchResult = result || {items: []}; render();}
-      }).catch(error => { if(current()){searchResult = {items: [], nextCursor: null, total: null}; announce(friendlyError(error)); render();} }));
+      searchQuery = input.value; searchScope = scope.value;queueSearch();
     };
-    input.addEventListener('input', update); scope.addEventListener('change', update); input.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation();event.preventDefault();searchOpen = false; searchQuery = ''; searchResult = {items: []}; render(); } });
-    bar.append(input, scope, count);
+    input.addEventListener('input', update); scope.addEventListener('change', update);
+    edition?.addEventListener('change',()=>{searchVersionId=edition.value;update();});
+    input.addEventListener('keydown', event => { if (event.key === 'Escape') { event.stopPropagation();event.preventDefault();searchOpen = false; searchQuery = ''; searchResult = {items: []}; render();root.querySelector('.cr-search-open')?.focus(); } });
+    const inputLabel=element('label','cr-search-query');inputLabel.append(element('span','',t('searchPlaceholder')),input);
+    bar.append(inputLabel, scope, count);
     const hasContinuation = Boolean(searchResult.nextCursor);
     if (searchResult.items?.length || hasContinuation) {
       const results = element('div', 'cr-search-results');
       for (const item of searchResult.items.slice(-READER_LIMITS.searchResults)) {
         const result = button('', async () => {
-          if(!(await flushNote()))return;
-          selectionSequence++;
-          const version = activeVersion(state.activeVersionId);
+          const sequence=++selectionSequence;
+          if(!(await flushNote()) || sequence!==selectionSequence || disposed)return;
+          const version = activeVersion(targetVersionId);
           const expectedDocument=state.document.id, expectedVersion=version?.id;
-          if(!expectedVersion || modelState().document?.id!==expectedDocument || modelState().activeVersionId!==expectedVersion)return;
+          const isCurrent=()=>sequence===selectionSequence && !disposed && modelState().document?.id===expectedDocument && searchVersionId===expectedVersion
+            && chooseVersions(modelState().document,modelState()).some(item=>item.id===expectedVersion);
+          if(!expectedVersion || !isCurrent())return;
           const exact=exactReference(item.reference);
           try {
             const page=await model.loadWindow({documentId:expectedDocument,versionId:expectedVersion,
+              commitGuard:isCurrent,
               ...(exact?{reference:exact}:{unitId:item.unitId,revision:version.revision})});
-            if(modelState().document?.id!==expectedDocument || modelState().activeVersionId!==expectedVersion)return;
+            if(!isCurrent())return;
             const unit=page?.units?.find(value=>value.unitId===item.unitId||value.id===item.unitId);
             if(!unit){announce(t('error'));return;}
             const reference=exact || unitReference(unit,version,state.document,{start:item.start||0,end:item.end||0});
@@ -928,10 +970,10 @@ export function mountCorpusReader({
             emitLocation(reference); render(); revealSelectedSource();
           } catch { announce(t('error')); }
         }, 'cr-search-result');
-        const unit = currentWindow(state.activeVersionId)?.units?.find(value => (value.unitId || value.id) === item.unitId);
-        const kind=item.sourceLayer || (unit && editorialKindForMatch(activeVersion(state.activeVersionId),unit,item.start,item.end))
-          || sourceLayerKind(activeVersion(state.activeVersionId),item,item.start);
-        result.append(element('strong', '', corpusSectionLabel(item.label,uiLocale(),state.activeVersionId) || unitLabel(unit || item)));
+        const unit = currentWindow(targetVersionId)?.units?.find(value => (value.unitId || value.id) === item.unitId);
+        const kind=item.sourceLayer || (unit && editorialKindForMatch(activeVersion(targetVersionId),unit,item.start,item.end))
+          || sourceLayerKind(activeVersion(targetVersionId),item,item.start);
+        result.append(element('strong', '', corpusSectionLabel(item.label,uiLocale(),targetVersionId) || paneUnitLabel(unit || item,activeVersion(targetVersionId))));
         if(kind)result.append(element('small','cr-search-layer',editorialLabel(kind,uiLocale())));
         result.append(element('span', '', item.snippet || item.excerpt || ''));
         results.append(result);
@@ -941,11 +983,11 @@ export function mountCorpusReader({
       if (hasContinuation) {
         bar.append(button(t('loadMore'), async event => {
           const trigger = event.currentTarget;
-          const generation=searchGeneration,query=searchQuery,selectedScope=searchScope,documentId=state.document?.id,versionId=state.activeVersionId;
+          const generation=searchGeneration,query=searchQuery,selectedScope=searchScope,documentId=state.document?.id,versionId=targetVersionId;
           trigger.disabled = true;
           try {
             const result=await model.search({documentId,versionId,query,scope:selectedScope,cursor:searchResult.nextCursor});
-            if(generation!==searchGeneration || modelState().document?.id!==documentId || modelState().activeVersionId!==versionId || searchQuery!==query || searchScope!==selectedScope)return;
+            if(generation!==searchGeneration || modelState().document?.id!==documentId || searchVersionId!==versionId || searchQuery!==query || searchScope!==selectedScope)return;
             searchResult = result || searchResult;
             render();
           } catch (error) {
@@ -958,8 +1000,8 @@ export function mountCorpusReader({
     return bar;
   }
 
-  function unitMatches(unit) {
-    return (searchResult.items || []).filter(item => item.unitId && item.unitId === (unit.unitId || unit.id));
+  function unitMatches(unit,versionId) {
+    return versionId===searchVersionId ? (searchResult.items || []).filter(item => item.unitId && item.unitId === (unit.unitId || unit.id)) : [];
   }
 
   function renderUnit(unit, version, sourceDocument, {showWholeLayer=true} = {}) {
@@ -973,9 +1015,10 @@ export function mountCorpusReader({
     const ordinal = Number.isSafeInteger(unit.ordinal) && unit.ordinal > 0 ? unit.ordinal : Number.isSafeInteger(unit.ordinal) ? unit.ordinal + 1 : null;
     const markerLabel = withMarkerRange(apparatusLabel(unit,uiLocale()) || corpusSectionLabel(unit.label,uiLocale(),versionId) || (ordinal === null ? '·' : String(ordinal)),unit,versionId);
     const marker = button(markerLabel, () => selectUnit(unit, versionId, {focus: true}), 'cr-unit-marker');
+    if(Array.from(markerLabel).length>7)marker.classList.add('cr-unit-marker-long');
     marker.setAttribute('aria-label', `${t('select')} ${markerLabel}`);
     const content = element(unit.heading?'span':'div', 'cr-unit-text');
-    const matches = unitMatches(unit).filter(match => Number.isSafeInteger(match.start) && Number.isSafeInteger(match.end) && match.end >= match.start).sort((a, b) => a.start - b.start);
+    const matches = unitMatches(unit,versionId).filter(match => Number.isSafeInteger(match.start) && Number.isSafeInteger(match.end) && match.end >= match.start).sort((a, b) => a.start - b.start);
     const codePoints = Array.from(unit.text).length;
     const selectedReference = selected?.versionId === versionId && selected.reference?.unitId === reference?.unitId
       ? exactReference({...reference, selector:selected.reference.selector})
@@ -1024,7 +1067,10 @@ export function mountCorpusReader({
     const currentLocation=element('div','cr-current-location');
     currentLocation.append(element('span','cr-kicker',t('currentLocation')),element('strong','',t('loading')));
     pane.append(currentLocation);
-    const head=element('header','cr-pane-head');head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
+    const head=element('header','cr-pane-head');
+    const layer=editionRepresentationLabel(version);
+    if(layer)head.append(element('span','cr-layer-badge',layer));
+    head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
     if(hasEditorialProjection(version))head.append(element('p','cr-editorial-notice',uiLocale()==='en'
@@ -1037,10 +1083,11 @@ export function mountCorpusReader({
     const exactLocation = selectedHere ? paneUnitLabel(selectedHere, version) : '';
     const firstLocation = firstUnit ? paneUnitLabel(firstUnit, version) : '';
     const lastLocation = lastUnit ? paneUnitLabel(lastUnit, version) : '';
-    const loadedLocation = exactLocation || (firstLocation
+    const loadedLocation = firstLocation
       ? `${firstLocation}${lastLocation && lastLocation !== firstLocation ? `–${lastLocation}` : ''}`
-      : firstUnit ? paneUnitLabel(firstUnit, version) : '');
+      : firstUnit ? paneUnitLabel(firstUnit, version) : '';
     if (loadedLocation) head.append(element('p', 'cr-column-location', `${t('loadedPassage')}: ${loadedLocation}`));
+    if(exactLocation)head.append(element('p','cr-column-location',`${t('selectedPassage')}: ${exactLocation}`));
     const referenceStatus=state.referenceStates[stateKey(state.document.id,version.id)]||'exact';
     const stale=['changed','unavailable'].includes(referenceStatus);
     if(stale){
@@ -1212,6 +1259,24 @@ export function mountCorpusReader({
     body.append(details);
   }
 
+  // Refresh the list after an autosave without replacing the editor or its
+  // draft/record identity. If the list itself owns focus, defer replacement
+  // until the user leaves it.
+  function refreshNotebookList() {
+    const previous=root?.querySelector('.cr-notebook-list');
+    if(!previous || !opened || disposed || currentTab!=='notes')return;
+    const items=notebookItems();
+    const summary=previous.querySelector('summary');
+    if(summary)summary.textContent=`${t('notes')} (${items.notes.length+items.bookmarks.length})`;
+    if(previous.contains(document.activeElement)){
+      previous.addEventListener('focusout',()=>queueMicrotask(refreshNotebookList),{once:true});
+      return;
+    }
+    const holder=element('div');renderNotebookList(holder);
+    const replacement=holder.firstElementChild;
+    if(replacement){replacement.open=previous.open;previous.replaceWith(replacement);}
+  }
+
   function renderTransfer(body) {
     const transfer = element('div', 'cr-transfer');
     transfer.append(button(t('export'), async () => {
@@ -1237,7 +1302,7 @@ export function mountCorpusReader({
     body.append(element('h2', 'cr-inspector-title', t('source')));
     for (const version of state.document?.versions || []) {
       const status = isTextAvailable(version) ? '' : catalogAvailability(version);
-      const section = element('section', 'cr-source'); section.append(element('h3', '', [versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
+      const section = element('section', 'cr-source'); section.append(element('h3', '', [editionRepresentationLabel(version),versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
       const sourceUrl = safeExternalUrl(attr(version.sourceUrl || version.source_url || version.source?.url || version.source?.href));
       if (version.attribution) section.append(element('p', '', localized(version.attribution, uiLocale())));
       if (sourceUrl) { const link = element('a', '', sourceLinkLabel(sourceUrl, uiLocale())); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
@@ -1284,7 +1349,7 @@ export function mountCorpusReader({
   function renderSettings() {
     const data = model.notebookState(); const preferences = data.preferences || {};
     const settings = element('section', 'cr-settings');
-    const adjust = (label, values, key) => { const row = element('div', 'cr-setting'); row.append(element('span', '', label)); for (const value of values) { const labelValue=({comfortable:uiLocale()==='en'?'Comfortable':'Обычная',wide:uiLocale()==='en'?'Wide':'Широкая',night:t('night'),paper:t('paper')})[value]||String(value);const b = button(labelValue, () => { model.setPreferences({[key]: value}); render(); }, 'cr-setting-button'); b.setAttribute('aria-pressed', String(preferences[key] === value)); row.append(b); } settings.append(row); };
+    const adjust = (label, values, key) => { const row = element('div', 'cr-setting'); row.append(element('span', '', label)); for (const value of values) { const labelValue=({comfortable:uiLocale()==='en'?'Comfortable':'Обычная',wide:uiLocale()==='en'?'Wide':'Широкая',night:t('night'),paper:t('paper')})[value]||String(value);const b = button(labelValue, () => { model.setPreferences({[key]: value}); render(); }, 'cr-setting-button'); b.dataset.focusKey=`setting:${key}:${value}`;b.setAttribute('aria-pressed', String(preferences[key] === value)); row.append(b); } settings.append(row); };
     adjust(t('font'), [16, 18, 20, 22], 'fontSize'); adjust(t('leading'), [1.6, 1.9, 2.2], 'lineHeight'); adjust(t('width'), ['comfortable', 'wide'], 'width'); adjust(t('theme'), ['night', 'paper'], 'theme'); return settings;
   }
 
@@ -1316,7 +1381,8 @@ export function mountCorpusReader({
   }
 
   function renderContents() {
-    const focused=document.activeElement;const focusClass=['cr-library-search','cr-search-input','cr-search-scope','cr-note-editor'].find(name=>focused?.classList?.contains(name));
+    const focused=document.activeElement;const focusClass=['cr-library-search','cr-search-input','cr-search-scope','cr-search-version','cr-note-editor'].find(name=>focused?.classList?.contains(name));
+    const focusKey=focused?.dataset?.focusKey;
     const selectionStart=focused?.selectionStart,selectionEnd=focused?.selectionEnd;
     const visualAnchors=[];
     for(const pane of root.querySelectorAll('.cr-pane')){
@@ -1377,7 +1443,9 @@ export function mountCorpusReader({
     markSelection();
     const location = root.querySelector('.cr-location'); if (location) { location.textContent = locationLabel(currentRef()); }
     rendering=false;
-    if(focusClass){const target=root.querySelector('.'+focusClass);if(target){target.focus({preventScroll:true});if(Number.isInteger(selectionStart)&&typeof target.setSelectionRange==='function')target.setSelectionRange(selectionStart,selectionEnd);}}
+    const focusTarget=focusClass?root.querySelector('.'+focusClass):focusKey
+      ? [...root.querySelectorAll('[data-focus-key]')].find(item=>item.dataset.focusKey===focusKey && item.offsetParent!==null) : null;
+    if(focusTarget){focusTarget.focus({preventScroll:true});if(Number.isInteger(selectionStart)&&typeof focusTarget.setSelectionRange==='function')focusTarget.setSelectionRange(selectionStart,selectionEnd);}
     else if (serial === renderSerial && !root.contains(document.activeElement)) root.querySelector('.cr-pane, .cr-library-search, .cr-close')?.focus({preventScroll:true});
   }
 
@@ -1415,6 +1483,39 @@ export function mountCorpusReader({
           refreshPaneLocation(pane,activeVersion(state.activeVersionId));}
       }
     } catch (error) { announce(friendlyError(error)); render(); }
+  }
+
+  // Navigate an explicitly chosen visible comparison pane without promoting it
+  // to the primary edition or disturbing the other pane's reading position.
+  async function openPanePassage({documentId,versionId,unitId,revision} = {}) {
+    const state=modelState(),version=activeVersion(versionId);
+    if(!opened || disposed || documentId!==state.document?.id || !version || !unitId
+      || !chooseVersions(state.document,state).some(item=>item.id===versionId))return false;
+    if(revision && version.revision!==revision){announce(t('changedCurrent'));return false;}
+    const sequence=++selectionSequence;
+    if(!(await flushNote()) || disposed || sequence!==selectionSequence)return false;
+    await capturePanePositions();
+    if(disposed || sequence!==selectionSequence || modelState().document?.id!==documentId
+      || !chooseVersions(modelState().document,modelState()).some(item=>item.id===versionId))return false;
+    try{
+      const stillCurrent=()=>!disposed && sequence===selectionSequence && modelState().document?.id===documentId
+        && chooseVersions(modelState().document,modelState()).some(item=>item.id===versionId);
+      const page=await model.loadWindow({documentId,versionId,unitId,revision,commitGuard:stillCurrent});
+      if(disposed || sequence!==selectionSequence || modelState().document?.id!==documentId
+        || !chooseVersions(modelState().document,modelState()).some(item=>item.id===versionId))return false;
+      const unit=page?.units?.find(item=>(item.unitId||item.id)===unitId);
+      if(!unit){announce(modelState().referenceStates[stateKey(documentId,versionId)]==='changed'?t('changedCurrent'):t('error'));return false;}
+      selected=null;panePositions.delete(versionId);
+      const ref=unitReference(unit,version,modelState().document,{});if(ref)emitLocation(ref);
+      render();
+      const pane=[...root.querySelectorAll('.cr-pane')].find(item=>item.dataset.versionId===versionId);
+      const row=pane&&[...pane.querySelectorAll('.cr-unit')].find(item=>item.dataset.unitId===unitId);
+      row?.scrollIntoView({block:'start',inline:'nearest'});
+      if(row){const boundary=pane.querySelector('.cr-current-location')?.getBoundingClientRect().bottom??pane.getBoundingClientRect().top;
+        if(row.getBoundingClientRect().top<boundary)pane.scrollTop-=boundary-row.getBoundingClientRect().top+2;
+        refreshPaneLocation(pane,version);pane.focus({preventScroll:true});}
+      return Boolean(row);
+    }catch(error){announce(friendlyError(error));return false;}
   }
 
   async function close({notify = true} = {}) {
@@ -1468,7 +1569,7 @@ export function mountCorpusReader({
       opened = true; root.hidden = false; root.dataset.open = 'true';
       if (args.mode === 'parallel' || args.mode === 'single') mode = args.mode;
       const hasTarget = Boolean(args.documentId || args.versionId || args.reference || args.unitId || args.revision);
-      if (hasTarget) { selectionSequence++; selected=null; searchCancel?.(); searchGeneration++; searchQuery=''; searchResult={items:[]}; }
+      if (hasTarget) { selectionSequence++; selected=null; searchCancel?.(); searchGeneration++; searchVersionId=null;searchQuery=''; searchResult={items:[]}; }
       // Keep the last usable window during a new request. Rebuilding the same
       // old panes here forces layout before the incoming window is rendered.
       if(!wasOpened || !hasTarget)render();
@@ -1488,6 +1589,10 @@ export function mountCorpusReader({
       return loadInitial(initial).then(() => this);
     },
     close,
+    openPane: openPanePassage,
+    visibleVersions(state = modelState()) {
+      return state.document ? chooseVersions(state.document,state).map(version=>({id:version.id,label:[editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · ')})) : [];
+    },
     destroy() {
       if(destroyWork)return destroyWork;
       clearTimeout(noteTimer);
@@ -1535,11 +1640,14 @@ export function mountCorpusReader({
       const state = modelState();
       const version = activeVersion(selected.versionId);
       const document = state.document;
-      if (!version || !document) return null;
+      if (!version || !document || selected.reference.target?.workId !== document.id) return null;
+      const context = selectedSourceContext({reference:selected.reference,version,unit:selected.unit});
+      if (!context) return null;
       return {
         reference: exactReference(selected.reference),
         quote: selectedPhilologyForm(selected.unit.text, selected.reference),
         text: String(selected.unit.text || ''),
+        ...context,
         language: version.language || selected.unit.language || '',
         documentId: document.id,
         versionId: version.id,

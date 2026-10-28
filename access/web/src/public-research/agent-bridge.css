@@ -3,7 +3,7 @@
 .pr-agent-bridge h3 { margin: 25px 0 10px; color: #d9c895; font: 600 11px/1.4 system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
 .pr-agent-intro { max-width: 680px; color: #b5b8b3; font: 14px/1.7 system-ui, sans-serif; }
 .pr-agent-sources, .pr-agent-review { display: grid; gap: 10px; }
-.pr-agent-source, .pr-agent-proposal { border: 1px solid #405155; border-radius: 8px; padding: 14px; background: #121d22a8; }
+.pr-agent-source, .pr-agent-proposal { min-width: 0; overflow-wrap: anywhere; border: 1px solid #405155; border-radius: 8px; padding: 14px; background: #121d22a8; }
 .pr-agent-source strong { color: #eee5d1; font-size: 13px; }
 .pr-agent-source p, .pr-agent-proposal p { margin: 8px 0; color: #c1c7c1; font: 13px/1.65 system-ui, sans-serif; white-space: pre-wrap; }
 .pr-agent-source .pr-agent-selection { color: #e5d59e; }
@@ -16,7 +16,10 @@
 .pr-agent-primary { border-color: #d5bd80; color: #161d20; background: #d5bd80; }
 .pr-agent-button:disabled { opacity: .5; cursor: not-allowed; }
 .pr-agent-small { margin: 8px 8px 0 0; padding: 7px 11px; font-size: 11px; }
-.pr-agent-json { display: block; width: 100%; min-height: 130px; resize: vertical; border: 1px solid #4c5e60; border-radius: 8px; padding: 12px; color: #dce3db; background: #0c1419; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.pr-agent-json { display: block; box-sizing: border-box; min-width: 0; width: 100%; min-height: 130px; resize: vertical; border: 1px solid #4c5e60; border-radius: 8px; padding: 12px; color: #dce3db; background: #0c1419; font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.pr-agent-editorial { border-left: 2px solid #c5aa6d; padding-left: 8px; overflow-wrap: anywhere; }
+.pr-agent-saved-task { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.pr-agent-saved-task button { max-width: 100%; overflow-wrap: anywhere; text-align: left; }
 .pr-agent-label { display: grid; gap: 9px; color: #e4dbc7; font: 13px/1.5 system-ui, sans-serif; }
 .pr-agent-file { display: block; margin: 10px 0 14px; color: #aeb8b4; font: 12px/1.5 system-ui, sans-serif; }
 .pr-agent-select { display: flex; align-items: start; gap: 10px; color: #d9c895; font-size: 12px; }

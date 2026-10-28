@@ -1,20 +1,26 @@
 import {kindLabel, displayPublicError} from './presentation-i18n.mjs';
 import {referenceKey, validateReference} from '../corpus-reader/model.mjs';
-import {ensureSourceRecord} from './source-address.mjs';
+import {editorialLabel} from '../corpus-reader/editorial.mjs';
+import {describeSourceLocator, ensureSourceRecord} from './source-address.mjs';
 import {WORKSPACE_KEY} from './workspace-view.mjs';
 import './agent-bridge.css';
 
 export const AGENT_TASK_SCHEMA = 'tos.public_research.agent_task.v1';
+export const AGENT_TASK_SCHEMA_V2 = 'tos.public_research.agent_task.v2';
 export const AGENT_RESPONSE_SCHEMA = 'tos.public_research.agent_response.v1';
-const TASK_VERSION = 1;
+const TASK_VERSION = 2;
 const RESPONSE_VERSION = 1;
 const TASK_LIMIT = 64_000;
 const RESPONSE_LIMIT = 64_000;
 const MAX_SOURCES = 8;
 const MAX_PROPOSALS = 12;
 const MAX_QUOTE = 2_000;
+const TASK_INSTRUCTIONS = 'Read the exact excerpts and references. Return only the response JSON contract below. Keep claims and objections separate, cite only the supplied source ids, and state uncertainty. Do not claim canon or review.';
+const TASK_INSTRUCTIONS_V2 = `${TASK_INSTRUCTIONS} Context and editorial annotation ranges use Unicode code-point offsets in the referenced unit; annotations are not a complete apparatus.`;
 const TASKS_KEY = 'tos.public-research.agent-tasks.v1';
 const TASK_KEY_PREFIX = 'tos.public-research.agent-task.v1:';
+const RESPONSE_KEY_PREFIX = 'tos.public-research.agent-response.v1:';
+const BASKET_KEY = 'tos.public-research.source-basket.v1';
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const only = (value, required, optional = []) => object(value)
@@ -43,7 +49,8 @@ function checkReference(value) {
 
 export function taskPacket(value) {
   if (!only(value, ['schema', 'version', 'taskId', 'createdAt', 'profile', 'question', 'workspaceRevision', 'sources', 'instructions', 'responseContract'])) throw new TypeError('The agent task packet has unexpected fields.');
-  if (value.schema !== AGENT_TASK_SCHEMA || value.version !== TASK_VERSION) throw new TypeError('Unsupported agent task version.');
+  const v2 = value.schema === AGENT_TASK_SCHEMA_V2 && value.version === 2;
+  if (!v2 && !(value.schema === AGENT_TASK_SCHEMA && value.version === 1)) throw new TypeError('Unsupported agent task version.');
   bounded(value.taskId, 128, 'Task id');
   bounded(value.createdAt, 64, 'Created time');
   bounded(value.profile, 32, 'Profile');
@@ -52,22 +59,89 @@ export function taskPacket(value) {
   if (!Array.isArray(value.sources) || value.sources.length < 1 || value.sources.length > MAX_SOURCES) throw new TypeError(`Choose between 1 and ${MAX_SOURCES} exact sources.`);
   const seen = new Set();
   const sources = value.sources.map((source, index) => {
-    if (!object(source) || ['id', 'reference', 'title', 'quote', 'language', 'versionLabel'].some(key => !Object.hasOwn(source, key))
-      || Object.keys(source).some(key => !['id', 'reference', 'title', 'quote', 'context', 'contextTruncated', 'language', 'versionLabel'].includes(key))) throw new TypeError(`Source ${index + 1} has an invalid shape.`);
+    const required = ['id', 'reference', 'title', 'quote', 'language', 'versionLabel'];
+    const optional = ['context', 'contextTruncated', ...(v2 ? ['contextRange', 'editorialAnnotations', 'sourceLayerKind'] : [])];
+    if (!only(source, required, optional) || (v2 && (!own(source, 'contextRange') || !own(source, 'editorialAnnotations')))) throw new TypeError(`Source ${index + 1} has an invalid shape.`);
     const sourceId = bounded(source.id, 32, `Source ${index + 1} id`);
     if (seen.has(sourceId)) throw new TypeError('Source ids must be unique.');
     seen.add(sourceId);
     const checked = checkReference(source.reference);
     if (source.contextTruncated !== undefined && typeof source.contextTruncated !== 'boolean') throw new TypeError(`Source ${index + 1} contextTruncated must be a boolean.`);
-    return {id: sourceId, reference: checked.reference, title: bounded(source.title, 512, 'Source title'),
+    const result = {id: sourceId, reference: checked.reference, title: bounded(source.title, 512, 'Source title'),
       quote: boundedText(source.quote, MAX_QUOTE, 'Selected text'),
       context: boundedText(source.context ?? '', MAX_QUOTE * 2, 'Bounded context excerpt'), contextTruncated: source.contextTruncated === true,
       language: bounded(source.language, 64, 'Source language', {empty: true}),
       versionLabel: bounded(source.versionLabel, 512, 'Edition label', {empty: true})};
+    if (v2) {
+      const range = source.contextRange, points = Array.from(result.context), selector = result.reference.selector;
+      if (!only(range, ['start','end','positionUnit','interval']) || !Number.isSafeInteger(range.start) || !Number.isSafeInteger(range.end)
+        || range.start < 0 || range.end < range.start || range.end - range.start !== points.length
+        || range.positionUnit !== 'unicode_code_point' || range.interval !== 'half_open') throw new TypeError('The source context range is invalid.');
+      if (selector.end > selector.start && (selector.start < range.start || selector.end > range.end
+        || points.slice(selector.start-range.start, selector.end-range.start).join('') !== result.quote)) throw new TypeError('The selected quote does not match its bounded context.');
+      if (!Array.isArray(source.editorialAnnotations) || source.editorialAnnotations.length > 512) throw new TypeError('The editorial annotation list is invalid.');
+      const kinds = new Set(['note','addition','deletion','gap','notes','adjustments','publication','fragments','laterWitness']);
+      result.contextRange = {start:range.start,end:range.end,positionUnit:range.positionUnit,interval:range.interval};
+      result.editorialAnnotations = source.editorialAnnotations.map(item => {
+        if (!only(item, ['kind','start','end']) || !kinds.has(item.kind) || !Number.isSafeInteger(item.start) || !Number.isSafeInteger(item.end)
+          || item.start < range.start || item.end > range.end || item.end <= item.start) throw new TypeError('An editorial annotation is outside the context.');
+        return {kind:item.kind,start:item.start,end:item.end};
+      });
+      if (own(source, 'sourceLayerKind')) {
+        if (source.sourceLayerKind !== null && !kinds.has(source.sourceLayerKind)) throw new TypeError('The source layer role is invalid.');
+        result.sourceLayerKind = source.sourceLayerKind;
+      }
+    }
+    return result;
   });
-  if (value.instructions !== 'Read the exact excerpts and references. Return only the response JSON contract below. Keep claims and objections separate, cite only the supplied source ids, and state uncertainty. Do not claim canon or review.') throw new TypeError('The task instructions are invalid.');
+  if (value.instructions !== (v2 ? TASK_INSTRUCTIONS_V2 : TASK_INSTRUCTIONS)) throw new TypeError('The task instructions are invalid.');
   if (!only(value.responseContract, ['schema', 'version', 'fields']) || value.responseContract.schema !== AGENT_RESPONSE_SCHEMA || value.responseContract.version !== RESPONSE_VERSION || !Array.isArray(value.responseContract.fields)) throw new TypeError('The response contract is invalid.');
   return {...value, sources};
+}
+
+/** Validate one source with exactly the same checks as an exported v2 task. */
+function checkedBasketSource(source) {
+  return taskPacket({schema:AGENT_TASK_SCHEMA_V2,version:2,taskId:'source-check',createdAt:'source-check',profile:'source-check',
+    question:'source-check',workspaceRevision:0,sources:[source],instructions:TASK_INSTRUCTIONS_V2,
+    responseContract:{schema:AGENT_RESPONSE_SCHEMA,version:RESPONSE_VERSION,fields:[]}}).sources[0];
+}
+
+export function parseSavedSourceBasket(raw) {
+  if (typeof raw !== 'string' || new TextEncoder().encode(raw).byteLength > 512_000) throw new TypeError('Oversized source selection');
+  const saved = JSON.parse(raw);
+  if (!Array.isArray(saved) || saved.length > MAX_SOURCES) throw new TypeError('Invalid source selection');
+  const seenIds = new Set(), seenKeys = new Set(); let sequence = 0;
+  const sources = saved.map(item => {
+    if (!object(item)) throw new TypeError('Invalid source selection');
+    const {key:ignored, ...value} = item, source = checkedBasketSource(value), key = referenceKey(source.reference);
+    if (seenIds.has(source.id) || seenKeys.has(key)) throw new TypeError('Duplicate source selection');
+    seenIds.add(source.id); seenKeys.add(key);
+    const number = /^s([1-9]\d{0,14})$/.exec(source.id);
+    if (!number || !Number.isSafeInteger(Number(number[1]))) throw new TypeError('Invalid selection id');
+    sequence = Math.max(sequence, Number(number[1]));
+    return {...source,key};
+  });
+  return {sources,sequence};
+}
+
+export function mergeSourceBasket(current, incoming, initialSequence) {
+  if (!Array.isArray(incoming) || incoming.length > MAX_SOURCES) throw new TypeError('The source selection is invalid.');
+  const candidate = current.map(source => copy(source)), mapping = new Map(), seenIds = new Set(); let sequence = initialSequence;
+  for (const raw of incoming) {
+    if (!object(raw)) throw new TypeError('A source selection is invalid.');
+    const {key:ignored, ...value} = raw, source = checkedBasketSource(value), key = referenceKey(source.reference);
+    if (seenIds.has(source.id)) throw new TypeError('A source selection has duplicate ids.');
+    seenIds.add(source.id);
+    const existing = candidate.find(item => item.key === key);
+    if (existing) {
+      const {id:existingId,key:existingKey,...existingData} = existing, {id:incomingId,...incomingData} = source;
+      if (JSON.stringify(existingData) !== JSON.stringify(incomingData)) throw new Error('A selected source has different context; both selections are preserved.');
+      mapping.set(source.id, existingId); continue;
+    }
+    if (candidate.length >= MAX_SOURCES) throw new TypeError('The source selection exceeds eight passages.');
+    const id = `s${++sequence}`; candidate.push({...source,id,key}); mapping.set(source.id, id);
+  }
+  return {sources:candidate,sequence,mapping};
 }
 
 function responseHypothesis(task, response) {
@@ -77,7 +151,7 @@ function responseHypothesis(task, response) {
   const title = `Agent response: ${questionExcerpt}`.trim();
   const body = `${task.question}\n\nExternal agent response for task ${task.taskId}. ${response.uncertainty ? `Uncertainty: ${response.uncertainty}` : ''}`.trim();
   if (body.length > 4_000) throw new TypeError(`The complete question and uncertainty need ${body.length} characters; the workspace allows 4,000. Shorten them before applying this response.`);
-  return {id: `agent-${task.taskId}`, title, body};
+  return {id: `agent-${task.taskId}`, kind:'note', title, body};
 }
 
 function generatedProposalIds(task, proposals) {
@@ -141,6 +215,12 @@ export function planAgentApplication(task, response, selectedProposals, state) {
   return {already: false, hypothesis, hypothesisId, proposalIds};
 }
 
+/** Select an objection independently without mutating the received response. */
+export function selectAgentProposals(response, proposalIds, objectionIds) {
+  return (response?.proposals || []).filter(proposal => proposalIds.has(proposal.id))
+    .map(proposal => proposal.objection && !objectionIds.has(proposal.id) ? {...proposal, objection:undefined} : proposal);
+}
+
 /** Stage the selected response while preserving an objection's parent proposal. */
 export function stageAgentProposals({task, selected, workspace, sourceLocators, dataFingerprint, plan}) {
   const sourceMap = new Map(task.sources.map(source => [source.id, source]));
@@ -188,7 +268,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     export: 'Export task JSON', copy: 'Copy task JSON', copyFail: 'Clipboard is unavailable. Select and copy the task JSON below.',
     import: 'Paste agent response JSON', preview: 'Preview response', file: 'Load JSON file', apply: 'Apply selected proposals to my workspace',
     reopen: 'Open exact source', source: 'Source', objection: 'Objection', noTask: 'Export a task before importing a response.',
-    stale: 'This exact source no longer resolves. It cannot be retargeted.', exact: 'Exact source verified.', applied: 'Selected proposals were added to your personal workspace as pending review.',
+    stale: 'This exact source no longer resolves. It cannot be retargeted.', exact: 'Exact source address is available.', applied: 'Selected proposals were added to your personal workspace as pending review.',
     appliedAlready: 'These proposals are already in the personal workspace.', invalid: 'Could not read this task or response.', proposal: 'Proposal', status: 'Agent task and response stay local until you export or copy them.',
   } : {
     heading: 'Исследование с внешним агентом', intro: 'Выберите точные фрагменты, экспортируйте ограниченное задание и проверьте возвращённые предложения перед добавлением в личную рабочую область.',
@@ -196,7 +276,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     export: 'Экспорт задания JSON', copy: 'Копировать задание JSON', copyFail: 'Буфер обмена недоступен. Выделите JSON задания и скопируйте его вручную.',
     import: 'Вставьте JSON ответа агента', preview: 'Проверить ответ', file: 'Загрузить JSON-файл', apply: 'Добавить выбранные предложения в мою рабочую область',
     reopen: 'Открыть точный источник', source: 'Источник', objection: 'Возражение', noTask: 'Сначала экспортируйте задание.',
-    stale: 'Этот точный источник больше не разрешается. Автоматическая перепривязка запрещена.', exact: 'Точный источник проверен.', applied: 'Выбранные предложения добавлены в личную рабочую область со статусом ожидания проверки.',
+    stale: 'Этот точный источник больше не разрешается. Автоматическая перепривязка запрещена.', exact: 'Точный адрес источника доступен.', applied: 'Выбранные предложения добавлены в личную рабочую область со статусом ожидания проверки.',
     appliedAlready: 'Эти предложения уже есть в личной рабочей области.', invalid: 'Не удалось прочитать это задание или ответ.', proposal: 'Предложение', status: 'Задание и ответ агента остаются локальными, пока вы не экспортируете или не скопируете их.',
   };
   const t = words;
@@ -205,35 +285,111 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const heading = text('summary', 'pr-agent-title', t().heading); heading.id = 'pr-agent-title';
   const intro = text('p', 'pr-agent-intro', t().intro);
   const sourceHeading = text('h3', '', t().sourceCount);
+  const basketHint = text('p', 'pr-agent-empty', english() ? 'This temporary selection stays in this tab across profile changes; it is not part of the complete research export until used in a saved thought or task.' : 'Временная подборка остаётся в этой вкладке при смене профиля; в полный экспорт она попадёт после сохранения мысли или задания.');
   const sourceList = text('div', 'pr-agent-sources');
   const addSource = button(t().add, 'pr-agent-button');
   const taskButtons = text('div', 'pr-agent-buttons');
   const exportButton = button(t().export, 'pr-agent-button pr-agent-primary');
   const copyButton = button(t().copy, 'pr-agent-button');
+  const copySnapshotButton = button(english() ? 'Copy displayed saved task' : 'Копировать показанное задание', 'pr-agent-button'); copySnapshotButton.disabled = true;
   const taskText = document.createElement('textarea'); taskText.className = 'pr-agent-json'; taskText.readOnly = true; taskText.rows = 8; taskText.setAttribute('aria-label', 'Agent task JSON');
   const taskNotice = text('p', 'pr-agent-status'); taskNotice.hidden = true;
+  const taskHistory = text('details', 'pr-agent-history');
+  const taskHistoryTitle = text('summary', '', english() ? 'Saved tasks and responses' : 'Сохранённые задания и ответы');
+  const taskHistoryList = text('div', 'pr-agent-saved-list'); taskHistory.append(taskHistoryTitle, taskHistoryList);
   const importLabel = text('label', 'pr-agent-label'); const importLabelText = text('span', '', t().import); importLabel.append(importLabelText);
   const responseText = document.createElement('textarea'); responseText.className = 'pr-agent-json'; responseText.rows = 8; responseText.maxLength = RESPONSE_LIMIT; responseText.setAttribute('aria-label', 'Agent response JSON'); importLabel.append(responseText);
   const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'application/json,.json'; fileInput.className = 'pr-agent-file';
   const previewButton = button(t().preview, 'pr-agent-button');
   const applyButton = button(t().apply, 'pr-agent-button pr-agent-primary'); applyButton.disabled = true;
   const review = text('div', 'pr-agent-review'); review.setAttribute('aria-live', 'polite');
+  const responseStatus = text('p', 'pr-agent-status');
   const status = text('p', 'pr-agent-status', t().status); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
   const controls = text('div', 'pr-agent-buttons'); controls.append(addSource);
-  taskButtons.append(exportButton, copyButton);
+  taskButtons.append(exportButton, copyButton, copySnapshotButton);
   const importHeading = text('h3', '', t().import);
-  section.append(heading, intro, sourceHeading, sourceList, controls, taskButtons, taskText, taskNotice, importHeading, importLabel, fileInput, previewButton, review, applyButton, status);
+  const responseNotice = text('p', 'pr-agent-status');
+  section.append(heading, intro, sourceHeading, basketHint, sourceList, controls, status, taskButtons, taskText, taskNotice, taskHistory, importHeading, importLabel, fileInput, previewButton, responseNotice, review, applyButton, responseStatus);
   root.append(section);
 
   let chosen = [];
   let sourceSequence = 0;
+  let basketSaved = true, basketWritable = true;
   let tasks = [];
+  let savedResponses = [];
   const sourceListeners = new Set();
   let activeTask = null;
   let displayedTask = null;
   let activeResponse = null;
   let selectedProposalIds = new Set();
+  let selectedObjectionIds = new Set();
+  let applyingResponse = false;
+  let creatingTask = false;
   const message = value => { status.textContent = value; };
+  const updateBasketHint = () => {
+    basketHint.textContent = !basketWritable
+      ? (english() ? 'The previous selection could not be restored; its saved data was not overwritten.' : 'Не удалось восстановить прежнюю подборку; сохранённые данные не перезаписаны.')
+      : basketSaved
+      ? (english() ? 'This temporary selection stays in this tab across profile changes; it is not part of the complete research export until used in a saved thought or task.' : 'Временная подборка остаётся в этой вкладке при смене профиля; в полный экспорт она попадёт после сохранения мысли или задания.')
+      : (english() ? 'This selection cannot be retained in this tab. Export the thought form or task before leaving.' : 'Подборку не удалось сохранить во вкладке. Перед уходом экспортируйте форму мысли или задание.');
+  };
+  const selectedProposals = () => selectAgentProposals(activeResponse, selectedProposalIds, selectedObjectionIds);
+  const preflight = () => {
+    if (!activeTask) return '';
+    if (String(api.getQuestion() || '').trim() !== activeTask.question) return english()
+      ? 'The question changed after this task was saved; review the response and export a new task before applying.'
+      : 'После сохранения задания вопрос изменился; ответ можно просмотреть, но для применения нужно новое задание.';
+    const saved = globalThis.localStorage?.getItem(WORKSPACE_KEY);
+    if (workspace.persistenceError?.() || (saved !== null && saved !== undefined && saved !== workspace.exportPacket())) return english()
+      ? 'The workspace changed after this task was saved; review the response and export a new task before applying.'
+      : 'После сохранения задания исследование изменилось; ответ можно просмотреть, но для применения нужно новое задание.';
+    if (activeTask.workspaceRevision !== workspace.summary().revision) {
+      try { if (planAgentApplication(activeTask, activeResponse, selectedProposals(), workspace.getState()).already) return ''; } catch { /* defer collision detail to Apply */ }
+      return english() ? 'The workspace changed after this task was saved; review the response and export a new task before applying.'
+        : 'После сохранения задания исследование изменилось; ответ можно просмотреть, но для применения нужно новое задание.';
+    }
+    return '';
+  };
+  const renderTaskHistory = () => {
+    taskHistoryTitle.textContent = english() ? 'Saved tasks and responses' : 'Сохранённые задания и ответы';
+    taskHistoryList.replaceChildren();
+    if (!tasks.length) taskHistoryList.append(text('p', 'pr-agent-empty', english() ? 'No saved tasks yet.' : 'Сохранённых заданий пока нет.'));
+    for (const task of [...tasks].sort((a,b) => b.createdAt.localeCompare(a.createdAt))) {
+      const row = text('div', 'pr-agent-saved-task');
+      const chars = Array.from(task.question), excerpt = chars.slice(0,120).join('') + (chars.length > 120 ? '…' : '');
+      const open = button(`${task.createdAt} · ${task.profile} · ${excerpt}`, 'pr-agent-small'); open.title = task.question;
+      open.addEventListener('click', () => { displayedTask = task; activeTask = task; clearResponsePreview(); taskText.value = JSON.stringify(task, null, 2); copySnapshotButton.disabled = false; updateTaskNotice(); });
+      row.append(open);
+      for (const response of savedResponses.filter(item => item.taskId === task.taskId)) {
+        const show = button(`${english() ? 'View saved response' : 'Показать сохранённый ответ'}${response.hash ? ` · ${response.hash.slice(0,8)}` : ''}`, 'pr-agent-small');
+        show.addEventListener('click', () => { responseText.value = response.raw; clearResponsePreview(); responseText.focus(); }); row.append(show);
+      }
+      taskHistoryList.append(row);
+    }
+  };
+  const persistBasket = () => {
+    if (!basketWritable) { basketSaved = !chosen.length; updateBasketHint(); return; }
+    try {
+      const storage = globalThis.sessionStorage;
+      if (!storage) throw new Error('Session storage unavailable');
+      if (chosen.length) storage.setItem(BASKET_KEY, JSON.stringify(chosen));
+      else storage.removeItem(BASKET_KEY);
+      basketSaved = true;
+    } catch { basketSaved = !chosen.length; }
+    updateBasketHint();
+  };
+  const restoreBasket = () => {
+    try {
+      const storage = globalThis.sessionStorage;
+      if (!storage) { basketSaved = false; updateBasketHint(); return; }
+      const raw = storage.getItem(BASKET_KEY); if (raw === null) return;
+      const restored = parseSavedSourceBasket(raw); chosen = restored.sources; sourceSequence = restored.sequence;
+      basketSaved = true; updateBasketHint();
+    } catch {
+      chosen = []; basketSaved = false; basketWritable = false; updateBasketHint();
+      message(english() ? 'The earlier source selection could not be restored; its saved data was not overwritten.' : 'Не удалось восстановить прежнюю подборку источников; сохранённые данные не перезаписаны.');
+    }
+  };
   const updateTaskNotice = () => {
     if (!displayedTask) { taskNotice.hidden = true; return; }
     const sameSources = JSON.stringify(displayedTask.sources.map(source => referenceKey(source.reference))) === JSON.stringify(chosen.map(source => source.key));
@@ -244,13 +400,32 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       : (english() ? 'This JSON is a saved task snapshot.' : 'Этот JSON — снимок сохранённого задания.');
   };
   const notifySources = () => { const current = chosen.map(source => copy(source)); for (const listener of sourceListeners) listener(current); updateTaskNotice(); };
-  const unsubscribeQuestion = api.subscribeQuestion?.(updateTaskNotice);
-  const unsubscribeWorkspace = workspace.subscribe(updateTaskNotice);
+  const onContextChanged = () => {
+    updateTaskNotice();
+    if (!activeResponse || applyingResponse) return;
+    const stale = preflight();
+    if (stale) { applyButton.disabled = true; responseStatus.textContent = stale; message(stale); }
+    else void renderReview();
+  };
+  const unsubscribeQuestion = api.subscribeQuestion?.(onContextChanged);
+  const unsubscribeWorkspace = workspace.subscribe(onContextChanged);
   const sourceTitle = source => {
     const selector = source.reference?.selector;
     const range = Number.isSafeInteger(selector?.start) && Number.isSafeInteger(selector?.end) && selector.end > selector.start
       ? `${selector.start}–${selector.end} ${english() ? 'characters' : 'знаков'}` : '';
     return [source.title, source.versionLabel, range].filter(Boolean).join(' · ') || source.id;
+  };
+  // Task snapshots retain their original labels. Visible source addresses use
+  // current corpus metadata so a profile/language change does not mix UI copy.
+  const sourceLabels = new Map();
+  const localizeSourceNode = (node, source) => {
+    if (!api.provider) return;
+    const language = english() ? 'en' : 'ru', key = `${language}:${referenceKey(source.reference)}`;
+    if (!sourceLabels.has(key)) sourceLabels.set(key,
+      describeSourceLocator(JSON.stringify(source.reference), shelf, api.provider, language).catch(() => null));
+    void sourceLabels.get(key).then(result => {
+      if (node.isConnected && language === (english() ? 'en' : 'ru') && result?.status === 'exact' && result.label) node.textContent = result.label;
+    });
   };
   const renderSources = () => {
     sourceList.replaceChildren();
@@ -258,12 +433,21 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     chosen.forEach((source, index) => {
       const row = text('article', 'pr-agent-source');
       const titleNode = text('strong', '', sourceTitle(source));
+      localizeSourceNode(titleNode, source);
       const quoteNode = text('p', 'pr-agent-selection', source.quote || (english() ? 'Exact passage reference' : 'Точная ссылка на фрагмент'));
       const contextNode = text('p', 'pr-agent-context', source.context || '');
-      if (source.contextTruncated) contextNode.append(text('span', 'pr-agent-truncated', english() ? ' · excerpt truncated' : ' · фрагмент сокращён'));
-      const remove = button(t().remove, 'pr-agent-small'); remove.addEventListener('click', () => { chosen.splice(index, 1); renderSources(); notifySources(); });
+      row.append(titleNode, quoteNode);
+      if (source.sourceLayerKind) row.append(text('p', 'pr-agent-editorial', editorialLabel(source.sourceLayerKind, english() ? 'en' : 'ru') || source.sourceLayerKind));
+      const range = source.contextRange;
+      const rangeLabel = range ? `${english() ? 'Context in unit' : 'Контекст в единице'}: ${range.start}–${range.end}${source.contextTruncated ? (english() ? ' · excerpt truncated' : ' · фрагмент сокращён') : ''}` : '';
+      if (rangeLabel) row.append(text('p', 'pr-agent-truncated', rangeLabel));
+      for (const annotation of source.editorialAnnotations || []) {
+        const fragment = Array.from(source.context || '').slice(annotation.start-range.start, annotation.end-range.start).join('');
+        row.append(text('p', 'pr-agent-editorial', `${editorialLabel(annotation.kind, english() ? 'en' : 'ru') || annotation.kind} · ${annotation.start}–${annotation.end}: ${fragment}`));
+      }
+      const remove = button(t().remove, 'pr-agent-small'); remove.addEventListener('click', () => { chosen.splice(index, 1); persistBasket(); renderSources(); notifySources(); });
       const reopen = button(t().reopen, 'pr-agent-small'); reopen.addEventListener('click', () => void reopenSource(source));
-      row.append(titleNode, quoteNode, contextNode, text('code', '', source.id), remove, reopen); sourceList.append(row);
+      row.append(contextNode, text('code', '', source.id), remove, reopen); sourceList.append(row);
     });
     addSource.disabled = chosen.length >= MAX_SOURCES;
   };
@@ -286,13 +470,25 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       if (chosen.length >= MAX_SOURCES) return false;
       const title = bounded(selected.title || selected.versionLabel || selected.reference.unitId, 512, 'Source title');
       const quote = boundedText(selected.quote || '', MAX_QUOTE, 'Selected text');
-      const rawContext = Array.from(String(selected.text || ''));
-      const context = rawContext.slice(0, MAX_QUOTE).join('');
-      const source = {id: `s${++sourceSequence}`, key: checked.key, reference: checked.reference, title, quote, context,
-        contextTruncated: rawContext.length > MAX_QUOTE,
-        language: bounded(selected.language || '', 64, 'Language', {empty: true}), versionLabel: bounded(selected.versionLabel || '', 512, 'Edition label', {empty: true})};
-      chosen.push(source); renderSources(); notifySources(); message(t().exact); return true;
+      const chars = Array.from(String(selected.text || '')), selector = checked.reference.selector;
+      const start = selector.end > selector.start ? Math.max(0, Math.min(selector.start - Math.floor((MAX_QUOTE - (selector.end-selector.start))/2), chars.length-MAX_QUOTE)) : 0;
+      const end = Math.min(chars.length, start + MAX_QUOTE);
+      const contextRange = selected.contextRange || {start,end,positionUnit:'unicode_code_point',interval:'half_open'};
+      const source = checkedBasketSource({id:`s${++sourceSequence}`, reference:checked.reference, title, quote,
+        context:selected.context ?? chars.slice(start,end).join(''), contextRange,
+        contextTruncated:selected.contextTruncated ?? (start > 0 || end < chars.length),
+        editorialAnnotations:selected.editorialAnnotations ?? [], ...(selected.sourceLayerKind ? {sourceLayerKind:selected.sourceLayerKind} : {}),
+        language:bounded(selected.language || '', 64, 'Language', {empty:true}), versionLabel:bounded(selected.versionLabel || '', 512, 'Edition label', {empty:true})});
+      chosen.push({...source,key:checked.key}); persistBasket(); renderSources(); notifySources();
+      message((english() ? 'Exact passage selected.' : 'Точный фрагмент выбран.') + (!basketSaved
+        ? (english() ? ' This selection cannot be retained in this tab; save or copy it before leaving.' : ' Подборку не удалось сохранить во вкладке; сохраните или скопируйте её перед уходом.') : '')); return true;
     } catch (error) { message(displayPublicError(error, locale)); return false; }
+  };
+  const importSources = incoming => {
+    if (!basketWritable) throw new Error('The earlier source selection could not be restored; it has not been overwritten.');
+    const merged = mergeSourceBasket(chosen, incoming, sourceSequence);
+    chosen = merged.sources; sourceSequence = merged.sequence; persistBasket(); renderSources(); notifySources();
+    return merged.mapping;
   };
 
   const restoreTasks = async () => {
@@ -307,6 +503,9 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
           if (value) { const task = taskPacket(value); if (task.taskId === taskId && new TextEncoder().encode(JSON.stringify(task)).byteLength <= TASK_LIMIT) tasks.push(task); }
         } catch { /* Keep other saved tasks available when one old packet is invalid. */ }
       }
+      savedResponses = packet.preferences.filter(item => item.key.startsWith(RESPONSE_KEY_PREFIX) && object(item.value))
+        .map(item => ({...item.value,hash:item.key.split(':').at(-1)})).filter(item => typeof item.taskId === 'string' && typeof item.raw === 'string');
+      renderTaskHistory();
     } catch { /* task exchange remains available in this page session */ }
   };
   const saveTask = async task => {
@@ -323,26 +522,30 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
         catch (error) { if (error?.code !== 'conflict' || attempt === 2) throw error; }
       }
       tasks = [...tasks.filter(value => value.taskId !== task.taskId), task];
+      renderTaskHistory();
     } catch { throw new Error(english() ? 'The task could not be saved in the notebook.' : 'Не удалось сохранить задание в блокноте.'); }
   };
   const createTask = async () => {
+    if (creatingTask) throw new Error('A task is already being created.');
+    creatingTask = true; exportButton.disabled = true; copyButton.disabled = true;
+    try {
+    await tasksReady;
     if (api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) throw new Error('The research question has unsaved changes or changed in another tab.');
     const question = bounded(await api.getQuestion(), 4_000, 'Question');
     if (!chosen.length) throw new TypeError(english() ? 'Add at least one exact selected source.' : 'Добавьте хотя бы один точный выбранный источник.');
-    const sources = chosen.map(source => ({id: source.id, reference: source.reference, title: source.title,
-      quote: source.quote, context: source.context, contextTruncated: source.contextTruncated,
-      language: source.language, versionLabel: source.versionLabel}));
-    const task = taskPacket({schema: AGENT_TASK_SCHEMA, version: TASK_VERSION, taskId: id('task'), createdAt: new Date().toISOString(),
+    const sources = chosen.map(({key, ...source}) => source);
+    const task = taskPacket({schema: AGENT_TASK_SCHEMA_V2, version: TASK_VERSION, taskId: id('task'), createdAt: new Date().toISOString(),
       profile: api.profile, question, workspaceRevision: workspace?.summary().revision ?? 0, sources,
-      instructions: 'Read the exact excerpts and references. Return only the response JSON contract below. Keep claims and objections separate, cite only the supplied source ids, and state uncertainty. Do not claim canon or review.',
+      instructions: TASK_INSTRUCTIONS_V2,
       responseContract: {schema: AGENT_RESPONSE_SCHEMA, version: RESPONSE_VERSION,
         fields: ['taskId', 'uncertainty', 'proposals[{id,kind:interpretation|relation,statement,sourceIds,evidenceIds,objection?{statement,sourceIds}}]']}});
     await saveTask(task);
-    activeTask = task; activeResponse = null; selectedProposalIds.clear(); applyButton.disabled = true; review.replaceChildren();
+    activeTask = task; activeResponse = null; selectedProposalIds.clear(); selectedObjectionIds.clear(); applyButton.disabled = true; review.replaceChildren();
     taskText.value = JSON.stringify(task, null, 2);
-    displayedTask = task; updateTaskNotice();
+    displayedTask = task; copySnapshotButton.disabled = false; updateTaskNotice();
     message(english() ? 'Task saved in this device notebook. Export or copy it to any external agent.' : 'Задание сохранено в блокноте этого устройства. Экспортируйте или скопируйте его для любого внешнего агента.');
     return task;
+    } finally { creatingTask = false; exportButton.disabled = false; copyButton.disabled = false; }
   };
   const readImport = async () => {
     await tasksReady;
@@ -355,17 +558,32 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     const response = responsePacket(value, task);
     activeTask = task; activeResponse = response;
     selectedProposalIds = new Set(response.proposals.map(proposal => proposal.id));
-    await renderReview();
+    selectedObjectionIds = new Set(response.proposals.filter(proposal => proposal.objection).map(proposal => proposal.id));
+    try {
+      const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+      const hash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+      const key = `${RESPONSE_KEY_PREFIX}${task.taskId}:${hash}`, previous = await notebook.getPreference(key);
+      if (previous === undefined) await notebook.setPreference(key, {taskId:task.taskId,raw}, {expectedValue:undefined});
+      else if (previous?.raw !== raw || previous?.taskId !== task.taskId) throw new Error('Response storage conflict');
+      if (!savedResponses.some(item => item.taskId === task.taskId && item.raw === raw)) savedResponses.push({taskId:task.taskId,raw,hash});
+      renderTaskHistory();
+      if (activeTask === task && activeResponse === response && responseText.value === raw) responseNotice.textContent = english() ? 'Original response saved on this device.' : 'Исходный ответ сохранён на этом устройстве.';
+    } catch { if (activeTask === task && activeResponse === response && responseText.value === raw) responseNotice.textContent = english() ? 'The response could not be saved; copy it before leaving.' : 'Не удалось сохранить ответ; скопируйте его перед уходом.'; }
+    if (activeTask !== task || activeResponse !== response || responseText.value !== raw) return response;
     return response;
   };
-  const resolveResponse = async () => {
-    if (!activeTask || !activeResponse) return new Map();
+  const clearResponsePreview = () => {
+    activeResponse = null; selectedProposalIds.clear(); selectedObjectionIds.clear(); review.replaceChildren(); applyButton.disabled = true; responseStatus.textContent = '';
+    responseNotice.textContent = english() ? 'Preview the response before applying.' : 'Проверьте ответ перед применением.';
+  };
+  const resolveResponse = async (task = activeTask, response = activeResponse) => {
+    if (!task || !response) return new Map();
     const sourceIds = new Set();
-    activeResponse.proposals.forEach(proposal => {
+    response.proposals.forEach(proposal => {
       proposal.sourceIds.concat(proposal.evidenceIds).forEach(sourceId => sourceIds.add(sourceId));
       proposal.objection?.sourceRefs.forEach(sourceId => sourceIds.add(sourceId));
     });
-    const byId = new Map(activeTask.sources.map(source => [source.id, source]));
+    const byId = new Map(task.sources.map(source => [source.id, source]));
     const results = new Map();
     for (const sourceId of sourceIds) {
       const source = byId.get(sourceId);
@@ -378,9 +596,11 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const renderReview = async () => {
     review.replaceChildren(); applyButton.disabled = true;
     if (!activeTask || !activeResponse) return;
-    const results = await resolveResponse();
-    const sources = new Map(activeTask.sources.map(source => [source.id, source]));
-    const selectedExact = () => activeResponse.proposals.filter(proposal => selectedProposalIds.has(proposal.id)).every(proposal =>
+    const task = activeTask, response = activeResponse;
+    const results = await resolveResponse(task, response);
+    if (activeTask !== task || activeResponse !== response) return;
+    const sources = new Map(task.sources.map(source => [source.id, source]));
+    const selectedExact = () => selectedProposals().every(proposal =>
       [...proposal.sourceIds, ...proposal.evidenceIds, ...(proposal.objection?.sourceRefs || [])].every(sourceId => results.get(sourceId)?.status === 'exact'));
     const cards = [];
     const citationNode = sourceId => {
@@ -389,7 +609,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       const row = text('div', `pr-agent-citation ${result?.status === 'exact' ? 'is-exact' : 'is-stale'}`);
       if (result?.status !== 'exact') row.append(text('span', 'pr-agent-stale', `${sourceTitle(source)} — ${t().stale}`));
       else {
-        const open = button(sourceTitle(source), 'pr-agent-cite'); open.addEventListener('click', () => void reopenSource(source));
+        const open = button(sourceTitle(source), 'pr-agent-cite'); localizeSourceNode(open, source); open.addEventListener('click', () => void reopenSource(source));
         row.append(open, text('small', '', t().exact));
       }
       return row;
@@ -397,15 +617,22 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     for (const proposal of activeResponse.proposals) {
       const card = text('article', 'pr-agent-proposal');
       const label = document.createElement('label'); label.className = 'pr-agent-select';
-      const check = document.createElement('input'); check.type = 'checkbox'; check.checked = selectedProposalIds.has(proposal.id); check.addEventListener('change', () => { check.checked ? selectedProposalIds.add(proposal.id) : selectedProposalIds.delete(proposal.id); applyButton.disabled = !selectedExact() || !selectedProposalIds.size; });
+      const check = document.createElement('input'); check.type = 'checkbox'; check.checked = selectedProposalIds.has(proposal.id); check.addEventListener('change', () => { check.checked ? selectedProposalIds.add(proposal.id) : selectedProposalIds.delete(proposal.id); if (objectionCheck) objectionCheck.disabled = !check.checked; applyButton.disabled = applyingResponse || Boolean(preflight()) || !selectedExact() || !selectedProposalIds.size; });
       label.append(check, text('strong', '', `${t().proposal} · ${kindLabel(proposal.kind, locale)}`));
       card.append(label, text('p', '', proposal.statement));
       const citations = text('div', 'pr-agent-citations'); proposal.sourceIds.forEach(sourceId => citations.append(citationNode(sourceId)));
       card.append(text('h4', '', t().source), citations);
       const evidence = text('div', 'pr-agent-citations'); proposal.evidenceIds.forEach(sourceId => evidence.append(citationNode(sourceId)));
       card.append(text('h4', '', english() ? 'Evidence' : 'Основание'), evidence);
+      let objectionCheck = null;
       if (proposal.objection) {
-        card.append(text('h4', 'pr-agent-objection-heading', t().objection), text('p', 'pr-agent-objection', proposal.objection.statement));
+        const objectionLabel = document.createElement('label'); objectionLabel.className = 'pr-agent-select';
+        objectionCheck = document.createElement('input'); objectionCheck.type = 'checkbox'; objectionCheck.checked = selectedObjectionIds.has(proposal.id); objectionCheck.disabled = !check.checked;
+        objectionCheck.addEventListener('change', () => { objectionCheck.checked ? selectedObjectionIds.add(proposal.id) : selectedObjectionIds.delete(proposal.id); applyButton.disabled = applyingResponse || Boolean(preflight()) || !selectedExact() || !selectedProposalIds.size; });
+        objectionLabel.append(objectionCheck, text('strong', '', english() ? 'Include this objection' : 'Добавить это возражение'));
+        card.append(objectionLabel, text('p', 'pr-agent-objection', proposal.objection.statement), text('small', 'pr-agent-empty', english()
+          ? 'An unchecked objection stays in the original response and is not applied.'
+          : 'Неотмеченное возражение остаётся в исходном ответе и не добавляется в исследование.'));
         const objections = text('div', 'pr-agent-citations'); proposal.objection.sourceRefs.forEach(sourceId => objections.append(citationNode(sourceId)));
         card.append(objections);
       }
@@ -414,23 +641,27 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     if (activeResponse.uncertainty) review.append(text('p', 'pr-agent-uncertainty', `${english() ? 'Uncertainty' : 'Неопределённость'}: ${activeResponse.uncertainty}`));
     cards.forEach(card => review.append(card));
     if (selectedExact()) {
-      applyButton.disabled = selectedProposalIds.size === 0;
-      message(t().exact);
+      const stale = preflight();
+      applyButton.disabled = applyingResponse || Boolean(stale) || selectedProposalIds.size === 0;
+      responseStatus.textContent = stale || (english() ? 'Exact source addresses are available; the argument still needs review.' : 'Точные адреса доступны; содержание довода требует проверки.');
+      message(responseStatus.textContent);
     } else {
-      applyButton.disabled = true; message(t().stale);
+      applyButton.disabled = true; responseStatus.textContent = t().stale; message(t().stale);
     }
   };
   const applyResponse = async () => {
     if (!workspace || !activeTask || !activeResponse || !selectedProposalIds.size) throw new Error(english() ? 'The personal workspace is unavailable or no proposal is selected.' : 'Личная рабочая область недоступна или предложения не выбраны.');
-    const results = await resolveResponse();
+    const task = activeTask, response = activeResponse, raw = responseText.value;
+    const checkResponse = () => { if (activeTask !== task || activeResponse !== response || responseText.value !== raw) throw new Error('The response changed; preview it again before applying.'); };
+    const results = await resolveResponse(task, response); checkResponse();
     const referenced = new Set();
-    const selected = activeResponse.proposals.filter(proposal => selectedProposalIds.has(proposal.id));
+    const selected = selectedProposals();
     selected.forEach(proposal => {
       proposal.sourceIds.concat(proposal.evidenceIds).forEach(sourceId => referenced.add(sourceId));
       proposal.objection?.sourceRefs.forEach(sourceId => referenced.add(sourceId));
     });
     if ([...referenced].some(sourceId => results.get(sourceId)?.status !== 'exact')) { await renderReview(); throw new Error(t().stale); }
-    const sourceMap = new Map(activeTask.sources.map(source => [source.id, source]));
+    const sourceMap = new Map(task.sources.map(source => [source.id, source]));
     const checkWorkspace = () => {
       const saved = globalThis.localStorage.getItem(WORKSPACE_KEY);
       if (workspace.persistenceError?.() || (saved !== null && saved !== workspace.exportPacket())) {
@@ -438,35 +669,36 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       }
     };
     const checkQuestion = async () => {
-      if ((api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) || bounded(await api.getQuestion(), 4_000, 'Question') !== activeTask.question) {
+      if ((api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) || bounded(await api.getQuestion(), 4_000, 'Question') !== task.question) {
         throw Object.assign(new Error('The question changed after task export.'), {code:'agent-question-changed'});
       }
     };
     await checkQuestion();
+    checkResponse();
     checkWorkspace();
     const work = workspace;
-    let plan = planAgentApplication(activeTask, activeResponse, selected, work.getState());
-    if (plan.already) { message(t().appliedAlready); return; }
-    if (activeTask.workspaceRevision !== work.summary().revision) throw new Error(english()
+    let plan = planAgentApplication(task, response, selected, work.getState());
+    if (plan.already) return t().appliedAlready;
+    if (task.workspaceRevision !== work.summary().revision) throw new Error(english()
       ? 'The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.'
       : 'После экспорта задания рабочая область изменилась. Ответ сохранён для просмотра; перед применением экспортируйте новое задание.');
-    const dataFingerprint = await fingerprint(activeTask.sources);
+    const dataFingerprint = await fingerprint(task.sources); checkResponse();
     const sourceLocators = new Map();
     for (const sourceId of referenced) {
       const source = sourceMap.get(sourceId);
-      sourceLocators.set(sourceId, await ensureSourceRecord(shelf, source.reference, source.title));
+      sourceLocators.set(sourceId, await ensureSourceRecord(shelf, source.reference, source.title)); checkResponse();
     }
 
-    plan = planAgentApplication(activeTask, activeResponse, selected, work.getState());
-    if (plan.already) { message(t().appliedAlready); return; }
-    if (activeTask.workspaceRevision !== work.summary().revision) throw new Error(english()
+    plan = planAgentApplication(task, response, selected, work.getState());
+    if (plan.already) return t().appliedAlready;
+    if (task.workspaceRevision !== work.summary().revision) throw new Error(english()
       ? 'The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.'
       : 'После экспорта задания рабочая область изменилась. Ответ сохранён для просмотра; перед применением экспортируйте новое задание.');
     await checkQuestion();
+    checkResponse();
     checkWorkspace();
-    stageAgentProposals({task:activeTask, selected, workspace:work, sourceLocators, dataFingerprint, plan});
-    await renderReview();
-    message(t().applied);
+    stageAgentProposals({task, selected, workspace:work, sourceLocators, dataFingerprint, plan});
+    return t().applied;
   };
 
   addSource.addEventListener('click', addSelectedSource);
@@ -484,25 +716,50 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       taskText.value = payload;
       if (!navigator.clipboard?.writeText) throw new Error(t().copyFail);
       await navigator.clipboard.writeText(payload); message(english() ? 'Task JSON copied.' : 'JSON задания скопирован.');
-    } catch (error) { message(displayPublicError(error, locale)); }
+    } catch (error) { message(error?.message === t().copyFail ? t().copyFail : displayPublicError(error, locale)); }
   });
-  previewButton.addEventListener('click', () => void readImport().catch(error => { activeResponse = null; applyButton.disabled = true; review.replaceChildren(text('p', 'pr-agent-stale', displayPublicError(error, locale))); message(displayPublicError(error, locale)); }));
-  applyButton.addEventListener('click', () => void applyResponse().catch(error => message(displayPublicError(error, locale))));
+  copySnapshotButton.addEventListener('click', async () => {
+    if (!displayedTask) return;
+    try { if (!navigator.clipboard?.writeText) throw new Error(t().copyFail); await navigator.clipboard.writeText(taskText.value); message(english() ? 'Displayed saved task copied.' : 'Показанное сохранённое задание скопировано.'); }
+    catch { message(t().copyFail); }
+  });
+  previewButton.addEventListener('click', async () => {
+    if (previewButton.disabled || applyingResponse) return;
+    previewButton.disabled = true; responseText.readOnly = true; fileInput.disabled = true; taskHistory.inert = true; applyButton.disabled = true;
+    try { await readImport(); }
+    catch (error) { activeResponse = null; responseStatus.textContent = displayPublicError(error, locale); review.replaceChildren(text('p', 'pr-agent-stale', responseStatus.textContent)); message(responseStatus.textContent); }
+    finally { previewButton.disabled = false; responseText.readOnly = false; fileInput.disabled = false; taskHistory.inert = false; if (activeResponse) await renderReview(); }
+  });
+  responseText.addEventListener('input', clearResponsePreview);
+  applyButton.addEventListener('click', async () => {
+    if (applyingResponse) return;
+    applyingResponse = true; applyButton.disabled = true; previewButton.disabled = true; responseText.readOnly = true; fileInput.disabled = true; taskHistory.inert = true; review.inert = true;
+    let outcome;
+    try { outcome = await applyResponse(); }
+    catch (error) { outcome = displayPublicError(error, locale); }
+    finally {
+      applyingResponse = false; previewButton.disabled = false; responseText.readOnly = false; fileInput.disabled = false; taskHistory.inert = false; review.inert = false;
+      if (activeResponse) await renderReview();
+      if (outcome) { responseStatus.textContent = outcome; message(outcome); }
+    }
+  });
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0]; if (!file) return;
     if (file.size > RESPONSE_LIMIT) { message(english() ? 'The response exceeds 64 KB.' : 'Ответ превышает 64 КБ.'); fileInput.value = ''; return; }
-    responseText.value = await file.text(); fileInput.value = '';
+    responseText.value = await file.text(); clearResponsePreview(); fileInput.value = '';
   });
+  restoreBasket();
   const tasksReady = restoreTasks();
   renderSources();
   let destroyed = false;
   const destroy = () => { if (destroyed) return; destroyed = true; window.removeEventListener('pagehide', pageHide); unsubscribeQuestion?.(); unsubscribeWorkspace?.(); sourceListeners.clear(); section.remove(); };
   const pageHide = event => { if (!event.persisted) destroy(); };
   window.addEventListener('pagehide', pageHide);
-  const refreshLocale = () => { heading.textContent=t().heading; intro.textContent=t().intro; sourceHeading.textContent=t().sourceCount; addSource.textContent=t().add; exportButton.textContent=t().export; copyButton.textContent=t().copy; importHeading.textContent=t().import; importLabelText.textContent=t().import; previewButton.textContent=t().preview; applyButton.textContent=t().apply; taskText.setAttribute('aria-label', english() ? 'Agent task JSON' : 'JSON задания агенту'); responseText.setAttribute('aria-label', english() ? 'Agent response JSON' : 'JSON ответа агента'); fileInput.setAttribute('aria-label', t().file); status.textContent=t().status; renderSources(); updateTaskNotice(); if (activeResponse) void renderReview(); };
+  const refreshLocale = () => { heading.textContent=t().heading; intro.textContent=t().intro; sourceHeading.textContent=t().sourceCount; addSource.textContent=t().add; exportButton.textContent=t().export; copyButton.textContent=t().copy; copySnapshotButton.textContent=english()?'Copy displayed saved task':'Копировать показанное задание'; importHeading.textContent=t().import; importLabelText.textContent=t().import; previewButton.textContent=t().preview; applyButton.textContent=t().apply; taskText.setAttribute('aria-label', english() ? 'Agent task JSON' : 'JSON задания агенту'); responseText.setAttribute('aria-label', english() ? 'Agent response JSON' : 'JSON ответа агента'); fileInput.setAttribute('aria-label', t().file); status.textContent=t().status; updateBasketHint(); renderSources(); renderTaskHistory(); updateTaskNotice(); if (activeResponse) void renderReview(); };
   refreshLocale();
-  return {destroy, refreshLocale, addSelectedSource, exportTask: createTask,
+  return {destroy, refreshLocale, addSelectedSource, importSources, exportTask: createTask,
     selectedSources: () => chosen.map(source => copy(source)),
+    hasUnsavedSources: () => chosen.length > 0 && !basketSaved,
     subscribeSources(listener) { if (typeof listener !== 'function') throw new TypeError('A source listener is required.'); sourceListeners.add(listener); listener(chosen.map(source => copy(source))); return () => sourceListeners.delete(listener); }};
 }
 

@@ -11,7 +11,14 @@ const MAX_BYTES: usize = 1_000_000;
 const MAX_LIBRARY_BYTES: usize = 16_000_000;
 const MAX_REVISION: u64 = 1_000_000_000;
 const SOURCES: &[&str] = &["work", "part", "chapter", "fragment", "dossier"];
-const DRAFTS: &[&str] = &["concept", "interpretation", "question", "note", "excerpt"];
+const DRAFTS: &[&str] = &[
+    "concept",
+    "interpretation",
+    "question",
+    "note",
+    "excerpt",
+    "thought",
+];
 const MATERIALS: &[&str] = &[
     "work",
     "part",
@@ -1227,17 +1234,18 @@ impl ConstructorMachine {
                 } else {
                     word(node, "body").unwrap().to_owned()
                 };
+                let mut input = vec![
+                    ("id", string(id)),
+                    ("title", string(&title)),
+                    ("body", string(if body.is_empty() { &title } else { &body })),
+                    ("targetId", string(id)),
+                ];
+                if material.is_none() {
+                    input.push(("kind", string(word(node, "kind").unwrap())));
+                }
                 actions.push(obj(vec![
                     ("kind", string("hypothesis")),
-                    (
-                        "input",
-                        obj(vec![
-                            ("id", string(id)),
-                            ("title", string(&title)),
-                            ("body", string(if body.is_empty() { &title } else { &body })),
-                            ("targetId", string(id)),
-                        ]),
-                    ),
+                    ("input", obj(input)),
                 ]));
             }
             if material.is_some() || !array(node, "sourceIds").unwrap().is_empty() {

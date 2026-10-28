@@ -76,6 +76,45 @@ test('loaded search follows the new page and keeps context around the hit', asyn
   expect(page.items[0].snippet.toLowerCase()).toContain('synthetic');
 });
 
+test('a search and a passage request in the comparison edition preserve the primary window', async () => {
+  const provider=createFixtureProvider({documentCount:1,unitCount:100,languages:['en','de'],originalLanguage:'en'});
+  const model=createCorpusReaderModel({provider});
+  await model.open();
+  const document=model.snapshot().document,english=document.versions.find(v=>v.language==='en'),german=document.versions.find(v=>v.language==='de');
+  await model.loadWindow({documentId:document.id,versionId:german.id});
+  model.setVisibleVersions([english.id,german.id]);
+  const before=model.snapshot().windows[windowKey(document.id,english.id)];
+  const right=await model.search({documentId:document.id,versionId:german.id,query:'DE —',scope:'loaded'});
+  const left=await model.search({documentId:document.id,versionId:english.id,query:'DE —',scope:'loaded'});
+  expect(right.items.length).toBeGreaterThan(0);expect(left.items).toHaveLength(0);
+  const next=await model.loadWindow({documentId:document.id,versionId:german.id,direction:'next'});
+  const state=model.snapshot();
+  expect(next.units[0].ordinal).toBeGreaterThan(1);
+  expect(state.activeVersionId).toBe(english.id);
+  expect(state.windows[windowKey(document.id,english.id)]).toEqual(before);
+});
+
+test('an obsolete passage request cannot replace a newer window or report a stale error', async () => {
+  const upstream=createFixtureProvider({documentCount:1,unitCount:100,languages:['en'],originalLanguage:'en'});
+  let delayed=false,finish=null,fail=false;
+  const provider={...upstream,window:args=>delayed ? new Promise((resolve,reject)=>{
+    finish=()=>fail ? reject(Object.assign(new Error('old failure'),{code:'stale_reference'})) : upstream.window(args).then(resolve,reject);
+  }) : upstream.window(args)};
+  const model=createCorpusReaderModel({provider});await model.open();
+  const before=model.snapshot();let current=true;delayed=true;
+  const pending=model.loadWindow({direction:'next',commitGuard:()=>current});
+  await Promise.resolve();expect(finish).toBeTypeOf('function');current=false;finish();
+  expect(await pending).toBeNull();
+  expect(model.snapshot().windows).toEqual(before.windows);
+
+  current=true;fail=true;finish=null;
+  const failed=model.loadWindow({direction:'next',commitGuard:()=>current});
+  await Promise.resolve();expect(finish).toBeTypeOf('function');current=false;finish();
+  expect(await failed).toBeNull();
+  const after=model.snapshot();expect(after.windows).toEqual(before.windows);
+  expect(after.windowErrors).toEqual(before.windowErrors);expect(after.referenceStates).toEqual(before.referenceStates);
+});
+
 test('strict note quotes survive targeted CAS and reading positions reload per version', async () => {
   const provider = createFixtureProvider({
     documentCount: 1,

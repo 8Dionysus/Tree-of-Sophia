@@ -15,6 +15,23 @@ export function proposalStatement(value, locale) {
   }
   return value;
 }
+// Only the known generated relation IDs own these prefixes.  A user's
+// arbitrary proposal that happens to begin with the same words stays literal.
+export function proposalDisplay(proposal, locale) {
+  const value=typeof proposal?.statement==='string'?proposal.statement:'';
+  if(proposal?.kind!=='relation')return value;
+  if(proposal.id?.startsWith('objection-link-')&&value.startsWith('Objection to thesis: '))return proposalStatement(value,locale);
+  if(proposal.id?.startsWith('revision-link-')&&value.startsWith('Revises earlier thesis: '))return proposalStatement(value,locale);
+  return value;
+}
+export function hypothesisTitle(hypothesis, locale) {
+  const value=typeof hypothesis?.title==='string'?hypothesis.title:'';
+  const options=hypothesis?.id?.startsWith('objection-')?['Objection: ','Возражение: ']:
+    hypothesis?.id?.startsWith('revision-')?['Reply or revised thesis: ','Ответ или пересмотренный тезис: ']:null;
+  if(!options)return value;
+  const prefix=options.find(item=>value.startsWith(item));
+  return prefix?(isEnglish(locale)?options[0]:options[1])+value.slice(prefix.length):value;
+}
 // Service errors can contain schema fields and implementation details. The UI
 // presents bounded categories while the validation and stored packet stay intact.
 export function displayPublicError(error, locale) {

@@ -200,7 +200,7 @@ fn normalize_import_packet(packet: &mut JsonValue) {
         packet,
         "hypotheses",
         &["id", "title", "body"],
-        &["target_id", "from_id", "to_id", "predicate_label"],
+        &["target_id", "from_id", "to_id", "predicate_label", "kind"],
         &[],
     );
     trim_collection(packet, "notes", &["id", "body"], &["target_id"], &[]);
@@ -292,10 +292,15 @@ fn validate_hypothesis(value: &JsonValue) -> bool {
     exact(
         value,
         &["id", "title", "body", "posture"],
-        &["target_id", "from_id", "to_id", "predicate_label"],
+        &["target_id", "from_id", "to_id", "predicate_label", "kind"],
     ) && bounded(value, "id", 256)
         && bounded(value, "title", 512)
         && bounded(value, "body", 4000)
+        && (get(value, "kind").is_none()
+            || matches!(
+                str_field(value, "kind"),
+                Some("concept" | "interpretation" | "question" | "note" | "excerpt" | "thought")
+            ))
         && optional_bounded(value, "target_id", 256)
         && optional_bounded(value, "from_id", 256)
         && optional_bounded(value, "to_id", 256)
@@ -1156,6 +1161,50 @@ mod tests {
             get(value, "can_redo").and_then(JsonValue::as_bool),
             Some(false)
         );
+    }
+
+    #[test]
+    fn optional_record_kind_preserves_legacy_and_undo_history() {
+        let legacy = parse_json(
+            br#"{"id":"personal:kind","title":"A question","body":"Why?","posture":{"session_hypothesis":true,"source":false,"reviewed":false,"canon":false}}"#,
+            JsonMode::RequestLastWins,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        assert!(validate_hypothesis(&legacy));
+        assert!(get(&legacy, "kind").is_none());
+        for kind in [
+            "concept",
+            "interpretation",
+            "question",
+            "note",
+            "excerpt",
+            "thought",
+        ] {
+            let mut hypothesis = legacy.clone();
+            set(&mut hypothesis, "kind", text(kind));
+            let created = run(
+                r#"{"schema":"tos_research_workspace_transition_v1","operation":"create","session_id":"kind"}"#,
+            );
+            let added = next(
+                get(&created, "machine").unwrap(),
+                "apply",
+                Some(object(vec![
+                    ("kind", text("hypothesis.add")),
+                    ("hypothesis", hypothesis),
+                ])),
+            );
+            let undone = next(get(&added, "machine").unwrap(), "undo", None);
+            let redone = next(get(&undone, "machine").unwrap(), "redo", None);
+            let state = get(get(&redone, "machine").unwrap(), "state").unwrap();
+            let saved = get(state, "hypotheses").unwrap().as_array().unwrap();
+            assert_eq!(str_field(&saved[0], "kind"), Some(kind));
+            assert_eq!(str_field(&saved[0], "id"), Some("personal:kind"));
+        }
+        let mut invalid = legacy;
+        set(&mut invalid, "kind", text("canon"));
+        assert!(!validate_hypothesis(&invalid));
     }
 
     #[test]
