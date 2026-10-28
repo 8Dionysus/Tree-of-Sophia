@@ -605,8 +605,12 @@ jobs:
   software:
     needs: [plan, software_prepare]
     if: ${{ needs.plan.outputs.software_mode != 'none' }}
-    name: Software fixture contracts
+    name: Software fixture contracts / ${{ matrix.group }}
     runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        group: ${{ fromJSON(needs.plan.outputs.software_mode == 'full' && '["access","query","command"]' || '["single"]') }}
     steps:
       - name: Checkout software consumer sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -648,7 +652,7 @@ jobs:
           echo "TMPDIR=$root/mounted" >> "$GITHUB_ENV"
       - name: Test shared software and data-operation code on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'full' }}
-        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase tests --command-timeout-ms 900000 --cargo-timings'
+        run: '"$TOS_RELEASE_CHECK_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --phase tests --test-group "${{ matrix.group }}" --command-timeout-ms 900000 --cargo-timings'
       - name: Test reader and API behavior on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_reader --cargo-timings'

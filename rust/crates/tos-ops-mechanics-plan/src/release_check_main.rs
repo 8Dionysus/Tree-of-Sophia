@@ -17,22 +17,32 @@ extern "C" fn cancelled(signal: i32) {
 struct Options {
     root: PathBuf,
     phase: validation_lanes::ReleasePhase,
+    test_group: Option<validation_lanes::SoftwareTestGroup>,
     limits: executor::Limits,
     cargo_timings: bool,
 }
 
 fn usage() -> &'static str {
-    "usage: tos-release-check --repo-root PATH [--phase all|checks|tests] [--cargo-timings] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
+    "usage: tos-release-check --repo-root PATH [--phase all|checks|tests] [--test-group access|query|command] [--cargo-timings] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]"
 }
 
 fn options() -> Result<Options, String> {
     let mut args = env::args().skip(1);
     let mut root = None;
     let mut phase = validation_lanes::ReleasePhase::All;
+    let mut test_group = None;
     let mut limits = executor::Limits::default();
     let mut cargo_timings = false;
     while let Some(argument) = args.next() {
         match argument.as_str() {
+            "--test-group" => {
+                test_group = Some(
+                    validation_lanes::SoftwareTestGroup::parse(
+                        &args.next().ok_or("missing test group")?,
+                    )
+                    .ok_or("test group must be access, query, or command")?,
+                );
+            }
             "--cargo-timings" => cargo_timings = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--phase" => {
@@ -69,9 +79,13 @@ fn options() -> Result<Options, String> {
             _ => return Err(format!("unknown argument: {argument}")),
         }
     }
+    if test_group.is_some() && phase != validation_lanes::ReleasePhase::Tests {
+        return Err("--test-group requires --phase tests".into());
+    }
     Ok(Options {
         root: root.ok_or("--repo-root is required")?,
         phase,
+        test_group,
         limits,
         cargo_timings,
     })
@@ -82,11 +96,15 @@ fn main() {
         eprintln!("{error}\n{}", usage());
         std::process::exit(2);
     });
-    let steps =
-        validation_lanes::release_steps(&options.root, options.phase).unwrap_or_else(|error| {
-            println!("[error] {error}");
-            std::process::exit(2);
-        });
+    let steps = validation_lanes::release_steps_with_test_group(
+        &options.root,
+        options.phase,
+        options.test_group,
+    )
+    .unwrap_or_else(|error| {
+        println!("[error] {error}");
+        std::process::exit(2);
+    });
     let _ = io::stdout().flush();
     #[cfg(target_os = "linux")]
     unsafe {
