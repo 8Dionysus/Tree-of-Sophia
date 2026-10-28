@@ -300,3 +300,32 @@
 #tree .ps-pick-mode span{overflow-wrap:anywhere}
 #tree .ps-pick-mode button{flex:none;font-size:12px}
 @media(max-width:760px){#tree .ps-pick-mode{top:160px;width:calc(100% - 40px);justify-content:space-between}}
+
+/* Legible links and moves: kinds are told apart by word, line pattern and weight. */
+#tree .ps-relations .relation-chip[data-dash]:before{height:calc(var(--relation-weight,1) * 1.2px);min-height:1px;background:var(--relation-color)}
+#tree .ps-relations .relation-chip[data-dash=dashed]:before{background:repeating-linear-gradient(90deg,var(--relation-color) 0 4px,transparent 4px 7px)}
+#tree .ps-relations .relation-chip[data-dash=dotted]:before{background:repeating-linear-gradient(90deg,var(--relation-color) 0 2px,transparent 2px 5px)}
+.ps-relation-filter i[data-dash=dashed]{background:repeating-linear-gradient(90deg,var(--relation-color) 0 4px,transparent 4px 7px)!important}
+.ps-relation-filter i[data-dash=dotted]{background:repeating-linear-gradient(90deg,var(--relation-color) 0 2px,transparent 2px 5px)!important}
+#tree .ps-source-line{margin:-8px 0 14px;font:11px/1.6 system-ui,sans-serif;letter-spacing:.02em;color:#cdbb8f}
+#tree .ps-route-dock .ps-source-line{margin:-4px 0 6px}
+#tree :is(.ps-turn-hint,.ps-turn-line){display:flex;align-items:center;flex-wrap:wrap;gap:4px 9px;margin:0 0 12px;font:11px/1.6 system-ui,sans-serif;color:#c3cfdb}
+#tree :is(.ps-turn-hint,.ps-turn-line)>i{flex:none;width:26px;height:0;border-top:calc(var(--relation-weight,1.2) * 1px) solid var(--relation-color)}
+#tree :is(.ps-turn-hint,.ps-turn-line)[data-dash=dashed]>i{border-top-style:dashed}
+#tree :is(.ps-turn-hint,.ps-turn-line)[data-dash=dotted]>i{border-top-style:dotted;border-top-width:2px}
+#tree .ps-turn-line>b{font:600 10px/1.5 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--relation-color)}
+#tree .ps-panel .ps-walk-branch{margin:4px 0 16px}
+#tree .edge-label:has(.edge-tag){max-width:240px;text-align:left}
+#tree .edge-label .edge-tag{display:block;font:600 10px/1.5 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--edge-color)}
+#tree .edge-label .edge-tag+span{display:block;color:#dfe7ef}
+#tree .edge-label[data-compact=true]{padding:2px 8px;border-radius:999px;background:#08111ef2}
+#tree .edge-label[data-compact=true] .edge-tag{line-height:15px}
+#tree .edge-label[data-compact=true] .edge-tag+span{display:none}
+#tree .tree-star .star-title{font-weight:inherit;overflow:hidden}
+#tree .tree-star .star-sub{display:block;margin-top:2px;font:11px/1.45 system-ui,sans-serif;letter-spacing:.01em;color:#a9b9c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tree .tree-star[data-short=true] .star-sub{display:none}
+@media(max-width:760px){#tree .tree-star .star-sub{font-size:10px}}
+/* On a narrow screen a move opened from a branch takes the dock's place until it is closed. */
+@media(max-width:760px){#tree[data-reading=true] .ps-route-dock{display:none}}
+/* On a short wide screen an open branch keeps a strip of map above its dock. */
+@media(min-width:761px) and (max-height:820px){#tree .ps-route-dock[data-active=true]{max-height:min(36dvh,300px)}}

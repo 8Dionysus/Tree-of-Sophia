@@ -49,6 +49,18 @@ same reading actions. Extending the Antiquity graph copies its explicitly
 compatible predecessor through the current Rust validator and retains the
 original namespace; browsing a route does not fill the personal graph.
 
+Both spaces name what their data already says, without adding relations or
+sources ([`space-legibility.mjs`](src/public-research/space-legibility.mjs)).
+A link's kind is a word, a line pattern and a weight, not a hue alone; the
+legend lists the kinds and filters by them. Antiquity restores its four authored
+transitions (continuation, qualification, contrast, analogy) and walks branches
+by moves, each named by author, work and place on the map, in the dock and in
+the panel. Zarathustra walks routes by steps; a step names the places of its
+own grounds in the dock, since its node is a concept or thinker shared by other
+routes. A route that walks an atlas link against its direction states the link
+as authored. The camera stays put while a branch or route is walked, and search
+finds branches, routes and steps by their own names before their prose.
+
 The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and
 the complete research transfer preserve personal work without source admission.

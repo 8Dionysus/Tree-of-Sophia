@@ -2,7 +2,9 @@ import { SophiaGpuCanvas } from '../src/observatory/gpu-canvas.js';
 import {validateSkyPose} from './sky-pose.mjs';
 
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}}) {
+// Options are opt-in so the constructor keeps its own behaviour: rotate:false
+// turns a drag into panning, and getViewport supplies the actually free area.
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true}) {
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -82,8 +84,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const previous=oldEdges.get(item.id);oldEdges.delete(item.id);
       const el=previous?.el??document.createElement('button');
       if(!previous){el.type='button';el.className='edge-label';el.dataset.edge=item.id;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'auto'});edgeLayer.append(el);el.addEventListener('click',e=>{e.stopPropagation();onEdgeSelect(item.id);});el.addEventListener('pointerenter',()=>{hoverEdge=item.id;kick();});el.addEventListener('pointerleave',()=>{hoverEdge=null;kick();});el.addEventListener('focus',()=>{hoverEdge=item.id;kick();});el.addEventListener('blur',()=>{hoverEdge=null;kick();});}
-      const title=typeof item.label==='string'?item.label:item.kind;
-      el.textContent=title;el.setAttribute('aria-label',`${labels[item.from]??item.from} → ${title} → ${labels[item.to]??item.to}`);el.hidden=true;
+      const title=typeof item.label==='string'?item.label:item.kind,tag=typeof item.tag==='string'&&item.tag?item.tag:'';
+      if(tag){const word=document.createElement('b'),text=document.createElement('span');word.className='edge-tag';word.textContent=tag;text.textContent=title;el.replaceChildren(word,text);}else el.textContent=title;
+      el.setAttribute('aria-label',`${labels[item.from]??item.from} → ${tag?tag+': ':''}${title} → ${labels[item.to]??item.to}`);el.hidden=true;
       return {...item,el,color:hex(item.color,relationColors[item.kind]??relationColors.relates)};
     });oldEdges.forEach(e=>e.el.remove());
     if('selectedEdgeId' in state)selectedEdgeId=state.selectedEdgeId;
@@ -94,14 +97,24 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         const label=document.createElement('span');el.append(label);layer.append(el);n={id:item.id,el,label,screen:{x:0,y:0,s:1},p:[...item.position],target:[...item.position],dragging:false};
         let nodeDrag=null,suppress=false;
         el.addEventListener('click',()=>{if(suppress){suppress=false;return;}onSelect(item.id)});
-        el.addEventListener('pointerdown',e=>{if(e.button!==0)return;suppress=false;n.dragging=true;nodeDrag={id:e.pointerId,x:e.clientX,y:e.clientY,p:[...n.p],moved:false};el.setPointerCapture(e.pointerId);e.stopPropagation()});
+        el.addEventListener('pointerdown',e=>{if(e.button!==0||!dragNodes)return;suppress=false;n.dragging=true;nodeDrag={id:e.pointerId,x:e.clientX,y:e.clientY,p:[...n.p],moved:false};el.setPointerCapture(e.pointerId);e.stopPropagation()});
         el.addEventListener('pointermove',e=>{if(!nodeDrag||e.pointerId!==nodeDrag.id)return;const dx=e.clientX-nodeDrag.x,dy=e.clientY-nodeDrag.y;if(Math.hypot(dx,dy)<5&&!nodeDrag.moved)return;nodeDrag.moved=true;const vx=dx/Math.max(.1,n.screen.sX??n.screen.s),vy=dy/Math.max(.1,n.screen.s),c=Math.cos(yaw),ss=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);n.p=[nodeDrag.p[0]+vx*c-vy*ss*sp,nodeDrag.p[1]+vy*cp,nodeDrag.p[2]-vx*ss-vy*c*sp];n.target=[...n.p];kick();});
         const end=e=>{if(!nodeDrag||e.pointerId!==nodeDrag.id)return;const moved=nodeDrag.moved;nodeDrag=null;n.dragging=false;if(moved){suppress=true;onMove?.(item.id,[...n.p]);}kick();};
         el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);
         el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
-      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.label.textContent=labels[item.id]??item.title??item.id;n.el.setAttribute('aria-label',item.accessibilityLabel??n.label.textContent);
+      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);
+      n.titleText=labels[item.id]??item.title??item.id;n.subtitle=typeof item.subtitle==='string'?item.subtitle:'';
+      n.labelMaxWidth=Number.isFinite(item.labelMaxWidth)?Math.max(80,Math.min(320,item.labelMaxWidth)):null;n.labelLines=item.labelLines===2?2:1;
+      const clampStyle={whiteSpace:n.labelLines>1?'normal':'',display:n.labelLines>1?'-webkit-box':'',webkitBoxOrient:n.labelLines>1?'vertical':'',webkitLineClamp:n.labelLines>1?String(n.labelLines):''};
+      if(n.subtitle){
+        // A second line names the source; the name keeps its own clamp.
+        if(!n.titleEl){n.titleEl=document.createElement('b');n.titleEl.className='star-title';n.subEl=document.createElement('small');n.subEl.className='star-sub';}
+        n.titleEl.textContent=n.titleText;n.subEl.textContent=n.subtitle;n.label.replaceChildren(n.titleEl,n.subEl);
+        Object.assign(n.label.style,{whiteSpace:'normal',display:'block',webkitBoxOrient:'',webkitLineClamp:''});Object.assign(n.titleEl.style,{...clampStyle,display:n.labelLines>1?'-webkit-box':'block',overflow:'hidden'});
+      }else{n.label.textContent=n.titleText;Object.assign(n.label.style,clampStyle);}
+      n.el.setAttribute('aria-label',item.accessibilityLabel??n.titleText);
       if(item.hover)n.el.title=item.hover;else n.el.removeAttribute('title');
       if(item.ownerType)n.el.dataset.ownerType=item.ownerType;else delete n.el.dataset.ownerType;
       return n;
@@ -127,6 +140,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     targetViewport.right=Math.max(targetViewport.left+120,targetViewport.right);targetViewport.bottom=Math.max(targetViewport.top+130,targetViewport.bottom);
     const bounds=root.getBoundingClientRect();uiObstacles=[];
     for(const el of root.querySelectorAll('.view-heading,.header,.lens-rail,.collection-deck,.relation-bar,.footer,.reading,.journey-dock')){const style=getComputedStyle(el),rect=el.getBoundingClientRect();if(el.hidden||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0||!rect.width||!rect.height)continue;uiObstacles.push({left:rect.left-bounds.left,top:rect.top-bounds.top,right:rect.right-bounds.left,bottom:rect.bottom-bounds.top});}
+    // A workspace can supply its actual free area; the constructor keeps its own layout.
+    const supplied=getViewport?.({width:w,height:h});
+    if(supplied&&['left','right','top','bottom'].every(k=>Number.isFinite(supplied[k]))&&supplied.right-supplied.left>=120&&supplied.bottom-supplied.top>=120)targetViewport={...supplied};
     if(first)viewport={...targetViewport};measureLabels=true;kick();
   }
   function paintFog(texture,phase,alpha){
@@ -165,13 +181,29 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const box=(x,y,width,height)=>({left:x,top:y,right:x+width,bottom:y+height});
   function measure(){
     if(!measureLabels)return;measureLabels=false;
-    for(const n of nodes){const style=getComputedStyle(n.label);ng.font=style.font||'12px sans-serif';n.labelWidth=Math.min(root.dataset.journey==='true'?230:180,Math.max(50,ng.measureText(n.label.textContent).width+4));n.labelHeight=Math.max(16,parseFloat(style.lineHeight)||18);}
-    for(const e of edges){const style=getComputedStyle(e.el);ng.font=style.font||'11px sans-serif';e.labelWidth=Math.min(190,Math.max(56,ng.measureText(e.el.textContent).width+20));e.labelHeight=Math.max(24,(parseFloat(style.lineHeight)||16)+10);}
+    for(const n of nodes){
+      const text=n.titleText??n.label.textContent,sub=n.subtitle&&n.subEl?getComputedStyle(n.subEl):null;
+      let subWidth=0,subHeight=0;if(sub){ng.font=sub.font||'11px sans-serif';subWidth=ng.measureText(n.subtitle).width;subHeight=Math.max(14,parseFloat(sub.lineHeight)||15)+2;}
+      const style=getComputedStyle(n.subtitle&&n.titleEl?n.titleEl:n.label);ng.font=style.font||'12px sans-serif';
+      n.labelWidth=Math.min(n.labelMaxWidth??(root.dataset.journey==='true'?230:180),Math.max(50,Math.max(ng.measureText(text).width,subWidth)+(n.labelLines>1?8:4)));
+      let lines=1,line='';if(n.labelLines>1)for(const word of text.split(/\s+/)){const next=line?line+' '+word:word;if(line&&ng.measureText(next).width>n.labelWidth-8){lines++;line=word;}else line=next;}
+      n.titleHeight=Math.max(16,parseFloat(style.lineHeight)||18)*Math.min(lines,n.labelLines)+(n.labelLines>1?2:0);n.labelHeight=n.titleHeight+subHeight;
+    }
+    for(const e of edges){
+      const style=getComputedStyle(e.el),lineHeight=parseFloat(style.lineHeight)||16;ng.font=style.font||'11px sans-serif';
+      if(!e.tag){e.labelWidth=Math.min(190,Math.max(56,ng.measureText(e.el.textContent).width+20));e.labelHeight=Math.max(24,lineHeight+10);continue;}
+      // A typed link shows its kind on its own line above the authored label.
+      const text=ng.measureText(typeof e.label==='string'?e.label:'').width,word=ng.measureText(e.tag).width;
+      e.labelWidth=Math.min(230,Math.max(70,Math.max(text,word)+22));e.labelHeight=lineHeight*(1+(text+22>230?2:1))+12;
+      // Without room for the full label, the kind alone still names the line.
+      ng.font=`600 10px ${style.fontFamily||'sans-serif'}`;e.compactWidth=Math.ceil(ng.measureText(e.tag.toLocaleUpperCase()).width*1.12)+18;e.compactHeight=21;
+    }
   }
-  function strokeSegment(a,b,dashed=false){
+  function strokeSegment(a,b,pattern='solid'){
     const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);if(length<1)return;
+    const [on,period]=pattern===true||pattern==='dashed'?[7,13]:pattern==='dotted'?[2,6]:[0,0];
     ctx.beginPath();
-    if(dashed){for(let start=0;start<length;start+=13){const end=Math.min(start+7,length);ctx.moveTo(a.x+dx*start/length,a.y+dy*start/length);ctx.lineTo(a.x+dx*end/length,a.y+dy*end/length);}}
+    if(on){for(let start=0;start<length;start+=period){const end=Math.min(start+on,length);ctx.moveTo(a.x+dx*start/length,a.y+dy*start/length);ctx.lineTo(a.x+dx*end/length,a.y+dy*end/length);}}
     else{ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}ctx.stroke();
   }
   function arrow(a,b){
@@ -197,24 +229,34 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const nodeObstacles=nodes.filter(n=>!n.el.hidden).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     const priority=n=>n.id===selectedId?100:n.id===hover?90:n.prominent?80:near.has(n.id)?70:n.major?50:10;
     for(const n of [...nodes].sort((a,b)=>priority(b)-priority(a))){
-      const {x,y}=n.screen,width=n.labelWidth,height=n.labelHeight,hot=n.id===selectedId||n.id===hover;
-      const possibilities=[box(x-width/2,y+19,width,height),box(x-width/2,y-height-19,width,height),box(x+19,y-height/2,width,height),box(x-width-19,y-height/2,width,height)];
-      const within=possibilities.filter(inView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
-      const chosen=clear||(hot?within[0]:n.prominent?within.find(rect=>!occupied.some(o=>overlaps(rect,o))):null),visible=!!chosen&&!n.el.hidden;
+      const {x,y}=n.screen,width=n.labelWidth,hot=n.id===selectedId||n.id===hover;
+      const place=height=>{
+        const narrow=Math.max(90,width-28),possibilities=[box(x-width/2,y+19,width,height),box(x-width/2,y-height-19,width,height),box(x+19,y-height/2,width,height),box(x-width-19,y-height/2,width,height),...(narrow<width?[box(x+19,y-height/2,narrow,height),box(x-narrow-19,y-height/2,narrow,height)]:[])];
+        const within=possibilities.filter(inView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
+        return clear||(hot?within[0]:n.prominent?within.find(rect=>!occupied.some(o=>overlaps(rect,o))):null);
+      };
+      // Without room for its source line, a star keeps its name rather than losing both.
+      let chosen=place(n.labelHeight),short=false;
+      if(!chosen&&n.subtitle&&n.titleHeight){chosen=place(n.titleHeight);short=!!chosen;}
+      n.el.dataset.short=String(short);const visible=!!chosen&&!n.el.hidden;
       n.labelBox=visible?chosen:null;n.el.dataset.quiet=String(!visible);n.label.style.opacity=visible?'1':'0';n.label.style.pointerEvents=visible?'auto':'none';
-      if(chosen){Object.assign(n.label.style,{left:(chosen.left-x+22)+'px',top:(chosen.top-y+22)+'px',bottom:'auto',transform:'none',width:width+'px',maxWidth:width+'px',minWidth:'0'});if(visible)occupied.push(chosen);}
+      if(chosen){const fit=chosen.right-chosen.left;Object.assign(n.label.style,{left:(chosen.left-x+22)+'px',top:(chosen.top-y+22)+'px',bottom:'auto',transform:'none',width:fit+'px',maxWidth:fit+'px',minWidth:'0'});if(visible)occupied.push(chosen);}
     }
-    const candidates=edges.filter(e=>e.id===selectedEdgeId||e.id===hoverEdge||((hover||selectedId)&&focusEdges.has(e.id))).sort((a,b)=>(b.id===hoverEdge?100:b.id===selectedEdgeId?90:b.highlight?70:0)-(a.id===hoverEdge?100:a.id===selectedEdgeId?90:a.highlight?70:0));
+    const candidates=edges.filter(e=>!e.muted&&(e.id===selectedEdgeId||e.id===hoverEdge||((hover||selectedId)&&focusEdges.has(e.id)))).sort((a,b)=>(b.id===hoverEdge?100:b.id===selectedEdgeId?90:b.highlight?70:0)-(a.id===hoverEdge?100:a.id===selectedEdgeId?90:a.highlight?70:0));
     const visibleEdges=new Set();let shown=0;
     for(const e of candidates){
       if(shown>=6)break;const hit=edgeHits.find(hit=>hit.id===e.id);if(!hit)continue;
       const {a,b}=hit,dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),hot=e.id===hoverEdge||e.id===selectedEdgeId;if(length<70&&!hot)continue;
-      let chosen=null;
+      let chosen=null,compact=false;
       for(const t of [.5,.35,.65]){const x=a.x+dx*t,y=a.y+dy*t,area=box(x-e.labelWidth/2,y-e.labelHeight/2,e.labelWidth,e.labelHeight);if(inView(area)&&!occupied.some(o=>overlaps(area,o))&&!nodeObstacles.some(o=>overlaps(area,o))){chosen=area;break;}}
+      if(!chosen&&e.tag&&e.compactWidth)for(const t of [.5,.4,.6,.3,.7]){const x=a.x+dx*t,y=a.y+dy*t,area=box(x-e.compactWidth/2,y-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!occupied.some(o=>overlaps(area,o,2))&&!nodeObstacles.some(o=>overlaps(area,o,2))){chosen=area;compact=true;break;}}
       if(!chosen&&hot){for(const offset of [0,24,-24]){const area=box((a.x+b.x)/2-dy/Math.max(1,length)*offset-e.labelWidth/2,(a.y+b.y)/2+dx/Math.max(1,length)*offset-e.labelHeight/2,e.labelWidth,e.labelHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o))&&!nodeObstacles.some(o=>overlaps(area,o))&&!nodes.some(n=>(n.id===selectedId||n.id===hover)&&n.labelBox&&overlaps(area,n.labelBox))){chosen=area;break;}}}
+      if(!chosen&&hot&&e.tag&&e.compactWidth)for(const offset of [16,-16,30,-30]){const cx=(a.x+b.x)/2-dy/Math.max(1,length)*offset,cy=(a.y+b.y)/2+dx/Math.max(1,length)*offset,area=box(cx-e.compactWidth/2,cy-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o))&&!nodeObstacles.some(o=>overlaps(area,o,2))){chosen=area;compact=true;break;}}
+      // A hovered or chosen link always names its kind, even where the stars leave no free gap.
+      if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
       if(hot)for(const n of nodes)if(n.labelBox&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
-      visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=e.labelWidth+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
+      visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
     }
     for(const e of edges)e.el.hidden=!visibleEdges.has(e.id);
   }
@@ -241,18 +283,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const byId=new Map(nodes.map(n=>[n.id,n]));
     const selectedEdge=edges.find(e=>e.id===selectedEdgeId),hoveredEdge=edges.find(e=>e.id===hoverEdge),focusId=hover??selectedId,near=new Set(focusId?[focusId]:[]),focusEdges=new Set();
     for(const edge of [selectedEdge,hoveredEdge])if(edge){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
-    for(const edge of edges)if(edge.from===focusId||edge.to===focusId){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
+    for(const edge of edges)if(!edge.muted&&(edge.from===focusId||edge.to===focusId)){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
     const focused=near.size>0;edgeHits=[];
     for(const edge of edges){
       const a=byId.get(edge.from)?.screen,b=byId.get(edge.to)?.screen;if(!a||!b)continue;
-      const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id);
-      ctx.strokeStyle=edge.color;ctx.globalAlpha=hot?.85:neighbor?.57:focused?.055:.24;ctx.lineWidth=hot?1.55:neighbor?1.1:.65;
-      strokeSegment(a,b,edge.kind==='questions'||edge.kind==='contrasts');
+      if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;strokeSegment(a,b,edge.dash);continue;}
+      const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id),rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
+      ctx.strokeStyle=edge.color;ctx.globalAlpha=hot?.85:neighbor?.57:focused?rest*.23:rest;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight;
+      strokeSegment(a,b,edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid'));
       if(hot||neighbor)arrow(a,b);
       edgeHits.push({id:edge.id,a,b});
     }
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover,color=colorOf(n),big=n.major,dim=focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      const p=n.screen,hot=n.id===selectedId||n.id===hover,color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
       ctx.globalAlpha=dim?.28:hot?1:.9;const glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
       ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);
@@ -274,7 +317,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   canvas.addEventListener('wheel',e=>{e.preventDefault();tzoom=clamp(tzoom*Math.exp(-e.deltaY*.0012),.65,2.2);kick()},{passive:false});
   const pointer=e=>{const rect=canvas.getBoundingClientRect();return{x:e.clientX-rect.left,y:e.clientY-rect.top};};
   canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging')});
-  canvas.addEventListener('pointermove',e=>{if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;if(drag.shift){tpan={x:drag.pan.x+dx,y:drag.pan.y+dy}}else{tyaw=clamp(drag.yaw+dx*.0025,-.9,.9);tpitch=clamp(drag.pitch+dy*.0025,-.6,.6)}kick()});
+  canvas.addEventListener('pointermove',e=>{if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;if(drag.shift||!rotate){tpan={x:drag.pan.x+dx,y:drag.pan.y+dy}}else{tyaw=clamp(drag.yaw+dx*.0025,-.9,.9);tpitch=clamp(drag.pitch+dy*.0025,-.6,.6)}kick()});
   const release=e=>{if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved;drag=null;canvas.classList.remove('dragging');if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();};canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   canvas.addEventListener('pointerleave',()=>{if(!drag){hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
