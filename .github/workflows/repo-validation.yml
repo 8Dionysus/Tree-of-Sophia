@@ -635,6 +635,8 @@ jobs:
             const path = await import('node:path');
             const { createHash } = await import('node:crypto');
             const { execFileSync } = await import('node:child_process');
+            // This runner starts with an empty target; workspace libraries must be cacheable.
+            core.exportVariable('CARGO_INCREMENTAL', '0');
             const token = process.env.ACTIONS_RUNTIME_TOKEN;
             const resultsUrl = process.env.ACTIONS_RESULTS_URL;
             if (!token || !resultsUrl) throw new Error('Compiler cache runtime unavailable; use rustc.');

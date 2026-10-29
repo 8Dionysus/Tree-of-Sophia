@@ -633,6 +633,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     let cache_script = access_cache["with"]["script"].as_str().unwrap();
     for contract in [
         "45f1447fbe231e3037bde351ef70677dd212216c8d62ae7ca409fecc4d6acc89",
+        "core.exportVariable('CARGO_INCREMENTAL', '0')",
         "SCCACHE_CLIENT_SIDE: '1'",
         "SCCACHE_GHA_RW_MODE: context.eventName === 'pull_request' ? 'READ_ONLY' : 'READ_WRITE'",
         "SCCACHE_IGNORE_SERVER_IO_ERROR: '1'",

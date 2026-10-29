@@ -286,7 +286,9 @@ from its upstream release and verified against a pinned size and SHA-256 before
 execution. It caches eligible compiler outputs by compiler, arguments and
 tracked inputs; it does not restore a test target or reuse test results.
 Canonical Cargo commands, default/test feature contexts, linking, test processes,
-budgets and stage verification still run. Client-side compilation keeps rustc
+budgets and stage verification still run. Access disables incremental compilation
+on its fresh CI target so workspace libraries are cacheable; debug assertions
+and overflow checks retain their existing profile settings. Client-side compilation keeps rustc
 under the native lane's descendant custody. Other fixture children, production
 preparation and the offline cold-install lane do not use this wrapper.
 PRs only read the default-branch cache; main and manual full runs may populate
