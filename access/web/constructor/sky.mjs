@@ -13,7 +13,7 @@ import {validateSkyPose} from './sky-pose.mjs';
 // depthCue dims what lies further back; planarMoves keeps a moved star in its
 // own depth; onPose hears every turn of the view. Such a space may lay its
 // stars on named planes of depth (state.planes), shown while it turns.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null}) {
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null}) {
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -184,7 +184,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         Object.assign(n.label.style,{whiteSpace:'normal',display:'block',webkitBoxOrient:'',webkitLineClamp:''});Object.assign(n.titleEl.style,{...clampStyle,display:n.labelLines>1?'-webkit-box':'block',overflow:'hidden'});
       }else{n.label.textContent=n.titleText;Object.assign(n.label.style,clampStyle);}
       n.el.setAttribute('aria-label',item.accessibilityLabel??n.titleText);
-      if(item.hover)n.el.title=item.hover;else n.el.removeAttribute('title');
+      if(item.hover&&nativeTitles)n.el.title=item.hover;else n.el.removeAttribute('title');
       if(item.ownerType)n.el.dataset.ownerType=item.ownerType;else delete n.el.dataset.ownerType;
       return n;
     });old.forEach(n=>{n.abandon?.();n.el.remove();});
@@ -272,6 +272,24 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     // A scale's labels are measured in their own type, so a name never loses its end to a guess.
     for(const c of clusters)if(c.variant&&!underStars.has(c.variant)){ng.font=getComputedStyle(c.title).font||'12px sans-serif';c.textWidth=ng.measureText(c.title.textContent).width;}
+    // A group's name and subtitle are measured too, so the room it keeps is the room it takes: a subtitle keeps to two
+    // lines where the name's width allows, and the height counts every line it wraps to.
+    for(const c of clusters){
+      if(c.variant)continue;
+      const titleStyle=getComputedStyle(c.title),titleText=c.title.textContent,size=parseFloat(titleStyle.fontSize)||14;
+      ng.font=titleStyle.font||`italic ${size}px serif`;
+      let width=Math.min(230,Math.max(110,Math.ceil(ng.measureText(titleText).width+(parseFloat(titleStyle.letterSpacing)||0)*titleText.length)+12));
+      let height=parseFloat(titleStyle.lineHeight)||size*1.25;
+      if(c.subtitle.textContent){
+        const subStyle=getComputedStyle(c.subtitle),spacing=parseFloat(subStyle.letterSpacing)||0,upper=subStyle.textTransform==='uppercase';
+        ng.font=subStyle.font||'8px sans-serif';
+        const words=(upper?c.subtitle.textContent.toLocaleUpperCase():c.subtitle.textContent).split(/\s+/).filter(Boolean),wide=word=>ng.measureText(word).width+spacing*word.length,space=wide(' ');
+        width=Math.min(230,Math.max(width,Math.ceil((words.reduce((sum,word)=>sum+wide(word),0)+space*(words.length-1))/2)+12));
+        let lines=1,line=0;for(const word of words){const next=line?line+space+wide(word):wide(word);if(line&&next>width-4){lines++;line=wide(word);}else line=next;}
+        height+=(parseFloat(subStyle.marginTop)||5)+lines*(parseFloat(subStyle.lineHeight)||12.8);
+      }
+      c.labelWidth=width;c.labelHeight=Math.ceil(height)+4;
+    }
     for(const e of edges){
       const style=getComputedStyle(e.el),lineHeight=parseFloat(style.lineHeight)||16;ng.font=style.font||'11px sans-serif';
       if(!e.tag){e.labelWidth=Math.min(190,Math.max(56,ng.measureText(e.el.textContent).width+20));e.labelHeight=Math.max(24,lineHeight+10);continue;}
@@ -367,14 +385,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       c.el.hidden=!shown;
       if(shown){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;scaleLabels.push(area);occupied.push(area);}
     }
+    const nodeObstacles=nodes.filter(n=>!n.el.hidden).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     for(const c of clusters){
       if(c.variant)continue;
-      const width=Math.min(230,Math.max(110,c.title.textContent.length*8));let area=null;
-      for(const offset of [-101,-76,106]){const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20,candidate=box(p.x-width/2,top,width,c.subtitle.textContent?40:25);if(inView(candidate)&&!occupied.some(o=>overlaps(candidate,o))){area=candidate;break;}}
+      const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
+      const candidates=[-101,-76,106,-136,140].map(offset=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return box(p.x-width/2,top,width,height);}).filter(inView);
+      // A group's name takes a place clear of the stars where it can, and never one over another name.
+      const area=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)))??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
       c.el.hidden=!area;
       if(area){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
     }
-    const nodeObstacles=nodes.filter(n=>!n.el.hidden).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     const priority=n=>n.id===selectedId?100:n.id===hover?90:n.prominent?80:near.has(n.id)?70:n.major?50:10;
     for(const n of [...nodes].sort((a,b)=>priority(b)-priority(a))){
       const {x,y}=n.screen,width=n.labelWidth,hot=n.id===selectedId||n.id===hover;
@@ -404,7 +424,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
       if(hot)for(const n of nodes)if(n.labelBox&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
-      visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
+      visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
     }
     for(const e of edges)e.el.hidden=!visibleEdges.has(e.id);
     return occupied;
@@ -619,14 +639,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   if(secondaryPan)canvas.addEventListener('contextmenu',e=>e.preventDefault());
   canvas.addEventListener('pointermove',e=>{
     if(pinching(e))return;
-    if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}
+    if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';onEdgeHover?.(id);kick();}return;}
     if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;dragBy(drag,dx,dy);
   });
   const release=e=>{
     if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved&&!drag.forcePan;drag=null;canvas.classList.remove('dragging');letGo();
     if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();
   };canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
-  canvas.addEventListener('pointerleave',()=>{if(!drag){hoverEdge=null;canvas.style.cursor='';kick();}});
+  canvas.addEventListener('pointerleave',()=>{if(!drag){if(hoverEdge)onEdgeHover?.(null);hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
   canvas.addEventListener('sophia-renderer-restored',kick);
   const ro=new ResizeObserver(resize);ro.observe(root);paintNebula();resize();
