@@ -1,3 +1,4 @@
+import {resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 // The lens "Space" measures where: a star stands at the place its bonsai says
 // its material was written — or, where only that is known, where its author
 // lived and worked in the dated span — at the gazetteer's representative
@@ -9,8 +10,8 @@
 // longitude is shortened by cos φ₀, so distances read nearly true across a
 // regional map. Positions are display only and never enter the saved graph.
 
-const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
-const pick=(value,locale)=>typeof value==='string'?value:value?.[lang(locale)]??value?.en??value?.ru??'';
+const lang=resolveLocale;
+const pick=localeValue;
 const GOLDEN=Math.PI*(3-Math.sqrt(5));
 const EARTH_KM=6371.0088;
 
@@ -46,8 +47,8 @@ export function sunflower(k,spacing){
 
 const niceStep=span=>[1,2,5,10,15,20].find(step=>span/step<=7)??30;
 const degrees=(value,positive,negative,locale)=>{
-  const en=lang(locale)==='en',abs=Math.abs(value),word=value>=0?positive:negative;
-  return `${Number.isInteger(abs)?abs:abs.toFixed(1)}° ${en?word.en:word.ru}`;
+  const abs=Math.abs(value),word=value>=0?positive:negative;
+  return `${new Intl.NumberFormat(resolveLocale(locale),{maximumFractionDigits:1}).format(abs)}° ${pick(word,locale)}`;
 };
 const EAST={ru:'в. д.',en:'E'},WEST={ru:'з. д.',en:'W'},NORTH={ru:'с. ш.',en:'N'},SOUTH={ru:'ю. ш.',en:'S'};
 
@@ -81,7 +82,7 @@ export function planeOfPlaces({stars=[],placeOf=()=>null,places={},width=1000,sp
     kind:'plane',positions,toXY,bounds:{x:[xMin,outside.length?outsideX+48:xMax],y:[yMin,yMax]},map:{x:[xMin,xMax],y:[yMin,yMax]},rows:{axis:22},strip:26,
     placeOf:id=>at.get(id)??null,isOutside:id=>outside.includes(id),counts,used,
     labels(locale){
-      const en=lang(locale)==='en',out=[];
+      const en=copyLocale(locale)==='en',out=[];
       // The graticule: meridians named on the strip above the map, parallels at its left.
       for(let lon=Math.ceil(lonMin/lonStep)*lonStep;lon<=lonMax;lon+=lonStep){
         const [x]=toXY([lon,lat0]);
@@ -95,11 +96,11 @@ export function planeOfPlaces({stars=[],placeOf=()=>null,places={},width=1000,sp
       // The place with more stars names itself first; a place known only as where the author lived speaks more quietly.
       for(const id of [...used].sort((a,b)=>counts.get(b)-counts.get(a))){
         const [x,y]=toXY(places[id].point),activity=[...at.values()].every(item=>item.place!==id||item.basis==='activity');
-        out.push({id:`space:place:${id}`,variant:'place',title:`${pick(places[id].label,locale)} · ${counts.get(id)}`,subtitle:'',center:[x,y,0],...(activity?{tone:'quiet',hint:en?'Where the author lived':'Здесь жил автор'}:{})});
+        out.push({id:`space:place:${id}`,variant:'place',title:`${pick(places[id].label,locale)} · ${counts.get(id)}`,subtitle:'',center:[x,y,0],...(activity?{tone:'quiet',hint:en?localeText('Where the author lived',locale):'Здесь жил автор'}:{})});
       }
       if(outside.length){
         out.push({id:'space:rule:outside',variant:'rule',tone:'strong',title:'',subtitle:'',center:[(xMax+outsideX)/2,0,0]});
-        out.push({id:'space:outside',variant:'side',strip:22,title:en?'place unknown':'место не установлено',subtitle:'',center:[outsideX+18,0,0]});
+        out.push({id:'space:outside',variant:'side',strip:22,title:en?localeText('place unknown',locale):'место не установлено',subtitle:'',center:[outsideX+18,0,0]});
       }
       return out;
     },

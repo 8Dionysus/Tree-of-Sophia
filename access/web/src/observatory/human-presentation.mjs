@@ -1,3 +1,4 @@
+import {localeText,copyLocale,resolveLocale} from '../public-research/locale.mjs';
 import {ui,uiText,uiLanguage,t} from './ui-i18n.mjs';
 import {displayLanguageKey} from './display-language.mjs';
 
@@ -39,7 +40,7 @@ export function languageName(tag,locale=uiLanguage()){
   if(!tag)return '';
   const historical={grc:{ru:'древнегреческий',en:'Ancient Greek',es:'griego antiguo'},lat:{ru:'латынь',en:'Latin',es:'latín'}};
   const declared=historical[String(tag).toLowerCase()];
-  if(declared)return declared[locale]??declared.en;
+  if(declared)return declared[locale]??localeText(declared.en,locale);
   try{return new Intl.DisplayNames([locale],{type:'language',fallback:'none'}).of(tag)||t('Другой язык');}
   catch{return t('Другой язык');}
 }
@@ -48,7 +49,7 @@ export function sourceLinkLabel(ref,locale=uiLanguage()){
     const url=new URL(ref);if(!['https:','http:'].includes(url.protocol))return t('Источник');
     const host=url.hostname.replace(/^www\./,'');
     if(host==='archive.org')return 'Internet Archive';
-    if(host.endsWith('wikisource.org'))return locale==='ru'?'Викитека':'Wikisource';
+    if(host.endsWith('wikisource.org'))return locale==='ru'?'Викитека':localeText('Wikisource',locale);
     return host;
   }catch{return t('Источник');}
 }
@@ -67,7 +68,7 @@ const sources={philosophy:['Философия','Philosophy','Filosofía'],canon
 const profiles={overview:['Обзор','Overview','Resumen'],all:['Все связи','All relations','Todas las relaciones'],
   reading:['Чтение','Reading','Lectura'],semantic:['Смысловые связи','Meaning','Sentido'],
   evidence:['Основания','Evidence','Fundamentos'],provenance:['Происхождение','Provenance','Procedencia']};
-const local=(map,id,locale,fallback)=>map[id]?.[{ru:0,en:1,es:2}[locale]??0]||fallback;
+const local=(map,id,locale,fallback)=>{const values=map[id];return values?.[{ru:0,en:1,es:2}[resolveLocale(locale)]]||localeText(values?.[copyLocale(locale)==='ru'?0:1]||fallback,locale);};
 export const sourceLabel=(id,locale=uiLanguage())=>local(sources,id,locale,t('Другие источники'));
 export const profileLabel=(id,locale=uiLanguage())=>local(profiles,id,locale,t('Другие связи'));
 
@@ -181,13 +182,14 @@ const PUBLIC_WORK_NAMES = {
 };
 export function corpusWorkTitle(document, locale = 'ru') {
   const value = document?.title;
-  if (value && typeof value === 'object') return value[locale] ?? value.en ?? value.ru ?? '';
+  if (value && typeof value === 'object') return value[locale]??value.en??value.ru??'';
   const names = PUBLIC_WORK_NAMES[document?.id];
-  return names ? names[String(locale).startsWith('en') ? 1 : 0] : value ?? '';
+  return names ? localeText(names[(copyLocale(locale)==='en') ? 1 : 0],locale) : value ?? '';
 }
 export function corpusSectionLabel(value,locale='ru',versionId=''){
   if(typeof value!=='string'||typeof versionId!=='string'||!versionId.startsWith('retained-'))return value;
-  if(String(locale).startsWith('en'))return value.replace(/Книга\s+(\d+)/g,'Book $1').replace(/Глава\s+(\d+)/g,'Chapter $1').replace(/Раздел\s+(\d+)/g,'Section $1').replace(/(^|[\s·])Предисловие(?=$|[\s·:,.])/gu,'$1Prologue');
+  if(!['ru','en'].includes(resolveLocale(locale)))return value.replace(/(?:Книга|Book)\s+(\d+)/g,(_,n)=>localeText('Book {0}',locale,[n])).replace(/(?:Глава|Chapter)\s+(\d+)/g,(_,n)=>localeText('Chapter {0}',locale,[n])).replace(/(?:Раздел|Section)\s+(\d+)/g,(_,n)=>localeText('Section {0}',locale,[n])).replace(/(?:Предисловие|Prologue)/g,()=>localeText('Prologue',locale));
+  if((copyLocale(locale)==='en'))return value.replace(/Книга\s+(\d+)/g,'Book $1').replace(/Глава\s+(\d+)/g,'Chapter $1').replace(/Раздел\s+(\d+)/g,'Section $1').replace(/(^|[\s·])Предисловие(?=$|[\s·:,.])/gu,'$1Prologue');
   return value.replace(/^Notes on the work$/,'Примечания к произведению').replace(/^Textual adjustments$/,'Текстологические сведения').replace(/Book\s+(\d+)/g,'Книга $1').replace(/Chapter\s+(\d+)/g,'Глава $1').replace(/Section\s+(\d+)/g,'Раздел $1');
 }
 import retainedWorkNames from './retained-work-names.json' with {type:'json'};

@@ -1,3 +1,4 @@
+import {localeText,copyLocale} from './locale.mjs';
 import {referenceKey, validateReference} from '../corpus-reader/model.mjs';
 import {readableUnitLocator} from '../corpus-reader/location-label.mjs';
 import {corpusSectionLabel, corpusWorkTitle, languageName} from '../observatory/human-presentation.mjs';
@@ -93,8 +94,8 @@ export async function describeSourceReference(value, provider, locale = 'ru') {
 }
 
 async function describeResolvedSource(result, shelf, provider, locale) {
-  const english = String(locale).toLowerCase().startsWith('en');
-  const unavailable = english ? 'Source details unavailable' : 'Сведения об источнике недоступны';
+  const english = (copyLocale(locale)==='en');
+  const unavailable = english ? localeText('Source details unavailable',locale) : 'Сведения об источнике недоступны';
   const reference = result.reference;
   if (!reference) return {...result, label: unavailable};
   let document, version, unit;
@@ -112,13 +113,13 @@ async function describeResolvedSource(result, shelf, provider, locale) {
     try { shelfTitle = (await shelf.get(result.recordId))?.title || ''; } catch { /* optional presentation metadata */ }
   }
   const localized = value => typeof value === 'string' ? value : value?.[locale] ?? value?.[english ? 'en' : 'ru'] ?? value?.en ?? value?.ru ?? '';
-  const title = corpusWorkTitle(document, english ? 'en' : 'ru') || shelfTitle || unavailable;
-  const edition = [version?.language ? languageName(version.language, english ? 'en' : 'ru') : '',
+  const title = corpusWorkTitle(document, locale) || shelfTitle || unavailable;
+  const edition = [version?.language ? languageName(version.language, locale) : '',
     localized(version?.edition) || localized(version?.label)].filter(Boolean).join(' · ');
   const rawUnit = readableUnitLocator(unit, locale) || (Number.isSafeInteger(unit?.ordinal) ? String(unit.ordinal) : '');
   const place = rawUnit ? corpusSectionLabel(rawUnit, locale, reference.versionId) : '';
   const {start, end} = reference.selector || {};
   const range = Number.isSafeInteger(start) && Number.isSafeInteger(end) && end > start
-    ? `${start}–${end} ${english ? 'characters' : 'знаков'}` : '';
+    ? `${start}–${end} ${english ? localeText('characters',locale) : 'знаков'}` : '';
   return {...result, label: [title, edition, place, range].filter(Boolean).join(' · ')};
 }

@@ -1,3 +1,5 @@
+import {PUBLIC_LOCALES,LOCALE_NAMES,resolveLocale} from '../public-research/locale.mjs';
+import {localeText,copyLocale} from '../public-research/locale.mjs';
 import './reader.css';
 import {createNoteDraftJournal} from './note-draft.mjs';
 import {
@@ -27,7 +29,7 @@ const retainedApparatus=new Map(retained.books.flatMap(book=>book.versions.flatM
 ])));
 const apparatusLabel=(unit,locale)=>{const item=retainedApparatus.get(unit?.unitId??unit?.id),reference=unit?.reference;
   return item && reference?.versionId===item.versionId && reference?.target?.textLayerSha256===item.revision
-    ? WORDING[String(locale).startsWith('en')?'en':'ru'][item.key] : '';};
+    ? localeText(WORDING[copyLocale(locale)][item.key],locale) : '';};
 // Structural section IDs can include an earlier scholarly marker. Show the
 // range supplied by the retained navigation metadata without changing the
 // unit's identity or claiming an offset for an individual marker.
@@ -154,7 +156,7 @@ function quoteAttribution({document, version, unit, quote, locale}) {
   const locator = withMarkerRange(apparatusLabel(unit,locale) || corpusSectionLabel(readableUnitLocator(unit,locale),locale,version?.id) || localized(version?.locator || document?.locator, locale) || unit?.unitId || '',unit,version?.id);
   const source = safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
   const licenseUrl = safeExternalUrl(attr(version?.license?.url));
-  const license = licenseUrl ? `${localized(version?.license?.label, locale) || (String(locale).startsWith('en') ? 'License' : 'Лицензия')}: ${licenseUrl}` : '';
+  const license = licenseUrl ? `${localized(version?.license?.label, locale) || ((copyLocale(locale)==='en') ? localeText('License',locale) : 'Лицензия')}: ${licenseUrl}` : '';
   return [quote ? `«${quote}»` : '', [author,title,work && work !== title && work !== originalTitle ? work : ''].filter(Boolean).join(' · '), edition, locator, source, license].filter(Boolean).join('\n');
 }
 
@@ -172,9 +174,10 @@ export function mountCorpusReader({
   onReturnFocusFallback,
   onLocation,
   onNativeReference,
+  onUiLocaleChange,
 } = {}) {
   if (!host || typeof host.append !== 'function') throw new Error('reader-host-required');
-  const uiLocale = () => String(typeof locale === 'function' ? locale() : locale || 'ru').toLowerCase().startsWith('en') ? 'en' : 'ru';
+  const uiLocale = () => resolveLocale(locale);
   let root = element('section', 'corpus-reader');
   root.hidden = true;
   root.setAttribute('role', 'dialog');
@@ -221,7 +224,7 @@ export function mountCorpusReader({
   let notebookListGeneration = 0;
   const draftJournal = createNoteDraftJournal({notebook});
   const recovery = Promise.resolve().then(()=>draftJournal.recover()).then(recovered=>{
-    if(recovered)announce(uiLocale()==='en'?'An unfinished note was recovered as a separate note.':'Несохранённый черновик восстановлен отдельной заметкой.');
+    if(recovered)announce(copyLocale(uiLocale)==='en'?localeText('An unfinished note was recovered as a separate note.',locale):'Несохранённый черновик восстановлен отдельной заметкой.');
   }).catch(error=>announce(friendlyError(error)));
 
   const model = createCorpusReaderModel({
@@ -243,7 +246,7 @@ export function mountCorpusReader({
   });
   const notebookMetadataResolver = createNotebookMetadataResolver({readDocument: documentId => model.readDocumentMetadata(documentId)});
 
-  const t = key => WORDING[uiLocale()][key] || key;
+  const t = key => localeText(WORDING[copyLocale(uiLocale)][key] || key,uiLocale,[],key==='reading'?'corpus-reader':null);
   const modelState = () => renderSnapshot ?? model.snapshot();
   const activeDocument = () => modelState().document;
   const activeVersion = versionId => activeDocument()?.versions?.find(item => item.id === versionId) || null;
@@ -425,7 +428,7 @@ export function mountCorpusReader({
         if(!disposed){announce(notebookSaveLabel());updateFooter();}
         return true;
       } catch(error) {
-        if(!disposed){announce(error.code==='conflict' ? (uiLocale()==='en'?'This note changed in another window. Your draft is kept.':'Заметка изменилась в другом окне. Ваш черновик сохранён здесь.') : t('saveError'));updateFooter();}
+        if(!disposed){announce(error.code==='conflict' ? (copyLocale(uiLocale)==='en'?localeText('This note changed in another window. Your draft is kept.',locale):'Заметка изменилась в другом окне. Ваш черновик сохранён здесь.') : t('saveError'));updateFooter();}
         return false;
       }
     })();
@@ -628,7 +631,7 @@ export function mountCorpusReader({
     const difference=variants.variants.find(entry=>entry.versionId===version.id && entry.revision===version.revision && entry.unitId===reference.unitId
       && codePointSlice(item.text,entry.selector.start,entry.selector.end)===entry.digitalReading
       && (reference.selector.end===reference.selector.start || reference.selector.start<entry.selector.end && reference.selector.end>entry.selector.start));
-    if(difference)value+=`\n${uiLocale()==='en'?'Reviewed witness difference':'Проверенное различие свидетелей'}: “${difference.digitalReading}” / “${difference.printReading}” · ${difference.printWitness} · ${difference.printUrl}`;
+    if(difference)value+=`\n${copyLocale(uiLocale)==='en'?localeText('Reviewed witness difference',locale):'Проверенное различие свидетелей'}: “${difference.digitalReading}” / “${difference.printReading}” · ${difference.printWitness} · ${difference.printUrl}`;
     try { await navigator.clipboard.writeText(value); }
     catch {
       const fallback = element('textarea', 'cr-copy-fallback', value);
@@ -672,7 +675,14 @@ export function mountCorpusReader({
     if (author) title.append(element('p', '', author));
     const jump=button(t('jumpToText'),()=>root.querySelector('.cr-pane')?.focus({preventScroll:true}),'cr-jump-text');
     jump.disabled=!state.document;
-    header.append(menu, jump, title, button('×', () => close(), 'cr-close'));
+    header.append(menu, jump, title);
+    if(typeof onUiLocaleChange==='function'){
+      const select=element('select','cr-ui-locale');select.setAttribute('aria-label',localeText('Interface language',locale));
+      for(const language of PUBLIC_LOCALES){const option=element('option','',LOCALE_NAMES[language]);option.value=language;option.lang=language;select.append(option);}
+      select.value=uiLocale();select.dataset.focusKey='ui-language';
+      select.addEventListener('change',()=>onUiLocaleChange(select.value));header.append(select);
+    }
+    header.append(button('×', () => close(), 'cr-close'));
     header.querySelector('.cr-close').setAttribute('aria-label', t('close'));
     return header;
   }
@@ -683,7 +693,7 @@ export function mountCorpusReader({
     if (normalized === 'metadata_only' || normalized === 'metadata') return t('metadataOnly');
     if (['restricted', 'public_metadata_only', 'local_only'].includes(normalized)) return t('restricted');
     if (['unavailable', 'missing', 'expired', 'text_unavailable', 'withheld', 'unknown', 'pending', 'not_available', 'not_indexed', 'rights_unknown'].includes(normalized)) return t('unavailableVersion');
-    return status === 'available' ? (uiLocale() === 'en' ? 'Available' : 'Доступно') : t('availabilityUnknown');
+    return status === 'available' ? (copyLocale(uiLocale)==='en' ? localeText('Available',locale) : 'Доступно') : t('availabilityUnknown');
   }
 
   function countLabel(value) {
@@ -919,7 +929,7 @@ export function mountCorpusReader({
     const stored = state.document ? state.searches[stateKey(state.document.id, targetVersionId)] : null;
     if (stored?.query === searchQuery && stored?.scope === searchScope) searchResult = stored;
     const input = element('input', 'cr-search-input'); input.type = 'search'; input.placeholder = t('searchPlaceholder'); input.setAttribute('aria-label',t('searchPlaceholder'));input.value = searchQuery; input.maxLength = READER_LIMITS.query;
-    const scope = element('select', 'cr-search-scope');scope.setAttribute('aria-label',uiLocale()==='en'?'Search scope':'Область поиска');
+    const scope = element('select', 'cr-search-scope');scope.setAttribute('aria-label',copyLocale(uiLocale)==='en'?localeText('Search scope',locale):'Область поиска');
     let edition=null;
     if(visibleVersions.length>1){
       const label=element('label','cr-search-edition');label.append(element('span','',t('searchEdition')));
@@ -1051,10 +1061,10 @@ export function mountCorpusReader({
       && codePointSlice(unit.text,value.selector.start,value.selector.end)===value.digitalReading);
     if(difference){
       const notice=element('p','cr-textual-variant');
-      notice.append(document.createTextNode(uiLocale()==='en'
-        ? `Reviewed witness difference: this digital text reads “${difference.digitalReading}”; the printed edition reads “${difference.printReading}”. `
+      notice.append(document.createTextNode(copyLocale(uiLocale)==='en'
+        ? localeText("Reviewed witness difference: this digital text reads “{0}”; the printed edition reads “{1}”. ",locale,[difference.digitalReading,difference.printReading])
         : `Проверенное различие свидетелей: в цифровом тексте «${difference.digitalReading}», в печатном издании «${difference.printReading}». `));
-      const link=element('a','',uiLocale()==='en'?'Printed witness, p. 334':'Печатный свидетель, с. 334');
+      const link=element('a','',copyLocale(uiLocale)==='en'?localeText('Printed witness, p. 334',locale):'Печатный свидетель, с. 334');
       link.href=difference.printUrl;link.target='_blank';link.rel='noopener noreferrer';notice.append(link);row.insertBefore(notice,content);
     }
     return row;
@@ -1073,8 +1083,8 @@ export function mountCorpusReader({
     head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
-    if(hasEditorialProjection(version))head.append(element('p','cr-editorial-notice',uiLocale()==='en'
-      ?'Source markup is shown where matched; consult the edition for its complete apparatus.'
+    if(hasEditorialProjection(version))head.append(element('p','cr-editorial-notice',copyLocale(uiLocale)==='en'
+      ?localeText('Source markup is shown where matched; consult the edition for its complete apparatus.',locale)
       :'Пометы источника показаны там, где их удалось сопоставить; полный аппарат проверяйте в издании.'));
     const page=state.windows[stateKey(state.document.id,version.id)];pane.dataset.windowStart=page?.units?.[0]?.id||'';
     const selectedHere = selected?.versionId === version.id ? selected.unit : null;
@@ -1170,7 +1180,7 @@ export function mountCorpusReader({
     const full=selected.unit?quotationWithEditorialRoles(activeVersion(selected.versionId),selected.unit,selected.reference.selector,uiLocale()):rawQuote;
     const quote=full?.slice(0,READER_LIMITS.quote);
     if(quote){const excerpt=element('blockquote','cr-quote',quote);excerpt.dataset.reference=JSON.stringify(selected.reference);body.append(excerpt);
-      if(full.length>quote.length)body.append(element('p','cr-muted',uiLocale()==='en'?'Preview shortened; Copy quotation includes the full selection.':'Предпросмотр сокращён; кнопка копирует выделенный фрагмент целиком.'));
+      if(full.length>quote.length)body.append(element('p','cr-muted',copyLocale(uiLocale)==='en'?localeText('Preview shortened; Copy quotation includes the full selection.',locale):'Предпросмотр сокращён; кнопка копирует выделенный фрагмент целиком.'));
     }
     const tools = element('div', 'cr-note-tools');
     const isBookmarked = notebookItems().bookmarks.some(item => sameNoteReference(item, selected.reference));
@@ -1203,7 +1213,7 @@ export function mountCorpusReader({
     }), button(t('delete'), async () => {
       if (!(await flushNote())) return;
       selectedRecord();
-      try{if(selected.noteId)await model.deleteNote(selected.reference,{id:selected.noteId,revision:selected.noteRevision});}catch(error){announce(error.code==='conflict'?(uiLocale()==='en'?'This note changed in another window.':'Заметка изменилась в другом окне.'):t('saveError'));return;}
+      try{if(selected.noteId)await model.deleteNote(selected.reference,{id:selected.noteId,revision:selected.noteRevision});}catch(error){announce(error.code==='conflict'?(copyLocale(uiLocale)==='en'?localeText('This note changed in another window.',locale):'Заметка изменилась в другом окне.'):t('saveError'));return;}
       selected = {...selected, noteId:null, noteRevision:undefined, quote: ''};
       announce(notebookSaveLabel());
       renderInspector();
@@ -1254,7 +1264,7 @@ export function mountCorpusReader({
     }
     if(model.notebookPage){
       if(page.nextCursor)details.append(button(t('loadMore'),async()=>{if(!(await flushNote()))return;try{await model.notebookPage({cursor:page.nextCursor});renderInspector();}catch{announce(t('error'));}},'cr-more'));
-      if(page.cursor)details.append(button(uiLocale()==='en'?'First notes':'К первым записям',async()=>{if(!(await flushNote()))return;await model.notebookPage();renderInspector();},'cr-more'));
+      if(page.cursor)details.append(button(copyLocale(uiLocale)==='en'?localeText('First notes',locale):'К первым записям',async()=>{if(!(await flushNote()))return;await model.notebookPage();renderInspector();},'cr-more'));
     }
     body.append(details);
   }
@@ -1286,7 +1296,7 @@ export function mountCorpusReader({
     const file = element('input', 'cr-import-file'); file.type = 'file'; file.accept = '.json,application/json'; file.hidden = true;
     file.addEventListener('change', async () => {
       const picked = file.files?.[0]; if (!picked) return;
-      if(picked.size>32*1024*1024){announce(uiLocale()==='en'?'The import file exceeds 32 MiB.':'Файл импорта превышает 32 МиБ.');return;}
+      if(picked.size>32*1024*1024){announce(copyLocale(uiLocale)==='en'?localeText('The import file exceeds 32 MiB.',locale):'Файл импорта превышает 32 МиБ.');return;}
       if(!(await flushNote()))return;
       try {
         await model.importNotebook(await picked.text());
@@ -1308,8 +1318,8 @@ export function mountCorpusReader({
       if (sourceUrl) { const link = element('a', '', sourceLinkLabel(sourceUrl, uiLocale())); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
       const licenseUrl = safeExternalUrl(attr(version.license?.url));
       if (licenseUrl) {
-        const notice = element('p', '', uiLocale() === 'en' ? 'Source text projection · ' : 'Текстовая проекция источника · ');
-        const link = element('a', '', localized(version.license?.label, uiLocale()) || (uiLocale() === 'en' ? 'License' : 'Лицензия'));
+        const notice = element('p', '', copyLocale(uiLocale)==='en' ? localeText('Source text projection · ',locale) : 'Текстовая проекция источника · ');
+        const link = element('a', '', localized(version.license?.label, uiLocale()) || (copyLocale(uiLocale)==='en' ? localeText('License',locale) : 'Лицензия'));
         link.href = licenseUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; notice.append(link); section.append(notice);
       }
       body.append(section);
@@ -1349,7 +1359,7 @@ export function mountCorpusReader({
   function renderSettings() {
     const data = model.notebookState(); const preferences = data.preferences || {};
     const settings = element('section', 'cr-settings');
-    const adjust = (label, values, key) => { const row = element('div', 'cr-setting'); row.append(element('span', '', label)); for (const value of values) { const labelValue=({comfortable:uiLocale()==='en'?'Comfortable':'Обычная',wide:uiLocale()==='en'?'Wide':'Широкая',night:t('night'),paper:t('paper')})[value]||String(value);const b = button(labelValue, () => { model.setPreferences({[key]: value}); render(); }, 'cr-setting-button'); b.dataset.focusKey=`setting:${key}:${value}`;b.setAttribute('aria-pressed', String(preferences[key] === value)); row.append(b); } settings.append(row); };
+    const adjust = (label, values, key) => { const row = element('div', 'cr-setting'); row.append(element('span', '', label)); for (const value of values) { const labelValue=({comfortable:copyLocale(uiLocale)==='en'?localeText('Comfortable',locale):'Обычная',wide:copyLocale(uiLocale)==='en'?localeText('Wide',locale):'Широкая',night:t('night'),paper:t('paper')})[value]||String(value);const b = button(labelValue, () => { model.setPreferences({[key]: value}); render(); }, 'cr-setting-button'); b.dataset.focusKey=`setting:${key}:${value}`;b.setAttribute('aria-pressed', String(preferences[key] === value)); row.append(b); } settings.append(row); };
     adjust(t('font'), [16, 18, 20, 22], 'fontSize'); adjust(t('leading'), [1.6, 1.9, 2.2], 'lineHeight'); adjust(t('width'), ['comfortable', 'wide'], 'width'); adjust(t('theme'), ['night', 'paper'], 'theme'); return settings;
   }
 
@@ -1408,7 +1418,7 @@ export function mountCorpusReader({
       const disconnected=error?.code==='provider_unavailable';
       if(disconnected)empty.append(element('h2','',t('library')),element('p','',message));
       else if(error)empty.append(element('p','',message));
-      if(error&&error.code!=='provider_unavailable')empty.append(button(uiLocale()==='en'?'Retry':'Повторить',()=>loadInitial()));
+      if(error&&error.code!=='provider_unavailable')empty.append(button(copyLocale(uiLocale)==='en'?localeText('Retry',locale):'Повторить',()=>loadInitial()));
       // An empty first page can still carry an opaque continuation. Keep the
       // library visible so the user can advance one bounded page explicitly.
       if(!disconnected)empty.append(renderLibrary(state));

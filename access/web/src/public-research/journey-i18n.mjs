@@ -1,3 +1,5 @@
+import {copyLocale} from './locale.mjs';
+import {resolveLocale,localeText} from './locale.mjs';
 // Presentation translations of the authored reading questions, not new corpus text.
 const EN = {
 'journey-ae0b964348fe453da9bd3ca43e2df960': {
@@ -40,11 +42,12 @@ const EN = {
 
 export function localizePublicJourney(journey, locale) {
   if (!journey || typeof journey !== 'object') return journey;
-  const translated = String(locale || 'ru').toLowerCase().startsWith('en') && EN[journey.id];
+  const translated = (copyLocale(locale || 'ru')==='en') && EN[journey.id];
   if (!translated) return {...journey, steps: journey.steps?.map(step => ({...step}))};
   const {steps, ...fields} = translated;
+  for(const key of Object.keys(fields))fields[key]=localeText(fields[key],locale);
   return {...journey, ...fields, steps: journey.steps?.map(step => {
     const entry = steps[step.id];
-    return entry ? {...step, title: entry[0], voice: entry[1], prompt: entry[2]} : {...step};
+    return entry ? {...step, title: localeText(entry[0],locale), voice: localeText(entry[1],locale), prompt: localeText(entry[2],locale)} : {...step};
   })};
 }
