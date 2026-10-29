@@ -89,3 +89,28 @@ export function routeStars(steps=[],{graphIdOf=id=>id,shown=new Set()}={}){
   for(const step of steps){const raw=step?.nodeId??step?.graphNodeId;if(!raw)continue;const id=graphIdOf(raw);if(shown.has(id)&&!out.includes(id))out.push(id);}
   return out;
 }
+
+/**
+ * A route's view with the reader's own records about it: a record linked to a star of the route joins the
+ * route with that link, and so does what the record links on to - the reading it was set beside, or another
+ * record. The route's own stars and links stay as they were; nothing outside the reader's records is added.
+ */
+export function routeWithRecords(path,{nodes=[],edges=[]}={}){
+  if(!path)return path;
+  const personal=new Set(nodes.filter(node=>node.ownerType==='personal-hypothesis').map(node=>node.id));
+  const ids=new Set(path.nodeIds??[]),edgeIds=new Set(path.edgeIds??[]);
+  const own=edges.filter(edge=>edge.ownerType==='personal-hypothesis');
+  // First the records that touch the route, then what those records link to.
+  const joined=new Set();
+  for(const edge of own){
+    const record=personal.has(edge.from)&&ids.has(edge.to)?edge.from:personal.has(edge.to)&&ids.has(edge.from)?edge.to:null;
+    if(record){joined.add(record);edgeIds.add(edge.id);}
+  }
+  for(const edge of own){
+    const other=joined.has(edge.from)?edge.to:joined.has(edge.to)?edge.from:null;
+    if(other){ids.add(other);edgeIds.add(edge.id);}
+  }
+  for(const record of joined)ids.add(record);
+  if(ids.size===(path.nodeIds??[]).length&&edgeIds.size===(path.edgeIds??[]).length)return path;
+  return {...path,nodeIds:[...ids],edgeIds:[...edgeIds]};
+}

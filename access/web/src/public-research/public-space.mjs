@@ -20,7 +20,7 @@ import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mj
 import {depthLayout} from './space-depth.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
-import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,threadsIntoDark} from './space-play.mjs';
+import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark} from './space-play.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -539,7 +539,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A trace's lines exist only in the view that draws them.
     traceLinks.clear();
     const current=graphState();
-    const measuredView=measuredLens(lens),routePath=interaction||!compareBar.hidden?null:route?.path??null;
+    // A route keeps showing the reader's own records about its stars, including one just written on a step.
+    const measuredView=measuredLens(lens),routePath=interaction||!compareBar.hidden?null:routeWithRecords(route?.path??null,current);
     const projected=makeLensView(current,library,{lens:measuredView?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
     const clusterNames=profile==='antiquity'?{routes:{title:{ru:'Ветви',en:'Branches'},subtitle:{ru:'Вопросы, с которых начинается исследование',en:'Questions where an inquiry begins'}}}:{};
     projected.clusters=(projected.clusters??[]).map(cluster=>({...cluster,title:tr(clusterNames[cluster.id]?.title??cluster.title,locale()),subtitle:tr(clusterNames[cluster.id]?.subtitle??cluster.subtitle,locale())}));

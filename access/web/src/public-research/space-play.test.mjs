@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,threadsIntoDark} from './space-play.mjs';
+import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark} from './space-play.mjs';
 
 const rungs={q:'reading',r1:'reading',r2:'reading',c1:'comparison',s1:'source',s2:'source',p:'personal'};
 const rungOf=id=>rungs[id]??null;
@@ -47,5 +47,27 @@ describe('a route lights its way',()=>{
   it('names the stars of its steps the space shows, in order, each once',()=>{
     const steps=[{nodeId:'x'},{nodeId:'y'},{graphNodeId:'z'},{nodeId:'x'},{}];
     expect(routeStars(steps,{graphIdOf:id=>`material:${id}`,shown:new Set(['material:x','material:z'])})).toEqual(['material:x','material:z']);
+  });
+});
+
+describe('a route with the reader\'s records',()=>{
+  const path={nodeIds:['a','b'],edgeIds:['ab'],restrictEdges:true};
+  const nodes=[{id:'a'},{id:'b'},{id:'r'},{id:'x'},{id:'me',ownerType:'personal-hypothesis'},{id:'far',ownerType:'personal-hypothesis'}];
+  const edges=[
+    {id:'ab',from:'a',to:'b'},
+    {id:'personal-edge:me',from:'me',to:'b',ownerType:'personal-hypothesis'},
+    {id:'personal-near:me',from:'me',to:'r',ownerType:'personal-hypothesis'},
+    {id:'personal-edge:far',from:'far',to:'x',ownerType:'personal-hypothesis'},
+    {id:'rx',from:'r',to:'x'},
+  ];
+  it('joins a record written on a step, with its link and the reading it stands beside',()=>{
+    const view=routeWithRecords(path,{nodes,edges});
+    expect(view.nodeIds).toEqual(['a','b','r','me']);
+    expect(view.edgeIds).toEqual(['ab','personal-edge:me','personal-near:me']);
+    expect(view.restrictEdges).toBe(true);
+  });
+  it('leaves the route as it is without records about it',()=>{
+    expect(routeWithRecords(path,{nodes,edges:edges.filter(edge=>!edge.id.endsWith(':me'))})).toBe(path);
+    expect(routeWithRecords(null,{nodes,edges})).toBe(null);
   });
 });
