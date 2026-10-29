@@ -4,7 +4,8 @@
 // life (`biographical-phase`) or a process such as writing a work
 // (`historical-process`). Its key is the Tree identity the bonsai proposes for
 // it. A relative dating ("during") resolves through its anchor to the anchor's
-// own span; a missing anchor or a cycle gives no span rather than a guess.
+// own span, no firmer than that span; a missing anchor or a cycle gives no
+// span rather than a guess.
 
 import {dateIssues,dateSpan,TREE_ID} from './time.mjs';
 

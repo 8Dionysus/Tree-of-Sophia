@@ -18,8 +18,8 @@
     "tree_revision": "960f3e41936caea5b78ef6a353db14e80a71875b",
     "grafted": "2026-10-29",
     "note": {
-      "ru": "Ревизия Древа и дайджесты контрактов, по которым бонсай сложен. Изменение контракта сообщается как сдвиг; экспорт проверяется по контрактам текущей рабочей копии.",
-      "en": "The Tree revision and contract digests the bonsai was shaped by. A changed contract is reported as drift; the export is checked against the contracts of the current checkout."
+      "ru": "Ревизия Древа и дайджесты контрактов и реестров, по которым бонсай сложен. Изменение контракта или реестра сообщается как сдвиг; экспорт проверяется по контрактам и реестру связей текущей рабочей копии.",
+      "en": "The Tree revision and the digests of the contracts and registries the bonsai was shaped by. A changed contract or registry is reported as drift; the export is checked against the contracts and the relation registry of the current checkout."
     },
     "contracts": {
       "historicalDate": {
@@ -58,6 +58,14 @@
         "path": "ToS/contracts/corpus-record.schema.json",
         "schema_version": "tos_corpus_record_v1",
         "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851"
+      },
+      "relation_types": {
+        "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "sha256": "1df99dfdabb4e4f41564b0e8430124aa9c36c120781bf5f5db8e63f57d3421bb"
+      },
+      "entity_types": {
+        "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "sha256": "3bb7f36d51201a576239fef2281c7a5ecb6c5f71fb048d65037d2d83cde8b847"
       }
     }
   },

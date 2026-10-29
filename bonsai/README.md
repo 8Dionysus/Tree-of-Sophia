@@ -22,8 +22,9 @@ holds and never write to it.
 Each `bonsai/<stand>/bonsai.json` is a manifest (`tos.bonsai.v1`): the stand
 it serves, its posture, its graft, its modules and its lenses.
 
-- **Graft.** The Tree revision and the digests of the Tree contracts the bonsai
-  was shaped by. A changed contract is drift to review, not a silent change.
+- **Graft.** The Tree revision and the digests of the Tree contracts and
+  registries the bonsai was shaped by. A changed contract or registry is drift
+  to review, not a silent change.
 - **Modules.** Each names its file, role and format. A module may be
   `borrowed` from another owner; the manifest then names the files it rests on.
 - **Lenses.** Each lens of the stand says whether a star's position on it
@@ -49,7 +50,8 @@ for the situation, and each carries exactly one dating — a value of the Tree's
 
 "Within the author's life" is therefore not a display fallback: it is a stated
 dating, `relative-order` `during` the author's lifetime phase, whose own
-interval comes from a named source; the stand shows it as such. A source that dates a
+interval comes from a named source; the stand shows it as such, and no firmer
+than that interval. A source that dates a
 person only by activity ("flourished in the 3rd century") gives a phase of
 activity, not a lifetime; a corpus of many hands has no life at all. Years are
 astronomical (1 BCE = 0, 2 BCE = −1), as the Tree requires of comparable
@@ -89,19 +91,23 @@ node bonsai/lib/cli.mjs export antiquity --out antiquity.export.json
 ```
 
 `check` validates each module and checks the bonsai's export against the Tree
-contracts in the current checkout (`ToS/contracts/`), then reports drift since
-the graft: changed contracts, and — where `ToS/source-witnesses/` is checked
-out — identities the bonsai calls resolved that the Tree no longer holds, or
-proposes to mint that the Tree now has. It fails only on a broken module or an
-export the Tree's contracts refuse.
+contracts in the current checkout (`ToS/contracts/`) and against the Tree's
+relation registry (`ToS/doctrine/semantic-interchange/`): each claim's
+predicate must take the claim's schema and assertion layer, and the kinds of
+its subject and object must fall within the predicate's domain and range. It
+then reports drift since the graft: changed contracts and registries, and —
+where `ToS/source-witnesses/` is checked out — identities the bonsai calls
+resolved that the Tree no longer holds, or proposes to mint that the Tree now
+has. It fails only on a broken module or an export the Tree refuses.
 
 `export` writes a packet (`tos.bonsai.export.v1`) and never writes into
-`ToS/`: provisional identity records for historical processes and places,
-datings as `tos_source_temporal_claim_v1`, the work and place of a process as
-`tos_source_relation_claim_v1`, the person of a life phase as
-`tos_historical_context_claim_v1`, and the list of every identity they refer
-to with its graft status. Every claim is `unreviewed` and
-`public_metadata_only`. Taking a candidate into the Tree is the Tree's own
+`ToS/`: provisional identity records for historical processes, events and
+places, datings as `tos_source_temporal_claim_v1`, the work of a process as
+`tos_source_relation_claim_v1`, the place of a situation and the person of a
+life phase as `tos_historical_context_claim_v1` with their basis, scope and
+time scope, and the list of every identity they refer to with its graft
+status; phases, agents and works to mint are listed there, not recorded. Every
+claim is `unreviewed` and `public_metadata_only`. Taking a candidate into the Tree is the Tree's own
 [declared source-claim creation](../mechanics/growth-cycle/parts/branch-growth-cycle/README.md#declared-source-claim-creation),
 with its delegation, evidence and review.
 

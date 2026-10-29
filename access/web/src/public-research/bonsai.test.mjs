@@ -1,14 +1,15 @@
-import {readFileSync,readdirSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
 import {centuryOf,centuryStart,dateIssues,dateSpan,formatDating,formatYears as formatYearsNb,lexemeBounds,lexemeParts,yearLexeme} from '../../../../bonsai/lib/time.mjs';
 import {chronologyIssues,readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {placesIssues,readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {createValidator} from '../../../../bonsai/lib/schema.mjs';
-import {bonsaiIds,checkBonsai,loadBonsai,treeContracts} from '../../../../bonsai/lib/graft.mjs';
+import {bonsaiIds,checkBonsai,loadBonsai,treeContracts,treeRelations} from '../../../../bonsai/lib/graft.mjs';
 import {bonsaiFor} from './bonsai.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
-const contracts=treeContracts(root);
+const contracts=treeContracts(root),relations=treeRelations(root);
 // Words join numbers with no-break spaces; the tests read them as plain spaces.
 const plain=text=>text.replaceAll('\u00a0',' ');
 const formatYears=(...args)=>plain(formatYearsNb(...args));
@@ -51,7 +52,23 @@ describe('the Tree date grammar',()=>{
     expect(say({kind:'interval-assertion',certainty:'exact',interval:{end:'1962'}},'ru')).toBe('до 1962');
     expect(say({kind:'interval-assertion',certainty:'exact',interval:{start:'1941-02'}},'ru')).toBe('с февраля 1941');
     expect(say({kind:'interval-assertion',certainty:'exact',interval:{end:'1962'}},'en')).toBe('by 1962');
+    // An open bound is as firm as its dating.
+    expect(say({kind:'interval-assertion',certainty:'approximate',interval:{start:'1663'}},'ru')).toBe('примерно с 1663');
+    expect(say({kind:'interval-assertion',certainty:'approximate',interval:{start:'1663'}},'en')).toBe('from c. 1663');
+    expect(say({kind:'interval-assertion',certainty:'approximate',interval:{end:'1962-03'}},'ru')).toBe('примерно до марта 1962');
+    expect(say({kind:'interval-assertion',certainty:'uncertain',interval:{end:'1962'}},'en')).toBe('by 1962 (?)');
+    // Days within one month say the month once; bounds of unlike precision are said in full.
+    expect(say({kind:'interval-assertion',certainty:'exact',interval:{start:'1883-07-01',end:'1883-07-15'}},'ru')).toBe('1–15 июля 1883');
+    expect(say({kind:'interval-assertion',certainty:'exact',interval:{start:'1883-07-01',end:'1883-07-15'}},'en')).toBe('1–15 July 1883');
+    expect(say({kind:'interval-assertion',certainty:'approximate',interval:{start:'1883-07-01',end:'1883-08-03'}},'ru')).toBe('ок. 1 июля – 3 августа 1883');
+    expect(say({kind:'interval-assertion',certainty:'exact',interval:{start:'1883-07',end:'1883-07-15'}},'en')).toBe('July 1883 – 15 July 1883');
+    expect(say({kind:'interval-assertion',certainty:'exact',interval:{start:'-0043-03',end:'-0043-04'}},'ru')).toBe('март–апрель 44 до н. э.');
     expect(say({kind:'relative-order',year_numbering:null,certainty:'approximate',relative:{relation:'during',anchor_ref:'tos.biographical-phase.a.lifetime'}},'ru',{span:{first:-386,last:-379}})).toBe('ок. 387–380 до н. э.');
+    // A dating within a span is no firmer than that span.
+    const within={kind:'relative-order',year_numbering:null,certainty:'exact',relative:{relation:'during',anchor_ref:'tos.biographical-phase.a.lifetime'}};
+    expect(say(within,'ru',{span:{first:-428,last:-347,certainty:'approximate'}})).toBe('ок. 429–348 до н. э.');
+    expect(say(within,'en',{span:{first:234,last:305,certainty:'uncertain'}})).toBe('234–305 CE (?)');
+    expect(say(within,'en',{span:{first:121,last:180,certainty:'exact'}})).toBe('121–180 CE');
     expect(say({kind:'unknown-date',certainty:'unknown'},'ru')).toBe('');
   });
   it('agrees with the Tree contract on what a dating may be',()=>{
@@ -72,6 +89,9 @@ describe('the Tree date grammar',()=>{
       if(sample.value==='44 BCE')expect(own).toBe(false);else expect(own,JSON.stringify(sample)).toBe(tree);
     }
     expect(dateIssues({...base,kind:'interval-assertion',certainty:'exact',interval:{start:'-0300',end:'-0400'}})).toContain('interval: start after end');
+    // A start within the end's own month or year is in order; one after the end is over is not.
+    expect(dateIssues({...base,kind:'interval-assertion',certainty:'exact',interval:{start:'1883-07-15',end:'1883-07'}})).toEqual([]);
+    expect(dateIssues({...base,kind:'interval-assertion',certainty:'exact',interval:{start:'1883-08',end:'1883-07'}})).toContain('interval: start after end');
   });
   it('resolves a dating "during" another situation to that situation\'s span, never through a cycle',()=>{
     const date=(kind,extra)=>({kind,role:'historical-time',calendar:null,year_numbering:kind==='relative-order'?null:'astronomical',certainty:'approximate',source_wording:{text:'x',language:'en'},...extra});
@@ -83,10 +103,29 @@ describe('the Tree date grammar',()=>{
       'tos.historical-process.a.z-composition':{dating:date('relative-order',{relative:{relation:'before',anchor_ref:'tos.biographical-phase.a.lifetime'}})},
     }};
     const reader=readChronology(module);
-    expect(reader.span('tos.historical-process.a.w-composition')).toMatchObject({from:-427,to:-345,first:-427,last:-346,relation:'during',anchor:'tos.biographical-phase.a.lifetime'});
+    expect(reader.span('tos.historical-process.a.w-composition')).toMatchObject({from:-427,to:-345,first:-427,last:-346,relation:'during',anchor:'tos.biographical-phase.a.lifetime',certainty:'approximate'});
+    // Certain to fall within an approximate life is still approximate; the dating's own certainty is kept beside it.
+    const firm=readChronology({...module,situations:{...module.situations,'tos.historical-process.a.v-composition':{dating:{...date('relative-order',{relative:{relation:'during',anchor_ref:'tos.biographical-phase.a.lifetime'}}),certainty:'exact'}}}});
+    expect(firm.span('tos.historical-process.a.v-composition')).toMatchObject({certainty:'approximate',ownCertainty:'exact'});
     expect(reader.span('tos.historical-process.a.x-composition')).toBeNull();
     expect(reader.span('tos.historical-process.a.z-composition')).toBeNull();
     expect(dateSpan(date('unknown-date',{certainty:'unknown'}))).toBeNull();
+  });
+});
+
+describe('the Tree relation registry the export is checked against',()=>{
+  it('refuses a claim in another schema, layer, domain or range than its predicate takes',()=>{
+    const kinds={'tos.historical-process.a.w-composition':'historical-process','tos.place.athens':'place','tos.agent.a':'agent','tos.work.a.w':'work'},kindOf=ref=>kinds[ref];
+    const claim={schema_version:'tos_historical_context_claim_v1',assertion_layer:'scholarly_report',subject_ref:'tos.historical-process.a.w-composition',predicate:'historical_place',object:'tos.place.athens'};
+    expect(relations.issues(claim,kindOf)).toEqual([]);
+    expect(relations.issues({...claim,schema_version:'tos_source_relation_claim_v1'},kindOf).join(' ')).toMatch(/takes tos_historical_context_claim_v1/);
+    expect(relations.issues({...claim,assertion_layer:'canon_judgment'},kindOf).join(' ')).toMatch(/layer/);
+    expect(relations.issues({...claim,subject_ref:'tos.agent.a'},kindOf).join(' ')).toMatch(/domain/);
+    expect(relations.issues({...claim,object:'tos.work.a.w'},kindOf).join(' ')).toMatch(/range/);
+    expect(relations.issues({...claim,object:'tos.place.unlisted'},kindOf).join(' ')).toMatch(/unlisted identity/);
+    expect(relations.issues({...claim,predicate:'no_such_predicate'},kindOf).join(' ')).toMatch(/not in the Tree's relation registry/);
+    // A dating names no identity as its object: only its subject is checked against the domain.
+    expect(relations.issues({schema_version:'tos_source_temporal_claim_v1',assertion_layer:'scholarly_report',subject_ref:'tos.historical-process.a.w-composition',predicate:'historical_dating',object:{kind:'unknown-date'}},kindOf)).toEqual([]);
   });
 });
 
@@ -116,7 +155,7 @@ describe('every bonsai',()=>{
     for(const id of ids)expect(bonsaiFor(id)?.manifest?.id).toBe(id);
   });
   for(const id of ids)it(`${id}: its modules keep their contracts and its export fits the Tree's contracts`,()=>{
-    const result=checkBonsai(root,id,{validator:contracts});
+    const result=checkBonsai(root,id,{validator:contracts,relations});
     expect(result.problems).toEqual([]);
     expect(result.packet.claims.length).toBeGreaterThan(0);
     for(const claim of result.packet.claims){expect(claim.review_status).toBe('unreviewed');expect(claim.visibility).toBe('public_metadata_only');}
@@ -124,12 +163,27 @@ describe('every bonsai',()=>{
     const listed=new Set(result.packet.identities.map(item=>item.tree));
     for(const claim of result.packet.claims){expect(listed.has(claim.subject_ref),claim.claim_id).toBe(true);if(typeof claim.object==='string')expect(listed.has(claim.object),claim.claim_id).toBe(true);}
   });
-  it('records the digest of every Tree contract it was grafted from',()=>{
+  it('records the digest of every Tree contract and registry it was grafted from',()=>{
     for(const id of ids){
       const {manifest}=loadBonsai(root,id);
       expect(manifest.graft.tree_revision).toMatch(/^[0-9a-f]{40}$/);
-      for(const [name,entry] of Object.entries(manifest.graft.contracts)){expect(readdirSync(new URL('../../../../ToS/contracts/',import.meta.url)),name).toContain(entry.path.split('/').at(-1));expect(entry.sha256,name).toMatch(/^[0-9a-f]{64}$/);}
+      const paths=Object.values(manifest.graft.contracts).map(entry=>entry.path);
+      for(const path of ['ToS/contracts/historical-context-claim.schema.json','ToS/doctrine/semantic-interchange/relation-types.v1.json','ToS/doctrine/semantic-interchange/entity-types.v1.json'])expect(paths,id).toContain(path);
+      for(const [name,entry] of Object.entries(manifest.graft.contracts)){expect(existsSync(join(root,entry.path)),name).toBe(true);expect(entry.sha256,name).toMatch(/^[0-9a-f]{64}$/);}
     }
+  });
+  it('exports each predicate in the claim schema the Tree registry gives it, events and processes with their records',()=>{
+    for(const id of ids){
+      const {packet}=checkBonsai(root,id,{validator:contracts,relations});
+      const schemaOf=predicate=>[...new Set(packet.claims.filter(claim=>claim.predicate===predicate).map(claim=>claim.schema_version))];
+      expect(schemaOf('historical_place'),id).toEqual(['tos_historical_context_claim_v1']);
+      expect(schemaOf('historical_dating'),id).toEqual(['tos_source_temporal_claim_v1']);
+      for(const claim of packet.claims.filter(claim=>claim.schema_version==='tos_historical_context_claim_v1'))expect(claim.qualifiers.time_scope_note,claim.claim_id).toMatch(/\S/);
+      const recorded=new Set(packet.records.map(record=>record.record_id));
+      for(const item of packet.identities)if(item.type==='historical-process'||item.type==='historical-event')expect(recorded.has(item.tree),item.tree).toBe(true);
+    }
+    const {packet}=checkBonsai(root,'zarathustra',{validator:contracts,relations});
+    expect(packet.records.find(record=>record.record_id==='tos.historical-event.friedrich-nietzsche.recurrence-thought')).toMatchObject({schema_version:'tos_historical_record_v1',record_type:'historical-event'});
   });
   it('marks every lens of its stand as a measure or a grouping, and says what',()=>{
     for(const id of ids){

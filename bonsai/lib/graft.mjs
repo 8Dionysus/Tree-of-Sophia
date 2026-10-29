@@ -1,11 +1,11 @@
 // How a bonsai stands to the Tree it was grafted from (Node only).
 //
 // The Tree grows on its own. A bonsai records the Tree revision and the
-// digests of the Tree contracts it was shaped by; this module reads a bonsai
-// from disk, checks it and its export against the contracts in the current
-// checkout, and reports what has moved since the graft: changed contracts,
-// identities the bonsai calls resolved that the Tree no longer has, and
-// identities it would mint that the Tree now holds.
+// digests of the Tree contracts and registries it was shaped by; this module
+// reads a bonsai from disk, checks it and its export against the contracts and
+// the relation registry in the current checkout, and reports what has moved
+// since the graft: changed contracts, identities the bonsai calls resolved that
+// the Tree no longer has, and identities it would mint that the Tree now holds.
 
 import {createHash} from 'node:crypto';
 import {existsSync,readFileSync,readdirSync,statSync} from 'node:fs';
@@ -38,6 +38,36 @@ export function treeContracts(root){
   return createValidator(readdirSync(dir).filter(name=>name.endsWith('.schema.json')).map(name=>json(join(dir,name))));
 }
 
+/**
+ * The Tree's relation registry in this checkout, read as a check on exported
+ * claims: the relation a claim's predicate maps to must take the claim's
+ * schema and assertion layer, and the kinds of the identities it names must
+ * fall within its domain and range (through the entity registry's parents).
+ */
+export function treeRelations(root){
+  const dir=join(root,'ToS','doctrine','semantic-interchange');
+  const relations=json(join(dir,'relation-types.v1.json')).relations??[],types=json(join(dir,'entity-types.v1.json')).types??[];
+  const parents=new Map(types.map(type=>[type.type_id,type.parent_type_ids??[]])),kinds=new Map(),byPredicate=new Map();
+  for(const type of types)for(const mapping of type.source_mappings??[])if(mapping.source_graph==='source-claims')kinds.set(mapping.source_kind_id,type.type_id);
+  for(const relation of relations)for(const mapping of relation.source_mappings??[])if(mapping.source_graph==='source-claims'&&mapping.scope==='claim-predicate')byPredicate.set(mapping.source_predicate_id,relation);
+  const lineage=typeId=>{const seen=new Set(),stack=[typeId];while(stack.length){const id=stack.pop();if(id&&!seen.has(id)){seen.add(id);stack.push(...(parents.get(id)??[]));}}return seen;};
+  const within=(kind,allowed)=>{const typeId=kinds.get(kind);if(!typeId)return false;const line=lineage(typeId);return (allowed??[]).some(id=>line.has(id));};
+  return {
+    /** Where a claim departs from the registry; `kindOf` gives the kind of an identity the export lists. */
+    issues(claim,kindOf){
+      const relation=byPredicate.get(claim?.predicate);if(!relation)return [`predicate ${claim?.predicate} is not in the Tree's relation registry`];
+      const profile=relation.source_claim_profile;if(!profile)return [`predicate ${claim.predicate} takes no source claims`];
+      const issues=[],schemas=(profile.schemas??[]).map(entry=>entry.schema_version);
+      if(!schemas.includes(claim.schema_version))issues.push(`${claim.predicate} takes ${schemas.join(' or ')}, not ${claim.schema_version}`);
+      if(!(profile.assertion_layers??[]).includes(claim.assertion_layer))issues.push(`${claim.predicate} takes the layer ${(profile.assertion_layers??[]).join(' or ')}, not ${claim.assertion_layer}`);
+      const subject=kindOf(claim.subject_ref);
+      if(!within(subject,relation.domain_type_ids))issues.push(`a ${subject??'unlisted identity'} is outside the domain of ${claim.predicate}`);
+      if(typeof claim.object==='string'){const object=kindOf(claim.object);if(!within(object,relation.range_type_ids))issues.push(`a ${object??'unlisted identity'} is outside the range of ${claim.predicate}`);}
+      return issues;
+    },
+  };
+}
+
 /** Record identities the Tree holds in this checkout, or null where its source witnesses are not checked out. */
 export function treeIdentities(root){
   const base=join(root,'ToS','source-witnesses');
@@ -56,7 +86,7 @@ export function treeIdentities(root){
 }
 
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
-export function checkBonsai(root,id,{validator=treeContracts(root),identities=treeIdentities(root)}={}){
+export function checkBonsai(root,id,{validator=treeContracts(root),relations=treeRelations(root),identities=treeIdentities(root)}={}){
   const {manifest,modules}=loadBonsai(root,id),problems=[],drift=[];
   if(manifest.schema!==MANIFEST_SCHEMA)problems.push('manifest schema');
   if(manifest.id!==id)problems.push('manifest id');
@@ -70,6 +100,8 @@ export function checkBonsai(root,id,{validator=treeContracts(root),identities=tr
       const contract=contractOf(item);if(!contract){problems.push(`export: no Tree contract for ${item.schema_version}`);continue;}
       for(const error of validator.validate(contract,item))problems.push(`export ${item.claim_id??item.record_id}${error.path}: ${error.message}`);
     }
+    const kinds=new Map(packet.identities.map(item=>[item.tree,item.type]));
+    for(const claim of packet.claims)for(const issue of relations.issues(claim,ref=>kinds.get(ref)))problems.push(`export ${claim.claim_id}: ${issue}`);
   }
   for(const [name,entry] of Object.entries(manifest.graft?.contracts??{})){
     const path=join(root,entry.path);

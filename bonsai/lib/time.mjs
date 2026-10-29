@@ -9,6 +9,11 @@
 
 export const DATE_KINDS=Object.freeze(['date-assertion','interval-assertion','relative-order','unknown-date']);
 export const CERTAINTIES=Object.freeze(['exact','approximate','uncertain','unknown']);
+/** The weaker of two certainties, in the order of CERTAINTIES; an unknown value leaves the other. */
+export function weakerCertainty(a,b){
+  const i=CERTAINTIES.indexOf(a),j=CERTAINTIES.indexOf(b);
+  return i<0?(j<0?null:b):j<0?a:CERTAINTIES[Math.max(i,j)];
+}
 export const RELATIONS=Object.freeze(['before','after','during','overlaps']);
 /** Identity syntax of a Tree reference; the Tree's own registry decides its type. */
 export const TREE_ID=/^tos\.[a-z][a-z0-9-]*\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
@@ -76,8 +81,9 @@ export function dateIssues(value){
     else{
       if(Object.hasOwn(interval,'start'))lexeme(interval.start,'interval.start');
       if(Object.hasOwn(interval,'end'))lexeme(interval.end,'interval.end');
+      // An interval is out of order only where its start begins after its end is over: "1883-07-15" to "1883-07" holds.
       const a=astronomical?lexemeBounds(interval.start):null,b=astronomical?lexemeBounds(interval.end):null;
-      if(a&&b&&a[0]>b[0])issues.push('interval: start after end');
+      if(a&&b&&a[0]>=b[1])issues.push('interval: start after end');
     }
   }else if(value.kind==='relative-order'){
     if(has('value')||has('interval'))issues.push('a relative order carries no value or interval');
@@ -93,9 +99,11 @@ export function dateIssues(value){
 /**
  * The years a dating spans, for display: [from, to) in astronomical years, the
  * closed years first..last it names, and how it was reached. A relative
- * "during" takes its anchor's span through `anchorSpan(ref)`; "before",
- * "after" and "overlaps" bound only one side or neither, so they give no span,
- * nor does an unknown date or an open interval.
+ * "during" takes its anchor's span through `anchorSpan(ref)`, and is no firmer
+ * than that span: its `certainty` is the weaker of its own and the anchor's,
+ * its own stays as `ownCertainty`. "Before", "after" and "overlaps" bound only
+ * one side or neither, so they give no span, nor does an unknown date or an
+ * open interval.
  */
 export function dateSpan(value,anchorSpan=()=>null){
   if(!object(value)||value.year_numbering!=='astronomical'&&value.kind!=='relative-order')return null;
@@ -110,7 +118,7 @@ export function dateSpan(value,anchorSpan=()=>null){
   }
   if(value.kind==='relative-order'&&value.relative?.relation==='during'){
     const anchor=anchorSpan(value.relative.anchor_ref);
-    return anchor?{...base,from:anchor.from,to:anchor.to,first:anchor.first,last:anchor.last,relation:'during',anchor:value.relative.anchor_ref,anchorCertainty:anchor.certainty,via:[value.relative.anchor_ref,...(anchor.via??[])]}:null;
+    return anchor?{...base,certainty:weakerCertainty(value.certainty,anchor.certainty),ownCertainty:value.certainty,from:anchor.from,to:anchor.to,first:anchor.first,last:anchor.last,relation:'during',anchor:value.relative.anchor_ref,anchorCertainty:anchor.certainty,via:[value.relative.anchor_ref,...(anchor.via??[])]}:null;
   }
   return null;
 }
@@ -150,15 +158,17 @@ function moment(parts,en,{grammar='nominative',year=true}={}){
 
 /**
  * A dating in the reader's language, as firm as it is stated: a date ("январь 1884"),
- * a closed interval ("январь–февраль 1883", "ноябрь 1884 – февраль 1885", "ок. 387–380 до н. э."),
- * an open one ("до 1962", "from 1663"). A relative dating speaks through the span of
- * its anchor, given as `span`; an unknown date has no words here.
+ * a closed interval ("январь–февраль 1883", "1–15 июля 1883", "ноябрь 1884 – февраль 1885",
+ * "ок. 387–380 до н. э."), an open one ("до 1962", "примерно с 1663", "from c. 1663").
+ * A relative dating speaks through the span of its anchor, given as `span`, and is no
+ * firmer than that span; an unknown date has no words here.
  */
 export function formatDating(value,locale,{span=null}={}){
   if(!object(value))return '';
-  const en=lang(locale)==='en',{about,doubt}=firmness(value.certainty,en);
-  if(value.kind==='relative-order')return span?formatYears({...span,certainty:value.certainty},locale):'';
+  const en=lang(locale)==='en';
+  if(value.kind==='relative-order')return span?formatYears({...span,certainty:weakerCertainty(value.certainty,span.certainty)},locale):'';
   if(value.kind==='unknown-date'||value.year_numbering!=='astronomical')return '';
+  const {about,doubt}=firmness(value.certainty,en);
   // "Около" takes the genitive in Russian: "ок. января 1884", "ок. ноября 1884 – февраля 1885".
   const grammar=about&&!en?'genitive':'nominative';
   if(value.kind==='date-assertion'){const parts=lexemeParts(value.value);return parts?`${about}${moment(parts,en,{grammar})}${doubt}`:'';}
@@ -166,15 +176,18 @@ export function formatDating(value,locale,{span=null}={}){
   const a=lexemeParts(value.interval?.start),b=lexemeParts(value.interval?.end);
   if(a&&b){
     if(a.precision==='year'&&b.precision==='year')return formatYears({first:a.year,last:b.year,certainty:value.certainty},locale);
-    // Within one year the year is said once; within one month, the month too.
-    if(a.year===b.year&&a.precision!=='year'&&b.precision!=='year'){
-      if(a.month===b.month&&a.precision==='month'&&b.precision==='month')return `${about}${moment(a,en,{grammar})}${doubt}`;
-      return `${about}${moment(a,en,{year:false,grammar})}–${moment(b,en,{grammar})}${doubt}`;
+    // Bounds of one precision within one year say the year once, and within one month the month too;
+    // bounds of unlike precision are each said in full.
+    if(a.year===b.year&&a.precision===b.precision){
+      if(a.month===b.month)return a.precision==='month'||a.day===b.day?`${about}${moment(a,en,{grammar})}${doubt}`:`${about}${a.day}–${moment(b,en,{grammar})}${doubt}`;
+      return `${about}${moment(a,en,{year:false,grammar})}${a.precision==='day'?' – ':'–'}${moment(b,en,{grammar})}${doubt}`;
     }
     return `${about}${moment(a,en,{grammar})} – ${moment(b,en,{grammar})}${doubt}`;
   }
-  if(a)return `${en?'from':'с'}${NB}${moment(a,en,{grammar:'genitive'})}${doubt}`;
-  if(b)return `${en?'by':'до'}${NB}${moment(b,en,{grammar:'genitive'})}${doubt}`;
+  // An open bound is as firm as the dating: "с февраля 1941", "примерно до 1962", "from c. 1663".
+  const open=(ru,word,parts)=>`${en?`${word}${NB}${about}`:`${about?`примерно${NB}`:''}${ru}${NB}`}${moment(parts,en,{grammar:'genitive'})}${doubt}`;
+  if(a)return open('с','from',a);
+  if(b)return open('до','by',b);
   return '';
 }
 
