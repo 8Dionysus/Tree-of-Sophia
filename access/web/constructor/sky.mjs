@@ -13,7 +13,7 @@ import {validateSkyPose} from './sky-pose.mjs';
 // depthCue dims what lies further back; planarMoves keeps a moved star in its
 // own depth; onPose hears every turn of the view. Such a space may lay its
 // stars on named planes of depth (state.planes), shown while it turns.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null}) {
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null}) {
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -93,11 +93,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const underStars=new Set(['rule','thread','hrule','ring']),clipped=new Set(['hrule','ring']);
   const relationColors={contains:'#829dbb',supports:'#b7c991',interprets:'#bea7e1',questions:'#e5a18f',contrasts:'#e09591',echoes:'#8ecbc4',develops:'#e0c48c',compares:'#96b7e4',translates:'#8ebdc9',relates:'#a5b7cf'};
   const hex=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value??'')?value:/^#[a-f\d]{3}$/i.test(value??'')?'#'+[...value.slice(1)].map(c=>c+c).join(''):fallback;
-  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
+  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
   function refresh(state,labels={}){
-    const old=new Map(nodes.map(n=>[n.id,n])),oldEdges=new Map(edges.map(e=>[e.id,e]));
+    const old=new Map(nodes.map(n=>[n.id,n])),oldEdges=new Map(edges.map(e=>[e.id,e])),before=new Map(nodes.map(n=>[n.id,[...n.p]]));
     edges=state.edges.map(item=>{
       const previous=oldEdges.get(item.id);oldEdges.delete(item.id);
       const el=previous?.el??document.createElement('button');
@@ -112,7 +112,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       let n=old.get(item.id);old.delete(item.id);
       if(!n){
         const el=document.createElement('button');el.type='button';el.className='tree-star';el.dataset.node=item.id;
-        const label=document.createElement('span');el.append(label);layer.append(el);n={id:item.id,el,label,screen:{x:0,y:0,s:1},p:[...item.position],target:[...item.position],dragging:false};
+        const label=document.createElement('span');el.append(label);layer.append(el);
+        // A new star may rise out of another one (a thought out of what it is about) and move to its own place.
+        const origin=typeof item.from==='string'?before.get(item.from):Array.isArray(item.from)&&item.from.length===3&&item.from.every(Number.isFinite)?item.from:null;
+        n={id:item.id,el,label,screen:{x:0,y:0,s:1},p:[...(origin??item.position)],target:[...item.position],dragging:false};
         let nodeDrag=null,press=null,swallowed=false;
         const movable=()=>typeof dragNodes==='function'?dragNodes(item.id):dragNodes;
         const pickUp=(pointerId,x,y)=>{n.dragging=true;nodeDrag={id:pointerId,x,y,p:[...n.p],moved:false};};
@@ -189,7 +192,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return n;
     });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
-    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint)c.el.title=item.hint;else c.el.removeAttribute('title');c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>Array.isArray(line)&&line.length>1):[];
     // A space read in depth may lay its stars on planes, each at its own depth and named at a corner.
@@ -199,8 +202,20 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!plane){const el=document.createElement('div');el.className='tree-plane';el.dataset.plane=item.id;el.hidden=true;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});ruleLayer.append(el);plane={id:item.id,el};}
       plane.el.textContent=typeof item.label==='string'?item.label:'';plane.z=item.z;plane.x=[...item.x];plane.y=[...item.y];plane.color=hex(item.color,'#a9bdd6');plane.el.style.color=plane.color;return plane;
     });oldPlanes.forEach(plane=>plane.el.remove());
+    updateThreads();
     if(!nodes.some(n=>n.id===hover))hover=null;if(!edges.some(e=>e.id===hoverEdge))hoverEdge=null;
     measureLabels=true;resize();
+  }
+  // Threads lead from the chosen star into the dark, toward stars the space does not show; each ends in a small door.
+  // The page says which threads a star has; they follow the chosen star wherever it is chosen from.
+  function updateThreads(){
+    const list=typeof threadsFor==='function'&&selectedId?threadsFor(selectedId)??[]:[];
+    const oldThreads=new Map(threads.map(thread=>[thread.id,thread]));
+    threads=(Array.isArray(list)?list:[]).filter(item=>typeof item?.id==='string'&&typeof item.from==='string'&&Array.isArray(item.direction)&&item.direction.length===2&&item.direction.every(Number.isFinite)).map(item=>{
+      let thread=oldThreads.get(item.id);oldThreads.delete(item.id);
+      if(!thread){const el=document.createElement('button');el.type='button';el.className='tree-thread';el.dataset.thread=item.id;el.hidden=true;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'auto'});el.addEventListener('click',event=>{event.stopPropagation();onThreadSelect?.(item.id);});layer.append(el);thread={id:item.id,el,grown:0};}
+      thread.from=item.from;thread.direction=[...item.direction];thread.color=hex(item.color,'#c9b88e');thread.el.setAttribute('aria-label',typeof item.label==='string'?item.label:item.id);return thread;
+    });oldThreads.forEach(thread=>thread.el.remove());
   }
   function project([x,y,z]) {
     const c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
@@ -498,6 +513,27 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if((hot||neighbor)&&whole)arrow(a,b);
       edgeHits.push({id:edge.id,a,b});
     }
+    // A route's way lights up while its card is pointed at: a golden line through its stars in the order it walks them.
+    litGlow+=((lit?1:0)-litGlow)*(1-Math.exp(-dt*(lit?9:4)));if(litGlow<.01)litGlow=0;
+    if(litGlow&&lit){
+      const points=lit.map(id=>byId.get(id)?.screen).filter(Boolean);
+      ctx.strokeStyle='#e8cf8f';ctx.lineWidth=1.6;ctx.globalAlpha=.7*litGlow;
+      for(let i=1;i<points.length;i++){ctx.beginPath();ctx.moveTo(points[i-1].x,points[i-1].y);ctx.lineTo(points[i].x,points[i].y);ctx.stroke();}
+      ctx.globalAlpha=.85*litGlow;ctx.lineWidth=1.2;for(const point of points){ctx.beginPath();for(let i=0;i<=20;i++){const angle=i/20*Math.PI*2,x=point.x+Math.cos(angle)*8,y=point.y+Math.sin(angle)*8;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);}ctx.stroke();}
+      ctx.globalAlpha=1;
+    }
+    // A thread grows out of its star and fades into the dark; its door sits where it fades.
+    for(const thread of threads){
+      const from=byId.get(thread.from);thread.grown+=(1-thread.grown)*(1-Math.exp(-dt*4));
+      if(!from||from.el.hidden){thread.el.hidden=true;continue;}
+      const a=from.screen,ahead=project([from.p[0]+thread.direction[0]*60,from.p[1]+thread.direction[1]*60,from.p[2]]);
+      let dx=ahead.x-a.x,dy=ahead.y-a.y;const length=Math.hypot(dx,dy);if(length<.5){thread.el.hidden=true;continue;}dx/=length;dy/=length;
+      const start=11,reach=start+68*thread.grown,steps=6;ctx.strokeStyle=thread.color;ctx.lineWidth=1.1;
+      for(let i=0;i<steps;i++){const t0=start+(reach-start)*i/steps,t1=start+(reach-start)*(i+1)/steps;ctx.globalAlpha=.62*(1-i/steps)*thread.grown;ctx.beginPath();ctx.moveTo(a.x+dx*t0,a.y+dy*t0);ctx.lineTo(a.x+dx*t1,a.y+dy*t1);ctx.stroke();}
+      const ex=a.x+dx*(reach+7),ey=a.y+dy*(reach+7);ctx.globalAlpha=.55*thread.grown;ctx.fillStyle=thread.color;ctx.beginPath();ctx.arc(ex,ey,1.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      thread.el.hidden=!inView(box(ex-4,ey-4,8,8));thread.el.style.transform=`translate3d(${(ex-12).toFixed(2)}px,${(ey-12).toFixed(2)}px,0)`;
+      if(thread.grown<.995)layoutMoving=true;
+    }
     nodes.forEach(n=>{
       const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:.5+.5*near01;
@@ -532,7 +568,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     root.dataset.camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');
     if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,restYaw,restPitch,measured:!!measured});}}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
-    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0))kick();else last=0;
+    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow>0))kick();else last=0;
   }
   function kick(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
   // The part of a segment inside the free area, and whether its end is the segment's own.
@@ -657,7 +693,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
     restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;
       pan={x:pose.pan[0],y:pose.pan[1]};tpan={...pan};center=[...pose.center];targetCenter=[...pose.center];fitScale=targetFit=pose.fit;kick();},
-    select(id){selectedId=id;kick()},
+    select(id){selectedId=id;updateThreads();kick()},
     selectEdge(id){selectedEdgeId=id;kick()},
     link(id){linkFrom=id;kick()},
     zoomBy(factor){if(Number.isFinite(factor)&&factor>0)zoomTo(tzoom*factor);},
@@ -692,8 +728,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     pose(){return {yaw,pitch,targetYaw:tyaw,targetPitch:tpitch,restYaw,restPitch,measured:!!measured};},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     reveal(id){revealId=id??null;kick();},
+    /** Light a way through the given stars, in order (null puts it out). */
+    light(ids){lit=Array.isArray(ids)&&ids.length>1?[...ids]:null;kick();},
     refresh:resize,
     motion(value){playing=value;kick()},
-    dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());ctx.dispose?.()}
+    dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());threads.forEach(thread=>thread.el.remove());ctx.dispose?.()}
   };
 }

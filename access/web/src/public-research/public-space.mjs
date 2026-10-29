@@ -19,6 +19,7 @@ import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mj
 import {depthLayout} from './space-depth.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {controlsShouldOpen,mountControls} from './space-controls.mjs';
+import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,threadsIntoDark} from './space-play.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -46,10 +47,10 @@ Object.assign(extraTranslations.ru,{excerpt:'Выдержка',proposalGrounds:'
 Object.assign(extraTranslations.ru,{turn:'Повернуть пространство',turnRest:'Вернуть пространство к исходному повороту',turnRestNote:'Нажатие возвращает исходный поворот',controls:'Управление',transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
 Object.assign(extraTranslations.en,{turn:'Turn the space',turnRest:'Bring the space back to its resting turn',turnRestNote:'Pressing it brings back the resting turn',controls:'Controls',transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
 Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор исследований',dating_low:'опора — источник без ссылок на исследования',lifeLine:'Годы автора',journeys:'Маршруты чтения',researchActions:'Исследование',orientation:'Где вы в Древе',mapTools:'Управление картой',openColumn:'Панель',collapseColumn:'Свернуть панель',toOverview:'Ко всему пространству',backToRoute:'назад к маршруту',onMap:'На карте',selectedLink:'Выбрана связь',lensWord:'линза',statusTitle:'Статус',formSource:'Источник',formSourceHint:'Произведение, место, автор или традиция — то, на что опираются прочтения',formProposal:'Прочтение',formProposalHint:'Авторское прочтение, понятие, вопрос или ветвь — предложено для исследования, не канон',formPersonal:'Личное',formPersonalHint:'Ваша мысль или связь, сохранённая в этом браузере',
-  ladderLabel:'Ступень толкования',ladderHint:'Древо различает источник, его прочтение и сопоставление прочтений; каждая ступень возвращается к источнику.',rung_source:'Источник',rung_reading:'Прочтение',rung_comparison:'Сопоставление',rungPersonal:'Личная запись',
+  ladderLabel:'Ступень толкования',ladderHint:'Древо различает источник, его прочтение и сопоставление прочтений; каждая ступень возвращается к источнику.',rung_source:'Источник',rung_reading:'Прочтение',rung_comparison:'Сопоставление',rungPersonal:'Личная запись',ownPlaceholder:'Как вы это читаете? Одной строкой',ownWrite:'Записать',ownMine:'Ваше прочтение',ownAround:'Прочтения рядом',ownNearest:'Ближе всего к вашему',ownNone:'Ни к одному',ownRestsOn:'Опирается на',ownDisputed:'С этим спорит',ownWritten:'Ваше прочтение встало в пространство',threadNote:'ещё не в пространстве',threadAdded:'Звезда вошла в пространство',
   basisContains:'Структура: часть и целое.',basisGround:'Прочтение опирается на это место источника.',basisEditorial:'Редакторское сопоставление двух прочтений · предложено, не канон · не утверждает исторического влияния.',basisProposed:'Связь предложена для исследования · не канон · сходство не означает влияния.',basisPersonal:'Личная связь из вашего исследования.'});
 Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholarship',dating_low:'rests on a source that cites no study',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
-  ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',
+  ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',ownPlaceholder:'How do you read it? One line',ownWrite:'Write it down',ownMine:'Your reading',ownAround:'Readings nearby',ownNearest:'Nearest to yours',ownNone:'None of them',ownRestsOn:'Rests on',ownDisputed:'Disputed by',ownWritten:'Your reading has taken its place in the space',threadNote:'not yet in the space',threadAdded:'The star has entered the space',
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
 Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds of this proposal',manualOrigin:'Manual entry',agentOrigin:'External agent response',personalOrigin:'Personal proposal',pending:'Pending review',notCanon:'Not canon',postureShort:'Readings · not canon'});
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
@@ -351,9 +352,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const targets=groundTargets(ref,contextId),language=String(locale()).startsWith('en')?'en':'de';
     return targets.find(target=>target.language===language&&target.scope==='passage')??targets.find(target=>target.language===language)??targets[0]??null;
   }
-  function appendGrounds(parent,grounds,contextId){
+  function appendGrounds(parent,grounds,contextId,heading=null){
     if(!grounds?.length)return false;
-    const section=el('section','ps-grounds');section.append(el('h2','minor-title',t('sourceRefs')));
+    const section=el('section','ps-grounds');section.append(heading??el('h2','minor-title',t('sourceRefs')));
     for(const ground of grounds){
       const source=atlas.references?.[ground.ref],target=preferredGroundTarget(ground.ref,contextId),binding=sourceForRef(ground.ref)??sourceMap.get(ground.ref);
       const title=tr(target?.title,locale())||[tr(source?.author,locale()),tr(source?.work,locale()),tr(source?.locator,locale())].filter(Boolean).join(' · ')||ground.ref;
@@ -561,6 +562,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(lens==='space'&&geography)applyPlane(projected);
     else if(lens==='proximity'&&proximityLens)applyProximity(projected);
     else applyDepth(projected);
+    // A new record rises out of what it is about, and a star a thread brings in out of the star it was followed from.
+    if(rising.size)projected.nodes=projected.nodes.map(node=>rising.has(node.id)?{...node,from:rising.get(node.id)}:node);
     if(selectedEdge)projected.selectedEdgeId=selectedEdge;
     return projected;
   }
@@ -569,6 +572,107 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function applyDepth(projected){
     const laid=depthLayout(projected.nodes,{stepOf:node=>ladderRung({material:matForNode(node),node}),depth,locale:locale()});
     projected.nodes=laid.nodes;projected.planes=laid.planes;
+  }
+  // ── The play of knowing: nothing is scored and nothing hidden; what grows is the reader's own understanding. ──
+  const rising=new Map();
+  const playEdges=()=>{
+    const out=(atlas.edges??[]).map(edge=>({from:graphIdForMaterial(edge.from),to:graphIdForMaterial(edge.to),kind:edge.kind}));
+    for(const edge of state.edges??[])if(!edge.ownerType)out.push({from:edge.from,to:edge.to,kind:edge.kind});
+    return out;
+  };
+  const materialOfGraph=id=>typeof id==='string'&&id.startsWith('material:')?materials.get(id.slice(9))??previewMaterials.get(id.slice(9))??null:null;
+  const rungOfGraph=id=>{const material=materialOfGraph(id);return material?ladderRung({material,node:{kind:material.kind}}):null;};
+  // From the chosen star on the whole tree, threads lead into the dark toward the stars the space does not hold yet.
+  const threadKinds=new Map();
+  function darkThreads(id){
+    if(lens!=='tree'||measuredLens(lens)||route?.path||interaction||!compareBar.hidden||!id||!materialOfGraph(id))return [];
+    const current=graphState();
+    const held=new Set(current.nodes.map(node=>node.id));
+    const positionOf=graphId=>{const node=current.nodes.find(item=>item.id===graphId);if(Array.isArray(node?.position))return node.position;const position=materialOfGraph(graphId)?.position;return Array.isArray(position)&&position.length>=2?position:null;};
+    return threadsIntoDark(id,{edges:playEdges(),shown:held,positionOf}).filter(thread=>materials.has(thread.id.slice(9))).map(thread=>{threadKinds.set(`thread:${thread.id}`,thread.kind);return {id:`thread:${thread.id}`,from:id,direction:thread.direction,color:styleOf(thread.kind)?.color??RELATIONS[thread.kind]?.color,label:`${label(materialOfGraph(thread.id))} · ${t('threadNote')}`};});
+  }
+  function threadHint(threadId){
+    const graphId=String(threadId).replace(/^thread:/,''),material=materialOfGraph(graphId);if(!material)return null;
+    const kind=threadKinds.get(threadId);
+    return {eyebrow:[kind?relationWord(kind):'',kindName(material.kind)].filter(Boolean).join(' · '),title:keepDots(label(material)),lines:[t('threadNote')]};
+  }
+  // Following a thread brings its star into the space, out of the star it was followed from.
+  function followThread(threadId){
+    const graphId=String(threadId).replace(/^thread:/,''),materialId=graphId.slice(9),from=selected;
+    try{const added=model.addMaterial(materialId);state=model.getState();if(from)rising.set(added,from);selectActual(added);notifyGraphResult(t('threadAdded'));reflect();sky?.reveal(added);}
+    catch(error){notify(displayPublicError(error,locale));}
+  }
+  // Your own reading first. Where a step or a riddle asks, one line of your own is written before the readings open;
+  // it becomes your star in front of what it is about, and then stands beside the reading you find nearest.
+  const ownKey=`tos.public-research.own-readings.v1.${profile}`,ownReadings=new Map();
+  try{const saved=JSON.parse(localStorage.getItem(ownKey)||'{}');if(object(saved))for(const [key,value]of Object.entries(saved))if(typeof value==='string')ownReadings.set(key,value);}catch{}
+  const saveOwnReadings=()=>{try{localStorage.setItem(ownKey,JSON.stringify(Object.fromEntries(ownReadings)));}catch{}};
+  const savePersonalPositions=()=>{try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;}};
+  const hypothesesNow=()=>workspace?.getState?.()?.hypotheses??personalState?.hypotheses??[];
+  const ownReadingOf=targetId=>{const id=ownReadings.get(targetId);return id?hypothesesNow().find(item=>item.id===id)??null:null;};
+  const placeOfGraph=graphId=>graphState().nodes.find(node=>node.id===graphId)?.position??materialOfGraph(graphId)?.position??null;
+  function writeOwnReading(targetId,text){
+    if(!workspace?.addHypothesis)return;
+    const id=`space:${profile}:own:${crypto.randomUUID()}`,nodeId=`personal:${id}`,targetGraph=graphIdForMaterial(targetId),at=placeOfGraph(targetGraph);
+    // Its place and its rising are set before the record exists, so the first view of it already stands in front of its question.
+    if(at){personalPositions.set(nodeId,besidePosition(at,0));savePersonalPositions();}
+    rising.set(nodeId,targetGraph);ownReadings.set(targetId,id);saveOwnReadings();
+    try{workspace.addHypothesis({id,kind:'interpretation',title:ownTitle(text),body:text,targetId});personalState=workspace.getState?.()??personalState;notifyGraphResult(t('ownWritten'));}
+    catch(error){ownReadings.delete(targetId);saveOwnReadings();rising.delete(nodeId);notify(displayPublicError(error,locale));}
+    reflect();
+  }
+  // Setting your star beside a reading moves it there; the record keeps your words and now rests on that reading.
+  function standNearest(targetId,readingGraph){
+    const mine=ownReadingOf(targetId);if(!mine||materializedHypotheses.has(mine.id))return;
+    const next=readingGraph?readingGraph.slice(9):targetId;if(mine.targetId===next)return;
+    const id=`space:${profile}:own:${crypto.randomUUID()}`,nodeId=`personal:${id}`,oldNode=`personal:${mine.id}`,at=placeOfGraph(graphIdForMaterial(next));
+    const index=readingGraph?Math.max(0,[...ownReadings.values()].length%4):0;
+    if(at)personalPositions.set(nodeId,besidePosition(at,index));personalPositions.delete(oldNode);savePersonalPositions();
+    rising.set(nodeId,oldNode);ownReadings.set(targetId,id);saveOwnReadings();
+    try{workspace.addHypothesis({id,kind:mine.kind??'interpretation',title:mine.title,body:mine.body,targetId:next});workspace.removeHypothesis?.(mine.id);personalState=workspace.getState?.()??personalState;}
+    catch(error){ownReadings.set(targetId,mine.id);saveOwnReadings();notify(displayPublicError(error,locale));}
+    reflect();
+  }
+  function ownReadingBlock(parent,targetId){
+    if(!workspace?.addHypothesis||!targetId)return null;
+    const targetGraph=graphIdForMaterial(targetId),mine=ownReadingOf(targetId),edges=playEdges();
+    const around=readingsAround(targetGraph,{edges,rungOf:rungOfGraph}).filter(item=>materialOfGraph(item.id));
+    const box=el('section','ps-own');box.dataset.state=mine?'written':'open';
+    const nameOf=graphId=>keepDots(label(materialOfGraph(graphId)));
+    const row=(graphId,small)=>{const b=button('','connection-target');b.append(el('small','',small),el('span','',nameOf(graphId)));b.addEventListener('click',()=>selectNode(graphId));return b;};
+    if(!mine){
+      const form=document.createElement('form');form.className='ps-own-form';
+      const input=document.createElement('textarea');input.rows=2;input.maxLength=600;input.placeholder=t('ownPlaceholder');input.setAttribute('aria-label',t('ownPlaceholder'));
+      const write=document.createElement('button');write.type='submit';write.className='primary ps-own-write';write.textContent=t('ownWrite');
+      form.append(input,write);
+      form.addEventListener('submit',event=>{event.preventDefault();const text=input.value.trim();if(!text){input.focus();return;}writeOwnReading(targetId,text);});
+      // Enter writes the line; Shift+Enter breaks it.
+      input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
+      box.append(form);
+      // The readings wait folded beneath, a click away, until you have written your own.
+      if(around.length){const later=document.createElement('details');later.className='ps-own-around';later.append(el('summary','',`${t('ownAround')} · ${around.length}`));for(const item of around)later.append(row(item.id,relationWord(item.kind)||kindName(materialOfGraph(item.id)?.kind)));box.append(later);}
+      parent.append(box);return box;
+    }
+    const own=button('','ps-own-line');own.append(el('span','eyebrow',t('ownMine')),el('span','ps-own-text',mine.body));
+    own.addEventListener('click',()=>selectNode(`personal:${mine.id}`));box.append(own);
+    if(around.length){
+      const near=el('div','ps-own-near');near.append(el('p','eyebrow',t('ownNearest')));
+      const chosen=mine.targetId&&mine.targetId!==targetId?graphIdForMaterial(mine.targetId):null,fixed=materializedHypotheses.has(mine.id);
+      for(const item of around){const b=button('','ps-own-choice');b.append(el('span','',nameOf(item.id)),el('small','',relationWord(item.kind)||kindName(materialOfGraph(item.id)?.kind)));b.setAttribute('aria-pressed',String(chosen===item.id));b.disabled=fixed;b.addEventListener('click',()=>standNearest(targetId,chosen===item.id?null:item.id));near.append(b);}
+      const none=button(t('ownNone'),'ps-own-choice ps-own-none');none.setAttribute('aria-pressed',String(!chosen));none.disabled=fixed;none.addEventListener('click',()=>standNearest(targetId,null));near.append(none);
+      box.append(near);
+      // What follows from standing there: what that reading rests on, and what disputes it.
+      if(chosen){
+        // A reading rests first on its grounds in the source, else on the sources it is linked to; it is disputed
+        // by what answers it otherwise or puts it in question, and by the other reading authored against it.
+        const reading=materialOfGraph(chosen),rests=el('div','ps-own-follows'),against=el('div','ps-own-follows');
+        if(!appendGrounds(rests,reading?.inquiry?.grounds,reading?.id,el('p','eyebrow',t('ownRestsOn')))){const linked=restsOn(chosen,{edges,rungOf:rungOfGraph}).filter(materialOfGraph);if(linked.length){rests.append(el('p','eyebrow',t('ownRestsOn')));for(const id of linked)rests.append(row(id,t(`rung_${rungOfGraph(id)??'source'}`)));}}
+        const others=disputes(chosen,{edges}).filter(id=>materialOfGraph(id)&&id!==targetGraph),counter=reading?.inquiry?.counterReading?.text;
+        if(others.length||counter){against.append(el('p','eyebrow',t('ownDisputed')));for(const id of others)against.append(row(id,relationWord(edges.find(edge=>(edge.from===chosen&&edge.to===id)||(edge.to===chosen&&edge.from===id))?.kind)||''));if(counter)inquiryDetail(against,t('counterReading'),counter);}
+        for(const part of [rests,against])if(part.childElementCount)box.append(part);
+      }
+    }
+    parent.append(box);return box;
   }
   // Time is a view: stars take places the scale gives them, the saved graph keeps its own.
   function applyTimeline(projected,routePath){
@@ -686,7 +790,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const layoutKind=()=>lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
   const layoutStrip=()=>lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
-  function refreshSky(){if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.select(selected);sky.selectEdge(selectedEdge);sky.refresh();}
+  function refreshSky(){if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);sky.refresh();}
   function reflect(){
     if(destroyed)return;state=model.getState();
     // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
@@ -918,13 +1022,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
       const body=material.atlasBody??material.body;
       if(body)panelContent.append(el('p','body',tr(body,locale())));
-      if(tr(material.question,locale()).trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
+      // A riddle asks the reader first: its question, the reader's own line, and only then its readings, folded until written.
+      const riddle=material.kind==='question'&&materials.has(material.id),answered=!riddle||!!ownReadingOf(material.id);
+      if(riddle){const asks=material.inquiry?.question??material.question;if(tr(asks,locale()).trim())inquiryQuestion(panelContent,asks);ownReadingBlock(panelContent,material.id);}
+      else if(tr(material.question,locale()).trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
       const inquiry=material.inquiry;
       if(inquiry){
-        inquiryDetail(panelContent,t('argument'),inquiry.thesis??inquiry.argument,true);
+        inquiryDetail(panelContent,t('argument'),inquiry.thesis??inquiry.argument,answered);
         appendGrounds(panelContent,inquiry.grounds,material.id);
-        if(inquiry.counterReading){const alternative=inquiryDetail(panelContent,t('counterReading'),inquiry.counterReading.text,true);if(alternative)appendGrounds(alternative,inquiry.counterReading.grounds,material.id);}
-        inquiryQuestion(panelContent,inquiry.question);
+        if(inquiry.counterReading){const alternative=inquiryDetail(panelContent,t('counterReading'),inquiry.counterReading.text,answered);if(alternative)appendGrounds(alternative,inquiry.counterReading.grounds,material.id);}
+        if(!riddle)inquiryQuestion(panelContent,inquiry.question);
         if(inquiry.experiment){const experiment=inquiryDetail(panelContent,t('experiment'),inquiry.experiment.setup);if(experiment&&inquiry.experiment.question)experiment.append(el('p','inquiry-prompt',tr(inquiry.experiment.question,locale())));}
       }
       if(material.perspectives?.length){panelContent.append(el('h2','minor-title',t('perspectives')));for(const item of material.perspectives)inquiryDetail(panelContent,tr(item.title,locale()),item.body);}
@@ -1152,7 +1259,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function renderRoutes(){
     if(!deck)return;for(const detail of deck.querySelectorAll('details[data-route-detail]'))routeDetailState.set(detail.dataset.routeDetail,detail.open);
-    const mode=columnMode();deck.replaceChildren();deck.dataset.active=String(!!route);deck.dataset.mode=mode;
+    // A card that is drawn again no longer hears the pointer leave; its lit way goes out with it.
+    const mode=columnMode();deck.replaceChildren();sky?.light(null);deck.dataset.active=String(!!route);deck.dataset.mode=mode;
     if(mode==='overview'){deck.hidden=false;renderRouteList();return;}
     if(!route){deck.hidden=true;return;}
     deck.hidden=false;
@@ -1172,7 +1280,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       card.append(el('span','ps-card-kicker',`${routeWord(item)} · ${routeSize(item,shown.steps?.length??0)}`),el('strong','',tr(shown.title,locale())));
       const question=tr(shown.question??shown.description,locale());if(question)card.append(el('small','',question));
       const voices=routeVoicesFor(item);if(voices.length)card.append(el('span','ps-card-voices',voices.length>4?`${voices.slice(0,4).join(' · ')} …`:voices.join(' · ')));
-      card.addEventListener('click',()=>startRoute(item));list.append(card);
+      card.addEventListener('click',()=>{sky?.light(null);startRoute(item);});list.append(card);
+      // Pointed at, a branch or route lights its way through the stars it walks.
+      if(item.source==='atlas'){
+        const light=()=>{const view=new Set((shownView?.nodes??[]).map(node=>node.id));sky?.light(routeStars(shown.steps??[],{graphIdOf:id=>graphIdForMaterial(materials.has(id)?id:String(id).replace(/^material:/,'')),shown:view}));};
+        const dark=()=>sky?.light(null);
+        card.addEventListener('pointerenter',light);card.addEventListener('focus',light);card.addEventListener('pointerleave',dark);card.addEventListener('blur',dark);
+      }
     }
     if(!list.childElementCount)list.append(el('p','ps-route-empty',t('noRoutes')));
     deck.append(list);
@@ -1191,6 +1305,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(isCurrent){
         const body=el('div','ps-step-body');for(const witness of witnesses.slice(1))body.append(el('p','ps-source-line',witness));
         body.append(el('p','ps-step-text',tr(step.body,locale())));if(step.question)inquiryQuestion(body,step.question);
+        if(step.question){const raw=step.nodeId??step.graphNodeId,stepMaterial=raw&&(materials.has(raw)?raw:raw.replace(/^material:/,''));if(stepMaterial&&materials.has(stepMaterial))ownReadingBlock(body,stepMaterial);}
         const action=stepSourceAction(step,witnesses.length);if(action){const row=el('div','ps-route-actions');row.append(action);body.append(row);}
         entry.append(body);
       }
@@ -1416,7 +1531,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens),getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  sky=mountConstructorSky(shell,{rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens),getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
   function starHint(id){
@@ -1436,10 +1551,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return {text:word?`${word}: ${meaning}`:meaning,keys:[],note:''};
   }
   hints=mountHints(shell,{
-    selector:'[data-hint],.tree-star,.edge-label',
-    describe:element=>element.matches('.tree-star')?starHint(element.dataset.node):element.matches('.edge-label')?edgeHint(element.dataset.edge):undefined,
-    side:element=>element.matches('.tree-star')?'right':element.closest('.ps-map-tools')?(desktopMode.matches&&!shell.dataset.scale?'left':'bottom'):element.closest('.ps-lens-rail')&&desktopMode.matches?'right':'top',
-    moving:element=>element.matches('.tree-star,.edge-label'),
+    selector:'[data-hint],.tree-star,.edge-label,.tree-thread',
+    describe:element=>element.matches('.tree-star')?starHint(element.dataset.node):element.matches('.edge-label')?edgeHint(element.dataset.edge):element.matches('.tree-thread')?threadHint(element.dataset.thread):undefined,
+    side:element=>element.matches('.tree-star,.tree-thread')?'right':element.closest('.ps-map-tools')?(desktopMode.matches&&!shell.dataset.scale?'left':'bottom'):element.closest('.ps-lens-rail')&&desktopMode.matches?'right':'top',
+    moving:element=>element.matches('.tree-star,.edge-label,.tree-thread'),
   });
   // The controls window opens by itself once, after the space's first turn, on a space that turns; it closes for good
   // only when asked, and comes back from the map tools.
