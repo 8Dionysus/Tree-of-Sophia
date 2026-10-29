@@ -597,6 +597,7 @@ jobs:
           name: ${{ github.job }}-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.group || 'single' }}
           path: |
             ${{ runner.temp }}/cargo-resource-profile/resource-profile.json
+            ${{ runner.temp }}/cargo-resource-profile/sccache.json
             ${{ runner.temp }}/cargo-target/cargo-timings/
             ${{ runner.temp }}/software-cargo-target/cargo-timings/
             ${{ runner.temp }}/software-test-cargo-target/cargo-timings/
@@ -622,6 +623,71 @@ jobs:
       - *setup_software_node
       - *software_toolchain
       - *cargo_resource_profile
+      - name: Configure verified Access compiler cache
+        id: access_cache
+        if: ${{ matrix.group == 'access' }}
+        continue-on-error: true
+        timeout-minutes: 3
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const fs = await import('node:fs');
+            const path = await import('node:path');
+            const { createHash } = await import('node:crypto');
+            const { execFileSync } = await import('node:child_process');
+            // This runner starts with an empty target; workspace libraries must be cacheable.
+            core.exportVariable('CARGO_INCREMENTAL', '0');
+            const token = process.env.ACTIONS_RUNTIME_TOKEN;
+            const resultsUrl = process.env.ACTIONS_RESULTS_URL;
+            if (!token || !resultsUrl) throw new Error('Compiler cache runtime unavailable; use rustc.');
+            core.setSecret(token);
+            const release = 'sccache-v0.18.0-x86_64-unknown-linux-musl';
+            const expectedBytes = 9730540;
+            const expectedSha = '45f1447fbe231e3037bde351ef70677dd212216c8d62ae7ca409fecc4d6acc89';
+            const tool = path.join(process.env.RUNNER_TEMP, 'access-compiler-cache');
+            fs.mkdirSync(tool, { mode: 0o700 });
+            const response = await fetch(`https://github.com/mozilla/sccache/releases/download/v0.18.0/${release}.tar.gz`, { signal: AbortSignal.timeout(60000) });
+            if (!response.ok) throw new Error(`Compiler cache download failed: ${response.status}`);
+            const chunks = [];
+            let bytes = 0;
+            for await (const chunk of response.body) {
+              bytes += chunk.length;
+              if (bytes > expectedBytes) throw new Error('Compiler cache archive exceeds byte cap.');
+              chunks.push(chunk);
+            }
+            const archive = Buffer.concat(chunks);
+            if (bytes !== expectedBytes || createHash('sha256').update(archive).digest('hex') !== expectedSha) throw new Error('Compiler cache archive identity mismatch.');
+            const archivePath = path.join(tool, 'sccache.tar.gz');
+            fs.writeFileSync(archivePath, archive, { mode: 0o600 });
+            execFileSync('tar', ['-xzf', archivePath, '-C', tool, '--strip-components=1', `${release}/sccache`], { timeout: 30000 });
+            const binary = path.join(tool, 'sccache');
+            fs.chmodSync(binary, 0o700);
+            if (execFileSync(binary, ['--version'], { encoding: 'utf8', timeout: 10000 }).trim() !== 'sccache 0.18.0') throw new Error('Compiler cache version mismatch.');
+            const os = fs.readFileSync('/etc/os-release', 'utf8');
+            const field = name => os.split('\n').find(line => line.startsWith(`${name}=`))?.slice(name.length + 1).replace(/^"|"$/g, '');
+            const platform = `${field('ID')}-${field('VERSION_ID')}-${process.arch}`;
+            if (platform !== 'ubuntu-26.04-x64') throw new Error('Unqualified compiler cache platform.');
+            const conf = path.join(tool, 'config.toml');
+            fs.writeFileSync(conf, '', { mode: 0o600 });
+            const settings = {
+              ACTIONS_RESULTS_URL: resultsUrl,
+              ACTIONS_RUNTIME_TOKEN: token,
+              SCCACHE_CONF: conf,
+              SCCACHE_CACHED_CONF: path.join(tool, 'cached-config'),
+              SCCACHE_SERVER_UDS: path.join(tool, 'server.sock'),
+              SCCACHE_GHA_ENABLED: 'on',
+              SCCACHE_GHA_VERSION: `tos-access-rlib-v1-0.18.0-rust1.98.1-${platform}`,
+              SCCACHE_GHA_RW_MODE: context.eventName === 'pull_request' ? 'READ_ONLY' : 'READ_WRITE',
+              SCCACHE_CLIENT_SIDE: '1',
+              SCCACHE_IGNORE_SERVER_IO_ERROR: '1',
+              SCCACHE_IDLE_TIMEOUT: '600',
+            };
+            // Compilation stays in the client process under lane custody.
+            // Only main/full runs populate the default-branch cache; PRs read it.
+            execFileSync(binary, ['--start-server'], { env: { ...process.env, ...settings }, timeout: 30000, maxBuffer: 524288 });
+            for (const [name, value] of Object.entries(settings)) core.exportVariable(name, value);
+            core.exportVariable('RUSTC_WRAPPER', binary);
+            core.setOutput('enabled', 'true');
       - *cargo_resource_before
       - &fetch_software_stage
         name: Fetch same-run Software stage
@@ -657,6 +723,13 @@ jobs:
       - name: Test reader and API behavior on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_reader --cargo-timings'
+      - name: Capture Access compiler cache diagnostics
+        if: ${{ always() && steps.access_cache.outputs.enabled == 'true' }}
+        continue-on-error: true
+        run: |
+          umask 077
+          trap '"$RUSTC_WRAPPER" --stop-server' EXIT
+          "$RUSTC_WRAPPER" --show-stats --stats-format=json > "$RUNNER_TEMP/cargo-resource-profile/sccache.json"
       - *cargo_resource_after
       - *cargo_diagnostics
       - &cleanup_native_verity

@@ -621,6 +621,65 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         Some("Software fixture contracts / ${{ matrix.group }}")
     );
     assert!(jobs["software"]["continue-on-error"].is_badvalue());
+    let access_cache = named_step(
+        steps(jobs, "software"),
+        "Configure verified Access compiler cache",
+    );
+    assert_eq!(
+        access_cache["if"].as_str(),
+        Some("${{ matrix.group == 'access' }}")
+    );
+    assert_eq!(access_cache["continue-on-error"].as_bool(), Some(true));
+    let cache_script = access_cache["with"]["script"].as_str().unwrap();
+    for contract in [
+        "45f1447fbe231e3037bde351ef70677dd212216c8d62ae7ca409fecc4d6acc89",
+        "core.exportVariable('CARGO_INCREMENTAL', '0')",
+        "SCCACHE_CLIENT_SIDE: '1'",
+        "SCCACHE_GHA_RW_MODE: context.eventName === 'pull_request' ? 'READ_ONLY' : 'READ_WRITE'",
+        "SCCACHE_IGNORE_SERVER_IO_ERROR: '1'",
+    ] {
+        assert!(
+            cache_script.contains(contract),
+            "missing compiler cache contract: {contract}"
+        );
+    }
+    assert!(
+        cache_script.find("createHash('sha256')").unwrap()
+            < cache_script.find("execFileSync('tar'").unwrap()
+    );
+    assert!(
+        cache_script.find("['--start-server']").unwrap()
+            < cache_script
+                .find("core.exportVariable('RUSTC_WRAPPER'")
+                .unwrap()
+    );
+    for (name, job) in jobs.as_hash().unwrap() {
+        if name.as_str() != Some("software") {
+            assert!(job["steps"].as_vec().unwrap().iter().all(|step| {
+                step["with"]["script"]
+                    .as_str()
+                    .is_none_or(|script| !script.contains("core.exportVariable('RUSTC_WRAPPER'"))
+            }));
+        }
+    }
+    let cache_stats = named_step(
+        steps(jobs, "software"),
+        "Capture Access compiler cache diagnostics",
+    );
+    assert_eq!(
+        cache_stats["if"].as_str(),
+        Some("${{ always() && steps.access_cache.outputs.enabled == 'true' }}")
+    );
+    assert!(run(cache_stats).contains("trap '\"$RUSTC_WRAPPER\" --stop-server' EXIT"));
+    assert!(
+        named_step(
+            steps(jobs, "software"),
+            "Upload non-authoritative Cargo diagnostics"
+        )["with"]["path"]
+            .as_str()
+            .unwrap()
+            .contains("cargo-resource-profile/sccache.json")
+    );
     let plan = steps(jobs, "plan");
     one_step(
         plan,

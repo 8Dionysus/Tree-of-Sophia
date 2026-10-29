@@ -281,6 +281,26 @@ runs after a cache hit or miss. Software tests use a separate target directory
 from production images so test features cannot replace packaged executables.
 Cache availability does not select checks or qualify a software candidate.
 
+The full Software Access child additionally uses sccache 0.18.0, downloaded
+from its upstream release and verified against a pinned size and SHA-256 before
+execution. It caches eligible compiler outputs by compiler, arguments and
+tracked inputs; it does not restore a test target or reuse test results.
+Canonical Cargo commands, default/test feature contexts, linking, test processes,
+budgets and stage verification still run. Access disables incremental compilation
+on its fresh CI target so workspace libraries are cacheable; debug assertions
+and overflow checks retain their existing profile settings. Client-side compilation keeps rustc
+under the native lane's descendant custody. Other fixture children, production
+preparation and the offline cold-install lane do not use this wrapper.
+PRs only read the default-branch cache; main and manual full runs may populate
+it. A main push that reuses source CI does not fill this cache: use the existing
+manual full workflow on main to seed it and measure a subsequent warm run.
+Tool setup is optional and leaves Cargo on rustc when unavailable; server I/O
+failure falls back to the compiler. Cache statistics are non-authoritative job
+diagnostics. Cache hits depend on retained entries and compatible inputs, so
+cold and warm timings must be reported separately. Current Access proc-macro
+dependencies were checked for direct filesystem input reads; introducing such
+a macro requires an input-tracking review before trusting its cached output.
+
 A combined change takes all needed checks. Human Markdown is identified before
 its surrounding implementation directory. Other Markdown under a `fixture`, `fixtures`
 or `testdata` component keeps its enclosing consumer checks. Unknown homes keep
