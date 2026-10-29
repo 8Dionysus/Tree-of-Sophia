@@ -34,7 +34,7 @@ const WORDS={
   ru:{
     title:'Управление',close:'Понятно',never:'Больше не показывать',reopen:'Управление пространством',
     turn:'повернуть пространство',move:'сдвинуть',zoom:'приблизить и отдалить',lift:'поднять звезду и переставить',
-    keys:'повернуть с клавиатуры',route:'на маршруте — шаги, с Shift — поворот',choose:'открыть звезду или связь',
+    keys:'повернуть пространство',route:'на маршруте — шаги по нему, а с Shift — поворот',choose:'открыть звезду или связь',
     drag:'Тянуть',shiftDrag:'Shift + тянуть',rightDrag:'Правой кнопкой',wheel:'Колесо',hold:'Задержать на звезде',arrows:'Стрелки',click:'Нажать',
     oneFinger:'Одним пальцем',twoFingers:'Двумя пальцами',pinch:'Свести или развести пальцы',holdFinger:'Задержать палец на звезде',tap:'Коснуться',
     or:'или',
@@ -42,7 +42,7 @@ const WORDS={
   en:{
     title:'Controls',close:'Got it',never:'Don’t show again',reopen:'Controls of the space',
     turn:'turn the space',move:'move it',zoom:'zoom in and out',lift:'pick up a star and move it',
-    keys:'turn it from the keyboard',route:'on a route, steps; with Shift, a turn',choose:'open a star or a link',
+    keys:'turn the space',route:'on a route they walk its steps, with Shift they turn',choose:'open a star or a link',
     drag:'Drag',shiftDrag:'Shift + drag',rightDrag:'Right button',wheel:'Wheel',hold:'Hold on a star',arrows:'Arrows',click:'Click',
     oneFinger:'One finger',twoFingers:'Two fingers',pinch:'Pinch',holdFinger:'Hold a finger on a star',tap:'Tap',
     or:'or',

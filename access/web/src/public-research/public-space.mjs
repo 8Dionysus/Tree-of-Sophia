@@ -604,7 +604,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // Your own reading first. Where a step or a riddle asks, one line of your own is written before the readings open;
   // it becomes your star in front of what it is about, and then stands beside the reading you find nearest.
-  const ownKey=`tos.public-research.own-readings.v1.${profile}`,ownReadings=new Map();
+  const ownKey=`tos.public-research.own-readings.v1.${profile}`,ownReadings=new Map(),ownDrafts=new Map();
   try{const saved=JSON.parse(localStorage.getItem(ownKey)||'{}');if(object(saved))for(const [key,value]of Object.entries(saved))if(typeof value==='string')ownReadings.set(key,value);}catch{}
   const saveOwnReadings=()=>{try{localStorage.setItem(ownKey,JSON.stringify(Object.fromEntries(ownReadings)));}catch{}};
   const savePersonalPositions=()=>{try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;}};
@@ -643,9 +643,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!mine){
       const form=document.createElement('form');form.className='ps-own-form';
       const input=document.createElement('textarea');input.rows=2;input.maxLength=600;input.placeholder=t('ownPlaceholder');input.setAttribute('aria-label',t('ownPlaceholder'));
+      // A line being written survives the column being drawn again, with its caret.
+      const draft=ownDrafts.get(targetId);if(draft){input.value=draft.text;if(draft.focused)requestAnimationFrame(()=>{if(input.isConnected){input.focus({preventScroll:true});input.setSelectionRange(draft.start,draft.end);}});}
+      const keep=()=>{ownDrafts.set(targetId,{text:input.value,start:input.selectionStart,end:input.selectionEnd,focused:document.activeElement===input});};
+      input.addEventListener('input',keep);input.addEventListener('select',keep);input.addEventListener('keyup',keep);input.addEventListener('blur',()=>{const value=ownDrafts.get(targetId);if(value)value.focused=false;});
       const write=document.createElement('button');write.type='submit';write.className='primary ps-own-write';write.textContent=t('ownWrite');
       form.append(input,write);
-      form.addEventListener('submit',event=>{event.preventDefault();const text=input.value.trim();if(!text){input.focus();return;}writeOwnReading(targetId,text);});
+      form.addEventListener('submit',event=>{event.preventDefault();const text=input.value.trim();if(!text){input.focus();return;}ownDrafts.delete(targetId);writeOwnReading(targetId,text);});
       // Enter writes the line; Shift+Enter breaks it.
       input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();form.requestSubmit();}});
       box.append(form);
