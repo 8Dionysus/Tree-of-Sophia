@@ -1,14 +1,14 @@
 {
   "builder": "rust/crates/tos-ops-mechanics-plan/src/agent_surface.rs",
-  "manifest_sha256": "0db4efb94a96f4e7f27b2350b735dcde9ff2cda6b2d52d549f0283ac34f14c42",
+  "manifest_sha256": "35d7d95485fd9af874bf53202f51ca2c565bfc9cb07d911ccff6950ac3431259",
   "owner_ports": [
     {
       "id": "eval_port",
       "inputs": [
         {
-          "bytes": 1451,
+          "bytes": 1402,
           "path": "evals/AGENTS.md",
-          "sha256": "35f86a352d50f2ce639ac4cfa4d67753451d3c83583a3f33f84cc8c85ae7385b"
+          "sha256": "bf7681ae73ffe20ac30df7767a9f51a42c3f3244a8b1c2414d2ec7cca404a295"
         },
         {
           "bytes": 288,
@@ -16,9 +16,9 @@
           "sha256": "22b2c1d4d6aee339250857b96e9388ed4c6cdd1e3834bd182bb7e8820498d893"
         },
         {
-          "bytes": 1043,
+          "bytes": 1197,
           "path": "evals/README.md",
-          "sha256": "b7ed6c0905edaf5709895f2c0a44165abf9aed95fa22f1b0288d4f6789505c4d"
+          "sha256": "d30fc3461a356208b1b0abd65a1fd4aa8917de9e728e22021a43eae5b1e9b563"
         },
         {
           "bytes": 355,
@@ -34,6 +34,11 @@
           "bytes": 292,
           "path": "evals/reports/README.md",
           "sha256": "0b3a3dd45974043089215bc8b443a764f986863a3a1502a5817e356157fce09c"
+        },
+        {
+          "bytes": 1020,
+          "path": "evals/VALIDATION.md",
+          "sha256": "430181e8718ddd238e7ff1f09b5f135cc570f4bd64ee5bad1d3f3faacd5e7522"
         }
       ],
       "manifest": "evals/PORT.yaml"
@@ -83,9 +88,9 @@
       "id": "memo_port",
       "inputs": [
         {
-          "bytes": 1064,
+          "bytes": 1135,
           "path": "memo/AGENTS.md",
-          "sha256": "c10c10c2af9c37890cf6de9b4215df313204553e8b5bb41420ce3f6973b9d467"
+          "sha256": "8e1013417902cd669e0966c4b0ee891474a8ef733b1c31c4e3dae0cca4fa4d3c"
         },
         {
           "bytes": 567,
@@ -93,9 +98,9 @@
           "sha256": "a87eb2295df65ca74a2e77577acc1ec821bf37a44a90e5359a5dc01ae8dbbf3a"
         },
         {
-          "bytes": 680,
+          "bytes": 903,
           "path": "memo/README.md",
-          "sha256": "664b5e862372f681cc44adc00170baca6e7e46477d9be4cb110046dd8767361b"
+          "sha256": "6480902f934b1a827fe824788c536c7ad926a0e4d9e415efcb3580d8314dbc46"
         },
         {
           "bytes": 463,
@@ -106,6 +111,11 @@
           "bytes": 303,
           "path": "memo/index.min.json",
           "sha256": "64ea4b985984f15e1153838df02653c394574541ae2d2c9652e5b20f87a7698c"
+        },
+        {
+          "bytes": 1207,
+          "path": "memo/VALIDATION.md",
+          "sha256": "c07dd5bbb78b08aa1aa3ba1f04615477caf271486c4cc080e2b538ca4ed96a3c"
         }
       ],
       "manifest": "memo/PORT.yaml"
@@ -114,9 +124,9 @@
       "id": "stats_port",
       "inputs": [
         {
-          "bytes": 2350,
+          "bytes": 1536,
           "path": "stats/AGENTS.md",
-          "sha256": "948e5bcd5a34543566a9db044a9c0bf824dc90ec36d6bdf9cfdb15e4fda15595"
+          "sha256": "c11f94b166fe0192989686af12b0aca5c5516e678405278120292fb8cc6a5056"
         },
         {
           "bytes": 4095,

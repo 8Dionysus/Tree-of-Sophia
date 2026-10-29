@@ -16,6 +16,7 @@
       "access",
       "docs",
       "mechanics",
+      "rust",
       "scripts",
       "tests",
       "evals",
@@ -603,7 +604,7 @@
       "id": "release_validation",
       "prompt": "Run or repair the release and validation route, preserving command authority, generated parity, and CI evidence.",
       "target": "rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs",
-      "owner_route": "scripts/AGENTS.md",
+      "owner_route": "rust/AGENTS.md",
       "required_scopes": [
         "lane authority",
         "ordered command sequence",
@@ -611,9 +612,9 @@
         "CI/PR evidence"
       ],
       "required_markers": [
-        "release_check",
+        "native",
+        "release",
         "validation_lanes.json",
-        "script_inventory.json",
         "generated"
       ],
       "boundary_markers": [
@@ -639,7 +640,7 @@
         "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs"
       ],
       "completion_evidence": [
-        "scripts/AGENTS.md",
+        "rust/AGENTS.md",
         "docs/validation/validation_lanes.json",
         "rust/crates/tos-ops-mechanics-plan/src/release_check_main.rs",
         ".github/workflows/repo-validation.yml"
@@ -726,12 +727,12 @@
         "evals/intake/README.md"
       ],
       "validation_lanes": [
-        "eval_port",
+        "agent_surface",
         "route_docs"
       ],
       "validation_paths": [
-        "evals/PORT.yaml",
-        "evals/AGENTS.md"
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
+        "evals/VALIDATION.md"
       ],
       "completion_evidence": [
         "evals/AGENTS.md",
@@ -861,11 +862,12 @@
         "memo/VALIDATION.md"
       ],
       "validation_lanes": [
+        "agent_surface",
         "route_docs"
       ],
       "validation_paths": [
-        "memo/PORT.yaml",
-        "memo/AGENTS.md"
+        "rust/crates/tos-ops-mechanics-plan/src/agent_surface_validation.rs",
+        "memo/VALIDATION.md"
       ],
       "completion_evidence": [
         "memo/AGENTS.md",

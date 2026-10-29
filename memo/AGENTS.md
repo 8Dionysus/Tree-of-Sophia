@@ -13,7 +13,7 @@ and philosophical meaning remain in their ToS owner surfaces.
 Read `PORT.yaml` and the exact candidate, receipt or export. `candidates/`
 holds proposals, `receipts/` review/handoff traces, `exports/` owner-intake
 packets and `local/` local material. `INDEX.md` and `index.min.json` are
-generated navigation.
+generated navigation; inspect packets directly if those snapshots are stale.
 
 Bind candidates to reviewed evidence and keep them local until review. An
 export or `landing-plan` is not durable admission; central landing follows the
@@ -22,6 +22,6 @@ and centrally admitted state.
 
 ## Validation
 
-Use [memo/VALIDATION.md](VALIDATION.md) after the operation and exact owner
-checkout are known. It owns the external procedure and generated-index side
-effects. Closeout names the candidate, evidence, checks and disposition.
+Use [VALIDATION.md](VALIDATION.md) for ToS-local route checks and packet review.
+The receiving owner checks compatibility and admission in its own environment.
+Closeout names the candidate, evidence, checks, index freshness and disposition.

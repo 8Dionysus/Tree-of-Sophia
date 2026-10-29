@@ -160,18 +160,19 @@
     "eval_port": {
       "local_owner": "evals/AGENTS.md",
       "manifest": "evals/PORT.yaml",
-      "consumer": "eval pressure intake and local-port validation before central eval selection or verdict",
+      "consumer": "eval pressure intake, ToS route checks and consumer-owned central proof review",
       "load_moment": "when a repository task produces or asks for eval pressure",
       "canonical_owner": "8Dionysus/aoa-evals",
-      "freshness": "local route and PORT.yaml; central validator/source checkout determines shared protocol compatibility",
-      "next_organ": "aoa-evals local port validator, then central selection/proof/verdict owner",
+      "freshness": "local PORT.yaml, packet evidence and ToS route checks; the receiving owner checks shared protocol compatibility",
+      "next_organ": "selected packet handoff to aoa-evals for consumer-side compatibility and central proof review",
       "currentness_inputs": [
         "evals/AGENTS.md",
         "evals/PORT.yaml",
         "evals/README.md",
         "evals/intake/README.md",
         "evals/suites/README.md",
-        "evals/reports/README.md"
+        "evals/reports/README.md",
+        "evals/VALIDATION.md"
       ],
       "carrier_classes": [
         "local_intake_port",
@@ -236,13 +237,14 @@
       "load_moment": "when reviewed evidence suggests a bounded memory candidate or owner handoff",
       "canonical_owner": "8Dionysus/aoa-memo",
       "freshness": "PORT.yaml, local route docs, candidate/receipt/export posture, and generated index; no claim of durable or live memory",
-      "next_organ": "candidate-only helper -> local validator -> reviewed aoa-memo intake/decision",
+      "next_organ": "candidate and evidence review -> ToS route checks -> consumer-side aoa-memo compatibility and admission",
       "currentness_inputs": [
         "memo/AGENTS.md",
         "memo/PORT.yaml",
         "memo/README.md",
         "memo/INDEX.md",
-        "memo/index.min.json"
+        "memo/index.min.json",
+        "memo/VALIDATION.md"
       ],
       "carrier_classes": [
         "local_intake_port",
@@ -346,7 +348,7 @@
       "required_chain": [
         "local pressure",
         "PORT.yaml",
-        "aoa-evals local validation",
+        "ToS route checks and packet review",
         "central selection or verdict owner"
       ],
       "mandatory_reading_depth": 3,
@@ -398,7 +400,7 @@
       "port_id": "memo_port",
       "required_chain": [
         "candidate-only route",
-        "local validation",
+        "ToS route checks and packet review",
         "reviewed aoa-memo intake"
       ],
       "mandatory_reading_depth": 5,

@@ -287,7 +287,7 @@
       "mode": "advisory",
       "owner_surface": "evals/AGENTS.md",
       "purpose": "Keep ToS-local eval pressure visible while central verdict and scoring authority stay with aoa-evals.",
-      "focused_target": "evals/PORT.yaml via aoa-evals validate_local_eval_port.py when aoa-evals is in scope",
+      "focused_target": "evals/PORT.yaml and packet evidence via evals/VALIDATION.md; ToS agent_surface/route_docs checks, consumer-side compatibility and admission",
       "failure_route": "evals/AGENTS.md",
       "does_not_own": [
         "central eval verdicts",

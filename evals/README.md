@@ -16,6 +16,9 @@ packets, but they do not become bounded proof by location alone.
 - Route central proof adoption, portable eval bundles, verdicts, scoring,
   regression, and proof doctrine to `aoa-evals`.
 
+[Local validation](VALIDATION.md) checks ToS routes and reviews packet evidence.
+The consumer checks compatibility and admission in its own environment.
+
 ## Current Status
 
 Active local pressure: the reviewed

@@ -2,7 +2,9 @@
 
 Tree of Sophia is a source-first philosophical tree. It organizes witnesses,
 observations, interpretations and reviewed knowledge so that every derived
-view can return to the material and decisions that support it.
+view can return to the material and decisions that support it. This structure
+serves the [Charter's research purpose](CHARTER.md#purpose): tracing, comparing
+and measuring thought while keeping each representation open to examination.
 
 A tree records descent, inheritance and branch context. A graph exposes
 relations across those branches. Both are useful; authored sources and review
@@ -33,7 +35,9 @@ implementation lives with its native crate or adapter.
 ## Coupled Growth
 
 The world-philosophy foundation supplies breadth: source identity, language,
-time, place, transmission and stable addresses. The Zarathustra kernel supplies
+time, place, transmission and stable addresses. Its people, works and contexts
+support both mathematical exploration and deeper philological work in the
+[roadmap's sequence](ROADMAP.md#current-tos-direction). The Zarathustra kernel supplies
 a dense worked route through observation, interpretation, review, rejection,
 ambiguity and promotion.
 

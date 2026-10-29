@@ -33,8 +33,9 @@ only; the validator rejects Python commands in the manifest.
 | Rust workspace and crates | `rust_workspace` with the pinned toolchain, WASM target and matching wasm-bindgen CLI; it verifies implemented Rust packages and installed native consumers |
 | data or historical integration | select the affected owner operation in `docs/RELEASING.md`; no combined integration gate |
 
-Use the nearest district `VALIDATION.md` when it names a narrower external
-owner, mutation-bearing builder, or package-specific procedure.
+Use the nearest district `VALIDATION.md` for a narrower ToS-owned check,
+mutation-bearing builder or package procedure. Consumers run their own
+compatibility and admission checks after handoff.
 
 ## Run
 
