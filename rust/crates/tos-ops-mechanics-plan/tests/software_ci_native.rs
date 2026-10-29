@@ -635,7 +635,8 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         "45f1447fbe231e3037bde351ef70677dd212216c8d62ae7ca409fecc4d6acc89",
         "core.exportVariable('CARGO_INCREMENTAL', '0')",
         "SCCACHE_CLIENT_SIDE: '1'",
-        "SCCACHE_GHA_RW_MODE: context.eventName === 'pull_request' ? 'READ_ONLY' : 'READ_WRITE'",
+        "SCCACHE_DIR: cache",
+        "SCCACHE_CACHE_SIZE: '512M'",
         "SCCACHE_IGNORE_SERVER_IO_ERROR: '1'",
     ] {
         assert!(
@@ -647,19 +648,67 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         cache_script.find("createHash('sha256')").unwrap()
             < cache_script.find("execFileSync('tar'").unwrap()
     );
+    assert!(!cache_script.contains("SCCACHE_GHA_ENABLED"));
+    assert!(!cache_script.contains("ACTIONS_RUNTIME_TOKEN"));
+    assert!(cache_script.contains("HEAD^{tree}"));
+    assert!(!cache_script.contains("github.sha"));
+    let restore = named_step(
+        steps(jobs, "software"),
+        "Restore Access compiler cache archive",
+    );
     assert!(
-        cache_script.find("['--start-server']").unwrap()
-            < cache_script
-                .find("core.exportVariable('RUSTC_WRAPPER'")
-                .unwrap()
+        restore["uses"]
+            .as_str()
+            .unwrap()
+            .starts_with("actions/cache/restore@")
+    );
+    assert_eq!(restore["continue-on-error"].as_bool(), Some(true));
+    let start = named_step(steps(jobs, "software"), "Start Access compiler cache");
+    assert!(
+        run(start).find("--start-server").unwrap() < run(start).find("RUSTC_WRAPPER=%s").unwrap()
+    );
+    let save = named_step(
+        steps(jobs, "software"),
+        "Save Access compiler cache archive",
+    );
+    assert!(
+        save["uses"]
+            .as_str()
+            .unwrap()
+            .starts_with("actions/cache/save@")
+    );
+    assert!(
+        save["if"]
+            .as_str()
+            .unwrap()
+            .contains("github.event_name != 'pull_request'")
+    );
+    assert!(save["if"].as_str().unwrap().contains("success()"));
+    assert_eq!(save["with"]["path"], restore["with"]["path"]);
+    assert_eq!(save["with"]["key"], restore["with"]["key"]);
+    let software_steps = steps(jobs, "software");
+    let position = |name| {
+        software_steps
+            .iter()
+            .position(|step| step["name"].as_str() == Some(name))
+            .unwrap()
+    };
+    assert!(
+        position("Restore Access compiler cache archive") < position("Start Access compiler cache")
+    );
+    assert!(
+        position("Capture Access compiler cache diagnostics")
+            < position("Save Access compiler cache archive")
     );
     for (name, job) in jobs.as_hash().unwrap() {
         if name.as_str() != Some("software") {
-            assert!(job["steps"].as_vec().unwrap().iter().all(|step| {
-                step["with"]["script"]
-                    .as_str()
-                    .is_none_or(|script| !script.contains("core.exportVariable('RUSTC_WRAPPER'"))
-            }));
+            assert!(
+                job["steps"]
+                    .as_vec()
+                    .unwrap()
+                    .iter()
+                    .all(|step| !run(step).contains("RUSTC_WRAPPER=%s"))
+            );
         }
     }
     let cache_stats = named_step(
@@ -668,7 +717,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     );
     assert_eq!(
         cache_stats["if"].as_str(),
-        Some("${{ always() && steps.access_cache.outputs.enabled == 'true' }}")
+        Some("${{ always() && steps.access_cache_start.outputs.enabled == 'true' }}")
     );
     assert!(run(cache_stats).contains("trap '\"$RUSTC_WRAPPER\" --stop-server' EXIT"));
     assert!(
@@ -680,6 +729,28 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
             .unwrap()
             .contains("cargo-resource-profile/sccache.json")
     );
+    let cleanup = workflow("cleanup-pr-caches.yml");
+    assert_eq!(cleanup["permissions"]["actions"].as_str(), Some("write"));
+    assert_eq!(
+        cleanup["on"]["pull_request_target"]["types"][0].as_str(),
+        Some("closed")
+    );
+    assert!(
+        cleanup["jobs"]["cleanup"]["if"]
+            .as_str()
+            .unwrap()
+            .contains("merged == true")
+    );
+    let cleanup_steps = steps(&cleanup["jobs"], "cleanup");
+    assert!(cleanup_steps.iter().all(|step| {
+        !step["uses"]
+            .as_str()
+            .unwrap_or("")
+            .starts_with("actions/checkout")
+    }));
+    let cleanup_script = cleanup_steps[0]["with"]["script"].as_str().unwrap();
+    assert!(cleanup_script.contains("cache.ref !== ref"));
+    assert!(cleanup_script.contains("'tos-cargo-lib-', 'tos-access-sccache-'"));
     let plan = steps(jobs, "plan");
     one_step(
         plan,
@@ -1244,6 +1315,9 @@ fn sparse_checkout_excludes_whole_corpus_and_private_payloads() {
     let worker = sparse(jobs, "worker");
     assert!(rust.contains("!/ToS/source-witnesses/**/payload/"));
     let postgres = sparse(jobs, "postgres");
+    for checkout in [&rust, &software, &postgres] {
+        assert!(checkout.contains("/.github/workflows/cleanup-pr-caches.yml"));
+    }
     for checkout in [&rust, &software, &worker, &postgres] {
         for path in ["/ToS/source-witnesses/", "/ToS/", "/ToS/candidate-intake/"] {
             assert!(!checkout.contains(path));

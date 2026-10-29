@@ -1,0 +1,31 @@
+name: Discard merged pull-request caches
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Delete only merged PR compiler cache snapshots
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            // Trusted default-branch workflow; no PR code is checked out or executed.
+            const number = context.payload.pull_request.number;
+            if (!Number.isSafeInteger(number) || number <= 0) throw new Error('Invalid PR number.');
+            const ref = `refs/pull/${number}/merge`;
+            const caches = await github.paginate(github.rest.actions.getActionsCacheList, {
+              ...context.repo, ref, per_page: 100,
+            });
+            for (const cache of caches) {
+              if (cache.ref !== ref || !['tos-cargo-lib-', 'tos-access-sccache-'].some(prefix => cache.key.startsWith(prefix))) continue;
+              await github.rest.actions.deleteActionsCacheById({ ...context.repo, cache_id: cache.id });
+              core.info(`Deleted merged PR cache ${cache.id}.`);
+            }

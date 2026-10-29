@@ -198,6 +198,7 @@ jobs:
             /tests/fixtures/native-text-binding/
             /pytest.ini
             /.github/workflows/repo-validation.yml
+            /.github/workflows/cleanup-pr-caches.yml
             /.github/workflows/cloudflare-edge.yml
             # Literal Rust compile/test inputs; source bytes are not executed.
             /.agents/agent-surface.manifest.json
@@ -637,10 +638,6 @@ jobs:
             const { execFileSync } = await import('node:child_process');
             // This runner starts with an empty target; workspace libraries must be cacheable.
             core.exportVariable('CARGO_INCREMENTAL', '0');
-            const token = process.env.ACTIONS_RUNTIME_TOKEN;
-            const resultsUrl = process.env.ACTIONS_RESULTS_URL;
-            if (!token || !resultsUrl) throw new Error('Compiler cache runtime unavailable; use rustc.');
-            core.setSecret(token);
             const release = 'sccache-v0.18.0-x86_64-unknown-linux-musl';
             const expectedBytes = 9730540;
             const expectedSha = '45f1447fbe231e3037bde351ef70677dd212216c8d62ae7ca409fecc4d6acc89';
@@ -669,25 +666,45 @@ jobs:
             if (platform !== 'ubuntu-26.04-x64') throw new Error('Unqualified compiler cache platform.');
             const conf = path.join(tool, 'config.toml');
             fs.writeFileSync(conf, '', { mode: 0o600 });
+            const cache = path.join(tool, 'cache');
+            fs.mkdirSync(cache, { mode: 0o700 });
             const settings = {
-              ACTIONS_RESULTS_URL: resultsUrl,
-              ACTIONS_RUNTIME_TOKEN: token,
               SCCACHE_CONF: conf,
               SCCACHE_CACHED_CONF: path.join(tool, 'cached-config'),
               SCCACHE_SERVER_UDS: path.join(tool, 'server.sock'),
-              SCCACHE_GHA_ENABLED: 'on',
-              SCCACHE_GHA_VERSION: `tos-access-rlib-v1-0.18.0-rust1.98.1-${platform}`,
-              SCCACHE_GHA_RW_MODE: context.eventName === 'pull_request' ? 'READ_ONLY' : 'READ_WRITE',
+              SCCACHE_DIR: cache,
+              SCCACHE_CACHE_SIZE: '512M',
               SCCACHE_CLIENT_SIDE: '1',
               SCCACHE_IGNORE_SERVER_IO_ERROR: '1',
               SCCACHE_IDLE_TIMEOUT: '600',
             };
-            // Compilation stays in the client process under lane custody.
-            // Only main/full runs populate the default-branch cache; PRs read it.
-            execFileSync(binary, ['--start-server'], { env: { ...process.env, ...settings }, timeout: 30000, maxBuffer: 524288 });
             for (const [name, value] of Object.entries(settings)) core.exportVariable(name, value);
-            core.exportVariable('RUSTC_WRAPPER', binary);
+            const tree = execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { encoding: 'utf8', timeout: 10000 }).trim();
+            if (!/^[0-9a-f]{40}$/.test(tree)) throw new Error('Invalid compiler-cache source tree.');
+            const prefix = `tos-access-sccache-v1-0.18.0-rust1.98.1-${platform}-`;
+            core.setOutput('key', `${prefix}${tree}`);
+            core.setOutput('prefix', prefix);
+            core.setOutput('binary', binary);
             core.setOutput('enabled', 'true');
+      - name: Restore Access compiler cache archive
+        id: access_cache_restore
+        if: ${{ steps.access_cache.outputs.enabled == 'true' }}
+        continue-on-error: true
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ runner.temp }}/access-compiler-cache/cache
+          key: ${{ steps.access_cache.outputs.key }}
+          restore-keys: ${{ steps.access_cache.outputs.prefix }}
+      - name: Start Access compiler cache
+        id: access_cache_start
+        if: ${{ steps.access_cache.outputs.enabled == 'true' }}
+        continue-on-error: true
+        env:
+          CACHE_COMPILER_TOOL: ${{ steps.access_cache.outputs.binary }}
+        run: |
+          "$CACHE_COMPILER_TOOL" --start-server
+          printf 'RUSTC_WRAPPER=%s\n' "$CACHE_COMPILER_TOOL" >> "$GITHUB_ENV"
+          printf 'enabled=true\n' >> "$GITHUB_OUTPUT"
       - *cargo_resource_before
       - &fetch_software_stage
         name: Fetch same-run Software stage
@@ -724,12 +741,20 @@ jobs:
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
         run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run software_reader --cargo-timings'
       - name: Capture Access compiler cache diagnostics
-        if: ${{ always() && steps.access_cache.outputs.enabled == 'true' }}
+        if: ${{ always() && steps.access_cache_start.outputs.enabled == 'true' }}
         continue-on-error: true
+        timeout-minutes: 1
         run: |
           umask 077
           trap '"$RUSTC_WRAPPER" --stop-server' EXIT
           "$RUSTC_WRAPPER" --show-stats --stats-format=json > "$RUNNER_TEMP/cargo-resource-profile/sccache.json"
+      - name: Save Access compiler cache archive
+        if: ${{ success() && steps.access_cache_start.outputs.enabled == 'true' && github.event_name != 'pull_request' && steps.access_cache_restore.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ runner.temp }}/access-compiler-cache/cache
+          key: ${{ steps.access_cache.outputs.key }}
       - *cargo_resource_after
       - *cargo_diagnostics
       - &cleanup_native_verity
@@ -971,6 +996,7 @@ jobs:
             /tests/support/selected_metadata_authority.rs
             /tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json
             /.github/workflows/repo-validation.yml
+            /.github/workflows/cleanup-pr-caches.yml
             /.github/workflows/cloudflare-edge.yml
             /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
