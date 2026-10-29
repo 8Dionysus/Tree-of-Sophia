@@ -113,24 +113,37 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!n){
         const el=document.createElement('button');el.type='button';el.className='tree-star';el.dataset.node=item.id;
         const label=document.createElement('span');el.append(label);layer.append(el);n={id:item.id,el,label,screen:{x:0,y:0,s:1},p:[...item.position],target:[...item.position],dragging:false};
-        let nodeDrag=null,press=null,suppress=false;
+        let nodeDrag=null,press=null,swallowed=false;
         const movable=()=>typeof dragNodes==='function'?dragNodes(item.id):dragNodes;
         const pickUp=(pointerId,x,y)=>{n.dragging=true;nodeDrag={id:pointerId,x,y,p:[...n.p],moved:false};};
-        el.addEventListener('click',()=>{if(suppress){suppress=false;return;}onSelect(item.id)});
+        // The click that ends a drag or a pinch belongs to it; a new press starts clean, and the keyboard (detail 0) always chooses.
+        const swallow=()=>{swallowed=true;};
+        el.addEventListener('click',e=>{if(e.detail!==0&&swallowed){swallowed=false;return;}onSelect(item.id)});
         // A star held still is picked up and moves; a quick drag from it turns the view, as the sky around it does.
-        el.addEventListener('contextmenu',e=>{if(holdToMove)e.preventDefault();});
-        // A pinch that begins over a star takes over: a turn begun from it goes back, a star picked up returns.
-        const cancel=()=>{
+        el.addEventListener('contextmenu',e=>{if(holdToMove||secondaryPan)e.preventDefault();});
+        // What a press began ends without a trace: on a pinch the view goes back and a picked-up star returns;
+        // a star that leaves the view lets its press go.
+        const settle=restore=>{
           clearTimeout(press?.timer);
-          if(press?.view){tyaw=press.view.yaw;tpitch=press.view.pitch;tpan={...press.view.pan};n.turningView=false;canvas.classList.remove('dragging');}
-          if(nodeDrag){n.p=[...nodeDrag.p];n.target=[...n.p];nodeDrag=null;n.dragging=false;delete el.dataset.held;}
-          press=null;suppress=true;presses.delete(cancel);kick();
+          if(press?.view){if(restore){tyaw=press.view.yaw;tpitch=press.view.pitch;tpan={...press.view.pan};}canvas.classList.remove('dragging');}
+          n.turningView=false;
+          if(nodeDrag){if(restore){n.p=[...nodeDrag.p];n.target=[...n.p];}nodeDrag=null;n.dragging=false;delete el.dataset.held;}
+          press=null;presses.delete(cancel);kick();
         };
+        const cancel=()=>{settle(true);swallow();};
+        n.abandon=()=>settle(false);
         el.addEventListener('pointerdown',e=>{
-          if(e.button!==0||pinching(e))return;suppress=false;
+          if(pinching(e))return;
+          swallowed=false;
+          const panButton=secondaryPan&&(e.button===1||e.button===2);
+          if(e.button!==0&&!panButton)return;
+          // A press stops a turn that is still coasting.
+          velocity=null;lastTurn=null;
+          // The right or middle button moves the view from a star as from the sky.
+          if(panButton){e.preventDefault();revealId=null;press={id:e.pointerId,x:e.clientX,y:e.clientY,view:{yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:false,forcePan:true},timer:null,moved:false};presses.add(cancel);el.setPointerCapture(e.pointerId);e.stopPropagation();canvas.classList.add('dragging');return;}
           if(!holdToMove){if(!movable())return;pickUp(e.pointerId,e.clientX,e.clientY);el.setPointerCapture(e.pointerId);e.stopPropagation();return;}
           const can=movable();if(!can&&!turnFromStars)return;
-          press={id:e.pointerId,x:e.clientX,y:e.clientY,view:null,timer:can?setTimeout(()=>{if(press&&!press.view){pickUp(press.id,press.x,press.y);el.dataset.held='true';kick();}},holdToMove):null};
+          press={id:e.pointerId,x:e.clientX,y:e.clientY,view:null,moved:false,timer:can?setTimeout(()=>{if(press&&!press.view){pickUp(press.id,press.x,press.y);el.dataset.held='true';kick();}},holdToMove):null};
           presses.add(cancel);el.setPointerCapture(e.pointerId);e.stopPropagation();
         });
         el.addEventListener('pointermove',e=>{
@@ -145,15 +158,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
           }
           if(!press||e.pointerId!==press.id)return;
           const dx=e.clientX-press.x,dy=e.clientY-press.y;
-          if(!press.view){if(Math.hypot(dx,dy)<5)return;clearTimeout(press.timer);if(!turnFromStars){press=null;return;}revealId=null;velocity=null;lastTurn=null;press.view={yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,forcePan:false};n.turningView=!(rotate?e.shiftKey:!e.shiftKey);canvas.classList.add('dragging');}
+          if(!press.view){if(Math.hypot(dx,dy)<5)return;clearTimeout(press.timer);if(!turnFromStars){press=null;presses.delete(cancel);return;}revealId=null;velocity=null;lastTurn=null;press.view={yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,forcePan:false};n.turningView=!(rotate?e.shiftKey:!e.shiftKey);canvas.classList.add('dragging');}
+          if(Math.hypot(dx,dy)>=5)press.moved=true;
           hoverEdge=null;dragBy(press.view,dx,dy);
         });
         const end=e=>{
-          presses.delete(cancel);
-          if(nodeDrag&&e.pointerId===nodeDrag.id){const moved=nodeDrag.moved;nodeDrag=null;n.dragging=false;delete el.dataset.held;press=null;if(moved){suppress=true;onMove?.(item.id,[...n.p]);}kick();return;}
+          if(nodeDrag&&e.pointerId===nodeDrag.id){const moved=nodeDrag.moved;nodeDrag=null;n.dragging=false;delete el.dataset.held;press=null;presses.delete(cancel);if(moved){swallow();onMove?.(item.id,[...n.p]);}kick();return;}
           if(!press||e.pointerId!==press.id)return;
-          clearTimeout(press.timer);
-          if(press.view){if(e.type==='pointerup')suppress=true;n.turningView=false;canvas.classList.remove('dragging');letGo();}
+          clearTimeout(press.timer);presses.delete(cancel);
+          if(press.view){if(press.moved||press.view.forcePan)swallow();n.turningView=false;canvas.classList.remove('dragging');letGo();}
           press=null;kick();
         };
         el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);
@@ -174,7 +187,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(item.hover)n.el.title=item.hover;else n.el.removeAttribute('title');
       if(item.ownerType)n.el.dataset.ownerType=item.ownerType;else delete n.el.dataset.ownerType;
       return n;
-    });old.forEach(n=>n.el.remove());
+    });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
     clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint)c.el.title=item.hint;else c.el.removeAttribute('title');c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
@@ -402,7 +415,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const frameInterval=softwareRenderer?1000/28:1000/36;if(!still&&lastFrame&&now-lastFrame<frameInterval){raf=requestAnimationFrame(draw);return;}lastFrame=now;
     const started=performance.now(),elapsed=last?(now-last)/1000:1/60,dt=Math.min(elapsed,.05),ease=(reduced.matches||still)?1:1-Math.exp(-dt*5);last=now;
     if(playing&&!still)skyTime+=dt*.60;
-    if(velocity&&!drag&&!still){
+    if(velocity&&!drag&&!still&&!nodes.some(n=>n.turningView)){
       const nextYaw=clamp(tyaw+velocity.yaw*dt,...YAW),nextPitch=clamp(tpitch+velocity.pitch*dt,...PITCH),decay=Math.exp(-dt*3.6);
       velocity.yaw=nextYaw===tyaw+velocity.yaw*dt?velocity.yaw*decay:0;velocity.pitch=nextPitch===tpitch+velocity.pitch*dt?velocity.pitch*decay:0;
       tyaw=nextYaw;tpitch=nextPitch;if(Math.abs(velocity.yaw)+Math.abs(velocity.pitch)<.015)velocity=null;
@@ -439,7 +452,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // The planes of depth show while the space turns, by a drag, a key, the globe or its first turn, and fade once it rests:
     // the turn itself shows what depth means, and the space at rest keeps only its stars.
     const turning=!measured&&!!((drag?.moved&&!(drag.forcePan||(rotate?drag.shift:!drag.shift)))||velocity||now<introUntil||now<turnShownUntil||nodes.some(n=>n.turningView));
-    reveal+=((turning?1:0)-reveal)*(1-Math.exp(-dt*(turning?7:1.8)));if(reveal<.003)reveal=0;
+    if(planes.length){reveal+=((turning?1:0)-reveal)*(1-Math.exp(-dt*(turning?7:1.8)));if(reveal<.003)reveal=0;}else reveal=0;
     for(const plane of planes){
       const z=plane.z,[x0,x1]=plane.x,[y0,y1]=plane.y;plane.corners=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(([x,y])=>project([x,y,z]));
       if(reveal<.02)continue;
@@ -560,22 +573,39 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const touchPair=()=>{const [a,b]=[...touches.values()];return {distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),mid:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}};};
   // While two fingers pinch, or the one left after a pinch is still down, no single-finger gesture starts or goes on.
   const pinching=e=>e.pointerType==='touch'&&(!!gesture||touchHeld);
+  // Only fingers on the sky itself, its stars and its names pinch; a finger on a panel belongs to the panel.
+  const onSky=e=>e.target===canvas||layer.contains(e.target)||edgeLayer.contains(e.target)||clusterLayer.contains(e.target);
+  // A pinch keeps the point between the fingers under them: it zooms about it and follows it.
+  const startPinch=()=>{gesture={...touchPair(),zoom:tzoom,pan:{...tpan},rect:canvas.getBoundingClientRect()};};
+  const applyPinch=()=>{
+    const pair=touchPair(),before=gesture.zoom;zoomTo(before*pair.distance/gesture.distance);
+    const ratio=tzoom/before,r=gesture.rect,cx=(targetViewport.left+targetViewport.right)/2,cy=(targetViewport.top+targetViewport.bottom)/2;
+    const from={x:gesture.mid.x-r.left-cx,y:gesture.mid.y-r.top-cy},to={x:pair.mid.x-r.left-cx,y:pair.mid.y-r.top-cy};
+    tpan={x:to.x-(from.x-gesture.pan.x)*ratio,y:measured?.axes==='x'?0:to.y-(from.y-gesture.pan.y)*ratio};kick();
+  };
   if(touch){
     root.addEventListener('pointerdown',e=>{
       if(e.pointerType!=='touch')return;
+      // A new touch forgets fingers whose lifting was never heard.
+      if(e.isPrimary){touches.clear();gesture=null;touchHeld=false;}
+      if(!onSky(e))return;
       touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(touches.size!==2)return;
-      // A pinch takes over from what one finger began: a turn goes back to where it started, a picked-up star stays put.
-      if(drag){tyaw=drag.yaw;tpitch=drag.pitch;tpan={...drag.pan};drag=null;canvas.classList.remove('dragging');}
-      for(const cancel of [...presses])cancel();
-      velocity=null;introUntil=0;gesture={...touchPair(),zoom:tzoom,pan:{...tpan}};touchHeld=true;
+      if(touches.size<2)return;
+      if(!gesture){
+        // A pinch takes over from what one finger began: a turn goes back to where it started, a picked-up star stays put.
+        if(drag){tyaw=drag.yaw;tpitch=drag.pitch;tpan={...drag.pan};drag=null;canvas.classList.remove('dragging');}
+        for(const cancel of [...presses])cancel();
+        velocity=null;introUntil=0;touchHeld=true;
+      }
+      // A finger more starts the pinch again from where the fingers are, so nothing jumps.
+      startPinch();
     },{capture:true});
     root.addEventListener('pointermove',e=>{
       if(e.pointerType!=='touch'||!touches.has(e.pointerId))return;
       touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(gesture&&touches.size===2){const pair=touchPair();zoomTo(gesture.zoom*pair.distance/gesture.distance);tpan={x:gesture.pan.x+pair.mid.x-gesture.mid.x,y:measured?.axes==='x'?0:gesture.pan.y+pair.mid.y-gesture.mid.y};kick();}
+      if(gesture&&touches.size>=2)applyPinch();
     },{capture:true});
-    const lift=e=>{if(e.pointerType==='touch'&&touches.delete(e.pointerId)){if(touches.size<2)gesture=null;if(!touches.size)touchHeld=false;}};
+    const lift=e=>{if(e.pointerType==='touch'&&touches.delete(e.pointerId)){if(touches.size<2)gesture=null;else if(gesture)startPinch();if(!touches.size)touchHeld=false;}};
     root.addEventListener('pointerup',lift,{capture:true});root.addEventListener('pointercancel',lift,{capture:true});
   }
   canvas.addEventListener('pointerdown',e=>{
@@ -593,7 +623,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;dragBy(drag,dx,dy);
   });
   const release=e=>{
-    if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved;drag=null;canvas.classList.remove('dragging');letGo();
+    if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved&&!drag.forcePan;drag=null;canvas.classList.remove('dragging');letGo();
     if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();
   };canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   canvas.addEventListener('pointerleave',()=>{if(!drag){hoverEdge=null;canvas.style.cursor='';kick();}});
@@ -632,7 +662,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       velocity=null;tyaw=measured?0:restYaw;tpitch=measured?0:restPitch;tzoom=1;tpan={x:0,y:0};
       const introNow=intro&&!measured&&!introDone&&!reduced.matches;
       // The first framing is where the view begins, unless the space is to turn into it; later framings ease there.
-      if(!framedOnce){framedOnce=true;if(!introNow){yaw=tyaw;pitch=tpitch;}}
+      if(!framedOnce){framedOnce=true;if(rest&&!introNow){yaw=tyaw;pitch=tpitch;}}
       if(introNow){introDone=true;introPending=true;}
       resize()},
     /** Turn the view by a step, as a drag would; a measured layout does not turn. */
