@@ -6,7 +6,7 @@ import {BONSAI_LOCALES,resolveLocale,copyLocale,bonsaiTranslation} from '../../.
 export {resolveLocale,copyLocale};
 export const PUBLIC_LOCALES=BONSAI_LOCALES;
 export const LOCALE_NAMES=Object.freeze({ru:'Русский',en:'English',es:'Español',de:'Deutsch','zh-Hans':'简体中文'});
-const catalogs=Object.freeze({es,de,'zh-Hans':zh});
+const catalogs=Object.freeze({ru:Object.freeze({'Interface language':'Язык интерфейса'}),es,de,'zh-Hans':zh});
 const translation=(source,language)=>{const catalog=catalogs[language];return catalog&&Object.hasOwn(catalog,source)?catalog[source]:bonsaiTranslation(source,language);};
 
 /** Only call for authored presentation messages, never raw user/provider text. */

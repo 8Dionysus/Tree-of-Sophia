@@ -50,6 +50,7 @@ test('every authored Bonsai display form has a translation entry',()=>{
 });
 
 test('locale aliases preserve script choice and authored forms keep source and personal text literal',()=>{
+  expect(localeText('Interface language','ru')).toBe('Язык интерфейса');
   expect(resolveLocale('es-MX')).toBe('es');expect(resolveLocale('de-DE')).toBe('de');
   expect(resolveLocale('zh-CN')).toBe('zh-Hans');expect(resolveLocale('zh-Hans-SG')).toBe('zh-Hans');
   expect(resolveLocale('zh-Hant',null)).toBe(null);
