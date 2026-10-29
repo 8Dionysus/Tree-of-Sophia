@@ -1672,7 +1672,7 @@
       ]
     },
     {
-      "additional_context_tokens": 1988,
+      "additional_context_tokens": 2057,
       "completion_evidence": [
         {
           "bytes": 1936,
@@ -1684,22 +1684,22 @@
           "whitespace_tokens": 307
         },
         {
-          "bytes": 7574,
+          "bytes": 8019,
           "exists": true,
-          "lines": 126,
+          "lines": 132,
           "path": "bonsai/README.md",
           "role": "completion",
-          "sha256": "b2fb1025472d77fd123af130a3e2c95f570fafc610f1a23c65e0fef7d0a7c325",
-          "whitespace_tokens": 1183
+          "sha256": "73cd492c1b1e77f57cb7acd4cb05d84b27746c6833ad56942f47ec1423c12970",
+          "whitespace_tokens": 1252
         },
         {
-          "bytes": 9935,
+          "bytes": 11000,
           "exists": true,
-          "lines": 127,
+          "lines": 136,
           "path": "bonsai/lib/export.mjs",
           "role": "completion",
-          "sha256": "66b8fa81a8de963137abf0ae45752d3e3118590f81c1ce932cecc74b4723d9d0",
-          "whitespace_tokens": 579
+          "sha256": "352ddc9f45bc030b8c9b24f035b5c0fbe8b705e9b2c0710f7801dbaea501facd",
+          "whitespace_tokens": 704
         }
       ],
       "id": "stand_bonsai",
@@ -1710,13 +1710,13 @@
       "inherited_context_tokens": 975,
       "on_demand_surfaces": [
         {
-          "bytes": 7574,
+          "bytes": 8019,
           "exists": true,
-          "lines": 126,
+          "lines": 132,
           "path": "bonsai/README.md",
           "role": "on_demand",
-          "sha256": "b2fb1025472d77fd123af130a3e2c95f570fafc610f1a23c65e0fef7d0a7c325",
-          "whitespace_tokens": 1183
+          "sha256": "73cd492c1b1e77f57cb7acd4cb05d84b27746c6833ad56942f47ec1423c12970",
+          "whitespace_tokens": 1252
         },
         {
           "bytes": 10780,
@@ -1754,13 +1754,13 @@
       "target_exists": true,
       "validation_paths": [
         {
-          "bytes": 4882,
+          "bytes": 7866,
           "exists": true,
-          "lines": 88,
+          "lines": 120,
           "path": "bonsai/lib/graft.mjs",
           "role": "validation",
-          "sha256": "4f5f8d9b9e8bd4f3cf9eb8434df29f72dcda93a5ceaa4458740d905ee947a089",
-          "whitespace_tokens": 370
+          "sha256": "194bba3538288750d3ed179b5680d80a81f5399b585b351eb278473f460fc9a4",
+          "whitespace_tokens": 567
         },
         {
           "bytes": 7960,
@@ -1772,13 +1772,13 @@
           "whitespace_tokens": 419
         },
         {
-          "bytes": 15945,
+          "bytes": 22119,
           "exists": true,
-          "lines": 186,
+          "lines": 240,
           "path": "access/web/src/public-research/bonsai.test.mjs",
           "role": "validation",
-          "sha256": "035d7f9aa7ddd80b91e6b910bb52290b2ed4536f0c0ae8c8bbdc67cabae9842a",
-          "whitespace_tokens": 586
+          "sha256": "ac26c95e1de795d72c94594fc30b90731599f4c3c66984c7d75171dc49d9c9b7",
+          "whitespace_tokens": 845
         }
       ]
     },
