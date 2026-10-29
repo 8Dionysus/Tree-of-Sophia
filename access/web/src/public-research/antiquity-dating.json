@@ -12,6 +12,11 @@
     "britannica-aristotle-lyceum": {"short": "Britannica", "title": "Aristotle: The Lyceum. Encyclopædia Britannica", "url": "https://www.britannica.com/biography/Aristotle/The-Lyceum"},
     "sep-aristotle": {"short": "SEP · Shields", "title": "Christopher Shields. Aristotle. Stanford Encyclopedia of Philosophy (Winter 2024 Edition)", "url": "https://plato.stanford.edu/archives/win2024/entries/aristotle/"},
     "britannica-eudemian": {"short": "Britannica", "title": "Eudemian Ethics. Encyclopædia Britannica", "url": "https://www.britannica.com/topic/Eudemian-Ethics"},
+    "sep-rhetoric": {"short": "SEP · Rapp", "title": "Christof Rapp. Aristotle's Rhetoric. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/aristotle-rhetoric/"},
+    "sep-aristotle-politics": {"short": "SEP · Miller", "title": "Fred Miller. Aristotle's Political Theory. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/aristotle-politics/"},
+    "wikipedia-hippocratic-corpus": {"short": "Wikipedia · Jouanna", "title": "Hippocratic Corpus. Wikipedia (citing J. Jouanna, Hippocrates, 1999, Appendix 3)", "url": "https://en.wikipedia.org/wiki/Hippocratic_Corpus"},
+    "wikipedia-memorabilia": {"short": "Wikipedia", "title": "Memorabilia (Xenophon). Wikipedia (no study cited for the dating)", "url": "https://en.wikipedia.org/wiki/Memorabilia_(Xenophon)"},
+    "iep-xenophon": {"short": "IEP · Browning", "title": "Eve A. Browning. Xenophon (430—354 B.C.E.). Internet Encyclopedia of Philosophy", "url": "https://iep.utm.edu/xenophon/"},
     "sep-aristotle-ethics": {"short": "SEP · Kraut", "title": "Richard Kraut. Aristotle's Ethics. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/aristotle-ethics/"},
     "eb1911-athens": {"short": "EB 1911", "title": "Constitution of Athens. Encyclopædia Britannica, 11th edition (1911), Wikisource", "url": "https://en.wikisource.org/wiki/1911_Encyclop%C3%A6dia_Britannica/Constitution_of_Athens"},
     "britannica-on-duties": {"short": "Britannica", "title": "On Duties. Encyclopædia Britannica", "url": "https://www.britannica.com/topic/On-Duties"},
@@ -90,13 +95,17 @@
     "ethics": {"group": "aristotle-lyceum"},
     "metaphysics": {"group": "aristotle-lyceum"},
     "poetics": {"group": "aristotle-lyceum"},
-    "politics": {"group": "aristotle-lyceum"},
-    "rhetoric": {"group": "aristotle-lyceum"},
+    "politics": {"group": "aristotle-lyceum", "note": {"ru": "в эти годы Аристотель писал «Политику» или по крайней мере работал над ней; порядок книг спорен", "en": "in these years Aristotle wrote, or at least worked on, the Politics; the order of its books is disputed"}, "sources": ["sep-aristotle-politics", "britannica-aristotle-lyceum"]},
+    "rhetoric": {
+      "from": -367, "to": -323, "precision": "approx",
+      "basis": {"ru": "ядро книг I–II, по распространённому мнению, написано в первый афинский период, при Академии (с ок. 367 до 347); примеры могли обновляться позже, а части сведены воедино лишь в первом полном издании; датировка спорна", "en": "the core of Books I–II is widely held to date from Aristotle's first stay in Athens, at the Academy (from about 367 to 347); its examples may have been updated later and the parts were joined only in the first complete edition; the dating is disputed"},
+      "sources": ["sep-rhetoric", "sep-aristotle"]
+    },
     "eudemian-ethics": {"group": "aristotle-lyceum", "note": {"ru": "обычно считается более ранней, чем «Никомахова этика»", "en": "usually presumed earlier than the Nicomachean Ethics"}, "sources": ["britannica-aristotle-lyceum", "sep-aristotle", "britannica-eudemian", "sep-aristotle-ethics"]},
     "athenian-constitution": {
       "from": -329, "to": -322, "precision": "range",
-      "basis": {"ru": "событие датировано архонтством Кефисофонта (329); 322 — предел по двум местам трактата; автор — Аристотель или его ученик", "en": "an event is dated by the archonship of Cephisophon (329); two passages set 322 as the limit; the author is Aristotle or a pupil"},
-      "sources": ["eb1911-athens"]
+      "basis": {"ru": "событие датировано архонтством Кефисофонта (329); 322 — предел по двум местам трактата; ныне его чаще приписывают ученику Аристотеля, возможно, по его указанию в конце жизни", "en": "an event is dated by the archonship of Cephisophon (329); two passages set 322 as the limit; it is now mostly credited to a pupil of Aristotle, perhaps at his direction late in his life"},
+      "sources": ["eb1911-athens", "sep-aristotle-politics"]
     },
     "de-officiis": {
       "from": -44, "to": -44, "precision": "year",
@@ -118,7 +127,7 @@
     "de-beneficiis": {
       "from": 56, "to": 64, "precision": "approx",
       "basis": {"ru": "вероятно, 56–62; законченный трактат упомянут в «Письмах к Луцилию» (81.3), то есть не позже 64", "en": "very likely 56–62; the finished work is mentioned in the Letters to Lucilius (81.3), so by 64"},
-      "sources": ["wikipedia-de-beneficiis"]
+      "sources": ["wikipedia-de-beneficiis"], "confidence": "medium"
     },
     "letters": {
       "from": 62, "to": 65, "precision": "range",
@@ -134,6 +143,23 @@
       "from": 108, "to": 108, "precision": "approx",
       "basis": {"ru": "сокращение «Бесед»: то же учение, около 108 г.", "en": "an abridgment of the Discourses: the same teaching, around 108"},
       "sources": ["sep-epictetus"]
+    },
+    "sacred-disease": {
+      "from": -450, "to": -401, "precision": "range",
+      "label": {"ru": "вторая половина V в. до н. э.", "en": "second half of the 5th c. BCE"},
+      "basis": {"ru": "Jouanna относит трактат к сочинениям одного автора второй половины V в. вместе с «О воздухах, водах, местностях» и «Прогностиком»", "en": "Jouanna assigns it to one author of the later fifth century together with Airs, Waters, Places and Prognostic"},
+      "sources": ["wikipedia-hippocratic-corpus"], "confidence": "medium"
+    },
+    "ancient-medicine": {
+      "from": -500, "to": -401, "precision": "range",
+      "label": {"ru": "V в. до н. э.", "en": "5th c. BCE"},
+      "basis": {"ru": "Jouanna относит трактат к сочинениям V века", "en": "Jouanna counts it among the fifth-century works"},
+      "sources": ["wikipedia-hippocratic-corpus"], "confidence": "medium"
+    },
+    "memorabilia": {
+      "from": -371, "to": -354, "precision": "approx",
+      "basis": {"ru": "вероятно, завершены после 371: глава III.5 предполагает военное положение после битвы при Левктрах; Ксенофонт умер около 354", "en": "probably completed after 371: chapter III.5 seems to assume the military situation after the battle of Leuctra; Xenophon died about 354"},
+      "sources": ["wikipedia-memorabilia", "iep-xenophon"], "confidence": "low"
     },
     "enneads": {
       "from": 253, "to": 270, "precision": "range",

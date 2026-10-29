@@ -310,6 +310,8 @@
 #tree .ps-dating-line+.ps-life-line{margin-top:-10px}
 #tree .ps-dating-line a{color:#d9c391;text-decoration:none;border-bottom:1px solid #d9c39150;white-space:nowrap}
 #tree .ps-dating-line a:hover,#tree .ps-dating-line a:focus-visible{color:#f0dfb4;border-bottom-color:#f0dfb4}
+#tree .ps-dating-footing{color:#c7b48a;font-style:italic}
+#tree .ps-dating-footing[data-confidence=low]{color:#e0a58c}
 /* Labels and cluster names keep a dark halo, so lines never cross the words. */
 #tree .tree-star span,#tree .tree-cluster{text-shadow:0 0 3px #04070e,0 0 8px #04070e,0 1px 12px #04070ecc}
 #tree .tree-cluster small{opacity:.75}

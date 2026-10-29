@@ -78,8 +78,9 @@ The Time lens measures only what the data already dates or orders
 ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)). In Antiquity
 the horizontal is a scale of years. The collection dates authors, not works;
 [`antiquity-dating.json`](src/public-research/antiquity-dating.json) proposes
-approximate dates of composition for works and passages, each naming its source
-and keeping its uncertainty, as a proposal rather than canon. A move stands
+approximate dates of composition for works and passages, each naming its source,
+its uncertainty and how firmly it stands (on a study, on a summary of
+scholarship, or on a source citing none), as a proposal rather than canon. A move stands
 within its dating, or within its author's life where none is proposed; moves
 sharing one span in a branch spread over it in step order, and stars that still
 meet share a short column without leaving their span. Each branch is a row whose

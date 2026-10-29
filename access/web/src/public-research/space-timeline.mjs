@@ -76,7 +76,10 @@ export function datingOf(dating,{passageId,workId}={}){
   const start=Number(own.from??group?.from),end=Number(own.to??group?.to);
   if(!Number.isFinite(start)||!Number.isFinite(end)||start>end)return null;
   const sources=(own.sources??group?.sources??[]).map(id=>dating.sources?.[id]?{id,...dating.sources[id]}:null).filter(Boolean);
-  return {start,end,precision:own.precision??group?.precision??'approx',basis:own.basis??group?.basis??null,note:own.note??null,sources,group:own.group??null};
+  // How firmly a dating stands: on its sources' own study (high), on a summary of scholarship (medium), or on a source citing none (low).
+  const confidence=own.confidence??group?.confidence??'high';
+  // A dating stated in centuries keeps its own words rather than borrowed years.
+  return {start,end,precision:own.precision??group?.precision??'approx',confidence,label:own.label??group?.label??null,basis:own.basis??group?.basis??null,note:own.note??null,sources,group:own.group??null};
 }
 
 const centuryLabel=(start,locale)=>{

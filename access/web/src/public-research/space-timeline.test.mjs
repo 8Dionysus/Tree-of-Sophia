@@ -99,7 +99,9 @@ describe('proposed datings of Antiquity works',()=>{
     const check=(key,{passageId,workId})=>{
       const value=datingOf(dating,{passageId,workId});expect(value,key).toBeTruthy();
       expect(value.start,key).toBeLessThanOrEqual(value.end);expect(value.sources.length,key).toBeGreaterThan(0);
-      expect(['year','range','approx']).toContain(value.precision);
+      expect(['year','range','approx']).toContain(value.precision);expect(['high','medium','low']).toContain(value.confidence);
+      // A dating resting only on Wikipedia says so.
+      if(value.sources.every(source=>/wikipedia\.org/.test(source.url)))expect(value.confidence,key).not.toBe('high');
       expect(value.basis?.ru,key).toBeTruthy();expect(value.basis?.en,key).toBeTruthy();
       const author=passageId?passages.get(passageId).author:works.get(workId).author,life=lives.get(author);
       expect(value.start,key).toBeGreaterThanOrEqual(life.start);expect(value.end,key).toBeLessThanOrEqual(life.end);
@@ -112,7 +114,10 @@ describe('proposed datings of Antiquity works',()=>{
     expect(datingOf(dating,{workId:'enneads'})).toMatchObject({start:253,end:270});
     expect(datingOf(dating,{workId:'laws'}).sources.map(source=>source.id)).toEqual(['iep-plato','britannica-plato-late']);
     expect(datingOf(dating,{workId:'apology'})).toMatchObject({start:-399,end:-387,precision:'range'});
-    expect(datingOf(dating,{workId:'memorabilia'})).toBeNull();
+    expect(datingOf(dating,{workId:'memorabilia'})).toMatchObject({start:-371,end:-354,confidence:'low'});
+    expect(datingOf(dating,{workId:'rhetoric'})).toMatchObject({start:-367,end:-323,confidence:'high'});
+    expect(datingOf(dating,{workId:'adversus-coloten'})).toBeNull();
+    expect(datingOf(dating,{workId:'sacred-disease'}).label).toEqual({ru:'вторая половина V в. до н. э.',en:'second half of the 5th c. BCE'});
   });
   it('reads as precise as it claims, in both languages',()=>{
     expect(formatSpan({start:-387,end:-380,precision:'approx'},'ru')).toBe('ок. 387–380 до н. э.');
