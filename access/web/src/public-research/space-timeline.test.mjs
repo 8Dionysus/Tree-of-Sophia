@@ -1,10 +1,11 @@
 import {describe,expect,it} from 'vitest';
 import collection from './antiquity-collection-data.json' with {type:'json'};
+import dating from './antiquity-dating.json' with {type:'json'};
 import {RESEARCH_ROUTES} from '../../constructor/atlas-routes.mjs';
 import {PRIMARY_SOURCES} from '../../constructor/source-references.mjs';
 import {INQUIRY_SOURCES_CONCEPTS} from '../../constructor/inquiry-sources-concepts.mjs';
 import {INQUIRY_READINGS_ECHOES} from '../../constructor/inquiry-readings-echoes.mjs';
-import {antiquityTimeline,bookPlace,dodgeRow,parseLifeYears,romanValue,stepTimeline,zarathustraTimeline} from './space-timeline.mjs';
+import {antiquityTimeline,bookPlace,datingOf,dodgeRow,formatSpan,parseLifeYears,romanValue,stackColumns,stepTimeline,zarathustraTimeline} from './space-timeline.mjs';
 
 describe('authored life dates',()=>{
   it('reads every form the collection uses, keeping how precise the line is',()=>{
@@ -81,6 +82,77 @@ describe('Antiquity on a scale of years',()=>{
     expect(rules.map(label=>label.center[0])).toEqual([-500,-400,-300,-200,-100,0,100,200,300,400].map(timeline.xOfYear));
     expect(rules.filter(label=>label.tone==='strong').map(label=>label.center[0])).toEqual([timeline.xOfYear(0)]);
     expect(timeline.bounds).toEqual([timeline.xOfYear(-500),timeline.xOfYear(400)]);
+  });
+});
+
+describe('proposed datings of Antiquity works',()=>{
+  const works=new Map(collection.entities.filter(entry=>entry.kind==='work').map(work=>[work.id,work]));
+  const passages=new Map(collection.passages.map(passage=>[passage.id,passage]));
+  const lives=new Map(collection.entities.filter(entry=>entry.kind==='author').map(author=>[author.id,parseLifeYears(author.meta.en)]));
+  it('name their posture in both languages and every source they rest on',()=>{
+    expect(dating.posture.ru).toMatch(/не канон/);expect(dating.posture.en).toMatch(/not canon/);
+    expect(dating.checked).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    for(const [id,source] of Object.entries(dating.sources)){expect(source.url,id).toMatch(/^https:\/\//);expect(source.short,id).toBeTruthy();expect(source.title,id).toBeTruthy();}
+    for(const [id,group] of Object.entries(dating.groups))for(const ref of group.sources)expect(dating.sources[ref],`${id} → ${ref}`).toBeTruthy();
+  });
+  it('date only works and passages the collection holds, each within its author\'s life and with a source',()=>{
+    const check=(key,{passageId,workId})=>{
+      const value=datingOf(dating,{passageId,workId});expect(value,key).toBeTruthy();
+      expect(value.start,key).toBeLessThanOrEqual(value.end);expect(value.sources.length,key).toBeGreaterThan(0);
+      expect(['year','range','approx']).toContain(value.precision);
+      expect(value.basis?.ru,key).toBeTruthy();expect(value.basis?.en,key).toBeTruthy();
+      const author=passageId?passages.get(passageId).author:works.get(workId).author,life=lives.get(author);
+      expect(value.start,key).toBeGreaterThanOrEqual(life.start);expect(value.end,key).toBeLessThanOrEqual(life.end);
+    };
+    for(const [id,work] of Object.entries(dating.works)){expect(works.has(id),id).toBe(true);if(work.group)expect(dating.groups[work.group],id).toBeTruthy();for(const ref of work.sources??[])expect(dating.sources[ref],`${id} → ${ref}`).toBeTruthy();check(id,{workId:id});}
+    for(const id of Object.keys(dating.passages)){expect(passages.has(id),id).toBe(true);check(id,{passageId:id,workId:passages.get(id).workId});}
+  });
+  it('prefer a passage\'s own dating to its work\'s, and a work\'s own sources to its group\'s',()=>{
+    expect(datingOf(dating,{passageId:'plotinus-sculpture',workId:'enneads'})).toMatchObject({start:253,end:263});
+    expect(datingOf(dating,{workId:'enneads'})).toMatchObject({start:253,end:270});
+    expect(datingOf(dating,{workId:'laws'}).sources.map(source=>source.id)).toEqual(['iep-plato','britannica-plato-late']);
+    expect(datingOf(dating,{workId:'apology'})).toMatchObject({start:-399,end:-387,precision:'range'});
+    expect(datingOf(dating,{workId:'memorabilia'})).toBeNull();
+  });
+  it('reads as precise as it claims, in both languages',()=>{
+    expect(formatSpan({start:-387,end:-380,precision:'approx'},'ru')).toBe('ок. 387–380 до н. э.');
+    expect(formatSpan({start:-44,end:-44,precision:'year'},'en')).toBe('44 BCE');
+    expect(formatSpan({start:108,end:108,precision:'approx'},'en')).toBe('c. 108 CE');
+    expect(formatSpan({start:-1,end:65,precision:'approx'},'ru')).toBe('ок. 1 до н. э. – 65 н. э.');
+    expect(formatSpan({},'ru')).toBe('');
+  });
+});
+
+describe('Antiquity with proposed datings',()=>{
+  const entries=[...collection.entities,...collection.eras,...collection.passages];
+  const routes=collection.branches.map(branch=>({id:branch.id,title:branch.rootTitle,steps:branch.nodes.map(node=>({nodeId:`antiquity:reading:${node.id}`}))}));
+  const timeline=antiquityTimeline({routes,entries,dating});
+  it('keeps every move within its dating, or within its author\'s life where none is proposed',()=>{
+    let dated=0;
+    for(const [id,[x]] of timeline.positions){
+      const span=timeline.spanOf(id),life=timeline.lifeOf(id);if(life.composed)dated++;
+      expect(x,id).toBeGreaterThanOrEqual(timeline.xOfYear(span.start)-1e-9);expect(x,id).toBeLessThanOrEqual(timeline.xOfYear(span.end)+1e-9);
+      if(!life.composed)expect(span).toMatchObject({start:life.start,end:life.end});
+    }
+    expect(dated).toBeGreaterThan(100);
+  });
+  it('orders Plato\'s dialogues by their periods and puts Cicero\'s On Duties at 44 BCE',()=>{
+    const x=passage=>timeline.positions.get(`antiquity:reading:${passage}`)[0];
+    const of=work=>collection.passages.find(passage=>passage.workId===work&&timeline.positions.has(`antiquity:reading:${passage.id}`)).id;
+    expect(x(of('apology'))).toBeLessThan(x(of('meno')));
+    expect(x(of('meno'))).toBeLessThan(x(of('republic')));
+    expect(x(of('republic'))).toBeLessThan(x(of('sophist')));
+    expect(x(of('sophist'))).toBeLessThan(x(of('metaphysics')));
+    expect(x(of('de-officiis'))).toBeCloseTo(timeline.xOfYear(-44),9);
+  });
+  it('lets stars that share a dating stand in a short column on their row, never on one point',()=>{
+    const seen=new Set();
+    for(const [id,[x,y]] of timeline.positions){
+      const key=`${x.toFixed(3)}:${y.toFixed(3)}`;expect(seen.has(key),id).toBe(false);seen.add(key);
+      const lane=timeline.lanes.reduce((a,b)=>Math.abs(b.y-y)<Math.abs(a.y-y)?b:a);expect(Math.abs(y-lane.y),id).toBeLessThanOrEqual(21);
+    }
+    const column=stackColumns(new Map([['a',0],['b',1],['c',2],['d',40]]),6,7);
+    expect([column.get('a'),column.get('b'),column.get('c'),column.get('d')]).toEqual([0,-7,7,0]);
   });
 });
 

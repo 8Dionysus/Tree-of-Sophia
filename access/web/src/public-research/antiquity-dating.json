@@ -1,0 +1,161 @@
+{
+  "schema": "tos.public_research.antiquity_dating.v1",
+  "checked": "2026-10-29",
+  "posture": {
+    "ru": "Предложенные приблизительные датировки сочинений для линзы «Время». Каждая опирается на названный источник и сохраняет его неопределённость. Это не канон, не утверждение о каком-либо издании и не окончательное решение спорных датировок; произведения без надёжной датировки остаются в пределах жизни автора.",
+    "en": "Proposed approximate dates of composition for the Time lens. Each rests on the source it names and keeps that source's uncertainty. It is not canon, not a claim about any edition and no final settlement of disputed datings; works without a reliable dating stay within their author's life."
+  },
+  "sources": {
+    "iep-plato": {"short": "IEP · Brickhouse & Smith", "title": "Thomas Brickhouse, Nicholas D. Smith. Plato (427—347 B.C.E.). Internet Encyclopedia of Philosophy", "url": "https://iep.utm.edu/plato/"},
+    "sep-theaetetus": {"short": "SEP · Verde", "title": "Francesco Verde. Plato on Knowledge in the Theaetetus. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/plato-theaetetus/"},
+    "britannica-plato-late": {"short": "Britannica", "title": "Plato: Late dialogues. Encyclopædia Britannica", "url": "https://www.britannica.com/biography/Plato/Late-dialogues"},
+    "britannica-aristotle-lyceum": {"short": "Britannica", "title": "Aristotle: The Lyceum. Encyclopædia Britannica", "url": "https://www.britannica.com/biography/Aristotle/The-Lyceum"},
+    "sep-aristotle": {"short": "SEP · Shields", "title": "Christopher Shields. Aristotle. Stanford Encyclopedia of Philosophy (Winter 2024 Edition)", "url": "https://plato.stanford.edu/archives/win2024/entries/aristotle/"},
+    "britannica-eudemian": {"short": "Britannica", "title": "Eudemian Ethics. Encyclopædia Britannica", "url": "https://www.britannica.com/topic/Eudemian-Ethics"},
+    "sep-aristotle-ethics": {"short": "SEP · Kraut", "title": "Richard Kraut. Aristotle's Ethics. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/aristotle-ethics/"},
+    "eb1911-athens": {"short": "EB 1911", "title": "Constitution of Athens. Encyclopædia Britannica, 11th edition (1911), Wikisource", "url": "https://en.wikisource.org/wiki/1911_Encyclop%C3%A6dia_Britannica/Constitution_of_Athens"},
+    "britannica-on-duties": {"short": "Britannica", "title": "On Duties. Encyclopædia Britannica", "url": "https://www.britannica.com/topic/On-Duties"},
+    "britannica-cicero": {"short": "Britannica", "title": "Cicero: Philosophy. Encyclopædia Britannica", "url": "https://www.britannica.com/biography/Cicero/Philosophy"},
+    "sep-cicero": {"short": "SEP · Woolf", "title": "Raphael Woolf. Cicero. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/cicero/"},
+    "sep-lucretius": {"short": "SEP · Trépanier", "title": "Simon Trépanier. Lucretius. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/lucretius/"},
+    "sep-seneca": {"short": "SEP · Vogt", "title": "Katja Vogt. Seneca. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/seneca/"},
+    "wikipedia-de-beneficiis": {"short": "Wikipedia", "title": "De Beneficiis. Wikipedia (citing J. M. Cooper & J. F. Procopé; G. B. Conte)", "url": "https://en.wikipedia.org/wiki/De_Beneficiis"},
+    "sep-epictetus": {"short": "SEP · Graver", "title": "Margaret Graver. Epictetus. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/epictetus/"},
+    "ep-plotinus": {"short": "Encyclopedia of Philosophy", "title": "Philip Merlan, rev. Paul Kalligas. Plotinus (c. 205–270). Encyclopedia of Philosophy, via Encyclopedia.com", "url": "https://encyclopedia.com/humanities/encyclopedias-almanacs-transcripts-and-maps/plotinus-c-205-270"},
+    "sep-plotinus": {"short": "SEP · Kalligas", "title": "Paul Kalligas. Plotinus. Stanford Encyclopedia of Philosophy", "url": "https://plato.stanford.edu/entries/plotinus/"},
+    "pearse-isagoge": {"short": "R. Pearse · tertullian.org", "title": "Roger Pearse. Porphyry, Introduction (Isagoge): preface to the online edition (2007), citing Ammonius, Elias and David", "url": "https://tertullian.org/fathers/porphyry_isagogue_01_intro.htm"}
+  },
+  "groups": {
+    "plato-early": {
+      "from": -399, "to": -387, "precision": "range",
+      "basis": {"ru": "ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию)", "en": "early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content)"},
+      "sources": ["iep-plato"]
+    },
+    "plato-early-transitional": {
+      "from": -387, "to": -380, "precision": "approx",
+      "basis": {"ru": "переход от ранних диалогов к средним (группировка Brickhouse & Smith)", "en": "between the early and the middle dialogues (Brickhouse & Smith's grouping)"},
+      "sources": ["iep-plato"]
+    },
+    "plato-middle": {
+      "from": -380, "to": -360, "precision": "approx",
+      "basis": {"ru": "средние диалоги (группировка Brickhouse & Smith)", "en": "middle dialogues (Brickhouse & Smith's grouping)"},
+      "sources": ["iep-plato"]
+    },
+    "plato-late-transitional": {
+      "from": -360, "to": -355, "precision": "approx",
+      "basis": {"ru": "переход от средних диалогов к поздним (группировка Brickhouse & Smith)", "en": "between the middle and the late dialogues (Brickhouse & Smith's grouping)"},
+      "sources": ["iep-plato"]
+    },
+    "plato-late": {
+      "from": -355, "to": -347, "precision": "approx",
+      "basis": {"ru": "поздние диалоги, до смерти Платона в 347 г. (группировка Brickhouse & Smith)", "en": "late dialogues, before Plato's death in 347 (Brickhouse & Smith's grouping)"},
+      "sources": ["iep-plato"]
+    },
+    "aristotle-lyceum": {
+      "from": -335, "to": -323, "precision": "approx",
+      "basis": {"ru": "большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались", "en": "most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly"},
+      "sources": ["britannica-aristotle-lyceum", "sep-aristotle"]
+    },
+    "cicero-late": {
+      "from": -45, "to": -44, "precision": "range",
+      "basis": {"ru": "поздний период философских сочинений Цицерона, с февраля 45 по ноябрь 44 г.", "en": "Cicero's late period of philosophical writing, February 45 to November 44"},
+      "sources": ["britannica-cicero", "sep-cicero"]
+    }
+  },
+  "works": {
+    "apology": {"group": "plato-early"},
+    "crito": {"group": "plato-early"},
+    "gorgias": {"group": "plato-early"},
+    "ion": {"group": "plato-early"},
+    "laches": {"group": "plato-early"},
+    "lysis": {"group": "plato-early"},
+    "protagoras": {"group": "plato-early"},
+    "cratylus": {"group": "plato-early-transitional"},
+    "meno": {"group": "plato-early-transitional"},
+    "phaedo": {"group": "plato-middle"},
+    "symposium": {"group": "plato-middle"},
+    "republic": {"group": "plato-middle", "note": {"ru": "книги II–X; книга I относится к ранним диалогам", "en": "Books II–X; Book I belongs to the early dialogues"}},
+    "parmenides": {"group": "plato-late-transitional"},
+    "phaedrus": {"group": "plato-late-transitional"},
+    "theaetetus": {
+      "from": -369, "to": -355, "precision": "approx",
+      "basis": {"ru": "SEP датирует диалог примерно 369 г.; Brickhouse & Smith относят его к переходу к поздним диалогам, ок. 360–355", "en": "SEP dates the dialogue to about 369; Brickhouse & Smith place it between the middle and the late dialogues, c. 360–355"},
+      "sources": ["sep-theaetetus", "iep-plato"]
+    },
+    "sophist": {"group": "plato-late"},
+    "philebus": {"group": "plato-late"},
+    "timaeus": {"group": "plato-late"},
+    "laws": {"group": "plato-late", "note": {"ru": "оставлены незаконченными к смерти Платона", "en": "left unfinished at Plato's death"}, "sources": ["iep-plato", "britannica-plato-late"]},
+    "de-anima": {"group": "aristotle-lyceum"},
+    "ethics": {"group": "aristotle-lyceum"},
+    "metaphysics": {"group": "aristotle-lyceum"},
+    "poetics": {"group": "aristotle-lyceum"},
+    "politics": {"group": "aristotle-lyceum"},
+    "rhetoric": {"group": "aristotle-lyceum"},
+    "eudemian-ethics": {"group": "aristotle-lyceum", "note": {"ru": "обычно считается более ранней, чем «Никомахова этика»", "en": "usually presumed earlier than the Nicomachean Ethics"}, "sources": ["britannica-aristotle-lyceum", "sep-aristotle", "britannica-eudemian", "sep-aristotle-ethics"]},
+    "athenian-constitution": {
+      "from": -329, "to": -322, "precision": "range",
+      "basis": {"ru": "событие датировано архонтством Кефисофонта (329); 322 — предел по двум местам трактата; автор — Аристотель или его ученик", "en": "an event is dated by the archonship of Cephisophon (329); two passages set 322 as the limit; the author is Aristotle or a pupil"},
+      "sources": ["eb1911-athens"]
+    },
+    "de-officiis": {
+      "from": -44, "to": -44, "precision": "year",
+      "basis": {"ru": "написан в 44 г. до н. э.", "en": "written in 44 BCE"},
+      "sources": ["britannica-on-duties"]
+    },
+    "de-amicitia": {"group": "cicero-late"},
+    "de-fato": {"group": "cicero-late"},
+    "on-nature": {
+      "from": -59, "to": -55, "precision": "approx",
+      "basis": {"ru": "обычная датировка — начало 50-х; Цицерон упоминает поэму в письме брату в феврале 54 г.; предлагалась и более поздняя дата (Hutchinson: 49–48)", "en": "the standard view places it in the early 50s; Cicero mentions the poem to his brother in February 54; a later date has also been proposed (Hutchinson: 49–48)"},
+      "sources": ["sep-lucretius"]
+    },
+    "de-clementia": {
+      "from": 55, "to": 56, "precision": "range",
+      "basis": {"ru": "единственный трактат Сенеки, датируемый с некоторой уверенностью: обращён к Нерону в начале правления (55 или 56)", "en": "the one treatise of Seneca dated with some certainty: addressed to Nero early in his reign (55 or 56)"},
+      "sources": ["sep-seneca"]
+    },
+    "de-beneficiis": {
+      "from": 56, "to": 64, "precision": "approx",
+      "basis": {"ru": "вероятно, 56–62; законченный трактат упомянут в «Письмах к Луцилию» (81.3), то есть не позже 64", "en": "very likely 56–62; the finished work is mentioned in the Letters to Lucilius (81.3), so by 64"},
+      "sources": ["wikipedia-de-beneficiis"]
+    },
+    "letters": {
+      "from": 62, "to": 65, "precision": "range",
+      "basis": {"ru": "последние годы Сенеки, 62–65", "en": "Seneca's last years, 62–65"},
+      "sources": ["sep-seneca"]
+    },
+    "discourses": {
+      "from": 108, "to": 108, "precision": "approx",
+      "basis": {"ru": "учение «Бесед» относится к поздним годам Эпиктета, около 108 г.; записано Аррианом", "en": "the teaching in the Discourses is from Epictetus' later career, around 108; written up by Arrian"},
+      "sources": ["sep-epictetus"]
+    },
+    "enchiridion": {
+      "from": 108, "to": 108, "precision": "approx",
+      "basis": {"ru": "сокращение «Бесед»: то же учение, около 108 г.", "en": "an abridgment of the Discourses: the same teaching, around 108"},
+      "sources": ["sep-epictetus"]
+    },
+    "enneads": {
+      "from": 253, "to": 270, "precision": "range",
+      "basis": {"ru": "Плотин писал трактаты в последние шестнадцать лет жизни, с 253 по 270; порядок их написания записан Порфирием", "en": "Plotinus wrote his treatises in the last sixteen years of his life, 253 to 270; Porphyry recorded their order"},
+      "sources": ["ep-plotinus", "sep-plotinus"]
+    },
+    "isagoge": {
+      "from": 268, "to": 270, "precision": "range",
+      "basis": {"ru": "по свидетельству античных комментаторов (Аммоний, Элий, Давид), написано на Сицилии в 268–270 гг.", "en": "according to the ancient commentators (Ammonius, Elias, David), written in Sicily in 268–270"},
+      "sources": ["pearse-isagoge"]
+    }
+  },
+  "passages": {
+    "plotinus-symmetry": {
+      "from": 253, "to": 263, "precision": "range",
+      "basis": {"ru": "трактат I.6 «О прекрасном» стоит первым в хронологическом списке Порфирия, среди написанных до 263 г.", "en": "treatise I.6, On Beauty, is first in Porphyry's chronological list, among those written before 263"},
+      "sources": ["ep-plotinus"]
+    },
+    "plotinus-sculpture": {
+      "from": 253, "to": 263, "precision": "range",
+      "basis": {"ru": "трактат I.6 «О прекрасном» стоит первым в хронологическом списке Порфирия, среди написанных до 263 г.", "en": "treatise I.6, On Beauty, is first in Porphyry's chronological list, among those written before 263"},
+      "sources": ["ep-plotinus"]
+    }
+  }
+}

@@ -1,11 +1,11 @@
 // The lens "Time" places only what the data already dates or orders.
-// Antiquity: a move stands within its author's life, because the collection
-// records authors' life dates and not dates of composition; one author's moves
-// in a branch spread over that life in the order of the steps, and each branch
-// is one row. Zarathustra: a star stands at the first chapter of the
-// book it rests on; stars grounded only in other texts stand outside the
-// scale, since the data gives those texts no dates. The layout is display
-// only: positions are never written into the graph.
+// Antiquity: a move stands within the dating its companion file proposes for
+// its passage or work, each with its source; where none is proposed, within its
+// author's life. Moves sharing one span in a branch spread over it in the
+// order of the steps; each branch is one row. Zarathustra: a star stands at
+// the first chapter of the book it rests on; stars grounded only in other texts
+// stand outside the scale, since the data gives those texts no dates. The
+// layout is display only: positions are never written into the graph.
 
 const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
 const pick=(value,locale)=>typeof value==='string'?value:value?.[lang(locale)]??value?.en??value?.ru??'';
@@ -52,6 +52,33 @@ export function bookPlace(reference){
   return Number.isFinite(chapter)?{part:Number.isFinite(part)?part:null,chapter}:null;
 }
 
+/**
+ * A span of years in the reader's language, as precise as its dating claims:
+ * "ок. 387–380 до н. э.", "44 BCE", "c. 108 CE", "1 BCE – 65 CE".
+ */
+export function formatSpan({start,end,precision}={},locale){
+  if(!Number.isFinite(start)||!Number.isFinite(end))return '';
+  const en=lang(locale)==='en',about=precision==='approx'?(en?'c. ':'ок. '):'',bce=en?'BCE':'до н. э.',ce=en?'CE':'н. э.';
+  const years=(a,b)=>a===b?String(Math.abs(a)):`${Math.abs(a)}–${Math.abs(b)}`;
+  if(end<=0)return `${about}${years(start,end)} ${bce}`;
+  if(start>0)return `${about}${years(start,end)} ${ce}`;
+  return `${about}${Math.abs(start)} ${bce} – ${end} ${ce}`;
+}
+
+/**
+ * The dating proposed for a passage, else for its work, with its basis and
+ * sources; null where none is proposed. A work may take its span from a group
+ * (Plato's dialogues by period) and add its own note or sources.
+ */
+export function datingOf(dating,{passageId,workId}={}){
+  const own=dating?.passages?.[passageId]??dating?.works?.[workId];if(!own)return null;
+  const group=own.group?dating.groups?.[own.group]:null;if(own.group&&!group)return null;
+  const start=Number(own.from??group?.from),end=Number(own.to??group?.to);
+  if(!Number.isFinite(start)||!Number.isFinite(end)||start>end)return null;
+  const sources=(own.sources??group?.sources??[]).map(id=>dating.sources?.[id]?{id,...dating.sources[id]}:null).filter(Boolean);
+  return {start,end,precision:own.precision??group?.precision??'approx',basis:own.basis??group?.basis??null,note:own.note??null,sources,group:own.group??null};
+}
+
 const centuryLabel=(start,locale)=>{
   const n=start<0?-start/100:start/100+1,roman=['I','II','III','IV','V','VI','VII','VIII'][n-1]??String(n);
   return lang(locale)==='en'?`${n}${n===1?'st':n===2?'nd':n===3?'rd':'th'} c.`:`${roman} в.`;
@@ -85,24 +112,40 @@ export function dodgeRow(items,gap){
   return out;
 }
 
+/**
+ * Stars that still share a place on one row after keeping to their spans stand
+ * in a short column there, alternately above and below the row's line.
+ */
+export function stackColumns(xs,minDx,dy){
+  const out=new Map(),placed=[];
+  for(const [id,x] of [...xs.entries()].sort((a,b)=>a[1]-b[1])){
+    const level=[0,-1,1,-2,2,-3,3].find(candidate=>!placed.some(other=>other.level===candidate&&Math.abs(other.x-x)<minDx))??0;
+    placed.push({x,level});out.set(id,level*dy);
+  }
+  return out;
+}
+
 // The scale's strip above the map, in pixels from the map's top edge to each row's top.
 const YEAR_ROWS={side:22,axis:46,era1:72,era0:98},BOOK_ROWS={axis:22,era0:48};
-const LANE=36,GAP=12;
+const LANE=36,GAP=12,STACK=7;
 
 /**
  * Antiquity on a scale of years: one row per branch, each move within its
- * author's life. A move walked by two branches stands in the first.
+ * proposed dating, else within its author's life. A move walked by two
+ * branches stands in the first.
  */
-export function antiquityTimeline({routes=[],entries=[]}={}){
+export function antiquityTimeline({routes=[],entries=[],dating=null}={}){
   const byId=new Map(entries.map(entry=>[entry.legacyId??entry.id,entry]));
   const lives=new Map();
   for(const entry of entries)if(entry.kind==='author'){const years=parseLifeYears(pick(entry.meta,'en'));if(years)lives.set(entry.legacyId??entry.id,years);}
   const timeOf=new Map();
   for(const route of routes)for(const step of route.steps??[]){
     const id=step.nodeId??step.graphNodeId;if(!id||timeOf.has(id))continue;
-    const passage=byId.get(String(id).replace(/^antiquity:reading:/,'')),authorId=passage?.author??byId.get(passage?.workId)?.author,years=lives.get(authorId);
-    if(years)timeOf.set(id,{...years,authorId,period:pick(passage.period,'en')});
+    const passageId=String(id).replace(/^antiquity:reading:/,''),passage=byId.get(passageId),authorId=passage?.author??byId.get(passage?.workId)?.author,years=lives.get(authorId);
+    if(years)timeOf.set(id,{...years,authorId,workId:passage?.workId??null,period:pick(passage.period,'en'),composed:datingOf(dating,{passageId,workId:passage?.workId})});
   }
+  // A move's span: the dating proposed for it, or its author's life where none is.
+  const spanOf=id=>{const time=timeOf.get(id);return time?time.composed??{start:time.start,end:time.end,precision:time.precision}:null;};
   if(!timeOf.size)return null;
   const all=[...lives.values()],min=Math.floor(Math.min(...all.map(y=>y.start))/100)*100,max=Math.ceil(Math.max(...all.map(y=>y.end))/100)*100;
   const width=1000,xOfYear=year=>(year-min)/(max-min)*width-width/2;
@@ -110,11 +153,14 @@ export function antiquityTimeline({routes=[],entries=[]}={}){
   for(const route of routes){
     const ids=[...new Set((route.steps??[]).map(step=>step.nodeId??step.graphNodeId))].filter(id=>timeOf.has(id)&&!positions.has(id));
     if(!ids.length)continue;
-    // The data dates the author, not the move: one author's moves share that life in the order of the steps.
-    const byAuthor=new Map();for(const id of ids){const key=timeOf.get(id).authorId;if(!byAuthor.has(key))byAuthor.set(key,[]);byAuthor.get(key).push(id);}
-    for(const list of byAuthor.values())list.forEach((id,index)=>{const life=timeOf.get(id);yearOf.set(id,life.start+(index+.5)/list.length*(life.end-life.start));});
-    const y=lanes.length*LANE,xs=dodgeRow(ids.map((id,order)=>({id,x:xOfYear(yearOf.get(id)),order})),GAP);
-    for(const [id,x] of xs)positions.set(id,[x,y,0]);
+    // Moves sharing one span in a branch spread over it in the order of the steps.
+    const bySpan=new Map();for(const id of ids){const span=spanOf(id),key=`${span.start}:${span.end}`;if(!bySpan.has(key))bySpan.set(key,[]);bySpan.get(key).push(id);}
+    for(const list of bySpan.values())list.forEach((id,index)=>{const span=spanOf(id);yearOf.set(id,span.start+(index+.5)/list.length*(span.end-span.start));});
+    // Neighbours keep a gap, but no star leaves its span to make room; stars that still meet share a short column.
+    const dodged=dodgeRow(ids.map((id,order)=>({id,x:xOfYear(yearOf.get(id)),order})),GAP);
+    const xs=new Map(ids.map(id=>{const span=spanOf(id);return [id,Math.min(xOfYear(span.end),Math.max(xOfYear(span.start),dodged.get(id)))];}));
+    const y=lanes.length*LANE,dys=stackColumns(xs,GAP/2,STACK);
+    for(const [id,x] of xs)positions.set(id,[x,y+dys.get(id),0]);
     lanes.push({id:route.id,title:route.title,y,from:Math.min(...xs.values()),to:Math.max(...xs.values())});
   }
   // Rows are centred on the scale's origin.
@@ -123,7 +169,7 @@ export function antiquityTimeline({routes=[],entries=[]}={}){
   return {
     kind:'years',positions,lanes,domain:{min,max},rows:YEAR_ROWS,strip:YEAR_ROWS.era0+4,bounds:[xOfYear(min),xOfYear(max)],
     xOf:id=>yearOf.has(id)?xOfYear(yearOf.get(id)):null,xOfYear,
-    lifeOf:id=>timeOf.get(id)??null,
+    lifeOf:id=>timeOf.get(id)??null,spanOf,
     labels(locale,{laneWidth=null}={}){
       const en=lang(locale)==='en',out=[];
       for(let year=min;year<=max;year+=100)out.push({id:`time:rule:${year}`,variant:'rule',title:'',subtitle:'',center:[xOfYear(year),0,0],...(year===0?{tone:'strong'}:{})});

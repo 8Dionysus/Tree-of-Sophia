@@ -228,11 +228,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   function labelsForScene(near,focusEdges){
     measure();const occupied=[...uiObstacles];
     // Cluster names orient the atlas before the smaller labels compete for room.
-    // A scale stays readable at any zoom: its eras, ticks and the chosen author's life keep to rows of a strip
+    // A scale stays readable at any zoom: its eras, ticks and the chosen move's span keep to rows of a strip
     // above the map at the x of their value, its rows' names to a strip at its left, and its rules and rows'
     // threads lie under the stars. Its labels give way only to one another; a band's name keeps to the band in view.
     const scaleLabels=[],vl=targetViewport.left,vr=targetViewport.right,vt=targetViewport.top,vb=targetViewport.bottom;
-    for(const c of clusters.filter(c=>c.variant).sort((a,b)=>(b.variant==='life')-(a.variant==='life'))){
+    for(const c of clusters.filter(c=>c.variant).sort((a,b)=>(b.variant==='span')-(a.variant==='span'))){
       const p=project(c.p),xs=c.span?c.span.map(x=>project([x,c.p[1],c.p[2]]).x).sort((a,b)=>a-b):null;
       if(underStars.has(c.variant)){
         const rule=c.variant==='rule',from=rule?p.x:Math.max(vl,xs?.[0]??p.x),to=rule?p.x:Math.min(vr,xs?.[1]??p.x),top=rule?vt-(c.strip??4):p.y;
@@ -346,8 +346,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       edgeHits.push({id:edge.id,a,b});
     }
     nodes.forEach(n=>{
-      if(measured&&!inView(box(n.screen.x-5,n.screen.y-5,10,10))){n.el.hidden=true;return;}
       const p=n.screen,hot=n.id===selectedId||n.id===hover,color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
+      if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
+      if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
       ctx.globalAlpha=dim?.28:hot?1:.9;const glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
       ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
@@ -356,7 +358,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const ray=hot?17:big?10:5;ctx.globalAlpha=dim?.12:hot?.9:.38;ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
       if(n.id===selectedId||n.id===linkFrom){ctx.globalAlpha=.65;ctx.beginPath();for(const [sx,sy] of [[-1,-1],[-1,1],[1,-1],[1,1]]){ctx.moveTo(p.x+sx*22,p.y+sy*16);ctx.lineTo(p.x+sx*22,p.y+sy*22);ctx.lineTo(p.x+sx*16,p.y+sy*22);}ctx.stroke();}
       n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
-      n.el.dataset.active=String(n.id===selectedId);n.el.dataset.major=String(!!big);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
+      n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
       n.el.hidden=!inView(box(p.x-5,p.y-5,10,10));
     });
     labelsForScene(near,focusEdges);

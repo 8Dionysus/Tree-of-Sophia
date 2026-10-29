@@ -76,14 +76,18 @@ branches, routes and steps by their own names before their prose.
 
 The Time lens measures only what the data already dates or orders
 ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)). In Antiquity
-the horizontal is a scale of years. The collection dates authors, not moves, so
-a move stands within its author's life: one author's moves in a branch spread
-over that life in step order, with a minimal gap between neighbours. Each branch
-is a row whose name opens it, an era's bracket spans its authors' lives, and a
-chosen move shows its author's life on the scale. In Zarathustra the horizontal
-is the order of the book's chapters: a star stands at the first chapter it rests
-on, a part's bracket spans the chapters the map cites, and stars grounded only in
-other texts stand outside the scale. These positions are display only and never
+the horizontal is a scale of years. The collection dates authors, not works;
+[`antiquity-dating.json`](src/public-research/antiquity-dating.json) proposes
+approximate dates of composition for works and passages, each naming its source
+and keeping its uncertainty, as a proposal rather than canon. A move stands
+within its dating, or within its author's life where none is proposed; moves
+sharing one span in a branch spread over it in step order, and stars that still
+meet share a short column without leaving their span. Each branch is a row whose
+name opens it, an era's bracket spans its authors' lives, and a chosen move
+shows its span on the scale and its dating with sources in the panel. In
+Zarathustra the horizontal is the order of the book's chapters: a star stands at
+the first chapter it rests on, a part's bracket spans the chapters the map cites,
+and stars grounded only in other texts stand outside the scale. These positions are display only and never
 enter the saved graph. Zoom and pan follow the scale while rows keep their
 height, the map controls join the heading row, an open branch or route reads top
 to bottom on the same scale, and `treeLens=time` links to the lens.
