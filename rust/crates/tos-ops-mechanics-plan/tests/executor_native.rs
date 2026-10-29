@@ -13,6 +13,7 @@ mod growth_parallel {
     };
 
     struct Fixture(PathBuf);
+    const CLASSES: [&str; 5] = ["alpha", "beta", "gamma", "delta", "epsilon"];
     impl Fixture {
         fn new() -> Self {
             let root = std::env::temp_dir().join(format!(
@@ -49,27 +50,29 @@ counter() {
   maximum=$(/bin/cat max.count 2>/dev/null || echo 0)
   if [ "$active" -gt "$maximum" ]; then printf '%s\n' "$active" > max.count; fi
   rmdir counter.lock
-  [ "$active" -le 2 ] || exit 32
+  [ "$active" -le "$GROWTH_TEST_JOBS" ] || exit 32
   if [ "$SCENARIO" = serial ]; then [ "$active" -le 1 ] || exit 33; fi
 }
 echo $$ > "$name.pid"
 mkdir "active-$name"
 printf '%s\n' "$name" >> starts
 counter 1
-if [ "$SCENARIO" != success ] && [ "$SCENARIO" != serial ] && [ "$name" = beta ]; then
-  /bin/sleep 20 & echo $! > ordinary.pid
-  /usr/bin/setsid /bin/sh -c 'echo $$ > escaped.pid; exec /bin/sleep 20' &
-  while [ ! -s escaped.pid ]; do /bin/sleep 0.002; done
+if [ "$SCENARIO" != success ] && [ "$SCENARIO" != serial ] && [ "$name" != alpha ]; then
+  /bin/sleep 20 & echo $! > "$name.ordinary.pid"
+  /usr/bin/setsid /bin/sh -c 'echo $$ > "$1.escaped.pid"; exec /bin/sleep 20' fixture "$name" &
+  while [ ! -s "$name.escaped.pid" ]; do /bin/sleep 0.002; done
 fi
 touch "$name.ready"
 if [ "$SCENARIO" = success ]; then
-  if [ "$name" != gamma ]; then
-    while [ ! -f alpha.ready ] || [ ! -f beta.ready ]; do /bin/sleep 0.002; done
-  fi
+  for peer in $GROWTH_TEST_PEERS; do
+    while [ ! -f "$peer.ready" ]; do /bin/sleep 0.002; done
+  done
   /bin/sleep 0.03
 elif [ "$SCENARIO" != serial ]; then
   if [ "$name" = alpha ]; then
-    while [ ! -f beta.ready ]; do /bin/sleep 0.002; done
+    for peer in $GROWTH_TEST_PEERS; do
+      while [ ! -f "$peer.ready" ]; do /bin/sleep 0.002; done
+    done
     case "$SCENARIO" in
       failure) exit 7;;
       count) echo 'test result: ok. 0 passed; 0 failed; 0 ignored;'; exit 0;;
@@ -90,10 +93,13 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
             let mut steps = vec![
                 json!({"label":"prepare","command":[root.join("cargo"),"test","--workspace","--no-run","--exclude","tos-access","--message-format=json"]}),
             ];
-            for name in ["alpha", "beta", "gamma"] {
+            for name in CLASSES {
                 steps.push(json!({"label":name,"command":["@tos-native-growth-class","tos-conformance","test","conformance",format!("{name}::"),"1","0"]}));
             }
-            steps.push(json!({"label":"joined","command":["/bin/sh","-c","test -f alpha.done && test -f beta.done && test -f gamma.done && touch joined"]}));
+            let joined = CLASSES
+                .map(|name| format!("test -f {name}.done"))
+                .join(" && ");
+            steps.push(json!({"label":"joined","command":["/bin/sh","-c",format!("{joined} && touch joined")]}));
             fs::write(
                 root.join("docs/validation/validation_lanes.json"),
                 json!({"command_sequences":{"rust_workspace":steps}}).to_string(),
@@ -131,23 +137,32 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
             command
                 .env("CARGO_TARGET_DIR", self.0.join("cargo-target"))
                 .env("SCENARIO", scenario)
+                .env("GROWTH_TEST_JOBS", jobs.unwrap_or("1"))
+                .env(
+                    "GROWTH_TEST_PEERS",
+                    CLASSES[..jobs
+                        .unwrap_or("1")
+                        .parse::<usize>()
+                        .unwrap_or(0)
+                        .min(CLASSES.len())]
+                        .join(" "),
+                )
                 .env("PATH", "/usr/bin:/bin")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
             command
         }
         fn assert_reaped(&self) {
-            for name in [
-                "alpha.pid",
-                "beta.pid",
-                "gamma.pid",
-                "ordinary.pid",
-                "escaped.pid",
-            ] {
-                if let Ok(pid) = fs::read_to_string(self.0.join(name)) {
+            for path in fs::read_dir(&self.0)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+            {
+                if path.extension().is_some_and(|extension| extension == "pid") {
+                    let pid = fs::read_to_string(&path).unwrap();
                     assert!(
                         !std::path::Path::new("/proc").join(pid.trim()).exists(),
-                        "residual {name}: {pid}"
+                        "residual {}: {pid}",
+                        path.display()
                     );
                 }
             }
@@ -160,11 +175,13 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
     }
 
     #[test]
-    fn two_growth_processes_overlap_keep_counts_and_join_before_later_commands() {
+    fn bounded_growth_processes_overlap_keep_counts_and_join_before_later_commands() {
         for (scenario, jobs, timings) in [
             ("success", Some("2"), false),
             ("serial", None, false),
             ("success", Some("2"), true),
+            ("success", Some("3"), false),
+            ("success", Some("4"), true),
         ] {
             let fixture = Fixture::new();
             let mut command = fixture.command(scenario, jobs);
@@ -182,7 +199,7 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
                 fs::read_to_string(fixture.0.join("max.count"))
                     .unwrap()
                     .trim(),
-                if jobs.is_some() { "2" } else { "1" }
+                jobs.unwrap_or("1")
             );
             assert_eq!(
                 fs::read_to_string(fixture.0.join("active.count"))
@@ -195,22 +212,25 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
                     .unwrap()
                     .lines()
                     .count(),
-                3
+                CLASSES.len()
             );
             let text = String::from_utf8_lossy(&output.stdout);
             assert_eq!(text.contains("[cargo-timings] prepare:"), timings);
             let cargo_args = fs::read_to_string(fixture.0.join("cargo.args")).unwrap();
             assert_eq!(cargo_args.lines().any(|arg| arg == "--timings"), timings);
             assert_eq!(
-                text.contains("native Growth batch: classes=3 jobs=2"),
+                text.contains(&format!(
+                    "native Growth batch: classes=5 jobs={}",
+                    jobs.unwrap_or("1")
+                )),
                 jobs.is_some()
             );
-            for name in ["alpha", "beta", "gamma"] {
+            for name in CLASSES {
                 assert!(text.contains(&format!("[ok] {name}\n")));
             }
             fixture.assert_reaped();
         }
-        for jobs in ["0", "3", "invalid"] {
+        for jobs in ["0", "5", "invalid"] {
             let fixture = Fixture::new();
             let output = fixture.command("success", Some(jobs)).output().unwrap();
             assert_eq!(output.status.code(), Some(2));
@@ -219,63 +239,72 @@ echo 'test result: ok. 1 passed; 0 failed; 0 ignored;'
     }
 
     #[test]
-    fn growth_failure_count_timeout_cancel_and_blocked_output_reap_both_process_trees() {
-        for scenario in ["failure", "count", "timeout", "cancel", "output", "blocked"] {
-            let fixture = Fixture::new();
-            let started = Instant::now();
-            let mut child = fixture.command(scenario, Some("2")).spawn().unwrap();
-            if scenario == "cancel" {
-                while !fixture.0.join("beta.ready").exists()
-                    && started.elapsed() < Duration::from_secs(3)
-                {
-                    std::thread::sleep(Duration::from_millis(2));
+    fn growth_failure_count_timeout_cancel_and_blocked_output_reap_active_process_trees() {
+        for jobs in ["2", "4"] {
+            for scenario in ["failure", "count", "timeout", "cancel", "output", "blocked"] {
+                let fixture = Fixture::new();
+                let started = Instant::now();
+                let mut child = fixture.command(scenario, Some(jobs)).spawn().unwrap();
+                let active = &CLASSES[..jobs.parse::<usize>().unwrap()];
+                if scenario == "cancel" {
+                    let ready = || {
+                        active
+                            .iter()
+                            .all(|name| fixture.0.join(format!("{name}.ready")).exists())
+                    };
+                    while !ready() && started.elapsed() < Duration::from_secs(3) {
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
+                    assert!(ready());
+                    assert_eq!(unsafe { libc::kill(child.id() as i32, libc::SIGINT) }, 0);
                 }
-                assert!(fixture.0.join("beta.ready").exists());
-                assert_eq!(unsafe { libc::kill(child.id() as i32, libc::SIGINT) }, 0);
-            }
-            if scenario == "blocked" {
-                while child.try_wait().unwrap().is_none()
-                    && started.elapsed() < Duration::from_secs(4)
-                {
-                    std::thread::sleep(Duration::from_millis(5));
+                if scenario == "blocked" {
+                    while child.try_wait().unwrap().is_none()
+                        && started.elapsed() < Duration::from_secs(4)
+                    {
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                    assert!(
+                        child.try_wait().unwrap().is_some(),
+                        "blocked parallel output escaped command deadline"
+                    );
                 }
+                let output = child.wait_with_output().unwrap();
                 assert!(
-                    child.try_wait().unwrap().is_some(),
-                    "blocked parallel output escaped command deadline"
+                    started.elapsed() < Duration::from_secs(5),
+                    "{scenario} exceeded bounded cleanup"
                 );
+                assert_eq!(
+                    output.status.code(),
+                    Some(match scenario {
+                        "failure" => 7,
+                        "cancel" => 130,
+                        _ => 1,
+                    }),
+                    "{scenario}: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                let queued = CLASSES[jobs.parse::<usize>().unwrap()];
+                assert!(
+                    !fixture.0.join(format!("{queued}.ready")).exists(),
+                    "{scenario}: queued class started after failure"
+                );
+                assert!(!fixture.0.join(format!("{queued}.pid")).exists());
+                assert!(
+                    !fs::read_to_string(fixture.0.join("starts"))
+                        .unwrap_or_default()
+                        .lines()
+                        .any(|line| line == queued)
+                );
+                assert!(!fixture.0.join("joined").exists());
+                for peer in &CLASSES[1..jobs.parse::<usize>().unwrap()] {
+                    assert!(
+                        fixture.0.join(format!("{peer}.escaped.pid")).is_file(),
+                        "{scenario}: {peer} descendant was not exercised"
+                    );
+                }
+                fixture.assert_reaped();
             }
-            let output = child.wait_with_output().unwrap();
-            assert!(
-                started.elapsed() < Duration::from_secs(5),
-                "{scenario} exceeded bounded cleanup"
-            );
-            assert_eq!(
-                output.status.code(),
-                Some(match scenario {
-                    "failure" => 7,
-                    "cancel" => 130,
-                    _ => 1,
-                }),
-                "{scenario}: {}",
-                String::from_utf8_lossy(&output.stderr)
-            );
-            assert!(
-                !fixture.0.join("gamma.ready").exists(),
-                "{scenario}: queued class started after failure"
-            );
-            assert!(!fixture.0.join("gamma.pid").exists());
-            assert!(
-                !fs::read_to_string(fixture.0.join("starts"))
-                    .unwrap_or_default()
-                    .lines()
-                    .any(|line| line == "gamma")
-            );
-            assert!(!fixture.0.join("joined").exists());
-            assert!(
-                fixture.0.join("escaped.pid").is_file(),
-                "{scenario}: peer descendant was not exercised"
-            );
-            fixture.assert_reaped();
         }
     }
 }

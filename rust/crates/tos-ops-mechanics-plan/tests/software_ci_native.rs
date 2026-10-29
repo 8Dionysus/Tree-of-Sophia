@@ -1068,6 +1068,8 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
         "assumed_unlimited",
         "12 * GIB",
         "CARGO_BUILD_JOBS=${buildJobs}",
+        "TOS_GROWTH_JOBS=${buildJobs}",
+        "growth_jobs: buildJobs",
         "rustc-version.txt",
         "cargo-version.txt",
         "tos_ci_cargo_resource_profile_v1",
@@ -1099,7 +1101,7 @@ fn workflow_requires_authenticated_native_selection_and_all_selected_jobs() {
     let rust_run = run(one_step(rust_steps, "--run rust_workspace"));
     assert!(rust_run.contains("--rust-group \"${{ matrix.group }}\""));
     assert!(rust_run.contains("--cargo-timings"));
-    assert!(rust_run.contains("--growth-jobs 2"));
+    assert!(rust_run.contains("--growth-jobs \"$TOS_GROWTH_JOBS\""));
     assert!(rust_run.contains("--lane-timeout-ms 10800000"));
     let before_lane = rust_steps
         .iter()

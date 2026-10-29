@@ -417,6 +417,7 @@ jobs:
               effective_cpu_cores: effectiveCpuCores,
               four_jobs_confirmed: cpuFourConfirmed,
               cargo_build_jobs: buildJobs,
+              growth_jobs: buildJobs,
             },
             memory: {
               host_available_bytes: hostAvailableBytes,
@@ -434,15 +435,15 @@ jobs:
             lane: { before: null, after: null, cpu_stat_delta: null, memory_peak_delta_bytes: null },
             notes: [
               'The four-job setting requires observed availableParallelism, affinity, CPU quota at every visible ancestor, a mount exposing the cgroup root, and at least 12 GiB effective memory headroom at every visible ancestor.',
-              'Otherwise Cargo uses at most two jobs, or one when fewer than two effective CPUs or less than 6 GiB measured memory are available.',
+              'Cargo and the native Growth pool use the same bounded job count. Otherwise they use at most two jobs, or one when fewer than two effective CPUs or less than 6 GiB measured memory are available.',
               'Resource limits and cpu.stat/memory.peak snapshots cover the current cgroup and visible ancestors. If the mount hides ancestors above its root, four-job confirmation is disabled and the missing scope is recorded.',
               'Cgroup cpu.stat snapshots bracket the lane but can include other work charged to the runner cgroup. memory.peak may include setup earlier in this job and is not reset.',
               'This artifact is diagnostic and does not establish validation, product identity, or authority.',
             ],
           };
           fs.writeFileSync(path.join(rustResourceDir, 'resource-profile.json'), `${JSON.stringify(profile, null, 2)}\n`, { mode: 0o600 });
-          fs.appendFileSync(process.env.GITHUB_ENV, `CARGO_BUILD_JOBS=${buildJobs}\n`);
-          console.log(`Cargo resource profile selected CARGO_BUILD_JOBS=${buildJobs}.`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `CARGO_BUILD_JOBS=${buildJobs}\nTOS_GROWTH_JOBS=${buildJobs}\n`);
+          console.log(`Resource profile selected CARGO_BUILD_JOBS=${buildJobs} and TOS_GROWTH_JOBS=${buildJobs}.`);
           JS
       - &cargo_resource_before
         name: Capture pre-lane cgroup counters
@@ -1278,7 +1279,7 @@ jobs:
           TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
-        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --rust-group "${{ matrix.group }}" --growth-jobs 2 --lane-timeout-ms 10800000 --cargo-timings'
+        run: '"$TOS_VALIDATION_LANES_EXECUTOR" --repo-root "$GITHUB_WORKSPACE" --run rust_workspace --rust-group "${{ matrix.group }}" --growth-jobs "$TOS_GROWTH_JOBS" --lane-timeout-ms 10800000 --cargo-timings'
       - *cargo_resource_after
       - *cargo_diagnostics
 
