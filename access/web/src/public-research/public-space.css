@@ -528,7 +528,7 @@
 @media (prefers-reduced-motion:reduce){#tree .ps-hint{animation:none}}
 
 /* ── the controls window: the gestures of the space, once, like a game's controls ── */
-#tree .ps-controls{position:absolute;z-index:30;left:50%;top:50%;width:min(420px,calc(100vw - 24px));padding:18px 20px 16px;border:1px solid #c9ad7355;border-radius:8px;background:linear-gradient(170deg,#0b1729f5,#070f1bfa);box-shadow:0 24px 80px #000c,0 0 0 1px #0006;color:#d6dfeb;animation:ps-controls-in .35s ease-out}
+#tree .ps-controls{position:absolute;z-index:30;left:50%;top:50%;width:min(420px,calc(100vw - 24px));overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:18px 20px 16px;border:1px solid #c9ad7355;border-radius:8px;background:linear-gradient(170deg,#0b1729f5,#070f1bfa);box-shadow:0 24px 80px #000c,0 0 0 1px #0006;color:#d6dfeb;animation:ps-controls-in .35s ease-out}
 #tree .ps-controls[hidden]{display:none}
 #tree .ps-controls:not([style*="left"]){translate:-50% -50%}
 #tree .ps-controls-title{margin:0 0 12px;color:var(--ps-gold);font:600 10px/1.4 var(--ps-sans);letter-spacing:.16em;text-transform:uppercase}

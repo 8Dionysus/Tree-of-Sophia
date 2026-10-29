@@ -605,12 +605,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const kind=threadKinds.get(threadId);
     return {eyebrow:[kind?relationWord(kind):'',kindName(material.kind)].filter(Boolean).join(' · '),title:keepDots(label(material)),lines:[t('threadNote')]};
   }
+  // A star brought into the space comes with its prepared links to the stars the space already holds,
+  // as growing a branch brings them, so the thread it was followed by stays drawn.
+  function growWith(materialId){
+    const held=new Set(state.nodes.map(node=>node.materialId).filter(Boolean));held.add(materialId);
+    const edgeIds=(atlas.edges??[]).filter(edge=>edge.id&&((edge.from===materialId&&held.has(edge.to))||(edge.to===materialId&&held.has(edge.from)))).map(edge=>edge.id);
+    model.growAtlas({nodeIds:[materialId],...(edgeIds.length?{edgeIds}:{})});state=model.getState();
+    return graphIdForMaterial(materialId);
+  }
   // Following a thread brings its star into the space, out of the star it was followed from.
   function followThread(threadId){
     const graphId=String(threadId).replace(/^thread:/,''),materialId=graphId.slice(9),from=selected;
     // The rising is set before the star exists: adding it draws the space at once.
     if(from)rising.set(graphId,from);
-    try{const added=model.addMaterial(materialId);state=model.getState();selectActual(added);notifyGraphResult(t('threadAdded'));reflect();sky?.reveal(added);}
+    try{const added=growWith(materialId);selectActual(added);notifyGraphResult(t('threadAdded'));reflect();sky?.reveal(added);}
     catch(error){rising.delete(graphId);notify(displayPublicError(error,locale));}
   }
   // Your own reading first. Where a step or a riddle asks, one line of your own is written before the readings open;
@@ -642,6 +650,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function standNearest(targetId,readingGraph){
     const record=ownReadings.get(targetId),mine=ownReadingOf(targetId);if(!record||!mine)return;
     if((record.near??null)===(readingGraph??null))return;
+    // A reading the space does not hold comes into it first, so the record can stand beside it and be linked to it.
+    if(readingGraph&&!state.nodes.some(node=>node.id===readingGraph)){try{growWith(readingGraph.slice(9));}catch(error){notify(displayPublicError(error,locale));return;}}
     const nodeId=nodeOfOwn(mine.id),index=readingGraph?[...ownReadings.values()].filter(item=>item!==record&&item.near===readingGraph).length:0,at=placeOfGraph(readingGraph??graphIdForMaterial(targetId));
     if(at){personalPositions.set(nodeId,besidePosition(at,index));savePersonalPositions();}
     if(readingGraph)record.near=readingGraph;else delete record.near;saveOwnReadings();
