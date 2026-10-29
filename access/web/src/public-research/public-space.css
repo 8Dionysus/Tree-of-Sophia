@@ -496,3 +496,15 @@
   #tree .pr-spaces>*{padding:0 8px;font-size:11px}
   #tree .ps-header .corpus-open{padding:0 8px}
 }
+
+/* A space read in depth names the planes of its steps while it turns. */
+#tree .tree-plane{font:600 9px/12px system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 6px #02050b,0 0 2px #02050b}
+/* A star is held still to be picked up; a quick drag from it turns the space. */
+#tree .tree-star{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#tree .tree-star[data-held=true]{cursor:grabbing}
+#tree .tree-star[data-held=true] span{color:var(--star-color);opacity:1}
+/* The globe turns with the space. */
+#tree .ps-map-tools .ps-turn{cursor:grab;touch-action:none}
+#tree .ps-map-tools .ps-turn:active{cursor:grabbing}
+#tree .ps-map-tools .ps-turn svg{width:22px;height:22px;overflow:visible}
+#tree .ps-map-tools .ps-turn[hidden]{display:none}
