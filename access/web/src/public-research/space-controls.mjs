@@ -3,6 +3,8 @@
 // never a list of buttons. "Don't show again" is remembered in this browser;
 // closing without it shows the window again on the next visit.
 
+import {copyLocale,localeText} from './locale.mjs';
+
 export const CONTROLS_KEY='tos.public-research.controls.v1';
 const HIDDEN='hidden';
 
@@ -35,20 +37,22 @@ const WORDS={
     title:'Управление',close:'Понятно',never:'Больше не показывать',reopen:'Управление пространством',
     turn:'повернуть пространство',move:'сдвинуть',zoom:'приблизить и отдалить',lift:'поднять звезду и переставить',
     keys:'повернуть пространство',route:'на маршруте — шаги по нему, а с Shift — поворот',choose:'открыть звезду или связь',
-    drag:'Тянуть',shiftDrag:'Shift + тянуть',rightDrag:'Правой кнопкой',wheel:'Колесо',hold:'Задержать на звезде',arrows:'Стрелки',click:'Нажать',
+    drag:'Тянуть',pan:'Shift + тянуть или правой кнопкой',wheel:'Колесо',hold:'Задержать на звезде',arrows:'Стрелки',click:'Нажать',
     oneFinger:'Одним пальцем',twoFingers:'Двумя пальцами',pinch:'Свести или развести пальцы',holdFinger:'Задержать палец на звезде',tap:'Коснуться',
-    or:'или',
   },
   en:{
     title:'Controls',close:'Got it',never:'Don’t show again',reopen:'Controls of the space',
     turn:'turn the space',move:'move it',zoom:'zoom in and out',lift:'pick up a star and move it',
     keys:'turn the space',route:'on a route they walk its steps, with Shift they turn',choose:'open a star or a link',
-    drag:'Drag',shiftDrag:'Shift + drag',rightDrag:'Right button',wheel:'Wheel',hold:'Hold on a star',arrows:'Arrows',click:'Click',
+    drag:'Drag',pan:'Shift + drag or right button',wheel:'Wheel',hold:'Hold on a star',arrows:'Arrows',click:'Click',
     oneFinger:'One finger',twoFingers:'Two fingers',pinch:'Pinch',holdFinger:'Hold a finger on a star',tap:'Tap',
-    or:'or',
   },
 };
-export const controlsWords=locale=>WORDS[String(locale||'ru').startsWith('en')?'en':'ru'];
+// Russian has its own words; every other interface language reads the English ones through its catalog.
+export const controlsWords=locale=>{
+  const words=WORDS[copyLocale(locale)];
+  return words===WORDS.ru?words:Object.fromEntries(Object.entries(words).map(([key,value])=>[key,localeText(value,locale)]));
+};
 
 /**
  * The gestures of a space read in depth, for a pointer that hovers (mouse and
@@ -65,7 +69,7 @@ export function controlsFor(device='mouse',locale='ru'){
   ];
   return [
     {sign:'drag',gesture:w.drag,action:w.turn},
-    {sign:'pan',gesture:`${w.shiftDrag} ${w.or} ${w.rightDrag.toLocaleLowerCase()}`,action:w.move},
+    {sign:'pan',gesture:w.pan,action:w.move},
     {sign:'wheel',gesture:w.wheel,action:w.zoom},
     {sign:'hold',gesture:w.hold,action:w.lift},
     {sign:'arrows',gesture:w.arrows,action:`${w.keys}; ${w.route}`},

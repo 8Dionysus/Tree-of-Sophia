@@ -41,4 +41,9 @@ describe('the controls window names gestures, not buttons',()=>{
     expect(rows.map(row=>row.sign)).toEqual(['finger','fingers','pinch','hold','tap']);
     expect(rows[0]).toEqual({sign:'finger',gesture:'One finger',action:'turn the space'});
   });
+  it('speaks the interface language beyond Russian and English',()=>{
+    expect(controlsFor('mouse','de')[0]).toEqual({sign:'drag',gesture:'Ziehen',action:'den Raum drehen'});
+    expect(controlsFor('touch','es')[2]).toEqual({sign:'pinch',gesture:'Juntar o separar los dedos',action:'acercar y alejar'});
+    expect(controlsFor('mouse','zh-Hans')[5].gesture).toBe('点击');
+  });
 });
