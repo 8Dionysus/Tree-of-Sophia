@@ -8,7 +8,7 @@ import {localizePublicJourney} from './journey-i18n.mjs';
 import {displayPublicError,hypothesisTitle,proposalDisplay} from './presentation-i18n.mjs';
 import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
-import {isAuthoredTransition,partName,relationStyle,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
+import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -31,8 +31,16 @@ const extraTranslations={
 Object.assign(extraTranslations.ru,{zoomIn:'Увеличить Древо',zoomOut:'Уменьшить Древо',mapSearch:'Искать в пространстве…',mapSearchHint:'Поиск по названиям и описаниям пространства; полный текст ищите в Чтении.',personal:'Личная запись · сохранена в общем исследовании',personalUnknown:'Вид записи не указан',pendingProposal:'Личное предложение · ожидает проверки · не канон',growEmpty:'Создайте собственную мысль в этом пространстве.',routeQuestion:'Вопрос маршрута',generalQuestion:'Общий вопрос',lensQuestion:'Вопрос этого взгляда',modeCancel:'Отменить выбор',modeFirst:'Выберите первую звезду',modeSecond:'Выберите вторую звезду',modeCompare:'Сопоставление',modeConnect:'Связь',stepName:'Шаг',voice:'Голос'});
 Object.assign(extraTranslations.en,{zoomIn:'Zoom in on the tree',zoomOut:'Zoom out on the tree',mapSearch:'Search this space…',mapSearchHint:'Searches space titles and descriptions; search full text in the reader.',personal:'Personal record · saved in shared research',personalUnknown:'Record type not specified',pendingProposal:'Personal proposal · pending review · not canon',growEmpty:'Create your own thought in this space.',routeQuestion:'Route question',generalQuestion:'General question',lensQuestion:'Question for this view',modeCancel:'Cancel selection',modeFirst:'Choose the first star',modeSecond:'Choose the second star',modeCompare:'Compare',modeConnect:'Connect',stepName:'Step',voice:'Voice'});
 Object.assign(extraTranslations.ru,{excerpt:'Выдержка',proposalGrounds:'Основания этого предложения',manualOrigin:'Ручной ввод',agentOrigin:'Ответ внешнего агента',personalOrigin:'Личное предложение',pending:'Ожидает проверки',notCanon:'Не канон',postureShort:'Прочтения · не канон'});
-Object.assign(extraTranslations.ru,{transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
-Object.assign(extraTranslations.en,{transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
+Object.assign(extraTranslations.ru,{dragHint:'перетаскивание сдвигает карту, с Shift — поворачивает',transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
+Object.assign(extraTranslations.en,{dragHint:'drag to pan, Shift+drag to turn',transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
+Object.assign(extraTranslations.ru,{journeys:'Маршруты чтения',researchActions:'Исследование',orientation:'Где вы в Древе',mapTools:'Управление картой',openColumn:'Панель',collapseColumn:'Свернуть панель',toOverview:'Ко всему пространству',backToRoute:'назад к маршруту',onMap:'На карте',selectedLink:'Выбрана связь',lensWord:'линза',
+  positionNote:'Положение звёзд группирует материал по кругам и не измеряет близость: расстояние на карте ничего не утверждает.',statusTitle:'Статус',formSource:'Источник',formSourceHint:'Произведение, место, автор или традиция — то, на что опираются прочтения',formProposal:'Прочтение',formProposalHint:'Авторское прочтение, понятие, вопрос или ветвь — предложено для исследования, не канон',formPersonal:'Личное',formPersonalHint:'Ваша мысль или связь, сохранённая в этом браузере',
+  ladderLabel:'Ступень толкования',ladderHint:'Древо различает источник, его прочтение и сопоставление прочтений; каждая ступень возвращается к источнику.',rung_source:'Источник',rung_reading:'Прочтение',rung_comparison:'Сопоставление',rungPersonal:'Личная запись',
+  basisContains:'Структура: часть и целое.',basisGround:'Прочтение опирается на это место источника.',basisEditorial:'Редакторское сопоставление двух прочтений · предложено, не канон · не утверждает исторического влияния.',basisProposed:'Связь предложена для исследования · не канон · сходство не означает влияния.',basisPersonal:'Личная связь из вашего исследования.'});
+Object.assign(extraTranslations.en,{journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',
+  positionNote:'Star positions group the material into circles and do not measure closeness: distance on the map asserts nothing.',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
+  ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',
+  basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
 Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds of this proposal',manualOrigin:'Manual entry',agentOrigin:'External agent response',personalOrigin:'Personal proposal',pending:'Pending review',notCanon:'Not canon',postureShort:'Readings · not canon'});
 const materialMap=library=>new Map((library?.nodes??[]).map(item=>[item.id,item]));
 const graphIdForMaterial=id=>`material:${id}`;
@@ -44,7 +52,7 @@ function downloadGraph(packet,name){const blob=new Blob([packet],{type:'applicat
 export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[]}={}){
   if(!host||!library||!api)throw new TypeError('The public space needs a host, library, and reader API.');
   // Antiquity calls its authored routes branches, as the earlier tree did.
-  const profileWords={antiquity:{ru:{routes:'Ветви'},en:{routes:'Branches'}}}[profile]??{};
+  const profileWords={antiquity:{ru:{routes:'Ветви',stepName:'Ход',backToRoute:'назад к ветви',routeNext:'Следующий ход',routePrevious:'Предыдущий ход'},en:{routes:'Branches',stepName:'Move',backToRoute:'back to the branch',routeNext:'Next move',routePrevious:'Previous move'}}}[profile]??{};
   const t=key=>{const lang=String(locale()||'ru').startsWith('en')?'en':'ru';return profileWords[lang]?.[key]??extraTranslations[lang][key]??translations[lang][key]??key;};
   const openPublicAddress=address=>api.open(Object.fromEntries(Object.entries(address).filter(([key])=>['documentId','versionId','unitId','revision','reference'].includes(key))));
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
@@ -80,7 +88,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const model=createConstructorModel(library,{key:spaceKey});
   let state=model.getState(),lens=lenses.some(item=>item.id==='tree')?'tree':lenses[0]?.id??'tree',enabled=new Set(relationKinds),selected=null,selectedEdge=null,searchValue='',route=null,routeIndex=0,compareIds=[],connectIds=[],interaction=null,panelMode='detail',personalState=workspace?.getState?.()??null,destroyed=false,routeDockTouched=false;
   const desktopMode=window.matchMedia('(min-width: 761px)');
-  let browsingRoutes=false,personalRouteWasVisible=false,comparisonRouteWasVisible=false;
+  let browsingRoutes=false,columnOpen=true,routeStepNode=null;
   const routeDetailState=new Map();
   const personalPositions=new Map();
   const materializedHypotheses=new Map(),managedDrafts=new Map(),researchUndoneOwners=new Set();let syncingOwner=false;
@@ -91,29 +99,44 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function bindHypothesis(ownerId,graphId){for(const [previousOwner,previousGraph]of materializedHypotheses)if(previousOwner!==ownerId&&previousGraph===graphId)materializedHypotheses.delete(previousOwner);materializedHypotheses.set(ownerId,graphId);}
   function saveOwnerBindings(){try{localStorage.setItem(ownersKey,JSON.stringify(Object.fromEntries(materializedHypotheses)));ownersPersistenceError=false;}catch{ownersPersistenceError=true;notify(t('graphSaveError'));}}
   try{const saved=JSON.parse(localStorage.getItem(positionsKey)||'{}');if(object(saved))for(const [key,value]of Object.entries(saved)){const p=copyPosition(value);if(p)personalPositions.set(key,p);}}catch{}
-  const shell=el('section','pr-public-space');shell.id='tree';shell.dataset.profile=profile;shell.dataset.ready='false';shell.dataset.reading='false';
+  const shell=el('section','pr-public-space');shell.id='tree';shell.dataset.profile=profile;shell.dataset.ready='false';shell.dataset.reading='false';shell.dataset.column='overview';shell.dataset.columnOpen='true';
   const canvas=document.createElement('canvas');canvas.className='tree-sky';canvas.setAttribute('aria-label',t('space'));
   if(header){header.classList.add('header','ps-header');shell.append(header);}
   shell.append(canvas);
+  // One search for the whole space sits in the header row; '/' opens it.
+  const searchBox=el('div','ps-search-box');
   const search=document.createElement('input');search.type='search';search.className='ps-search';search.autocomplete='off';search.placeholder=t('mapSearch');search.setAttribute('aria-label',t('mapSearch'));
+  const searchKey=el('kbd','ps-search-key','/');searchKey.setAttribute('aria-hidden','true');
   const searchResults=el('div','ps-search-results');searchResults.hidden=true;
-  const lensRail=el('nav','lens-rail ps-lens-rail');lensRail.setAttribute('aria-label',t('lenses'));lensRail.append(el('p','eyebrow',t('lenses')));
-  const lensList=el('div','lens-list');lensRail.append(lensList,button(`＋ ${t('new')}`,'new-thought'));
-  const heading=el('header','view-heading');heading.append(el('p','view-kicker',t(profile==='antiquity'?'kickerAntiquity':'kickerZarathustra')),el('h1','',publicTitle()),el('p','',tr(library.space?.intro,locale())||t('imagine')));
-  const mainActions=el('nav','ps-main-actions');mainActions.setAttribute('aria-label',t('research'));
-  for(const [key,action] of [['lensInquiry',()=>showInquiry()],['routes',()=>toggleRoutes()],['grow',()=>openGrow()],['research',()=>togglePersonal()]]){const b=button(t(key),'ps-top-action');b.dataset.spaceAction=key;b.addEventListener('click',action);mainActions.append(b);}
-  const deck=el('section','collection-deck ps-route-dock');deck.hidden=true;
+  searchBox.append(search,searchKey,searchResults);
+  // The left rail holds the two ways into the tree: lenses say how to look, research actions what to do.
+  const lensRail=el('nav','lens-rail ps-lens-rail');lensRail.setAttribute('aria-label',t('lenses'));
+  const lensTitle=el('p','eyebrow ps-rail-title',t('lenses')),lensList=el('div','lens-list');
+  const actionsTitle=el('p','eyebrow ps-rail-title',t('researchActions')),mainActions=el('div','ps-main-actions');mainActions.setAttribute('role','group');mainActions.setAttribute('aria-label',t('researchActions'));
+  lensRail.append(lensTitle,lensList,actionsTitle,mainActions);
+  for(const [key,icon,action] of [['routes','⌁',()=>toggleRoutes()],['lensInquiry','?',()=>showInquiry()],['grow','✣',()=>openGrow()],['research','◎',()=>togglePersonal()],['new','＋',()=>openNewThought()],['connect','↗',()=>beginConnect()],['compare','⇄',()=>beginCompare()]]){const b=button('','ps-top-action');b.dataset.spaceAction=key;b.title=t(key);b.append(el('span','ps-action-icon',icon),el('span','ps-action-label',t(key)));b.addEventListener('click',action);mainActions.append(b);}
+  // Orientation: where in the tree the reader stands, from the whole space down to the chosen star.
+  const heading=el('header','view-heading ps-orientation');
+  const kicker=el('p','view-kicker');
+  const crumbRow=el('div','ps-crumb-row'),titleHeading=el('h1','ps-space-title'),titleButton=button('','ps-crumb ps-crumb-root');titleHeading.append(titleButton);
+  const crumbNav=el('nav','ps-crumbs');crumbNav.setAttribute('aria-label',t('orientation'));const crumbList=el('ol','ps-crumb-list');crumbNav.append(crumbList);
+  crumbRow.append(titleHeading,crumbNav);heading.append(kicker,crumbRow);
+  const mapTools=el('div','ps-map-tools');mapTools.setAttribute('role','toolbar');mapTools.setAttribute('aria-label',t('mapTools'));
+  const deck=el('section','ps-route-dock');deck.hidden=true;
   const relationBar=el('section','relation-bar ps-relations');
-  const relationToggle=button(`⌘ ${t('filter')}`,'relation-toggle');
-  const relationChips=el('div','relation-chips');relationBar.append(relationToggle,relationChips);
+  const relationToggle=button(t('filter'),'relation-toggle');
+  const relationChips=el('div','relation-chips'),statusLegend=el('div','ps-status-legend');relationBar.append(relationToggle,relationChips,statusLegend);
   const footer=el('footer','footer ps-footer');
   const posture=button('', 'posture-button');posture.append(el('i'),el('span','',t('posture')));
   const count=el('span','space-count');
   const footerTools=el('div','footer-tools');
   const statusLabel=el('span','save-state',t('record'));
-  const reading=el('aside','reading ps-panel');reading.hidden=true;
-  const panelTop=el('div','reading-top');const panelClose=button('×','icon');panelClose.setAttribute('aria-label',t('close'));panelTop.append(el('span','eyebrow',t('selected')),panelClose);
-  const panelContent=el('div','ps-panel-content');reading.append(panelTop,panelContent);
+  // The reading column holds the space's overview, an open branch or route, or the chosen star.
+  // On a narrow screen it becomes a sheet whose top bar always stays in reach.
+  const reading=el('aside','reading ps-panel ps-column');reading.hidden=true;
+  const panelTop=el('div','reading-top'),panelTitle=button('','eyebrow ps-column-title'),panelClose=button('×','icon');panelClose.setAttribute('aria-label',t('close'));panelTop.append(panelTitle,panelClose);
+  const panelContent=el('div','ps-panel-content');reading.append(panelTop,deck,panelContent);
+  const columnTab=button('','ps-column-tab');columnTab.hidden=true;columnTab.append(el('span','',`‹ ${t('openColumn')}`));
   const personal=el('aside','reading ps-panel ps-personal');personal.hidden=true;
   const personalTop=el('div','reading-top');const personalClose=button('×','icon');personalClose.setAttribute('aria-label',t('close'));personalTop.append(el('span','eyebrow',t('research')),personalClose);
   const personalContent=el('div','ps-personal-content');
@@ -133,7 +156,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const workMap=new Map((documentBindings instanceof Map?documentBindings.entries():Object.entries(documentBindings??{})).map(([id,value])=>[id,value]));
   let journeyList=Array.isArray(journeys)?journeys:[];
   const importInput=document.createElement('input');importInput.type='file';importInput.accept='application/json,.json';importInput.hidden=true;importInput.setAttribute('aria-label',t('import'));
-  shell.append(search,searchResults,lensRail,heading,mainActions,deck,relationBar,footer,reading,personal,compareBar,modeBanner,dialog,importInput);
+  shell.append(lensRail,heading,mapTools,relationBar,footer,reading,columnTab,personal,compareBar,modeBanner,dialog,importInput);
+  if(header){const tools=header.querySelector('.main-tools, .pr-toolbar');header.insertBefore(searchBox,tools??null);}else shell.append(searchBox);
   host.append(shell);
 
   const langButton=localeButtonContainer();
@@ -148,47 +172,52 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     shell.dataset.locale=value;document.documentElement.lang=value;
     for(const b of langButton.querySelectorAll('[data-public-locale]'))b.setAttribute('aria-pressed',String(b.dataset.publicLocale===value));
     search.placeholder=t('mapSearch');search.setAttribute('aria-label',t('mapSearch'));searchResults.setAttribute('aria-label',t('searchResults'));
-    lensRail.querySelector('.eyebrow').textContent=t('lenses');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('research'));importInput.setAttribute('aria-label',t('import'));
-    heading.querySelector('.view-kicker').textContent=t(profile==='antiquity'?'kickerAntiquity':'kickerZarathustra');heading.querySelector('h1').textContent=publicTitle();heading.querySelector('p:last-child').textContent=tr(library.space?.intro,locale())||t('imagine');
-    for(const b of mainActions.querySelectorAll('[data-space-action]'))b.textContent=t(b.dataset.spaceAction);
-    const newThoughtButton=lensRail.querySelector('.new-thought');if(newThoughtButton)newThoughtButton.textContent=`＋ ${t('new')}`;
-    relationToggle.textContent=t('filter');relationToggle.setAttribute('aria-label',t('filter'));posture.querySelector('span').textContent=t('postureShort');canvas.setAttribute('aria-label',t('space'));importInput.setAttribute('aria-label',t('import'));
+    lensTitle.textContent=t('lenses');actionsTitle.textContent=t('researchActions');lensRail.setAttribute('aria-label',t('lenses'));mainActions.setAttribute('aria-label',t('researchActions'));importInput.setAttribute('aria-label',t('import'));
+    crumbNav.setAttribute('aria-label',t('orientation'));mapTools.setAttribute('aria-label',t('mapTools'));columnTab.firstChild.textContent=`‹ ${t('openColumn')}`;
+    for(const b of mainActions.querySelectorAll('[data-space-action]')){b.querySelector('.ps-action-label').textContent=t(b.dataset.spaceAction);b.title=t(b.dataset.spaceAction);}
+    relationToggle.textContent=t('filter');relationToggle.setAttribute('aria-label',t('filter'));posture.querySelector('span').textContent=t('postureShort');canvas.setAttribute('aria-label',t('space'));
     for(const item of uiActions)paintTool(item);
     clearTimeout(notify.timer);notify.timer=null;statusLabel.textContent=savedStatus();
-    panelTop.querySelector('.eyebrow').textContent=t('selected');personalTop.querySelector('.eyebrow').textContent=t('research');
+    personalTop.querySelector('.eyebrow').textContent=t('research');
     panelClose.setAttribute('aria-label',t('close'));personalClose.setAttribute('aria-label',t('close'));
-    modeCancel.textContent=t('modeCancel');paintLenses();paintRelations();if(searchValue)renderSearch();if(route||!deck.hidden)renderRoutes();if(!compareBar.hidden)renderComparison();reflect();
+    modeCancel.textContent=t('modeCancel');voiceCache.clear();paintLenses();paintRelations();if(searchValue)renderSearch();if(!compareBar.hidden)renderComparison();reflect();
   }
   const uiActions=[];
   function paintTool({button:b,key,label}){
     b.replaceChildren(el('span','ps-tool-symbol',label));
     if(key==='routes'||key==='research')b.append(el('span','ps-tool-label',t(key)));
-    b.title=t(key);b.setAttribute('aria-label',t(key));
+    // A tool names its key; the overview also says how the map is moved.
+    const keyHint={zoomIn:'+',zoomOut:'−',fit:'O'}[key],title=`${t(key)}${keyHint?` (${keyHint})`:''}${key==='fit'?` · ${t('dragHint')}`:''}`;
+    b.title=title;b.setAttribute('aria-label',t(key));
   }
-  function addTool(key,label,action,cls=''){
-    const b=button('',cls),item={button:b,key,label};b.dataset.tool=key;paintTool(item);b.addEventListener('click',action);footerTools.append(b);uiActions.push(item);return b;
+  function addTool(key,label,action,cls='',target=footerTools){
+    const b=button('',cls),item={button:b,key,label};b.dataset.tool=key;paintTool(item);b.addEventListener('click',action);target.append(b);uiActions.push(item);return b;
   }
+  // The footer carries the narrow screen's research actions; a wide screen keeps them, labelled, in the rail.
   addTool('lensInquiry','?',()=>showInquiry(),'icon');
   addTool('routes','⌁',()=>toggleRoutes(),'icon');
-  addTool('grow','＋',()=>openGrow(),'icon');
+  addTool('grow','✣',()=>openGrow(),'icon');
   addTool('research','◎',()=>togglePersonal(),'icon');
-  addTool('zoomOut','⊖',()=>sky?.zoomBy(1/1.25),'icon');
-  addTool('zoomIn','⊕',()=>sky?.zoomBy(1.25),'icon');
-  addTool('fit','⌖',()=>sky?.frame(),'icon');
+  addTool('new','＋',()=>openNewThought(),'icon');
   addTool('connect','↗',()=>beginConnect(),'icon');
   addTool('compare','⇄',()=>beginCompare(),'icon');
+  // Moving the map is its own small group at the map's corner.
+  addTool('zoomOut','−',()=>sky?.zoomBy(1/1.25),'icon',mapTools);
+  addTool('zoomIn','+',()=>sky?.zoomBy(1.25),'icon',mapTools);
+  addTool('fit','⌖',()=>sky?.frame(),'icon',mapTools);
+  addTool('fullscreen','⛶',()=>void toggleFullscreen(),'icon',mapTools);
   footerTools.append(el('i'));
   const undoButton=addTool('graphUndo','↶',()=>{model.undo();checkGraphPersistence();},'icon');
   const redoButton=addTool('graphRedo','↷',()=>{model.redo();checkGraphPersistence();},'icon');
-  addTool('fullscreen','⛶',()=>void toggleFullscreen(),'icon');
   addTool('export','⇩',()=>{try{downloadGraph(model.exportPacket(),`tos-${profile}-research-tree.json`);}catch(error){notify(displayPublicError(error,locale));}},'icon');
   addTool('import','⇧',()=>importInput.click(),'icon');
   importInput.addEventListener('change',async()=>{const file=importInput.files?.[0];if(!file)return;try{if(file.size>1_000_000)throw new Error('constructor packet exceeds the 1 MB storage limit');model.importPacket(await file.text());selected=null;selectedEdge=null;notifyGraphResult(t('saved'));sky?.frame();}catch(error){notify(displayPublicError(error,locale));}finally{importInput.value='';}});
   posture.addEventListener('click',()=>toggleRelations());
   relationToggle.addEventListener('click',()=>toggleRelations());
   footer.append(posture,count,statusLabel,footerTools);
-  lensRail.querySelector('.new-thought').addEventListener('click',()=>openNewThought());
-  panelClose.addEventListener('click',closePanel);personalClose.addEventListener('click',closePersonal);
+  titleButton.addEventListener('click',()=>goOverview());
+  panelClose.addEventListener('click',()=>closeColumnLayer());personalClose.addEventListener('click',closePersonal);
+  panelTitle.addEventListener('click',()=>toggleSheet());columnTab.addEventListener('click',()=>openColumn());
   search.addEventListener('input',()=>{searchValue=search.value.trim();renderSearch();});
   search.addEventListener('keydown',event=>{if(event.key==='Escape'){search.value='';searchValue='';searchResults.hidden=true;}if(event.key==='Enter')searchResults.querySelector('button')?.click();});
   document.addEventListener('keydown',keyboard);
@@ -406,8 +435,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const routeIds=new Set(route?.path?.nodeIds??[]),selectedIds=new Set([selected].filter(Boolean));
     projected.nodes=projected.nodes.map(node=>{
       const material=matForNode(node);
-      if(node.ownerType==='personal-hypothesis')return {...node,title:node.title,body:node.body};
-      const next={...node,title:label(material)??node.title,color:node.color??material?.color};
+      if(node.ownerType==='personal-hypothesis')return {...node,title:node.title,body:node.body,form:'personal'};
+      const next={...node,title:label(material)??node.title,color:node.color??material?.color,form:nodeForm({material,node})};
       // A move names its witness; in the crowded overview only the chosen move does.
       const line=profile==='antiquity'&&partName(profile,material,locale(),{moveIds})&&(routeIds.has(node.id)||selectedIds.has(node.id))?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';
       return line?{...next,subtitle:line,labelLines:2,labelMaxWidth:210,accessibilityLabel:`${label(material)} · ${line}`}:next;
@@ -422,24 +451,39 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
     const current=visibleState();count.textContent=`${t('visibleCount')}: ${countText(current.nodes.length,'nodes')} · ${countText(current.edges.length,'edges')}`;if(!notify.timer)statusLabel.textContent=savedStatus();
     const postureDescription=tr(library.space?.posture,locale())||t('demo');posture.querySelector('span').textContent=t('postureShort');posture.setAttribute('aria-label',postureDescription);posture.title=postureDescription;
-    // On a narrow screen the route dock already shows the step; the panel opens only when asked.
-    const dockCarriesStep=!!route&&!desktopMode.matches&&!deck.hidden&&reading.hidden;
-    if(personal.hidden){if(selectedEdge)renderEdge(selectedEdge);else if(selected&&!dockCarriesStep)renderNode(selected);else if(reading.hidden&&!state.nodes.length)renderWelcome();}
-    renderSearch();renderInteraction();
+    if(personal.hidden)renderColumn();
+    renderOrientation();renderSearch();renderInteraction();
   }
   function paintLenses(){
     lensList.replaceChildren();
-    for(const item of lenses){const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.append(el('span','lens-icon',item.icon),el('span','',tr(item.title,locale())));b.title=tr(item.description,locale());b.addEventListener('click',()=>{lens=item.id;route=null;persistView();renderRoutes();paintLenses();reflect();});lensList.append(b);}
+    for(const item of lenses){const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.append(el('span','lens-icon',item.icon),el('span','',tr(item.title,locale())));b.title=tr(item.description,locale());b.addEventListener('click',()=>{lens=item.id;if(route){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();sky?.frame();});lensList.append(b);}
   }
   function paintRelations(){
     relationChips.replaceChildren();
     const all=button(t('all'),'relation-chip');all.setAttribute('aria-pressed',String(enabled.size===relationKinds.length));all.addEventListener('click',()=>{enabled=new Set(relationKinds);reflect();paintRelations();});relationChips.append(all);
     for(const key of relationKinds){const value=styleOf(key),b=button(tr(value,locale()),'relation-chip');b.style.setProperty('--relation-color',value.color);b.dataset.dash=value.dash??'solid';b.style.setProperty('--relation-weight',String(value.weight??1));if(value.hint)b.title=`${tr(value,locale())} — ${tr(value.hint,locale())}`;b.setAttribute('aria-pressed',String(enabled.has(key)));b.addEventListener('click',()=>{if(enabled.has(key))enabled.delete(key);else enabled.add(key);reflect();paintRelations();});relationChips.append(b);}
+    // The legend also says what a star's form means: what the tree stands on, what is proposed, what is yours.
+    const forms=el('div','ps-status-items');statusLegend.replaceChildren(el('span','ps-legend-title',t('statusTitle')),forms);
+    for(const [form,key] of [['source','formSource'],['proposal','formProposal'],['personal','formPersonal']]){const chip=el('span','ps-form-chip');chip.dataset.form=form;chip.title=t(`${key}Hint`);chip.append(el('i'),el('span','',t(key)));forms.append(chip);}
   }
   function renderWelcome(){
-    reading.hidden=false;shell.dataset.reading='true';panelContent.replaceChildren(el('p','ps-welcome-mark','✧'),el('p','eyebrow',tr(library.space?.posture,locale())||t('posture')),el('p','ps-reading-intro',t('select')));
-    const summary=el('div','ps-profile-summary');summary.append(el('strong','',countText(state.nodes.length,'nodes')),el('span','',countText(state.edges.length,'edges')));panelContent.append(summary);
-    const actions=el('div','reading-actions');actions.append(button(t('routes'),'primary'));actions.lastChild.addEventListener('click',toggleRoutes);panelContent.append(actions);
+    panelContent.replaceChildren();
+    const intro=tr(library.space?.intro,locale());if(intro)panelContent.append(el('p','ps-overview-intro',intro));
+    panelContent.append(el('p','posture ps-overview-posture',tr(library.space?.posture,locale())||t('demo')),el('p','ps-overview-note',t('positionNote')),el('p','ps-reading-intro',t('select')));
+  }
+  function ladderLine(rung){
+    const wrap=el('p','ps-ladder');wrap.title=t('ladderHint');wrap.setAttribute('aria-label',t('ladderLabel'));
+    if(rung==='personal'){const item=el('span','ps-rung',t('rungPersonal'));item.setAttribute('aria-current','true');wrap.append(item);return wrap;}
+    ['source','reading','comparison'].forEach((key,index)=>{if(index)wrap.append(el('span','ps-rung-sep','›'));const item=el('span','ps-rung',t(`rung_${key}`));if(key===rung)item.setAttribute('aria-current','true');wrap.append(item);});
+    return wrap;
+  }
+  // A link says what it compares and on what footing, so nearness never reads as influence.
+  function relationBasis(edge,authored){
+    if(edge.ownerType)return t('basisPersonal');
+    if(edge.kind==='contains')return t('basisContains');
+    if(isBasedOn(edge))return t('basisGround');
+    // Antiquity's authored transitions are editorial comparisons; every other prepared link is proposed for inquiry.
+    return t(authored&&profile==='antiquity'?'basisEditorial':'basisProposed');
   }
   function renderNode(id){
     const materialId=id.startsWith('material:')?id.slice(9):null;
@@ -447,10 +491,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const node=graphState().nodes.find(item=>item.id===id)??(preview?{id,materialId,kind:preview.kind,sourceIds:[]}:null);if(!node){selected=null;return renderWelcome();}
     const inSavedGraph=state.nodes.some(item=>item.id===id),inView=graphState().nodes.some(item=>item.id===id);
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
-    reading.hidden=false;personal.hidden=true;shell.dataset.reading='true';panelContent.replaceChildren();
+    panelContent.replaceChildren();
     const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(el('p','eyebrow',`${t('kind')} · ${part||kindName(material?.kind??node.kind)}`),el('h1','',node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle));
     // A move names its author, work and place right under its title.
     const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)panelContent.append(el('p','ps-source-line',witness));
+    panelContent.append(ladderLine(ladderRung({material,node})));
     const branchRoute=profile==='antiquity'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`antiquity:route:${item.id}`===material?.id)):null;
     if(branchRoute){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});panelContent.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)panelContent.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
@@ -497,7 +542,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function findEdge(id){return graphState().edges.find(edge=>edge.id===id);}
   function renderEdge(id){
     const edge=findEdge(id);if(!edge){selectedEdge=null;return renderWelcome();}
-    reading.hidden=false;personal.hidden=true;shell.dataset.reading='true';panelContent.replaceChildren();
+    panelContent.replaceChildren();
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.
     const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge);
@@ -505,7 +550,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const openRoute=route?.source==='atlas'?routes.find(item=>item.id===route.id):null,plainId=bareEdgeId(edge.id);
     const authored=profile==='antiquity'?isAuthoredTransition(edge):(openRoute?.transitions??[]).some(item=>bareEdgeId(item.edgeId??item.id)===plainId),style=styleOf(edge.kind);
     panelContent.append(el('p','eyebrow',(authored?t('transition'):t('relation'))+' · '+relationLabel),el('h1','',edgeLabel&&edgeLabel.length<=120?edgeLabel:relationLabel));if(edgeLabel.length>120)panelContent.append(el('p','body',edgeLabel));
+    if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))panelContent.append(ladderLine('comparison'));
     if((authored||profile!=='antiquity')&&style.hint&&!edge.ownerType){const hint=el('p','ps-turn-hint');hint.dataset.dash=style.dash;hint.style.setProperty('--relation-color',style.color);hint.style.setProperty('--relation-weight',String((style.weight??1)*1.4));hint.append(el('i'),el('span','',`${relationLabel} — ${tr(style.hint,locale())}`));panelContent.append(hint);}
+    panelContent.append(el('p','ps-basis',relationBasis(edge,authored)));
     if(edge.body||atlasEdge?.body)panelContent.append(el('p','body',tr(edge.body??atlasEdge.body,locale())));
     const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(panelContent,t('relationWarrant'),inquiry.warrant,true);appendGrounds(panelContent,inquiry.grounds);inquiryDetail(panelContent,t('relationLimit'),inquiry.limit);inquiryQuestion(panelContent,inquiry.question);}
     const endpoints=el('div','edge-endpoints');const a=button(label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from),'text-button'),b=button(label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to),'text-button');a.addEventListener('click',()=>selectNode(from.id));b.addEventListener('click',()=>selectNode(to.id));endpoints.append(a,el('span','',relationLabel),b);panelContent.append(endpoints);
@@ -523,10 +570,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     const actions=el('div','reading-actions'),compare=button(t('compare'),'text-button');compare.addEventListener('click',()=>{closePanel();beginCompare(from?.id,to?.id);});actions.append(compare);panelContent.append(actions);
   }
-  function selectNode(id){
+  function selectNode(id,{fromMap=false}={}){
     if(interaction==='connect'){const nextId=id;if(!connectIds.length){connectIds=[nextId];renderInteraction();return;}if(nextId===connectIds[0])return;connectIds=[connectIds[0],nextId];interaction=null;renderInteraction();openRelationDialog();return;}
     if(interaction==='compare'){if(!compareIds.includes(id))compareIds.push(id);if(compareIds.length===2){interaction=null;renderInteraction();renderComparison();}else renderInteraction();return;}
-    selectActual(id);
+    selectActual(id,{reveal:!fromMap});
   }
   function renderInteraction(){
     modeBanner.hidden=!interaction;const first=(interaction==='connect'?connectIds:compareIds)[0];
@@ -537,82 +584,251 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function cancelInteraction(){
     const wasCompare=interaction==='compare';interaction=null;connectIds=[];compareIds=[];renderInteraction();
-    if(wasCompare&&comparisonRouteWasVisible)restoreRouteDock();comparisonRouteWasVisible=false;refreshSky();
+    refreshSky();renderColumn();
   }
-  function previewMaterial(materialId){const id=graphIdForMaterial(materialId);selected=id;selectedEdge=null;searchValue='';search.value='';searchResults.hidden=true;search.blur();if(graphState().nodes.some(item=>item.id===id)){sky?.select(id);sky?.focus(id);}renderNode(id);}
-  // Choosing a visible star highlights it and its links; the map itself stays put.
-  function selectActual(id,{focus=false}={}){selected=id;selectedEdge=null;reading.hidden=false;personal.hidden=true;sky?.select(id);if(focus)sky?.focus(id);renderNode(id);}
-  function selectEdge(id){selectedEdge=id;selected=null;reading.hidden=false;personal.hidden=true;sky?.selectEdge(id);renderEdge(id);}
-  function openPanel(){reading.hidden=false;shell.dataset.reading='true';sky?.refresh();}
-  function closePanel(){reading.hidden=true;shell.dataset.reading='false';selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);reflect();}
+  function previewMaterial(materialId){const id=graphIdForMaterial(materialId);selected=id;selectedEdge=null;browsingRoutes=false;searchValue='';search.value='';searchResults.hidden=true;search.blur();personal.hidden=true;columnOpen=true;sky?.selectEdge(null);if(graphState().nodes.some(item=>item.id===id)){sky?.select(id);sky?.reveal(id);}reflect();sky?.refresh();}
+  // Choosing a star on the map leaves the map where it is. Choosing it from a list,
+  // a link or a step brings it into view only if it would otherwise stay hidden.
+  function selectActual(id,{reveal=false}={}){selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(id);sky?.selectEdge(null);renderColumn();renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
+  function selectEdge(id){selectedEdge=id;selected=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(null);sky?.selectEdge(id);renderColumn();renderOrientation();sky?.refresh();}
+  function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
+  function closePanel(){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!desktop())columnOpen=false;reflect();sky?.refresh();}
   function togglePersonal(){
-    const opening=personal.hidden;
-    if(!opening){closePersonal();return;}
-    personalRouteWasVisible=!!route&&!deck.hidden;
-    personal.hidden=false;reading.hidden=true;deck.hidden=true;shell.dataset.journey='false';shell.dataset.reading='true';
+    if(!personal.hidden){closePersonal();return;}
+    personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';
     personalState=workspace?.getState?.()??personalState;renderPersonalPanel();sky?.refresh();
   }
-  function restoreRouteDock(){if(route){browsingRoutes=false;renderRoutes();deck.hidden=false;shell.dataset.journey='true';}}
-  function closePersonal(){personal.hidden=true;shell.dataset.reading='false';if(personalRouteWasVisible)restoreRouteDock();personalRouteWasVisible=false;sky?.refresh();}
-  function closeRoute(){routeDockTouched=true;route=null;browsingRoutes=false;persistView();deck.hidden=true;shell.dataset.journey='false';reflect();sky?.frame();}
+  function restoreRouteDock(){renderColumn();sky?.refresh();}
+  function closePersonal(){personal.hidden=true;renderColumn();sky?.refresh();}
+  function closeRoute(){routeDockTouched=true;route=null;routeStepNode=null;browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);persistView();shell.dataset.journey='false';if(!desktop())columnOpen=false;reflect();sky?.frame();}
   function toggleRoutes(){
-    routeDockTouched=true;
-    if(!deck.hidden&&browsingRoutes){deck.hidden=true;browsingRoutes=false;shell.dataset.journey='false';sky?.refresh();return;}
-    browsingRoutes=true;renderRoutes();deck.hidden=false;shell.dataset.journey='true';reading.hidden=true;personal.hidden=true;shell.dataset.reading='false';sky?.refresh();
+    routeDockTouched=true;personal.hidden=true;
+    if(columnMode()==='overview'&&columnOpen){
+      if(browsingRoutes)browsingRoutes=false;
+      else if(!desktop())columnOpen=false;
+      else{renderColumn();deck.querySelector('.ps-route-card')?.focus();return;}
+    }else{browsingRoutes=!!(route||selected||selectedEdge);columnOpen=true;}
+    renderColumn();renderOrientation();sky?.refresh();
   }
   function routeItems(){return [...routes.map(item=>({...item,source:'atlas'})),...journeyList.map(item=>({...item,source:'manifest'}))];}
-  function renderRoutes(){
-    if(!deck)return;for(const detail of deck.querySelectorAll('details[data-route-detail]'))routeDetailState.set(detail.dataset.routeDetail,detail.open);deck.dataset.active=String(!!route);deck.replaceChildren();const title=el('div','deck-caption');
-    // The caption names what is open: a branch with its move count, a route, or the choice itself.
-    const openItem=route&&!browsingRoutes?routeItems().find(item=>item.source===route.source&&item.id===route.id):null;
-    const caption=openItem?`${routeWord(openItem)} · ${t('stepName')} ${routeIndex+1} / ${openItem.steps?.length??0}`:t(profile==='antiquity'?'chooseBranch':'chooseQuestion');
-    title.append(el('span','eyebrow',caption),button(t(route?'resetRoute':'close'),'text-button'));title.lastChild.addEventListener('click',closeRoute);deck.append(title);
-    if(route&&!browsingRoutes&&route.source==='atlas'){
-      const current=routes.find(item=>item.id===route.id),steps=current?.steps??[];const progress=el('div','ps-route-progress');
-      for(let i=0;i<steps.length;i++){const b=button(String(i+1),'journey-stop');b.setAttribute('aria-current',String(i===routeIndex));b.setAttribute('aria-label',`${t('step')} ${i+1}: ${tr(steps[i].title,locale())}`);b.addEventListener('click',()=>goRouteStep(i));progress.append(b);}deck.append(el('h2','ps-route-title',tr(current?.title,locale())),el('p','ps-route-question',tr(current?.question,locale())),progress);
-      const step=steps[routeIndex];if(step){const stepMaterial=materials.get(step.nodeId)??previewMaterials.get(step.nodeId);
-        // A step names its author, work and place: an Antiquity move by its passage, any other step by its own grounds.
-        const witnesses=profile==='antiquity'?[sourceLine(stepMaterial,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()})].filter(Boolean):stepWitness(step,{references:atlas.references,locale:locale()});
-        deck.append(el('h3','',tr(step.title,locale())));for(const witness of witnesses)deck.append(el('p','ps-source-line',witness));deck.append(el('p','',tr(step.body,locale())));if(step.question)inquiryQuestion(deck,step.question);const nextStep=steps[routeIndex+1],transition=(current.transitions??[]).find(item=>(item.fromNodeId===step.nodeId&&item.toNodeId===nextStep?.nodeId)||(item.from===step.nodeId&&item.to===nextStep?.nodeId))??(profile==='zarathustra'?(current.transitions??[])[routeIndex]:null);if(nextStep&&transition?.body){deck.append(el('h3','minor-title',t('nextRelation')));
-          // The transition names its kind. A route may walk an atlas link against its direction, so the line states the link as authored.
-          const link=transition.kind?null:atlasEdgeFor(transition.edgeId),kind=transition.kind??link?.kind;
-          if(kind&&relationWord(kind)){const style=styleOf(kind),kindLine=el('p','ps-turn-line'),word=relationWord(kind);kindLine.dataset.dash=style.dash;kindLine.style.setProperty('--relation-color',style.color);kindLine.style.setProperty('--relation-weight',String((style.weight??1)*1.4));
-            const course=link?`${label(materials.get(link.from))||link.from} → ${label(materials.get(link.to))||link.to}`:`${tr(transition.label,locale())} → ${tr(nextStep.title,locale())}`;
-            kindLine.append(el('i'),el('b','',word),el('span','',course));kindLine.title=[style.hint?`${word} — ${tr(style.hint,locale())}`:'',humanEdgeLabel(link)].filter(Boolean).join(' · ');deck.append(kindLine);}
-          deck.append(el('p','',tr(transition.body,locale())));}else if(!nextStep&&current.conclusion){deck.append(el('h3','minor-title',t('routeEnd')),el('p','',tr(current.conclusion,locale())));}const actionRow=el('div','ps-route-actions');if(routeIndex>0){const previous=button(`← ${t('routePrevious')}`,'text-button');previous.addEventListener('click',()=>goRouteStep(routeIndex-1));actionRow.append(previous);}const source=routeSource(step);if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));actionRow.append(open);}else if(source){const lang={de:{ru:'немецкий',en:'German'},en:{ru:'английский',en:'English'},fr:{ru:'французский',en:'French'},grc:{ru:'древнегреческий',en:'Ancient Greek'},la:{ru:'латинский',en:'Latin'}}[source.reference?.language];const title=[tr(source.reference?.author,locale()),tr(source.reference?.work,locale()),tr(source.reference?.locator,locale()),lang&&tr(lang,locale())].filter(Boolean).join(' · ');if(source.externalUrl){const link=el('a','text-button',witnesses.length===1?`↗ ${t('openExternal')}`:`↗ ${t('openExternal')} · ${title}`);link.title=title;link.href=source.externalUrl;link.target='_blank';link.rel='noopener noreferrer';actionRow.append(link);}else actionRow.append(el('p','muted',`${t('bibliographicOnly')}${title?` · ${title}`:''}`));}if(routeIndex<steps.length-1){const next=button(`${t('routeNext')} →`,'primary');next.addEventListener('click',()=>goRouteStep(routeIndex+1));actionRow.append(next);}deck.append(actionRow);}
-      return;
-    }
-    if(route&&!browsingRoutes&&route.source==='manifest'){
-      const current=localizePublicJourney(journeyList.find(item=>item.id===route.id),locale());const steps=current?.steps??[];const progress=el('div','ps-route-progress');
-      for(let i=0;i<steps.length;i++){const b=button(String(i+1),'journey-stop');b.setAttribute('aria-current',String(i===routeIndex));b.setAttribute('aria-label',`${t('step')} ${i+1}: ${steps[i].title??''}`);b.addEventListener('click',()=>goJourneyStep(i));progress.append(b);}deck.append(el('h2','ps-route-title',current?.title??''),el('p','ps-route-question',current?.question??''),progress,el('h3','',steps[routeIndex]?.title??''));
-      if(steps[routeIndex]?.voice)deck.append(el('p','ps-route-voice',`${t('voice')}: ${steps[routeIndex].voice}`));deck.append(el('p','',steps[routeIndex]?.prompt??''));
-      for(const [field,key] of [['readingHypothesis','argument'],['strongAlternative','counterReading']])if(current?.[field]){const stateKey=`${route.source}:${route.id}:${field}`;const detail=inquiryDetail(deck,t(key),current[field],routeDetailState.get(stateKey)??false);if(detail)detail.dataset.routeDetail=stateKey;}
-      const actions=el('div','ps-route-actions');if(routeIndex>0){const previous=button(`← ${t('routePrevious')}`,'text-button');previous.addEventListener('click',()=>goJourneyStep(routeIndex-1));actions.append(previous);}
-      const open=button(`↗ ${t('openExact')}`,'text-button');open.addEventListener('click',()=>goJourneyStep(routeIndex,true));actions.append(open);
-      if(routeIndex<steps.length-1){const next=button(`${t('routeNext')} →`,'primary');next.addEventListener('click',()=>goJourneyStep(routeIndex+1));actions.append(next);}deck.append(actions,el('small','ps-route-source',t('routeEvidence')));return;
-    }
-    const cards=el('div','collection-cards');
-    for(const item of routeItems()){
-      const shown=item.source==='manifest'?localizePublicJourney(item,locale()):item;
-      const b=button('','collection-card'),size=`${routeWord(item)} · ${routeSize(item,shown.steps?.length??0)}`;b.append(el('span','collection-number',size),el('strong','',tr(shown.title,locale())),el('small','',tr(shown.question??shown.description,locale())),el('span','collection-arrow','↗'));
-      b.addEventListener('click',()=>startRoute(item));cards.append(b);
-    }
-    cards.tabIndex=0;cards.setAttribute('aria-label',t('routes'));
-    if(!cards.childElementCount)cards.append(el('p','ps-route-empty',t('noRoutes')));deck.append(cards);
+
+  // ------------------------------------------------------------ the reading column
+  const desktop=()=>desktopMode.matches;
+  function currentRouteItem(){return route?routeItems().find(item=>item.source===route.source&&item.id===route.id)??null:null;}
+  function shownRoute(item){return item?.source==='manifest'?localizePublicJourney(item,locale()):item;}
+  function columnMode(){
+    if(!personal.hidden)return 'personal';
+    if(browsingRoutes)return 'overview';
+    if(selectedEdge)return 'edge';
+    if(selected&&!(route&&selected===routeStepNode))return 'node';
+    return route?'route':'overview';
   }
-  function syncInitialRouteDock(){if(routeDockTouched||route)return;if(desktopMode.matches){renderRoutes();deck.hidden=false;shell.dataset.journey='true';}else{deck.hidden=true;shell.dataset.journey='false';}sky?.refresh();}
+  function columnCaption(mode){
+    const item=currentRouteItem();
+    if(mode==='route'&&item)return `${routeWord(item)} · ${t('stepName')} ${routeIndex+1} / ${shownRoute(item)?.steps?.length??0}`;
+    if(mode==='node')return t('selected');
+    if(mode==='edge')return t('selectedLink');
+    return `${t('routes')} · ${routes.length}`;
+  }
+  function renderColumn(){
+    if(destroyed)return;
+    const mode=columnMode(),wide=desktop();shell.dataset.column=mode;reading.dataset.mode=mode;
+    if(mode==='personal'){reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
+    // A wide screen shows the column or a tab to reopen it; a narrow screen always keeps the sheet's top bar.
+    reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;
+    shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?'open':'peek';shell.dataset.reading=String(columnOpen);
+    panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));
+    panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
+    renderRoutes();
+    if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node')renderNode(selected);else if(mode==='edge')renderEdge(selectedEdge);
+  }
+  // The close button climbs one level: a chosen star or link, then the open branch, then the column itself.
+  function closeColumnLayer({collapse=true}={}){
+    const mode=columnMode();
+    if(mode==='node'||mode==='edge'){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!route&&!desktop())columnOpen=false;}
+    else if(mode==='overview'&&browsingRoutes)browsingRoutes=false;
+    else if(mode==='route'){closeRoute();return;}
+    else if(collapse)columnOpen=false;
+    else return;
+    reflect();sky?.refresh();
+  }
+  function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}columnOpen=!columnOpen;renderColumn();sky?.refresh();}
+  function openColumn(){columnOpen=true;renderColumn();sky?.refresh();}
+  function keepInColumn(node){
+    if(!node||reading.hidden)return;const box=reading.getBoundingClientRect(),r=node.getBoundingClientRect(),top=box.top+(panelTop.getBoundingClientRect().height||48);
+    if(r.top<top)reading.scrollTop-=top-r.top;else if(r.bottom>box.bottom-12)reading.scrollTop+=Math.min(r.top-top,r.bottom-box.bottom+12);
+  }
+  // ------------------------------------------------------------ orientation
+  function goOverview(){
+    browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);personal.hidden=true;
+    if(route){route=null;routeStepNode=null;shell.dataset.journey='false';persistView();}
+    columnOpen=desktop();reflect();sky?.frame();
+  }
+  function showRouteLevel(){browsingRoutes=false;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);personal.hidden=true;columnOpen=true;reflect();sky?.frame();}
+  function returnToStep(){browsingRoutes=false;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);personal.hidden=true;columnOpen=true;reflect();if(selected)sky?.reveal(selected);keepInColumn(deck.querySelector('.ps-step[data-current="true"]'));}
+  function renderOrientation(){
+    const lensTitleText=lens!=='tree'?tr(lenses.find(item=>item.id===lens)?.title,locale()):'';
+    kicker.textContent=[t(profile==='antiquity'?'kickerAntiquity':'kickerZarathustra'),lensTitleText?`${t('lensWord')} «${lensTitleText}»`:''].filter(Boolean).join(' · ');
+    titleButton.textContent=publicTitle();titleButton.title=t('toOverview');
+    crumbList.replaceChildren();
+    const add=(text,action)=>{const item=el('li','ps-crumb-item');if(action){const b=button(text,'ps-crumb');b.addEventListener('click',action);item.append(b);}else{const current=el('span','ps-crumb ps-crumb-current',text);current.setAttribute('aria-current','location');item.append(current);}crumbList.append(item);};
+    const mode=columnMode(),item=currentRouteItem();
+    if(item){
+      add(`${routeWord(item)} «${tr(shownRoute(item)?.title,locale())}»`,showRouteLevel);
+      add(`${t('stepName')} ${routeIndex+1}`,mode==='route'?null:returnToStep);
+    }
+    if(mode==='node'){const node=graphState().nodes.find(value=>value.id===selected),material=matForNode(node)??previewMaterials.get(String(selected??'').replace(/^material:/,''));add(label(node?.ownerType==='personal-hypothesis'?node:material??node)||t('selected'),null);}
+    if(mode==='edge'){const edge=findEdge(selectedEdge);add(`${t('transition')} · ${edge?relationName(edge):''}`,null);}
+    titleButton.toggleAttribute('aria-current',!item&&mode==='overview');if(!item&&mode==='overview')titleButton.setAttribute('aria-current','location');
+  }
+  // ------------------------------------------------------------ routes inside the column
+  const voiceCache=new Map();
+  function routeVoicesFor(item){
+    const key=`${item.source}:${item.id}:${locale()}`;if(voiceCache.has(key))return voiceCache.get(key);
+    const voices=routeVoices(shownRoute(item),{references:atlas.references,materials,previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()});voiceCache.set(key,voices);return voices;
+  }
+  function stepWitnesses(step){
+    const stepMaterial=materials.get(step?.nodeId)??previewMaterials.get(step?.nodeId);
+    // A step names its author, work and place: an Antiquity move by its passage, any other step by its own grounds.
+    return profile==='antiquity'?[sourceLine(stepMaterial,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()})].filter(Boolean):stepWitness(step,{references:atlas.references,locale:locale()});
+  }
+  function transitionAfter(current,index){
+    const steps=current?.steps??[],step=steps[index],next=steps[index+1];if(!step||!next)return null;
+    const transition=(current.transitions??[]).find(item=>(item.fromNodeId===step.nodeId&&item.toNodeId===next.nodeId)||(item.from===step.nodeId&&item.to===next.nodeId))??(profile==='zarathustra'?(current.transitions??[])[index]:null);
+    if(!transition)return null;
+    // A route may walk an atlas link against its direction, so the line states the link as authored.
+    const link=transition.kind?null:atlasEdgeFor(transition.edgeId),kind=transition.kind??link?.kind;
+    const course=link?`${label(materials.get(link.from))||link.from} → ${label(materials.get(link.to))||link.to}`:[tr(transition.label,locale()),tr(next.title,locale())].filter(Boolean).join(' → ');
+    return {kind,course,body:transition.body,link};
+  }
+  function turnRow(turn,expanded){
+    const row=el('div','ps-turn');
+    if(turn.kind&&relationWord(turn.kind)){const style=styleOf(turn.kind),word=relationWord(turn.kind),line=el('p','ps-turn-line');row.style.setProperty('--relation-color',style.color);row.style.setProperty('--relation-weight',String((style.weight??1)*1.4));line.dataset.dash=style.dash;line.append(el('i'),el('b','',word),el('span','',turn.course));line.title=[style.hint?`${word} — ${tr(style.hint,locale())}`:'',humanEdgeLabel(turn.link)].filter(Boolean).join(' · ');row.append(line);}
+    else if(turn.course)row.append(el('p','ps-turn-line ps-turn-plain',turn.course));
+    if(expanded&&turn.body)row.append(el('p','ps-turn-body',tr(turn.body,locale())));
+    return row;
+  }
+  function stepSourceAction(step,witnessCount){
+    const source=routeSource(step);if(!source)return null;
+    if(source.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));return open;}
+    const language={de:{ru:'немецкий',en:'German'},en:{ru:'английский',en:'English'},fr:{ru:'французский',en:'French'},grc:{ru:'древнегреческий',en:'Ancient Greek'},la:{ru:'латинский',en:'Latin'}}[source.reference?.language];
+    const title=[tr(source.reference?.author,locale()),tr(source.reference?.work,locale()),tr(source.reference?.locator,locale()),language&&tr(language,locale())].filter(Boolean).join(' · ');
+    if(source.externalUrl){const link=el('a','text-button',witnessCount===1?`↗ ${t('openExternal')}`:`↗ ${t('openExternal')} · ${title}`);link.title=title;link.href=source.externalUrl;link.target='_blank';link.rel='noopener noreferrer';return link;}
+    return el('p','muted',`${t('bibliographicOnly')}${title?` · ${title}`:''}`);
+  }
+  function stepNav(index,total,go){
+    const nav=el('div','ps-step-nav');
+    if(index>0){const previous=button(`← ${t('routePrevious')}`,'text-button');previous.addEventListener('click',()=>go(index-1));nav.append(previous);}
+    if(index<total-1){const next=button(`${t('routeNext')} →`,'primary');next.addEventListener('click',()=>go(index+1));nav.append(next);}
+    return nav;
+  }
+  function stepHead(index,title,witness,current,go){
+    const head=button('','ps-step-head');head.setAttribute('aria-current',String(current));head.setAttribute('aria-label',`${t('stepName')} ${index+1}: ${title}`);
+    head.append(el('span','ps-step-number',String(index+1)),el('span','ps-step-title',title));if(witness)head.append(el('span','ps-step-witness',witness));
+    head.addEventListener('click',()=>go(index));return head;
+  }
+  function renderRoutes(){
+    if(!deck)return;for(const detail of deck.querySelectorAll('details[data-route-detail]'))routeDetailState.set(detail.dataset.routeDetail,detail.open);
+    const mode=columnMode();deck.replaceChildren();deck.dataset.active=String(!!route);deck.dataset.mode=mode;
+    if(mode==='overview'){deck.hidden=false;renderRouteList();return;}
+    if(!route){deck.hidden=true;return;}
+    deck.hidden=false;
+    if(mode==='route'){if(route.source==='atlas')renderRouteWalk();else renderJourneyWalk();return;}
+    renderRouteStrip();
+  }
+  function renderRouteList(){
+    // Authored branches or routes first; reading routes from the corpus manifest follow as their own group.
+    const groups=[[t('routes'),routeItems().filter(item=>item.source==='atlas')],[t('journeys'),routeItems().filter(item=>item.source==='manifest')]];
+    for(const [title,items] of groups){if(!items.length&&title!==t('routes'))continue;deck.append(el('h2','minor-title ps-list-title',`${title} · ${items.length}`));renderRouteCards(items);}
+  }
+  function renderRouteCards(items){
+    const list=el('div','ps-route-list');
+    for(const item of items){
+      const shown=shownRoute(item);if(!shown)continue;
+      const card=button('','ps-route-card');if(route&&route.source===item.source&&route.id===item.id)card.setAttribute('aria-current','true');
+      card.append(el('span','ps-card-kicker',`${routeWord(item)} · ${routeSize(item,shown.steps?.length??0)}`),el('strong','',tr(shown.title,locale())));
+      const question=tr(shown.question??shown.description,locale());if(question)card.append(el('small','',question));
+      const voices=routeVoicesFor(item);if(voices.length)card.append(el('span','ps-card-voices',voices.length>4?`${voices.slice(0,4).join(' · ')} …`:voices.join(' · ')));
+      card.addEventListener('click',()=>startRoute(item));list.append(card);
+    }
+    if(!list.childElementCount)list.append(el('p','ps-route-empty',t('noRoutes')));
+    deck.append(list);
+  }
+  // A branch reads top to bottom: every move with its witness, and between moves the kind of transition.
+  function renderRouteWalk(){
+    const current=routes.find(item=>item.id===route.id),steps=current?.steps??[],item={...current,source:'atlas'};
+    const head=el('div','ps-walk-head');head.append(el('span','ps-card-kicker',`${routeWord(item)} · ${routeSize(item,steps.length)}`),el('h2','ps-route-title',tr(current?.title,locale())));
+    if(current?.question)head.append(el('p','ps-route-question',tr(current.question,locale())));
+    const voices=routeVoicesFor(item);if(voices.length)head.append(el('p','ps-card-voices',voices.join(' · ')));
+    deck.append(head);
+    const list=el('ol','ps-steps');
+    steps.forEach((step,index)=>{
+      const isCurrent=index===routeIndex,witnesses=stepWitnesses(step),entry=el('li','ps-step');entry.dataset.current=String(isCurrent);
+      entry.append(stepHead(index,tr(step.title,locale()),witnesses[0],isCurrent,goRouteStep));
+      if(isCurrent){
+        const body=el('div','ps-step-body');for(const witness of witnesses.slice(1))body.append(el('p','ps-source-line',witness));
+        body.append(el('p','ps-step-text',tr(step.body,locale())));if(step.question)inquiryQuestion(body,step.question);
+        const action=stepSourceAction(step,witnesses.length);if(action){const row=el('div','ps-route-actions');row.append(action);body.append(row);}
+        entry.append(body);
+      }
+      const turn=transitionAfter(current,index);if(turn)entry.append(turnRow(turn,isCurrent));
+      if(isCurrent)entry.append(stepNav(index,steps.length,goRouteStep));
+      list.append(entry);
+    });
+    deck.append(list);
+    if(current?.conclusion){const key=`atlas:${route.id}:conclusion`,end=inquiryDetail(deck,t('routeEnd'),current.conclusion,routeDetailState.get(key)??routeIndex===steps.length-1);if(end)end.dataset.routeDetail=key;}
+  }
+  function renderJourneyWalk(){
+    const current=localizePublicJourney(journeyList.find(item=>item.id===route.id),locale()),steps=current?.steps??[],item={...current,source:'manifest'};
+    const head=el('div','ps-walk-head');head.append(el('span','ps-card-kicker',`${routeWord(item)} · ${routeSize(item,steps.length)}`),el('h2','ps-route-title',current?.title??''));
+    if(current?.question)head.append(el('p','ps-route-question',current.question));deck.append(head);
+    const list=el('ol','ps-steps');
+    steps.forEach((step,index)=>{
+      const isCurrent=index===routeIndex,entry=el('li','ps-step');entry.dataset.current=String(isCurrent);
+      entry.append(stepHead(index,step.title??'',step.voice?`${t('voice')}: ${step.voice}`:'',isCurrent,goJourneyStep));
+      if(isCurrent){
+        const body=el('div','ps-step-body');body.append(el('p','ps-step-text',step.prompt??''));
+        const row=el('div','ps-route-actions'),open=button(`↗ ${t('openExact')}`,'text-button');open.addEventListener('click',()=>goJourneyStep(index,true));row.append(open);body.append(row);
+        entry.append(body,stepNav(index,steps.length,goJourneyStep));
+      }
+      list.append(entry);
+    });
+    deck.append(list);
+    for(const [field,key] of [['readingHypothesis','argument'],['strongAlternative','counterReading']])if(current?.[field]){const stateKey=`${route.source}:${route.id}:${field}`;const detail=inquiryDetail(deck,t(key),current[field],routeDetailState.get(stateKey)??false);if(detail)detail.dataset.routeDetail=stateKey;}
+    deck.append(el('small','ps-route-source',t('routeEvidence')));
+  }
+  // Away from the step, the branch stays one line above the chosen star, with the way back.
+  function renderRouteStrip(){
+    const item=currentRouteItem();if(!item){deck.hidden=true;return;}
+    const shown=shownRoute(item),back=button('','ps-route-strip');
+    back.append(el('span','ps-card-kicker',`${routeWord(item)} · ${t('stepName')} ${routeIndex+1} / ${shown?.steps?.length??0}`),el('strong','',tr(shown?.title,locale())),el('span','ps-strip-return',`← ${t('backToRoute')}`));
+    back.addEventListener('click',()=>returnToStep());deck.append(back);
+  }
+  // The star behind a step keeps its own reading, links and sources, folded beneath the branch.
+  let stepNodeOpen=false;
+  function renderStepNode(){
+    panelContent.replaceChildren();if(!routeStepNode)return;
+    const node=graphState().nodes.find(item=>item.id===routeStepNode);if(!node)return;
+    renderNode(routeStepNode);
+    const parts=[...panelContent.childNodes],fold=document.createElement('details');fold.className='ps-step-node';fold.open=stepNodeOpen;
+    fold.addEventListener('toggle',()=>{stepNodeOpen=fold.open;});
+    fold.append(el('summary','',`${t('onMap')} · ${label(node.ownerType==='personal-hypothesis'?node:matForNode(node)??node)}`),...parts);
+    const title=fold.querySelector('h1');if(title){const smaller=el('h3','ps-step-node-title',title.textContent);title.replaceWith(smaller);}
+    panelContent.replaceChildren(fold);
+  }
+  function syncInitialRouteDock(){columnOpen=desktop();renderColumn();sky?.refresh();}
   function startRoute(item){
-    routeDockTouched=true;browsingRoutes=false;
-    route={id:item.id,source:item.source,path:null};routeIndex=0;
+    routeDockTouched=true;browsingRoutes=false;personal.hidden=true;columnOpen=true;
+    route={id:item.id,source:item.source,path:null};routeIndex=0;routeStepNode=null;selectedEdge=null;sky?.selectEdge(null);
     if(item.source==='atlas'){
       const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(Boolean);
       const materialIds=ids.map(id=>materials.has(id)?id:id.replace(/^material:/,''));
       const current=graphState(),nodeIds=materialIds.map(graphIdForMaterial).filter(id=>current.nodes.some(node=>node.id===id));
-      route.path=pathThrough(nodeIds,current);if(nodeIds[0]){selected=nodeIds[0];sky?.select(nodeIds[0]);}
+      route.path=pathThrough(nodeIds,current);if(nodeIds[0]){selected=nodeIds[0];routeStepNode=nodeIds[0];sky?.select(nodeIds[0]);}
     }
-    deck.hidden=false;shell.dataset.journey='true';renderRoutes();refreshSky();
-    if(item.source==='manifest')goJourneyStep(0,false);else if(item.steps?.[0])goRouteStep(0);
-    sky?.frame();
+    shell.dataset.journey='true';refreshSky();
+    if(item.source==='manifest')goJourneyStep(0,false);else if(item.steps?.[0])goRouteStep(0);else reflect();
+    reading.scrollTop=0;sky?.frame();
   }
   function pathThrough(nodeIds,value){
     if(nodeIds.length<2)return {nodeIds,edgeIds:[]};const out=[nodeIds[0]],edgeIds=[];
@@ -623,18 +839,22 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const moveFocus=!!document.activeElement?.closest('.ps-route-dock');browsingRoutes=false;
     const item=routes.find(value=>value.id===route?.id),step=item?.steps?.[index];if(!step)return;routeIndex=index;persistView();
     const raw=step.nodeId??step.graphNodeId,materialId=materials.has(raw)?raw:raw?.replace(/^material:/,'');
-    // The whole branch is already framed; a step only moves the highlight.
-    if(materialId){selected=graphIdForMaterial(materialId);selectedEdge=null;sky?.select(selected);}
-    renderRoutes();reflect();if(moveFocus)deck.querySelector('[aria-current="true"]')?.focus();
+    // The whole branch is already framed; a step moves the highlight, and the map pans only if the step is out of sight.
+    if(materialId){selected=graphIdForMaterial(materialId);routeStepNode=selected;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);}
+    columnOpen=true;reflect();if(selected)sky?.reveal(selected);
+    if(moveFocus)deck.querySelector('.ps-step-head[aria-current="true"]')?.focus();
+    keepInColumn(deck.querySelector('.ps-step[data-current="true"]'));
   }
   function goJourneyStep(index,open=false){
     const moveFocus=!!document.activeElement?.closest('.ps-route-dock');browsingRoutes=false;
-    const item=localizePublicJourney(journeyList.find(value=>value.id===route?.id),locale()),step=item?.steps?.[index];if(!step)return;routeIndex=index;persistView();renderRoutes();
+    const item=localizePublicJourney(journeyList.find(value=>value.id===route?.id),locale()),step=item?.steps?.[index];if(!step)return;routeIndex=index;persistView();
     const address={documentId:step.documentId,versionId:step.versionId,unitId:step.unitId};
     const binding=[...sourceMap.values()].find(value=>value.documentId===address.documentId&&value.versionId===address.versionId&&value.unitId===address.unitId);
     const node=binding&&[...sourceMap.entries()].find(([,value])=>value===binding)?.[0];
-    if(node){selected=graphIdForMaterial(node);selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);sky?.focus(selected);if(!reading.hidden)renderNode(selected);}
-    if(open)void openPublicAddress(address).catch(()=>notify(t('unavailable')));else if(moveFocus)deck.querySelector('[aria-current="true"]')?.focus();
+    routeStepNode=node?graphIdForMaterial(node):null;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);
+    columnOpen=true;reflect();if(selected)sky?.reveal(selected);
+    if(open)void openPublicAddress(address).catch(()=>notify(t('unavailable')));else if(moveFocus)deck.querySelector('.ps-step-head[aria-current="true"]')?.focus();
+    keepInColumn(deck.querySelector('.ps-step[data-current="true"]'));
   }
   function sourceForRef(ref){
     for(const [id,value] of sourceMap)if(value.referenceId===ref||value.unitId===ref)return value;
@@ -647,7 +867,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     collectionView=mountCollectionView({root:collectionRoot,entries,locale,
       onReadCatalog:()=>{dialog.close();void api.openLibrary().catch(()=>notify(t('unavailable')));},
       hasMaterial:id=>materials.has(id),materialInGraph:id=>state.nodes.some(node=>node.materialId===id),
-      onOpenMaterial:id=>{try{const graphId=model.addMaterial(id);checkGraphPersistence();state=model.getState();dialog.close();selectActual(graphId,{focus:true});reflect();}catch(error){notify(displayPublicError(error,locale));}},
+      onOpenMaterial:id=>{try{const graphId=model.addMaterial(id);checkGraphPersistence();state=model.getState();dialog.close();selectActual(graphId,{reveal:true});reflect();}catch(error){notify(displayPublicError(error,locale));}},
       onOpenSource:item=>{const material=materials.get(item.materialId??item.id)??item;const source=sourceForMaterial(material,{sourceNodeId:item.sourceNodeId??material.sourceNodeId});if(!source)return null;
         const wrap=el('div','ps-collection-source');wrap.append(el('p','ps-source-status',sourceStatus(source)));const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>{dialog.close();void openPublicAddress(source.binding).catch(()=>notify(t('unavailable')));});wrap.append(open);return wrap;}
     });dialog.showModal();
@@ -663,18 +883,18 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     form.addEventListener('submit',event=>{event.preventDefault();try{const input={id:'',kind:kind.value,title:title.value.trim(),body:body.value.trim()},id=model.addDraft({kind:kind.value,title:input.title,body:input.body});input.id=`space:${profile}:${crypto.randomUUID()}`;bindHypothesis(input.id,id);saveOwnerBindings();const managed={input,ownerSynced:false};managedDrafts.set(id,managed);try{workspace?.addHypothesis?.(input);managed.ownerSynced=true;notifyGraphResult(t('saved'));}catch{notify(model.persistenceError?.()?t('graphSaveError'):t('saveError'));}personalState=workspace?.getState?.()??personalState;selected=id;selectedEdge=null;dialog.close();reflect();sky?.frame();}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();title.focus();
   }
   function field(label,input){const wrapper=el('label','ps-field');wrapper.append(el('span','',label),input);return wrapper;}
-  function beginConnect(first){if((interaction==='compare'||!compareBar.hidden)&&comparisonRouteWasVisible)restoreRouteDock();compareBar.hidden=true;comparisonRouteWasVisible=false;interaction='connect';connectIds=first?[first]:[];compareIds=[];closePanel();renderInteraction();}
+  function beginConnect(first){compareBar.hidden=true;interaction='connect';connectIds=first?[first]:[];compareIds=[];closePanel();renderInteraction();}
   function openRelationDialog(){
     dialog.replaceChildren();const from=graphState().nodes.find(item=>item.id===connectIds[0]),to=graphState().nodes.find(item=>item.id===connectIds[1]);const content=makeDialog(t('newEdge'));content.append(el('p','ps-dialog-intro',`${label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from)} → ${label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to)}`));const form=document.createElement('form'),kind=document.createElement('select');
     for(const key of relationKinds.filter(key=>key!=='contains'))kind.append(new Option(relationWord(key),key));kind.value='relates';const reason=document.createElement('textarea');reason.rows=3;reason.maxLength=500;reason.required=true;form.append(field(t('chooseRelation'),kind),field(t('edgeLabel'),reason));const actions=el('div','dialog-actions');const cancel=button(t('cancel'));cancel.addEventListener('click',()=>{connectIds=[];dialog.close();});const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent=t('save');actions.append(cancel,save);form.append(actions);content.append(form);
     form.addEventListener('submit',event=>{event.preventDefault();try{const edgeId=connectPersonalNodes(connectIds[0],connectIds[1],kind.value,reason.value.trim());connectIds=[];dialog.close();selectEdge(edgeId);notifyGraphResult(t('connected'));}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();reason.focus();
   }
-  function beginCompare(first,second){comparisonRouteWasVisible=!!route&&!deck.hidden||comparisonRouteWasVisible;compareBar.hidden=true;deck.hidden=true;shell.dataset.journey='false';interaction='compare';connectIds=[];compareIds=[first,second].filter(Boolean);if(compareIds.length>=2){interaction=null;renderInteraction();renderComparison();return;}closePanel();refreshSky();sky?.frame();renderInteraction();}
+  function beginCompare(first,second){compareBar.hidden=true;interaction='compare';connectIds=[];compareIds=[first,second].filter(Boolean);if(compareIds.length>=2){interaction=null;renderInteraction();renderComparison();return;}closePanel();refreshSky();sky?.frame();renderInteraction();}
   function renderComparison(){
     if(compareIds.length<2)return;const values=compareIds.map(id=>graphState().nodes.find(node=>node.id===id));compareBar.replaceChildren();compareBar.hidden=false;
-    const close=button('×','icon');close.setAttribute('aria-label',t('close'));close.addEventListener('click',()=>{compareIds=[];compareBar.hidden=true;if(comparisonRouteWasVisible)restoreRouteDock();comparisonRouteWasVisible=false;refreshSky();});compareBar.append(close,el('h2','',t('comparison')),el('p','',t('comparePrompt')));const columns=el('div','ps-compare-columns');
+    const close=button('×','icon');close.setAttribute('aria-label',t('close'));close.addEventListener('click',()=>{compareIds=[];compareBar.hidden=true;refreshSky();renderColumn();});compareBar.append(close,el('h2','',t('comparison')),el('p','',t('comparePrompt')));const columns=el('div','ps-compare-columns');
     for(const node of values){const material=matForNode(node),card=el('article','ps-compare-card');card.append(el('h3','',label(node.ownerType==='personal-hypothesis'?node:material??node)),el('small','posture',material?.demo?t('demo'):node.ownerType==='personal-hypothesis'?t('personal'):''),el('p','body',tr(node.body??material?.atlasBody??material?.body,locale())));const source=sourceForMaterial(material,node);if(source){card.append(el('p','ps-source-status',sourceStatus(source)));const open=button(sourceActionLabel(source),'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));card.append(open);}else if(material?.sourceAccess==='metadata-only')card.append(el('p','ps-source-status',t('bibliographicOnly')));if(node.ownerType==='personal-hypothesis')appendPersonalProposals(card,personalProposals(node.workspaceHypothesisId));columns.append(card);}
-    compareBar.append(columns);shell.dataset.reading='false';reading.hidden=true;personal.hidden=true;sky?.refresh();
+    compareBar.append(columns);personal.hidden=true;if(!desktop())columnOpen=false;renderColumn();sky?.refresh();
   }
   function toggleRelations(){
     dialog.replaceChildren();const content=makeDialog(t('filter'));content.append(el('p','ps-dialog-intro',tr(library.space?.posture,locale())||t('demo')));for(const key of relationKinds){const value=styleOf(key),row=el('label','ps-relation-filter'),input=document.createElement('input');input.type='checkbox';input.checked=enabled.has(key);input.addEventListener('change',()=>{if(input.checked)enabled.add(key);else enabled.delete(key);reflect();});row.append(input,el('i',''));row.lastChild.style.background=value.color;row.lastChild.style.setProperty('--relation-color',value.color);row.lastChild.dataset.dash=value.dash??'solid';row.append(el('span','',value.hint?`${tr(value,locale())} — ${tr(value.hint,locale())}`:tr(value,locale())));content.append(row);}content.append(el('p','muted',t('imagine')));dialog.showModal();
@@ -707,10 +927,19 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function keyboard(event){
     if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
-    else if(!event.ctrlKey&&!event.metaKey){if(key==='o')sky?.frame();if(key==='/'){event.preventDefault();search.focus();}if(key==='escape'){if(interaction){cancelInteraction();return;}connectIds=[];compareIds=[];compareBar.hidden=true;closePanel();closePersonal();closeRoute();}}
+    else if(!event.ctrlKey&&!event.metaKey&&!event.altKey){
+      if(key==='o')sky?.frame();
+      if(key==='/'){event.preventDefault();search.focus();}
+      if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
+      if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
+      // Arrows walk the open branch or route a step at a time.
+      if(route&&(key==='arrowleft'||key==='arrowright')&&!event.target.closest('.ps-route-progress')){const next=routeIndex+(key==='arrowright'?1:-1),total=route.source==='atlas'?routes.find(item=>item.id===route.id)?.steps?.length??0:journeyList.find(item=>item.id===route.id)?.steps?.length??0;if(next>=0&&next<total){event.preventDefault();route.source==='atlas'?goRouteStep(next):goJourneyStep(next);}}
+      // Escape climbs one level at a time: a pending pick, a comparison, an open panel, then the route.
+      if(key==='escape'){if(!searchResults.hidden){searchResults.hidden=true;return;}if(interaction){cancelInteraction();return;}if(!compareBar.hidden){compareIds=[];compareBar.hidden=true;refreshSky();renderColumn();return;}if(!personal.hidden){closePersonal();return;}closeColumnLayer({collapse:false});}
+    }
   }
   function restoreFocus(){
-    const target=!deck.hidden?(deck.querySelector('[aria-current="true"]')??deck.querySelector('button,a[href]')):!reading.hidden?reading.querySelector('button,a[href]'):mainActions.querySelector('[data-space-action="routes"]');
+    const target=!reading.hidden?(deck.querySelector('.ps-step-head[aria-current="true"]')??panelContent.querySelector('button,a[href]')??reading.querySelector('button,a[href]')):mainActions.querySelector('[data-space-action="routes"]');
     if(!target?.isConnected)return false;target.focus({preventScroll:true});return document.activeElement===target;
   }
   let collectionView=null,collectionRoot=null;
@@ -741,18 +970,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const rect=node=>{const r=node.getBoundingClientRect();return {left:r.left-box.left,right:r.right-box.left,top:r.top-box.top,bottom:r.bottom-box.top};};
     const wide=desktopMode.matches,rail=wide&&visible(lensRail)?rect(lensRail):null;
     const left=rail?rail.right+24:16;
-    const panelColumn=wide?Math.min(370,width-28)+15+24:0;
-    const right=wide?width-panelColumn:width-16;
-    const headingBottom=visible(heading)?rect(heading).bottom:0,actionsBottom=wide&&visible(mainActions)?rect(mainActions).bottom:0;
-    const top=Math.max(headingBottom,actionsBottom)+14;
+    // On a wide screen the open column is the map's right edge; a collapsed column gives the map its width back.
+    const column=wide?[reading,personal].find(visible):null,tab=wide&&visible(columnTab)?rect(columnTab):null;
+    const right=column?rect(column).left-20:tab?tab.left-16:width-16;
+    const top=(visible(heading)?rect(heading).bottom:0)+14;
     const floors=[height-16];
     for(const node of [footer,relationBar])if(visible(node))floors.push(rect(node).top-12);
-    if(visible(deck))floors.push(rect(deck).top-14);
     if(!wide)for(const node of [reading,personal,compareBar])if(visible(node))floors.push(rect(node).top-14);
     const bottom=Math.min(...floors);
     return bottom-top>=120&&right-left>=120?{left,right,top,bottom}:null;
   }
-  sky=mountConstructorSky(shell,{rotate:false,getViewport:freeArea,onSelect:selectNode,onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  sky=mountConstructorSky(shell,{rotate:false,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
   const viewParams=new URLSearchParams(location.search),savedRoute=viewParams.get('treeRoute'),savedStep=Number(viewParams.get('treeStep'));
   const restoredRoute=routeItems().find(item=>`${item.source}:${item.id}`===savedRoute);
   if(restoredRoute){startRoute(restoredRoute);const step=Math.max(0,Math.min((restoredRoute.steps?.length??1)-1,Number.isSafeInteger(savedStep)?savedStep-1:0));if(restoredRoute.source==='atlas')goRouteStep(step);else goJourneyStep(step);}

@@ -49,17 +49,29 @@ same reading actions. Extending the Antiquity graph copies its explicitly
 compatible predecessor through the current Rust validator and retains the
 original namespace; browsing a route does not fill the personal graph.
 
+The space follows the tree's own rule: tree for orientation, graph for
+relation, source for authority. The left rail holds lenses and research actions;
+a path line above the map names where the reader stands (space › branch or
+route › move or step › chosen star) and each level climbs back up; the reading
+column on the right holds the space's overview with its branches, an open branch
+read top to bottom, or the chosen star or link. On a narrow screen the column is
+a sheet over a tool bar. Map controls sit at the map's corner; the camera never
+turns or refits on a selection and pans only to bring a hidden star into view.
+
 Both spaces name what their data already says, without adding relations or
 sources ([`space-legibility.mjs`](src/public-research/space-legibility.mjs)).
 A link's kind is a word, a line pattern and a weight, not a hue alone; the
-legend lists the kinds and filters by them. Antiquity restores its four authored
-transitions (continuation, qualification, contrast, analogy) and walks branches
-by moves, each named by author, work and place on the map, in the dock and in
-the panel. Zarathustra walks routes by steps; a step names the places of its
-own grounds in the dock, since its node is a concept or thinker shared by other
-routes. A route that walks an atlas link against its direction states the link
-as authored. The camera stays put while a branch or route is walked, and search
-finds branches, routes and steps by their own names before their prose.
+legend lists the kinds, filters by them and says what a star's form means: a
+disc for a source or its context, a ring for an authored proposal, a broken
+ring for a personal record. The panel places each star on the ladder of
+interpretation (source, reading, comparison) and says on what footing a link
+stands; star positions group material and measure nothing. Antiquity restores
+its four authored transitions (continuation, qualification, contrast, analogy)
+and walks branches by moves, each named by author, work and place. Zarathustra
+walks routes by steps; a step names the places of its own grounds, since its
+node is a concept or thinker shared by other routes. A route that walks an
+atlas link against its direction states the link as authored. Search finds
+branches, routes and steps by their own names before their prose.
 
 The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and

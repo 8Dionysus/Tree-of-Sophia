@@ -72,9 +72,9 @@ export function partName(profile,material,locale,{moveIds=null}={}){
   return '';
 }
 
-/** "Author · Work · Place" for a move, from the bibliographic source it already cites. */
-export function sourceLine(material,{materials,entryByLegacyId,locale}={}){
-  if(!material)return '';
+/** Author, work and place of a move, from the bibliographic source it already cites. */
+export function witnessParts(material,{materials,entryByLegacyId,locale}={}){
+  if(!material)return {author:'',work:'',locator:'',cited:''};
   const source=materials?.get?.(material.sourceNodeId)??null;
   // The authored passage names its own work (Epicurus' Letter), even where the
   // public witness is a containing book (Diogenes Laertius X); prefer it.
@@ -83,14 +83,63 @@ export function sourceLine(material,{materials,entryByLegacyId,locale}={}){
   const work=workId?entryByLegacyId?.get?.(workId):null;
   const authorId=passage?.author??material.author??work?.author;
   const author=authorId?entryByLegacyId?.get?.(authorId):null;
-  const authorName=pick(author?.title,locale)||pick(work?.authorLabel,locale);
-  const workTitle=pick(work?.title,locale);
-  const locator=pick(passage?.meta,locale)||(reading||material.kind==='passage'?pick(material.meta,locale):'')||pick(source?.locator,locale);
-  if(workTitle||locator)return [authorName,workTitle,locator].filter(Boolean).join(' · ');
-  // Fall back to the citation label carried by the move itself.
   const cited=(material.sourceRefs??[]).map(ref=>pick(ref?.label,locale)).find(Boolean)??'';
-  return [authorName,cited].filter(Boolean).join(' · ');
+  return {
+    author:pick(author?.title,locale)||pick(work?.authorLabel,locale),
+    work:pick(work?.title,locale),
+    locator:pick(passage?.meta,locale)||(reading||material.kind==='passage'?pick(material.meta,locale):'')||pick(source?.locator,locale),
+    cited,
+  };
 }
+
+/** "Author · Work · Place" for a move, from the bibliographic source it already cites. */
+export function sourceLine(material,options={}){
+  if(!material)return '';
+  const {author,work,locator,cited}=witnessParts(material,options);
+  if(work||locator)return [author,work,locator].filter(Boolean).join(' · ');
+  // Fall back to the citation label carried by the move itself.
+  return [author,cited].filter(Boolean).join(' · ');
+}
+
+/**
+ * The voices a branch or route passes through, in order of first appearance:
+ * the authors of its moves, of a step's grounds, or a journey's named voices.
+ */
+export function routeVoices(route,{references={},materials,previewMaterials,entryByLegacyId,locale}={}){
+  const voices=[];const add=value=>{const name=String(value??'').trim();if(name&&!voices.includes(name))voices.push(name);};
+  for(const step of route?.steps??[]){
+    if(step?.voice){add(pick(step.voice,locale));continue;}
+    const grounds=(step?.grounds??[]).map(ground=>references?.[ground?.ref]).filter(Boolean);
+    const material=previewMaterials?.get?.(step?.nodeId)??materials?.get?.(step?.nodeId);
+    const own=material&&String(material.id??'').startsWith('antiquity:reading:')?witnessParts(material,{materials:previewMaterials??materials,entryByLegacyId,locale}).author:'';
+    if(own){add(own);continue;}
+    for(const reference of grounds)add(pick(reference.author,locale));
+  }
+  return voices;
+}
+
+// Kinds that name a source or its parts, and the people and traditions a source belongs to.
+const SOURCE_KINDS=new Set(['work','part','chapter','fragment','excerpt','passage','edition','translation','original','dossier']);
+const CONTEXT_KINDS=new Set(['figure','tradition','era']);
+
+/**
+ * Where a node stands on the interpretation ladder of the tree: the source and
+ * its context are the ground; an authored reading, concept or question stands
+ * on it; a branch or route compares several readings. A personal record is the
+ * reader's own and stays outside the ladder.
+ */
+export function ladderRung({material,node}={}){
+  if(node?.ownerType==='personal-hypothesis')return 'personal';
+  if(material?.route)return 'comparison';
+  const kind=material?.kind??node?.kind;
+  if(CONTEXT_KINDS.has(kind))return 'source';
+  const proposed=material?.demo===true||/proposed/.test(String(material?.sourceAccess??''));
+  if(SOURCE_KINDS.has(kind)&&!proposed)return 'source';
+  return 'reading';
+}
+
+/** A star's form: a disc for the ground, a ring for an authored proposal, a broken ring for a personal record. */
+export function nodeForm(args){const rung=ladderRung(args);return rung==='personal'?'personal':rung==='source'?'source':'proposal';}
 
 /** Search order: the object's own name first, then its question, then its prose. */
 export function searchScore(item,query,{locale,authorTitle=''}={}){

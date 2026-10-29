@@ -56,9 +56,16 @@ const title = h('h1', '', strings.title);
 const intro = h('p', 'pr-intro', strings.intro);
 const description = h('p', 'pr-description', strings.description);
 const actions = h('div', 'pr-actions');
-const switchProfile = link(`${english ? 'Explore' : 'Перейти'} ${strings.other}`, alternate, 'pr-switch');
+// The two public spaces sit side by side: the current one is marked, the other is a link.
+const spacesNav = h('nav', 'pr-spaces');
+const currentSpace = h('span', 'pr-space-current', strings.title);
+currentSpace.setAttribute('aria-current', 'page');
+const switchProfile = link(strings.other, alternate, 'pr-switch');
 switchProfile.href = `${alternate}?lang=${locale}`;
-toolbar.append(switchProfile);
+const labelSpaces = () => { spacesNav.setAttribute('aria-label', english ? 'Spaces' : 'Пространства'); switchProfile.setAttribute('aria-label', `${english ? 'Explore' : 'Перейти'}: ${strings.other}`); };
+labelSpaces();
+if (profile === 'zarathustra') spacesNav.append(currentSpace, switchProfile); else spacesNav.append(switchProfile, currentSpace);
+toolbar.append(spacesNav);
 const questionLabel = h('label', 'pr-question-label', strings.question);
 const question = document.createElement('textarea');
 question.className = 'pr-question';
@@ -308,7 +315,7 @@ function setLanguage(value,{updateUrl=true}={}){
   if(!['ru','en'].includes(value)||value===locale)return;
   locale=value;english=locale==='en';strings=stringsFor();document.documentElement.lang=locale;document.title=`${strings.title} · ${english?'Tree of Sophia':'Древо Софии'}`;refreshProviderStatus();
   header.querySelector('.pr-wordmark').textContent=english?'Tree of Sophia':'Древо Софии';
-  switchProfile.textContent=`${english?'Explore':'Перейти'} ${strings.other}`;
+  switchProfile.textContent=strings.other;currentSpace.textContent=strings.title;labelSpaces();
   switchProfile.href=alternate+`?lang=${locale}`;
   if(questionLabel.firstChild?.nodeType===Node.TEXT_NODE)questionLabel.firstChild.nodeValue=strings.question;
   question.placeholder=strings.placeholder;

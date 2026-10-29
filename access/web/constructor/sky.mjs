@@ -3,7 +3,8 @@ import {validateSkyPose} from './sky-pose.mjs';
 
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
 // Options are opt-in so the constructor keeps its own behaviour: rotate:false
-// turns a drag into panning, and getViewport supplies the actually free area.
+// makes a plain drag pan and leaves turning to Shift+drag, and getViewport
+// supplies the actually free area.
 export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true}) {
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
@@ -67,7 +68,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const fogBack=cloudTexture([76,102,151],17),fogFront=cloudTexture([111,91,136],53);
 
   let w=1,h=1,dpr=1,base=1,skyTime=0,yaw=0,pitch=-.055,zoom=1;
-  let tyaw=0,tpitch=-.055,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0;
+  let tyaw=0,tpitch=-.055,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0,revealId=null;
   let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
   let frameCount=0,drawSum=0,frameSum=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -104,7 +105,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
-      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);
+      n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);
       n.titleText=labels[item.id]??item.title??item.id;n.subtitle=typeof item.subtitle==='string'?item.subtitle:'';
       n.labelMaxWidth=Number.isFinite(item.labelMaxWidth)?Math.max(80,Math.min(320,item.labelMaxWidth)):null;n.labelLines=item.labelLines===2?2:1;
       const clampStyle={whiteSpace:n.labelLines>1?'normal':'',display:n.labelLines>1?'-webkit-box':'',webkitBoxOrient:n.labelLines>1?'vertical':'',webkitLineClamp:n.labelLines>1?String(n.labelLines):''};
@@ -139,7 +140,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     targetViewport={left:desktop?166:24,right:w-(desktop?(reading?350:30):24),top:desktop?185:145,bottom:h-(desktop?(journey?260:deck?225:90):(reading?Math.max(180,h*.48):deck?150:65))};
     targetViewport.right=Math.max(targetViewport.left+120,targetViewport.right);targetViewport.bottom=Math.max(targetViewport.top+130,targetViewport.bottom);
     const bounds=root.getBoundingClientRect();uiObstacles=[];
-    for(const el of root.querySelectorAll('.view-heading,.header,.lens-rail,.collection-deck,.relation-bar,.footer,.reading,.journey-dock')){const style=getComputedStyle(el),rect=el.getBoundingClientRect();if(el.hidden||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0||!rect.width||!rect.height)continue;uiObstacles.push({left:rect.left-bounds.left,top:rect.top-bounds.top,right:rect.right-bounds.left,bottom:rect.bottom-bounds.top});}
+    for(const el of root.querySelectorAll('.view-heading,.header,.lens-rail,.collection-deck,.relation-bar,.footer,.reading,.journey-dock,.ps-map-tools,.ps-column-tab,.ps-search-results')){const style=getComputedStyle(el),rect=el.getBoundingClientRect();if(el.hidden||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0||!rect.width||!rect.height)continue;uiObstacles.push({left:rect.left-bounds.left,top:rect.top-bounds.top,right:rect.right-bounds.left,bottom:rect.bottom-bounds.top});}
     // A workspace can supply its actual free area; the constructor keeps its own layout.
     const supplied=getViewport?.({width:w,height:h});
     if(supplied&&['left','right','top','bottom'].every(k=>Number.isFinite(supplied[k]))&&supplied.right-supplied.left>=120&&supplied.bottom-supplied.top>=120)targetViewport={...supplied};
@@ -280,6 +281,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     ctx.beginFrame?.();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(nebula,0,0,w,h);
     const count=Math.round(dust.length*design.density);paintStars(0,count);paintFog(fogBack,.2,.85);paintStars(1,count);paintFog(fogFront,2.4,.46);
     nodes.forEach(n=>n.screen=project(n.p));
+    if(revealId&&!drag)revealPending();
     const byId=new Map(nodes.map(n=>[n.id,n]));
     const selectedEdge=edges.find(e=>e.id===selectedEdgeId),hoveredEdge=edges.find(e=>e.id===hoverEdge),focusId=hover??selectedId,near=new Set(focusId?[focusId]:[]),focusEdges=new Set();
     for(const edge of [selectedEdge,hoveredEdge])if(edge){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
@@ -297,8 +299,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     nodes.forEach(n=>{
       const p=n.screen,hot=n.id===selectedId||n.id===hover,color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
       ctx.globalAlpha=dim?.28:hot?1:.9;const glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
-      ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);
+      ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);
+      // A source is a disc; an authored proposal a ring; a personal record a broken ring.
+      if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
+      else ring(p.x,p.y,radius+.9,color,n.form==='personal',hot);
       const ray=hot?17:big?10:5;ctx.globalAlpha=dim?.12:hot?.9:.38;ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
       if(n.id===selectedId||n.id===linkFrom){ctx.globalAlpha=.65;ctx.beginPath();for(const [sx,sy] of [[-1,-1],[-1,1],[1,-1],[1,1]]){ctx.moveTo(p.x+sx*22,p.y+sy*16);ctx.lineTo(p.x+sx*22,p.y+sy*22);ctx.lineTo(p.x+sx*16,p.y+sy*22);}ctx.stroke();}
       n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
@@ -314,10 +318,31 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(!still&&(playing||unsettled||layoutMoving||drag))kick();else last=0;
   }
   function kick(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
+  // Both renderers fill full discs and stroke straight segments, so a ring is a dark core under a polygon outline.
+  function ring(x,y,r,color,broken,hot){
+    const alpha=ctx.globalAlpha;ctx.fillStyle='#050b16';ctx.globalAlpha=Math.min(1,alpha+.2);ctx.beginPath();ctx.arc(x,y,Math.max(1.2,r-1.1),0,Math.PI*2);ctx.fill();ctx.globalAlpha=alpha;
+    ctx.strokeStyle=color;ctx.lineWidth=hot?1.6:1.25;const steps=broken?10:14;
+    for(let i=0;i<steps;i++){if(broken&&i%2)continue;const a=i/steps*Math.PI*2,b=(i+1)/steps*Math.PI*2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(b)*r,y+Math.sin(b)*r);ctx.stroke();}
+  }
+  // Where a star comes to rest once the camera and layout settle.
+  function projectSettled(point){
+    const saved={yaw,pitch,zoom,pan,center,fitScale,viewport,base};
+    yaw=tyaw;pitch=tpitch;zoom=tzoom;pan=tpan;center=targetCenter;fitScale=targetFit;viewport=targetViewport;
+    base=Math.max(.1,Math.min((viewport.right-viewport.left)/880,(viewport.bottom-viewport.top)/540,1.7));
+    try{return project(point);}finally{({yaw,pitch,zoom,pan,center,fitScale,viewport,base}=saved);}
+  }
+  // A chosen star that would rest outside the free area is brought just inside it:
+  // the camera pans the shortest way, never turns and never changes scale.
+  function revealPending(){
+    const n=nodes.find(item=>item.id===revealId);revealId=null;if(!n)return;
+    const p=projectSettled(n.target),area=targetViewport,mx=Math.min(96,(area.right-area.left)*.18),my=Math.min(72,(area.bottom-area.top)*.18);
+    const dx=p.x<area.left+mx?area.left+mx-p.x:p.x>area.right-mx?area.right-mx-p.x:0,dy=p.y<area.top+my?area.top+my-p.y:p.y>area.bottom-my?area.bottom-my-p.y:0;
+    if(dx||dy){tpan={x:tpan.x+dx,y:tpan.y+dy};kick();}
+  }
   canvas.addEventListener('wheel',e=>{e.preventDefault();tzoom=clamp(tzoom*Math.exp(-e.deltaY*.0012),.65,2.2);kick()},{passive:false});
   const pointer=e=>{const rect=canvas.getBoundingClientRect();return{x:e.clientX-rect.left,y:e.clientY-rect.top};};
-  canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging')});
-  canvas.addEventListener('pointermove',e=>{if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;if(drag.shift||!rotate){tpan={x:drag.pan.x+dx,y:drag.pan.y+dy}}else{tyaw=clamp(drag.yaw+dx*.0025,-.9,.9);tpitch=clamp(drag.pitch+dy*.0025,-.6,.6)}kick()});
+  canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;revealId=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging')});
+  canvas.addEventListener('pointermove',e=>{if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;if(rotate?drag.shift:!drag.shift){tpan={x:drag.pan.x+dx,y:drag.pan.y+dy}}else{tyaw=clamp(drag.yaw+dx*.0025,-.9,.9);tpitch=clamp(drag.pitch+dy*.0025,-.6,.6)}kick()});
   const release=e=>{if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved;drag=null;canvas.classList.remove('dragging');if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();};canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   canvas.addEventListener('pointerleave',()=>{if(!drag){hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
@@ -334,6 +359,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     zoomBy(factor){if(Number.isFinite(factor)&&factor>0){tzoom=clamp(tzoom*factor,.65,2.2);kick();}},
     frame(){if(nodes.length){const min=[0,1,2].map(i=>Math.min(...nodes.map(n=>n.target[i]))),max=[0,1,2].map(i=>Math.max(...nodes.map(n=>n.target[i])));targetCenter=min.map((v,i)=>(v+max[i])/2);targetFit=Math.min(1.6,810/Math.max(510,max[0]-min[0]),455/Math.max(285,max[1]-min[1]),900/Math.max(560,max[2]-min[2]));}tyaw=0;tpitch=-.055;tzoom=1;tpan={x:0,y:0};resize()},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
+    reveal(id){revealId=id??null;kick();},
     refresh:resize,
     motion(value){playing=value;kick()},
     dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());ctx.dispose?.()}

@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest';
 import collection from './antiquity-collection-data.json' with {type:'json'};
-import {ANTIQUITY_TRANSITIONS,SHARED_RELATION_LINES,isAuthoredTransition,partName,referenceLine,relationStyle,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
+import {ANTIQUITY_TRANSITIONS,SHARED_RELATION_LINES,isAuthoredTransition,ladderRung,nodeForm,partName,referenceLine,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {RELATIONS} from '../../constructor/atlas-view.mjs';
 import {RESEARCH_ROUTES} from '../../constructor/atlas-routes.mjs';
 import {PRIMARY_SOURCES} from '../../constructor/source-references.mjs';
@@ -100,5 +100,44 @@ describe('Zarathustra steps and transitions',()=>{
       // A route may walk a link either way; the dock states the link as authored.
       expect([`${from}>${to}`,`${to}>${from}`]).toContain(`${transition.from.replace(/^demo:/,'')}>${transition.to.replace(/^demo:/,'')}`);
     }
+  });
+});
+
+describe('the ladder of interpretation and the forms of stars',()=>{
+  it('stands sources and their context on the ground, readings above them, branches as comparisons',()=>{
+    expect(ladderRung({material:{kind:'work'}})).toBe('source');
+    expect(ladderRung({material:{kind:'fragment',sourceAccess:'metadata-only'}})).toBe('source');
+    expect(ladderRung({material:{kind:'figure',demo:true}})).toBe('source');
+    expect(ladderRung({material:{kind:'interpretation',demo:true}})).toBe('reading');
+    expect(ladderRung({material:{kind:'concept',demo:true}})).toBe('reading');
+    expect(ladderRung({material:{kind:'excerpt',sourceAccess:'proposed-interpretation'}})).toBe('reading');
+    expect(ladderRung({material:{kind:'question',demo:true,route:{id:'branch'}}})).toBe('comparison');
+    expect(ladderRung({node:{ownerType:'personal-hypothesis',kind:'concept'}})).toBe('personal');
+  });
+  it('draws a disc for the ground, a ring for a proposal and a broken ring for a personal record',()=>{
+    expect(nodeForm({material:{kind:'work'}})).toBe('source');
+    expect(nodeForm({material:{kind:'interpretation',demo:true}})).toBe('proposal');
+    expect(nodeForm({material:{kind:'question',route:{}}})).toBe('proposal');
+    expect(nodeForm({node:{ownerType:'personal-hypothesis'}})).toBe('personal');
+  });
+});
+
+describe('the voices of a branch or route',()=>{
+  it('names the authors a Zarathustra route passes through, in order of appearance',()=>{
+    const route=RESEARCH_ROUTES.find(item=>item.id==='fate-given-created');
+    expect(routeVoices(route,{references:PRIMARY_SOURCES,locale:'ru'})).toEqual(['Фридрих Ницше','Альбер Камю']);
+    for(const item of RESEARCH_ROUTES)expect(routeVoices(item,{references:PRIMARY_SOURCES,locale:'en'}).length,item.id).toBeGreaterThan(0);
+  });
+  it('names the authors of every Antiquity branch from the passages its moves read',()=>{
+    const entries=new Map([...collection.entities,...collection.passages].map(item=>[item.id,item]));
+    for(const branch of collection.branches){
+      const materials=new Map(branch.nodes.map(node=>[`antiquity:reading:${node.id}`,{id:`antiquity:reading:${node.id}`,kind:'interpretation'}]));
+      const route={steps:branch.nodes.map(node=>({nodeId:`antiquity:reading:${node.id}`}))};
+      const expected=[];for(const node of branch.nodes){const passage=entries.get(node.id),author=entries.get(passage?.author??entries.get(passage?.workId)?.author);const name=author?.title?.ru;if(name&&!expected.includes(name))expected.push(name);}
+      expect(routeVoices(route,{materials,previewMaterials:materials,entryByLegacyId:entries,locale:'ru'}),branch.id).toEqual(expected);
+    }
+  });
+  it('keeps the named voices of a reading route',()=>{
+    expect(routeVoices({steps:[{voice:'Сократ'},{voice:'Менон'},{voice:'Сократ'}]},{locale:'ru'})).toEqual(['Сократ','Менон']);
   });
 });
