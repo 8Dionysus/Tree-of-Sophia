@@ -4,10 +4,10 @@ Root route card for `Tree-of-Sophia`. A nearer card adds only the local delta.
 
 ## Role
 
-ToS owns source-grounded philosophical meaning: witnesses, doctrine, branches,
-nodes, relations, review and canon. Mechanics operate on those sources;
-`access/` delivers them. Generated, public, graph and KAG views return to the
-source-owned meaning and review that give them authority.
+ToS makes philosophical thought traceable, comparable and open to measurement
+across scales; [CHARTER](CHARTER.md) owns that purpose. It owns witnesses,
+doctrine, branches, relations, review and canon. Mechanics operate on those
+sources; `access/` delivers them. Derived views return to source-owned meaning.
 
 ## Read Before Editing
 
@@ -30,7 +30,7 @@ the touched surface and risk are known.
 | Repeatable operation | [mechanics/AGENTS.md](mechanics/AGENTS.md), then the active part |
 | Durable rationale | [docs/decisions/AGENTS.md](docs/decisions/AGENTS.md) |
 | Measurement, proof pressure, KAG source-return export or memory candidate | [stats](stats/AGENTS.md), [evals](evals/AGENTS.md), [kag](kag/AGENTS.md) or [memo](memo/AGENTS.md) |
-| Builder, validator or regression | [scripts](scripts/AGENTS.md) or [tests](tests/AGENTS.md), subordinate to the source owner |
+| Native implementation, builder, validator or regression | [rust](rust/AGENTS.md); [scripts](scripts/AGENTS.md) and [tests](tests/AGENTS.md) for their local surfaces |
 | Landing and publication | [RELEASING](docs/RELEASING.md); [.github](.github/AGENTS.md) for platform files |
 
 ## Boundary Law

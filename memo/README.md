@@ -15,3 +15,7 @@ to future agents without making `Tree-of-Sophia` the central memory authority.
 | `local/` | tree-local memory notes that should remain local |
 
 Default write mode: `write_candidate_only`.
+
+[Local validation](VALIDATION.md) covers ToS routes, packet evidence and index
+freshness. The receiving `aoa-memo` owner performs compatibility, indexing and
+admission on its side; ToS does not execute that owner's tools.

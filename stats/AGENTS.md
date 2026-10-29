@@ -1,56 +1,32 @@
 # AGENTS.md
 
-Route card for owner-local statistical questions in `Tree-of-Sophia`.
-Read the root `AGENTS.md` first.
+This card applies to owner-local statistical questions in `stats/`.
 
-## Applies To
+## Role and routes
 
-Everything under `stats/`.
+ToS owns measurement questions over its authored objects and declared
+populations. Shared measurement grammar and cross-owner composition remain
+with `aoa-stats`; philosophical meaning stays with the authored tree.
 
-## Role
-
-This directory owns statistical questions over Tree of Sophia objects whose
-meaning remains with the authored tree. Shared measurement grammar and
-cross-owner composition remain owned by `aoa-stats`.
-
-This port measures declared populations. Authored ToS sources own
-philosophical meaning.
-
-## Conditional route
-
-Start with root `AGENTS.md` and this card. Open `CHARTER.md`, `BOUNDARIES.md`,
-or `ROADMAP.md` only when repository orientation changes the measurement task.
-For a Table I question, open the philosophy atlas route and its README when
-human explanation is relevant, then open `stats/port.manifest.json`, rows, and
-the dossier map.
-When local port usage is selected, open `stats/README.md`.
-When packet structure changes, use the [embedded portable format](../rust/crates/tos-ops-mechanics-plan/schemas/README.md).
-ToS owns native port validation and export; shared format evolution and
-cross-owner composition remain with `aoa-stats`.
+Read `stats/port.manifest.json`, the selected packet and its population's source
+owner. [README](README.md) defines the current reference measurement,
+`Tree-of-Sophia/table-i-prepared-dossier-route-ratio`, including its unique
+Table I rows, prepared-dossier routes and unknown-versus-zero rules.
+When packet shape changes, use the [embedded portable format](../rust/crates/tos-ops-mechanics-plan/schemas/README.md).
 
 ## Boundaries
 
-- The population is the complete non-empty set of unique Table I atlas rows.
-- The numerator contains only unique explicit Table I prepared-dossier routes
-  whose row identity belongs to that population and whose branch path exists.
-- A valid population with no routes is an observed zero.
-- Malformed, empty, duplicate, unsupported, out-of-population, or missing-path
-  input is unknown, not zero.
-- The reference packet is weaker than the atlas rows, route map, branch homes,
-  dossier contents, source witnesses, review packets, and canon.
-- Route coverage measures the presence of declared routes. Dossier quality,
-source adequacy, philosophical value, branch maturity, graph readiness and
-canon status require their own assessments.
+Declare each measurement's population, unit, derivation and evidence revision.
+Distinguish an observed zero from missing, unknown or invalid input according
+to that measurement's contract. A reference snapshot retains its observation
+identity and time; it is not live state. Route coverage alone does not assess
+source adequacy, philosophical value or canon status.
 
-## Validation
+## Validation and closeout
 
-Inspect the atlas population, route map, branch paths, and packet first. Then
-select [`stats/VALIDATION.md`](VALIDATION.md), which owns native ToS export checks
-and the standalone CLI regression. Consumer procedures run outside ToS. Use the root route for
-repository-wide validation.
-
-## Closeout
-
-Report the Table I question, exact row and route populations, manual positive
-and negative cases, packet posture, local export validation, and repository
-validation.
+Inspect the selected population, derivation and packet, then use
+[VALIDATION](VALIDATION.md) for supported ToS-native validation/export checks.
+A new measurement must fit that supported format or extend its owner contract.
+Consumers check composition and admission in their own environments.
+Report the question, exact population and revision, checks, uncertainty and
+packet/export posture.

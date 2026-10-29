@@ -7,19 +7,23 @@ their local work and evidence.
 
 ## Current ToS Direction
 
-Grow a source-grounded world-philosophy tree whose branches can be read as
-graphs without losing their sources, history or competing interpretations.
+Build the foundation for the [Charter's research purpose](CHARTER.md#purpose)
+through people, works, sources, contexts and supported relations. Complete
+registries, resolve gaps and reconcile identities while preserving original
+records, evidence and revisable decisions. Simple supported relations can grow
+with the material; wider linking follows the readiness of each area.
 
-Two fronts remain coupled:
+Prepare the mathematical core in parallel: carriers, relations, operations,
+invariants, uncertainty and change. Keep mathematical validity, philosophical
+applicability and implementation evidence distinct. The philological core
+follows foundation readiness in the selected programme's scope, coverage and
+source criteria. Zarathustra remains the first worked source-to-review kernel;
+transfer its method while retaining each tradition's vocabulary and ontology.
 
-- the world-philosophy foundation supplies works, witnesses, languages, time,
-  place, transmission and exact source addresses;
-- Zarathustra supplies the first dense source-to-review kernel, including
-  rejected and unresolved readings and their grounds.
-
-Extend the method to other traditions without imposing Nietzsche's vocabulary
-or ontology. Authored sources and scoped review govern canon and every derived
-representation.
+Advance a usable person, work, source or relation with a concrete result.
+A missing source or disputed identity holds only dependent claims and actions;
+independent preparation continues. Authored sources and scoped review govern
+canon and derived representations.
 
 ## Current release contour
 
@@ -57,6 +61,7 @@ weak, frontier and incomplete evidence states.
 | Direction | Next meaningful step | Evidence needed |
 | --- | --- | --- |
 | Source depth | Complete the witness and address chains required by a selected branch | Exact material, provenance, rights posture and explicit gaps |
+| Mathematical preparation | Test an operation or invariant on a declared carrier | Assumptions, preserved property and boundary example; separate applicability and implementation evidence |
 | Golden-kernel transfer | Exercise source return, justified refusal and competing readings on unseen material | A bounded review packet with accepted, rejected and unresolved outcomes; source-specific vocabulary retained |
 | Atlas growth | Review prepared graph slices, complete missing anchors and replace incomplete dossier inputs | Branch review and a source-completed successor for any structurally deficient input |
 | Canon formation | Promote only supported node families and relation packs | Inspectable evidence, reviewer rationale and an explicit canon decision |

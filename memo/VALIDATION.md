@@ -1,13 +1,24 @@
 # Local memo-port validation
 
-`aoa-memo` owns the validator and durable memory contract. Point
-`AOA_MEMO_ROOT` at the exact intended owner checkout before running:
+Read `PORT.yaml` and the exact changed candidate, receipt or export. Review
+its evidence refs, privacy posture, requested route and actual disposition.
+Keep `write_candidate_only` distinct from reviewed handoff and durable admission.
+The `validators` names in `PORT.yaml` identify consumer-side compatibility
+checks; they are not commands executed by ToS.
 
-```bash
-python "$AOA_MEMO_ROOT/scripts/memory/validate_local_memo_port.py" --path memo
-python "$AOA_MEMO_ROOT/scripts/memory/build_local_memo_port_index.py" --path memo --check
+The native ToS checks verify the declared port and agent routes:
+
+```sh
+tos-ops-mechanics-plan --repo-root "$PWD" --agent-surface-validate
+tos-ops-mechanics-plan --repo-root "$PWD" --nested-agents-validate
 ```
 
-Index rebuilding changes generated local read models; perform it only through
-the owner builder after source packets move. A green check does not land
-durable memory.
+These checks do not validate candidate schema, decide memory truth or rebuild
+`INDEX.md` / `index.min.json`. Compare those snapshots with the changed packet
+membership and use packets directly when they are stale. Report that freshness
+explicitly; do not present a historical index as current. Route-card changes
+also use `route_docs` in [root validation](../VALIDATION.md).
+
+`aoa-memo` validates and indexes its received copy under its own contract before
+reviewed admission. ToS does not fetch or execute that owner's checkout,
+validator or builder. A receipt, export or green route check is not admission.

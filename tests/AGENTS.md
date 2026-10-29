@@ -1,43 +1,27 @@
 # AGENTS.md
 
-## Applies To
-
 This card applies to `tests/`.
 
-## Role
+## Role and routes
 
-`tests/` owns repo-local regression checks for ToS route surfaces, generated
-parity, canon contracts, mechanics payload contracts, validator behavior, test
-topology, and release contour. Tests prove bounded behavior; they do not
-promote candidate material, create doctrine, store command authority, or
-replace eval/proof authority.
+`tests/` owns repo-local regressions for routes, generated parity, canon and
+mechanics contracts, validators, test topology and release behavior. Tests
+prove bounded behavior; eval verdicts, scoring and proof doctrine remain with
+`aoa-evals`.
 
-## Operating Card
-
-| Field | Route |
-| --- | --- |
-| input | source-home route, generated payload, schema contract, mechanic part, validator behavior, or release contour |
-| output | focused regression signal tied to an owner surface |
-| owner | `docs/testing/TEST_TOPOLOGY.md`, `tests/AGENTS.md`, and `tests/test_inventory.json` |
-| next route | failing test -> owner surface -> validator or builder -> focused test -> release lane when needed |
-| tools | standard test runner (including unittest.TestCase), local fixtures, schema validators, temporary repos |
-| check | focused test module first, then the broad test route in `tests/VALIDATION.md` |
-
-## Boundaries
-
-- Keep test meaning tied to the behavior or contract it protects. Existing `test_inventory.json` entries help navigation; executable tests and
-the selected software checks govern admission under TOS-D-0062.
-- Keep home scopes aligned with `docs/testing/TEST_TOPOLOGY.md`.
-- Keep eval verdicts, scoring doctrine, and proof authority with `aoa-evals`.
-- Keep generated drift checks routed through builders and validators before
-  broad test runs.
-- Keep mechanics-local schema tests in mechanics-local validation lanes rather
-  than routing them through canon by convenience.
-- Treat migration-era names as inventory facts and choose future topology
-through the current owner routes.
-- Keep release command order in `docs/validation/validation_lanes.json`.
+Use [TEST_TOPOLOGY](../docs/testing/TEST_TOPOLOGY.md) and `tests/test_inventory.json`
+for owner and home navigation. Executable tests and selected software checks
+govern admission under TOS-D-0062; migration-era inventory names do not freeze
+future topology.
 
 ## Validation
 
-Run the focused module for the touched surface first, then select the broad
-test or release route in [`tests/VALIDATION.md`](VALIDATION.md).
+Follow a failure to the owning source, builder or validator, then run the
+affected native owner or standalone SDK unittest tests on local fixtures.
+Use schema validators and temporary repositories where the contract needs them.
+Generated drift returns to its builder before broader tests; mechanics-local
+schemas stay in their mechanics lane.
+
+[tests/VALIDATION.md](VALIDATION.md) selects the available test routes. Widen checks for
+a changed contract, selected CI/release route or unresolved risk. Release
+command order stays in `docs/validation/validation_lanes.json`.

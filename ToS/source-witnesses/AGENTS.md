@@ -57,7 +57,11 @@ The [README](README.md) explains current source profiles and native operations.
 
 ## Validation
 
-Select `source_home` in [ToS/VALIDATION.md](../VALIDATION.md) for object/Claim
-closure, source return, fixity, rights shape and catalog parity. Add the public
-entry/export route only when that companion changes. The source-foundation validator checks mechanics; source witness identity,
-textual fidelity, translation, rights and relation truth require owner review.
+Select `source_witness_foundation` in [ToS/VALIDATION.md](../VALIDATION.md) for
+object/Claim closure, source return, fixity, rights shape and catalog parity
+over the explicitly selected source snapshot. The [native owner route](README.md#native-catalog-and-projection-routes)
+owns its invocation and resource requirements; software changes use the affected
+owner tests. `source_home` checks home structure and lived-witness routing.
+Add public/export checks when that companion changes.
+The source-foundation validator checks mechanics; source witness identity,
+fidelity, translation, rights and relation truth require owner review.

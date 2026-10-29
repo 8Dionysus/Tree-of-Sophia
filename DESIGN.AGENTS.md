@@ -17,7 +17,7 @@ delta; do not repeat its parent's identity, boundaries or workflow.
 | `ToS/AGENTS.md` | authored source-home and branch routes |
 | branch cards | local source, canon, review, contract or public-entry invariant |
 | mechanics cards | package/part operation ownership |
-| scripts/tests cards | deterministic builder and check ownership |
+| rust/scripts/tests cards | native implementation, deterministic builder and check ownership |
 | docs cards | documentation and durable rationale ownership |
 
 [DESIGN.md](DESIGN.md) owns system architecture. The

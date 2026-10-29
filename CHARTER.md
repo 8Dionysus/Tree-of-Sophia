@@ -2,9 +2,16 @@
 
 ## Purpose
 
-Tree of Sophia (ToS) is a source-first living knowledge architecture for philosophy and world thought.
+Tree of Sophia (ToS) is a source-first living knowledge architecture for
+philosophy and world thought. Its research purpose is to measure philosophy:
+distinguish its objects, trace relations and transformations, and compare
+thought across scales while retaining sources, context and competing readings.
 
-This repository is the canonical public statement of that architecture. It exists to keep ToS rooted in explicit sources, lineage-aware structure, and human-reviewable synthesis even as adjacent operational and derived systems grow around it.
+This repository is the canonical public statement of that architecture.
+Counts, identity, historical coverage and depth of understanding have distinct
+units and evidence. Its representations and methods of understanding are also
+subjects of inquiry. A model of thinking remains a research goal; possible
+insight into consciousness requires its own evidence beyond accumulating records.
 
 ## Mission
 
@@ -19,18 +26,15 @@ ToS exists to support long-horizon cultivation of thought through:
 
 ## Growth posture
 
-ToS grows through two coupled fronts:
+ToS grows by populating a world-philosophy foundation of people, works,
+witnesses and their contexts, with evidence-bearing relations. Mathematical
+preparation develops alongside that foundation; deeper philological work
+builds on its readiness. [ROADMAP](ROADMAP.md) owns the current sequence.
 
-- a world-philosophy corpus soil that orders works, witnesses, editions,
-  languages, time, place, traditions, and transmission as the basis for
-  source-linked interpretation;
-- *Thus Spoke Zarathustra* as the first golden growth kernel: a dense,
-  source-returning full cycle from text through review into authored knowledge
-  and downstream projections.
-
-The corpus soil gives the tree breadth. The golden kernel teaches the path of
-growth. The transferable method is source and review discipline. Each work
-and tradition supplies the concepts appropriate to its own material.
+*Thus Spoke Zarathustra* remains the first golden growth kernel: a dense cycle
+from source through interpretation and review into authored knowledge. It
+teaches a transferable method, while each work and tradition supplies its own
+concepts. Ready material can advance without waiting for unrelated gaps.
 
 ## What this repository owns
 

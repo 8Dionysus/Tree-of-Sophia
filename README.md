@@ -69,17 +69,14 @@ Authored sources govern derived views.
 
 ## How ToS grows
 
-ToS grows along two linked fronts:
+ToS populates a world-philosophy foundation of people, works, sources and their
+contexts while preparing its mathematical core in parallel. Deeper
+philological work follows foundation readiness. [CHARTER](CHARTER.md) owns the
+research purpose; [ROADMAP](ROADMAP.md) defines the current sequence.
 
-- a world-philosophy corpus foundation that orders works, witnesses, editions,
-  languages, time, place, traditions, transmission, and stable text addresses;
-- *Thus Spoke Zarathustra* as the first golden growth kernel, a deeply worked
-  branch testing the full path from source evidence through review to authored
-  knowledge and derived views.
-
-The corpus provides breadth. The kernel transfers source and review discipline.
-Each source keeps its ontology and
-vocabulary; new works or traditions may extend the model.
+*Thus Spoke Zarathustra* remains the first golden growth kernel, exercising
+the full source-to-review path. Its transferable method is source and review
+discipline; each work and tradition keeps its own vocabulary and ontology.
 
 ## Current state
 
