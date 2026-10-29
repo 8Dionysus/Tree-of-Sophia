@@ -1,11 +1,12 @@
+import {resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 // Presentation rules that keep the public research spaces (Zarathustra and
 // Antiquity) readable. They name what the authored data already says; they
 // never add a relation, source or claim, and they stay outside the constructor
 // library, its fingerprint and saved graphs.
 
 const bi=(ru,en)=>({ru,en});
-const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
-const pick=(value,locale)=>typeof value==='string'?value:value?.[lang(locale)]??value?.en??value?.ru??'';
+const lang=resolveLocale;
+const pick=localeValue;
 
 // The shared relation kinds, as every other space draws them. Kinds fall into
 // three families by line: grounds and continuations are solid, readings and

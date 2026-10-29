@@ -1,3 +1,4 @@
+import {PUBLIC_LOCALES,localeText} from '../public-research/locale.mjs';
 import {bindCorpusProvider,CorpusProviderError,CorpusProviderCursorError,CorpusProviderUnsupportedScopeError,throwIfAborted} from './provider.mjs';
 import {createReference,validateReference,referenceKey} from './model.mjs';
 import {findInParagraphs} from '../reader/occurrences-rust.mjs';
@@ -25,7 +26,7 @@ const AUTHOR_ALIASES={
   lucretius:'Лукреций', 'marcus aurelius':'Марк Аврелий', plato:'Платон', plotinus:'Плотин',
   plutarch:'Плутарх', porphyry:'Порфирий', seneca:'Сенека',
 };
-const authorSearchAliases=author=>typeof author==='string' ? (AUTHOR_ALIASES[author.trim().toLowerCase()] || '') : '';
+const authorSearchAliases=author=>typeof author==='string'?[AUTHOR_ALIASES[author.trim().toLowerCase()]||'',...PUBLIC_LOCALES.map(language=>localeText(author,language))].join(' '):'';
 
 function cacheSet(cache,key,value,limit){
   cache.delete(key);cache.set(key,value);
@@ -346,7 +347,7 @@ export function createPublicCorpusProvider({baseUrl='/static/public-corpus/',pro
       await describe({signal:args.signal});
       const selected=new Set(manifest.profiles[profile].documentIds);
       let items=manifest.documents.filter(value=>selected.has(value.id));
-      if(args.query){const found=new Set(findInParagraphs(items.map(value=>`${value.title} ${corpusWorkTitle(value,'ru')} ${corpusWorkTitle(value,'en')} ${value.author??''} ${authorSearchAliases(value.author)}`),args.query,{limit:500}).matches.map(value=>value.paragraph));items=items.filter((_,index)=>found.has(index));}
+      if(args.query){const found=new Set(findInParagraphs(items.map(value=>`${value.title} ${PUBLIC_LOCALES.map(language=>corpusWorkTitle(value,language)).join(' ')} ${value.author??''} ${authorSearchAliases(value.author)}`),args.query,{limit:500}).matches.map(value=>value.paragraph));items=items.filter((_,index)=>found.has(index));}
       const binding={profile,query:args.query},offset=position(args.cursor,'catalog',manifest.revision,binding);
       return {items:items.slice(offset,offset+args.limit).map(({id,title,author})=>({id,title,author,status:'available',visibility:'public',textAvailable:true,unitCount:null})),total:items.length,
         nextCursor:offset+args.limit<items.length?cursor('catalog',manifest.revision,binding,offset+args.limit):null};

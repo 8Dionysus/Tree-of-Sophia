@@ -1,3 +1,4 @@
+import {copyLocale,localeText} from '../public-research/locale.mjs';
 import annotations from '../../../public-corpus/editorial-annotations.v1.json' with {type:'json'};
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 
@@ -14,12 +15,12 @@ const labels = {
     notes:'Notes on the work',adjustments:'Text processing information',publication:'Project Gutenberg publication and license material',
     fragments:'Editorial collection of fragments and testimonies',laterWitness:'Later witness: Hildebert’s letter and transmitted fragments'},
 };
-const language=locale=>String(locale||'ru').toLowerCase().startsWith('en')?'en':'ru';
+const language=locale=>(copyLocale(locale||'ru')==='en')?'en':'ru';
 const unitId=unit=>unit?.unitId||unit?.id;
 const points=value=>Array.from(String(value??''));
 const revision=version=>version?.revision||version?.source?.textLayerSha256;
 
-export const editorialLabel=(kind,locale='ru')=>labels[language(locale)][kind]||'';
+export const editorialLabel=(kind,locale='ru')=>localeText(labels[language(locale)][kind]||'',locale);
 export const hasEditorialProjection=version=>Boolean(versionSpans.get(version?.id) && versionSpans.get(version.id).revision===revision(version));
 
 // Data apply only to the exact version and layer, and only while the source

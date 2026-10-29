@@ -1,3 +1,4 @@
+import {copyLocale,resolveLocale,bonsaiText} from './locales.mjs';
 // Historical time in the Tree's own grammar.
 //
 // A bonsai keeps every dating as a value of the Tree's `historicalDate`
@@ -129,7 +130,7 @@ export function dateSpan(value,anchorSpan=()=>null){
   return null;
 }
 
-const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
+const lang=locale=>(copyLocale(locale||'ru')==='en')?'en':'ru';
 // Words are joined to their numbers by no-break spaces, so "387 до н. э." never breaks inside.
 const NB=' ';
 const MONTHS={
@@ -142,12 +143,51 @@ const firmness=(certainty,en)=>({about:certainty==='approximate'?(en?`c.${NB}`:`
 const eraOf=(value,en)=>value.era==='BCE'?(en?'BCE':`до${NB}н.${NB}э.`):value.year>=1000?'':(en?'CE':`н.${NB}э.`);
 const withEra=(text,value,en)=>{const era=eraOf(value,en);return era?`${text}${NB}${era}`:text;};
 
+const localFirmness=(certainty,locale)=>({about:certainty==='approximate'?`${bonsaiText('c.',locale)}${resolveLocale(locale)==='zh-Hans'?'':NB}`:'',doubt:['uncertain','unknown'].includes(certainty)?`${NB}(?)`:''});
+const localEra=(year,locale)=>year<=0?bonsaiText('BCE',locale):year<1000?bonsaiText('CE',locale):'';
+function localYearRange(first,last,locale){
+  const a=historicalYear(first),b=historicalYear(last),same=a.era===b.era&&Boolean(localEra(first,locale))===Boolean(localEra(last,locale));
+  const number=value=>new Intl.NumberFormat(locale,{useGrouping:false}).format(value);
+  const one=year=>{
+    const value=historicalYear(year),era=localEra(year,locale);
+    return locale==='zh-Hans'?`${era}${number(value.year)}年`:`${number(value.year)}${era?NB+era:''}`;
+  };
+  if(!same)return `${one(first)} – ${one(last)}`;
+  const years=a.year===b.year?number(a.year):`${number(a.year)}–${number(b.year)}`,era=localEra(last,locale);
+  return locale==='zh-Hans'?`${era}${years}年`:`${years}${era?NB+era:''}`;
+}
+function localizedYears({first,last,certainty},locale){
+  const {about,doubt}=localFirmness(certainty,locale);
+  return `${about}${localYearRange(Math.min(first,last),Math.max(first,last),locale)}${doubt}`;
+}
+function localMoment(parts,locale){
+  const year=localYearRange(parts.year,parts.year,locale);if(parts.month===null)return year;
+  const date=new Date(Date.UTC(2000,parts.month-1,parts.day??1));
+  const monthDay=new Intl.DateTimeFormat(locale,{month:'long',...(parts.day!==null?{day:'numeric'}:{}),timeZone:'UTC'}).format(date);
+  return locale==='zh-Hans'?`${year}${monthDay}`:`${monthDay}${NB}${year}`;
+}
+function localizedDating(value,locale,span){
+  if(value.kind==='relative-order')return span?formatYears({...span,certainty:weakerCertainty(value.certainty,span.certainty)},locale):'';
+  if(value.kind==='unknown-date'||value.year_numbering!=='astronomical')return '';
+  const {about,doubt}=localFirmness(value.certainty,locale);
+  if(value.kind==='date-assertion'){const parts=lexemeParts(value.value);return parts?`${about}${localMoment(parts,locale)}${doubt}`:'';}
+  if(value.kind!=='interval-assertion')return '';
+  const a=lexemeParts(value.interval?.start),b=lexemeParts(value.interval?.end);
+  if(a&&b){
+    if(a.precision==='year'&&b.precision==='year')return formatYears({first:a.year,last:b.year,certainty:value.certainty},locale);
+    return `${about}${localMoment(a,locale)} – ${localMoment(b,locale)}${doubt}`;
+  }
+  const bound=a??b;if(!bound)return '';
+  return `${bonsaiText(a?'from {0}':'by {0}',locale,[`${about}${localMoment(bound,locale)}`])}${doubt}`;
+}
+
 /**
  * Closed years in the reader's language, as firm as their dating:
  * "ок. 399–387 до н. э.", "44 BCE", "c. 108 CE", "1 BCE – 65 CE", "253–270 н. э. (?)", "1883–1885".
  */
 export function formatYears({first,last,certainty}={},locale){
   if(!Number.isInteger(first)||!Number.isInteger(last))return '';
+  const language=resolveLocale(locale);if(language!=='ru'&&language!=='en')return localizedYears({first,last,certainty},language);
   const en=lang(locale)==='en',{about,doubt}=firmness(certainty,en);
   const a=historicalYear(Math.min(first,last)),b=historicalYear(Math.max(first,last));
   if(a.era===b.era&&!!eraOf(a,en)===!!eraOf(b,en))return `${about}${withEra(a.year===b.year?String(a.year):`${a.year}–${b.year}`,b,en)}${doubt}`;
@@ -172,6 +212,7 @@ function moment(parts,en,{grammar='nominative',year=true}={}){
  */
 export function formatDating(value,locale,{span=null}={}){
   if(!object(value))return '';
+  const language=resolveLocale(locale);if(language!=='ru'&&language!=='en')return localizedDating(value,language,span);
   const en=lang(locale)==='en';
   if(value.kind==='relative-order')return span?formatYears({...span,certainty:weakerCertainty(value.certainty,span.certainty)},locale):'';
   if(value.kind==='unknown-date'||value.year_numbering!=='astronomical')return '';

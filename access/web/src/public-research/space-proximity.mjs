@@ -1,3 +1,4 @@
+import {resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 // The lens "Proximity" measures nearness from one chosen star, by one named
 // criterion at a time, and says which. The distance from the centre is the
 // measure; the direction only groups (a branch or a circle of the map gets its
@@ -7,9 +8,9 @@
 
 import {greatCircleKm} from './space-geography.mjs';
 
-const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
+const lang=resolveLocale;
 const GAP=11,ROW=7;
-const pick=(value,locale)=>typeof value==='string'?value:value?.[lang(locale)]??value?.en??value?.ru??'';
+const pick=localeValue;
 
 /** 1 − |A ∩ B| / |A ∪ B| for two sets of keys; null when either is empty. */
 export function jaccardDistance(a,b){

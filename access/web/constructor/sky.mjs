@@ -267,7 +267,17 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       let subWidth=0,subHeight=0;if(sub){ng.font=sub.font||'11px sans-serif';subWidth=ng.measureText(n.subtitle).width;subHeight=Math.max(14,parseFloat(sub.lineHeight)||15)+2;}
       const style=getComputedStyle(n.subtitle&&n.titleEl?n.titleEl:n.label);ng.font=style.font||'12px sans-serif';
       n.labelWidth=Math.min(n.labelMaxWidth??(root.dataset.journey==='true'?230:180),Math.max(50,Math.max(ng.measureText(text).width,subWidth)+(n.labelLines>1?8:4)));
-      let lines=1,line='';if(n.labelLines>1)for(const word of text.split(/\s+/)){const next=line?line+' '+word:word;if(line&&ng.measureText(next).width>n.labelWidth-8){lines++;line=word;}else line=next;}
+      let lines=1,line='';
+      if(n.labelLines>1)for(const word of text.split(/\s+/)){
+        const limit=n.labelWidth-8;
+        if(ng.measureText(word).width>limit){
+          // CJK phrases and long compounds can wrap without a space. Measure
+          // their graphemes, as CSS does, instead of treating them as one line.
+          if(line){lines++;line='';}
+          const characters=typeof Intl.Segmenter==='function'?Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(word),part=>part.segment):Array.from(word);
+          for(const character of characters){const next=line+character;if(line&&ng.measureText(next).width>limit){lines++;line=character;}else line=next;}
+        }else{const next=line?line+' '+word:word;if(line&&ng.measureText(next).width>limit){lines++;line=word;}else line=next;}
+      }
       n.titleHeight=Math.max(16,parseFloat(style.lineHeight)||18)*Math.min(lines,n.labelLines)+(n.labelLines>1?2:0);n.labelHeight=n.titleHeight+subHeight;
     }
     // A scale's labels are measured in their own type, so a name never loses its end to a guess.

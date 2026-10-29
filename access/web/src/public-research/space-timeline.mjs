@@ -1,3 +1,4 @@
+import {resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 // The lens "Time" places only what the data already dates or orders.
 // Antiquity: a move stands within the span its bonsai's chronology gives the
 // writing of its passage or work — a date, an interval, or a phase of a life
@@ -14,8 +15,8 @@ import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {centuryOf,centuryStart,formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
 
 export {formatDating,formatYears};
-const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
-const pick=(value,locale)=>typeof value==='string'?value:value?.[lang(locale)]??value?.en??value?.ru??'';
+const lang=resolveLocale;
+const pick=localeValue;
 const ROMAN={I:1,V:5,X:10,L:50,C:100};
 const ROW=13;
 
@@ -38,7 +39,8 @@ export function bookPlace(reference){
 
 const centuryLabel=(start,locale)=>{
   const {n,era}=centuryOf(start),roman=['I','II','III','IV','V','VI','VII','VIII','IX','X'][n-1]??String(n);
-  return lang(locale)==='en'?`${n}${n===1?'st':n===2?'nd':n===3?'rd':'th'} c.`:`${roman} в.`;
+  if(!['ru','en'].includes(resolveLocale(locale)))return localeText('Century {0}',locale,[resolveLocale(locale)==='zh-Hans'?n:roman]);
+  return copyLocale(locale)==='en'?`${n}${n===1?'st':n===2?'nd':n===3?'rd':'th'} c.`:`${roman} в.`;
 };
 
 /** Stack stars that share a place on one row, so that none hides another and x stays exact. */
@@ -140,12 +142,12 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
     scaleEnds:locale=>[formatYears({first:min,last:min,certainty:'exact'},locale),formatYears({first:max-1,last:max-1,certainty:'exact'},locale)],
     lifeSpan:authorId=>lives.get(authorId)?.span??null,
     labels(locale,{laneWidth=null}={}){
-      const en=lang(locale)==='en',out=[];
+      const en=copyLocale(locale)==='en',out=[];
       // A century begins at its year 100k + 1; the first year of the era (1 CE) is the strong rule between BCE and CE.
       for(let year=min;year<=max;year+=100)out.push({id:`time:rule:${year}`,variant:'rule',title:'',subtitle:'',center:[xOfYear(year),0,0],...(year===1?{tone:'strong'}:{})});
       for(let start=min;start<max;start+=100)out.push({id:`time:c${start}`,variant:'axis',strip:YEAR_ROWS.axis,title:centuryLabel(start,locale),subtitle:'',center:[xOfYear(start+50),0,0]});
       // The eras' boundary is named once, on its two sides.
-      if(min<1&&max>1)out.push({id:'time:bce',variant:'side',align:'end',strip:YEAR_ROWS.side,title:en?'BCE':'до н. э.',subtitle:'',center:[xOfYear(1),0,0]},{id:'time:ce',variant:'side',align:'start',strip:YEAR_ROWS.side,title:en?'CE':'н. э.',subtitle:'',center:[xOfYear(1),0,0]});
+      if(min<1&&max>1)out.push({id:'time:bce',variant:'side',align:'end',strip:YEAR_ROWS.side,title:en?localeText('BCE',locale):'до н. э.',subtitle:'',center:[xOfYear(1),0,0]},{id:'time:ce',variant:'side',align:'start',strip:YEAR_ROWS.side,title:en?localeText('CE',locale):'н. э.',subtitle:'',center:[xOfYear(1),0,0]});
       // An era spans the lives of its authors in the collection; overlapping eras take two rows.
       eras.map(era=>({era,spans:livesOf(pick(era.period,'en'))})).filter(item=>item.spans.length).forEach(({era,spans},index)=>{
         const span=[xOfYear(Math.min(...spans.map(item=>item.from))),xOfYear(Math.max(...spans.map(item=>item.to)))];
@@ -154,11 +156,11 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
       // Writings the scale cannot place stand past a strong rule, named on the line of centuries.
       if(undated.size){
         out.push({id:'time:rule:undated',variant:'rule',tone:'strong',title:'',subtitle:'',center:[(xOfYear(max)+outsideX)/2,0,0]});
-        out.push({id:'time:undated',variant:'side',strip:YEAR_ROWS.axis,title:unknownOnly?(en?'date unknown':'дата неизвестна'):(en?'off the scale':'вне шкалы'),subtitle:'',center:[outsideX,0,0]});
+        out.push({id:'time:undated',variant:'side',strip:YEAR_ROWS.axis,title:unknownOnly?(en?localeText('date unknown',locale):'дата неизвестна'):(en?localeText('off the scale',locale):'вне шкалы'),subtitle:'',center:[outsideX,0,0]});
       }
       for(const lane of lanes){
         out.push({id:`time:thread:${lane.id}`,variant:'thread',title:'',subtitle:'',span:[lane.from,lane.to],center:[(lane.from+lane.to)/2,lane.y,0]});
-        out.push({id:`time:lane:${lane.id}`,variant:'lane',ref:lane.id,title:pick(lane.title,locale),subtitle:'',hint:en?`Open the branch “${pick(lane.title,locale)}”`:`Открыть ветвь «${pick(lane.title,locale)}»`,center:[lane.from,lane.y,0],...(laneWidth?{maxWidth:laneWidth}:{})});
+        out.push({id:`time:lane:${lane.id}`,variant:'lane',ref:lane.id,title:pick(lane.title,locale),subtitle:'',hint:en?localeText("Open the branch “{0}”",locale,[pick(lane.title,locale)]):`Открыть ветвь «${pick(lane.title,locale)}»`,center:[lane.from,lane.y,0],...(laneWidth?{maxWidth:laneWidth}:{})});
       }
       return out;
     },
@@ -207,22 +209,22 @@ export function zarathustraTimeline({materials=[],references={},clusters=[],chro
     xOf,placeOf:id=>{const place=placeOf.get(id);return place?{part:place.part,chapter:place.chapter}:null;},isOutside:id=>outside.has(id),
     groundsOf:id=>groundsOf.get(id)??[],firstGround,outsideWorkOf:id=>outside.has(id)?pick(references[firstGround(id)]?.work,'en')||null:null,
     /** The Prologue and the last chapter the scale measures, for a path drawn along it. */
-    scaleEnds:locale=>[lang(locale)==='en'?'Prologue':'Пролог',toRoman(maxChapter)],
+    scaleEnds:locale=>[copyLocale(locale)==='en'?localeText('Prologue',locale):'Пролог',toRoman(maxChapter)],
     labels(locale,{laneWidth=null}={}){
-      const en=lang(locale)==='en',out=[];
-      for(const chapter of marked)out.push({id:`time:ch${chapter}`,variant:'axis',strip:BOOK_ROWS.axis,title:chapter===0?(en?'Prologue':'Пролог'):toRoman(chapter),subtitle:'',center:[xOfChapter(chapter),0,0]});
+      const en=copyLocale(locale)==='en',out=[];
+      for(const chapter of marked)out.push({id:`time:ch${chapter}`,variant:'axis',strip:BOOK_ROWS.axis,title:chapter===0?(en?localeText('Prologue',locale):'Пролог'):toRoman(chapter),subtitle:'',center:[xOfChapter(chapter),0,0]});
       // A part spans the chapters the map cites from it; a rule stands between parts and before the texts outside the book,
       // whose column is named on the line of chapters, since it has none.
       ordered.forEach(([part,list],index)=>{
         const span=[xOfChapter(Math.min(...list)),xOfChapter(Math.max(...list))];
         const years=partYears(part,locale);
-        out.push({id:`time:part${part}`,variant:'era',strip:dated&&index%2?BOOK_ROWS.era1:BOOK_ROWS.era0,span,title:`${en?`Part ${toRoman(part)}`:`Часть ${toRoman(part)}`}${years?` · ${years}`:''}`,subtitle:'',center:[(span[0]+span[1])/2,0,0]});
+        out.push({id:`time:part${part}`,variant:'era',strip:dated&&index%2?BOOK_ROWS.era1:BOOK_ROWS.era0,span,title:`${en?localeText("Part {0}",locale,[toRoman(part)]):`Часть ${toRoman(part)}`}${years?` · ${years}`:''}`,subtitle:'',center:[(span[0]+span[1])/2,0,0]});
         const next=ordered[index+1];if(next)out.push({id:`time:rule:part${part}`,variant:'rule',title:'',subtitle:'',center:[xOfChapter((Math.max(...list)+Math.min(...next[1]))/2),0,0]});
       });
       if(outside.size){
         out.push({id:'time:rule:outside',variant:'rule',tone:'strong',title:'',subtitle:'',center:[(xOfChapter(maxChapter)+outsideX)/2,0,0]});
         // Its name stays short, so that it keeps its room beside the last chapter's.
-        out.push({id:'time:outside',variant:'side',strip:BOOK_ROWS.axis,title:en?'other texts':'вне книги',subtitle:'',center:[outsideX,0,0]});
+        out.push({id:'time:outside',variant:'side',strip:BOOK_ROWS.axis,title:en?localeText('other texts',locale):'вне книги',subtitle:'',center:[outsideX,0,0]});
       }
       for(const lane of lanes)out.push({id:`time:lane:${lane.id}`,variant:'lane',title:pick(lane.title,locale),subtitle:'',center:[0,lane.y,0],...(laneWidth?{maxWidth:laneWidth}:{})});
       return out;

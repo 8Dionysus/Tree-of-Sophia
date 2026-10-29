@@ -7,6 +7,10 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+- Added Spanish, German and Simplified Chinese presentation for both public
+  Bonsai stands, their research materials and shared reader. Language changes
+  retain exact source locations and personal graph identities; the reader can
+  change its interface language without changing its edition or passage.
 - Simplified contributor documentation around current owner routes, removed
   stale implementation-status prose and duplicate explanations, and linked
   cumulative v0.5 campaign snapshots to their immutable Git history.

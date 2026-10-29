@@ -1,6 +1,9 @@
+import {localeText,copyLocale,localeValue,localeLabels} from './locale.mjs';
 const el=(tag,cls='',value)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!==undefined)node.textContent=value;return node;};
 const button=(text,cls='')=>{const node=el('button',cls,text);node.type='button';return node;};
-const localized=(value,language)=>typeof value==='string'?value:(value&&typeof value==='object'?(value[language]??value.en??value.ru??''):'');
+const localized=localeValue;
+// The filter stores an authored key; its displayed label may change language.
+export const collectionPeriodKey=value=>typeof value==='string'?value:value?.id??value?.en??value?.ru??'';
 const searchKey=value=>String(value??'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase().replaceAll('ς','σ');
 const labels={
   ru:{overview:'Общий взгляд',era:'Эпохи',people:'Авторы и школы',work:'Произведения',concept:'Понятия',translation:'Переводы',all:'Все виды',period:'Все эпохи',search:'Искать в библиотеке…',none:'Совпадений нет.',previous:'Назад',next:'Далее',back:'К библиотеке',related:'Связанные материалы',add:'Добавить в пространство',added:'Открыть в пространстве',map:'Карта произведения',steps:'Шаги чтения',argument:'Ход мысли',question:'Вопрос',sources:'Указатели на источник',missing:'Текст здесь не представлен; доступна запись и её указатели.',kind:{era:'Эпоха',author:'Автор',school:'Школа',work:'Произведение',concept:'Понятие',translation:'Перевод',original:'Оригинал',edition:'Издание',passage:'Фрагмент',question:'Вопрос',fragment:'Фрагмент',chapter:'Глава',part:'Часть',figure:'Мыслитель',interpretation:'Прочтение',dossier:'Досье',symbol:'Образ',tradition:'Традиция',note:'Заметка'}},
@@ -18,8 +21,8 @@ const roleNames={premise:['Основание','Premise'],conclusion:['Выво�
 export function mountCollectionView({root,entries,locale,onOpenSource,onReadCatalog,onOpenMaterial,hasMaterial,materialInGraph}={}){
   const items=Array.isArray(entries)?entries:[];
   let group='overview',kind='',period='',query='',page=0,selected=null;
-  const lang=()=>String(locale?.()??'ru').startsWith('en')?'en':'ru';
-  const txt=value=>localized(value,lang());
+  const lang=()=>(copyLocale(locale?.()??'ru')==='en')?'en':'ru';
+  const txt=value=>localized(value,locale);
   const named=value=>typeof value==='string'?value:txt(value?.title??value?.name??value?.label??value);
   const matchEntry=value=>items.find(item=>item.id===value||item.legacyId===value||item.materialId===value)||items.find(item=>txt(item.title)===named(value));
   const addText=(parent,value,cls='')=>{const text=txt(value);if(text)parent.append(el('p',cls,text));};
@@ -30,10 +33,10 @@ export function mountCollectionView({root,entries,locale,onOpenSource,onReadCata
       if(typeof item==='string'||item.ru||item.en){addText(parent,item);continue;}
       if(typeof item!=='object')continue;
       const section=el('section','ps-collection-structured');
-      if(item.role)section.append(el('small','',roleNames[item.role]?.[lang()==='en'?1:0]??item.role));
+      if(item.role)section.append(el('small','',localeText(roleNames[item.role]?.[lang()==='en'?1:0]??item.role,locale)));
       const title=named(item.title??item.name??item.label);if(title)section.append(el('h4','',title));
       for(const key of ['body','reading','description','summary','text','claim','content'])if(item[key])addText(section,item[key]);
-      if(txt(item.question)){section.append(el('small','',labels[lang()].question));addText(section,item.question);}
+      if(txt(item.question)){section.append(el('small','',localeLabels(labels[lang()],locale).question));addText(section,item.question);}
       for(const key of ['stages','steps','readings','items','links','returns','continuations'])if(item[key])renderStructured(section,item[key]);
       for(const id of new Set([...(item.parts??[]),...(item.part?[item.part]:[]),...(typeof item.from==='string'?[item.from]:[]),...(typeof item.to==='string'?[item.to]:[])]))linked(section,id);
       if(section.childNodes.length)parent.append(section);
@@ -44,10 +47,10 @@ export function mountCollectionView({root,entries,locale,onOpenSource,onReadCata
     const b=button(txt(target.title),'text-button');b.addEventListener('click',()=>{selected=target;render();});parent.append(b);
   }
   function details(item){
-    const l=labels[lang()],back=button(`← ${l.back}`,'text-button');back.addEventListener('click',()=>{selected=null;render();});root.append(back);
+    const l=localeLabels(labels[lang()],locale),back=button(`← ${l.back}`,'text-button');back.addEventListener('click',()=>{selected=null;render();});root.append(back);
     root.append(el('p','eyebrow',l.kind[item.kind]??item.kind??''),el('h2','ps-collection-title',txt(item.title)));
     addText(root,item.meta,'ps-collection-meta');addText(root,item.body,'ps-collection-body');
-    if(txt(item.voice)){root.append(el('h3','minor-title',lang()==='en'?'Voice':'Голос'));addText(root,item.voice);}
+    if(txt(item.voice)){root.append(el('h3','minor-title',lang()==='en'?localeText('Voice',locale):'Голос'));addText(root,item.voice);}
     if(txt(item.question)){root.append(el('h3','minor-title',l.question));addText(root,item.question);}
     if(item.positions)renderStructured(root,item.positions.map(position=>({...position,parts:[position.passage]})));
     for(const [key,title] of [['workMap',l.map],['readingSteps',l.steps],['argument',l.argument]])if(item[key]){root.append(el('h3','minor-title',title));renderStructured(root,item[key]);}
@@ -58,15 +61,15 @@ export function mountCollectionView({root,entries,locale,onOpenSource,onReadCata
     const materialId=item.materialId??item.id;if(hasMaterial?.(materialId)){const add=button(materialInGraph?.(materialId)?l.added:l.add,'primary');add.addEventListener('click',()=>onOpenMaterial?.(materialId));root.append(add);}
   }
   function render(){
-    root.replaceChildren();const l=labels[lang()];if(selected){details(selected);return;}
+    root.replaceChildren();const l=localeLabels(labels[lang()],locale);if(selected){details(selected);return;}
     const tabs=el('nav','ps-collection-tabs');tabs.setAttribute('aria-label',l.overview);
     for(const key of Object.keys(groups)){if(key==='words'&&!items.some(item=>item.lexical))continue;const b=button(l[key],'text-button');b.setAttribute('aria-pressed',String(group===key));b.addEventListener('click',()=>{group=key;kind='';page=0;render();});tabs.append(b);}if(onReadCatalog){const read=button(l.fullTexts,'primary');read.addEventListener('click',onReadCatalog);tabs.append(read);}root.append(tabs);
     const controls=el('div','ps-collection-controls');const input=document.createElement('input');input.type='search';input.placeholder=l.search;input.setAttribute('aria-label',l.search);input.value=query;input.addEventListener('input',()=>{query=input.value;page=0;renderResults();});
     const kindSelect=document.createElement('select');kindSelect.setAttribute('aria-label',l.all);kindSelect.append(new Option(l.all,''));const kinds=[...new Set(items.map(item=>item.kind).filter(Boolean))].sort();const bothPassages=kinds.includes('passage')&&kinds.includes('fragment');for(const value of kinds){if(bothPassages&&value==='fragment'){kindSelect.append(new Option(l.passages,'@passages'));continue;}if(bothPassages&&value==='passage')continue;kindSelect.append(new Option(l.kind[value]??value,value));}kindSelect.value=kind;kindSelect.addEventListener('change',()=>{kind=kindSelect.value;page=0;renderResults();});
-    const periodSelect=document.createElement('select');periodSelect.setAttribute('aria-label',l.period);periodSelect.append(new Option(l.period,''));const periods=new Map();for(const item of items){const value=txt(item.period);if(value)periods.set(value,value);}for(const value of [...periods.keys()].sort())periodSelect.append(new Option(value,value));periodSelect.value=period;periodSelect.addEventListener('change',()=>{period=periodSelect.value;page=0;renderResults();});controls.append(input,kindSelect,periodSelect);root.append(controls);
+    const periodSelect=document.createElement('select');periodSelect.setAttribute('aria-label',l.period);periodSelect.append(new Option(l.period,''));const periods=new Map();for(const item of items){const key=collectionPeriodKey(item.period),label=txt(item.period);if(key&&label)periods.set(key,label);}for(const [key,label] of [...periods.entries()].sort((a,b)=>a[1].localeCompare(b[1])))periodSelect.append(new Option(label,key));periodSelect.value=period;periodSelect.addEventListener('change',()=>{period=periodSelect.value;page=0;renderResults();});controls.append(input,kindSelect,periodSelect);root.append(controls);
     const results=el('div','ps-collection-results');root.append(results);
     function renderResults(){
-      results.replaceChildren();const q=searchKey(query.trim());const filtered=items.filter(item=>(group==='words'?item.lexical:!groups[group]||groups[group].includes(item.kind))&&matchesCollectionKind(kind,item.kind)&&(!period||txt(item.period)===period)&&(!q||[item.id,item.lemma,item.title,item.body,item.meta,item.period,item.author,item.school,item.workId,...(item.concepts??[]),...(item.aliases??[])].some(value=>searchKey(named(value)).includes(q))));
+      results.replaceChildren();const q=searchKey(query.trim());const filtered=items.filter(item=>(group==='words'?item.lexical:!groups[group]||groups[group].includes(item.kind))&&matchesCollectionKind(kind,item.kind)&&(!period||collectionPeriodKey(item.period)===period)&&(!q||[item.id,item.lemma,item.title,item.body,item.meta,item.period,item.author,item.school,item.workId,...(item.concepts??[]),...(item.aliases??[])].some(value=>searchKey(named(value)).includes(q))));
       const pages=Math.max(1,Math.ceil(filtered.length/24));page=Math.min(page,pages-1);const grid=el('div','ps-collection-grid');
       for(const item of filtered.slice(page*24,page*24+24)){const b=button('','ps-collection-card');b.append(el('small','',l.kind[item.kind]??item.kind??''),el('strong','',txt(item.title)));if(item.meta)b.append(el('span','',txt(item.meta)));b.addEventListener('click',()=>{selected=item;render();root.scrollTop=0;});grid.append(b);}if(!filtered.length)grid.append(el('p','ps-collection-meta',l.none));results.append(grid);
       if(pages>1){const nav=el('div','ps-collection-pagination'),previous=button(`← ${l.previous}`,'text-button'),next=button(`${l.next} →`,'text-button');previous.disabled=page===0;next.disabled=page===pages-1;previous.addEventListener('click',()=>{page--;renderResults();});next.addEventListener('click',()=>{page++;renderResults();});nav.append(previous,el('span','',`${page+1} / ${pages}`),next);results.append(nav);}

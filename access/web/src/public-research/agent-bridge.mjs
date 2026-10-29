@@ -1,3 +1,5 @@
+import {resolveLocale} from './locale.mjs';
+import {localeText,localeLabels,copyLocale} from './locale.mjs';
 import {kindLabel, displayPublicError} from './presentation-i18n.mjs';
 import {referenceKey, validateReference} from '../corpus-reader/model.mjs';
 import {editorialLabel} from '../corpus-reader/editorial.mjs';
@@ -261,8 +263,8 @@ async function fingerprint(sources) {
 
 export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, locale = 'ru'} = {}) {
   if (!root || !api || !notebook || !workspace || !shelf) throw new TypeError('The public agent bridge requires its shell, reader API, notebook, shared workspace, and research shelf.');
-  const english = () => String(typeof locale === 'function' ? locale() : locale).toLowerCase().startsWith('en');
-  const words = () => english() ? {
+  const english = () => (copyLocale(typeof locale === 'function' ? locale() : locale)==='en');
+  const words = () => english() ? localeLabels({
     heading: 'Work with an external agent', intro: 'Choose exact passages, export a bounded task, then review the returned proposals before adding them to your personal workspace.',
     add: 'Add selected passage', remove: 'Remove', noSelection: 'Select text in the reader first.', sourceCount: 'Selected exact sources',
     export: 'Export task JSON', copy: 'Copy task JSON', copyFail: 'Clipboard is unavailable. Select and copy the task JSON below.',
@@ -270,7 +272,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     reopen: 'Open exact source', source: 'Source', objection: 'Objection', noTask: 'Export a task before importing a response.',
     stale: 'This exact source no longer resolves. It cannot be retargeted.', exact: 'Exact source address is available.', applied: 'Selected proposals were added to your personal workspace as pending review.',
     appliedAlready: 'These proposals are already in the personal workspace.', invalid: 'Could not read this task or response.', proposal: 'Proposal', status: 'Agent task and response stay local until you export or copy them.',
-  } : {
+  },locale) : {
     heading: 'Исследование с внешним агентом', intro: 'Выберите точные фрагменты, экспортируйте ограниченное задание и проверьте возвращённые предложения перед добавлением в личную рабочую область.',
     add: 'Добавить выбранный фрагмент', remove: 'Убрать', noSelection: 'Сначала выделите текст в читателе.', sourceCount: 'Выбранные точные источники',
     export: 'Экспорт задания JSON', copy: 'Копировать задание JSON', copyFail: 'Буфер обмена недоступен. Выделите JSON задания и скопируйте его вручную.',
@@ -285,17 +287,17 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const heading = text('summary', 'pr-agent-title', t().heading); heading.id = 'pr-agent-title';
   const intro = text('p', 'pr-agent-intro', t().intro);
   const sourceHeading = text('h3', '', t().sourceCount);
-  const basketHint = text('p', 'pr-agent-empty', english() ? 'This temporary selection stays in this tab across profile changes; it is not part of the complete research export until used in a saved thought or task.' : 'Временная подборка остаётся в этой вкладке при смене профиля; в полный экспорт она попадёт после сохранения мысли или задания.');
+  const basketHint = text('p', 'pr-agent-empty', english() ? localeText('This temporary selection stays in this tab across profile changes; it is not part of the complete research export until used in a saved thought or task.',locale) : 'Временная подборка остаётся в этой вкладке при смене профиля; в полный экспорт она попадёт после сохранения мысли или задания.');
   const sourceList = text('div', 'pr-agent-sources');
   const addSource = button(t().add, 'pr-agent-button');
   const taskButtons = text('div', 'pr-agent-buttons');
   const exportButton = button(t().export, 'pr-agent-button pr-agent-primary');
   const copyButton = button(t().copy, 'pr-agent-button');
-  const copySnapshotButton = button(english() ? 'Copy displayed saved task' : 'Копировать показанное задание', 'pr-agent-button'); copySnapshotButton.disabled = true;
+  const copySnapshotButton = button(english() ? localeText('Copy displayed saved task',locale) : 'Копировать показанное задание', 'pr-agent-button'); copySnapshotButton.disabled = true;
   const taskText = document.createElement('textarea'); taskText.className = 'pr-agent-json'; taskText.readOnly = true; taskText.rows = 8; taskText.setAttribute('aria-label', 'Agent task JSON');
   const taskNotice = text('p', 'pr-agent-status'); taskNotice.hidden = true;
   const taskHistory = text('details', 'pr-agent-history');
-  const taskHistoryTitle = text('summary', '', english() ? 'Saved tasks and responses' : 'Сохранённые задания и ответы');
+  const taskHistoryTitle = text('summary', '', english() ? localeText('Saved tasks and responses',locale) : 'Сохранённые задания и ответы');
   const taskHistoryList = text('div', 'pr-agent-saved-list'); taskHistory.append(taskHistoryTitle, taskHistoryList);
   const importLabel = text('label', 'pr-agent-label'); const importLabelText = text('span', '', t().import); importLabel.append(importLabelText);
   const responseText = document.createElement('textarea'); responseText.className = 'pr-agent-json'; responseText.rows = 8; responseText.maxLength = RESPONSE_LIMIT; responseText.setAttribute('aria-label', 'Agent response JSON'); importLabel.append(responseText);
@@ -328,32 +330,32 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const message = value => { status.textContent = value; };
   const updateBasketHint = () => {
     basketHint.textContent = !basketWritable
-      ? (english() ? 'The previous selection could not be restored; its saved data was not overwritten.' : 'Не удалось восстановить прежнюю подборку; сохранённые данные не перезаписаны.')
+      ? (english() ? localeText('The previous selection could not be restored; its saved data was not overwritten.',locale) : 'Не удалось восстановить прежнюю подборку; сохранённые данные не перезаписаны.')
       : basketSaved
-      ? (english() ? 'This temporary selection stays in this tab across profile changes; it is not part of the complete research export until used in a saved thought or task.' : 'Временная подборка остаётся в этой вкладке при смене профиля; в полный экспорт она попадёт после сохранения мысли или задания.')
-      : (english() ? 'This selection cannot be retained in this tab. Export the thought form or task before leaving.' : 'Подборку не удалось сохранить во вкладке. Перед уходом экспортируйте форму мысли или задание.');
+      ? (english() ? localeText('This temporary selection stays in this tab across profile changes; it is not part of the complete research export until used in a saved thought or task.',locale) : 'Временная подборка остаётся в этой вкладке при смене профиля; в полный экспорт она попадёт после сохранения мысли или задания.')
+      : (english() ? localeText('This selection cannot be retained in this tab. Export the thought form or task before leaving.',locale) : 'Подборку не удалось сохранить во вкладке. Перед уходом экспортируйте форму мысли или задание.');
   };
   const selectedProposals = () => selectAgentProposals(activeResponse, selectedProposalIds, selectedObjectionIds);
   const preflight = () => {
     if (!activeTask) return '';
     if (String(api.getQuestion() || '').trim() !== activeTask.question) return english()
-      ? 'The question changed after this task was saved; review the response and export a new task before applying.'
+      ? localeText('The question changed after this task was saved; review the response and export a new task before applying.',locale)
       : 'После сохранения задания вопрос изменился; ответ можно просмотреть, но для применения нужно новое задание.';
     const saved = globalThis.localStorage?.getItem(WORKSPACE_KEY);
     if (workspace.persistenceError?.() || (saved !== null && saved !== undefined && saved !== workspace.exportPacket())) return english()
-      ? 'The workspace changed after this task was saved; review the response and export a new task before applying.'
+      ? localeText('The workspace changed after this task was saved; review the response and export a new task before applying.',locale)
       : 'После сохранения задания исследование изменилось; ответ можно просмотреть, но для применения нужно новое задание.';
     if (activeTask.workspaceRevision !== workspace.summary().revision) {
       try { if (planAgentApplication(activeTask, activeResponse, selectedProposals(), workspace.getState()).already) return ''; } catch { /* defer collision detail to Apply */ }
-      return english() ? 'The workspace changed after this task was saved; review the response and export a new task before applying.'
+      return english() ? localeText('The workspace changed after this task was saved; review the response and export a new task before applying.',locale)
         : 'После сохранения задания исследование изменилось; ответ можно просмотреть, но для применения нужно новое задание.';
     }
     return '';
   };
   const renderTaskHistory = () => {
-    taskHistoryTitle.textContent = english() ? 'Saved tasks and responses' : 'Сохранённые задания и ответы';
+    taskHistoryTitle.textContent = english() ? localeText('Saved tasks and responses',locale) : 'Сохранённые задания и ответы';
     taskHistoryList.replaceChildren();
-    if (!tasks.length) taskHistoryList.append(text('p', 'pr-agent-empty', english() ? 'No saved tasks yet.' : 'Сохранённых заданий пока нет.'));
+    if (!tasks.length) taskHistoryList.append(text('p', 'pr-agent-empty', english() ? localeText('No saved tasks yet.',locale) : 'Сохранённых заданий пока нет.'));
     for (const task of [...tasks].sort((a,b) => b.createdAt.localeCompare(a.createdAt))) {
       const row = text('div', 'pr-agent-saved-task');
       const chars = Array.from(task.question), excerpt = chars.slice(0,120).join('') + (chars.length > 120 ? '…' : '');
@@ -361,7 +363,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       open.addEventListener('click', () => { displayedTask = task; activeTask = task; clearResponsePreview(); taskText.value = JSON.stringify(task, null, 2); copySnapshotButton.disabled = false; updateTaskNotice(); });
       row.append(open);
       for (const response of savedResponses.filter(item => item.taskId === task.taskId)) {
-        const show = button(`${english() ? 'View saved response' : 'Показать сохранённый ответ'}${response.hash ? ` · ${response.hash.slice(0,8)}` : ''}`, 'pr-agent-small');
+        const show = button(`${english() ? localeText('View saved response',locale) : 'Показать сохранённый ответ'}${response.hash ? ` · ${response.hash.slice(0,8)}` : ''}`, 'pr-agent-small');
         show.addEventListener('click', () => { responseText.value = response.raw; clearResponsePreview(); responseText.focus(); }); row.append(show);
       }
       taskHistoryList.append(row);
@@ -387,7 +389,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       basketSaved = true; updateBasketHint();
     } catch {
       chosen = []; basketSaved = false; basketWritable = false; updateBasketHint();
-      message(english() ? 'The earlier source selection could not be restored; its saved data was not overwritten.' : 'Не удалось восстановить прежнюю подборку источников; сохранённые данные не перезаписаны.');
+      message(english() ? localeText('The earlier source selection could not be restored; its saved data was not overwritten.',locale) : 'Не удалось восстановить прежнюю подборку источников; сохранённые данные не перезаписаны.');
     }
   };
   const updateTaskNotice = () => {
@@ -396,8 +398,8 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     const stale = !sameSources || displayedTask.question !== api.getQuestion() || displayedTask.workspaceRevision !== workspace.summary().revision;
     taskNotice.hidden = false;
     taskNotice.textContent = stale
-      ? (english() ? 'This JSON is an earlier saved task. Export a new task to include the current question and sources.' : 'Этот JSON — ранее сохранённое задание. Экспортируйте новое, чтобы включить текущий вопрос и источники.')
-      : (english() ? 'This JSON is a saved task snapshot.' : 'Этот JSON — снимок сохранённого задания.');
+      ? (english() ? localeText('This JSON is an earlier saved task. Export a new task to include the current question and sources.',locale) : 'Этот JSON — ранее сохранённое задание. Экспортируйте новое, чтобы включить текущий вопрос и источники.')
+      : (english() ? localeText('This JSON is a saved task snapshot.',locale) : 'Этот JSON — снимок сохранённого задания.');
   };
   const notifySources = () => { const current = chosen.map(source => copy(source)); for (const listener of sourceListeners) listener(current); updateTaskNotice(); };
   const onContextChanged = () => {
@@ -412,7 +414,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const sourceTitle = source => {
     const selector = source.reference?.selector;
     const range = Number.isSafeInteger(selector?.start) && Number.isSafeInteger(selector?.end) && selector.end > selector.start
-      ? `${selector.start}–${selector.end} ${english() ? 'characters' : 'знаков'}` : '';
+      ? `${selector.start}–${selector.end} ${english() ? localeText('characters',locale) : 'знаков'}` : '';
     return [source.title, source.versionLabel, range].filter(Boolean).join(' · ') || source.id;
   };
   // Task snapshots retain their original labels. Visible source addresses use
@@ -420,30 +422,30 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const sourceLabels = new Map();
   const localizeSourceNode = (node, source) => {
     if (!api.provider) return;
-    const language = english() ? 'en' : 'ru', key = `${language}:${referenceKey(source.reference)}`;
+    const language = resolveLocale(locale), key = `${language}:${referenceKey(source.reference)}`;
     if (!sourceLabels.has(key)) sourceLabels.set(key,
       describeSourceReference(source.reference, api.provider, language).catch(() => null));
     void sourceLabels.get(key).then(result => {
-      if (node.isConnected && language === (english() ? 'en' : 'ru') && result?.status === 'exact' && result.label) node.textContent = result.label;
+      if (node.isConnected && language === resolveLocale(locale) && result?.status === 'exact' && result.label) node.textContent = result.label;
     });
   };
   const renderSources = () => {
     sourceList.replaceChildren();
-    if (!chosen.length) sourceList.append(text('p', 'pr-agent-empty', english() ? 'No exact passage selected yet.' : 'Точные фрагменты ещё не выбраны.'));
+    if (!chosen.length) sourceList.append(text('p', 'pr-agent-empty', english() ? localeText('No exact passage selected yet.',locale) : 'Точные фрагменты ещё не выбраны.'));
     chosen.forEach((source, index) => {
       const row = text('article', 'pr-agent-source');
       const titleNode = text('strong', '', sourceTitle(source));
       localizeSourceNode(titleNode, source);
-      const quoteNode = text('p', 'pr-agent-selection', source.quote || (english() ? 'Exact passage reference' : 'Точная ссылка на фрагмент'));
+      const quoteNode = text('p', 'pr-agent-selection', source.quote || (english() ? localeText('Exact passage reference',locale) : 'Точная ссылка на фрагмент'));
       const contextNode = text('p', 'pr-agent-context', source.context || '');
       row.append(titleNode, quoteNode);
-      if (source.sourceLayerKind) row.append(text('p', 'pr-agent-editorial', editorialLabel(source.sourceLayerKind, english() ? 'en' : 'ru') || source.sourceLayerKind));
+      if (source.sourceLayerKind) row.append(text('p', 'pr-agent-editorial', editorialLabel(source.sourceLayerKind, resolveLocale(locale)) || source.sourceLayerKind));
       const range = source.contextRange;
-      const rangeLabel = range ? `${english() ? 'Context in unit' : 'Контекст в единице'}: ${range.start}–${range.end}${source.contextTruncated ? (english() ? ' · excerpt truncated' : ' · фрагмент сокращён') : ''}` : '';
+      const rangeLabel = range ? `${english() ? localeText('Context in unit',locale) : 'Контекст в единице'}: ${range.start}–${range.end}${source.contextTruncated ? (english() ? localeText(' · excerpt truncated',locale) : ' · фрагмент сокращён') : ''}` : '';
       if (rangeLabel) row.append(text('p', 'pr-agent-truncated', rangeLabel));
       for (const annotation of source.editorialAnnotations || []) {
         const fragment = Array.from(source.context || '').slice(annotation.start-range.start, annotation.end-range.start).join('');
-        row.append(text('p', 'pr-agent-editorial', `${editorialLabel(annotation.kind, english() ? 'en' : 'ru') || annotation.kind} · ${annotation.start}–${annotation.end}: ${fragment}`));
+        row.append(text('p', 'pr-agent-editorial', `${editorialLabel(annotation.kind, resolveLocale(locale)) || annotation.kind} · ${annotation.start}–${annotation.end}: ${fragment}`));
       }
       const remove = button(t().remove, 'pr-agent-small'); remove.addEventListener('click', () => { chosen.splice(index, 1); persistBasket(); renderSources(); notifySources(); });
       const reopen = button(t().reopen, 'pr-agent-small'); reopen.addEventListener('click', () => void reopenSource(source));
@@ -466,7 +468,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     if (!selected || !selected.reference) { message(t().noSelection); return false; }
     try {
       const checked = checkReference(selected.reference);
-      if (chosen.some(source => source.key === checked.key)) { message(english() ? 'That exact source is already selected.' : 'Этот точный источник уже выбран.'); return false; }
+      if (chosen.some(source => source.key === checked.key)) { message(english() ? localeText('That exact source is already selected.',locale) : 'Этот точный источник уже выбран.'); return false; }
       if (chosen.length >= MAX_SOURCES) return false;
       const title = bounded(selected.title || selected.versionLabel || selected.reference.unitId, 512, 'Source title');
       const quote = boundedText(selected.quote || '', MAX_QUOTE, 'Selected text');
@@ -480,8 +482,8 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
         editorialAnnotations:selected.editorialAnnotations ?? [], ...(selected.sourceLayerKind ? {sourceLayerKind:selected.sourceLayerKind} : {}),
         language:bounded(selected.language || '', 64, 'Language', {empty:true}), versionLabel:bounded(selected.versionLabel || '', 512, 'Edition label', {empty:true})});
       chosen.push({...source,key:checked.key}); persistBasket(); renderSources(); notifySources();
-      message((english() ? 'Exact passage selected.' : 'Точный фрагмент выбран.') + (!basketSaved
-        ? (english() ? ' This selection cannot be retained in this tab; save or copy it before leaving.' : ' Подборку не удалось сохранить во вкладке; сохраните или скопируйте её перед уходом.') : '')); return true;
+      message((english() ? localeText('Exact passage selected.',locale) : 'Точный фрагмент выбран.') + (!basketSaved
+        ? (english() ? localeText(' This selection cannot be retained in this tab; save or copy it before leaving.',locale) : ' Подборку не удалось сохранить во вкладке; сохраните или скопируйте её перед уходом.') : '')); return true;
     } catch (error) { message(displayPublicError(error, locale)); return false; }
   };
   const importSources = incoming => {
@@ -523,7 +525,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       }
       tasks = [...tasks.filter(value => value.taskId !== task.taskId), task];
       renderTaskHistory();
-    } catch { throw new Error(english() ? 'The task could not be saved in the notebook.' : 'Не удалось сохранить задание в блокноте.'); }
+    } catch { throw new Error(english() ? localeText('The task could not be saved in the notebook.',locale) : 'Не удалось сохранить задание в блокноте.'); }
   };
   const createTask = async () => {
     if (creatingTask) throw new Error('A task is already being created.');
@@ -532,7 +534,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     await tasksReady;
     if (api.ensureCurrentQuestion && !(await api.ensureCurrentQuestion())) throw new Error('The research question has unsaved changes or changed in another tab.');
     const question = bounded(await api.getQuestion(), 4_000, 'Question');
-    if (!chosen.length) throw new TypeError(english() ? 'Add at least one exact selected source.' : 'Добавьте хотя бы один точный выбранный источник.');
+    if (!chosen.length) throw new TypeError(english() ? localeText('Add at least one exact selected source.',locale) : 'Добавьте хотя бы один точный выбранный источник.');
     const sources = chosen.map(({key, ...source}) => source);
     const task = taskPacket({schema: AGENT_TASK_SCHEMA_V2, version: TASK_VERSION, taskId: id('task'), createdAt: new Date().toISOString(),
       profile: api.profile, question, workspaceRevision: workspace?.summary().revision ?? 0, sources,
@@ -543,7 +545,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     activeTask = task; activeResponse = null; selectedProposalIds.clear(); selectedObjectionIds.clear(); applyButton.disabled = true; review.replaceChildren();
     taskText.value = JSON.stringify(task, null, 2);
     displayedTask = task; copySnapshotButton.disabled = false; updateTaskNotice();
-    message(english() ? 'Task saved in this device notebook. Export or copy it to any external agent.' : 'Задание сохранено в блокноте этого устройства. Экспортируйте или скопируйте его для любого внешнего агента.');
+    message(english() ? localeText('Task saved in this device notebook. Export or copy it to any external agent.',locale) : 'Задание сохранено в блокноте этого устройства. Экспортируйте или скопируйте его для любого внешнего агента.');
     return task;
     } finally { creatingTask = false; exportButton.disabled = false; copyButton.disabled = false; }
   };
@@ -567,14 +569,14 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       else if (previous?.raw !== raw || previous?.taskId !== task.taskId) throw new Error('Response storage conflict');
       if (!savedResponses.some(item => item.taskId === task.taskId && item.raw === raw)) savedResponses.push({taskId:task.taskId,raw,hash});
       renderTaskHistory();
-      if (activeTask === task && activeResponse === response && responseText.value === raw) responseNotice.textContent = english() ? 'Original response saved on this device.' : 'Исходный ответ сохранён на этом устройстве.';
-    } catch { if (activeTask === task && activeResponse === response && responseText.value === raw) responseNotice.textContent = english() ? 'The response could not be saved; copy it before leaving.' : 'Не удалось сохранить ответ; скопируйте его перед уходом.'; }
+      if (activeTask === task && activeResponse === response && responseText.value === raw) responseNotice.textContent = english() ? localeText('Original response saved on this device.',locale) : 'Исходный ответ сохранён на этом устройстве.';
+    } catch { if (activeTask === task && activeResponse === response && responseText.value === raw) responseNotice.textContent = english() ? localeText('The response could not be saved; copy it before leaving.',locale) : 'Не удалось сохранить ответ; скопируйте его перед уходом.'; }
     if (activeTask !== task || activeResponse !== response || responseText.value !== raw) return response;
     return response;
   };
   const clearResponsePreview = () => {
     activeResponse = null; selectedProposalIds.clear(); selectedObjectionIds.clear(); review.replaceChildren(); applyButton.disabled = true; responseStatus.textContent = '';
-    responseNotice.textContent = english() ? 'Preview the response before applying.' : 'Проверьте ответ перед применением.';
+    responseNotice.textContent = english() ? localeText('Preview the response before applying.',locale) : 'Проверьте ответ перед применением.';
   };
   const resolveResponse = async (task = activeTask, response = activeResponse) => {
     if (!task || !response) return new Map();
@@ -623,34 +625,34 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       const citations = text('div', 'pr-agent-citations'); proposal.sourceIds.forEach(sourceId => citations.append(citationNode(sourceId)));
       card.append(text('h4', '', t().source), citations);
       const evidence = text('div', 'pr-agent-citations'); proposal.evidenceIds.forEach(sourceId => evidence.append(citationNode(sourceId)));
-      card.append(text('h4', '', english() ? 'Evidence' : 'Основание'), evidence);
+      card.append(text('h4', '', english() ? localeText('Evidence',locale) : 'Основание'), evidence);
       let objectionCheck = null;
       if (proposal.objection) {
         const objectionLabel = document.createElement('label'); objectionLabel.className = 'pr-agent-select';
         objectionCheck = document.createElement('input'); objectionCheck.type = 'checkbox'; objectionCheck.checked = selectedObjectionIds.has(proposal.id); objectionCheck.disabled = !check.checked;
         objectionCheck.addEventListener('change', () => { objectionCheck.checked ? selectedObjectionIds.add(proposal.id) : selectedObjectionIds.delete(proposal.id); applyButton.disabled = applyingResponse || Boolean(preflight()) || !selectedExact() || !selectedProposalIds.size; });
-        objectionLabel.append(objectionCheck, text('strong', '', english() ? 'Include this objection' : 'Добавить это возражение'));
+        objectionLabel.append(objectionCheck, text('strong', '', english() ? localeText('Include this objection',locale) : 'Добавить это возражение'));
         card.append(objectionLabel, text('p', 'pr-agent-objection', proposal.objection.statement), text('small', 'pr-agent-empty', english()
-          ? 'An unchecked objection stays in the original response and is not applied.'
+          ? localeText('An unchecked objection stays in the original response and is not applied.',locale)
           : 'Неотмеченное возражение остаётся в исходном ответе и не добавляется в исследование.'));
         const objections = text('div', 'pr-agent-citations'); proposal.objection.sourceRefs.forEach(sourceId => objections.append(citationNode(sourceId)));
         card.append(objections);
       }
       cards.push(card);
     }
-    if (activeResponse.uncertainty) review.append(text('p', 'pr-agent-uncertainty', `${english() ? 'Uncertainty' : 'Неопределённость'}: ${activeResponse.uncertainty}`));
+    if (activeResponse.uncertainty) review.append(text('p', 'pr-agent-uncertainty', `${english() ? localeText('Uncertainty',locale) : 'Неопределённость'}: ${activeResponse.uncertainty}`));
     cards.forEach(card => review.append(card));
     if (selectedExact()) {
       const stale = preflight();
       applyButton.disabled = applyingResponse || Boolean(stale) || selectedProposalIds.size === 0;
-      responseStatus.textContent = stale || (english() ? 'Exact source addresses are available; the argument still needs review.' : 'Точные адреса доступны; содержание довода требует проверки.');
+      responseStatus.textContent = stale || (english() ? localeText('Exact source addresses are available; the argument still needs review.',locale) : 'Точные адреса доступны; содержание довода требует проверки.');
       message(responseStatus.textContent);
     } else {
       applyButton.disabled = true; responseStatus.textContent = t().stale; message(t().stale);
     }
   };
   const applyResponse = async () => {
-    if (!workspace || !activeTask || !activeResponse || !selectedProposalIds.size) throw new Error(english() ? 'The personal workspace is unavailable or no proposal is selected.' : 'Личная рабочая область недоступна или предложения не выбраны.');
+    if (!workspace || !activeTask || !activeResponse || !selectedProposalIds.size) throw new Error(english() ? localeText('The personal workspace is unavailable or no proposal is selected.',locale) : 'Личная рабочая область недоступна или предложения не выбраны.');
     const task = activeTask, response = activeResponse, raw = responseText.value;
     const checkResponse = () => { if (activeTask !== task || activeResponse !== response || responseText.value !== raw) throw new Error('The response changed; preview it again before applying.'); };
     const results = await resolveResponse(task, response); checkResponse();
@@ -680,7 +682,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     let plan = planAgentApplication(task, response, selected, work.getState());
     if (plan.already) return t().appliedAlready;
     if (task.workspaceRevision !== work.summary().revision) throw new Error(english()
-      ? 'The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.'
+      ? localeText('The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.',locale)
       : 'После экспорта задания рабочая область изменилась. Ответ сохранён для просмотра; перед применением экспортируйте новое задание.');
     const dataFingerprint = await fingerprint(task.sources); checkResponse();
     const sourceLocators = new Map();
@@ -692,7 +694,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
     plan = planAgentApplication(task, response, selected, work.getState());
     if (plan.already) return t().appliedAlready;
     if (task.workspaceRevision !== work.summary().revision) throw new Error(english()
-      ? 'The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.'
+      ? localeText('The workspace changed after this task was exported. Keep the response for review, then export a new task before applying it.',locale)
       : 'После экспорта задания рабочая область изменилась. Ответ сохранён для просмотра; перед применением экспортируйте новое задание.');
     await checkQuestion();
     checkResponse();
@@ -715,12 +717,12 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
       const task = await createTask(); const payload = JSON.stringify(task, null, 2);
       taskText.value = payload;
       if (!navigator.clipboard?.writeText) throw new Error(t().copyFail);
-      await navigator.clipboard.writeText(payload); message(english() ? 'Task JSON copied.' : 'JSON задания скопирован.');
+      await navigator.clipboard.writeText(payload); message(english() ? localeText('Task JSON copied.',locale) : 'JSON задания скопирован.');
     } catch (error) { message(error?.message === t().copyFail ? t().copyFail : displayPublicError(error, locale)); }
   });
   copySnapshotButton.addEventListener('click', async () => {
     if (!displayedTask) return;
-    try { if (!navigator.clipboard?.writeText) throw new Error(t().copyFail); await navigator.clipboard.writeText(taskText.value); message(english() ? 'Displayed saved task copied.' : 'Показанное сохранённое задание скопировано.'); }
+    try { if (!navigator.clipboard?.writeText) throw new Error(t().copyFail); await navigator.clipboard.writeText(taskText.value); message(english() ? localeText('Displayed saved task copied.',locale) : 'Показанное сохранённое задание скопировано.'); }
     catch { message(t().copyFail); }
   });
   previewButton.addEventListener('click', async () => {
@@ -745,7 +747,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   });
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0]; if (!file) return;
-    if (file.size > RESPONSE_LIMIT) { message(english() ? 'The response exceeds 64 KB.' : 'Ответ превышает 64 КБ.'); fileInput.value = ''; return; }
+    if (file.size > RESPONSE_LIMIT) { message(english() ? localeText('The response exceeds 64 KB.',locale) : 'Ответ превышает 64 КБ.'); fileInput.value = ''; return; }
     responseText.value = await file.text(); clearResponsePreview(); fileInput.value = '';
   });
   restoreBasket();
@@ -755,7 +757,7 @@ export function mountPublicAgentBridge({root, api, notebook, workspace, shelf, l
   const destroy = () => { if (destroyed) return; destroyed = true; window.removeEventListener('pagehide', pageHide); unsubscribeQuestion?.(); unsubscribeWorkspace?.(); sourceListeners.clear(); section.remove(); };
   const pageHide = event => { if (!event.persisted) destroy(); };
   window.addEventListener('pagehide', pageHide);
-  const refreshLocale = () => { heading.textContent=t().heading; intro.textContent=t().intro; sourceHeading.textContent=t().sourceCount; addSource.textContent=t().add; exportButton.textContent=t().export; copyButton.textContent=t().copy; copySnapshotButton.textContent=english()?'Copy displayed saved task':'Копировать показанное задание'; importHeading.textContent=t().import; importLabelText.textContent=t().import; previewButton.textContent=t().preview; applyButton.textContent=t().apply; taskText.setAttribute('aria-label', english() ? 'Agent task JSON' : 'JSON задания агенту'); responseText.setAttribute('aria-label', english() ? 'Agent response JSON' : 'JSON ответа агента'); fileInput.setAttribute('aria-label', t().file); status.textContent=t().status; updateBasketHint(); renderSources(); renderTaskHistory(); updateTaskNotice(); if (activeResponse) void renderReview(); };
+  const refreshLocale = () => { heading.textContent=t().heading; intro.textContent=t().intro; sourceHeading.textContent=t().sourceCount; addSource.textContent=t().add; exportButton.textContent=t().export; copyButton.textContent=t().copy; copySnapshotButton.textContent=english()?localeText('Copy displayed saved task',locale):'Копировать показанное задание'; importHeading.textContent=t().import; importLabelText.textContent=t().import; previewButton.textContent=t().preview; applyButton.textContent=t().apply; taskText.setAttribute('aria-label', english() ? localeText('Agent task JSON',locale) : 'JSON задания агенту'); responseText.setAttribute('aria-label', english() ? localeText('Agent response JSON',locale) : 'JSON ответа агента'); fileInput.setAttribute('aria-label', t().file); status.textContent=t().status; updateBasketHint(); renderSources(); renderTaskHistory(); updateTaskNotice(); if (activeResponse) void renderReview(); };
   refreshLocale();
   return {destroy, refreshLocale, addSelectedSource, importSources, exportTask: createTask,
     selectedSources: () => chosen.map(source => copy(source)),

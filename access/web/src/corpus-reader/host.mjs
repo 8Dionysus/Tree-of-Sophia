@@ -1,3 +1,4 @@
+import {localeText,copyLocale} from '../public-research/locale.mjs';
 import {mountCorpusReader} from './reader.mjs';
 import {createCorpusNotebook} from './notebook.mjs';
 import {bindCorpusProvider,createUnavailableProvider} from './provider.mjs';
@@ -10,22 +11,22 @@ import './host.css';
 // this entry nor an unavailable provider fetches demo texts as a fallback.
 export function mountCorpusEntry({root,provider=createUnavailableProvider(),notebook,client,
   toolbar=root.querySelector('.main-tools, .sc-header-actions'),locale=()=> 'ru',
-  graphNavigate,onError,onReadingChange,onReadingLocation,onLibraryRequest,onReturnFocusFallback,route=true,dbName='tos-corpus-reader-v1'}={}) {
+  graphNavigate,onError,onReadingChange,onReadingLocation,onLibraryRequest,onReturnFocusFallback,onUiLocaleChange,route=true,dbName='tos-corpus-reader-v1'}={}) {
   if(!root || !toolbar)throw new TypeError('Reader host and toolbar are required.');
   provider=bindCorpusProvider(provider);
   const ownsNotebook=!notebook;
   notebook??=createCorpusNotebook({dbName});
   const opener=document.createElement('button');opener.type='button';opener.className='corpus-open sc-control';
   opener.dataset.corpusOpen='true';
-  const english=()=>String(locale()||'ru').toLowerCase().startsWith('en');
+  const english=()=>(copyLocale(locale()||'ru')==='en');
   const displayError=error=>{
     const key=String(error?.code??error?.status??'').toLowerCase();
-    if(key==='provider_unavailable')return english()?'The full-text source is not connected yet.':'Источник полных текстов пока не подключён.';
-    if(key==='version-unavailable'||key==='404')return english()?'This edition is unavailable.':'Это издание недоступно.';
-    if(key==='document-unavailable')return english()?'The work is unavailable.':'Произведение недоступно.';
-    if(key==='conflict')return english()?'The notebook changed in another tab.':'Блокнот изменён в другой вкладке.';
-    if(key==='stale_reference'||key==='changed')return english()?'The saved passage belongs to an older text version.':'Сохранённый фрагмент относится к старой версии текста.';
-    return english()?'The reading view could not be opened. Try again.':'Не удалось открыть чтение. Повторите попытку.';
+    if(key==='provider_unavailable')return english()?localeText('The full-text source is not connected yet.',locale):'Источник полных текстов пока не подключён.';
+    if(key==='version-unavailable'||key==='404')return english()?localeText('This edition is unavailable.',locale):'Это издание недоступно.';
+    if(key==='document-unavailable')return english()?localeText('The work is unavailable.',locale):'Произведение недоступно.';
+    if(key==='conflict')return english()?localeText('The notebook changed in another tab.',locale):'Блокнот изменён в другой вкладке.';
+    if(key==='stale_reference'||key==='changed')return english()?localeText('The saved passage belongs to an older text version.',locale):'Сохранённый фрагмент относится к старой версии текста.';
+    return english()?localeText('The reading view could not be opened. Try again.',locale):'Не удалось открыть чтение. Повторите попытку.';
   };
   const report=error=>{
     if(onError){onError(error);return;}
@@ -33,9 +34,9 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
     if(!notice){notice=document.createElement('p');notice.className='corpus-entry-notice';notice.setAttribute('role','status');root.append(notice);}
     notice.textContent=displayError(error);
   };
-  const updateLabel=()=>{opener.textContent=english()?'Library':'Библиотека';opener.setAttribute('aria-label',english()?'Read works and editions':'Читать произведения и издания');
-    narrow?.setAttribute('aria-label',opener.getAttribute('aria-label'));if(notesOpen)notesOpen.textContent=english()?'My notes':'Мои записи';};
-  const reader=mountCorpusReader({host:document.body,provider,notebook,locale,
+  const updateLabel=()=>{opener.textContent=english()?localeText('Library',locale):'Библиотека';opener.setAttribute('aria-label',english()?localeText('Read works and editions',locale):'Читать произведения и издания');
+    narrow?.setAttribute('aria-label',opener.getAttribute('aria-label'));if(notesOpen)notesOpen.textContent=english()?localeText('My notes',locale):'Мои записи';};
+  const reader=mountCorpusReader({host:document.body,provider,notebook,locale,onUiLocaleChange,
     onNativeReference:(reference,note)=>native?.open({reference,note}),
     onClose(){contents?.close();if(route&&location.hash.startsWith('#reading=')){const url=new URL(location.href);url.hash='';history.replaceState(history.state,'',url);}root.inert=false;delete root.dataset.corpusReading;onReadingChange?.(false);},
     onReturnFocusFallback(){
@@ -49,7 +50,7 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
     async onGraphRequest(value){
       const target=value?.context?.graphTarget;
       if(!graphNavigate || !target || !['node','relation'].includes(target.kind) || typeof target.id!=='string' || !target.id || target.id.length>2048) {
-        throw new Error(locale()==='en'?'This passage has no available graph address.':'Для этого фрагмента нет доступного адреса в графе.');
+        throw new Error(copyLocale(locale)==='en'?localeText('This passage has no available graph address.',locale):'Для этого фрагмента нет доступного адреса в графе.');
       }
       await graphNavigate(target,value.reference);
     },
@@ -70,7 +71,7 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
   // Constructor hides its wide toolbar on a narrow screen. Reading must stay
   // reachable there even before any graph selection has been made.
   const narrow=root.querySelector('.header')?document.createElement('button'):null;
-  if(narrow){narrow.type='button';narrow.className='corpus-open corpus-open-narrow';narrow.textContent='▤';narrow.setAttribute('aria-label',english()?'Read works and editions':'Читать произведения и издания');narrow.onclick=openLibrary;root.querySelector('.header').append(narrow);}
+  if(narrow){narrow.type='button';narrow.className='corpus-open corpus-open-narrow';narrow.textContent='▤';narrow.setAttribute('aria-label',english()?localeText('Read works and editions',locale):'Читать произведения и издания');narrow.onclick=openLibrary;root.querySelector('.header').append(narrow);}
   const refreshLocale=()=>{updateLabel(); reader.refreshLocale?.(); native?.refreshLocale?.();};
   document.addEventListener('sophia-ui-language',refreshLocale);
   const readEvent=event=>void open(event.detail??{});
@@ -78,7 +79,7 @@ export function mountCorpusEntry({root,provider=createUnavailableProvider(),note
   const nativeEvent=async event=>{if(!native)return;await reader.close();if(reader.isOpen())return;root.dataset.corpusReading='true';await native.open(event.detail??{});};
   root.addEventListener('sophia-read-native',nativeEvent);
   const notesOpen=native?document.createElement('button'):null;
-  if(notesOpen){notesOpen.type='button';notesOpen.className='corpus-open sc-control';notesOpen.dataset.nativeNotes='true';notesOpen.textContent=english()?'My notes':'Мои записи';
+  if(notesOpen){notesOpen.type='button';notesOpen.className='corpus-open sc-control';notesOpen.dataset.nativeNotes='true';notesOpen.textContent=english()?localeText('My notes',locale):'Мои записи';
     notesOpen.onclick=async()=>{await reader.close();if(reader.isOpen())return;await native.openNotes();};toolbar.append(notesOpen);}
   updateLabel();
   const restore=()=>{if(!route)return;try{const address=decodeReadingRoute(location.hash);if(address)void open(address);}catch(error){report(error);}};

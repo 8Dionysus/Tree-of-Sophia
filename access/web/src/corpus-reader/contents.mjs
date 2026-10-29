@@ -1,3 +1,4 @@
+import {localeLabels,copyLocale} from '../public-research/locale.mjs';
 // Bounded source-supplied structure. The browser never infers a book's chapters
 // from paragraph ordinals, labels, or the shape of the graph.
 import {corpusSectionLabel} from '../observatory/human-presentation.mjs';
@@ -5,11 +6,11 @@ export function mountCorpusContents({reader,provider,locale=()=> 'ru'}) {
   const root=reader.element;
   if(!root)throw new TypeError('Reader element is required.');
   let opened=false,disposed=false,request=null,generation=0,page=null,back=[],currentCursor=null,currentKey='',selectedVersionId=null;
-  const english=()=>String(locale()||'ru').toLowerCase().startsWith('en');
-  const words=()=>english()?{
+  const english=()=>(copyLocale(locale()||'ru')==='en');
+  const words=()=>english()?localeLabels({
     title:'Contents',close:'Close contents',empty:'Choose a work first.',unavailable:'The source does not provide a table of contents yet.',
     loading:'Loading sections…',failed:'These sections could not be loaded.',more:'More sections',back:'Previous sections',start:'Beginning',retry:'Retry',edition:'Contents for edition',
-  }:{title:'Оглавление',close:'Закрыть оглавление',empty:'Сначала выберите произведение.',unavailable:'Источник пока не предоставляет оглавление.',
+  },locale):{title:'Оглавление',close:'Закрыть оглавление',empty:'Сначала выберите произведение.',unavailable:'Источник пока не предоставляет оглавление.',
     loading:'Загружаются разделы…',failed:'Не удалось загрузить эти разделы.',more:'Следующие разделы',back:'Предыдущие разделы',start:'В начало',retry:'Повторить',edition:'Оглавление издания'};
   const state=()=>{const s=reader.state(),versions=reader.visibleVersions?.(s)??[];
     if(!versions.some(version=>version.id===selectedVersionId))selectedVersionId=s.activeVersionId;
