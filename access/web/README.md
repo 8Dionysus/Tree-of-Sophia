@@ -65,13 +65,28 @@ legend lists the kinds, filters by them and says what a star's form means: a
 disc for a source or its context, a ring for an authored proposal, a broken
 ring for a personal record. The panel places each star on the ladder of
 interpretation (source, reading, comparison) and says on what footing a link
-stands; star positions group material and measure nothing. Antiquity restores
-its four authored transitions (continuation, qualification, contrast, analogy)
-and walks branches by moves, each named by author, work and place. Zarathustra
+stands; star positions group material and measure nothing, except in the Time
+lens below. Antiquity restores its four authored transitions (continuation,
+qualification, contrast, analogy) and walks branches by moves, each named by
+author, work and place. Zarathustra
 walks routes by steps; a step names the places of its own grounds, since its
 node is a concept or thinker shared by other routes. A route that walks an
 atlas link against its direction states the link as authored. Search finds
 branches, routes and steps by their own names before their prose.
+
+The Time lens measures only what the data already dates or orders
+([`space-timeline.mjs`](src/public-research/space-timeline.mjs)). In Antiquity
+the horizontal is a scale of years. The collection dates authors, not moves, so
+a move stands within its author's life: one author's moves in a branch spread
+over that life in step order, with a minimal gap between neighbours. Each branch
+is a row whose name opens it, an era's bracket spans its authors' lives, and a
+chosen move shows its author's life on the scale. In Zarathustra the horizontal
+is the order of the book's chapters: a star stands at the first chapter it rests
+on, a part's bracket spans the chapters the map cites, and stars grounded only in
+other texts stand outside the scale. These positions are display only and never
+enter the saved graph. Zoom and pan follow the scale while rows keep their
+height, the map controls join the heading row, an open branch or route reads top
+to bottom on the same scale, and `treeLens=time` links to the lens.
 
 The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and

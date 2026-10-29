@@ -9,6 +9,7 @@ import {displayPublicError,hypothesisTitle,proposalDisplay} from './presentation
 import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
+import {antiquityTimeline,stepTimeline,zarathustraTimeline} from './space-timeline.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -33,11 +34,11 @@ Object.assign(extraTranslations.en,{zoomIn:'Zoom in on the tree',zoomOut:'Zoom o
 Object.assign(extraTranslations.ru,{excerpt:'Выдержка',proposalGrounds:'Основания этого предложения',manualOrigin:'Ручной ввод',agentOrigin:'Ответ внешнего агента',personalOrigin:'Личное предложение',pending:'Ожидает проверки',notCanon:'Не канон',postureShort:'Прочтения · не канон'});
 Object.assign(extraTranslations.ru,{dragHint:'перетаскивание сдвигает карту, с Shift — поворачивает',transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
 Object.assign(extraTranslations.en,{dragHint:'drag to pan, Shift+drag to turn',transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
-Object.assign(extraTranslations.ru,{journeys:'Маршруты чтения',researchActions:'Исследование',orientation:'Где вы в Древе',mapTools:'Управление картой',openColumn:'Панель',collapseColumn:'Свернуть панель',toOverview:'Ко всему пространству',backToRoute:'назад к маршруту',onMap:'На карте',selectedLink:'Выбрана связь',lensWord:'линза',
+Object.assign(extraTranslations.ru,{timeNoteYears:'Линза «Время»: по горизонтали — годы жизни авторов; скобка под эпохой охватывает жизни её авторов в коллекции. Звезда хода стоит в пределах жизни его автора: даты сочинения в данных нет, поэтому ходы одного автора в ветви расставлены по его жизни в порядке шагов. По вертикали — ветви; имя ветви открывает её.',timeNoteBook:'Линза «Время»: по горизонтали — порядок книги «Так говорил Заратустра» от Пролога до четвёртой части, звезда стоит у первой главы, на которую опирается; скобка под частью охватывает главы, на которые опирается карта. По вертикали — круги карты. Звёзды, опирающиеся только на другие тексты, стоят справа, вне шкалы: годов этих текстов в данных нет.',lifeLine:'Годы автора',journeys:'Маршруты чтения',researchActions:'Исследование',orientation:'Где вы в Древе',mapTools:'Управление картой',openColumn:'Панель',collapseColumn:'Свернуть панель',toOverview:'Ко всему пространству',backToRoute:'назад к маршруту',onMap:'На карте',selectedLink:'Выбрана связь',lensWord:'линза',
   positionNote:'Положение звёзд группирует материал по кругам и не измеряет близость: расстояние на карте ничего не утверждает.',statusTitle:'Статус',formSource:'Источник',formSourceHint:'Произведение, место, автор или традиция — то, на что опираются прочтения',formProposal:'Прочтение',formProposalHint:'Авторское прочтение, понятие, вопрос или ветвь — предложено для исследования, не канон',formPersonal:'Личное',formPersonalHint:'Ваша мысль или связь, сохранённая в этом браузере',
   ladderLabel:'Ступень толкования',ladderHint:'Древо различает источник, его прочтение и сопоставление прочтений; каждая ступень возвращается к источнику.',rung_source:'Источник',rung_reading:'Прочтение',rung_comparison:'Сопоставление',rungPersonal:'Личная запись',
   basisContains:'Структура: часть и целое.',basisGround:'Прочтение опирается на это место источника.',basisEditorial:'Редакторское сопоставление двух прочтений · предложено, не канон · не утверждает исторического влияния.',basisProposed:'Связь предложена для исследования · не канон · сходство не означает влияния.',basisPersonal:'Личная связь из вашего исследования.'});
-Object.assign(extraTranslations.en,{journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',
+Object.assign(extraTranslations.en,{timeNoteYears:'The Time lens: horizontally, the authors’ lifetimes; the bracket under an era spans the lives of its authors in the collection. A move’s star stands within its author’s life: the data gives no dates of composition, so one author’s moves in a branch spread over that life in the order of the steps. Vertically, the branches; a branch’s name opens it.',timeNoteBook:'The Time lens: horizontally, the order of Thus Spoke Zarathustra from the Prologue to Part Four; a star stands at the first chapter it rests on, and the bracket under a part spans the chapters the map cites. Vertically, the map’s circles. Stars grounded only in other texts stand to the right, outside the scale: the data gives those texts no dates.',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',
   positionNote:'Star positions group the material into circles and do not measure closeness: distance on the map asserts nothing.',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
   ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
@@ -61,7 +62,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
   // Authors and works by their collection ids, for the witness line of a move.
   const collectionByLegacyId=new Map((library.space?.collection??[]).map(item=>[item.legacyId??item.id,item]));
-  const lenses=Array.isArray(library.space?.lenses)?library.space.lenses:LENSES;
+  // The lens "Time" exists where the data dates or orders its material: Antiquity by its authors' years, Zarathustra by the order of the book.
+  const timeline=profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[]}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[]}):null;
+  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:timeline.kind==='years'?{ru:'Ходы на шкале лет, в пределах жизни автора; строки — ветви',en:'Moves on a scale of years, within each author’s life; rows are branches'}:{ru:'Звёзды по порядку книги, от Пролога до четвёртой части; строки — круги карты',en:'Stars in the order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
+  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES),...(timeLens?[timeLens]:[])];
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
   // Relation words, colours and line patterns: the profile's own vocabulary where it has one.
   const styleOf=key=>relationStyle(profile,key,RELATIONS[key]??{});
@@ -86,7 +90,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let upgradeError=null;
   try{upgradePublicGraph(localStorage,{profile,fingerprint:library.fingerprint,predecessors:graphPredecessors,pristineGraph:pristineGraphs[spaceKey],validate:packet=>{const verifier=createConstructorModel(library,{storage:null});try{verifier.importPacket(packet);return verifier.exportPacket();}finally{verifier.dispose();}}});}catch(error){upgradeError=error;}
   const model=createConstructorModel(library,{key:spaceKey});
-  let state=model.getState(),lens=lenses.some(item=>item.id==='tree')?'tree':lenses[0]?.id??'tree',enabled=new Set(relationKinds),selected=null,selectedEdge=null,searchValue='',route=null,routeIndex=0,compareIds=[],connectIds=[],interaction=null,panelMode='detail',personalState=workspace?.getState?.()??null,destroyed=false,routeDockTouched=false;
+  // A link may name its lens, so a view on the scale of time can be shared as it is.
+  const linkedLens=new URLSearchParams(location.search).get('treeLens'),defaultLens=lenses.some(item=>item.id==='tree')?'tree':lenses[0]?.id??'tree';
+  let state=model.getState(),lens=lenses.some(item=>item.id===linkedLens)?linkedLens:defaultLens,enabled=new Set(relationKinds),selected=null,selectedEdge=null,searchValue='',route=null,routeIndex=0,compareIds=[],connectIds=[],interaction=null,panelMode='detail',personalState=workspace?.getState?.()??null,destroyed=false,routeDockTouched=false;
   const desktopMode=window.matchMedia('(min-width: 761px)');
   let browsingRoutes=false,columnOpen=true,routeStepNode=null;
   const routeDetailState=new Map();
@@ -204,14 +210,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Moving the map is its own small group at the map's corner.
   addTool('zoomOut','−',()=>sky?.zoomBy(1/1.25),'icon',mapTools);
   addTool('zoomIn','+',()=>sky?.zoomBy(1.25),'icon',mapTools);
-  addTool('fit','⌖',()=>sky?.frame(),'icon',mapTools);
+  addTool('fit','⌖',()=>frameSky(),'icon',mapTools);
   addTool('fullscreen','⛶',()=>void toggleFullscreen(),'icon',mapTools);
   footerTools.append(el('i'));
   const undoButton=addTool('graphUndo','↶',()=>{model.undo();checkGraphPersistence();},'icon');
   const redoButton=addTool('graphRedo','↷',()=>{model.redo();checkGraphPersistence();},'icon');
   addTool('export','⇩',()=>{try{downloadGraph(model.exportPacket(),`tos-${profile}-research-tree.json`);}catch(error){notify(displayPublicError(error,locale));}},'icon');
   addTool('import','⇧',()=>importInput.click(),'icon');
-  importInput.addEventListener('change',async()=>{const file=importInput.files?.[0];if(!file)return;try{if(file.size>1_000_000)throw new Error('constructor packet exceeds the 1 MB storage limit');model.importPacket(await file.text());selected=null;selectedEdge=null;notifyGraphResult(t('saved'));sky?.frame();}catch(error){notify(displayPublicError(error,locale));}finally{importInput.value='';}});
+  importInput.addEventListener('change',async()=>{const file=importInput.files?.[0];if(!file)return;try{if(file.size>1_000_000)throw new Error('constructor packet exceeds the 1 MB storage limit');model.importPacket(await file.text());selected=null;selectedEdge=null;notifyGraphResult(t('saved'));frameSky();}catch(error){notify(displayPublicError(error,locale));}finally{importInput.value='';}});
   posture.addEventListener('click',()=>toggleRelations());
   relationToggle.addEventListener('click',()=>toggleRelations());
   footer.append(posture,count,statusLabel,footerTools);
@@ -228,6 +234,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const url=new URL(location.href);
     if(route){url.searchParams.set('treeRoute',`${route.source}:${route.id}`);url.searchParams.set('treeStep',String(routeIndex+1));}
     else{url.searchParams.delete('treeRoute');url.searchParams.delete('treeStep');}
+    if(lens!==defaultLens)url.searchParams.set('treeLens',lens);else url.searchParams.delete('treeLens');
     history.replaceState(history.state,'',url);
     if(!notify.timer)statusLabel.textContent=savedStatus();
   }
@@ -403,9 +410,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function graphState(){
     const base=structuredClone(state),owner=liveWorkspaceNodes(),byId=new Map(base.nodes.map(n=>[n.id,n]));
-    if(route?.source==='atlas'){
-      const current=routes.find(item=>item.id===route.id);
-      for(const step of current?.steps??[]){const materialId=step.nodeId??step.graphNodeId,material=materials.get(materialId),id=graphIdForMaterial(materialId);if(!material||byId.has(id))continue;
+    // An open branch and the scale of time both read prepared material the saved graph may not hold yet.
+    const context=[];
+    if(route?.source==='atlas')for(const step of routes.find(item=>item.id===route.id)?.steps??[])context.push(step.nodeId??step.graphNodeId);
+    if(lens==='time'&&timeline)context.push(...timeline.positions.keys());
+    if(context.length){
+      for(const materialId of context){const material=materials.get(materialId),id=graphIdForMaterial(materialId);if(!material||byId.has(id))continue;
         const node={id,materialId,kind:material.kind,title:tr(material.title,locale()),body:tr(material.body,locale()),position:material.position??[0,0,0],sourceIds:[],routeContext:true};base.nodes.push(node);byId.set(id,node);}
       const existing=new Set(base.edges.map(edge=>edge.id));
       for(const edge of atlas.edges??[]){const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to),id=`atlas:${edge.id}`;if(existing.has(id)||!byId.has(from)||!byId.has(to))continue;base.edges.push({...edge,id,from,to});existing.add(id);}
@@ -417,7 +427,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function visibleState(){
     const current=graphState();
-    const projected=makeLensView(current,library,{lens,enabled:enabled.size===relationKinds.length?null:enabled,path:interaction||!compareBar.hidden?null:route?.path??null});
+    const timeView=lens==='time'&&!!timeline,routePath=interaction||!compareBar.hidden?null:route?.path??null;
+    const projected=makeLensView(current,library,{lens:timeView?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
     const clusterNames=profile==='antiquity'?{routes:{title:{ru:'Ветви',en:'Branches'},subtitle:{ru:'Вопросы, с которых начинается исследование',en:'Questions where an inquiry begins'}}}:{};
     projected.clusters=(projected.clusters??[]).map(cluster=>({...cluster,title:tr(clusterNames[cluster.id]?.title??cluster.title,locale()),subtitle:tr(clusterNames[cluster.id]?.subtitle??cluster.subtitle,locale())}));
     projected.edges=projected.edges.map(edge=>{
@@ -441,13 +452,48 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const line=profile==='antiquity'&&partName(profile,material,locale(),{moveIds})&&(routeIds.has(node.id)||selectedIds.has(node.id))?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';
       return line?{...next,subtitle:line,labelLines:2,labelMaxWidth:210,accessibilityLabel:`${label(material)} · ${line}`}:next;
     });
+    if(timeView)applyTimeline(projected,routePath);
     if(selectedEdge)projected.selectedEdgeId=selectedEdge;
     return projected;
   }
-  let sky;
+  // Time is a view: stars take places the scale gives them, the saved graph keeps its own.
+  function applyTimeline(projected,routePath){
+    const current=stepView(routePath)?routes.find(item=>item.id===route.id):null;
+    const stepIds=current?(current.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(Boolean):null;
+    const steps=stepIds?stepTimeline(stepIds,id=>timeline.xOf(id)):null;
+    const place=node=>node.materialId?(steps?steps.get(node.materialId):timeline.positions.get(node.materialId)):null;
+    projected.nodes=projected.nodes.filter(node=>place(node)).map(node=>({...node,position:[...place(node)]}));
+    const ids=new Set(projected.nodes.map(node=>node.id));projected.edges=projected.edges.filter(edge=>ids.has(edge.from)&&ids.has(edge.to));
+    // An open branch reads top to bottom in its own order, so the rows' names and threads step aside.
+    const labels=timeline.labels(locale(),{laneWidth:laneStrip()-24}).filter(label=>!steps||(label.variant!=='lane'&&label.variant!=='thread'));
+    // The chosen move shows its author's life on the scale: the span its place stands within.
+    scaleChoice=selected;
+    const chosen=projected.nodes.find(node=>node.id===selected),life=chosen?timeline.lifeOf?.(chosen.materialId):null,author=life?collectionByLegacyId.get(life.authorId):null;
+    if(author&&timeline.xOfYear){const span=[timeline.xOfYear(life.start),timeline.xOfYear(life.end)];labels.push({id:'time:life',variant:'life',strip:timeline.rows.side,span,title:`${tr(author.title,locale())} · ${tr(author.meta,locale()).split('·')[0].trim()}`,subtitle:'',center:[(span[0]+span[1])/2,0,0]});}
+    projected.clusters=labels;
+  }
+  // The scale of time fills its free area and shows its whole span; other lenses frame the sky as the constructor does.
+  function frameSky(){if(!sky)return;if(lens==='time'&&timeline)sky.frame({fill:true,x:timeline.bounds});else sky.frame();}
+  // An open branch or route on the scale of time reads in its own rows, top to bottom.
+  function stepView(routePath=interaction||!compareBar.hidden?null:route?.path??null){return !!(routePath&&route?.source==='atlas');}
+  // The rows' names keep a strip at the map's left, as wide as the longest name needs; an open branch has no such rows.
+  // Its type follows the page's widths: 13px on a wide screen, 12px on a middle one, 11px on a phone.
+  let laneMeasure=null;
+  function laneStrip(){
+    if(!(lens==='time'&&timeline)||stepView())return 0;
+    const width=shell.clientWidth||innerWidth,[size,cap]=width>1180?[13,248]:width>760?[12,176]:[11,162];
+    laneMeasure??=document.createElement('canvas').getContext('2d');if(!laneMeasure)return cap;
+    laneMeasure.font=`${size}px ${getComputedStyle(shell).getPropertyValue('--ps-serif').trim()||'Georgia,serif'}`;
+    const widest=Math.max(0,...timeline.lanes.map(lane=>laneMeasure.measureText(tr(lane.title,locale())).width));
+    return Math.round(Math.min(cap,Math.max(72,widest+34)));
+  }
+  let sky,scaleChoice;
   function refreshSky(){if(!sky)return;sky.update(visibleState(),Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.select(selected);sky.selectEdge(selectedEdge);sky.refresh();}
   function reflect(){
-    if(destroyed)return;state=model.getState();refreshSky();
+    if(destroyed)return;state=model.getState();
+    // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
+    if(lens==='time'&&timeline)shell.dataset.scale=timeline.kind;else delete shell.dataset.scale;
+    refreshSky();
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
     const current=visibleState();count.textContent=`${t('visibleCount')}: ${countText(current.nodes.length,'nodes')} · ${countText(current.edges.length,'edges')}`;if(!notify.timer)statusLabel.textContent=savedStatus();
     const postureDescription=tr(library.space?.posture,locale())||t('demo');posture.querySelector('span').textContent=t('postureShort');posture.setAttribute('aria-label',postureDescription);posture.title=postureDescription;
@@ -456,7 +502,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function paintLenses(){
     lensList.replaceChildren();
-    for(const item of lenses){const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.append(el('span','lens-icon',item.icon),el('span','',tr(item.title,locale())));b.title=tr(item.description,locale());b.addEventListener('click',()=>{lens=item.id;if(route){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();sky?.frame();});lensList.append(b);}
+    for(const item of lenses){const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.append(el('span','lens-icon',item.icon),el('span','',tr(item.title,locale())));b.title=tr(item.description,locale());b.addEventListener('click',()=>{lens=item.id;
+      // An open branch reads on the tree and on the scale of time; other lenses look at the whole space.
+      if(route&&lens!=='tree'&&lens!=='time'){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();frameSky();});lensList.append(b);}
+    // On a phone the lenses scroll in one row; the chosen one stays in sight, also when a link opened it.
+    const chosen=lensList.querySelector('[aria-pressed="true"]');
+    if(chosen&&lensList.scrollWidth>lensList.clientWidth&&(chosen.offsetLeft<lensList.scrollLeft||chosen.offsetLeft+chosen.offsetWidth>lensList.scrollLeft+lensList.clientWidth))lensList.scrollLeft=chosen.offsetLeft-(lensList.clientWidth-chosen.offsetWidth)/2;
   }
   function paintRelations(){
     relationChips.replaceChildren();
@@ -469,7 +520,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderWelcome(){
     panelContent.replaceChildren();
     const intro=tr(library.space?.intro,locale());if(intro)panelContent.append(el('p','ps-overview-intro',intro));
-    panelContent.append(el('p','posture ps-overview-posture',tr(library.space?.posture,locale())||t('demo')),el('p','ps-overview-note',t('positionNote')),el('p','ps-reading-intro',t('select')));
+    panelContent.append(el('p','posture ps-overview-posture',tr(library.space?.posture,locale())||t('demo')),el('p','ps-overview-note',t(lens==='time'&&timeline?(timeline.kind==='years'?'timeNoteYears':'timeNoteBook'):'positionNote')),el('p','ps-reading-intro',t('select')));
   }
   function ladderLine(rung){
     const wrap=el('p','ps-ladder');wrap.title=t('ladderHint');wrap.setAttribute('aria-label',t('ladderLabel'));
@@ -495,6 +546,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});panelContent.append(el('p','eyebrow',`${t('kind')} · ${part||kindName(material?.kind??node.kind)}`),el('h1','',node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle));
     // A move names its author, work and place right under its title.
     const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)panelContent.append(el('p','ps-source-line',witness));
+    // A move on the scale of time names the years it stands for: its author's, as the collection records them.
+    const life=timeline?.lifeOf?.(material?.id),author=life?collectionByLegacyId.get(life.authorId):null;if(author)panelContent.append(el('p','ps-life-line',`${t('lifeLine')} · ${tr(author.title,locale())} · ${tr(author.meta,locale())}`));
     panelContent.append(ladderLine(ladderRung({material,node})));
     const branchRoute=profile==='antiquity'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`antiquity:route:${item.id}`===material?.id)):null;
     if(branchRoute){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});panelContent.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)panelContent.append(el('p','ps-personal-title',nodeTitle));
@@ -600,7 +653,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function restoreRouteDock(){renderColumn();sky?.refresh();}
   function closePersonal(){personal.hidden=true;renderColumn();sky?.refresh();}
-  function closeRoute(){routeDockTouched=true;route=null;routeStepNode=null;browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);persistView();shell.dataset.journey='false';if(!desktop())columnOpen=false;reflect();sky?.frame();}
+  function closeRoute(){routeDockTouched=true;route=null;routeStepNode=null;browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);persistView();shell.dataset.journey='false';if(!desktop())columnOpen=false;reflect();frameSky();}
   function toggleRoutes(){
     routeDockTouched=true;personal.hidden=true;
     if(columnMode()==='overview'&&columnOpen){
@@ -641,19 +694,23 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     renderRoutes();
     if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node')renderNode(selected);else if(mode==='edge')renderEdge(selectedEdge);
+    // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.
+    if(lens==='time'&&timeline&&scaleChoice!==selected)refreshSky();
   }
   // The close button climbs one level: a chosen star or link, then the open branch, then the column itself.
   function closeColumnLayer({collapse=true}={}){
-    const mode=columnMode();
+    const mode=columnMode(),wasOpen=columnOpen;
     if(mode==='node'||mode==='edge'){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!route&&!desktop())columnOpen=false;}
     else if(mode==='overview'&&browsingRoutes)browsingRoutes=false;
     else if(mode==='route'){closeRoute();return;}
     else if(collapse)columnOpen=false;
     else return;
-    reflect();sky?.refresh();
+    reflect();refitAfter(wasOpen);
   }
-  function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}columnOpen=!columnOpen;renderColumn();sky?.refresh();}
-  function openColumn(){columnOpen=true;renderColumn();sky?.refresh();}
+  function toggleSheet(){if(desktop()){reading.scrollTo?.({top:0,behavior:'smooth'});return;}const wasOpen=columnOpen;columnOpen=!columnOpen;renderColumn();refitAfter(wasOpen);}
+  function openColumn(){const wasOpen=columnOpen;columnOpen=true;renderColumn();refitAfter(wasOpen);}
+  // A column or sheet opened or closed beside the scale of time changes its free area, so the scale refits; elsewhere the camera stays.
+  function refitAfter(wasOpen){if(wasOpen!==columnOpen&&lens==='time'&&timeline)frameSky();else sky?.refresh();}
   function keepInColumn(node){
     if(!node||reading.hidden)return;const box=reading.getBoundingClientRect(),r=node.getBoundingClientRect(),top=box.top+(panelTop.getBoundingClientRect().height||48);
     if(r.top<top)reading.scrollTop-=top-r.top;else if(r.bottom>box.bottom-12)reading.scrollTop+=Math.min(r.top-top,r.bottom-box.bottom+12);
@@ -662,9 +719,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function goOverview(){
     browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);personal.hidden=true;
     if(route){route=null;routeStepNode=null;shell.dataset.journey='false';persistView();}
-    columnOpen=desktop();reflect();sky?.frame();
+    columnOpen=desktop();reflect();frameSky();
   }
-  function showRouteLevel(){browsingRoutes=false;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);personal.hidden=true;columnOpen=true;reflect();sky?.frame();}
+  function showRouteLevel(){browsingRoutes=false;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);personal.hidden=true;columnOpen=true;reflect();frameSky();}
   function returnToStep(){browsingRoutes=false;selected=routeStepNode;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);personal.hidden=true;columnOpen=true;reflect();if(selected)sky?.reveal(selected);keepInColumn(deck.querySelector('.ps-step[data-current="true"]'));}
   function renderOrientation(){
     const lensTitleText=lens!=='tree'?tr(lenses.find(item=>item.id===lens)?.title,locale()):'';
@@ -828,7 +885,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     shell.dataset.journey='true';refreshSky();
     if(item.source==='manifest')goJourneyStep(0,false);else if(item.steps?.[0])goRouteStep(0);else reflect();
-    reading.scrollTop=0;sky?.frame();
+    reading.scrollTop=0;frameSky();
   }
   function pathThrough(nodeIds,value){
     if(nodeIds.length<2)return {nodeIds,edgeIds:[]};const out=[nodeIds[0]],edgeIds=[];
@@ -874,13 +931,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function openGrow(){
     dialog.replaceChildren();const content=makeDialog(t('growTitle'));content.append(el('p','ps-dialog-intro',t((atlas.extensions??[]).length?'growIntro':'growEmpty')));
-    const list=el('div','ps-branch-list');for(const branch of atlas.extensions??[]){const b=button('','ps-branch');b.append(el('strong','',tr(branch.title,locale())),el('span','',tr(branch.subtitle,locale())),el('small','',countText(branch.nodeIds?.length??0,'nodes')));b.addEventListener('click',()=>{model.growAtlas({nodeIds:branch.nodeIds??[],...(branch.edgeIds?{edgeIds:branch.edgeIds}:{})});dialog.close();notifyGraphResult(t('saved'));reflect();sky?.frame();});list.append(b);}content.append(list,button(`＋ ${t('createBranch')}`,'primary'));content.lastChild.addEventListener('click',openNewThought);dialog.showModal();
+    const list=el('div','ps-branch-list');for(const branch of atlas.extensions??[]){const b=button('','ps-branch');b.append(el('strong','',tr(branch.title,locale())),el('span','',tr(branch.subtitle,locale())),el('small','',countText(branch.nodeIds?.length??0,'nodes')));b.addEventListener('click',()=>{model.growAtlas({nodeIds:branch.nodeIds??[],...(branch.edgeIds?{edgeIds:branch.edgeIds}:{})});dialog.close();notifyGraphResult(t('saved'));reflect();frameSky();});list.append(b);}content.append(list,button(`＋ ${t('createBranch')}`,'primary'));content.lastChild.addEventListener('click',openNewThought);dialog.showModal();
   }
   function openNewThought(){
     if(dialog.open)dialog.close();dialog.replaceChildren();const content=makeDialog(t('newNode'));const form=document.createElement('form');const kind=document.createElement('select');for(const value of ['concept','interpretation','question','note'])kind.append(new Option(tr({concept:{ru:'Понятие',en:'Concept'},interpretation:{ru:'Прочтение',en:'Reading'},question:{ru:'Вопрос',en:'Question'},note:{ru:'Заметка',en:'Note'}}[value],locale()),value));
     const title=document.createElement('input');title.maxLength=250;title.required=true;const body=document.createElement('textarea');body.rows=5;body.maxLength=4000;body.required=true;
     form.append(field(t('kind'),kind),field(t('title'),title),field(t('text'),body));const actions=el('div','dialog-actions');actions.append(button(t('cancel')));actions.firstChild.addEventListener('click',()=>dialog.close());const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent=t('save');actions.append(save);form.append(actions);content.append(form);
-    form.addEventListener('submit',event=>{event.preventDefault();try{const input={id:'',kind:kind.value,title:title.value.trim(),body:body.value.trim()},id=model.addDraft({kind:kind.value,title:input.title,body:input.body});input.id=`space:${profile}:${crypto.randomUUID()}`;bindHypothesis(input.id,id);saveOwnerBindings();const managed={input,ownerSynced:false};managedDrafts.set(id,managed);try{workspace?.addHypothesis?.(input);managed.ownerSynced=true;notifyGraphResult(t('saved'));}catch{notify(model.persistenceError?.()?t('graphSaveError'):t('saveError'));}personalState=workspace?.getState?.()??personalState;selected=id;selectedEdge=null;dialog.close();reflect();sky?.frame();}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();title.focus();
+    form.addEventListener('submit',event=>{event.preventDefault();try{const input={id:'',kind:kind.value,title:title.value.trim(),body:body.value.trim()},id=model.addDraft({kind:kind.value,title:input.title,body:input.body});input.id=`space:${profile}:${crypto.randomUUID()}`;bindHypothesis(input.id,id);saveOwnerBindings();const managed={input,ownerSynced:false};managedDrafts.set(id,managed);try{workspace?.addHypothesis?.(input);managed.ownerSynced=true;notifyGraphResult(t('saved'));}catch{notify(model.persistenceError?.()?t('graphSaveError'):t('saveError'));}personalState=workspace?.getState?.()??personalState;selected=id;selectedEdge=null;dialog.close();reflect();frameSky();}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();title.focus();
   }
   function field(label,input){const wrapper=el('label','ps-field');wrapper.append(el('span','',label),input);return wrapper;}
   function beginConnect(first){compareBar.hidden=true;interaction='connect';connectIds=first?[first]:[];compareIds=[];closePanel();renderInteraction();}
@@ -889,7 +946,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const key of relationKinds.filter(key=>key!=='contains'))kind.append(new Option(relationWord(key),key));kind.value='relates';const reason=document.createElement('textarea');reason.rows=3;reason.maxLength=500;reason.required=true;form.append(field(t('chooseRelation'),kind),field(t('edgeLabel'),reason));const actions=el('div','dialog-actions');const cancel=button(t('cancel'));cancel.addEventListener('click',()=>{connectIds=[];dialog.close();});const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent=t('save');actions.append(cancel,save);form.append(actions);content.append(form);
     form.addEventListener('submit',event=>{event.preventDefault();try{const edgeId=connectPersonalNodes(connectIds[0],connectIds[1],kind.value,reason.value.trim());connectIds=[];dialog.close();selectEdge(edgeId);notifyGraphResult(t('connected'));}catch(error){notify(displayPublicError(error,locale));}});dialog.showModal();reason.focus();
   }
-  function beginCompare(first,second){compareBar.hidden=true;interaction='compare';connectIds=[];compareIds=[first,second].filter(Boolean);if(compareIds.length>=2){interaction=null;renderInteraction();renderComparison();return;}closePanel();refreshSky();sky?.frame();renderInteraction();}
+  function beginCompare(first,second){compareBar.hidden=true;interaction='compare';connectIds=[];compareIds=[first,second].filter(Boolean);if(compareIds.length>=2){interaction=null;renderInteraction();renderComparison();return;}closePanel();refreshSky();frameSky();renderInteraction();}
   function renderComparison(){
     if(compareIds.length<2)return;const values=compareIds.map(id=>graphState().nodes.find(node=>node.id===id));compareBar.replaceChildren();compareBar.hidden=false;
     const close=button('×','icon');close.setAttribute('aria-label',t('close'));close.addEventListener('click',()=>{compareIds=[];compareBar.hidden=true;refreshSky();renderColumn();});compareBar.append(close,el('h2','',t('comparison')),el('p','',t('comparePrompt')));const columns=el('div','ps-compare-columns');
@@ -928,7 +985,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
     else if(!event.ctrlKey&&!event.metaKey&&!event.altKey){
-      if(key==='o')sky?.frame();
+      if(key==='o')frameSky();
       if(key==='/'){event.preventDefault();search.focus();}
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
       if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
@@ -969,25 +1026,36 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const box=shell.getBoundingClientRect(),visible=node=>node&&!node.hidden&&getComputedStyle(node).display!=='none';
     const rect=node=>{const r=node.getBoundingClientRect();return {left:r.left-box.left,right:r.right-box.left,top:r.top-box.top,bottom:r.bottom-box.top};};
     const wide=desktopMode.matches,rail=wide&&visible(lensRail)?rect(lensRail):null;
-    const left=rail?rail.right+24:16;
+    // The Time lens keeps a strip above the map for its scale, and one at its left for the rows' names.
+    const scale=lens==='time'&&!!timeline;
+    const left=(rail?rail.right+24:16)+laneStrip();
     // On a wide screen the open column is the map's right edge; a collapsed column gives the map its width back.
     const column=wide?[reading,personal].find(visible):null,tab=wide&&visible(columnTab)?rect(columnTab):null;
     const right=column?rect(column).left-20:tab?tab.left-16:width-16;
-    const top=(visible(heading)?rect(heading).bottom:0)+14;
+    const below=(visible(heading)?rect(heading).bottom:0)+14;let top=below+(scale?timeline.strip+4:0);
     const floors=[height-16];
     for(const node of [footer,relationBar])if(visible(node))floors.push(rect(node).top-12);
+    // On a narrow screen the scale of time ends above the map's tools, so no row runs under them.
+    if(scale&&!wide&&visible(mapTools))floors.push(rect(mapTools).top-10);
     if(!wide)for(const node of [reading,personal,compareBar])if(visible(node))floors.push(rect(node).top-14);
     const bottom=Math.min(...floors);
+    // Under an open sheet the scale's strip has no room: its stars keep below the heading and its labels wait.
+    if(scale&&bottom-top<120)top=below;
     return bottom-top>=120&&right-left>=120?{left,right,top,bottom}:null;
   }
-  sky=mountConstructorSky(shell,{rotate:false,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  sky=mountConstructorSky(shell,{rotate:false,dragNodes:()=>!(lens==='time'&&timeline),getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  // On the scale of time a row's name opens its branch.
+  const openLane=event=>{const lane=event.target.closest?.('.tree-cluster[data-ref]');if(!lane||!(lens==='time'&&timeline))return;const item=routeItems().find(entry=>entry.source==='atlas'&&entry.id===lane.dataset.ref);if(!item)return;event.stopPropagation();startRoute(item);};
+  shell.addEventListener('click',openLane);
+  let refitFrame=0;const refitScale=()=>{if(!(lens==='time'&&timeline))return;cancelAnimationFrame(refitFrame);refitFrame=requestAnimationFrame(frameSky);};
+  window.addEventListener('resize',refitScale);
   const viewParams=new URLSearchParams(location.search),savedRoute=viewParams.get('treeRoute'),savedStep=Number(viewParams.get('treeStep'));
   const restoredRoute=routeItems().find(item=>`${item.source}:${item.id}`===savedRoute);
   if(restoredRoute){startRoute(restoredRoute);const step=Math.max(0,Math.min((restoredRoute.steps?.length??1)-1,Number.isSafeInteger(savedStep)?savedStep-1:0));if(restoredRoute.source==='atlas')goRouteStep(step);else goJourneyStep(step);}
   else if(savedRoute)persistView();
-  reflect();sky.frame();shell.dataset.ready='true';
+  reflect();frameSky();shell.dataset.ready='true';
   if(upgradeError)notify(locale()==='en'?'The saved graph could not be upgraded. Its original copy is preserved.':'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   return {root:shell,pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
+    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
 }

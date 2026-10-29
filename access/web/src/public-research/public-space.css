@@ -280,6 +280,33 @@
 #tree .tree-star .star-title{font-weight:inherit;overflow:hidden}
 #tree .tree-star .star-sub{display:block;margin-top:2px;font:11px/1.45 var(--ps-sans);letter-spacing:.01em;color:#a9b9c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #tree .tree-star[data-short=true] .star-sub{display:none}
+/* The scale of the Time lens: rules and threads under the stars; eras or parts, centuries or chapters and the
+   chosen author's life in a strip above the map; the rows' names in a strip at its left. */
+#tree .tree-cluster[data-variant]{opacity:1;font-style:normal;letter-spacing:0;white-space:nowrap}
+#tree .tree-cluster[data-variant=rule]{border-left:1px solid #9fb3cc17;text-shadow:none}
+#tree .tree-cluster[data-variant=rule][data-tone=strong]{border-left:1px dashed #d9c3914d}
+#tree .tree-cluster[data-variant=thread]{background:linear-gradient(90deg,#9fb3cc00,#9fb3cc2e 12px,#9fb3cc2e calc(100% - 12px),#9fb3cc00);text-shadow:none}
+#tree .tree-cluster[data-variant=axis] .cluster-title{color:#8ea2ba;font:11px/16px var(--ps-sans);letter-spacing:.05em;text-align:center}
+#tree .tree-cluster[data-variant=side] .cluster-title{color:#7489a2;font:10px/16px var(--ps-sans);letter-spacing:.08em}
+#tree .tree-cluster[data-variant=side][data-align=end] .cluster-title{text-align:right}
+#tree .tree-cluster[data-variant=era],#tree .tree-cluster[data-variant=life]{height:22px}
+#tree .tree-cluster[data-variant=era] .cluster-title,#tree .tree-cluster[data-variant=life] .cluster-title{position:absolute;top:0;left:var(--text-left,0);width:var(--text-width,100%);overflow:hidden;text-overflow:ellipsis;text-align:center}
+#tree .tree-cluster[data-variant=era] .cluster-title{color:#d9c391;font:italic 13.5px/16px var(--ps-serif)}
+#tree .tree-cluster[data-variant=life] .cluster-title{color:#d6e4f5;font:500 11px/16px var(--ps-sans);letter-spacing:.02em}
+#tree .tree-cluster[data-band=true]::after{content:'';position:absolute;top:17px;left:var(--band-left);width:var(--band-width);height:4px;border:1px solid #d9c3914d;border-top:0;box-sizing:border-box}
+#tree .tree-cluster[data-variant=life][data-band=true]::after{border-color:#d6e4f580}
+#tree .tree-cluster[data-variant=lane] .cluster-title{color:#c2ccd8;font:13px/16px var(--ps-serif);text-align:right;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:1180px){#tree .tree-cluster[data-variant=lane] .cluster-title{font-size:12px}}
+@media(max-width:760px){#tree .tree-cluster[data-variant=lane] .cluster-title{font-size:11px}}
+/* Beside the scale of time the map's tools join the heading's row, so the scale keeps the map's whole width. */
+@media(min-width:761px){
+  #tree.pr-public-space[data-scale] .ps-map-tools{top:80px;grid-auto-flow:column}
+  #tree.pr-public-space[data-scale] .ps-orientation{padding-right:164px}
+}
+#tree .tree-cluster[data-variant=lane][data-ref]{cursor:pointer}
+#tree .tree-cluster[data-variant=lane][data-ref]:hover .cluster-title{color:#f0dfb4}
+#tree .tree-cluster[data-variant] .cluster-subtitle{display:none}
+#tree .ps-life-line{margin:-8px 0 12px;color:#9fb0c2;font:11.5px/1.6 var(--ps-sans)}
 /* Labels and cluster names keep a dark halo, so lines never cross the words. */
 #tree .tree-star span,#tree .tree-cluster{text-shadow:0 0 3px #04070e,0 0 8px #04070e,0 1px 12px #04070ecc}
 #tree .tree-cluster small{opacity:.75}
