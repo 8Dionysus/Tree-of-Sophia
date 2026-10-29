@@ -1,3 +1,4 @@
+import {resolveLocale,copyLocale,localeText} from '../public-research/locale.mjs';
 import {createNativeReference,validateNativeReference,NATIVE_REFERENCE_SCHEMA,nativeSelectedText} from './native-reference.mjs';
 import {referenceDocumentId,referenceVersionId} from './model.mjs';
 import {readingSlot} from './notebook.mjs';
@@ -26,7 +27,8 @@ export function nativeRangeSelection(range,article,result){
 }
 
 export function mountNativeReader({host=document.body,client,notebook,locale=()=> 'ru',onGraphRequest,onLegacyReference,onOpen,onClose}={}){
-  const ru=()=>!String(locale()||'ru').toLowerCase().startsWith('en'),word=(a,b)=>ru()?a:b;
+  const messageForms=new Map();
+  const ru=()=>copyLocale(locale)==='ru',word=(a,b)=>{const value=ru()?a:localeText(b,locale);messageForms.set(value,[a,b]);return value;};
   const root=el('section','','native-reader');root.hidden=true;root.tabIndex=-1;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
   root.setAttribute('aria-label',word('Чтение источника','Source reading'));
   const header=el('header','','nr-header'),title=el('h2',word('Текст источника','Source text'));
@@ -131,7 +133,7 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
       const conditions=el('section','','nr-conditions');conditions.append(el('h3',word('Условия локального чтения','Local reading conditions')),
         el('p',unit.local_conditions.condition_review));
       const expiryText=el('p');expiryText.textContent=word('Срок: ','Expires: ');
-      try{expiryText.textContent+=new Intl.DateTimeFormat(ru()?'ru':'en',{dateStyle:'medium',timeStyle:'short'}).format(new Date(unit.local_conditions.expires_at));}
+      try{expiryText.textContent+=new Intl.DateTimeFormat(resolveLocale(locale),{dateStyle:'medium',timeStyle:'short'}).format(new Date(unit.local_conditions.expires_at));}
       catch{expiryText.textContent+=word('срок указан источником','deadline supplied by the source');}
       conditions.append(expiryText);
       const noticeRoles={license:word('Лицензия','License'),attribution:word('Атрибуция','Attribution'),notice:word('Уведомление','Notice')};
@@ -238,7 +240,17 @@ export function mountNativeReader({host=document.body,client,notebook,locale=()=
   const restore=()=>{if(!location.hash.startsWith(HASH))return;try{if(location.hash.length>32768)throw new Error('Native address is too large.');
     void open({reference:validateNativeReference(JSON.parse(decodeURIComponent(location.hash.slice(HASH.length))))});}catch(error){reveal();announce(unavailable(error));}};
   window.addEventListener('hashchange',restore);restore();controls();
-  return {root,open,close,refreshLocale(){updateLabels(); controls(); if (!result) title.textContent=word('Текст источника','Source text');},async openNotes(){if(!(await saveDraft()))return;updateLabels();reveal();await showNotes();},
+  return {root,open,close,refreshLocale(){
+      const currentMessage=messageForms.get(status.textContent),scrollTop=scroller().scrollTop;
+      const selection=getSelection(),range=selection?.rangeCount?selection.getRangeAt(0):null;
+      const exactSelection=result&&range&&article.contains(range.commonAncestorContainer)?nativeRangeSelection(range,article,result):null;
+      updateLabels();title.textContent=word('Текст источника','Source text');
+      // Rebuild presentation over the same result, reference and absolute
+      // expiry. The note draft and source generation remain untouched.
+      if(result&&!expired){renderText();scroller().scrollTop=scrollTop;if(result&&!expired&&exactSelection?.status==='exact')selectedDOM(exactSelection.reference);}
+      else if(expired)article.replaceChildren(el('p',word('Срок условий чтения истёк. Откройте источник повторно для проверки.','The reading conditions expired. Reopen the source to recheck access.')));
+      controls();if(currentMessage)announce(word(...currentMessage));if(!notes.hidden)void showNotes();
+    },async openNotes(){if(!(await saveDraft()))return;updateLabels();reveal();await showNotes();},
     destroy(){destroyed=true;generation++;notesGeneration++;request?.abort();cancelExpiry();clearTimeout(positionTimer);root.remove();window.removeEventListener('hashchange',restore);window.removeEventListener('beforeunload',beforeUnload);},
     async flush(){
       // Host pagehide waits for this before native.destroy() removes the

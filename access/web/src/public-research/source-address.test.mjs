@@ -65,6 +65,11 @@ describe('public research shelf source addresses', () => {
       expect(direct.label).toContain('немецкий');
       expect(direct.label).toContain('0–20 знаков');
       expect(direct.reference).toEqual(reference);
+      for(const [language,name] of [['es','alemán'],['de','Deutsch'],['zh-Hans','德语']]){
+        const translated=await describeSourceReference(reference,provider,language);
+        expect(translated.label).toContain(name);
+        expect(translated.reference).toEqual(reference);
+      }
       const otherReference = unitReference({unitId: sourceWindow.units[0].id}, version, document, {start: 20, end: 30});
       const otherLocator = await ensureSourceRecord(shelf, otherReference, 'Zarathustra · German source');
       const other = await describeSourceLocator(otherLocator, shelf, provider, 'en');

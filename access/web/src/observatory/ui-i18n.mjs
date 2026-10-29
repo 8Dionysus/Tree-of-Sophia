@@ -1,11 +1,12 @@
+import {localeText} from '../public-research/locale.mjs';
 import {UI_CATALOG} from './ui-catalog.mjs';
 
-export const UI_LANGUAGES=['ru','en','es'];
+export const UI_LANGUAGES=['ru','en','es','de','zh-Hans'];
 let language='ru';
 try{const saved=JSON.parse(globalThis.localStorage?.getItem('tos-observatory-interface-v1')||'null')?.uiLanguage;if(UI_LANGUAGES.includes(saved))language=saved;}catch{}
 export const uiLanguage=()=>language;
 export function t(source,values=[]){
-  const template=language==='ru'?source:UI_CATALOG[source]?.[language]??source;
+  const template=language==='ru'?source:UI_CATALOG[source]?.[language]??localeText(UI_CATALOG[source]?.en??source,language);
   return template.replace(/\{(\d+)\}/g,(match,index)=>index<values.length?String(values[index]):match);
 }
 // Only authored UI messages carry this marker. Raw strings from a source,
