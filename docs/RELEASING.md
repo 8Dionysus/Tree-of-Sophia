@@ -291,15 +291,26 @@ on its fresh CI target so workspace libraries are cacheable; debug assertions
 and overflow checks retain their existing profile settings. Client-side compilation keeps rustc
 under the native lane's descendant custody. Other fixture children, production
 preparation and the offline cold-install lane do not use this wrapper.
-PRs only read the default-branch cache; main and manual full runs may populate
-it. A main push that reuses source CI does not fill this cache: use the existing
+Each runner uses a local compiler cache capped at 512 MiB. The existing pinned
+GitHub cache action restores/saves that directory as one archive, avoiding the
+direct sccache GHA backend's [per-object request bursts and dropped writes](https://github.com/mozilla/sccache/issues/2821).
+The archive key separates platform/tool/compiler and source tree; a compatible
+prefix can restore older entries, whose compiler/input hashes still control reuse.
+The server starts after restoration and stops before archiving. PRs restore the
+default-branch cache without publishing snapshots; main and manual full runs may
+save a new tree's snapshot. A main push that reuses source CI does not fill this cache: use the existing
 manual full workflow on main to seed it and measure a subsequent warm run.
-Tool setup is optional and leaves Cargo on rustc when unavailable; server I/O
-failure falls back to the compiler. Cache statistics are non-authoritative job
+Tool setup/restore/save are optional; unavailable tools leave Cargo on rustc,
+and server I/O failure falls back to the compiler. Cache statistics are non-authoritative job
 diagnostics. Cache hits depend on retained entries and compatible inputs, so
 cold and warm timings must be reported separately. Current Access proc-macro
 dependencies were checked for direct filesystem input reads; introducing such
 a macro requires an input-tracking review before trusting its cached output.
+The metadata-only merged-PR cleanup workflow deletes only that PR's
+`tos-cargo-lib-*` and `tos-access-sccache-*` caches. It checks out no PR code and
+leaves source-validation artifacts, default-branch caches and release candidates
+in their own retention routes. Closed PR caches cannot serve main; removing them
+prevents them from evicting useful default-branch compiler entries.
 
 A combined change takes all needed checks. Human Markdown is identified before
 its surrounding implementation directory. Other Markdown under a `fixture`, `fixtures`
