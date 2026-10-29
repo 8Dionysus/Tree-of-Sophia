@@ -1,0 +1,1417 @@
+{
+  "schema": "tos.bonsai.witnesses.v1",
+  "work": {
+    "id": "za",
+    "tree": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "title": {
+      "ru": "Так говорил Заратустра",
+      "en": "Thus Spoke Zarathustra",
+      "de": "Also sprach Zarathustra"
+    }
+  },
+  "pivot": "de",
+  "posture": {
+    "ru": "Свидетели книги, которыми стенд показывает её собственный текст: немецкий оригинал в первых изданиях, английский перевод Коммона и русский перевод Антоновского 1913 года, по главам, точно как их дают источники. Строки выравнивания и пары предложений предложил механизм бонсая (bonsai/lib/align.mjs) без ручного подбора; они не проверены человеком и в Древо не приняты. Цитата стенда всегда указывает место в оригинале; место в переводе находится через выравнивание.",
+    "en": "The witnesses through which the stand shows the book’s own text: the German original in its first editions, Common’s English and Antonovsky’s Russian of 1913, chapter by chapter, exactly as their sources give them. The alignment rows and sentence pairs were proposed by the bonsai’s mechanism (bonsai/lib/align.mjs), with nothing chosen by hand; no person has reviewed them and the Tree has not admitted them. A citation of the stand always names a place in the original; the place in a translation is found through the alignment."
+  },
+  "licence": {
+    "id": "CC BY-SA 4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "note": {
+      "ru": "Модуль содержит текст Немецкого текстового архива и транскрипцию Викитеки, оба под CC BY-SA 4.0, поэтому и сам модуль распространяется на тех же условиях, с указанием авторства каждого свидетеля.",
+      "en": "The module holds text of the Deutsches Textarchiv and a Wikisource transcription, both under CC BY-SA 4.0, so the module itself is shared on the same terms, with each witness attributed."
+    }
+  },
+  "witnesses": {
+    "de": {
+      "label": {
+        "ru": "Ницше, первые издания (Немецкий текстовый архив)",
+        "en": "Nietzsche, first editions (Deutsches Textarchiv)",
+        "de": "Nietzsche, Erstausgaben (Deutsches Textarchiv)"
+      },
+      "language": "de",
+      "role": "original",
+      "edition": {
+        "ru": "Ч. I–III: Хемниц, Шмейцнер, 1883–1884; ч. IV: Лейпциг, Науман, 1891 (первое публичное издание)",
+        "en": "Parts I–III: Chemnitz, Schmeitzner, 1883–1884; Part IV: Leipzig, Naumann, 1891 (first public edition)"
+      },
+      "tree": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2",
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3",
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4"
+      ],
+      "units": {
+        "ru": "единицы технической разметки Древа (текстовые слои DTA, совпадают по sha256)",
+        "en": "units of the Tree’s technical markup (DTA text layers, identical by sha256)"
+      },
+      "sources": [
+        {
+          "part": "I",
+          "url": "https://www.deutschestextarchiv.de/nietzsche_zarathustra01_1883",
+          "download": "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra01_1883",
+          "holding": "Staatsbibliothek zu Berlin – Preußischer Kulturbesitz",
+          "sha256": "70ecefe6b23e059fc5d22cfe996dc9187a61b9dd4460eb8e15019380bc61d986"
+        },
+        {
+          "part": "II",
+          "url": "https://www.deutschestextarchiv.de/nietzsche_zarathustra02_1883",
+          "download": "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra02_1883",
+          "holding": "Staatsbibliothek zu Berlin – Preußischer Kulturbesitz",
+          "sha256": "978abb7158a0a0f8e5b373d269fdb484fd1ddeeb7ba9ad3fa47a668e319f02ea"
+        },
+        {
+          "part": "III",
+          "url": "https://www.deutschestextarchiv.de/nietzsche_zarathustra03_1884",
+          "download": "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra03_1884",
+          "holding": "Staatsbibliothek zu Berlin – Preußischer Kulturbesitz",
+          "sha256": "f2e2e75cdea9f177400fa72f75d6e70bfae3030c93a0fcab5c6497b5c5bd4175"
+        },
+        {
+          "part": "IV",
+          "url": "https://www.deutschestextarchiv.de/nietzsche_zarathustra04_1891",
+          "download": "https://www.deutschestextarchiv.de/book/download_xml/nietzsche_zarathustra04_1891",
+          "holding": "SUB Göttingen",
+          "sha256": "b21375992fae8bafab26337357bb7a1f4d52956ae11a68512d948c73c0efc20e"
+        }
+      ],
+      "licence": "CC BY-SA 4.0",
+      "attribution": "Deutsches Textarchiv, Berlin-Brandenburgische Akademie der Wissenschaften (BBAW); Vorlagen: Staatsbibliothek zu Berlin – Preußischer Kulturbesitz (Teile I–III), SUB Göttingen (Teil IV); CC BY-SA 4.0",
+      "rights": {
+        "basis": "public-domain+licence",
+        "ru": "Текст Ницше (ум. 1900) — общественное достояние в России, США и ЕС. Цифровое издание DTA распространяется по CC BY-SA 4.0: нужно указывать авторство, а производное распространять на тех же условиях.",
+        "en": "Nietzsche’s text (d. 1900) is in the public domain in Russia, the USA and the EU. The DTA’s digital edition is distributed under CC BY-SA 4.0: attribution is required and derivatives are shared alike."
+      },
+      "short": {
+        "ru": "первое издание",
+        "en": "first edition",
+        "de": "Erstausgabe",
+        "es": "primera edición",
+        "zh-Hans": "初版"
+      },
+      "years": {
+        "I": 1883,
+        "II": 1883,
+        "III": 1884,
+        "IV": 1891
+      }
+    },
+    "en": {
+      "label": {
+        "ru": "Перевод Томаса Коммона (Project Gutenberg)",
+        "en": "Thomas Common’s translation (Project Gutenberg)"
+      },
+      "language": "en",
+      "role": "translation",
+      "translator": "Thomas Common",
+      "edition": {
+        "ru": "Thus Spake Zarathustra: A Book for All and None, пер. Томаса Коммона, 1909; Project Gutenberg, eBook #1998",
+        "en": "Thus Spake Zarathustra: A Book for All and None, tr. Thomas Common, 1909; Project Gutenberg eBook #1998"
+      },
+      "tree": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.gutenberg-1998-common-en"
+      ],
+      "units": {
+        "ru": "единицы открытого корпуса Древа (версия gutenberg-1998-common-en)",
+        "en": "units of the Tree’s public corpus (version gutenberg-1998-common-en)"
+      },
+      "sources": [
+        {
+          "url": "https://www.gutenberg.org/ebooks/1998",
+          "corpus": {
+            "versionId": "gutenberg-1998-common-en",
+            "revision": "0854ebabe235d46c8e5e099418c5189b1df0848898c552009b70d924b9065d05"
+          }
+        }
+      ],
+      "licence": "Public domain",
+      "attribution": "Translated by Thomas Common (1909); text from Project Gutenberg eBook #1998",
+      "rights": {
+        "basis": "public-domain",
+        "ru": "Коммон умер в 1919 году, перевод издан в 1909-м: общественное достояние в России, США и ЕС. Лицензия Project Gutenberg касается его товарного знака и файлов с ним; модуль берёт только текст, без заголовков и знака Project Gutenberg. Примечания редактора Людовичи (ум. 1971) в модуль не входят.",
+        "en": "Common died in 1919 and the translation appeared in 1909: public domain in Russia, the USA and the EU. The Project Gutenberg licence governs its trademark and the files carrying it; the module takes only the text, without Project Gutenberg’s headers or mark. The editor Ludovici’s notes (he died in 1971) are not in the module."
+      },
+      "short": {
+        "ru": "пер. Т. Коммона, 1909",
+        "en": "tr. Thomas Common, 1909",
+        "de": "übers. von Thomas Common, 1909",
+        "es": "trad. de Thomas Common, 1909",
+        "zh-Hans": "托马斯·康芒 译，1909"
+      }
+    },
+    "ru": {
+      "label": {
+        "ru": "Перевод Ю. М. Антоновского, 1913 (Викитека)",
+        "en": "Yu. M. Antonovsky’s translation, 1913 (Wikisource)"
+      },
+      "language": "ru",
+      "role": "translation",
+      "translator": "Юлий Михайлович Антоновский",
+      "edition": {
+        "ru": "Так говорил Заратустра. Книга для всех и ни для кого. Пер. Ю. М. Антоновского. СПб.: Жизнь для всех, 1913; транскрипция Викитеки в современной орфографии",
+        "en": "Tak govoril Zaratustra, tr. Yu. M. Antonovsky, St Petersburg: Zhizn dlya vsekh, 1913; Wikisource transcription in modern orthography"
+      },
+      "tree": [
+        "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913"
+      ],
+      "units": {
+        "ru": "собственные ID бонсая ru1913.<глава>.<порядок>; в Древе их нет",
+        "en": "the bonsai’s own IDs ru1913.<chapter>.<order>; the Tree has none"
+      },
+      "sources": [
+        {
+          "url": "https://ru.wikisource.org/wiki/Индекс:Ницше_Так_говорил_Заратустра_1913.pdf",
+          "pages": 402,
+          "latestRevision": 5360740,
+          "revisedUntil": "2025-03-12T17:11:05Z",
+          "proofread": {
+            "proofread": 99,
+            "notProofread": 285,
+            "noText": 18
+          },
+          "scan": "https://commons.wikimedia.org/wiki/File:Ницше_Так_говорил_Заратустра_1913.pdf"
+        }
+      ],
+      "licence": "CC BY-SA 4.0",
+      "attribution": "Перевод Ю. М. Антоновского (1913); транскрипция участников Викитеки, CC BY-SA 4.0",
+      "omits": {
+        "ru": "Цензурное издание 1913 года не содержит глав «О священниках», «Удалившийся от дел» и «Праздник осла» и пропускает в «Пробуждении» его вторую часть с литанией; выравнивание показывает эти места как пропуски.",
+        "en": "The censored edition of 1913 lacks the chapters “The Priests”, “Out of Service” and “The Ass-Festival” and drops the second half of “The Awakening” with its litany; the alignment shows these places as omissions."
+      },
+      "quality": {
+        "ru": "Большая часть страниц Викитеки ещё не вычитана; ошибки распознавания остаются, их правят по скану, а не в модуле.",
+        "en": "Most Wikisource pages are not yet proofread; recognition errors remain and are corrected against the scan, not in the module."
+      },
+      "rights": {
+        "basis": "public-domain+licence",
+        "ru": "Антоновский умер в 1913 году: перевод — общественное достояние в России и США (оценка Древа public_domain_reviewed для скана Викисклада). Транскрипция Викитеки распространяется по CC BY-SA 4.0 с указанием авторства. Перенос на сайт одобрен владельцем.",
+        "en": "Antonovsky died in 1913: the translation is in the public domain in Russia and the USA (the Tree’s assessment public_domain_reviewed for the Commons scan). The Wikisource transcription is shared under CC BY-SA 4.0 with attribution. Transfer to the site was approved by the owner."
+      },
+      "short": {
+        "ru": "пер. Ю. М. Антоновского, 1913",
+        "en": "tr. Yu. M. Antonovsky, 1913",
+        "de": "übers. von Ju. M. Antonowski, 1913",
+        "es": "trad. de Yu. M. Antonovski, 1913",
+        "zh-Hans": "尤·米·安东诺夫斯基 译，1913"
+      }
+    }
+  },
+  "corpus": {
+    "documentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+    "de": {
+      "versionId": "gutenberg-7205-de",
+      "revision": "4f71adfeeb39e64055acc2fc3f58964cf39f03d27bf2264d25313bc45d8658ec"
+    },
+    "en": {
+      "versionId": "gutenberg-1998-common-en",
+      "revision": "0854ebabe235d46c8e5e099418c5189b1df0848898c552009b70d924b9065d05"
+    }
+  },
+  "display": {
+    "ru": "Читатель видит единицу так: слово, перенесённое через конец строки («¬»), соединено, конец печатной строки — пробел, стих сохраняет строки. Смещения цитат считают символы исходного текста.",
+    "en": "A reader sees a unit thus: a word broken at a line end (“¬”) is joined, a printed line end is a space, verse keeps its lines. Citation offsets count the characters of the source text."
+  },
+  "alignment": {
+    "mechanism": "bonsai/lib/align.mjs",
+    "review": "unreviewed",
+    "pairs": {
+      "de-en": {
+        "ratio": 0.9846,
+        "variance": 1.073,
+        "modelPairs": 2835,
+        "groups": {
+          "1:1": 3400,
+          "1:2": 25,
+          "2:1": 3,
+          "3:1": 1,
+          "1:0": 2,
+          "1:3": 4,
+          "1:6": 3,
+          "0:1": 5
+        },
+        "sentencePairs": 5899
+      },
+      "de-ru": {
+        "ratio": 0.9247,
+        "variance": 1.423,
+        "modelPairs": 2672,
+        "groups": {
+          "1:1": 3162,
+          "2:1": 38,
+          "1:2": 32,
+          "0:1": 12,
+          "chapter:0": 3,
+          "2:2": 5,
+          "3:1": 2,
+          "1:0": 19,
+          "1:3": 4,
+          "1:6": 2,
+          "1:5": 1
+        },
+        "sentencePairs": 5718
+      },
+      "en-ru": {
+        "ratio": 0.9357,
+        "variance": 1.96,
+        "modelPairs": 2810,
+        "groups": {
+          "1:1": 3218,
+          "1:2": 18,
+          "2:1": 43,
+          "0:1": 5,
+          "2:2": 5,
+          "chapter:0": 3,
+          "3:1": 2,
+          "1:3": 1,
+          "1:0": 19
+        }
+      }
+    },
+    "triangle": {
+      "agree": 3290,
+      "disagree": 1,
+      "skipped": 152
+    },
+    "corpusMap": {
+      "mechanism": "alignSameLanguage",
+      "groups": {
+        "1:1": 3327,
+        "2:1": 8,
+        "2:2": 30,
+        "3:1": 2,
+        "1:2": 20,
+        "11:1": 1,
+        "1:10": 1,
+        "1:9": 1,
+        "1:8": 1
+      },
+      "belowSimilarity06": 0,
+      "note": {
+        "ru": "Каждая немецкая единица первых изданий сопоставлена с единицами немецкого текста открытого корпуса (Gutenberg 7205), чтобы цитата открывалась в читателе Древа.",
+        "en": "Each German unit of the first editions is mapped onto the units of the public corpus German text (Gutenberg 7205), so that a citation opens in the Tree’s reader."
+      }
+    },
+    "toReview": [
+      {
+        "pair": "de-ru",
+        "chapter": "I.08",
+        "shape": "1:1",
+        "uncovered": 0.74,
+        "source": [
+          "tos.text-unit.sid-33fd7c564a0a951014af80f4628b5906"
+        ],
+        "target": [
+          "ru1913.I.08.002"
+        ]
+      },
+      {
+        "pair": "de-ru",
+        "chapter": "III.12",
+        "shape": "1:1",
+        "uncovered": 0.87,
+        "source": [
+          "tos.text-unit.sid-56a2b110563498a4a88419a59a9354c7"
+        ],
+        "target": [
+          "ru1913.III.12.139"
+        ]
+      },
+      {
+        "pair": "de-ru",
+        "chapter": "III.15",
+        "shape": "1:2",
+        "uncovered": 0.78,
+        "source": [
+          "tos.text-unit.sid-0e0584d2ca589f29482ed7d184c49a40"
+        ],
+        "target": [
+          "ru1913.III.15.056",
+          "ru1913.III.15.057"
+        ]
+      },
+      {
+        "pair": "de-ru",
+        "chapter": "III.15",
+        "shape": "1:2",
+        "uncovered": 1,
+        "source": [
+          "tos.text-unit.sid-42cbdd8d2c2692da3068ba7ce6f20aaa"
+        ],
+        "target": [
+          "ru1913.III.15.060",
+          "ru1913.III.15.061"
+        ]
+      },
+      {
+        "pair": "en-ru",
+        "chapter": "III.15",
+        "shape": "1:1",
+        "uncovered": 1,
+        "source": [
+          "tos.text-unit.sid-871926b31a6d4cc19cf7a9b6d1809adb"
+        ],
+        "target": [
+          "ru1913.III.15.040"
+        ]
+      }
+    ]
+  },
+  "chapters": [
+    {
+      "key": "I.01",
+      "titles": {
+        "de": "Zarathustra's Vorrede.",
+        "en": "ZARATHUSTRA’S PROLOGUE.",
+        "ru": "Предисловие Заратустры."
+      },
+      "units": {
+        "de": 163,
+        "en": 162,
+        "ru": 162
+      }
+    },
+    {
+      "key": "I.02",
+      "titles": {
+        "de": "Von den drei Verwandlungen.",
+        "en": "I. THE THREE METAMORPHOSES.",
+        "ru": "О трех превращениях."
+      },
+      "units": {
+        "de": 27,
+        "en": 27,
+        "ru": 27
+      }
+    },
+    {
+      "key": "I.03",
+      "titles": {
+        "de": "Von den Lehrstühlen der Tugend.",
+        "en": "II. THE ACADEMIC CHAIRS OF VIRTUE.",
+        "ru": "О кафедрах добродетели."
+      },
+      "units": {
+        "de": 35,
+        "en": 35,
+        "ru": 36
+      }
+    },
+    {
+      "key": "I.04",
+      "titles": {
+        "de": "Von den Hinterweltlern.",
+        "en": "III. BACKWORLDSMEN.",
+        "ru": "О мечтающих о другом мире."
+      },
+      "units": {
+        "de": 35,
+        "en": 35,
+        "ru": 35
+      }
+    },
+    {
+      "key": "I.05",
+      "titles": {
+        "de": "Von den Verächtern des Leibes.",
+        "en": "IV. THE DESPISERS OF THE BODY.",
+        "ru": "О презирающих тело."
+      },
+      "units": {
+        "de": 23,
+        "en": 23,
+        "ru": 23
+      }
+    },
+    {
+      "key": "I.06",
+      "titles": {
+        "de": "Von den Freuden- und Leidenschaften.",
+        "en": "V. JOYS AND PASSIONS.",
+        "ru": "О радостях и страстях."
+      },
+      "units": {
+        "de": 26,
+        "en": 26,
+        "ru": 26
+      }
+    },
+    {
+      "key": "I.07",
+      "titles": {
+        "de": "Vom bleichen Verbrecher.",
+        "en": "VI. THE PALE CRIMINAL.",
+        "ru": "О бледном преступнике."
+      },
+      "units": {
+        "de": 28,
+        "en": 28,
+        "ru": 28
+      }
+    },
+    {
+      "key": "I.08",
+      "titles": {
+        "de": "Vom Lesen und Schreiben.",
+        "en": "VII. READING AND WRITING.",
+        "ru": "О чтении и письме."
+      },
+      "units": {
+        "de": 27,
+        "en": 27,
+        "ru": 27
+      }
+    },
+    {
+      "key": "I.09",
+      "titles": {
+        "de": "Vom Baum am Berge.",
+        "en": "VIII. THE TREE ON THE HILL.",
+        "ru": "О дереве на горе."
+      },
+      "units": {
+        "de": 37,
+        "en": 37,
+        "ru": 36
+      }
+    },
+    {
+      "key": "I.10",
+      "titles": {
+        "de": "Von den Predigern des Todes.",
+        "en": "IX. THE PREACHERS OF DEATH.",
+        "ru": "О проповедниках смерти."
+      },
+      "units": {
+        "de": 25,
+        "en": 25,
+        "ru": 25
+      }
+    },
+    {
+      "key": "I.11",
+      "titles": {
+        "de": "Vom Krieg und Kriegsvolke.",
+        "en": "X. WAR AND WARRIORS.",
+        "ru": "О войне и воинах."
+      },
+      "units": {
+        "de": 25,
+        "en": 25,
+        "ru": 25
+      }
+    },
+    {
+      "key": "I.12",
+      "titles": {
+        "de": "Vom neuen Götzen.",
+        "en": "XI. THE NEW IDOL.",
+        "ru": "О новом кумире."
+      },
+      "units": {
+        "de": 34,
+        "en": 34,
+        "ru": 34
+      }
+    },
+    {
+      "key": "I.13",
+      "titles": {
+        "de": "Von den Fliegen des Marktes.",
+        "en": "XII. THE FLIES IN THE MARKET-PLACE.",
+        "ru": "О базарных мухах."
+      },
+      "units": {
+        "de": 40,
+        "en": 40,
+        "ru": 40
+      }
+    },
+    {
+      "key": "I.14",
+      "titles": {
+        "de": "Von der Keuschheit.",
+        "en": "XIII. CHASTITY.",
+        "ru": "О целомудрии."
+      },
+      "units": {
+        "de": 21,
+        "en": 21,
+        "ru": 21
+      }
+    },
+    {
+      "key": "I.15",
+      "titles": {
+        "de": "Vom Freunde.",
+        "en": "XIV. THE FRIEND.",
+        "ru": "О друге."
+      },
+      "units": {
+        "de": 27,
+        "en": 27,
+        "ru": 27
+      }
+    },
+    {
+      "key": "I.16",
+      "titles": {
+        "de": "Von tausend und Einem Ziele.",
+        "en": "XV. THE THOUSAND AND ONE GOALS.",
+        "ru": "О тысяче и одной цели."
+      },
+      "units": {
+        "de": 27,
+        "en": 27,
+        "ru": 26
+      }
+    },
+    {
+      "key": "I.17",
+      "titles": {
+        "de": "Von der Nächstenliebe.",
+        "en": "XVI. NEIGHBOUR-LOVE.",
+        "ru": "О любви к ближнему."
+      },
+      "units": {
+        "de": 21,
+        "en": 21,
+        "ru": 21
+      }
+    },
+    {
+      "key": "I.18",
+      "titles": {
+        "de": "Vom Wege des Schaffenden.",
+        "en": "XVII. THE WAY OF THE CREATING ONE.",
+        "ru": "О пути созидающего."
+      },
+      "units": {
+        "de": 36,
+        "en": 36,
+        "ru": 36
+      }
+    },
+    {
+      "key": "I.19",
+      "titles": {
+        "de": "Von alten und jungen Weiblein.",
+        "en": "XVIII. OLD AND YOUNG WOMEN.",
+        "ru": "О старых и молодых женщинах."
+      },
+      "units": {
+        "de": 34,
+        "en": 34,
+        "ru": 34
+      }
+    },
+    {
+      "key": "I.20",
+      "titles": {
+        "de": "Vom Biss der Natter.",
+        "en": "XIX. THE BITE OF THE ADDER.",
+        "ru": "Об укусе змеи."
+      },
+      "units": {
+        "de": 19,
+        "en": 19,
+        "ru": 19
+      }
+    },
+    {
+      "key": "I.21",
+      "titles": {
+        "de": "Von Kind und Ehe.",
+        "en": "XX. CHILD AND MARRIAGE.",
+        "ru": "О ребенке и браке."
+      },
+      "units": {
+        "de": 29,
+        "en": 29,
+        "ru": 29
+      }
+    },
+    {
+      "key": "I.22",
+      "titles": {
+        "de": "Vom freien Tode.",
+        "en": "XXI. VOLUNTARY DEATH.",
+        "ru": "О свободной смерти."
+      },
+      "units": {
+        "de": 37,
+        "en": 37,
+        "ru": 37
+      }
+    },
+    {
+      "key": "I.23",
+      "titles": {
+        "de": "Von der schenkenden Tugend.",
+        "en": "XXII. THE BESTOWING VIRTUE.",
+        "ru": "О дарящей добродетели."
+      },
+      "units": {
+        "de": 55,
+        "en": 55,
+        "ru": 56
+      }
+    },
+    {
+      "key": "II.01",
+      "titles": {
+        "de": "Das Kind mit dem Spiegel.",
+        "en": "XXIII. THE CHILD WITH THE MIRROR.",
+        "ru": "Ребенок с зеркалом."
+      },
+      "units": {
+        "de": 34,
+        "en": 34,
+        "ru": 34
+      }
+    },
+    {
+      "key": "II.02",
+      "titles": {
+        "de": "Auf den glückseligen Inseln.",
+        "en": "XXIV. IN THE HAPPY ISLES.",
+        "ru": "На блаженных островах."
+      },
+      "units": {
+        "de": 35,
+        "en": 35,
+        "ru": 35
+      }
+    },
+    {
+      "key": "II.03",
+      "titles": {
+        "de": "Von den Mitleidigen.",
+        "en": "XXV. THE PITIFUL.",
+        "ru": "О сострадательных."
+      },
+      "units": {
+        "de": 42,
+        "en": 42,
+        "ru": 40
+      }
+    },
+    {
+      "key": "II.04",
+      "titles": {
+        "de": "Von den Priestern.",
+        "en": "XXVI. THE PRIESTS."
+      },
+      "units": {
+        "de": 38,
+        "en": 38
+      },
+      "omitted": [
+        "ru"
+      ]
+    },
+    {
+      "key": "II.05",
+      "titles": {
+        "de": "Von den Tugendhaften.",
+        "en": "XXVII. THE VIRTUOUS.",
+        "ru": "О добродетельных."
+      },
+      "units": {
+        "de": 43,
+        "en": 43,
+        "ru": 43
+      }
+    },
+    {
+      "key": "II.06",
+      "titles": {
+        "de": "Vom Gesindel.",
+        "en": "XXVIII. THE RABBLE.",
+        "ru": "О толпе."
+      },
+      "units": {
+        "de": 35,
+        "en": 35,
+        "ru": 35
+      }
+    },
+    {
+      "key": "II.07",
+      "titles": {
+        "de": "Von den Taranteln.",
+        "en": "XXIX. THE TARANTULAS.",
+        "ru": "О тарантулах."
+      },
+      "units": {
+        "de": 43,
+        "en": 43,
+        "ru": 43
+      }
+    },
+    {
+      "key": "II.08",
+      "titles": {
+        "de": "Von den berühmten Weisen.",
+        "en": "XXX. THE FAMOUS WISE ONES.",
+        "ru": "О знаменитых мудрецах."
+      },
+      "units": {
+        "de": 38,
+        "en": 39,
+        "ru": 39
+      }
+    },
+    {
+      "key": "II.09",
+      "titles": {
+        "de": "Das Nachtlied.",
+        "en": "XXXI. THE NIGHT-SONG.",
+        "ru": "Ночная песнь."
+      },
+      "units": {
+        "de": 29,
+        "en": 29,
+        "ru": 28
+      }
+    },
+    {
+      "key": "II.10",
+      "titles": {
+        "de": "Das Tanzlied.",
+        "en": "XXXII. THE DANCE-SONG.",
+        "ru": "Песнь пляска."
+      },
+      "units": {
+        "de": 37,
+        "en": 37,
+        "ru": 37
+      }
+    },
+    {
+      "key": "II.11",
+      "titles": {
+        "de": "Das Grablied.",
+        "en": "XXXIII. THE GRAVE-SONG.",
+        "ru": "Надгробная песнь."
+      },
+      "units": {
+        "de": 39,
+        "en": 39,
+        "ru": 39
+      }
+    },
+    {
+      "key": "II.12",
+      "titles": {
+        "de": "Von der Selbst-Ueberwindung.",
+        "en": "XXXIV. SELF-SURPASSING.",
+        "ru": "О преодолении самого себя."
+      },
+      "units": {
+        "de": 45,
+        "en": 45,
+        "ru": 45
+      }
+    },
+    {
+      "key": "II.13",
+      "titles": {
+        "de": "Von den Erhabenen.",
+        "en": "XXXV. THE SUBLIME ONES.",
+        "ru": "О возвышенных."
+      },
+      "units": {
+        "de": 36,
+        "en": 36,
+        "ru": 36
+      }
+    },
+    {
+      "key": "II.14",
+      "titles": {
+        "de": "Vom Lande der Bildung.",
+        "en": "XXXVI. THE LAND OF CULTURE.",
+        "ru": "О стране культуры."
+      },
+      "units": {
+        "de": 36,
+        "en": 36,
+        "ru": 36
+      }
+    },
+    {
+      "key": "II.15",
+      "titles": {
+        "de": "Von der unbefleckten Erkenntniss.",
+        "en": "XXXVII. IMMACULATE PERCEPTION.",
+        "ru": "О незапятнанном познании."
+      },
+      "units": {
+        "de": 40,
+        "en": 40,
+        "ru": 41
+      }
+    },
+    {
+      "key": "II.16",
+      "titles": {
+        "de": "Von den Gelehrten.",
+        "en": "XXXVIII. SCHOLARS.",
+        "ru": "Об ученых."
+      },
+      "units": {
+        "de": 27,
+        "en": 27,
+        "ru": 27
+      }
+    },
+    {
+      "key": "II.17",
+      "titles": {
+        "de": "Von den Dichtern.",
+        "en": "XXXIX. POETS.",
+        "ru": "О поэтах."
+      },
+      "units": {
+        "de": 46,
+        "en": 46,
+        "ru": 44
+      }
+    },
+    {
+      "key": "II.18",
+      "titles": {
+        "de": "Von grossen Ereignissen.",
+        "en": "XL. GREAT EVENTS.",
+        "ru": "О великих событиях."
+      },
+      "units": {
+        "de": 43,
+        "en": 43,
+        "ru": 41
+      }
+    },
+    {
+      "key": "II.19",
+      "titles": {
+        "de": "Der Wahrsager.",
+        "en": "XLI. THE SOOTHSAYER.",
+        "ru": "Прорицатель."
+      },
+      "units": {
+        "de": 46,
+        "en": 47,
+        "ru": 47
+      }
+    },
+    {
+      "key": "II.20",
+      "titles": {
+        "de": "Von der Erlösung.",
+        "en": "XLII. REDEMPTION.",
+        "ru": "Об избавлении."
+      },
+      "units": {
+        "de": 53,
+        "en": 53,
+        "ru": 51
+      }
+    },
+    {
+      "key": "II.21",
+      "titles": {
+        "de": "Von der Menschen-Klugheit.",
+        "en": "XLIII. MANLY PRUDENCE.",
+        "ru": "О человеческой мудрости."
+      },
+      "units": {
+        "de": 42,
+        "en": 42,
+        "ru": 42
+      }
+    },
+    {
+      "key": "II.22",
+      "titles": {
+        "de": "Die stillste Stunde.",
+        "en": "XLIV. THE STILLEST HOUR.",
+        "ru": "Тишина."
+      },
+      "units": {
+        "de": 42,
+        "en": 43,
+        "ru": 46
+      }
+    },
+    {
+      "key": "III.01",
+      "titles": {
+        "de": "Der Wanderer.",
+        "en": "XLV. THE WANDERER.",
+        "ru": "Странник."
+      },
+      "units": {
+        "de": 35,
+        "en": 35,
+        "ru": 35
+      }
+    },
+    {
+      "key": "III.02",
+      "titles": {
+        "de": "Vom Gesicht und Räthsel.",
+        "en": "XLVI. THE VISION AND THE ENIGMA.",
+        "ru": "О призраке и загадке."
+      },
+      "units": {
+        "de": 56,
+        "en": 57,
+        "ru": 55
+      }
+    },
+    {
+      "key": "III.03",
+      "titles": {
+        "de": "Von der Seligkeit wider Willen.",
+        "en": "XLVII. INVOLUNTARY BLISS.",
+        "ru": "О блаженстве против воли."
+      },
+      "units": {
+        "de": 39,
+        "en": 39,
+        "ru": 38
+      }
+    },
+    {
+      "key": "III.04",
+      "titles": {
+        "de": "Vor Sonnen-Aufgang.",
+        "en": "XLVIII. BEFORE SUNRISE.",
+        "ru": "Перед восходом солнца."
+      },
+      "units": {
+        "de": 38,
+        "en": 38,
+        "ru": 37
+      }
+    },
+    {
+      "key": "III.05",
+      "titles": {
+        "de": "Von der verkleinernden Tugend.",
+        "en": "XLIX. THE BEDWARFING VIRTUE.",
+        "ru": "Об умаляющей добродетели."
+      },
+      "units": {
+        "de": 70,
+        "en": 72,
+        "ru": 72
+      }
+    },
+    {
+      "key": "III.06",
+      "titles": {
+        "de": "Auf dem Oelberge.",
+        "en": "L. ON THE OLIVE-MOUNT.",
+        "ru": "На священной горе."
+      },
+      "units": {
+        "de": 42,
+        "en": 42,
+        "ru": 41
+      }
+    },
+    {
+      "key": "III.07",
+      "titles": {
+        "de": "Vom Vorübergehen.",
+        "en": "LI. ON PASSING-BY.",
+        "ru": "О прохождении мимо."
+      },
+      "units": {
+        "de": 41,
+        "en": 41,
+        "ru": 40
+      }
+    },
+    {
+      "key": "III.08",
+      "titles": {
+        "de": "Von den Abtrünnigen.",
+        "en": "LII. THE APOSTATES.",
+        "ru": "Об отступниках."
+      },
+      "units": {
+        "de": 49,
+        "en": 47,
+        "ru": 46
+      }
+    },
+    {
+      "key": "III.09",
+      "titles": {
+        "de": "Die Heimkehr.",
+        "en": "LIII. THE RETURN HOME.",
+        "ru": "Возвращение."
+      },
+      "units": {
+        "de": 44,
+        "en": 44,
+        "ru": 44
+      }
+    },
+    {
+      "key": "III.10",
+      "titles": {
+        "de": "Von den drei Bösen.",
+        "en": "LIV. THE THREE EVIL THINGS.",
+        "ru": "О трояком зле."
+      },
+      "units": {
+        "de": 51,
+        "en": 51,
+        "ru": 51
+      }
+    },
+    {
+      "key": "III.11",
+      "titles": {
+        "de": "Vom Geist der Schwere.",
+        "en": "LV. THE SPIRIT OF GRAVITY.",
+        "ru": "О духе тяжести."
+      },
+      "units": {
+        "de": 46,
+        "en": 46,
+        "ru": 46
+      }
+    },
+    {
+      "key": "III.12",
+      "titles": {
+        "de": "Von alten und neuen Tafeln.",
+        "en": "LVI. OLD AND NEW TABLES.",
+        "ru": "О старых и новых скрижалях."
+      },
+      "units": {
+        "de": 228,
+        "en": 234,
+        "ru": 231
+      }
+    },
+    {
+      "key": "III.13",
+      "titles": {
+        "de": "Der Genesende.",
+        "en": "LVII. THE CONVALESCENT.",
+        "ru": "Выздоравливающий."
+      },
+      "units": {
+        "de": 71,
+        "en": 71,
+        "ru": 68
+      }
+    },
+    {
+      "key": "III.14",
+      "titles": {
+        "de": "Von der grossen Sehnsucht.",
+        "en": "LVIII. THE GREAT LONGING.",
+        "ru": "О великом томлении."
+      },
+      "units": {
+        "de": 33,
+        "en": 33,
+        "ru": 33
+      }
+    },
+    {
+      "key": "III.15",
+      "titles": {
+        "de": "Das andere Tanzlied.",
+        "en": "LIX. THE SECOND DANCE-SONG.",
+        "ru": "Другая песнь пляска."
+      },
+      "units": {
+        "de": 51,
+        "en": 63,
+        "ru": 62
+      }
+    },
+    {
+      "key": "III.16",
+      "titles": {
+        "de": "Die sieben Siegel.",
+        "en": "LX. THE SEVEN SEALS.",
+        "ru": "Семь печатей."
+      },
+      "units": {
+        "de": 47,
+        "en": 50,
+        "ru": 51
+      }
+    },
+    {
+      "key": "IV.01",
+      "titles": {
+        "de": "Das Honig-Opfer.",
+        "en": "LXI. THE HONEY SACRIFICE.",
+        "ru": "Жертва медовая."
+      },
+      "units": {
+        "de": 29,
+        "en": 29,
+        "ru": 28
+      }
+    },
+    {
+      "key": "IV.02",
+      "titles": {
+        "de": "Der Nothschrei.",
+        "en": "LXII. THE CRY OF DISTRESS.",
+        "ru": "Крик о помощи."
+      },
+      "units": {
+        "de": 28,
+        "en": 28,
+        "ru": 27
+      }
+    },
+    {
+      "key": "IV.03",
+      "titles": {
+        "de": "Gespräch mit den Königen.",
+        "en": "LXIII. TALK WITH THE KINGS.",
+        "ru": "Беседа с королями."
+      },
+      "units": {
+        "de": 40,
+        "en": 40,
+        "ru": 40
+      }
+    },
+    {
+      "key": "IV.04",
+      "titles": {
+        "de": "Der Blutegel.",
+        "en": "LXIV. THE LEECH.",
+        "ru": "Пиявка."
+      },
+      "units": {
+        "de": 35,
+        "en": 35,
+        "ru": 35
+      }
+    },
+    {
+      "key": "IV.05",
+      "titles": {
+        "de": "Der Zauberer.",
+        "en": "LXV. THE MAGICIAN.",
+        "ru": "Чародей."
+      },
+      "units": {
+        "de": 40,
+        "en": 47,
+        "ru": 47
+      }
+    },
+    {
+      "key": "IV.06",
+      "titles": {
+        "de": "Ausser Dienst.",
+        "en": "LXVI. OUT OF SERVICE."
+      },
+      "units": {
+        "de": 51,
+        "en": 51
+      },
+      "omitted": [
+        "ru"
+      ]
+    },
+    {
+      "key": "IV.07",
+      "titles": {
+        "de": "Der hässlichste Mensch.",
+        "en": "LXVII. THE UGLIEST MAN.",
+        "ru": "Самый безобразный человек."
+      },
+      "units": {
+        "de": 51,
+        "en": 52,
+        "ru": 52
+      }
+    },
+    {
+      "key": "IV.08",
+      "titles": {
+        "de": "Der freiwillige Bettler.",
+        "en": "LXVIII. THE VOLUNTARY BEGGAR.",
+        "ru": "Добровольный нищий."
+      },
+      "units": {
+        "de": 41,
+        "en": 41,
+        "ru": 41
+      }
+    },
+    {
+      "key": "IV.09",
+      "titles": {
+        "de": "Der Schatten.",
+        "en": "LXIX. THE SHADOW.",
+        "ru": "Тень."
+      },
+      "units": {
+        "de": 37,
+        "en": 37,
+        "ru": 36
+      }
+    },
+    {
+      "key": "IV.10",
+      "titles": {
+        "de": "Mittags.",
+        "en": "LXX. NOONTIDE.",
+        "ru": "В полдень."
+      },
+      "units": {
+        "de": 30,
+        "en": 30,
+        "ru": 31
+      }
+    },
+    {
+      "key": "IV.11",
+      "titles": {
+        "de": "Die Begrüssung.",
+        "en": "LXXI. THE GREETING.",
+        "ru": "Приветствие."
+      },
+      "units": {
+        "de": 55,
+        "en": 55,
+        "ru": 55
+      }
+    },
+    {
+      "key": "IV.12",
+      "titles": {
+        "de": "Das Abendmahl.",
+        "en": "LXXII. THE SUPPER.",
+        "ru": "Пир."
+      },
+      "units": {
+        "de": 21,
+        "en": 21,
+        "ru": 22
+      }
+    },
+    {
+      "key": "IV.13",
+      "titles": {
+        "de": "Vom höheren Menschen.",
+        "en": "LXXIII. THE HIGHER MAN.",
+        "ru": "О высшем человеке."
+      },
+      "units": {
+        "de": 108,
+        "en": 108,
+        "ru": 107
+      }
+    },
+    {
+      "key": "IV.14",
+      "titles": {
+        "de": "Das Lied der Schwermuth.",
+        "en": "LXXIV. THE SONG OF MELANCHOLY.",
+        "ru": "Песнь тоски."
+      },
+      "units": {
+        "de": 16,
+        "en": 23,
+        "ru": 26
+      }
+    },
+    {
+      "key": "IV.15",
+      "titles": {
+        "de": "Von der Wissenschaft.",
+        "en": "LXXV. SCIENCE.",
+        "ru": "О науке."
+      },
+      "units": {
+        "de": 29,
+        "en": 29,
+        "ru": 28
+      }
+    },
+    {
+      "key": "IV.16",
+      "titles": {
+        "de": "Unter Töchtern der Wüste.",
+        "en": "LXXVI. AMONG DAUGHTERS OF THE DESERT.",
+        "ru": "Среди дочерей пустины."
+      },
+      "units": {
+        "de": 17,
+        "en": 23,
+        "ru": 21
+      }
+    },
+    {
+      "key": "IV.17",
+      "titles": {
+        "de": "Die Erweckung.",
+        "en": "LXXVII. THE AWAKENING.",
+        "ru": "Пробуждение."
+      },
+      "units": {
+        "de": 35,
+        "en": 36,
+        "ru": 17
+      }
+    },
+    {
+      "key": "IV.18",
+      "titles": {
+        "de": "Das Eselsfest.",
+        "en": "LXXVIII. THE ASS-FESTIVAL."
+      },
+      "units": {
+        "de": 42,
+        "en": 42
+      },
+      "omitted": [
+        "ru"
+      ]
+    },
+    {
+      "key": "IV.19",
+      "titles": {
+        "de": "Das Nachtwandler-Lied.",
+        "en": "LXXIX. THE DRUNKEN SONG.",
+        "ru": "Песнь опьянения."
+      },
+      "units": {
+        "de": 71,
+        "en": 72,
+        "ru": 70
+      }
+    },
+    {
+      "key": "IV.20",
+      "titles": {
+        "de": "Das Zeichen.",
+        "en": "LXXX. THE SIGN.",
+        "ru": "Знамение"
+      },
+      "units": {
+        "de": 26,
+        "en": 25,
+        "ru": 25
+      }
+    }
+  ]
+}

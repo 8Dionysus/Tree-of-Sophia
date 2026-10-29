@@ -82,7 +82,8 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     const shelf=[...own];library.space.collection=shelf;
     let pending=null;
     library.space.loadCollection=()=>pending??=antiquityEntries(context).then(items=>{shelf.push(...items.filter(item=>!shelf.some(held=>(held.materialId??held.id)===item.materialId)));return items;}).catch(error=>{pending=null;throw error;});
-    prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)}];
+    // The atlas before its retellings gave way to the work's own text: the same materials, other words.
+    prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'c2a23454c06995f9912a95216bdf4428e8ab444b6029f48a4817a58edcfd83c4',materialIds:library.nodes.map(node=>node.id)}];
     return prepared;
   }
   const items=await antiquityEntries(context),byId=new Map(library.nodes.map(node=>[node.id,node]));

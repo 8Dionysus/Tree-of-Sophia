@@ -21,6 +21,7 @@ import {depthLayout} from './space-depth.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark} from './space-play.mjs';
+import {citesOf,createFragments} from './fragments.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -49,6 +50,8 @@ Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор и�
 Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholarship',dating_low:'rests on a source that cites no study',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
   ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',ownPlaceholder:'How do you read it? One line',ownWrite:'Write it down',ownMine:'Your reading',ownAround:'Readings nearby',ownNearest:'Nearest to yours',ownNone:'None of them',ownRestsOn:'Rests on',ownDisputed:'Disputed by',ownWritten:'Your reading has taken its place in the space',threadNote:'not yet in the space',threadAdded:'The star has entered the space',
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
+Object.assign(extraTranslations.ru,{fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
+Object.assign(extraTranslations.en,{fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
 Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds of this proposal',manualOrigin:'Manual entry',agentOrigin:'External agent response',personalOrigin:'Personal proposal',pending:'Pending review',notCanon:'Not canon',postureShort:'Readings · not canon'});
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
 Object.assign(extraTranslations.ru,{"traceTitle": "Понятие во времени", "traceLink": "след понятия", "traceLabel": "Понятие", "nearTitle": "Близость по", "nearIsCenter": "центр", "nearClosest": "ближе всех", "nearFrom": "от", "nearNotMeasured": "не измеряется", "nearSharedConcepts": "общих понятий", "nearSharedGrounds": "общих оснований", "dateUnknown": "дата неизвестна", "duringLifeShort": "в пределах жизни автора", "duringActivityShort": "в годы деятельности автора", "placeUnknown": "место не установлено", "placeActivityShort": "здесь жил автор", "certainty_exact": "точно", "certainty_approximate": "приблизительно", "certainty_uncertain": "под вопросом", "certainty_unknown": "неизвестно", "certainty_none": "без датировки", "measureKind_date-assertion": "своя дата", "measureKind_interval-assertion": "свой интервал", "measureKind_relative-phase": "внутри периода", "measureKind_relative-life": "в пределах жизни автора", "measureKind_relative-activity": "в годы деятельности автора", "measureKind_relative-order": "относительно другого события", "measureKind_unknown-date": "дата неизвестна", "measureKind_none": "без датировки", "footing_high": "исследование", "footing_medium": "обзор исследований", "footing_low": "без ссылок на исследования", "placeBasis_composition": "место написания", "placeBasis_event": "место события", "placeBasis_activity": "место жизни автора", "placeBasis_unknown": "не установлено", "measureAction": "Мера и полнота", "measureDating": "Датировки", "measureCertainty": "Точность", "measureFooting": "Опора", "measurePlaces": "Места", "measureEras": "Эпохи", "measureConcepts": "Понятия", "measureBranches": "Ветви во времени", "measureLifeOnly": "Без собственной датировки", "measurePlaceless": "Без места", "measureGrounding": "Опора звёзд", "measureInBook": "главы книги", "measureOutside": "другие тексты", "measureChapters": "Главы", "measureOutsideTexts": "Тексты вне книги", "measureRoutes": "Маршруты по книге"});
@@ -67,6 +70,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const t=key=>{const lang=copyLocale(locale);return localeText(profileWords[lang]?.[key]??extraTranslations[lang][key]??translations[lang][key]??key,locale);};
   const quote=text=>{const language=resolveLocale(locale);return language==='de'?`„${text}“`:['ru','es'].includes(language)?`«${text}»`:`“${text}”`;};
   const openPublicAddress=address=>api.open(Object.fromEntries(Object.entries(address).filter(([key])=>['documentId','versionId','unitId','revision','reference'].includes(key))));
+  // The work's own text in place of a retelling: cited places, opened in the whole work.
+  const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell});
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
@@ -359,16 +364,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const source=atlas.references?.[ground.ref],target=preferredGroundTarget(ground.ref,contextId),binding=sourceForRef(ground.ref)??sourceMap.get(ground.ref);
       const title=tr(target?.title,locale())||[tr(source?.author,locale()),tr(source?.work,locale()),tr(source?.locator,locale())].filter(Boolean).join(' · ')||ground.ref;
       const detail=el('details','textual-ground');detail.append(el('summary','',title));
+      for(const cite of citesOf(ground))detail.append(fragments.fragment(cite));
       if(ground.focus)detail.append(el('p','ground-focus',tr(ground.focus,locale())));
-      const address=target?.address??binding;
+      const address=citesOf(ground).length?null:target?.address??binding;
       if(address){const open=button(`↗ ${t(address.unitId?'openExact':'openWork')}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(address).catch(()=>notify(t('unavailable'))));detail.append(open);}
-      else if(typeof source?.url==='string'&&/^https?:\/\//.test(source.url)){const link=el('a','source-link',`${title} ↗`);link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';detail.append(link);}
+      else if(!citesOf(ground).length&&typeof source?.url==='string'&&/^https?:\/\//.test(source.url)){const link=el('a','source-link',`${title} ↗`);link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';detail.append(link);}
       section.append(detail);
     }
     parent.append(section);return true;
   }
   function appendSourcePointers(parent,material){return appendGrounds(parent,material?.inquiry?.grounds,material?.id);}
-  function inquiryDetail(parent,title,value,open=false){if(!value)return null;const detail=el('details','inquiry-detail');detail.open=open;detail.append(el('summary','',title),el('p','',tr(value,locale())));parent.append(detail);return detail;}
+  function inquiryDetail(parent,title,value,open=false){if(!value||!fragments.hasAuthored(value))return null;const detail=el('details','inquiry-detail');detail.open=open;detail.append(el('summary','',title));fragments.render(detail,value,{className:''});parent.append(detail);return detail;}
   function inquiryQuestion(parent,value){if(!value)return;const card=el('section','ps-question-card');card.append(el('span','eyebrow',t('readingQuestion')),el('p','',tr(value,locale())));parent.append(card);}
   function showInquiry(){
     const current=route?.source==='atlas'?routes.find(item=>item.id===route.id):null;
@@ -382,8 +388,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(lensQuestion&&lensQuestion!==routeQuestion)content.append(el('h3','minor-title',t('lensQuestion')),el('p','inquiry-leading',lensQuestion));
     if(generalQuestion&&generalQuestion!==routeQuestion&&generalQuestion!==lensQuestion)content.append(el('h3','minor-title',t('generalQuestion')),el('p','inquiry-leading',generalQuestion));
     if(!routeQuestion&&!lensQuestion&&!generalQuestion){const description=tr(lenses.find(item=>item.id===lens)?.description,locale());if(description)content.append(el('p','inquiry-leading',description));}
-    if(foundation?.orientation)content.append(el('p','',tr(foundation.orientation,locale())));
-    for(const [field,key] of [['method','lensMethod'],['blindSpot','lensLimit'],['startingPoint','routeStarting'],['stakes','routeStakes'],['carryForward','routeCarry']])if(inquiry?.[field]){content.append(el('h3','minor-title',t(key)),el('p','',tr(inquiry[field],locale())));}
+    if(foundation?.orientation)fragments.render(content,foundation.orientation,{className:''});
+    for(const [field,key] of [['method','lensMethod'],['blindSpot','lensLimit'],['startingPoint','routeStarting'],['stakes','routeStakes'],['carryForward','routeCarry']])if(inquiry?.[field]&&fragments.hasAuthored(inquiry[field])){content.append(el('h3','minor-title',t(key)));fragments.render(content,inquiry[field],{className:''});}
     for(const item of foundation?.distinctions??[])inquiryDetail(content,tr(item.title,locale()),item.body);
     if(foundation?.practice)inquiryDetail(content,t('practice'),foundation.practice);
     appendGrounds(content,current?.grounds??inquiry?.grounds??foundation?.grounds);
@@ -1049,7 +1055,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
       else if(source?.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
       const body=material.atlasBody??material.body;
-      if(body)panelContent.append(el('p','body',tr(body,locale())));
+      if(body)fragments.render(panelContent,body,{className:'body'});
       // A riddle asks the reader first: its question, the reader's own line, and only then its readings, folded until written.
       const riddle=own&&material.kind==='question'&&materials.has(material.id),answered=!riddle||!!ownReadingOf(material.id);
       if(riddle){const asks=material.inquiry?.question??material.question;if(tr(asks,locale()).trim())inquiryQuestion(panelContent,asks);ownReadingBlock(panelContent,material.id);}
@@ -1101,7 +1107,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const authored=profile==='antiquity'?isAuthoredTransition(edge):(openRoute?.transitions??[]).some(item=>bareEdgeId(item.edgeId??item.id)===plainId);
     panelContent.append(el('p','eyebrow',(authored?t('transition'):t('relation'))+' · '+relationLabel),el('h1','',edgeLabel&&edgeLabel.length<=120?edgeLabel:relationLabel));if(edgeLabel.length>120)panelContent.append(el('p','body',edgeLabel));
     if(!edge.ownerType&&edge.kind!=='contains'&&!isBasedOn(edge))panelContent.append(ladderLine('comparison'));
-    if(edge.body||atlasEdge?.body)panelContent.append(el('p','body',tr(edge.body??atlasEdge.body,locale())));
+    if(edge.body||atlasEdge?.body)fragments.render(panelContent,edge.body??atlasEdge.body,{className:'body'});
     const inquiry=atlasEdge?.inquiry??edge.inquiry;if(inquiry){inquiryDetail(panelContent,t('relationWarrant'),inquiry.warrant,true);appendGrounds(panelContent,inquiry.grounds);inquiryDetail(panelContent,t('relationLimit'),inquiry.limit);inquiryQuestion(panelContent,inquiry.question);}
     const endpoints=el('div','edge-endpoints');const a=button(label(from?.ownerType==='personal-hypothesis'?from:matForNode(from)??from),'text-button'),b=button(label(to?.ownerType==='personal-hypothesis'?to:matForNode(to)??to),'text-button');a.addEventListener('click',()=>selectNode(from.id));b.addEventListener('click',()=>selectNode(to.id));endpoints.append(a,el('span','',relationLabel),b);panelContent.append(endpoints);
     const proposal=(workspace?.getState?.()?.proposals??[]).find(item=>item.id===edge.proposalId);
@@ -1263,10 +1269,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const row=el('div','ps-turn');
     if(turn.kind&&relationWord(turn.kind)){const style=styleOf(turn.kind),word=relationWord(turn.kind),line=el('p','ps-turn-line');row.style.setProperty('--relation-color',style.color);row.style.setProperty('--relation-weight',String((style.weight??1)*1.4));line.dataset.dash=style.dash;line.append(el('i'),el('b','',word),el('span','',turn.course));setHint(line,[style.hint?tr(style.hint,locale()):'',humanEdgeLabel(turn.link)].filter(Boolean).join(' · '));row.append(line);}
     else if(turn.course)row.append(el('p','ps-turn-line ps-turn-plain',turn.course));
-    if(expanded&&turn.body)row.append(el('p','ps-turn-body',tr(turn.body,locale())));
+    if(expanded&&turn.body)fragments.render(row,turn.body,{className:'ps-turn-body'});
     return row;
   }
   function stepSourceAction(step,witnessCount){
+    // A step that shows its places carries the way into the whole work with them.
+    if(citesOf(step?.body).length)return null;
+    const groundCites=(step?.grounds??[]).flatMap(ground=>citesOf(ground));
+    if(groundCites.length){const box=el('div','ps-step-places');for(const cite of groundCites)box.append(fragments.fragment(cite));return box;}
     const source=routeSource(step);if(!source)return null;
     if(source.binding){const open=button(`↗ ${sourceActionLabel(source)}`,'text-button');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));return open;}
     const language={de:{ru:'немецкий',en:'German'},en:{ru:'английский',en:'English'},fr:{ru:'французский',en:'French'},grc:{ru:'древнегреческий',en:'Ancient Greek'},la:{ru:'латинский',en:'Latin'}}[source.reference?.language];
@@ -1332,9 +1342,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       entry.append(stepHead(index,tr(step.title,locale()),witnesses[0],isCurrent,goRouteStep));
       if(isCurrent){
         const body=el('div','ps-step-body');for(const witness of witnesses.slice(1))body.append(el('p','ps-source-line',witness));
-        body.append(el('p','ps-step-text',tr(step.body,locale())));if(step.question)inquiryQuestion(body,step.question);
+        fragments.render(body,step.body,{className:'ps-step-text'});if(step.question)inquiryQuestion(body,step.question);
         if(step.question){const raw=step.nodeId??step.graphNodeId,stepMaterial=raw&&(materials.has(raw)?raw:raw.replace(/^material:/,''));if(stepMaterial&&materials.has(stepMaterial))ownReadingBlock(body,stepMaterial);}
-        const action=stepSourceAction(step,witnesses.length);if(action){const row=el('div','ps-route-actions');row.append(action);body.append(row);}
+        const action=stepSourceAction(step,witnesses.length);if(action?.classList.contains('ps-step-places'))body.append(action);else if(action){const row=el('div','ps-route-actions');row.append(action);body.append(row);}
         entry.append(body);
       }
       const turn=transitionAfter(current,index);if(turn)entry.append(turnRow(turn,isCurrent));
@@ -1435,6 +1445,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     collectionView=mountCollectionView({root:collectionRoot,entries,locale,
       onReadCatalog:()=>{dialog.close();void api.openLibrary().catch(()=>notify(t('unavailable')));},
       hasMaterial:id=>materials.has(id),materialInGraph:id=>state.nodes.some(node=>node.materialId===id),
+      renderAuthored:(parent,value,options)=>fragments.render(parent,value,options),
       onOpenMaterial:id=>{try{const graphId=model.addMaterial(id);checkGraphPersistence();state=model.getState();dialog.close();selectActual(graphId,{reveal:true});reflect();}catch(error){notify(displayPublicError(error,locale));}},
       onOpenSource:item=>{const material=materials.get(item.materialId??item.id)??item;const source=sourceForMaterial(material,{sourceNodeId:item.sourceNodeId??material.sourceNodeId});if(!source)return null;
         const wrap=el('div','ps-collection-source');const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>{dialog.close();void openPublicAddress(source.binding).catch(()=>notify(t('unavailable')));});wrap.append(open);return wrap;}
@@ -1637,5 +1648,5 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   if(upgradeError)notify(copyLocale(locale)==='en'?localeText('The saved graph could not be upgraded. Its original copy is preserved.',locale):'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   return {root:shell,pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
+    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
 }

@@ -67,6 +67,26 @@ fn source<'a>(refs: &'a V, id: &str) -> R<&'a V> {
     refs.object_get(id)
         .ok_or_else(|| format!("Unknown reading source: {id}"))
 }
+/// A citation points at the exact place a ground stands on: a span of units in a witness of the work
+/// (first and last unit, with the chapter that holds them where the witness is kept by chapter) or,
+/// for a work outside the witnesses, its canonical locator.
+fn cited(v: &V) -> R<bool> {
+    let a = arr(v);
+    if !truthy(v) {
+        return Ok(false);
+    }
+    let valid = !a.is_empty()
+        && a.iter().all(|c| {
+            let units = arr(get(c, "u"));
+            !word(c, "w").is_empty()
+                && ((units.len() == 2 && units.iter().all(|u| !text(u).is_empty()))
+                    || !word(c, "loc").is_empty())
+        });
+    if !valid {
+        return err("Invalid citation");
+    }
+    Ok(true)
+}
 fn grounds(v: &V, label: &str, refs: &V) -> R<()> {
     let a = arr(v);
     if a.is_empty() {
@@ -81,7 +101,23 @@ fn grounds(v: &V, label: &str, refs: &V) -> R<()> {
             return err(format!("Invalid or duplicate textual ground: {label}"));
         }
         source(refs, id)?;
-        bilingual(get(g, "focus"), &format!("{label} source focus"))?;
+        // The cited text speaks for itself; a focus is the Tree's own word about it and is then optional.
+        let has_cite = cited(get(g, "cite")).map_err(|e| format!("{e}: {label}"))?;
+        if !has_cite || truthy(get(g, "focus")) {
+            bilingual(get(g, "focus"), &format!("{label} source focus"))?;
+        }
+    }
+    Ok(())
+}
+/// Own words that may be absent where the cited text stands for them: a form either says something
+/// in both languages or only cites what it no longer retells, and any citation it carries is valid.
+fn optional_bilingual(v: &V, label: &str) -> R<()> {
+    if !truthy(v) {
+        return Ok(());
+    }
+    let cites = cited(get(v, "cite")).map_err(|e| format!("{e}: {label}"))?;
+    if !cites || truthy(get(v, "ru")) || truthy(get(v, "en")) {
+        bilingual(v, label)?;
     }
     Ok(())
 }
@@ -105,10 +141,14 @@ fn anchors(item: &V, refs: &V) -> R<V> {
     {
         let id = word(source(refs, word(g, "ref"))?, "passageId");
         if !id.is_empty() && seen.insert(id) {
-            result.push(object(vec![
+            let mut anchor = vec![
                 ("passageId".into(), s(id)),
                 ("focus".into(), get(g, "focus").clone()),
-            ]));
+            ];
+            if truthy(get(g, "cite")) {
+                anchor.push(("cite".into(), get(g, "cite").clone()));
+            }
+            result.push(object(anchor));
         }
     }
     Ok(V::Array(result))
@@ -132,7 +172,7 @@ fn bind(req: &V, refs: &V) -> R<V> {
         "relations",
     )?;
     for (id, item) in &mut nodes {
-        bilingual(get(item, "argument"), &format!("{id} argument"))?;
+        optional_bilingual(get(item, "argument"), &format!("{id} argument"))?;
         grounds(get(item, "grounds"), id, refs)?;
         if item.object_get("counterpoint").is_some() {
             return err(format!("Unattributed counterpoint is not a reading: {id}"));
@@ -163,7 +203,7 @@ fn bind(req: &V, refs: &V) -> R<V> {
         set(item, "anchors", bound_anchors);
     }
     for (id, item) in &relations {
-        bilingual(get(item, "warrant"), &format!("{id} warrant"))?;
+        optional_bilingual(get(item, "warrant"), &format!("{id} warrant"))?;
         grounds(get(item, "grounds"), id, refs)?;
         if item.object_get("challenge").is_some() {
             return err(format!("Unattributed relation challenge: {id}"));
@@ -219,7 +259,7 @@ fn routes(req: &V, refs: &V) -> R<V> {
             let nid = word(step, "nodeId");
             if !materials.contains(nid)
                 || bilingual(get(step, "title"), "").is_err()
-                || bilingual(get(step, "body"), "").is_err()
+                || optional_bilingual(get(step, "body"), "").is_err()
             {
                 return err(format!("Route {id} has an invalid step"));
             }
@@ -237,7 +277,7 @@ fn routes(req: &V, refs: &V) -> R<V> {
             };
             if word(t, "from") != from
                 || word(t, "to") != to
-                || bilingual(get(t, "body"), "").is_err()
+                || optional_bilingual(get(t, "body"), "").is_err()
             {
                 return err(format!("Route {id} has an ungrounded transition"));
             }
@@ -267,13 +307,20 @@ fn routes(req: &V, refs: &V) -> R<V> {
     }
     Ok(V::Array(out))
 }
+fn context_of(g: &V) -> V {
+    if truthy(get(g, "focus")) || !truthy(get(g, "cite")) {
+        get(g, "focus").clone()
+    } else {
+        object(vec![("cite".into(), get(g, "cite").clone())])
+    }
+}
 fn contexts(req: &V, refs: &V) -> R<V> {
     let mut out: Vec<(String, V)> = arr(get(req, "nodes"))
         .iter()
         .map(|node| {
             let contexts = arr(get(get(node, "inquiry"), "anchors"))
                 .iter()
-                .map(|a| (word(a, "passageId").into(), get(a, "focus").clone()))
+                .map(|a| (word(a, "passageId").into(), context_of(a)))
                 .collect();
             (word(node, "id").into(), object(contexts))
         })
@@ -286,7 +333,7 @@ fn contexts(req: &V, refs: &V) -> R<V> {
         for g in arr(gs) {
             let sid = word(source(refs, word(g, "ref"))?, "passageId");
             if !sid.is_empty() && contexts.object_get(sid).is_none() {
-                set(contexts, sid, get(g, "focus").clone());
+                set(contexts, sid, context_of(g));
             }
         }
         Ok(())
@@ -440,6 +487,42 @@ mod tests {
             constructor_reading_v1(base.replace("\"index\":0", "\"index\":2").as_bytes()).unwrap(),
             b"false"
         );
+    }
+    #[test]
+    fn a_cited_ground_needs_no_retold_focus() {
+        let cite = r#"{"operation":"grounds","label":"stop","grounds":[{"ref":"one","cite":[{"w":"za","c":"III.02","u":["a","b"],"s":0,"e":12}]}],"references":{"one":{"passageId":"exact"}}}"#;
+        assert!(constructor_reading_v1(cite.as_bytes()).is_ok());
+        let external = cite.replace(r#""c":"III.02","u":["a","b"],"s":0,"e":12"#, r#""loc":"341""#);
+        assert!(constructor_reading_v1(external.as_bytes()).is_ok());
+        let broken = cite.replace(r#""u":["a","b"]"#, r#""u":["a"]"#);
+        assert!(constructor_reading_v1(broken.as_bytes()).unwrap_err().contains("Invalid citation"));
+        let neither = r#"{"operation":"grounds","label":"stop","grounds":[{"ref":"one"}],"references":{"one":{"passageId":"exact"}}}"#;
+        assert!(constructor_reading_v1(neither.as_bytes()).unwrap_err().contains("Missing ru inquiry"));
+        let half = cite.replace(r#""cite""#, r#""focus":{"ru":"Своё"},"cite""#);
+        assert!(constructor_reading_v1(half.as_bytes()).unwrap_err().contains("Missing en inquiry"));
+        let units = r#"{"operation":"grounds","label":"stop","grounds":[{"ref":"one","cite":[{"w":"apology","u":["a","b"]}]}],"references":{"one":{"passageId":"exact"}}}"#;
+        assert!(constructor_reading_v1(units.as_bytes()).is_ok());
+    }
+    #[test]
+    fn own_words_may_give_way_to_what_is_cited() {
+        let refs = r#"{"one":{"passageId":"exact"}}"#;
+        let ground = r#"[{"ref":"one","cite":[{"w":"za","c":"III.02","u":["a","b"]}]}]"#;
+        let catalog = |argument: &str| {
+            format!(
+                r#"{{"operation":"bind","materialIds":["m"],"edgeIds":[],"sources":{{"m":{{"argument":{argument},"grounds":{ground}}}}},"readings":{{}},"relations":{{}},"references":{refs}}}"#
+            )
+        };
+        for argument in [
+            "null",
+            r#"{"cite":[{"w":"za","c":"III.02","u":["a","b"]}]}"#,
+            r#"{"ru":"Своё","en":"Own","cite":[{"w":"za","u":["a","b"]}]}"#,
+        ] {
+            assert!(constructor_reading_v1(catalog(argument).as_bytes()).is_ok(), "{argument}");
+        }
+        let broken = catalog(r#"{"cite":[{"w":"za","u":["a"]}]}"#);
+        assert!(constructor_reading_v1(broken.as_bytes()).unwrap_err().contains("Invalid citation"));
+        let half = catalog(r#"{"ru":"Своё","cite":[{"w":"za","u":["a","b"]}]}"#);
+        assert!(constructor_reading_v1(half.as_bytes()).unwrap_err().contains("Missing en inquiry"));
     }
     #[test]
     fn source_reference_must_be_authored_and_bilingual() {

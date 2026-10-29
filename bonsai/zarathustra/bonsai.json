@@ -125,6 +125,18 @@
       "format": "tos.bonsai.basemap.v1"
     },
     {
+      "id": "witnesses",
+      "path": "witnesses.json",
+      "chapters": "witnesses/<chapter>.json",
+      "role": {
+        "ru": "Текст самой книги, которым стенд цитирует её вместо пересказа: немецкий оригинал первых изданий, перевод Коммона и перевод Антоновского 1913 года, по главам, с выравниванием абзацев и предложений между ними; права и авторство каждого свидетеля.",
+        "en": "The book’s own text, through which the stand quotes it instead of retelling it: the German original of the first editions, Common’s translation and Antonovsky’s of 1913, chapter by chapter, with the alignment of paragraphs and sentences between them; the rights and attribution of each witness."
+      },
+      "format": "tos.bonsai.witnesses.v1",
+      "licence": "CC BY-SA 4.0",
+      "identities": "citations name pivot units by their Tree technical-markup IDs; saved graphs do not depend on this module"
+    },
+    {
       "id": "identities",
       "path": "identities.json",
       "role": {

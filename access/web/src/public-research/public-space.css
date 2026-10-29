@@ -586,3 +586,50 @@
 #tree .tree-thread{width:24px;height:24px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer}
 #tree .tree-thread:hover,#tree .tree-thread:focus-visible{background:radial-gradient(closest-side,#e8cf8f40,#e8cf8f00)}
 #tree .tree-thread[hidden]{display:none}
+
+/* Fragments: the work's own text in place of a retelling, then the stand's own words. */
+.ps-authored{margin:8px 0 12px}
+.ps-authored>p:not(.ps-fragment-line){margin:10px 0 0}
+.ps-fragment{margin:10px 0 12px;padding:0}
+.ps-fragment+.ps-fragment{margin-top:14px}
+.ps-fragment-text{margin:0;padding:2px 0 2px 14px;border-left:2px solid var(--ps-gold-line,#c9ad7366);color:var(--ps-ink,#e4e6ea);font:15px/1.62 var(--ps-serif,Georgia,serif)}
+.ps-fragment-text+.ps-fragment-cite+.ps-fragment-text{margin-top:10px}
+.ps-fragment-line{margin:0 0 6px;color:inherit;font:inherit}
+.ps-fragment-line:last-child{margin-bottom:0}
+.ps-fragment-line.is-verse,.ps-parallel .is-verse{white-space:pre-line}
+.ps-fragment-cite{margin:5px 0 0 16px;color:var(--ps-muted,#93a5b9);font:11.5px/1.45 var(--ps-sans,system-ui,sans-serif);letter-spacing:.02em}
+.ps-fragment-tools{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:4px 0 0 16px}
+.ps-fragment-tools .text-button{min-height:28px;padding:2px 0;color:var(--ps-gold-soft,#d6c59c);font:12px/1.3 var(--ps-sans,system-ui,sans-serif);text-decoration:none;background:none;border:0;cursor:pointer}
+.ps-fragment-tools .text-button:hover{color:var(--ps-gold,#dcc690);text-decoration:underline;text-underline-offset:3px}
+.ps-fragment-swap[aria-pressed=true]{color:var(--ps-ink,#e4e6ea)}
+.ps-fragment-absent{color:var(--ps-faint,#6f88a6);font:13px/1 var(--ps-sans,system-ui,sans-serif);cursor:default}
+.ps-fragment-wait{margin:0;padding-left:16px;color:var(--ps-faint,#6f88a6);font:12px/1.5 var(--ps-sans,system-ui,sans-serif)}
+
+/* The parallel reading of a chapter: the original beside the translation, row by row. */
+.ps-dialog.ps-parallel{width:min(1120px,calc(100vw - 30px));max-height:min(88vh,980px);display:flex;flex-direction:column;overflow:hidden}
+.ps-dialog.ps-parallel[open]{display:flex}
+.ps-parallel-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 16px 12px 22px;border-bottom:1px solid #8296b22b}
+.ps-parallel-titles h2{margin:0;color:#e6dcc0;font:400 21px/1.3 var(--ps-serif,Georgia,serif)}
+.ps-parallel-subtitle{margin:2px 0 0;color:#a9b8c9;font:14px/1.4 var(--ps-serif,Georgia,serif)}
+.ps-parallel-nav{display:flex;flex:none;gap:2px}
+.ps-parallel-nav .icon{width:44px;height:44px}
+.ps-parallel-nav .icon:disabled{opacity:.35;cursor:default}
+.ps-parallel-body{flex:1 1 auto;overflow:auto;overscroll-behavior:contain;padding:6px 22px 18px}
+.ps-parallel-grid{display:grid;grid-template-columns:1fr}
+.ps-parallel-grid[data-columns="2"] .ps-parallel-row{grid-template-columns:1fr 1fr}
+.ps-parallel-row{display:grid;gap:22px;padding:10px 0;border-bottom:1px solid #8296b21c}
+.ps-parallel-row.is-cited{background:linear-gradient(90deg,#d6c59c12,#d6c59c05);box-shadow:inset 2px 0 0 #d6c59c88;padding-left:10px;margin-left:-12px}
+.ps-parallel-cell p{margin:0 0 8px;color:#cdd6e1;font:15px/1.62 var(--ps-serif,Georgia,serif)}
+.ps-parallel-cell p:last-child{margin-bottom:0}
+.ps-parallel-cell.is-absent{min-height:1.5em;background:repeating-linear-gradient(135deg,transparent 0 7px,#8296b214 7px 8px);border-radius:3px}
+.ps-parallel mark{background:#d6c59c33;color:#f1e7cb;border-radius:2px;padding:0 1px}
+.ps-parallel-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:10px 22px 14px;border-top:1px solid #8296b22b}
+.ps-parallel-foot .text-button{min-height:32px;color:#d6c59c;font:12.5px/1.3 var(--ps-sans,system-ui,sans-serif)}
+.ps-parallel-credit{flex:1 1 320px;margin:0;color:#7f93ab;font:11px/1.5 var(--ps-sans,system-ui,sans-serif)}
+@media (max-width:720px){
+  .ps-parallel-grid[data-columns="2"] .ps-parallel-row{grid-template-columns:1fr;gap:6px}
+  .ps-parallel-row .ps-parallel-cell+.ps-parallel-cell{padding-top:6px;border-top:1px dashed #8296b222}
+  .ps-parallel-body{padding:4px 16px 16px}
+  .ps-parallel-top{padding:10px 8px 8px 16px}
+  .ps-fragment-text{font-size:14.5px}
+}

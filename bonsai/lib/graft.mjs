@@ -9,11 +9,12 @@
 
 import {createHash} from 'node:crypto';
 import {existsSync,readFileSync,readdirSync,statSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname,join} from 'node:path';
 import {chronologyIssues} from './chronology.mjs';
 import {contractOf,exportBonsai} from './export.mjs';
 import {placesIssues} from './places.mjs';
 import {createValidator} from './schema.mjs';
+import {witnessesIssues} from './witnesses.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -24,6 +25,15 @@ export function loadBonsai(root,id){
   const home=join(root,'bonsai',id),manifest=json(join(home,'bonsai.json')),modules={};
   for(const module of manifest.modules??[])if(module.path&&!module.borrowed)modules[module.id]=json(join(home,module.path));
   return {home,manifest,modules};
+}
+
+/** The chapter files of a bonsai's witnesses module, by chapter key. */
+export function loadWitnessChapters(home,manifest){
+  const module=(manifest.modules??[]).find(item=>item.id==='witnesses');
+  if(!module?.chapters)return {};
+  const dir=join(home,dirname(module.chapters));
+  if(!existsSync(dir))return {};
+  return Object.fromEntries(readdirSync(dir).filter(name=>name.endsWith('.json')).sort().map(name=>[name.slice(0,-5),json(join(dir,name))]));
 }
 
 /** Every bonsai in the repository. */
@@ -81,19 +91,20 @@ export function treeIdentities(root){
       else if(depth>0&&statSync(path).isDirectory())walk(path,file,depth-1);
     }
   };
-  walk(join(base,'works'),'work.json',2);walk(join(base,'agents'),'agent.json',1);walk(join(base,'places'),'place.json',1);
+  walk(join(base,'works'),'work.json',2);walk(join(base,'works'),'expression.json',4);walk(join(base,'agents'),'agent.json',1);walk(join(base,'places'),'place.json',1);
   return ids;
 }
 
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
 export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
-  const {manifest,modules}=loadBonsai(root,id),problems=[],drift=[];
+  const {home,manifest,modules}=loadBonsai(root,id),problems=[],drift=[];
   // Without a readable relation registry the export's predicates go unchecked, which the check says rather than hides.
   if(relations===undefined){try{relations=treeRelations(root);}catch(error){relations=null;problems.push(`relation registry: ${error.message}`);}}
   if(manifest.schema!==MANIFEST_SCHEMA)problems.push('manifest schema');
   if(manifest.id!==id)problems.push('manifest id');
   if(modules.chronology)problems.push(...chronologyIssues(modules.chronology).map(issue=>`chronology: ${issue}`));
   if(modules.places)problems.push(...placesIssues(modules.places,modules.chronology??null).map(issue=>`places: ${issue}`));
+  if(modules.witnesses)problems.push(...witnessesIssues(modules.witnesses,loadWitnessChapters(home,manifest)).map(issue=>`witnesses: ${issue}`));
   for(const module of manifest.modules??[])if(module.borrowed){for(const path of [].concat(module.borrowed))if(!existsSync(join(root,path)))problems.push(`borrowed module ${module.id}: ${path} is missing`);}
   let packet=null;
   if(modules.chronology){
@@ -114,6 +125,11 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
     if(!/^(work|agent|place)$/.test(item.type))continue;
     if(item.status==='resolved'&&!identities.has(item.tree))drift.push(`identity ${item.tree}: resolved in the bonsai, absent from the Tree`);
     if(item.status==='to-mint'&&identities.has(item.tree))drift.push(`identity ${item.tree}: the Tree now holds it; mark it resolved`);
+  }
+  // The witnesses' editions are Tree expressions; the graft map says which, and the check sees whether the Tree still holds them.
+  if(identities)for(const [key,entry] of Object.entries(modules.identities?.expressions??{})){
+    if(entry.status==='resolved'&&!identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): resolved in the bonsai, absent from the Tree`);
+    if(entry.status==='to-mint'&&identities.has(entry.tree))drift.push(`expression ${entry.tree} (${key}): the Tree now holds it; mark it resolved`);
   }
   return {id,problems,drift,packet,checkedIdentities:!!identities};
 }

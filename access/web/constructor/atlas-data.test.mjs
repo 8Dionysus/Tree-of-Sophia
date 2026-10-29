@@ -10,6 +10,8 @@ function sourceLibrary(){
  return {schema:'tos_constructor_library_v1',rootId:'work',fingerprint:'a'.repeat(64),nodes:[...ids,'unlisted-source'].map(id=>({id,kind:id==='work'?'work':'fragment',parentId:id==='work'?null:'work',title:bi(id),body:bi('Original source body'),quote:bi('Bound source quote'),exact:{de:'Exact German bytes',ru:'Exact Russian bytes'},sourceRefs:[{label:'Source address',ref:'source:'+id}],speaker:bi('Source speaker')}))};
 }
 const bilingual=value=>['ru','en'].every(lang=>typeof value?.[lang]==='string'&&value[lang].trim());
+// Own words in both languages, or only the places of the work they no longer retell.
+const authored=value=>bilingual(value)||(Array.isArray(value?.cite)&&value.cite.length>0&&!value.ru&&!value.en);
 describe('prepared meaning and exact source boundaries',()=>{
  it('adds reading depth without changing the input or source text and provenance',async()=>{
   const source=sourceLibrary(),before=structuredClone(source),library=await createAtlasLibrary(source);
@@ -21,8 +23,8 @@ describe('prepared meaning and exact source boundaries',()=>{
  it('keeps every prepared material bilingual and covered by its authored reading',async()=>{
   const library=await createAtlasLibrary(sourceLibrary()),prepared=library.nodes.filter(n=>n.demo||ids.includes(n.id));
   expect(new Set(Object.keys(NODE_CONTENT))).toEqual(new Set(prepared.map(n=>n.id)));
-  for(const node of prepared){expect(bilingual(node.atlasBody??node.body)).toBe(true);for(const perspective of node.perspectives??[]){expect(bilingual(perspective.title)).toBe(true);expect(bilingual(perspective.body)).toBe(true);}for(const field of ['question','example'])if(node[field])expect(bilingual(node[field])).toBe(true);expect(bilingual(node.inquiry.argument)).toBe(true);expect(node.inquiry.grounds.length).toBeGreaterThan(0);}
-  for(const edge of library.atlas.edges){expect(bilingual(edge.inquiry.warrant)).toBe(true);expect(edge.inquiry.grounds.length).toBeGreaterThan(0);}
+  for(const node of prepared){expect(authored(node.atlasBody??node.body),node.id).toBe(true);for(const perspective of node.perspectives??[]){expect(bilingual(perspective.title)).toBe(true);expect(authored(perspective.body),node.id).toBe(true);}for(const field of ['question','example'])if(node[field])expect(authored(node[field]),node.id).toBe(true);if(node.inquiry.argument)expect(authored(node.inquiry.argument),node.id).toBe(true);expect(node.inquiry.grounds.length).toBeGreaterThan(0);}
+  for(const edge of library.atlas.edges){if(edge.inquiry.warrant)expect(authored(edge.inquiry.warrant),edge.id).toBe(true);expect(edge.inquiry.grounds.length).toBeGreaterThan(0);}
  });
  it('can start every prepared walk as an atomic graph operation with its exact transitions',async()=>{
   const library=await createAtlasLibrary(sourceLibrary()),routes=bindResearchRoutes(library.atlas.routes,library);

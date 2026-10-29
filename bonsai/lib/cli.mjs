@@ -3,16 +3,20 @@
 //
 //   node bonsai/lib/cli.mjs check [<bonsai>...]
 //   node bonsai/lib/cli.mjs export <bonsai> [--out <file>]
+//   node bonsai/lib/cli.mjs align <bonsai> [--write]
 //
 // `check` exits non-zero when a module breaks its contract or the export does
 // not satisfy the Tree's contracts in this checkout; drift since the graft is
 // reported, not failed. `export` writes the packet as JSON (stdout by default);
-// it never writes into the Tree.
+// it never writes into the Tree. `align` aligns the bonsai's witnesses again
+// from their stored texts with the mechanism in align.mjs and reports where the
+// stored rows differ; `--write` stores the new rows and receipt instead.
 
 import {writeFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {bonsaiIds,checkBonsai} from './graft.mjs';
+import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
+import {realignWitnesses} from './realign.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -35,7 +39,19 @@ if(command==='check'){
   if(result.problems.length){for(const problem of result.problems)console.error(`problem: ${problem}`);process.exit(1);}
   const text=`${JSON.stringify(result.packet,null,2)}\n`,out=option('--out');
   if(out)writeFileSync(out,text);else process.stdout.write(text);
+}else if(command==='align'&&names.length===1){
+  const {home,manifest,modules}=loadBonsai(root,names[0]);
+  if(!modules.witnesses){console.error(`${names[0]} has no witnesses module`);process.exit(2);}
+  const chapters=loadWitnessChapters(home,manifest),result=realignWitnesses(modules.witnesses,chapters);
+  console.log(JSON.stringify(result.receipt));
+  console.log(`${result.changed.length} chapters whose rows differ from the stored alignment${result.changed.length?`: ${result.changed.join(' ')}`:''}`);
+  if(rest.includes('--write')){
+    const module=manifest.modules.find(item=>item.id==='witnesses'),dir=join(home,dirname(module.chapters));
+    for(const [key,file] of Object.entries(result.chapters))writeFileSync(join(dir,`${key}.json`),`${JSON.stringify(file)}\n`);
+    writeFileSync(join(home,module.path),`${JSON.stringify({...modules.witnesses,alignment:{...modules.witnesses.alignment,...result.alignment}},null,2)}\n`);
+    console.log('stored');
+  }else if(result.changed.length)process.exit(1);
 }else{
-  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>]');
+  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | align <bonsai> [--write]');
   process.exit(2);
 }

@@ -1,11 +1,14 @@
-/** Authored source-grounded reading routes; transitions retain atlas edge identity. */
+/** Authored source-grounded reading routes; transitions retain atlas edge identity.
+ * Own words are kept only for what a quotation cannot give (a reading, a
+ * reconstructed argument, a distinction, a connection, a question, a method,
+ * context). What a work itself says is never retold: a form cites the place
+ * instead ({ru, en, cite}), and the stand shows the work's own text there —
+ * the original and, through the alignment of the witnesses, the reader's
+ * language (bonsai/zarathustra/witnesses.json, fragments.json). */
 export const RESEARCH_ROUTES = [
   {
     "id": "fate-given-created",
-    "title": {
-      "ru": "Судьба: данная и создаваемая",
-      "en": "Fate: given and made"
-    },
+    "title": {"ru":"Судьба: данная и создаваемая","en":"Fate: given and made"},
     "description": {
       "ru": "Начните с двух способов назвать судьбу своей: воля хочет её у Заратустры, поступки соединяются памятью у Камю. Через спуск Сизифа и вопрос демона маршрут приходит к «Об избавлении»: что может творящая воля перед тем, что уже было?",
       "en": "Begin with two ways of calling fate one’s own: willing wants it in Zarathustra, memory joins actions into it in Camus. Through Sisyphus’s descent and the demon’s question, the route reaches “Redemption”: what can creative willing do before what has already been?"
@@ -17,44 +20,33 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "demo:fate",
-        "title": {
-          "ru": "Что значит «моя судьба»?",
-          "en": "What makes fate mine?"
-        },
+        "title": {"ru":"Что значит «моя судьба»?","en":"What makes fate mine?"},
         "body": {
-          "ru": "На «Блаженных островах» Заратустра поправляет себя: сначала воля названа его судьбой, затем воля хочет такой судьбы. У Камю личная судьба появляется через поступки и взгляд памяти. Прочитайте рядом эти два притяжательных жеста: хотеть удела и узнавать связность собственного пути.",
-          "en": "On “The Happy Isles,” Zarathustra corrects himself: willing is first called his fate, then his will wants such a fate. In Camus, personal fate appears through actions and memory’s gaze. Read these two gestures of appropriation together: wanting a lot and recognising one’s path as connected."
+          "ru": "Прочитайте рядом эти два притяжательных жеста: хотеть удела и узнавать связность собственного пути.",
+          "en": "Read these two gestures of appropriation together: wanting a lot and recognising one’s path as connected.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]},
+            {"w":"le-mythe-de-sisyphe","loc":"joy"}
+          ]
         },
-        "question": {
-          "ru": "Как изменяется «моё» между волей и памятью?",
-          "en": "How does “mine” change between willing and memory?"
-        },
+        "question": {"ru":"Как изменяется «моё» между волей и памятью?","en":"How does “mine” change between willing and memory?"},
         "grounds": [
           {
             "ref": "z-happy-isles",
-            "focus": {
-              "ru": "Поправка о воле и судьбе после размышления о творчестве.",
-              "en": "The correction concerning will and fate after the reflection on creation."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
+            ]
           },
-          {
-            "ref": "camus-sisyphus",
-            "focus": {
-              "ru": "Финальные абзацы: личная судьба, поступки и память.",
-              "en": "Final paragraphs: personal fate, actions and memory."
-            }
-          }
+          {"ref":"camus-sisyphus","cite":[{"w":"le-mythe-de-sisyphe","loc":"joy"}]}
         ]
       },
       {
         "nodeId": "demo:camus",
-        "title": {
-          "ru": "Поступки, собранные взглядом",
-          "en": "Actions gathered by a gaze"
-        },
+        "title": {"ru":"Поступки, собранные взглядом","en":"Actions gathered by a gaze"},
         "body": {
-          "ru": "В финале эссе Камю поступки оказываются соединены взглядом памяти и ограничены смертью. Эта формулировка стоит внутри возвращения Сизифа к камню, поэтому личная связность возникает вместе с продолжающимся трудом. Уточните, что память здесь делает с совершённым.",
-          "en": "At the essay’s close, Camus joins actions through memory’s gaze and bounds them by death. The formulation stands within Sisyphus’s return to the stone, so personal connectedness arises alongside continuing labour. Specify what memory does here with what has been done."
+          "ru": "Формулировка Камю о взгляде памяти стоит внутри возвращения Сизифа к камню, поэтому личная связность возникает вместе с продолжающимся трудом. Уточните, что память здесь делает с совершённым.",
+          "en": "Camus’s formulation about memory’s gaze stands within Sisyphus’s return to the stone, so personal connectedness arises alongside continuing labour. Specify what memory does here with what has been done.",
+          "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
         },
         "question": {
           "ru": "Как взгляд на последовательность поступков позволяет узнать судьбу своей?",
@@ -63,22 +55,17 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "camus-sisyphus",
-            "focus": {
-              "ru": "Финальное обозрение поступков, память и предел смерти.",
-              "en": "The final survey of actions, memory and death’s limit."
-            }
+            "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
           }
         ]
       },
       {
         "nodeId": "demo:sisyphus",
-        "title": {
-          "ru": "Спуск как час сознания",
-          "en": "The descent as consciousness’s hour"
-        },
+        "title": {"ru":"Спуск как час сознания","en":"The descent as consciousness’s hour"},
         "body": {
-          "ru": "Вернитесь к тому месту, где Сизиф спускается с вершины. Камю задерживает взгляд на этой паузе: сознание делает удел трагическим и одновременно открывает превосходство над ним. Камень вновь ждёт внизу; изменение нужно искать в отношении героя к следующему усилию.",
-          "en": "Return to Sisyphus descending from the summit. Camus dwells on this pause: consciousness makes the lot tragic while also opening a superiority over it. The stone awaits below again; the change lies in the hero’s relation to the next effort."
+          "ru": "Камень вновь ждёт внизу; изменение нужно искать в отношении героя к следующему усилию.",
+          "en": "The stone awaits below again; the change lies in the hero’s relation to the next effort.",
+          "cite": [{"w":"le-mythe-de-sisyphe","loc":"return"},{"w":"le-mythe-de-sisyphe","loc":"tragic"}]
         },
         "question": {
           "ru": "Почему ясность возникает именно между двумя подъёмами?",
@@ -87,22 +74,22 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "camus-sisyphus",
-            "focus": {
-              "ru": "Спуск, пауза, сознание и возвращение к камню.",
-              "en": "Descent, pause, consciousness and the return to the stone."
-            }
+            "cite": [{"w":"le-mythe-de-sisyphe","loc":"return"},{"w":"le-mythe-de-sisyphe","loc":"tragic"}]
           }
         ]
       },
       {
         "nodeId": "demo:agency",
-        "title": {
-          "ru": "Участие в повторяемом",
-          "en": "Participating in what repeats"
-        },
+        "title": {"ru":"Участие в повторяемом","en":"Participating in what repeats"},
         "body": {
-          "ru": "Сизиф продолжает труд и знает его ход; эти два действия сцена удерживает вместе. В §341 демон обращает повторение к слушающему, а заключительный вопрос должен лечь на каждое действие. Переход меняет форму участия: от обозрения труда к мысли, которая способна преобразить действующего.",
-          "en": "Sisyphus continues his labour and knows its course; the scene keeps these acts together. In §341, the demon addresses recurrence to the hearer, and the closing question is to weigh on every action. The transition changes participation’s form: from surveying labour to a thought capable of transforming the agent."
+          "ru": "Переход меняет форму участия: от обозрения труда к мысли, которая способна преобразить действующего.",
+          "en": "The transition changes participation’s form: from surveying labour to a thought capable of transforming the agent.",
+          "cite": [
+            {"w":"le-mythe-de-sisyphe","loc":"return"},
+            {"w":"le-mythe-de-sisyphe","loc":"tragic"},
+            {"w":"le-mythe-de-sisyphe","loc":"joy"},
+            {"w":"die-froehliche-wissenschaft","loc":"341"}
+          ]
         },
         "question": {
           "ru": "Что меняется, когда знание повтора становится вопросом при действии?",
@@ -111,53 +98,38 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "camus-sisyphus",
-            "focus": {
-              "ru": "Сознательный спуск и не прекращающееся усилие.",
-              "en": "The conscious descent and unceasing effort."
-            }
+            "cite": [
+              {"w":"le-mythe-de-sisyphe","loc":"return"},
+              {"w":"le-mythe-de-sisyphe","loc":"tragic"},
+              {"w":"le-mythe-de-sisyphe","loc":"joy"}
+            ]
           },
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "Мысль, которая может преобразить или раздавить; вопрос при каждом действии.",
-              "en": "The thought that may transform or crush; the question accompanying every action."
-            }
-          }
+          {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}
         ]
       },
       {
         "nodeId": "demo:decision",
-        "title": {
-          "ru": "Решение под тяжестью вопроса",
-          "en": "Decision under the question’s weight"
-        },
+        "title": {"ru":"Решение под тяжестью вопроса","en":"Decision under the question’s weight"},
         "body": {
-          "ru": "Демон не предлагает улучшенную версию жизни: ничто новое не войдёт в повтор. Затем вопрос переносится на каждое действие слушающего. Прочитайте этот переход внимательно: желание повторения должно изменить отношение к совершаемому при сохранении строгого условия того же.",
-          "en": "The demon offers no improved life: nothing new enters the recurrence. The question then moves to every action of the hearer. Read this transition closely: wanting recurrence is to change one’s relation to acting while preserving the same-life condition."
+          "ru": "Прочитайте переход в §341 внимательно: желание повторения должно изменить отношение к совершаемому при сохранении строгого условия того же.",
+          "en": "Read the transition in §341 closely: wanting recurrence is to change one’s relation to acting while preserving the same-life condition.",
+          "cite": [{"w":"die-froehliche-wissenschaft","loc":"341"}]
         },
         "question": {
           "ru": "Как вопрос о неизменном повторе может преобразить совершающийся поступок?",
           "en": "How can a question about unaltered recurrence transform an action being performed?"
         },
-        "grounds": [
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "От точного состава возвращаемой жизни к вопросу при всём и каждом действии.",
-              "en": "From the recurring life’s exact contents to the question in every action."
-            }
-          }
-        ]
+        "grounds": [{"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}]
       },
       {
         "nodeId": "demo:counterfactual",
-        "title": {
-          "ru": "Перед словом «было»",
-          "en": "Before the word “was”"
-        },
+        "title": {"ru":"Перед словом «было»","en":"Before the word “was”"},
         "body": {
-          "ru": "В «Об избавлении» воля наталкивается на то, что уже совершилось: она не может хотеть назад. Рядом с демоном вопрос «иначе» становится точнее. Воображение другого поступка и отношение к уже бывшему имеют разные направления, и дальнейшая речь Заратустры занимается вторым.",
-          "en": "In “Redemption,” willing encounters what has already happened: it cannot will backward. Beside the demon, “otherwise” becomes more precise. Imagining another act and relating to what has been point in different directions; Zarathustra’s ensuing speech concerns the latter."
+          "ru": "Рядом с демоном вопрос «иначе» становится точнее. Воображение другого поступка и отношение к уже бывшему имеют разные направления, и дальнейшая речь Заратустры занимается вторым.",
+          "en": "Beside the demon, “otherwise” becomes more precise. Imagining another act and relating to what has been point in different directions; Zarathustra’s ensuing speech concerns the latter.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":72}
+          ]
         },
         "question": {
           "ru": "Чего воля хочет от прошлого, когда больше не может его изменить?",
@@ -166,26 +138,16 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-redemption",
-            "focus": {
-              "ru": "Воля перед «это было» и невозможность хотеть назад.",
-              "en": "Willing before “it was” and the inability to will backward."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":1}
+            ]
           },
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "Та же жизнь без нового.",
-              "en": "The same life without novelty."
-            }
-          }
+          {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}
         ]
       },
       {
         "nodeId": "demo:responsibility",
-        "title": {
-          "ru": "От бессилия к обвинению",
-          "en": "From powerlessness to accusation"
-        },
+        "title": {"ru":"От бессилия к обвинению","en":"From powerlessness to accusation"},
         "body": {
           "ru": "Проследите, как бессилие перед временем становится у Заратустры местью, а затем объяснением существования через наказание. Вопрос ответственности здесь начинается с происхождения вменения. Нужно выяснить, что обвинение обещает воле, неспособной отменить прошлое.",
           "en": "Follow how powerlessness before time becomes revenge in Zarathustra’s account and then explains existence through punishment. Responsibility’s question here begins from imputation’s origin. Ask what accusation promises a will unable to undo the past."
@@ -197,22 +159,22 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-redemption",
-            "focus": {
-              "ru": "Месть воли времени и мысль, называющая существование наказанием.",
-              "en": "The will’s revenge against time and the thought naming existence punishment."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be","tos.text-unit.sid-a602dadebebc6eb316a0caa49c4ca781"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:creation",
-        "title": {
-          "ru": "Творящий ответ прошлому",
-          "en": "A creative response to the past"
-        },
+        "title": {"ru":"Творящий ответ прошлому","en":"A creative response to the past"},
         "body": {
-          "ru": "Заратустра противопоставляет мести вопрос о творящем «я так хотел». Речь продолжает спрашивать, научилась ли воля примирению со временем и чему-то большему. Финал маршрута остаётся у этой задачи: понять, как созидание меняет ответ бывшему, не делая бывшее несовершившимся.",
-          "en": "Zarathustra brings a creative “I willed it thus” against revenge. The speech keeps asking whether willing has learned reconciliation with time and something beyond it. The route ends at this task: understanding how creation changes the response to what was without undoing it."
+          "ru": "Финал маршрута остаётся у этой задачи: понять, как созидание меняет ответ бывшему, не делая бывшее несовершившимся.",
+          "en": "The route ends at this task: understanding how creation changes the response to what was without undoing it.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-992df47a90ea6b8344d342589d5f915b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"],"s":0},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-339e330ca6a6a19079d4f5a3194cb1f7","tos.text-unit.sid-351ef082d5a4c98dcd346a2cbfc1357f"]}
+          ]
         },
         "question": {
           "ru": "Что должно измениться в самой воле, чтобы её ответ прошлому стал творящим?",
@@ -221,10 +183,9 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-redemption",
-            "focus": {
-              "ru": "Творящая воля перед прошлым и заключительные вопросы о примирении со временем.",
-              "en": "Creative willing before the past and the closing questions about reconciliation with time."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-992df47a90ea6b8344d342589d5f915b","tos.text-unit.sid-351ef082d5a4c98dcd346a2cbfc1357f"]}
+            ]
           }
         ]
       }
@@ -261,10 +222,7 @@ export const RESEARCH_ROUTES = [
         "from": "demo:agency",
         "to": "demo:decision",
         "edgeId": "atlas:agency:develops:decision",
-        "body": {
-          "ru": "У демона знание повтора становится вопросом, сопровождающим каждое действие.",
-          "en": "For the demon, knowing recurrence becomes a question accompanying every action."
-        }
+        "body": {"cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}
       },
       {
         "from": "demo:decision",
@@ -315,40 +273,32 @@ export const RESEARCH_ROUTES = [
     "grounds": [
       {
         "ref": "z-happy-isles",
-        "focus": {
-          "ru": "Начало маршрута: воля хочет такой судьбы.",
-          "en": "Route opening: the will wants such a fate."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"],"s":93,"e":135}
+        ]
       },
       {
         "ref": "camus-sisyphus",
-        "focus": {
-          "ru": "Спуск и финальная связность поступков в памяти.",
-          "en": "The descent and actions’ final connectedness in memory."
-        }
+        "cite": [
+          {"w":"le-mythe-de-sisyphe","loc":"return"},
+          {"w":"le-mythe-de-sisyphe","loc":"tragic"},
+          {"w":"le-mythe-de-sisyphe","loc":"subtle"},
+          {"w":"le-mythe-de-sisyphe","loc":"joy"}
+        ]
       },
-      {
-        "ref": "gs341",
-        "focus": {
-          "ru": "Повтор как вопрос при действии.",
-          "en": "Recurrence as a question accompanying action."
-        }
-      },
+      {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]},
       {
         "ref": "z-redemption",
-        "focus": {
-          "ru": "От невозможности хотеть назад к творящему ответу прошлому.",
-          "en": "From inability to will backward toward a creative response to the past."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":0,"e":34},
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b"],"s":106,"e":127}
+        ]
       }
     ]
   },
   {
     "id": "moment-time",
-    "title": {
-      "ru": "Мгновение и время",
-      "en": "The moment and time"
-    },
+    "title": {"ru":"Мгновение и время","en":"The moment and time"},
     "description": {
       "ru": "Пройдите от надписи «Мгновение» к двум вечным дорогам и вопросам об их связанности. Затем сравните необходимость в этой сцене с невозможностью хотеть назад и с определением свободы у Спинозы; завершите у поправки Заратустры о воле и судьбе.",
       "en": "Move from “Moment” to the two eternal paths and questions of their connection. Then compare necessity in this scene with inability to will backward and Spinoza’s definition of freedom; finish at Zarathustra’s correction about will and fate."
@@ -360,37 +310,35 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "moment",
-        "title": {
-          "ru": "Прочитать надпись",
-          "en": "Read the inscription"
-        },
+        "title": {"ru":"Прочитать надпись","en":"Read the inscription"},
         "body": {
-          "ru": "Ворота имеют два лица, а над ними написано «Мгновение». Прежде всякого ответа о времени глава помещает настоящее в пространственную сцену. Прочитайте описание до ответа карлика, сохранив то, о чём Заратустра ещё только спрашивает.",
-          "en": "The gateway has two faces and bears “Moment.” Before any answer about time, the chapter places the present in a spatial scene. Read the description before the dwarf’s reply, preserving what Zarathustra has yet only asked."
+          "ru": "Прежде всякого ответа о времени глава помещает настоящее в пространственную сцену. Прочитайте описание до ответа карлика, сохранив то, о чём Заратустра ещё только спрашивает.",
+          "en": "Before any answer about time, the chapter places the present in a spatial scene. Read the description before the dwarf’s reply, preserving what Zarathustra has yet only asked.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-38b6718fc95c36a467127712c215fff0"],"s":49,"e":71},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-36a3c9915901a496c64276fe2da78079","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"],"s":138,"e":197}
+          ]
         },
-        "question": {
-          "ru": "Почему настоящее получает два лица?",
-          "en": "Why does the present receive two faces?"
-        },
+        "question": {"ru":"Почему настоящее получает два лица?","en":"Why does the present receive two faces?"},
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: два лица ворот, вечные дороги и надпись.",
-              "en": "§2: the gateway’s two faces, eternal paths and inscription."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:two-paths",
-        "title": {
-          "ru": "Мысленно продолжить дороги",
-          "en": "Follow the paths in thought"
-        },
+        "title": {"ru":"Мысленно продолжить дороги","en":"Follow the paths in thought"},
         "body": {
-          "ru": "Каждая дорога простирается в вечность, и у ворот они противоречат друг другу. Затем Заратустра спрашивает, сохранится ли противоречие, если идти дальше. Следуйте этому вопросу как переходу от увиденного расположения к мысленно продолжаемому пути.",
-          "en": "Each path extends into eternity, and they oppose one another at the gateway. Zarathustra then asks whether the opposition remains if one goes further. Follow the question as a move from the arrangement seen to a path continued in thought."
+          "ru": "Следуйте этому вопросу как переходу от увиденного расположения к мысленно продолжаемому пути.",
+          "en": "Follow the question as a move from the arrangement seen to a path continued in thought.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7b662f8453b880f152323256b23c2409","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d","tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d"]}
+          ]
         },
         "question": {
           "ru": "Что изменилось между встречей дорог и предположением об их дальнейшем ходе?",
@@ -399,22 +347,22 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: противоречие дорог и вопрос о дальнейшем движении.",
-              "en": "§2: the paths’ opposition and the question of following them further."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-36a3c9915901a496c64276fe2da78079","tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:temporal-knot",
-        "title": {
-          "ru": "Уточнить связанность",
-          "en": "Specify connectedness"
-        },
+        "title": {"ru":"Уточнить связанность","en":"Specify connectedness"},
         "body": {
-          "ru": "Карлик отвечает кругом времени, но Заратустра считает ответ слишком лёгким. Теперь мгновение должно влечь за собой все будущие вещи, потому что они крепко связаны. Образ узла обозначает эту новую трудность: выяснить, как из встречи направлений возникло требование связи всего.",
-          "en": "The dwarf answers with circular time, but Zarathustra finds the answer too easy. The moment must now draw all future things after it because they are firmly bound. The knot marks this new difficulty: how did meeting directions lead to the demand that everything be connected?"
+          "ru": "Образ узла обозначает эту новую трудность: выяснить, как из встречи направлений возникло требование связи всего.",
+          "en": "The knot marks this new difficulty: how did meeting directions lead to the demand that everything be connected?",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"],"s":52},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"s":0,"e":118}
+          ]
         },
         "question": {
           "ru": "Что связывает мгновение с тем, что ещё только должно случиться?",
@@ -423,22 +371,22 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: ответ карлика и вопросы о связанности мгновения со всеми вещами.",
-              "en": "§2: the dwarf’s answer and the questions connecting the moment with all things."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:necessity",
-        "title": {
-          "ru": "Два хода необходимости",
-          "en": "Two movements of necessity"
-        },
+        "title": {"ru":"Два хода необходимости","en":"Two movements of necessity"},
         "body": {
-          "ru": "У ворот Заратустра спрашивает, не должно ли всё способное случиться уже пройти по вечной дороге и затем вернуться. В «Об избавлении» воля наталкивается на иной предел: невозможность хотеть назад. Сопоставьте необходимость повторения с неподвластностью совершившегося; каждый ход требует собственного объяснения.",
-          "en": "At the gateway, Zarathustra asks whether everything capable of happening must already have traversed the eternal path and then return. In “Redemption,” willing encounters another limit: it cannot will backward. Compare recurrence’s necessity with the accomplished past’s resistance; each movement calls for its own account."
+          "ru": "Сопоставьте необходимость повторения с неподвластностью совершившегося; каждый ход требует собственного объяснения.",
+          "en": "Compare recurrence’s necessity with the accomplished past’s resistance; each movement calls for its own account.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-10678cf0654441cbca37527da1dd9ece","tos.text-unit.sid-aa80ebe6fb9de20b613cb4f53ed7e855"]},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":0,"e":34}
+          ]
         },
         "question": {
           "ru": "Какая связь нужна, чтобы от неподвластного прошлого перейти к необходимому повтору?",
@@ -447,53 +395,42 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: вопросы о возможном, уже бывшем и возвращении.",
-              "en": "§2: questions about the possible, what has been and recurrence."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-10678cf0654441cbca37527da1dd9ece","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+            ]
           },
           {
             "ref": "z-redemption",
-            "focus": {
-              "ru": "Воля перед «это было».",
-              "en": "Willing before “it was”."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51"],"s":1,"e":70}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:free-necessary",
-        "title": {
-          "ru": "Необходимость собственной природы",
-          "en": "One’s own nature’s necessity"
-        },
+        "title": {"ru":"Необходимость собственной природы","en":"One’s own nature’s necessity"},
         "body": {
-          "ru": "Спиноза в определении 7 первой части называет свободным существующее из необходимости собственной природы и определяющее себя к действию. Принуждение связано с определением другим. Этот вход меняет сам вопрос: необходимо выяснить источник определения, прежде чем называть всякую необходимость несвободой.",
-          "en": "In Part I, definition 7, Spinoza calls free what exists from its own nature’s necessity and determines itself to act. Constraint concerns determination by another. This entry changes the question itself: determine the source before calling every necessity unfreedom."
+          "ru": "Этот вход меняет сам вопрос: необходимо выяснить источник определения, прежде чем называть всякую необходимость несвободой.",
+          "en": "This entry changes the question itself: determine the source before calling every necessity unfreedom.",
+          "cite": [{"w":"ethica","loc":"I.D7"}]
         },
         "question": {
           "ru": "Что означает определять себя к действию при сохранении необходимости?",
           "en": "What does determining oneself to act mean while necessity is retained?"
         },
-        "grounds": [
-          {
-            "ref": "spinoza1d7",
-            "focus": {
-              "ru": "I, определение 7 целиком: свободное и принуждённое.",
-              "en": "I, definition 7 in full: the free and the constrained."
-            }
-          }
-        ]
+        "grounds": [{"ref":"spinoza1d7","cite":[{"w":"ethica","loc":"I.D7"}]}]
       },
       {
         "nodeId": "demo:fate",
-        "title": {
-          "ru": "Хотеть такой судьбы",
-          "en": "Wanting such a fate"
-        },
+        "title": {"ru":"Хотеть такой судьбы","en":"Wanting such a fate"},
         "body": {
-          "ru": "На «Блаженных островах» Заратустра сначала называет волю своей судьбой, затем заменяет это утверждение хотением такой судьбы. Поправка стоит после мысли о творчестве, превращении и боли рождения. Вернитесь с ней к свободе и необходимости: отношение к судьбе теперь сформулировано как желание становления.",
-          "en": "On “The Happy Isles,” Zarathustra first calls willing his fate, then replaces this with wanting such a fate. The correction follows creation, transformation and birth’s pain. Bring it back to freedom and necessity: the relation to fate is now formulated as desiring becoming."
+          "ru": "Вернитесь с поправкой Заратустры к свободе и необходимости: отношение к судьбе теперь сформулировано как желание становления.",
+          "en": "Bring Zarathustra’s correction back to freedom and necessity: the relation to fate is now formulated as desiring becoming.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]},
+            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"],"s":0}
+          ]
         },
         "question": {
           "ru": "Почему хотение такой судьбы требует поправить первое определение воли?",
@@ -502,10 +439,9 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-happy-isles",
-            "focus": {
-              "ru": "Творчество, становление и поправка о воле и судьбе.",
-              "en": "Creation, becoming and the correction about willing and fate."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-d9b7662287eb462c792ecb8350732485","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
+            ]
           }
         ]
       }
@@ -525,8 +461,9 @@ export const RESEARCH_ROUTES = [
         "to": "demo:temporal-knot",
         "edgeId": "atlas:two-paths:supports:temporal-knot",
         "body": {
-          "ru": "После ответа карлика вопрос переносится к связанности всех вещей.",
-          "en": "After the dwarf’s answer, the question moves to all things’ connectedness."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"]}
+          ]
         }
       },
       {
@@ -534,8 +471,9 @@ export const RESEARCH_ROUTES = [
         "to": "demo:necessity",
         "edgeId": "atlas:temporal-knot:develops:necessity",
         "body": {
-          "ru": "Связанность мгновения вводит вопрос о том, что должно повториться.",
-          "en": "The moment’s connectedness introduces what must recur."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+          ]
         }
       },
       {
@@ -578,40 +516,28 @@ export const RESEARCH_ROUTES = [
     "grounds": [
       {
         "ref": "z-vision",
-        "focus": {
-          "ru": "От ворот к связанности и вопросам необходимости возвращения.",
-          "en": "From the gateway to connection and questions of recurrence’s necessity."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+        ]
       },
       {
         "ref": "z-redemption",
-        "focus": {
-          "ru": "Невозможность хотеть назад.",
-          "en": "The inability to will backward."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":0,"e":34}
+        ]
       },
-      {
-        "ref": "spinoza1d7",
-        "focus": {
-          "ru": "Необходимость собственной природы в определении свободы.",
-          "en": "One’s own nature’s necessity within freedom’s definition."
-        }
-      },
+      {"ref":"spinoza1d7","cite":[{"w":"ethica","loc":"I.D7"}]},
       {
         "ref": "z-happy-isles",
-        "focus": {
-          "ru": "Хотение судьбы в контексте творчества.",
-          "en": "Wanting fate in creation’s context."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
+        ]
       }
     ]
   },
   {
     "id": "repetition-difference",
-    "title": {
-      "ru": "Повтор и различие",
-      "en": "Repetition and difference"
-    },
+    "title": {"ru":"Повтор и различие","en":"Repetition and difference"},
     "description": {
       "ru": "Начните с настойчивого исключения новой и лучшей жизни в речи зверей. Затем прочитайте, почему Делёз считает механический цикл недостаточным объяснением, и вернитесь к ребёнку из «Трёх превращений»: как новое начало оказывается рядом с образом самокатящегося колеса?",
       "en": "Begin with the animals’ insistent exclusion of a new or better life. Then read why Deleuze finds the mechanical cycle insufficient as an explanation, and return to the child of “The Three Metamorphoses”: how does a new beginning stand beside the self-rolling wheel?"
@@ -623,13 +549,14 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "same-life",
-        "title": {
-          "ru": "Ни новая, ни лучшая",
-          "en": "Neither new nor better"
-        },
+        "title": {"ru":"Ни новая, ни лучшая","en":"Neither new nor better"},
         "body": {
-          "ru": "Звери воображают, что Заратустра сказал бы, если бы пожелал умереть теперь: он вернётся к той же жизни с тем же солнцем, землёй, орлом и змеёй. Перед этим исключены новая, лучшая и лишь подобная жизни. Сохраните всю силу этих исключений как исходную трудность маршрута.",
-          "en": "The animals imagine what Zarathustra would say if he wished to die now: he returns to the same life with the same sun, earth, eagle and snake. A new, better or merely similar life is first excluded. Preserve these exclusions’ full force as the route’s initial difficulty."
+          "ru": "Сохраните всю силу этих исключений как исходную трудность маршрута.",
+          "en": "Preserve these exclusions’ full force as the route’s initial difficulty.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":0},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7"],"s":93,"e":160}
+          ]
         },
         "question": {
           "ru": "Что потеряется из мысли о возвращении, если оставить только сходство?",
@@ -638,132 +565,90 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Конец §2: звери воображают речь о той же жизни и её спутниках.",
-              "en": "End of §2: the animals imagine a speech about the same life and its companions."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:identity",
-        "title": {
-          "ru": "Тот же ход подробностей",
-          "en": "The same course of particulars"
-        },
+        "title": {"ru":"Тот же ход подробностей","en":"The same course of particulars"},
         "body": {
-          "ru": "Демон в §341 перечисляет боли, радости, мысли и вздохи, а затем требует того же порядка. Тождество касается и состава, и последовательности: паук, лунный свет и сам демон тоже входят в него. Теперь вопрос к последующему прочтению точен: какую роль оно даст этому требованию?",
-          "en": "In §341, the demon lists pains, joys, thoughts and sighs, then requires the same order. Identity concerns contents and sequence: spider, moonlight and demon belong to it too. The question for the next reading is now precise: what role will it give this demand?"
+          "ru": "Теперь вопрос к последующему прочтению точен: какую роль оно даст требованию того же порядка?",
+          "en": "The question for the next reading is now precise: what role will it give the demand for the same order?",
+          "cite": [{"w":"die-froehliche-wissenschaft","loc":"341"}]
         },
         "question": {
           "ru": "Почему сохранения главных событий недостаточно для этой формулы?",
           "en": "Why is retaining the main events insufficient for this formula?"
         },
         "grounds": [
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "Речь демона: состав жизни, мелкие подробности и прежняя последовательность.",
-              "en": "The demon’s speech: life’s contents, small particulars and the previous sequence."
-            }
-          },
+          {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]},
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Та же жизнь в большом и малом.",
-              "en": "The same life in large and small details."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-ce045055585467cfc09217fef32bfa81","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":24,"e":96}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:return-difference",
-        "title": {
-          "ru": "Что не объясняет цикл?",
-          "en": "What does a cycle leave unexplained?"
-        },
-        "body": {
-          "ru": "В «Ницше и философии» Делёз спрашивает, как механический процесс выходит из начального состояния, проходит различия и воспроизводит их. Тождество начала и конца само по себе ещё не выполняет эту объяснительную работу. Вопрос перемещается от описания повтора к основанию его движения.",
-          "en": "In “Nietzsche and Philosophy,” Deleuze asks how a mechanical process leaves its initial state, passes through differences and reproduces them. Identity between beginning and ending does not itself do this explanatory work. The question moves from recurrence’s description to the ground of its movement."
-        },
+        "title": {"ru":"Что не объясняет цикл?","en":"What does a cycle leave unexplained?"},
+        "body": {"cite":[{"w":"nietzsche-et-la-philosophie","loc":"II.5"}]},
         "question": {
           "ru": "Что следует объяснить помимо совпадения начального и конечного состояния?",
           "en": "What needs explaining beyond matching initial and final states?"
         },
-        "grounds": [
-          {
-            "ref": "deleuze-nietzsche-return",
-            "focus": {
-              "ru": "Печатная с. 49: механический цикл, различия внутри цикла и разнообразие сосуществующих циклов.",
-              "en": "Printed p. 49: the mechanical cycle, differences within it and the diversity of coexisting cycles."
-            }
-          }
-        ]
+        "grounds": [{"ref":"deleuze-nietzsche-return","cite":[{"w":"nietzsche-et-la-philosophie","loc":"II.5"}]}]
       },
       {
         "nodeId": "demo:difference",
-        "title": {
-          "ru": "Различающее основание",
-          "en": "A differential ground"
-        },
+        "title": {"ru":"Различающее основание","en":"A differential ground"},
         "body": {
-          "ru": "Делёз называет волю к власти различающим и генетическим элементом сил. Он связывает её с синтезом, в котором различия воспроизводятся, и прямо оставляет дальнейшую задачу объяснить, как этот синтез образует возвращение. Удержите различие между предложенным основанием и ещё требуемым объяснением.",
-          "en": "Deleuze calls will to power forces’ differential and genetic element. He connects it with a synthesis reproducing differences and explicitly leaves the further task of explaining how this synthesis forms recurrence. Retain the distinction between a proposed ground and the explanation still required."
+          "ru": "Удержите различие между предложенным основанием и ещё требуемым объяснением.",
+          "en": "Retain the distinction between a proposed ground and the explanation still required.",
+          "cite": [{"w":"nietzsche-et-la-philosophie","loc":"II.6"}]
         },
         "question": {
           "ru": "Что именно должно быть воспроизведено, если основание само различающее?",
           "en": "What must be reproduced if the ground is itself differential?"
         },
-        "grounds": [
-          {
-            "ref": "deleuze-nietzsche-return",
-            "focus": {
-              "ru": "Печатные с. 50–52: элемент сил, принцип синтеза и оставшаяся задача объяснения.",
-              "en": "Printed pp. 50–52: forces’ element, synthesis’s principle and the remaining explanatory task."
-            }
-          }
-        ]
+        "grounds": [{"ref":"deleuze-nietzsche-return","cite":[{"w":"nietzsche-et-la-philosophie","loc":"II.6"}]}]
       },
       {
         "nodeId": "demo:same-new",
-        "title": {
-          "ru": "Сделать новым само повторение",
-          "en": "Make repetition itself new"
-        },
+        "title": {"ru":"Сделать новым само повторение","en":"Make repetition itself new"},
         "body": {
-          "ru": "Во введении к «Различию и повторению» Делёз различает извлечение нового из наблюдаемого повтора и превращение самого повторения в предмет воли. Второе он связывает со свободой и её задачей. Прочитайте этот ход рядом с требованием той же жизни: новизна теперь относится и к тому, как повторение хотят.",
-          "en": "In the introduction to “Difference and Repetition,” Deleuze distinguishes extracting novelty from observed repetition and making repetition itself willing’s object. He connects the latter with freedom and its task. Read this beside the same-life demand: novelty now concerns how repetition is willed as well."
+          "ru": "Прочитайте это место рядом с требованием той же жизни: новизна теперь относится и к тому, как повторение хотят.",
+          "en": "Read this passage beside the same-life demand: novelty now concerns how repetition is willed as well.",
+          "cite": [{"w":"difference-et-repetition","loc":"intro.programme"}]
         },
         "question": {
           "ru": "Как изменяется вопрос о новом, если повторение становится предметом желания?",
           "en": "How does novelty’s question change when repetition becomes desire’s object?"
         },
         "grounds": [
-          {
-            "ref": "deleuze-repetition",
-            "focus": {
-              "ru": "Введение, печатная с. 6: сделать новым повторение и сделать его предметом воли.",
-              "en": "Introduction, printed p. 6: making repetition new and making it willing’s object."
-            }
-          },
+          {"ref":"deleuze-repetition","cite":[{"w":"difference-et-repetition","loc":"intro.programme"}]},
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Конец §2: та же жизнь без новой или лучшей версии.",
-              "en": "End of §2: the same life without a new or better version."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":93}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:creation",
-        "title": {
-          "ru": "Ребёнок и самокатящееся колесо",
-          "en": "The child and the self-rolling wheel"
-        },
+        "title": {"ru":"Ребёнок и самокатящееся колесо","en":"The child and the self-rolling wheel"},
         "body": {
-          "ru": "Ребёнок в «Трёх превращениях» назван невинностью, забвением, новым началом и самокатящимся колесом. Лев мог добыть свободу для созидания, но только ребёнок даёт нужное ему священное «да». Вернитесь к исходному вопросу через это соседство: новизна, забывание и собственное движение уже соединены в одном образе.",
-          "en": "In “The Three Metamorphoses,” the child is innocence, forgetting, a new beginning and a self-rolling wheel. The lion could win freedom for creation, but only the child gives creation its sacred yes. Return to the initial question through this conjunction: novelty, forgetting and self-movement already meet in one image."
+          "ru": "Вернитесь к исходному вопросу через это соседство: новизна, забывание и собственное движение уже соединены в одном образе.",
+          "en": "Return to the initial question through this conjunction: novelty, forgetting and self-movement already meet in one image.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"]},
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]}
+          ]
         },
         "question": {
           "ru": "Что образ ребёнка позволяет спросить о возвращении, чего не давала одна геометрия круга?",
@@ -772,10 +657,9 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-metamorphoses",
-            "focus": {
-              "ru": "Лев как добывающий свободу; ребёнок, забывание, начало, колесо и священное «да».",
-              "en": "The lion winning freedom; the child, forgetting, beginning, wheel and sacred yes."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]}
+            ]
           }
         ]
       }
@@ -803,10 +687,7 @@ export const RESEARCH_ROUTES = [
         "from": "demo:return-difference",
         "to": "demo:difference",
         "edgeId": "atlas:return-difference:interprets:difference",
-        "body": {
-          "ru": "Критика цикла ведёт к различающему и генетическому элементу сил.",
-          "en": "The cycle’s critique leads to forces’ differential and genetic element."
-        }
+        "body": {"cite":[{"w":"nietzsche-et-la-philosophie","loc":"II.5"},{"w":"nietzsche-et-la-philosophie","loc":"II.6"}]}
       },
       {
         "from": "demo:difference",
@@ -828,8 +709,14 @@ export const RESEARCH_ROUTES = [
       }
     ],
     "conclusion": {
-      "ru": "Маршрут различил строгость повторяемой жизни, объяснение движения и новизну самого хотения повтора. Делёз переводит вопрос к различающему основанию и задаче воли; ребёнок у Заратустры соединяет новое начало с колесом. Дальнейшее чтение должно показать, как эти ходы объясняют друг друга и где требуют разных значений «того же».",
-      "en": "The route distinguishes the recurring life’s strictness, movement’s explanation and novelty in willing recurrence itself. Deleuze turns toward a differential ground and willing’s task; Zarathustra’s child joins a new beginning with a wheel. Further reading must show how these movements illuminate one another and where they require different meanings of the same."
+      "ru": "Маршрут различил строгость повторяемой жизни, объяснение движения и новизну самого хотения повтора. Дальнейшее чтение должно показать, как эти ходы объясняют друг друга и где требуют разных значений «того же».",
+      "en": "The route distinguishes the recurring life’s strictness, movement’s explanation and novelty in willing recurrence itself. Further reading must show how these movements illuminate one another and where they require different meanings of the same.",
+      "cite": [
+        {"w":"nietzsche-et-la-philosophie","loc":"II.5"},
+        {"w":"nietzsche-et-la-philosophie","loc":"II.6"},
+        {"w":"difference-et-repetition","loc":"intro.programme"},
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"],"s":37,"e":93}
+      ]
     },
     "investigation": {
       "startingPoint": {
@@ -848,47 +735,27 @@ export const RESEARCH_ROUTES = [
     "grounds": [
       {
         "ref": "z-convalescent",
-        "focus": {
-          "ru": "Исходная формула той же жизни.",
-          "en": "The initial same-life formula."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":93}
+        ]
       },
-      {
-        "ref": "gs341",
-        "focus": {
-          "ru": "Подробности и порядок повторяемого.",
-          "en": "Recurrence’s particulars and order."
-        }
-      },
+      {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]},
       {
         "ref": "deleuze-nietzsche-return",
-        "focus": {
-          "ru": "Печатные с. 49–52: движение, различие и синтез.",
-          "en": "Printed pp. 49–52: movement, difference and synthesis."
-        }
+        "cite": [{"w":"nietzsche-et-la-philosophie","loc":"II.5"},{"w":"nietzsche-et-la-philosophie","loc":"II.6"}]
       },
-      {
-        "ref": "deleuze-repetition",
-        "focus": {
-          "ru": "Введение, печатная с. 6: повторение как новизна и предмет воли.",
-          "en": "Introduction, printed p. 6: repetition as novelty and willing’s object."
-        }
-      },
+      {"ref":"deleuze-repetition","cite":[{"w":"difference-et-repetition","loc":"intro.programme"}]},
       {
         "ref": "z-metamorphoses",
-        "focus": {
-          "ru": "Ребёнок как новое начало и самокатящееся колесо.",
-          "en": "The child as a new beginning and self-rolling wheel."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"],"s":37,"e":93}
+        ]
       }
     ]
   },
   {
     "id": "affirmation-pain-action",
-    "title": {
-      "ru": "Утверждение, боль и действие",
-      "en": "Affirmation, pain and action"
-    },
+    "title": {"ru":"Утверждение, боль и действие","en":"Affirmation, pain and action"},
     "description": {
       "ru": "От желания научиться amor fati перейдите к радости, которая хочет вечности всего. Затем прочитайте «О сострадательных» и «Об избавлении»: конкретная встреча с другом и ответ воли прошлому уточняют вопрос о том, как утверждение входит в поступок.",
       "en": "Move from wanting to learn amor fati to joy desiring everything’s eternity. Then read “The Pitiful” and “Redemption”: an encounter with a friend and willing’s response to the past specify how affirmation enters action."
@@ -900,68 +767,52 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "demo:amor-fati",
-        "title": {
-          "ru": "Учиться amor fati",
-          "en": "Learning amor fati"
-        },
+        "title": {"ru":"Учиться amor fati","en":"Learning amor fati"},
         "body": {
-          "ru": "В §276 говорящий хочет научиться видеть необходимое прекрасным, чтобы стать одним из делающих вещи прекрасными. Далее идут желание не обвинять и надежда однажды быть только утверждающим. Прочитайте эту последовательность как движение ещё предстоящего учения.",
-          "en": "In §276, the speaker wants to learn to see necessity as beautiful and thereby become one who makes things beautiful. Wishing not to accuse and hoping one day to be only affirmative follow. Read this as the movement of learning still ahead."
+          "ru": "Прочитайте последовательность §276 как движение ещё предстоящего учения.",
+          "en": "Read the sequence of §276 as the movement of learning still ahead.",
+          "cite": [{"w":"die-froehliche-wissenschaft","loc":"276"}]
         },
         "question": {
           "ru": "Как внутри этого желания соединяются видеть и делать прекрасным?",
           "en": "How are seeing and making beautiful joined within this wish?"
         },
-        "grounds": [
-          {
-            "ref": "gs276",
-            "focus": {
-              "ru": "§276 целиком: учение взгляда, делание прекрасным, не обвинять и будущее утверждение.",
-              "en": "§276 in full: learning to see, making beautiful, not accusing and future affirmation."
-            }
-          }
-        ]
+        "grounds": [{"ref":"gs276","cite":[{"w":"die-froehliche-wissenschaft","loc":"276"}]}]
       },
       {
         "nodeId": "demo:affirmation",
-        "title": {
-          "ru": "От будущего «да» к его объёму",
-          "en": "From a future yes to its scope"
-        },
+        "title": {"ru":"От будущего «да» к его объёму","en":"From a future yes to its scope"},
         "body": {
-          "ru": "Желание однажды стать утверждающим ещё оставляет вопрос, чего хочет это «да». В «Песни опьянения» достаточно обратиться к одному радостному мгновению, чтобы возникло желание возвращения всех вещей. Проследите, как личное желание расширяется в самой речи.",
-          "en": "Wanting one day to become affirmative still leaves what this yes wants in question. In “The Drunken Song,” turning to one joyful moment brings forth a desire for all things’ return. Follow the expansion of personal desire within the speech itself."
+          "ru": "Желание однажды стать утверждающим ещё оставляет вопрос, чего хочет это «да». Проследите, как личное желание расширяется в самой речи.",
+          "en": "Wanting one day to become affirmative still leaves what this yes wants in question. Follow the expansion of personal desire within the speech itself.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-9a3da971437436d2ef97a5e5de89a4b2"],"s":0}
+          ]
         },
         "question": {
           "ru": "Почему утверждённое мгновение не остаётся отдельным мгновением?",
           "en": "Why does an affirmed moment not remain an isolated moment?"
         },
         "grounds": [
-          {
-            "ref": "gs276",
-            "focus": {
-              "ru": "Заключительное желание однажды стать только утверждающим.",
-              "en": "The closing wish one day to be only affirmative."
-            }
-          },
+          {"ref":"gs276","cite":[{"w":"die-froehliche-wissenschaft","loc":"276"}]},
           {
             "ref": "z-drunken-song",
-            "focus": {
-              "ru": "§10: одно утверждённое мгновение и связанность всех вещей.",
-              "en": "§10: one affirmed moment and all things’ connection."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:joy-pain",
-        "title": {
-          "ru": "Радость хочет себя и всего",
-          "en": "Joy wants itself and everything"
-        },
+        "title": {"ru":"Радость хочет себя и всего","en":"Joy wants itself and everything"},
         "body": {
-          "ru": "В песне горе говорит: «Пройди», а всё страдающее хочет жить и иметь наследников; радость хочет себя и вечности. В §§10–11 радость одного мгновения захватывает весь связанный ход вещей, включая горе. Удержите обе ступени: различие хотений и затем расширение одного из них.",
-          "en": "In the song, woe says “Go!”, while everything that suffers wants to live and have heirs; joy wants itself and eternity. In §§10–11, one moment’s joy takes in things’ whole connected course, including woe. Keep both stages: the differing forms of willing and then one’s expansion."
+          "ru": "Удержите обе ступени: различие хотений и затем расширение одного из них.",
+          "en": "Keep both stages: the differing forms of willing and then one’s expansion.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-b72032847012285d32829661efad3ea3","tos.text-unit.sid-2a8aada5d848098eed8b2b160fafa871"],"s":0},
+            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"]}
+          ]
         },
         "question": {
           "ru": "Как песнь переходит от различия радости и горя к желанию всего?",
@@ -970,22 +821,22 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-drunken-song",
-            "focus": {
-              "ru": "§§9–11: горе, радость, связанность и вечность.",
-              "en": "§§9–11: sorrow, joy, connection and eternity."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-a0d84a7b3f6d5093f616ea7159f64287","tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:shared-world",
-        "title": {
-          "ru": "Встретить страдающего друга",
-          "en": "Encounter the suffering friend"
-        },
+        "title": {"ru":"Встретить страдающего друга","en":"Encounter the suffering friend"},
         "body": {
-          "ru": "«О сострадательных» меняет масштаб чтения: речь идёт о помощи, стыде страдающего и раненой гордости. Для друга Заратустра предлагает жёсткое ложе, а большая любовь оказывается выше одной жалости. Прочитайте это обращение рядом со всеобщим хотением радости и спросите, как мысль получает определённость в отношении.",
-          "en": "“The Pitiful” changes the reading’s scale: help, the sufferer’s shame and wounded pride enter. For a friend, Zarathustra offers a hard bed, while great love goes beyond pity alone. Read this address beside joy’s universal willing and ask how thought becomes definite within a relation."
+          "ru": "Прочитайте это обращение рядом со всеобщим хотением радости и спросите, как мысль получает определённость в отношении.",
+          "en": "Read this address beside joy’s universal willing and ask how thought becomes definite within a relation.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-b66e16ad7e2a0418f629b219183c96b8","tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc"]},
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a","tos.text-unit.sid-a4476436db21aa889c21f26228aa6672"],"s":40}
+          ]
         },
         "question": {
           "ru": "Что друг должен получить от любви, чего ещё не даёт одна жалость?",
@@ -994,29 +845,28 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-pitiful",
-            "focus": {
-              "ru": "Стыд помощи, гордость страдающего, друг и жёсткое ложе.",
-              "en": "Help’s shame, the sufferer’s pride, the friend and a hard bed."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-b66e16ad7e2a0418f629b219183c96b8","tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc"]},
+              {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a","tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a"],"s":40,"e":119}
+            ]
           },
           {
             "ref": "z-drunken-song",
-            "focus": {
-              "ru": "§§10–11: желание всех связанных вещей.",
-              "en": "§§10–11: desire for all connected things."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:responsibility",
-        "title": {
-          "ru": "Ответ и действие дара",
-          "en": "Response and the gift’s action"
-        },
+        "title": {"ru":"Ответ и действие дара","en":"Response and the gift’s action"},
         "body": {
-          "ru": "Помощь может сделать принимающего должником; в главе большие обязательства связаны с местью. Это заставляет исследовать сам способ отвечать другому. Затем в «Об избавлении» месть получает другое основание — бессилие воли перед временем; сопоставление уточняет, откуда возникает требование ответа.",
-          "en": "Help may make its recipient indebted; the chapter connects great obligations with revenge. This directs inquiry toward the manner of answering another. In “Redemption,” revenge receives another ground—willing’s powerlessness before time; comparison specifies where a demand for response arises."
+          "ru": "Это заставляет исследовать сам способ отвечать другому. Затем в «Об избавлении» месть получает другое основание — бессилие воли перед временем; сопоставление уточняет, откуда возникает требование ответа.",
+          "en": "This directs inquiry toward the manner of answering another. In “Redemption,” revenge receives another ground—willing’s powerlessness before time; comparison specifies where a demand for response arises.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-6d5d64df7654526f06be7538126618e8","tos.text-unit.sid-6d5d64df7654526f06be7538126618e8"],"s":0,"e":66}
+          ]
         },
         "question": {
           "ru": "Как изменяется предмет ответа между тяжестью дара и тяжестью прошлого?",
@@ -1025,29 +875,28 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-pitiful",
-            "focus": {
-              "ru": "Большие обязательства, ответная месть и разные способы дарить.",
-              "en": "Great obligations, revenge in response and different ways of giving."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-6d5d64df7654526f06be7538126618e8","tos.text-unit.sid-09b9bca89edae4834da231d217a4db61"]}
+            ]
           },
           {
             "ref": "z-redemption",
-            "focus": {
-              "ru": "Месть воли времени и объяснение существования наказанием.",
-              "en": "The will’s revenge against time and existence explained as punishment."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be","tos.text-unit.sid-4a143af767f17dd9d433e2a8df84cfc6"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:counterfactual",
-        "title": {
-          "ru": "Хотеть иначе перед бывшим",
-          "en": "Willing otherwise before what was"
-        },
+        "title": {"ru":"Хотеть иначе перед бывшим","en":"Willing otherwise before what was"},
         "body": {
-          "ru": "В «Об избавлении» воля не может хотеть назад, а её бессилие обращается в обвинение существования. Вопрос о творящем «я так хотел» возникает внутри этой трудности. Прочитайте его рядом с желанием §276 не обвинять даже обвинителей: что должно измениться в отношении воли к прошлому?",
-          "en": "In “Redemption,” willing cannot will backward, and its powerlessness turns into accusing existence. The creative “I willed it thus” arises within this difficulty. Read it beside §276’s wish not to accuse even accusers: what must change in willing’s relation to the past?"
+          "ru": "Прочитайте творящее «я так хотел» рядом с желанием §276 не обвинять даже обвинителей: что должно измениться в отношении воли к прошлому?",
+          "en": "Read the creative “I willed it thus” beside §276’s wish not to accuse even accusers: what must change in willing’s relation to the past?",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-4a143af767f17dd9d433e2a8df84cfc6"],"s":0},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-992df47a90ea6b8344d342589d5f915b","tos.text-unit.sid-339e330ca6a6a19079d4f5a3194cb1f7"],"s":0}
+          ]
         },
         "question": {
           "ru": "Какое хотение остаётся возможным перед тем, что уже совершилось?",
@@ -1056,43 +905,28 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-redemption",
-            "focus": {
-              "ru": "Невозможность хотеть назад, месть и творящее отношение к бывшему.",
-              "en": "Inability to will backward, revenge and a creative relation to what was."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":0,"e":34},
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"]},
+              {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b"],"s":106,"e":127}
+            ]
           },
-          {
-            "ref": "gs276",
-            "focus": {
-              "ru": "Желание не обвинять даже обвинителей.",
-              "en": "The wish not to accuse even accusers."
-            }
-          }
+          {"ref":"gs276","cite":[{"w":"die-froehliche-wissenschaft","loc":"276"}]}
         ]
       },
       {
         "nodeId": "demo:decision",
-        "title": {
-          "ru": "Вопрос при каждом действии",
-          "en": "A question in every action"
-        },
+        "title": {"ru":"Вопрос при каждом действии","en":"A question in every action"},
         "body": {
-          "ru": "Вернитесь к §341: мысль о повторении должна лечь на каждое действие. После чтения о радости, помощи и мести этот вопрос получает определённый материал: как отношение к происходящему входит в то, что человек совершает? Текст оставляет превращение слушающего условием желания повторения.",
-          "en": "Return to §341: recurrence’s thought is to weigh on every action. After joy, help and revenge, the question has definite material: how does a relation to events enter what a person does? The text makes the hearer’s transformation a condition of wanting recurrence."
+          "ru": "После чтения о радости, помощи и мести этот вопрос получает определённый материал: как отношение к происходящему входит в то, что человек совершает?",
+          "en": "After joy, help and revenge, the question has definite material: how does a relation to events enter what a person does?",
+          "cite": [{"w":"die-froehliche-wissenschaft","loc":"341"}]
         },
         "question": {
           "ru": "Что значит хотеть повторения именно этого способа действовать?",
           "en": "What does it mean to want this very way of acting to return?"
         },
-        "grounds": [
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "Мысль, преобразующая слушающего, и вопрос при всём и каждом действии.",
-              "en": "The thought transforming the hearer and the question in every action."
-            }
-          }
-        ]
+        "grounds": [{"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}]
       }
     ],
     "transitions": [
@@ -1170,49 +1004,34 @@ export const RESEARCH_ROUTES = [
       }
     },
     "grounds": [
-      {
-        "ref": "gs276",
-        "focus": {
-          "ru": "Amor fati как учение взгляда и желание не обвинять.",
-          "en": "Amor fati as learning to see and wishing not to accuse."
-        }
-      },
+      {"ref":"gs276","cite":[{"w":"die-froehliche-wissenschaft","loc":"276"}]},
       {
         "ref": "z-drunken-song",
-        "focus": {
-          "ru": "§§9–11: расширение хотения радости.",
-          "en": "§§9–11: joy’s willing expands."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-a0d84a7b3f6d5093f616ea7159f64287","tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"]}
+        ]
       },
       {
         "ref": "z-pitiful",
-        "focus": {
-          "ru": "Помощь, стыд, дар, обязательство и любовь к другу.",
-          "en": "Help, shame, gift, obligation and love for the friend."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-b66e16ad7e2a0418f629b219183c96b8","tos.text-unit.sid-09b9bca89edae4834da231d217a4db61"]},
+          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a","tos.text-unit.sid-a4476436db21aa889c21f26228aa6672"],"s":40}
+        ]
       },
       {
         "ref": "z-redemption",
-        "focus": {
-          "ru": "Бессилие воли, месть и творящий ответ.",
-          "en": "Willing’s powerlessness, revenge and a creative response."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51"],"s":72,"e":108},
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"]},
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b"],"s":106,"e":127}
+        ]
       },
-      {
-        "ref": "gs341",
-        "focus": {
-          "ru": "Желание повторения при каждом действии.",
-          "en": "Wanting recurrence in every action."
-        }
-      }
+      {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}
     ]
   },
   {
     "id": "reading-voices",
-    "title": {
-      "ru": "Чтение и голоса",
-      "en": "Reading and voices"
-    },
+    "title": {"ru":"Чтение и голоса","en":"Reading and voices"},
     "description": {
       "ru": "Прочитайте песню зверей вместе с тем, что ей предшествует и следует за ней: радость речи, упрёк шарманке, воспоминание о болезни и совет сделать новую лиру. Маршрут проследит, как эти голоса доходят до задачи учить возвращению и до собственного дела Заратустры.",
       "en": "Read the animals’ song with what precedes and follows it: speech’s joy, the barrel-organ reproach, remembered illness and the advice to make a new lyre. Follow these voices toward the task of teaching recurrence and Zarathustra’s own work."
@@ -1224,13 +1043,14 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "all-things",
-        "title": {
-          "ru": "Все вещи — для кого?",
-          "en": "All things—for whom?"
-        },
+        "title": {"ru":"Все вещи — для кого?","en":"All things—for whom?"},
         "body": {
-          "ru": "Перед песней звери уточняют: для думающих, как они, сами вещи танцуют. Затем колесо, год, дом и кольцо связывают уход с возвращением. Начните с этой рамки: всеобщая речь введена через определённый способ думать.",
-          "en": "Before the song, the animals specify that for those who think as they do, things themselves dance. Wheel, year, house and ring then join departure with return. Begin with this frame: universal speech is introduced through a particular way of thinking."
+          "ru": "Начните с этой рамки: всеобщая речь введена через определённый способ думать.",
+          "en": "Begin with this frame: universal speech is introduced through a particular way of thinking.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c"],"s":45,"e":98},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-f6f69805abb8029bbedef25eeb121721"]}
+          ]
         },
         "question": {
           "ru": "Что добавляет к словам о всех вещах оговорка «для тех, кто думает, как мы»?",
@@ -1239,22 +1059,23 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "§2: вступление зверей к песне и последовательность её образов.",
-              "en": "§2: the animals’ introduction to the song and its images’ sequence."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:animals",
-        "title": {
-          "ru": "Когда звери начинают говорить",
-          "en": "When the animals begin to speak"
-        },
+        "title": {"ru":"Когда звери начинают говорить","en":"When the animals begin to speak"},
         "body": {
-          "ru": "После семи дней болезни Заратустра находит приятным запах яблока, и звери решают, что пора обратиться к нему. Они зовут его в мир-сад; он отвечает, что сама их болтовня уже даёт ему такой мир. Забота и речь входят в выздоровление ещё до изложения учения.",
-          "en": "After seven days of illness, Zarathustra finds an apple’s scent pleasant, and the animals decide it is time to address him. They invite him into the world as a garden; he replies that their chatter already gives him such a world. Care and speech enter recovery before the teaching is expounded."
+          "ru": "Забота и речь входят в выздоровление ещё до изложения учения.",
+          "en": "Care and speech enter recovery before the teaching is expounded.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-524ba7995cb645de150e842f8518f37e","tos.text-unit.sid-524ba7995cb645de150e842f8518f37e"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-33bda0fcdf4170fb11f4dee205767dcd","tos.text-unit.sid-33bda0fcdf4170fb11f4dee205767dcd"],"s":0,"e":66},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3d6666a4b970257643f5fff6371d76c4","tos.text-unit.sid-3d6666a4b970257643f5fff6371d76c4"],"s":128,"e":190}
+          ]
         },
         "question": {
           "ru": "Почему приятный запах и приглашение слушать важны для последующей формулы?",
@@ -1263,22 +1084,23 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Начало §2: яблоко, приглашение зверей и ответ о мире как саде.",
-              "en": "Beginning of §2: the apple, the animals’ invitation and the world-as-garden reply."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-524ba7995cb645de150e842f8518f37e","tos.text-unit.sid-3d6666a4b970257643f5fff6371d76c4"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:voice-reading",
-        "title": {
-          "ru": "Кто танцует на вещах?",
-          "en": "Who dances upon things?"
-        },
+        "title": {"ru":"Кто танцует на вещах?","en":"Who dances upon things?"},
         "body": {
-          "ru": "Заратустра говорит о словах и звуках как призрачных мостах между отдельными мирами душ; благодаря речи человек танцует на вещах. Звери отвечают, что сами вещи танцуют и возвращаются. Различие голосов касается здесь отношения языка к миру, а не только подписи под формулой.",
-          "en": "Zarathustra speaks of words and sounds as illusory bridges between souls’ separate worlds; through speech, a person dances upon things. The animals answer that things themselves dance and return. The voices differ over language’s relation to the world, beyond who signs the formula."
+          "ru": "Различие голосов касается здесь отношения языка к миру, а не только подписи под формулой.",
+          "en": "The voices differ over language’s relation to the world, beyond who signs the formula.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c24afcda817ec99be27398e1eeaa30b5","tos.text-unit.sid-bd057f6afaca60ed7da9b4ed85f0d640"],"s":50},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c8e9e850b816f1db51f391e81ec26f51","tos.text-unit.sid-c8e9e850b816f1db51f391e81ec26f51"],"s":93,"e":175},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c"],"s":74,"e":174}
+          ]
         },
         "question": {
           "ru": "Как меняется утверждение при переходе от танцующего говорящего к танцующим вещам?",
@@ -1287,22 +1109,21 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "§2: речь Заратустры о словах и звуках, затем ответ зверей о танцующих вещах.",
-              "en": "§2: Zarathustra on words and sounds, then the animals’ reply about dancing things."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c24afcda817ec99be27398e1eeaa30b5","tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:source-neighbor",
-        "title": {
-          "ru": "Услышать следующий ответ",
-          "en": "Hear the following reply"
-        },
+        "title": {"ru":"Услышать следующий ответ","en":"Hear the following reply"},
         "body": {
-          "ru": "После песни Заратустра улыбается и называет зверей шарманками. Он рассказывает об откушенной голове чудовища и подчёркивает, что ещё болен собственным избавлением. Соседство реплик ставит вопрос о различии между уже готовой песней и продолжающимся переживанием.",
-          "en": "After the song, Zarathustra smiles and calls the animals barrel-organs. He recounts biting off the monster’s head and stresses that he remains ill from his own redemption. The neighbouring speeches distinguish an already completed song from an experience still unfolding."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da"],"s":2,"e":82},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"],"s":66,"e":120},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4f156d0bad165d016f941204caf55153","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+          ]
         },
         "question": {
           "ru": "Что позволяет улыбке и упрёку стоять в одной реплике?",
@@ -1311,22 +1132,23 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "§2: непосредственный ответ на песню, чудовище и продолжающаяся болезнь.",
-              "en": "§2: the immediate reply to the song, the monster and continuing illness."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:narrated-voices",
-        "title": {
-          "ru": "Речь прерывается советом петь",
-          "en": "Speech interrupted by advice to sing"
-        },
+        "title": {"ru":"Речь прерывается советом петь","en":"Speech interrupted by advice to sing"},
         "body": {
-          "ru": "Рассказ об отвращении завершается дрожью, и звери не дают Заратустре продолжать. Они дважды советуют перестать говорить и в конце предлагают новую лиру для новых песен. Теперь карта голосов показывает, как разговор сам пытается изменить состояние говорящего.",
-          "en": "The disgust account ends in trembling, and the animals stop Zarathustra from continuing. Twice they tell him to stop speaking, finally proposing a new lyre for new songs. The voices now show the conversation itself trying to change the speaker’s condition."
+          "ru": "Теперь карта голосов показывает, как разговор сам пытается изменить состояние говорящего.",
+          "en": "The voices now show the conversation itself trying to change the speaker’s condition.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-9f1471144e729291311298ed75a2a53b","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":55,"e":173},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84"],"s":1,"e":35},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3cf5bcb02f23ef9ddd3bb07697eadc6d","tos.text-unit.sid-4b6e322412bf32bc28e4e88b067989cd"],"s":3}
+          ]
         },
         "question": {
           "ru": "Почему ответом на рассказ о болезни становится смена способа речи?",
@@ -1335,22 +1157,25 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "§2: конец рассказа об отвращении, два прерывания зверей и новая лира.",
-              "en": "§2: the disgust account’s end, the animals’ two interruptions and the new lyre."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-9f1471144e729291311298ed75a2a53b","tos.text-unit.sid-4b6e322412bf32bc28e4e88b067989cd"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:character-author",
-        "title": {
-          "ru": "Речь внутри речи",
-          "en": "Speech within speech"
-        },
+        "title": {"ru":"Речь внутри речи","en":"Speech within speech"},
         "body": {
-          "ru": "Звери называют Заратустру учителем возвращения, объясняют великий год и затем воображают то, что он сказал бы, если бы пожелал умереть теперь. Формула той же жизни входит в эту вложенную речь. В конце герой разговаривает со своей душой и не замечает, что звери умолкли; прочтению предстоит объяснить всю рамку.",
-          "en": "The animals name Zarathustra recurrence’s teacher, explain the great year and then imagine what he would say if he wished to die now. The same-life formula belongs inside that speech. At the end he converses with his soul and does not notice their silence; a reading must explain the entire frame."
+          "ru": "Прочтению предстоит объяснить всю рамку.",
+          "en": "A reading must explain the entire frame.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c"],"s":87,"e":128},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":0},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239"],"s":0,"e":110},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"]}
+          ]
         },
         "question": {
           "ru": "Как вложенная речь и заключительное молчание влияют на её авторскую атрибуцию?",
@@ -1359,22 +1184,24 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Конец §2: предназначение, великий год, воображаемая последняя речь и молчание.",
-              "en": "End of §2: vocation, great year, imagined final speech and silence."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:task",
-        "title": {
-          "ru": "Названная судьба учителя",
-          "en": "The teacher’s named fate"
-        },
+        "title": {"ru":"Названная судьба учителя","en":"The teacher’s named fate"},
         "body": {
-          "ru": "Звери связывают учительство с величайшей опасностью и болезнью; новые песни должны помочь нести эту судьбу. В «Знамении» Заратустра сам называет своё дело, после того как отбрасывает соблазн жалости к высшим людям. Сопоставьте задачу, названную другими, с собственным наступившим часом.",
-          "en": "The animals connect teaching with the greatest danger and illness; new songs are to help bear this fate. In “The Sign,” Zarathustra names his own work after passing the temptation of pity for the higher men. Compare a task named by others with one’s own arriving hour."
+          "ru": "Сопоставьте задачу, названную другими, с собственным наступившим часом.",
+          "en": "Compare a task named by others with one’s own arriving hour.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"],"s":39,"e":116},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"],"s":50,"e":134},
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-550efec95e443c4bd2b7c2897f5a45c2","tos.text-unit.sid-550efec95e443c4bd2b7c2897f5a45c2"],"s":1,"e":52},
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":78,"e":107}
+          ]
         },
         "question": {
           "ru": "Что нужно прочитать между называнием предназначения и словами о собственном деле?",
@@ -1383,29 +1210,28 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "§2: новая лира, предназначение учителя, опасность и болезнь.",
-              "en": "§2: the new lyre, the teacher’s vocation, danger and illness."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3cf5bcb02f23ef9ddd3bb07697eadc6d","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]}
+            ]
           },
           {
             "ref": "z-sign",
-            "focus": {
-              "ru": "От воспоминания об испытании жалостью к словам о своём деле.",
-              "en": "From recalling pity’s temptation to the words about his own work."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-c0e3a3517b021107cee042466f68a20d","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:teach-live",
-        "title": {
-          "ru": "Нести мысль и выйти",
-          "en": "Bear the thought and depart"
-        },
+        "title": {"ru":"Нести мысль и выйти","en":"Bear the thought and depart"},
         "body": {
-          "ru": "Выздоравливающему предлагают новые песни, чтобы он мог нести свою судьбу; в финале «Знамения» Заратустра выходит из пещеры. Сравнение делает учительство движением между состоянием говорящего, способом речи и готовностью к делу. Вернитесь к первоначальной песне зверей и спросите, что она уже совершает для этого движения.",
-          "en": "The convalescent is offered new songs so he may bear his fate; at “The Sign”’s end, Zarathustra leaves the cave. Comparison makes teaching a movement between the speaker’s condition, speech’s form and readiness for work. Return to the animals’ first song and ask what it already does for that movement."
+          "ru": "Сравнение делает учительство движением между состоянием говорящего, способом речи и готовностью к делу. Вернитесь к первоначальной песне зверей и спросите, что она уже совершает для этого движения.",
+          "en": "Comparison makes teaching a movement between the speaker’s condition, speech’s form and readiness for work. Return to the animals’ first song and ask what it already does for that movement.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"],"s":39,"e":116},
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-7ccacf7def856540e0472211fc54d3e2","tos.text-unit.sid-8d196729b153c49989bdf25466f74ff0"]}
+          ]
         },
         "question": {
           "ru": "Что значит передавать мысль, которая ещё изменяет самого учителя?",
@@ -1414,17 +1240,15 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "§2: пение как выздоровление и способность нести судьбу.",
-              "en": "§2: singing as recovery and the capacity to bear fate."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1d18f623343990179ed1f4ab76c81bfd","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"]}
+            ]
           },
           {
             "ref": "z-sign",
-            "focus": {
-              "ru": "Финальный выход Заратустры к своему делу.",
-              "en": "Zarathustra’s final departure toward his work."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-7ccacf7def856540e0472211fc54d3e2","tos.text-unit.sid-8d196729b153c49989bdf25466f74ff0"]}
+            ]
           }
         ]
       }
@@ -1471,8 +1295,9 @@ export const RESEARCH_ROUTES = [
         "to": "demo:character-author",
         "edgeId": "atlas:narrated-voices:develops:character-author",
         "body": {
-          "ru": "Последовательность доходит до воображаемой речи самого Заратустры.",
-          "en": "The sequence reaches the imagined speech of Zarathustra himself."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"]}
+          ]
         }
       },
       {
@@ -1515,26 +1340,21 @@ export const RESEARCH_ROUTES = [
     "grounds": [
       {
         "ref": "z-convalescent",
-        "focus": {
-          "ru": "§2 целиком: радость речи, песня, отвращение, новая лира и вложенная речь.",
-          "en": "§2 in full: speech’s joy, song, disgust, new lyre and embedded speech."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"]}
+        ]
       },
       {
         "ref": "z-sign",
-        "focus": {
-          "ru": "Собственное дело и финальный выход.",
-          "en": "His own work and the final departure."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae","tos.text-unit.sid-8d196729b153c49989bdf25466f74ff0"]}
+        ]
       }
     ]
   },
   {
     "id": "image-experience",
-    "title": {
-      "ru": "Образ и переживание",
-      "en": "Image and experience"
-    },
+    "title": {"ru":"Образ и переживание","en":"Image and experience"},
     "description": {
       "ru": "Следуйте за видением пастуха от неудавшейся помощи к укусу и неслыханному смеху. Затем сравните желание рассказчика с вопросом §341 и с танцем «Семи печатей»; финал маршрута даст самому повторению припева изменить чтение.",
       "en": "Follow the shepherd’s vision from failed help to the bite and unprecedented laughter. Then compare the narrator’s desire with §341’s question and “The Seven Seals”’ dance; at the route’s end, let the refrain’s repetition itself change the reading."
@@ -1546,13 +1366,14 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "demo:shepherd",
-        "title": {
-          "ru": "Сначала увидеть удушье",
-          "en": "First see the choking"
-        },
+        "title": {"ru":"Сначала увидеть удушье","en":"First see the choking"},
         "body": {
-          "ru": "Пастух появляется после воя собаки и детского воспоминания. Заратустра видит судороги, искажённое лицо и змею в глотке; затем пытается помочь рукой. Прочитайте эту последовательность до всякого названия символа, чтобы сохранить задачу действия внутри видения.",
-          "en": "The shepherd appears after the dog’s howl and a childhood recollection. Zarathustra sees convulsions, a distorted face and a snake in the throat, then tries to help with his hand. Read this sequence before naming a symbol, preserving the task of action within the vision."
+          "ru": "Прочитайте эту последовательность до всякого названия символа, чтобы сохранить задачу действия внутри видения.",
+          "en": "Read this sequence before naming a symbol, preserving the task of action within the vision.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-2f41253d3959f2b77e74490541d39586","tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"]},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"s":53}
+          ]
         },
         "question": {
           "ru": "Что именно видит рассказчик прежде, чем пытается помочь?",
@@ -1561,22 +1382,22 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: появление пастуха и попытка вытянуть змею.",
-              "en": "§2: the shepherd’s appearance and the attempt to pull out the snake."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e9175aa652493debe3e712faff10a3df","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:bite",
-        "title": {
-          "ru": "Рука и крик",
-          "en": "The hand and the cry"
-        },
+        "title": {"ru":"Рука и крик","en":"The hand and the cry"},
         "body": {
-          "ru": "Рука не справляется; из Заратустры вырывается приказ укусить. В крике сходятся ужас, ненависть, отвращение, жалость и всё доброе и злое в нём. Собственный укус пастуха отвечает на этот сложный призыв, меняя распределение действия.",
-          "en": "The hand fails; a command to bite bursts from Zarathustra. Horror, hatred, disgust, pity and everything good and evil in him converge in the cry. The shepherd’s own bite answers this complex exhortation and redistributes the act."
+          "ru": "Собственный укус пастуха отвечает на этот сложный призыв, меняя распределение действия.",
+          "en": "The shepherd’s own bite answers this complex exhortation and redistributes the act.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"]},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"],"s":48,"e":159}
+          ]
         },
         "question": {
           "ru": "Почему действие пастуха нуждается в призыве, который не сводится к одному чувству?",
@@ -1585,22 +1406,23 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: бессильная рука, состав крика и укус пастуха.",
-              "en": "§2: the powerless hand, the cry’s gathered affects and the shepherd’s bite."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"]},
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:laughter",
-        "title": {
-          "ru": "Смех, которого ещё не слышали",
-          "en": "A laughter never heard before"
-        },
+        "title": {"ru":"Смех, которого ещё не слышали","en":"A laughter never heard before"},
         "body": {
-          "ru": "После укуса повествование меняет имя увиденного: уже не пастух, не человек, а преображённый и смеющийся. Заратустра хочет вновь услышать этот смех и спрашивает, как теперь жить и умереть. Видение изменило и того, кто его рассказывает.",
-          "en": "After the bite, the narrative renames what is seen: no longer shepherd or human, but transformed and laughing. Zarathustra wants to hear the laughter again and asks how to live and die now. The vision has changed its narrator too."
+          "ru": "Видение изменило и того, кто его рассказывает.",
+          "en": "The vision has changed its narrator too.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":0,"e":90},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38407ce82a4703428377d06e4af5c240","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"],"s":17}
+          ]
         },
         "question": {
           "ru": "Как желание рассказчика становится частью смысла преображения?",
@@ -1609,19 +1431,15 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "Финал §2: смена именования, смех и последние вопросы Заратустры.",
-              "en": "End of §2: changed naming, laughter and Zarathustra’s final questions."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:affirmation",
-        "title": {
-          "ru": "Хотеть снова услышанного",
-          "en": "Wanting what was heard again"
-        },
+        "title": {"ru":"Хотеть снова услышанного","en":"Wanting what was heard again"},
         "body": {
           "ru": "Желание смеха можно поставить рядом с огромным мгновением §341, после которого слушающий ответил бы демону как богу. В обоих местах один опыт меняет вопрос об отношении к жизни. Сравнение требует уточнить, чего именно хотят вновь: услышанного смеха или всей жизни в прежнем порядке.",
           "en": "The desire for laughter can stand beside §341’s immense moment, after which the hearer might address the demon as a god. In both passages, one experience changes the relation to life. Comparison asks what is wanted again: the laughter heard or the entire life in its previous order."
@@ -1633,60 +1451,49 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "Заключительное желание снова услышать смех.",
-              "en": "The closing desire to hear the laughter again."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38407ce82a4703428377d06e4af5c240","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
+            ]
           },
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "Огромное мгновение и ответ демону; затем вопрос о всей жизни.",
-              "en": "The immense moment and response to the demon; then the question of the whole life."
-            }
-          }
+          {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}
         ]
       },
       {
         "nodeId": "demo:performative",
-        "title": {
-          "ru": "Как желание произносится",
-          "en": "How desire is voiced"
-        },
+        "title": {"ru":"Как желание произносится","en":"How desire is voiced"},
         "body": {
-          "ru": "В §341 мысль должна преобразить слушающего и сопровождать каждое действие. В «Семи печатях» желание вечности совершается через возвращающийся припев после разных условных строф. Переход позволяет исследовать, как утверждение получает форму, в которой его можно снова произнести.",
-          "en": "In §341, the thought is to transform the hearer and accompany every act. In “The Seven Seals,” desire for eternity is enacted through a refrain returning after different conditional stanzas. The transition examines how affirmation receives a form in which it can be voiced again."
+          "ru": "Переход позволяет исследовать, как утверждение получает форму, в которой его можно снова произнести.",
+          "en": "The transition examines how affirmation receives a form in which it can be voiced again.",
+          "cite": [
+            {"w":"die-froehliche-wissenschaft","loc":"341"},
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-554c18e1670e833686c158edc8c9a2ee","tos.text-unit.sid-04129b0a35e53ec20ae436790aa0dc1c"]}
+          ]
         },
         "question": {
           "ru": "Что повтор припева добавляет к одному признанию любви к вечности?",
           "en": "What does repeating the refrain add to a single avowal of love for eternity?"
         },
         "grounds": [
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "Преобразующая мысль и вопрос при действии.",
-              "en": "The transforming thought and the question accompanying action."
-            }
-          },
+          {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]},
           {
             "ref": "z-seven-seals",
-            "focus": {
-              "ru": "Семь условных строф и общий припев.",
-              "en": "The seven conditional stanzas and their common refrain."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-554c18e1670e833686c158edc8c9a2ee","tos.text-unit.sid-04129b0a35e53ec20ae436790aa0dc1c"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:dance",
-        "title": {
-          "ru": "Тяжёлое делается лёгким",
-          "en": "Heaviness becomes light"
-        },
+        "title": {"ru":"Тяжёлое делается лёгким","en":"Heaviness becomes light"},
         "body": {
-          "ru": "Шестая печать называет добродетелью танцора переход тяжёлого в лёгкое; тело получает образ духа-птицы. В седьмой говорящий хочет петь вместо речи словами. Проследите, как образ движения меняет самый способ обращения к вечности.",
-          "en": "The sixth seal calls making heaviness light the dancer’s virtue; the body receives the bird-spirit’s image. In the seventh, the speaker wants singing in place of speech with words. Follow how movement’s image changes the manner of addressing eternity."
+          "ru": "Проследите, как образ движения меняет самый способ обращения к вечности.",
+          "en": "Follow how movement’s image changes the manner of addressing eternity.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-fa02b841750993c61618111d272a18aa","tos.text-unit.sid-fa02b841750993c61618111d272a18aa"],"s":0,"e":42},
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-187d71e13bc9881187035bebd261de0c","tos.text-unit.sid-187d71e13bc9881187035bebd261de0c"],"s":31,"e":100},
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-40d09c0747d9bac0cf78568ff49e8cd0","tos.text-unit.sid-37ba7e4b8c29104decfaa04e123c0e24"],"s":120}
+          ]
         },
         "question": {
           "ru": "Почему танец продолжается в переходе к пению?",
@@ -1695,22 +1502,22 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-seven-seals",
-            "focus": {
-              "ru": "§§6–7: танцор, дух-птица, слова и пение.",
-              "en": "§§6–7: dancer, bird-spirit, words and singing."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-fa02b841750993c61618111d272a18aa","tos.text-unit.sid-37ba7e4b8c29104decfaa04e123c0e24"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:lived-rhythm",
-        "title": {
-          "ru": "Тот же припев после танца",
-          "en": "The same refrain after the dance"
-        },
+        "title": {"ru":"Тот же припев после танца","en":"The same refrain after the dance"},
         "body": {
-          "ru": "Вернитесь к припеву после шестой печати и сравните его с первым появлением. Слова о вечности сохранены, но к ним привела другая образная дорога. Ритм текста позволяет услышать, как повторение удерживает желание и вместе с тем меняет его окружение.",
-          "en": "Return to the refrain after the sixth seal and compare its first appearance. The words about eternity remain, but another path of images has led to them. The text’s rhythm makes repetition audible as retaining desire while changing its surroundings."
+          "ru": "Вернитесь к припеву после шестой печати и сравните его с первым появлением. Ритм текста позволяет услышать, как повторение удерживает желание и вместе с тем меняет его окружение.",
+          "en": "Return to the refrain after the sixth seal and compare its first appearance. The text’s rhythm makes repetition audible as retaining desire while changing its surroundings.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-554c18e1670e833686c158edc8c9a2ee","tos.text-unit.sid-cc29f340979315938b54f43eb7db749e"]},
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-fa02b841750993c61618111d272a18aa","tos.text-unit.sid-c00885a06bc25aa7eebc0d82c20fb581"]}
+          ]
         },
         "question": {
           "ru": "Что в знакомом припеве слышится благодаря предшествующему танцу?",
@@ -1719,19 +1526,16 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-seven-seals",
-            "focus": {
-              "ru": "Припевы после §1 и §6 вместе с предшествующими строфами.",
-              "en": "The refrains after §1 and §6 with their preceding stanzas."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-554c18e1670e833686c158edc8c9a2ee","tos.text-unit.sid-cc29f340979315938b54f43eb7db749e"]},
+              {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-fa02b841750993c61618111d272a18aa","tos.text-unit.sid-c00885a06bc25aa7eebc0d82c20fb581"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:return-practice",
-        "title": {
-          "ru": "Вернуться с изменившимся слухом",
-          "en": "Return with changed hearing"
-        },
+        "title": {"ru":"Вернуться с изменившимся слухом","en":"Return with changed hearing"},
         "body": {
           "ru": "Прочитайте выбранные две строфы и припевы ещё раз, удерживая вопрос о желании, а затем вернитесь к последним словам о смехе пастуха. Текст даёт два способа хотеть «снова»: повтором слов и жаждой неслыханного смеха. Уточните связь между ними по тому, что теперь стало слышно.",
           "en": "Read the chosen stanzas and refrains again with desire’s question in view, then return to the final words about the shepherd’s laughter. The text offers two ways of wanting again: repeating words and longing for unprecedented laughter. Specify their connection through what has now become audible."
@@ -1743,17 +1547,16 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-seven-seals",
-            "focus": {
-              "ru": "Повтор выбранных строф и общего припева.",
-              "en": "Rereading the chosen stanzas and their shared refrain."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-554c18e1670e833686c158edc8c9a2ee","tos.text-unit.sid-cc29f340979315938b54f43eb7db749e"]},
+              {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-fa02b841750993c61618111d272a18aa","tos.text-unit.sid-c00885a06bc25aa7eebc0d82c20fb581"]}
+            ]
           },
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "Финальное желание Заратустры вновь услышать смех.",
-              "en": "Zarathustra’s final longing to hear the laughter again."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38407ce82a4703428377d06e4af5c240","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
+            ]
           }
         ]
       }
@@ -1773,8 +1576,9 @@ export const RESEARCH_ROUTES = [
         "to": "demo:laughter",
         "edgeId": "atlas:bite:develops:laughter",
         "body": {
-          "ru": "Собственный укус открывает смену имени и преображённый смех.",
-          "en": "The shepherd’s own bite opens changed naming and transformed laughter."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":2}
+          ]
         }
       },
       {
@@ -1782,8 +1586,9 @@ export const RESEARCH_ROUTES = [
         "to": "demo:affirmation",
         "edgeId": "atlas:laughter:interprets:affirmation",
         "body": {
-          "ru": "Смех становится желанием рассказчика и вопросом о жизни.",
-          "en": "Laughter becomes the narrator’s desire and a question about life."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
+          ]
         }
       },
       {
@@ -1809,8 +1614,9 @@ export const RESEARCH_ROUTES = [
         "to": "demo:lived-rhythm",
         "edgeId": "atlas:dance:develops:lived-rhythm",
         "body": {
-          "ru": "Образ танцора вновь приводит к тому же припеву.",
-          "en": "The dancer’s image leads back to the same refrain."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-fa02b841750993c61618111d272a18aa","tos.text-unit.sid-c00885a06bc25aa7eebc0d82c20fb581"],"s":0}
+          ]
         }
       },
       {
@@ -1844,33 +1650,22 @@ export const RESEARCH_ROUTES = [
     "grounds": [
       {
         "ref": "z-vision",
-        "focus": {
-          "ru": "Видение пастуха: помощь, крик, укус, смех и желание рассказчика.",
-          "en": "The shepherd’s vision: help, cry, bite, laughter and the narrator’s longing."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e9175aa652493debe3e712faff10a3df","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
+        ]
       },
-      {
-        "ref": "gs341",
-        "focus": {
-          "ru": "Огромное мгновение и желание повторения.",
-          "en": "The immense moment and desire for recurrence."
-        }
-      },
+      {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]},
       {
         "ref": "z-seven-seals",
-        "focus": {
-          "ru": "Припев и §§6–7 о танце и пении.",
-          "en": "The refrain and §§6–7 on dance and singing."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-fa02b841750993c61618111d272a18aa","tos.text-unit.sid-04129b0a35e53ec20ae436790aa0dc1c"]}
+        ]
       }
     ]
   },
   {
     "id": "memory-others",
-    "title": {
-      "ru": "Память и другие",
-      "en": "Memory and others"
-    },
+    "title": {"ru":"Память и другие","en":"Memory and others"},
     "description": {
       "ru": "Начните с памяти, которая соединяет поступки у Камю, затем проследите детское воспоминание Заратустры: знакомый вой ведёт к новому видению и разным действиям его участников. Через конкретных спутников вернитесь к тому, что означает желать ту же жизнь целиком.",
       "en": "Begin with memory joining actions in Camus, then follow Zarathustra’s childhood recollection: a familiar howl leads to a new vision and its participants’ different acts. Through particular companions, return to what it means to want the same life whole."
@@ -1882,44 +1677,35 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "demo:memory",
-        "title": {
-          "ru": "Память соединяет путь",
-          "en": "Memory connects a path"
-        },
+        "title": {"ru":"Память соединяет путь","en":"Memory connects a path"},
         "body": {
-          "ru": "Камю в финале эссе связывает последовательность поступков взглядом памяти; человек узнаёт в ней личную судьбу. В «О видении и загадке» память входит иначе: нынешний вой собаки вызывает детскую сцену. Сравните обозрение пути с одним узнаванием, которое ещё поведёт рассказ дальше.",
-          "en": "At the essay’s close, Camus joins a sequence of actions through memory’s gaze; a person recognises a personal fate in it. In “The Vision and the Enigma,” memory enters differently: the present howl recalls a childhood scene. Compare surveying a path with one recognition that will carry the narrative onward."
+          "ru": "В «О видении и загадке» память входит иначе: нынешний вой собаки вызывает детскую сцену. Сравните обозрение пути с одним узнаванием, которое ещё поведёт рассказ дальше.",
+          "en": "In “The Vision and the Enigma,” memory enters differently: the present howl recalls a childhood scene. Compare surveying a path with one recognition that will carry the narrative onward.",
+          "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
         },
-        "question": {
-          "ru": "Что соединяется памятью в каждом из двух мест?",
-          "en": "What does memory connect in each passage?"
-        },
+        "question": {"ru":"Что соединяется памятью в каждом из двух мест?","en":"What does memory connect in each passage?"},
         "grounds": [
           {
             "ref": "camus-sisyphus",
-            "focus": {
-              "ru": "Финальные абзацы: взгляд памяти и соединённые поступки.",
-              "en": "Final paragraphs: memory’s gaze and connected actions."
-            }
+            "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
           },
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: вой собаки и детское воспоминание.",
-              "en": "§2: the dog’s howl and childhood recollection."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-2f41253d3959f2b77e74490541d39586","tos.text-unit.sid-5e6b25576edbed8b36254d7b586ea0cb"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:remembered-return",
-        "title": {
-          "ru": "Узнать знакомый вой",
-          "en": "Recognise a familiar howl"
-        },
+        "title": {"ru":"Узнать знакомый вой","en":"Recognise a familiar howl"},
         "body": {
-          "ru": "Заратустра слышал подобный вой в детстве и вспоминает собаку и луну. Настоящая сцена обретает узнаваемую деталь прежде, чем рассказчик понимает её нынешний повод. Возвращение здесь начинается со звука, соединяющего разные положения самого слушающего.",
-          "en": "Zarathustra heard such a howl in childhood and remembers a dog and the moon. The present scene acquires a recognised detail before the narrator understands its present occasion. Return begins with a sound connecting different positions of the hearer himself."
+          "ru": "Настоящая сцена обретает узнаваемую деталь прежде, чем рассказчик понимает её нынешний повод. Возвращение здесь начинается со звука, соединяющего разные положения самого слушающего.",
+          "en": "The present scene acquires a recognised detail before the narrator understands its present occasion. Return begins with a sound connecting different positions of the hearer himself.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-36ad02a1d9377c98a649af5994a2c41f"]}
+          ]
         },
         "question": {
           "ru": "Почему узнавание звука ещё не даёт понимания нынешней сцены?",
@@ -1928,46 +1714,44 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: прежняя собака и луна внутри нынешнего слышания.",
-              "en": "§2: the earlier dog and moon within the present hearing."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-5e6b25576edbed8b36254d7b586ea0cb"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:attention",
-        "title": {
-          "ru": "Следовать вопросу собаки",
-          "en": "Follow the dog’s question"
-        },
+        "title": {"ru":"Следовать за зовом собаки","en":"Follow the dog’s call"},
         "body": {
-          "ru": "Воспоминание сменяется вопросом о том, что увидела собака; затем Заратустра видит невиданное прежде. Знакомое направляет внимание к новому предмету. Проследите этот переход, сохранив различие между воспоминанием рассказчика и ужасом собаки.",
-          "en": "Recollection gives way to what the dog has seen; Zarathustra then sees something unprecedented. The familiar directs attention toward a new object. Follow the transition while distinguishing the narrator’s memory from the dog’s terror."
+          "ru": "Знакомое направляет внимание к новому предмету. Проследите этот переход, сохранив различие между воспоминанием рассказчика и ужасом собаки.",
+          "en": "The familiar directs attention toward a new object. Follow the transition while distinguishing the narrator’s memory from the dog’s terror.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-644ff83c17e4f860c7137f40386012fa","tos.text-unit.sid-e9175aa652493debe3e712faff10a3df"]},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c","tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"],"s":0,"e":51}
+          ]
         },
-        "question": {
-          "ru": "Какое новое внимание рождается из узнавания?",
-          "en": "What new attention arises from recognition?"
-        },
+        "question": {"ru":"Какое новое внимание рождается из узнавания?","en":"What new attention arises from recognition?"},
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: от детского воспоминания к вопросу о собаке и появлению пастуха.",
-              "en": "§2: from childhood recollection to the dog’s question and the shepherd’s appearance."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:shared-world",
-        "title": {
-          "ru": "Разные участники одной сцены",
-          "en": "Different participants in one scene"
-        },
+        "title": {"ru":"Разные участники одной сцены","en":"Different participants in one scene"},
         "body": {
-          "ru": "Собака воет, Заратустра тянет змею и кричит, пастух сам кусает. Ни один из этих ходов отдельно не описывает всю сцену. Общий мир видения можно прочитать как связь действий, в которой участники имеют разные места.",
-          "en": "The dog howls, Zarathustra pulls the snake and cries out, the shepherd bites for himself. No one act describes the whole scene. The vision’s shared world can be read as connected actions in which participants occupy different positions."
+          "ru": "Ни один из этих ходов отдельно не описывает всю сцену. Общий мир видения можно прочитать как связь действий, в которой участники имеют разные места.",
+          "en": "No one act describes the whole scene. The vision’s shared world can be read as connected actions in which participants occupy different positions.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e9175aa652493debe3e712faff10a3df","tos.text-unit.sid-e9175aa652493debe3e712faff10a3df"],"s":104,"e":123},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"],"s":0},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"],"s":2,"e":47}
+          ]
         },
         "question": {
           "ru": "Что произошло бы с описанием сцены, если оставить только действие рассказчика?",
@@ -1976,22 +1760,23 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-vision",
-            "focus": {
-              "ru": "§2: вой, попытка помощи, крик и собственный укус пастуха.",
-              "en": "§2: the howl, attempted help, cry and the shepherd’s own bite."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e9175aa652493debe3e712faff10a3df","tos.text-unit.sid-e9175aa652493debe3e712faff10a3df"]},
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"]},
+              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:whole-part",
-        "title": {
-          "ru": "Целое с этими спутниками",
-          "en": "A whole with these companions"
-        },
+        "title": {"ru":"Целое с этими спутниками","en":"A whole with these companions"},
         "body": {
-          "ru": "В «Выздоравливающем» звери включают солнце, землю, орла и змею в воображаемую речь Заратустры о возвращении. Тождество жизни уточняется через именно это окружение. После видения пастуха вопрос становится конкретнее: какие отношения делают целое этой жизнью?",
-          "en": "In “The Convalescent,” the animals include sun, earth, eagle and snake in Zarathustra’s imagined speech about return. Life’s identity is specified through these surroundings. After the shepherd’s vision, the question becomes more concrete: which relations make the whole this life?"
+          "ru": "После видения пастуха вопрос становится конкретнее: какие отношения делают целое этой жизнью?",
+          "en": "After the shepherd’s vision, the question becomes more concrete: which relations make the whole this life?",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
+          ]
         },
         "question": {
           "ru": "Почему перечисление спутников предшествует словам о той же жизни?",
@@ -2000,22 +1785,20 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Конец §2: эта земля, солнце, орёл и змея в воображаемой речи.",
-              "en": "End of §2: this earth, sun, eagle and snake in the imagined speech."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "same-life",
-        "title": {
-          "ru": "Та же жизнь в большом и малом",
-          "en": "The same life in large and small details"
-        },
+        "title": {"ru":"Та же жизнь в большом и малом","en":"The same life in large and small details"},
         "body": {
-          "ru": "Звери воображают то, что Заратустра сказал бы, если бы пожелал умереть теперь: возвращение к той же жизни ради нового возвещения учения. Новая, лучшая и лишь похожая жизнь исключены. Целое включает и повторяемую задачу говорящего, и подробности его мира.",
-          "en": "The animals imagine what Zarathustra would say if he wished to die now: returning to the same life to proclaim the teaching again. A new, better or merely similar life is excluded. The whole includes both the speaker’s recurring task and his world’s particulars."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239"],"s":0,"e":110},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+          ]
         },
         "question": {
           "ru": "Как повтор задачи входит в тождество жизни?",
@@ -2024,36 +1807,25 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Конец §2: условная речь о той же жизни и повторном учительстве.",
-              "en": "End of §2: the conditional speech about the same life and teaching again."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:existential",
-        "title": {
-          "ru": "Хотеть всего хода",
-          "en": "Wanting the entire course"
-        },
+        "title": {"ru":"Хотеть всего хода","en":"Wanting the entire course"},
         "body": {
-          "ru": "Демон в §341 доводит полноту до каждой мысли, боли, радости, паука и самого разговора. Затем афоризм спрашивает о желании слушающего и его отношении к себе и жизни. Память привела маршрут к узнаванию, но испытание теперь обращено ко всему составу и порядку жизни.",
-          "en": "The demon in §341 extends completeness to every thought, pain, joy, spider and the conversation itself. The aphorism then asks about the hearer’s desire and relation to self and life. Memory brought the route to recognition, but the trial now concerns life’s full contents and order."
+          "ru": "Память привела маршрут к узнаванию, но испытание теперь обращено ко всему составу и порядку жизни.",
+          "en": "Memory brought the route to recognition, but the trial now concerns life’s full contents and order.",
+          "cite": [{"w":"die-froehliche-wissenschaft","loc":"341"}]
         },
         "question": {
           "ru": "Что требуется от желания всей жизни сверх узнавания её отдельных возвращений?",
           "en": "What does wanting an entire life require beyond recognising particular returns?"
         },
-        "grounds": [
-          {
-            "ref": "gs341",
-            "focus": {
-              "ru": "Речь демона и заключительный вопрос об отношении к себе и жизни.",
-              "en": "The demon’s speech and the closing question of one’s relation to self and life."
-            }
-          }
-        ]
+        "grounds": [{"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}]
       }
     ],
     "transitions": [
@@ -2071,8 +1843,9 @@ export const RESEARCH_ROUTES = [
         "to": "demo:attention",
         "edgeId": "atlas:remembered-return:develops:attention",
         "body": {
-          "ru": "Узнанный вой вызывает вопрос о том, что увидено теперь.",
-          "en": "The recognised howl prompts what has now been seen."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-5e6b25576edbed8b36254d7b586ea0cb","tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"]}
+          ]
         }
       },
       {
@@ -2098,8 +1871,9 @@ export const RESEARCH_ROUTES = [
         "to": "same-life",
         "edgeId": "atlas:same-life:develops:whole-part",
         "body": {
-          "ru": "Перечисление спутников ведёт к строгой формуле той же жизни.",
-          "en": "Naming the companions leads to the strict same-life formula."
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
+          ]
         }
       },
       {
@@ -2133,40 +1907,26 @@ export const RESEARCH_ROUTES = [
     "grounds": [
       {
         "ref": "camus-sisyphus",
-        "focus": {
-          "ru": "Память и связность поступков.",
-          "en": "Memory and actions’ connectedness."
-        }
+        "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
       },
       {
         "ref": "z-vision",
-        "focus": {
-          "ru": "Детское воспоминание, внимание и участники видения.",
-          "en": "Childhood recollection, attention and the vision’s participants."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]}
+        ]
       },
       {
         "ref": "z-convalescent",
-        "focus": {
-          "ru": "Спутники и та же жизнь в условной речи зверей.",
-          "en": "Companions and the same life in the animals’ conditional speech."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
+        ]
       },
-      {
-        "ref": "gs341",
-        "focus": {
-          "ru": "Полный состав и порядок жизни как предмет желания.",
-          "en": "Life’s full contents and order as desire’s object."
-        }
-      }
+      {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}
     ]
   },
   {
     "id": "thinkers-necessity",
-    "title": {
-      "ru": "Необходимость у разных мыслителей",
-      "en": "Necessity across thinkers"
-    },
+    "title": {"ru":"Необходимость у разных мыслителей","en":"Necessity across thinkers"},
     "description": {
       "ru": "От различения подвластного у Эпиктета перейдите к участию действующего в судьбе. Затем сопоставьте хотение судьбы у Заратустры, свободу из собственной природы у Спинозы и достаточное основание выбора мира у Лейбница. Каждый вход уточняет свой предмет необходимости.",
       "en": "From Epictetus’s distinction of what is up to us, move to an agent’s participation in fate. Then compare Zarathustra’s wanting fate, Spinoza’s freedom from one’s own nature and Leibniz’s sufficient reason for world selection. Each entry specifies its own object of necessity."
@@ -2178,13 +1938,14 @@ export const RESEARCH_ROUTES = [
     "steps": [
       {
         "nodeId": "demo:epictetus",
-        "title": {
-          "ru": "Начать с двух перечней",
-          "en": "Begin with two lists"
-        },
+        "title": {"ru":"Начать с двух перечней","en":"Begin with two lists"},
         "body": {
-          "ru": "В начале «Энхиридиона» суждение, стремление, желание и отвращение названы подвластными; тело, имущество, слава и должности — неподвластными. Эпиктет сразу описывает, что происходит при смешении этих сторон. Вопрос свободы получает определённый предмет через то, что человек считает своим.",
-          "en": "At the “Enchiridion”’s opening, judgement, impulse, desire and aversion are up to us; body, property, reputation and office are not. Epictetus immediately describes the consequences of confusing these sides. Freedom gains a definite object through what a person takes as their own."
+          "ru": "Вопрос свободы получает определённый предмет через то, что человек считает своим.",
+          "en": "Freedom gains a definite object through what a person takes as their own.",
+          "cite": [
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":177},
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":347,"e":468}
+          ]
         },
         "question": {
           "ru": "Почему ошибочное присвоение внешнего становится внутренней помехой?",
@@ -2193,22 +1954,23 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "epictetus1",
-            "focus": {
-              "ru": "§1: перечни подвластного и неподвластного и последствия их смешения.",
-              "en": "§1: the lists of what is and is not up to us and the consequences of confusing them."
-            }
+            "cite": [
+              {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:agency",
-        "title": {
-          "ru": "Участие из собственного действия",
-          "en": "Participation through one’s own activity"
-        },
+        "title": {"ru":"Участие из собственного действия","en":"Participation through one’s own activity"},
         "body": {
-          "ru": "Эпиктет выделяет наши собственные действия через суждения и стремления. В конце «Выздоравливающего» звери воображают речь, где Заратустра включён в причины своего возвращения. Сопоставьте область собственного действия с принадлежностью к причинной связи: это разные способы назвать участие.",
-          "en": "Epictetus specifies our own activities through judgements and impulses. At “The Convalescent”’s end, the animals imagine a speech including Zarathustra among his return’s causes. Compare one’s own activity with membership in a causal nexus: these name participation differently."
+          "ru": "Сопоставьте область собственного действия с принадлежностью к причинной связи: это разные способы назвать участие.",
+          "en": "Compare one’s own activity with membership in a causal nexus: these name participation differently.",
+          "cite": [
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":128},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239"],"s":76,"e":110},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f","tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f"]}
+          ]
         },
         "question": {
           "ru": "Совпадает ли «своё» с тем, чему человек служит причиной?",
@@ -2217,29 +1979,29 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "epictetus1",
-            "focus": {
-              "ru": "§1: наши собственные действия.",
-              "en": "§1: our own activities."
-            }
+            "cite": [
+              {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":99,"e":128}
+            ]
           },
           {
             "ref": "z-convalescent",
-            "focus": {
-              "ru": "Конец §2: звери воображают Заратустру среди причин его возвращения.",
-              "en": "End of §2: the animals imagine Zarathustra among the causes of his return."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f","tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:fate",
-        "title": {
-          "ru": "Как судьба становится своей",
-          "en": "How fate becomes one’s own"
-        },
+        "title": {"ru":"Как судьба становится своей","en":"How fate becomes one’s own"},
         "body": {
-          "ru": "У Камю поступки соединяются взглядом памяти в личную судьбу. На «Блаженных островах» Заратустра говорит о воле, которая хочет такой судьбы. Принадлежность пути себе получает различие между сделанным, обозреваемым и желаемым.",
-          "en": "For Camus, memory’s gaze joins actions into personal fate. On “The Happy Isles,” Zarathustra speaks of a will wanting such a fate. One’s path belonging to oneself differs across what is done, surveyed and wanted."
+          "ru": "Принадлежность пути себе получает различие между сделанным, обозреваемым и желаемым.",
+          "en": "One’s path belonging to oneself differs across what is done, surveyed and wanted.",
+          "cite": [
+            {"w":"le-mythe-de-sisyphe","loc":"subtle"},
+            {"w":"le-mythe-de-sisyphe","loc":"joy"},
+            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"],"s":93,"e":135}
+          ]
         },
         "question": {
           "ru": "Как желание судьбы соотносится с узнаванием сделанного своим?",
@@ -2248,26 +2010,19 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "camus-sisyphus",
-            "focus": {
-              "ru": "Финал: поступки, память и личная судьба.",
-              "en": "Ending: actions, memory and personal fate."
-            }
+            "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
           },
           {
             "ref": "z-happy-isles",
-            "focus": {
-              "ru": "Поправка о воле, которая хочет такой судьбы.",
-              "en": "The correction about the will wanting such a fate."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:free-necessary",
-        "title": {
-          "ru": "Поправка воли",
-          "en": "Willing’s correction"
-        },
+        "title": {"ru":"Поправка воли","en":"Willing’s correction"},
         "body": {
           "ru": "Перечитайте обе формулировки на «Блаженных островах»: воля названа судьбой, затем воля хочет такой судьбы. Поправка сохраняет необходимость объяснить отношение хотения к уделу. Творчество и становление вокруг неё позволяют спросить, какую свободу ищет это движение воли.",
           "en": "Reread both formulations on “The Happy Isles”: willing is called fate, then the will wants such a fate. The correction retains the need to explain willing’s relation to its lot. The surrounding creation and becoming ask what freedom this movement seeks."
@@ -2279,77 +2034,50 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "z-happy-isles",
-            "focus": {
-              "ru": "Творчество, освобождающее хотение и две формулировки воли и судьбы.",
-              "en": "Creation, liberating willing and the two formulations of will and fate."
-            }
+            "cite": [
+              {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443","tos.text-unit.sid-f39f3ace3b6a90408ec2f3f5c98a7a86"]}
+            ]
           }
         ]
       },
       {
         "nodeId": "demo:necessity",
-        "title": {
-          "ru": "Источник определения",
-          "en": "Determination’s source"
-        },
+        "title": {"ru":"Источник определения","en":"Determination’s source"},
         "body": {
-          "ru": "Спиноза в определении 7 первой части различает определение собственной природой и другим. Необходимость собственной природы входит в свободное существование и действие. Вопрос теперь касается того, откуда действует вещь, а не одного присутствия необходимости.",
-          "en": "In Part I, definition 7, Spinoza distinguishes determination by one’s own nature from determination by another. One’s own nature’s necessity enters free existence and action. The question now concerns where a thing acts from, beyond necessity’s mere presence."
+          "ru": "Вопрос теперь касается того, откуда действует вещь, а не одного присутствия необходимости.",
+          "en": "The question now concerns where a thing acts from, beyond necessity’s mere presence.",
+          "cite": [{"w":"ethica","loc":"I.D7"}]
         },
         "question": {
           "ru": "Что нужно знать о природе вещи, чтобы назвать её действие свободным?",
           "en": "What must be known about a thing’s nature to call its action free?"
         },
-        "grounds": [
-          {
-            "ref": "spinoza1d7",
-            "focus": {
-              "ru": "I, определение 7: существование и действие из собственной природы или по определению другого.",
-              "en": "I, definition 7: existence and action from one’s own nature or by another’s determination."
-            }
-          }
-        ]
+        "grounds": [{"ref":"spinoza1d7","cite":[{"w":"ethica","loc":"I.D7"}]}]
       },
       {
         "nodeId": "demo:spinoza",
-        "title": {
-          "ru": "Собственная сила вещи",
-          "en": "A thing’s own power"
-        },
+        "title": {"ru":"Собственная сила вещи","en":"A thing’s own power"},
         "body": {
-          "ru": "Поставьте определение свободы рядом с III.6: каждая вещь, насколько от неё зависит, стремится сохранять бытие. Доказательство говорит о её действующей силе и противостоянии уничтожению. Это сравнение уточняет собственное начало действия, оставляя вопрос о том, как вещь соотносится с другими причинами.",
-          "en": "Place freedom’s definition beside III.6: each thing, as far as it can by its own power, strives to persevere in being. The proof speaks of its active power and opposition to destruction. The comparison specifies action’s own source while leaving how a thing relates to other causes in question."
+          "ru": "Поставьте определение свободы рядом с III.6. Это сравнение уточняет собственное начало действия, оставляя вопрос о том, как вещь соотносится с другими причинами.",
+          "en": "Place freedom’s definition beside III.6. The comparison specifies action’s own source while leaving how a thing relates to other causes in question.",
+          "cite": [{"w":"ethica","loc":"III.P6"}]
         },
         "question": {
           "ru": "Как «насколько от неё зависит» уточняет собственную силу вещи?",
           "en": "How does “as far as it can by its own power” specify a thing’s power?"
         },
         "grounds": [
-          {
-            "ref": "spinoza1d7",
-            "focus": {
-              "ru": "Определение свободы через собственную природу.",
-              "en": "Freedom defined through one’s own nature."
-            }
-          },
-          {
-            "ref": "spinoza3p6",
-            "focus": {
-              "ru": "III.6 и доказательство: собственная сила и сохранение бытия.",
-              "en": "III.6 and proof: one’s own power and perseverance in being."
-            }
-          }
+          {"ref":"spinoza1d7","cite":[{"w":"ethica","loc":"I.D7"}]},
+          {"ref":"spinoza3p6","cite":[{"w":"ethica","loc":"III.P6"}]}
         ]
       },
       {
         "nodeId": "demo:leibniz",
-        "title": {
-          "ru": "Основание выбора вселенной",
-          "en": "A reason for choosing a universe"
-        },
+        "title": {"ru":"Основание выбора вселенной","en":"A reason for choosing a universe"},
         "body": {
-          "ru": "Лейбниц в §§53–55 начинает с множества возможных вселенных и существования одной. Вопрос требует основания выбора, которое связывается со степенью совершенства. Рядом со Спинозой сравните работу основания: определять действие из природы или объяснять выбор существующего целого.",
-          "en": "In §§53–55, Leibniz begins with many possible universes and the existence of one. The question demands a reason for selection, connected with degree of perfection. Beside Spinoza, compare grounding’s work: determining action from nature or explaining an existing whole’s selection."
+          "ru": "Рядом со Спинозой сравните работу основания: определять действие из природы или объяснять выбор существующего целого.",
+          "en": "Beside Spinoza, compare grounding’s work: determining action from nature or explaining an existing whole’s selection.",
+          "cite": [{"w":"monadologie","loc":"53"},{"w":"monadologie","loc":"54"}]
         },
         "question": {
           "ru": "Почему возможность многих миров заставляет спрашивать об основании этого?",
@@ -2358,48 +2086,30 @@ export const RESEARCH_ROUTES = [
         "grounds": [
           {
             "ref": "leibniz53-55",
-            "focus": {
-              "ru": "§§53–55: множество вселенных, выбор и совершенство.",
-              "en": "§§53–55: many universes, selection and perfection."
-            }
+            "cite": [{"w":"monadologie","loc":"53"},{"w":"monadologie","loc":"54"},{"w":"monadologie","loc":"55"}]
           },
-          {
-            "ref": "spinoza1d7",
-            "focus": {
-              "ru": "Определение 7: действие из собственной природы.",
-              "en": "Definition 7: action from one’s own nature."
-            }
-          }
+          {"ref":"spinoza1d7","cite":[{"w":"ethica","loc":"I.D7"}]}
         ]
       },
       {
         "nodeId": "demo:possible-worlds",
-        "title": {
-          "ru": "Возможное внутри объяснения",
-          "en": "Possibility within the explanation"
-        },
+        "title": {"ru":"Возможное внутри объяснения","en":"Possibility within the explanation"},
         "body": {
-          "ru": "Возможные вселенные у Лейбница различаются совершенством; божественные мудрость, благость и могущество участвуют в существовании избранного мира. Возможность здесь принадлежит объяснению целого. Вернитесь с этим масштабом к Эпиктету: его вопрос о подвластном обращён к иной области действия.",
-          "en": "Leibniz’s possible universes differ in perfection; divine wisdom, goodness and power enter the chosen world’s existence. Possibility belongs here to an explanation of the whole. Return with this scale to Epictetus: his question of what is up to us addresses another field of activity."
+          "ru": "Возможность здесь принадлежит объяснению целого. Вернитесь с этим масштабом к Эпиктету: его вопрос о подвластном обращён к иной области действия.",
+          "en": "Possibility belongs here to an explanation of the whole. Return with this scale to Epictetus: his question of what is up to us addresses another field of activity.",
+          "cite": [{"w":"monadologie","loc":"54"},{"w":"monadologie","loc":"55"}]
         },
         "question": {
           "ru": "Как меняется смысл выбора при переходе от собственного суждения к возможной вселенной?",
           "en": "How does choosing change from one’s own judgement to a possible universe?"
         },
         "grounds": [
-          {
-            "ref": "leibniz53-55",
-            "focus": {
-              "ru": "§§54–55: совершенство и божественный выбор.",
-              "en": "§§54–55: perfection and divine selection."
-            }
-          },
+          {"ref":"leibniz53-55","cite":[{"w":"monadologie","loc":"54"},{"w":"monadologie","loc":"55"}]},
           {
             "ref": "epictetus1",
-            "focus": {
-              "ru": "§1: собственные суждения и стремления.",
-              "en": "§1: one’s own judgements and impulses."
-            }
+            "cite": [
+              {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":66,"e":98}
+            ]
           }
         ]
       }
@@ -2463,10 +2173,7 @@ export const RESEARCH_ROUTES = [
         "from": "demo:leibniz",
         "to": "demo:possible-worlds",
         "edgeId": "atlas:leibniz:develops:possible-worlds",
-        "body": {
-          "ru": "Выбор вселенной требует различить возможности внутри лейбницевского объяснения.",
-          "en": "Selecting a universe requires distinguishing possibilities within Leibniz’s explanation."
-        }
+        "body": {"cite":[{"w":"monadologie","loc":"53"},{"w":"monadologie","loc":"54"}]}
       }
     ],
     "conclusion": {
@@ -2490,52 +2197,31 @@ export const RESEARCH_ROUTES = [
     "grounds": [
       {
         "ref": "epictetus1",
-        "focus": {
-          "ru": "Подвластное и собственная деятельность.",
-          "en": "What is up to us and one’s own activity."
-        }
+        "cite": [
+          {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"]}
+        ]
       },
       {
         "ref": "z-convalescent",
-        "focus": {
-          "ru": "Участник среди причин в условной речи зверей.",
-          "en": "The participant among causes in the animals’ conditional speech."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f","tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f"]}
+        ]
       },
       {
         "ref": "camus-sisyphus",
-        "focus": {
-          "ru": "Поступки и личная судьба.",
-          "en": "Actions and personal fate."
-        }
+        "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
       },
       {
         "ref": "z-happy-isles",
-        "focus": {
-          "ru": "Воля хочет такой судьбы.",
-          "en": "The will wants such a fate."
-        }
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
+        ]
       },
-      {
-        "ref": "spinoza1d7",
-        "focus": {
-          "ru": "Необходимость собственной природы и определение другим.",
-          "en": "One’s own nature’s necessity and determination by another."
-        }
-      },
-      {
-        "ref": "spinoza3p6",
-        "focus": {
-          "ru": "Собственная сила вещи в сохранении бытия.",
-          "en": "A thing’s own power in persevering in being."
-        }
-      },
+      {"ref":"spinoza1d7","cite":[{"w":"ethica","loc":"I.D7"}]},
+      {"ref":"spinoza3p6","cite":[{"w":"ethica","loc":"III.P6"}]},
       {
         "ref": "leibniz53-55",
-        "focus": {
-          "ru": "Возможные вселенные и основание выбора.",
-          "en": "Possible universes and selection’s reason."
-        }
+        "cite": [{"w":"monadologie","loc":"53"},{"w":"monadologie","loc":"54"},{"w":"monadologie","loc":"55"}]
       }
     ]
   }
