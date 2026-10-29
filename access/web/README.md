@@ -89,7 +89,8 @@ author's life or years of activity where no source dates it closer — each a
 Tree `historicalDate` with its source and footing. Moves sharing one span in a
 branch spread over it in step order; each branch is a row whose name opens it;
 an era's bracket spans its authors' lives. A concept chosen above the panel is
-traced through the moves that carry it. In Zarathustra the horizontal is the
+traced through the stars that carry it in the order of the scale; a star off
+the scale carries it without joining the line. In Zarathustra the horizontal is the
 order of the book's chapters: a star stands at the first chapter it rests on,
 each part names the years it was written, and stars grounded only in other texts
 stand outside the scale.
@@ -108,8 +109,9 @@ centre lists its nearest stars.
 A chosen star states when (◷) and where (⌖) its text was written, and on
 Proximity how near it stands (⊙); each fact opens to its statement and sources.
 Measure and completeness ([`space-measure.mjs`](src/public-research/space-measure.mjs))
-counts what the bonsai dates and places, by kind, precision, footing and era,
-and draws how each branch or route walks time or the book. These positions are
+counts what the bonsai dates and places, by kind, precision (a dating within a
+phase or a life no firmer than that span), footing and era, and draws how each
+branch or route walks time or the book. These positions are
 display only and never enter the saved graph. Zoom and pan follow the scale, an
 open branch or route reads top to bottom on Time and Space, and `treeLens`,
 `treeCriterion` and `treeConcept` link to a view.

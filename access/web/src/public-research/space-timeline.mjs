@@ -106,7 +106,11 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
   }
   if(!timeOf.size||!lives.size)return null;
   const spanOf=id=>timeOf.get(id)?.span??null,undated=new Set([...timeOf].filter(([,time])=>!time.span).map(([id])=>id));
-  const all=[...lives.values()].map(life=>life.span),min=centuryStart(Math.floor(Math.min(...all.map(span=>span.from)))),max=centuryStart(Math.ceil(Math.max(...all.map(span=>span.to)))-1)+100;
+  // The scale spans every life and every dated writing, so that no writing falls off it (a corpus of many hands has no life).
+  const all=[...[...lives.values()].map(life=>life.span),...[...timeOf.values()].map(time=>time.span).filter(Boolean)];
+  const min=centuryStart(Math.floor(Math.min(...all.map(span=>span.from)))),max=centuryStart(Math.ceil(Math.max(...all.map(span=>span.to)))-1)+100;
+  // The column past the scale is "date unknown" where every writing in it is dated so, else only "off the scale".
+  const unknownOnly=[...undated].every(id=>reader.situation(timeOf.get(id)?.composition)?.dating?.kind==='unknown-date');
   const width=1000,xOfYear=year=>(year-min)/(max-min)*width-width/2,outsideX=width/2+130;
   const positions=new Map(),lanes=[],yearOf=new Map();
   for(const route of routes){
@@ -145,10 +149,10 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
         const span=[xOfYear(Math.min(...spans.map(item=>item.from))),xOfYear(Math.max(...spans.map(item=>item.to)))];
         out.push({id:`time:${era.legacyId??era.id}`,variant:'era',strip:index%2?YEAR_ROWS.era1:YEAR_ROWS.era0,span,title:pick(era.title,locale),subtitle:'',center:[(span[0]+span[1])/2,0,0]});
       });
-      // Writings the chronology dates as unknown stand past a strong rule, named on the line of centuries.
+      // Writings the scale cannot place stand past a strong rule, named on the line of centuries.
       if(undated.size){
         out.push({id:'time:rule:undated',variant:'rule',tone:'strong',title:'',subtitle:'',center:[(xOfYear(max)+outsideX)/2,0,0]});
-        out.push({id:'time:undated',variant:'side',strip:YEAR_ROWS.axis,title:en?'date unknown':'дата неизвестна',subtitle:'',center:[outsideX,0,0]});
+        out.push({id:'time:undated',variant:'side',strip:YEAR_ROWS.axis,title:unknownOnly?(en?'date unknown':'дата неизвестна'):(en?'off the scale':'вне шкалы'),subtitle:'',center:[outsideX,0,0]});
       }
       for(const lane of lanes){
         out.push({id:`time:thread:${lane.id}`,variant:'thread',title:'',subtitle:'',span:[lane.from,lane.to],center:[(lane.from+lane.to)/2,lane.y,0]});
@@ -221,7 +225,8 @@ export function zarathustraTimeline({materials=[],references={},clusters=[],chro
   };
 }
 
-function toRoman(value){
+/** A whole number in Roman numerals: 80 → "LXXX". */
+export function toRoman(value){
   let n=Math.max(0,Math.floor(value)),out='';
   for(const [symbol,amount] of [['C',100],['XC',90],['L',50],['XL',40],['X',10],['IX',9],['V',5],['IV',4],['I',1]])while(n>=amount){out+=symbol;n-=amount;}
   return out;

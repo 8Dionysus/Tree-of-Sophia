@@ -7,7 +7,7 @@ import {PRIMARY_SOURCES} from '../../constructor/source-references.mjs';
 import {INQUIRY_SOURCES_CONCEPTS} from '../../constructor/inquiry-sources-concepts.mjs';
 import {INQUIRY_READINGS_ECHOES} from '../../constructor/inquiry-readings-echoes.mjs';
 import zarathustraChronology from '../../../../bonsai/zarathustra/chronology.json' with {type:'json'};
-import {antiquityTimeline,bookPlace,dodgeRow,formatYears,romanValue,stackColumns,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
+import {antiquityTimeline,bookPlace,dodgeRow,formatYears,romanValue,stackColumns,stepTimeline,toRoman,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {datingKind} from './space-measure.mjs';
 
 describe('the lives the chronology dates',()=>{
@@ -101,6 +101,38 @@ describe('Antiquity on a scale of years',()=>{
     expect(era('era-classical').span).toEqual([timeline.xOfYear(Math.min(...lives.map(span=>span.from))),timeline.xOfYear(Math.max(...lives.map(span=>span.to)))]);
     // Overlapping eras take alternate rows of the strip.
     expect(era('era-classical').strip).not.toBe(era('era-hellenistic').strip);
+  });
+});
+
+describe('the scale of years at its edges',()=>{
+  // A small collection: one author with a life, a corpus without one, and writings dated in each way.
+  const date=(kind,extra)=>({kind,role:'historical-time',calendar:null,year_numbering:kind==='relative-order'?null:'astronomical',certainty:'approximate',source_wording:{text:'x',language:'en'},...extra});
+  const situation=(type,dating)=>({type,label:{ru:'x',en:'x'},dating,statement:{ru:'x',en:'x'},sources:['s'],footing:'high',epistemic:'reported'});
+  const entries=[{id:'a',kind:'author',period:'classical'},{id:'h',kind:'author',period:'classical'},
+    ...['w','c','u','b'].map(id=>({id,kind:'work',author:id==='c'?'h':'a'})),...['w','c','u','b'].map(id=>({id:`p-${id}`,kind:'passage',workId:id}))];
+  const chronologyWith=extra=>({schema:'tos.bonsai.chronology.v1',sources:{s:{short:'S',title:'S',url:'https://example.org/'}},lives:{a:'tos.biographical-phase.a.lifetime'},
+    compositions:{works:{w:'tos.historical-process.a.w-composition',c:'tos.historical-process.h.c-composition',u:'tos.historical-process.a.u-composition',b:'tos.historical-process.a.b-composition'}},
+    situations:{'tos.biographical-phase.a.lifetime':situation('biographical-phase',date('interval-assertion',{interval:{start:'-0427',end:'-0346'}})),
+      'tos.historical-process.a.w-composition':situation('historical-process',date('relative-order',{relative:{relation:'during',anchor_ref:'tos.biographical-phase.a.lifetime'}})),
+      // A corpus of many hands dated before every life of the collection.
+      'tos.historical-process.h.c-composition':situation('historical-process',date('interval-assertion',{interval:{start:'-0649',end:'-0600'}})),
+      'tos.historical-process.a.u-composition':situation('historical-process',{...date('unknown-date'),certainty:'unknown'}),
+      ...extra}});
+  const routes=[{id:'r',title:{ru:'Ветвь',en:'Branch'},steps:['w','c','u','b'].map(id=>({nodeId:`antiquity:reading:p-${id}`}))}];
+  it('spans every dated writing, also one outside every life, and names the column past it by what stands there',()=>{
+    const known=antiquityTimeline({routes,entries,chronology:chronologyWith({'tos.historical-process.a.b-composition':situation('historical-process',{...date('unknown-date'),certainty:'unknown'})})});
+    expect(known.domain.min).toBe(-699);
+    const x=known.positions.get('antiquity:reading:p-c')[0];expect(x).toBeGreaterThanOrEqual(known.xOfYear(-649));expect(x).toBeLessThanOrEqual(known.xOfYear(-599));
+    expect(known.labels('ru').find(label=>label.id==='time:undated').title).toBe('дата неизвестна');
+    // A writing dated only "before" another stands past the scale too, but its date is not unknown.
+    const before=antiquityTimeline({routes,entries,chronology:chronologyWith({'tos.historical-process.a.b-composition':situation('historical-process',date('relative-order',{relative:{relation:'before',anchor_ref:'tos.biographical-phase.a.lifetime'}}))})});
+    expect(before.isOutside('antiquity:reading:p-b')).toBe(true);
+    expect(before.labels('ru').find(label=>label.id==='time:undated').title).toBe('вне шкалы');
+    expect(before.labels('en').find(label=>label.id==='time:undated').title).toBe('off the scale');
+  });
+  it('counts chapters in Roman numerals up to the last one the book has',()=>{
+    expect([toRoman(1),toRoman(4),toRoman(46),toRoman(79),toRoman(80)]).toEqual(['I','IV','XLVI','LXXIX','LXXX']);
+    for(const n of [1,9,14,40,49,80,99])expect(romanValue(toRoman(n)),String(n)).toBe(n);
   });
 });
 

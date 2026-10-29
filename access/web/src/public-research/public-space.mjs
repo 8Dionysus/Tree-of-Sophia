@@ -9,7 +9,7 @@ import {displayPublicError,hypothesisTitle,proposalDisplay} from './presentation
 import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
-import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
+import {antiquityTimeline,formatDating,formatYears,stepTimeline,toRoman,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,lensPositions} from './bonsai.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
@@ -461,6 +461,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return base;
   }
   function visibleState(){
+    // A trace's lines exist only in the view that draws them.
+    traceLinks.clear();
     const current=graphState();
     const measuredView=measuredLens(lens),routePath=interaction||!compareBar.hidden?null:route?.path??null;
     const projected=makeLensView(current,library,{lens:measuredView?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
@@ -526,15 +528,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const title=id=>profile==='antiquity'?collectionByLegacyId.get(id)?.title:materials.get(id)?.title;
     return [...counts.entries()].filter(([,n])=>n>=2).map(([id,n])=>({id,n,title:title(id)??id})).sort((a,b)=>b.n-a.n||tr(a.title,locale()).localeCompare(tr(b.title,locale())));
   }
+  // The trace's lines by id: a chosen one names its concept and its two ends, whatever colons their ids hold.
+  const traceLinks=new Map();
+  const traceName=concept=>tr(traceableConcepts().find(item=>item.id===concept)?.title,locale())||concept;
   function traceThrough(projected,labels,chosenSpan){
     const members=new Set(projected.nodes.filter(node=>conceptsOfStar(node.materialId).includes(traceConcept)).map(node=>node.id));
     if(!members.size)return;
-    const at=new Map(projected.nodes.map(node=>[node.id,node.position[0]])),line=trajectory([...members],id=>at.get(id));
+    // A star off the scale carries the concept too, but has no place in its order: it joins no line.
+    const onScale=new Set(projected.nodes.filter(node=>members.has(node.id)&&!timeline.isOutside(node.materialId)).map(node=>node.id));
+    const at=new Map(projected.nodes.map(node=>[node.id,node.position[0]])),line=trajectory([...onScale],id=>at.get(id));
     projected.nodes=projected.nodes.map(node=>members.has(node.id)?{...node,prominent:true}:{...node,dim:true});
-    for(const [from,to] of line.links)projected.edges.push({id:`trace:${traceConcept}:${from}:${to}`,from,to,kind:'relates',label:t('traceLink'),color:'#efd28a',dash:'dotted',weight:1.5,highlight:true});
+    for(const [from,to] of line.links){const id=`trace:${traceConcept}:${from}:${to}`;traceLinks.set(id,{concept:traceConcept,from,to});projected.edges.push({id,from,to,kind:'relates',label:t('traceLink'),color:'#efd28a',dash:'dotted',weight:1.5,highlight:true});}
     if(!chosenSpan&&line.ids.length>1){
-      const xs=[at.get(line.ids[0]),at.get(line.ids.at(-1))],concept=traceableConcepts().find(item=>item.id===traceConcept);
-      labels.push({id:'time:trace',variant:'span',strip:timeline.rows.side,span:xs,title:`${t('traceLabel')} ${quote(tr(concept?.title,locale())||traceConcept)} · ${members.size}`,subtitle:'',maxWidth:360,center:[(xs[0]+xs[1])/2,0,0]});
+      const xs=[at.get(line.ids[0]),at.get(line.ids.at(-1))];
+      labels.push({id:'time:trace',variant:'span',strip:timeline.rows.side,span:xs,title:`${t('traceLabel')} ${quote(traceName(traceConcept))} · ${members.size}`,subtitle:'',maxWidth:360,center:[(xs[0]+xs[1])/2,0,0]});
     }
   }
   // Space is a view as well: stars stand at the place of their writing, the saved graph keeps its own positions.
@@ -551,7 +558,6 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let backdropLines=null;
   function geographyBackdrop(){return backdropLines??=clipLinesRight((bonsai?.basemap?.lines??[]).map(line=>line.map(point=>geography.toXY(point))),geography.map.x[1]);}
   // Proximity is measured from one star: the chosen one, else the open step, else the last centre.
-  let nearLayout=null;
   function nearCenterId(){
     const own=String(selected??'').replace(/^material:/,''),step=String(routeStepNode??'').replace(/^material:/,'');
     if(starSet.has(own))nearCenter=own;else if(!nearCenter&&starSet.has(step))nearCenter=step;
@@ -570,7 +576,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function applyProximity(projected){
     const center=nearCenterId(),item=nearCriterion();
     if(!center||!item){projected.nodes=[];projected.edges=[];projected.clusters=[];return;}
-    nearLayout=proximityLayout({center,stars:starIds,distance:distances[item.id](center),groupOf:id=>nearGroupOf.get(id)??null,groups:nearGroups,integer:item.id==='relations'||item.id==='chapters'});
+    const nearLayout=proximityLayout({center,stars:starIds,distance:distances[item.id](center),groupOf:id=>nearGroupOf.get(id)??null,groups:nearGroups,integer:item.id==='relations'||item.id==='chapters'});
     const place=node=>node.materialId?nearLayout.positions.get(node.materialId):null;
     projected.nodes=projected.nodes.filter(node=>place(node)).map(node=>({...node,position:[...place(node)],...(node.materialId===center?{prominent:true}:{})}));
     const ids=new Set(projected.nodes.map(node=>node.id));projected.edges=projected.edges.filter(edge=>ids.has(edge.from)&&ids.has(edge.to)&&(edge.from===graphIdForMaterial(center)||edge.to===graphIdForMaterial(center)));
@@ -705,7 +711,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(geography)bars(panelContent,t('measurePlaces'),words('placeBasis_',m.places.bases,['composition','event','activity','unknown']),{total:m.total});
     const chapterOf=id=>timeline.placeOf(id)?.chapter??NaN;
     pathRows(panelContent,t('measureRoutes'),routes.map(item=>{const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(id=>timeline.positions.has(id)),row=m.routes.find(value=>value.id===item.id);return {id:item.id,title:item.title,size:countSteps(ids.length),returns:row?.returns??0,values:ids.map(chapterOf)};}),
-      {min:0,max:timeline.domain.max,ends:[locale()==='en'?'Prologue':'Пролог','LXXX']});
+      {min:0,max:timeline.domain.max,ends:[locale()==='en'?'Prologue':'Пролог',toRoman(timeline.domain.max)]});
   }
   function renderWelcome(){panelContent.replaceChildren();}
   function renderLensControls(mode){
@@ -746,7 +752,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const when=tr(situation.display,locale())||formatDating(dating,locale(),{span})||t('dateUnknown');
     // Antiquity's star already names its work; Zarathustra's star rests on a text it names here.
     const context=kind==='relative-phase'?tr(anchor?.label,locale()):kind==='relative-life'?t('duringLifeShort'):kind==='relative-activity'?t('duringActivityShort'):profile==='antiquity'?'':tr(situation.label,locale());
-    return {situation,span,kind,when,context,certainty:dating?.certainty};
+    return {situation,span,kind,when,context,certainty:span?.certainty??dating?.certainty};
   }
   function fact(icon,value,context,{kind=''}={}){
     const fold=document.createElement('details');fold.className='ps-fact';if(kind)fold.dataset.kind=kind;
@@ -784,19 +790,21 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function appendDistance(parent,materialId){
     const center=nearCenterId(),item=nearCriterion();if(!materialId||!center||!item||!starSet.has(materialId))return;
+    // Distances are measured here from the current centre, never read back from the map last drawn.
+    const measure=distances[item.id](center),distanceOf=id=>{const value=measure(id);return Number.isFinite(value)?value:null;};
     // The centre lists the stars nearest to it by the criterion; choosing one moves the centre there.
     if(materialId===center){
-      const nearest=starIds.filter(id=>id!==center&&Number.isFinite(nearLayout?.distanceOf(id))).sort((a,b)=>nearLayout.distanceOf(a)-nearLayout.distanceOf(b)).slice(0,6);
+      const nearest=starIds.filter(id=>id!==center&&distanceOf(id)!==null).sort((a,b)=>distanceOf(a)-distanceOf(b)).slice(0,6);
       const {fold,body}=fact('⊙',tr(item.label,locale()),nearest.length?t('nearClosest'):t('nearIsCenter'));
-      for(const id of nearest){const row=button('','connection-target');row.append(el('small','',nearValue(item,nearLayout.distanceOf(id))),el('span','',label(previewMaterials.get(id))));row.addEventListener('click',()=>selectNode(graphIdForMaterial(id)));body.append(row);}
+      for(const id of nearest){const row=button('','connection-target');row.append(el('small','',nearValue(item,distanceOf(id))),el('span','',label(previewMaterials.get(id))));row.addEventListener('click',()=>selectNode(graphIdForMaterial(id)));body.append(row);}
       if(!body.childElementCount)fold.classList.add('ps-fact-plain');
       parent.append(fold);return;
     }
     // By shared concepts or grounds the fact counts what the two stars share, and names it.
     const own=item.id==='concepts'?id=>conceptsOfStar(id):item.id==='grounds'?id=>timeline?.groundsOf?.(id)??[]:null;
     const shared=own?[...new Set(own(materialId))].filter(id=>new Set(own(center)).has(id)):[];
-    const value=nearLayout?.distanceOf(materialId);
-    const words=!Number.isFinite(value)?t('nearNotMeasured'):own?`${t(item.id==='concepts'?'nearSharedConcepts':'nearSharedGrounds')}: ${shared.length}`:nearValue(item,value);
+    const value=distanceOf(materialId);
+    const words=value===null?t('nearNotMeasured'):own?`${t(item.id==='concepts'?'nearSharedConcepts':'nearSharedGrounds')}: ${shared.length}`:nearValue(item,value);
     const {fold,body}=fact('⊙',words,`${t('nearFrom')} ${quote(label(previewMaterials.get(center)))}`);
     const name=id=>item.id==='concepts'?tr(collectionByLegacyId.get(id)?.title,locale())||tr(materials.get(id)?.title,locale())||id:[tr(atlas.references?.[id]?.work,locale()),tr(atlas.references?.[id]?.locator,locale())].filter(Boolean).join(' · ')||id;
     if(shared.length)body.append(el('p','',shared.map(name).join(' · ')));
@@ -861,8 +869,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderEdge(id){
     // A traced concept's line is no relation of the graph: it says only where the concept recurs.
     if(String(id).startsWith('trace:')){
-      const [,concept,from,to]=String(id).match(/^trace:([^:]+):(material:.+):(material:.+)$/)??[];
-      const name=tr(traceableConcepts().find(item=>item.id===concept)?.title,locale())||concept,ends=[from,to].map(value=>label(previewMaterials.get(String(value).replace(/^material:/,''))));
+      const link=traceLinks.get(id);if(!link){selectedEdge=null;return renderWelcome();}
+      const {concept,from,to}=link,name=traceName(concept),ends=[from,to].map(value=>label(previewMaterials.get(String(value).replace(/^material:/,''))));
       panelContent.replaceChildren(el('p','eyebrow',t('traceTitle')),el('h1','',quote(name)));
       const endpoints=el('div','edge-endpoints');[from,to].forEach((id,index)=>{const b=button(ends[index],'text-button');b.addEventListener('click',()=>selectNode(id));endpoints.append(b);if(!index)endpoints.append(el('span','','→'));});panelContent.append(endpoints);
       return;
@@ -927,7 +935,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function closeRoute(){routeDockTouched=true;route=null;routeStepNode=null;browsingRoutes=false;selected=null;selectedEdge=null;sky?.select(null);sky?.selectEdge(null);persistView();shell.dataset.journey='false';if(!desktop())columnOpen=false;reflect();frameSky();}
   function toggleRoutes(){
     routeDockTouched=true;personal.hidden=true;
-    if(columnMode()==='overview'&&columnOpen){
+    // From the measure panel the routes open in its place.
+    if(measureOpen){measureOpen=false;browsingRoutes=!!(route||selected||selectedEdge);columnOpen=true;}
+    else if(columnMode()==='overview'&&columnOpen){
       if(browsingRoutes)browsingRoutes=false;
       else if(!desktop())columnOpen=false;
       else{renderColumn();deck.querySelector('.ps-route-card')?.focus();return;}
@@ -1009,7 +1019,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       add(`${t('stepName')} ${routeIndex+1}`,mode==='route'?null:returnToStep);
     }
     if(mode==='node'){const node=graphState().nodes.find(value=>value.id===selected),material=matForNode(node)??previewMaterials.get(String(selected??'').replace(/^material:/,''));add(label(node?.ownerType==='personal-hypothesis'?node:material??node)||t('selected'),null);}
-    if(mode==='edge'){const edge=findEdge(selectedEdge);add(`${t('transition')} · ${edge?relationName(edge):''}`,null);}
+    // A trace line is named by its concept; a link of the graph by its kind.
+    if(mode==='edge'){const link=traceLinks.get(selectedEdge),edge=link?null:findEdge(selectedEdge);add(link?`${t('traceLabel')} ${quote(traceName(link.concept))}`:edge?`${t('transition')} · ${relationName(edge)}`:t('transition'),null);}
     titleButton.toggleAttribute('aria-current',!item&&mode==='overview');if(!item&&mode==='overview')titleButton.setAttribute('aria-current','location');
   }
   // ------------------------------------------------------------ routes inside the column

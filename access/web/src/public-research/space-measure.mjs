@@ -33,7 +33,8 @@ export function measureAntiquity({routes=[],entries=[],timeline=null,placeOf=()=
   const lifeOnly=new Map(),placeless=new Map(),eraYears=new Map();
   for(const id of moves){
     const time=timeline.timeOf(id),kind=datingKind(time?.composition,reader),situation=reader.situation(time?.composition);
-    count(kinds,kind);count(certainty,situation?.dating?.certainty??'none');count(footing,situation?.footing??'none');
+    // A dating within a phase or a life is counted as firm as that span, not firmer.
+    count(kinds,kind);count(certainty,timeline.spanOf(id)?.certainty??situation?.dating?.certainty??'none');count(footing,situation?.footing??'none');
     const place=placeOf(id);count(bases,place?.basis??'unknown');
     count(eras,time?.period??'');count(authors,time?.authorId??'');
     const span=timeline.spanOf(id);if(span){const list=eraYears.get(time?.period??'')??[];list.push((span.from+span.to)/2);eraYears.set(time?.period??'',list);}
