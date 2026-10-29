@@ -1,4 +1,5 @@
-import {existsSync,readFileSync} from 'node:fs';
+import {existsSync,mkdirSync,mkdtempSync,readFileSync,rmSync,symlinkSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {describe,expect,it} from 'vitest';
 import {centuryOf,centuryStart,dateIssues,dateSpan,formatDating,formatYears as formatYearsNb,lexemeBounds,lexemeParts,yearLexeme} from '../../../../bonsai/lib/time.mjs';
@@ -69,6 +70,8 @@ describe('the Tree date grammar',()=>{
     expect(say(within,'ru',{span:{first:-428,last:-347,certainty:'approximate'}})).toBe('ок. 429–348 до н. э.');
     expect(say(within,'en',{span:{first:234,last:305,certainty:'uncertain'}})).toBe('234–305 CE (?)');
     expect(say(within,'en',{span:{first:121,last:180,certainty:'exact'}})).toBe('121–180 CE');
+    // A span of unknown firmness is marked as doubtful, and so is what falls within it.
+    expect(say({...within,certainty:'approximate'},'ru',{span:{first:-427,last:-346,certainty:'unknown'}})).toBe('428–347 до н. э. (?)');
     expect(say({kind:'unknown-date',certainty:'unknown'},'ru')).toBe('');
   });
   it('agrees with the Tree contract on what a dating may be',()=>{
@@ -92,6 +95,14 @@ describe('the Tree date grammar',()=>{
     // A start within the end's own month or year is in order; one after the end is over is not.
     expect(dateIssues({...base,kind:'interval-assertion',certainty:'exact',interval:{start:'1883-07-15',end:'1883-07'}})).toEqual([]);
     expect(dateIssues({...base,kind:'interval-assertion',certainty:'exact',interval:{start:'1883-08',end:'1883-07'}})).toContain('interval: start after end');
+    expect(dateIssues({...base,kind:'interval-assertion',certainty:'exact',interval:{start:'-0043-03-01',end:'-0043-02-28'}})).toContain('interval: start after end');
+    // Whole days decide, in every year: a month before the next is in order, the next before it is not.
+    const month=(year,n)=>`${yearLexeme(year)}-${String(n).padStart(2,'0')}`,missed=[];
+    for(let year=-1100;year<=2100;year++)for(let n=1;n<12;n++){
+      const order=(start,end)=>dateIssues({...base,kind:'interval-assertion',certainty:'exact',interval:{start,end}}).includes('interval: start after end');
+      if(!order(month(year,n+1),month(year,n))||order(month(year,n),month(year,n+1)))missed.push(month(year,n));
+    }
+    expect(missed).toEqual([]);
   });
   it('resolves a dating "during" another situation to that situation\'s span, never through a cycle',()=>{
     const date=(kind,extra)=>({kind,role:'historical-time',calendar:null,year_numbering:kind==='relative-order'?null:'astronomical',certainty:'approximate',source_wording:{text:'x',language:'en'},...extra});
@@ -171,6 +182,15 @@ describe('every bonsai',()=>{
       for(const path of ['ToS/contracts/historical-context-claim.schema.json','ToS/doctrine/semantic-interchange/relation-types.v1.json','ToS/doctrine/semantic-interchange/entity-types.v1.json'])expect(paths,id).toContain(path);
       for(const [name,entry] of Object.entries(manifest.graft.contracts)){expect(existsSync(join(root,entry.path)),name).toBe(true);expect(entry.sha256,name).toMatch(/^[0-9a-f]{64}$/);}
     }
+  });
+  it('says so when the Tree\'s relation registry cannot be read, and reports it gone since the graft',()=>{
+    const bare=mkdtempSync(join(tmpdir(),'bonsai-graft-'));
+    try{
+      mkdirSync(join(bare,'ToS'));symlinkSync(join(root,'bonsai'),join(bare,'bonsai'));symlinkSync(join(root,'ToS','contracts'),join(bare,'ToS','contracts'));
+      const result=checkBonsai(bare,'zarathustra',{validator:contracts});
+      expect(result.problems.some(problem=>problem.startsWith('relation registry:'))).toBe(true);
+      expect(result.drift).toContain('contract relation_types: ToS/doctrine/semantic-interchange/relation-types.v1.json is gone');
+    }finally{rmSync(bare,{recursive:true,force:true});}
   });
   it('exports each predicate in the claim schema the Tree registry gives it, events and processes with their records',()=>{
     for(const id of ids){

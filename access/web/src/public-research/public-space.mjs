@@ -9,7 +9,7 @@ import {displayPublicError,hypothesisTitle,proposalDisplay} from './presentation
 import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
-import {antiquityTimeline,formatDating,formatYears,stepTimeline,toRoman,trajectory,zarathustraTimeline} from './space-timeline.mjs';
+import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
 import {bonsaiFor,lensPositions} from './bonsai.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
@@ -695,7 +695,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       bars(panelContent,t('measureConcepts'),m.concepts.map(row=>({label:tr(row.title,locale()),n:row.n,detail:t('traceTitle'),action:()=>{traceConcept=row.id;lens='time';measureOpen=false;persistView();paintLenses();reflect();frameSky();}})));
       const middle=id=>{const span=timeline.spanOf(id);return span?(span.from+span.to)/2:NaN;};
       pathRows(panelContent,t('measureBranches'),routes.map(item=>{const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(id=>timeline.positions.has(id)),row=m.branches.find(value=>value.id===item.id);return {id:item.id,title:item.title,size:countMoves(ids.length),returns:row?.returns??0,values:ids.map(middle)};}),
-        {min:timeline.domain.min,max:timeline.domain.max,ends:[formatYears({first:timeline.domain.min,last:timeline.domain.min,certainty:'exact'},locale()),formatYears({first:timeline.domain.max-1,last:timeline.domain.max-1,certainty:'exact'},locale())]});
+        {min:timeline.domain.min,max:timeline.domain.max,ends:timeline.scaleEnds(locale())});
       const gaps=el('section','ps-measure-block');
       const list=(title,rows)=>{if(!rows.length)return;gaps.append(el('h2','minor-title',title),el('p','ps-measure-list',rows.map(row=>`${quote(tr(row.title,locale()))} · ${row.n}`).join(' · ')));};
       list(t('measureLifeOnly'),m.gaps.lifeOnly);if(geography)list(t('measurePlaceless'),m.gaps.placeless);
@@ -711,7 +711,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(geography)bars(panelContent,t('measurePlaces'),words('placeBasis_',m.places.bases,['composition','event','activity','unknown']),{total:m.total});
     const chapterOf=id=>timeline.placeOf(id)?.chapter??NaN;
     pathRows(panelContent,t('measureRoutes'),routes.map(item=>{const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(id=>timeline.positions.has(id)),row=m.routes.find(value=>value.id===item.id);return {id:item.id,title:item.title,size:countSteps(ids.length),returns:row?.returns??0,values:ids.map(chapterOf)};}),
-      {min:0,max:timeline.domain.max,ends:[locale()==='en'?'Prologue':'Пролог',toRoman(timeline.domain.max)]});
+      {min:0,max:timeline.domain.max,ends:timeline.scaleEnds(locale())});
   }
   function renderWelcome(){panelContent.replaceChildren();}
   function renderLensControls(mode){
@@ -866,16 +866,18 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     actions.children[0].addEventListener('click',()=>{closePanel();beginCompare(id);});actions.children[1].addEventListener('click',()=>{closePanel();beginConnect(id);});panelContent.append(actions);
   }
   function findEdge(id){return graphState().edges.find(edge=>edge.id===id);}
+  // A chosen line the view no longer draws (a trace turned off, a lens changed) is let go, and the column is drawn anew without it.
+  function dropEdge(){selectedEdge=null;sky?.selectEdge(null);renderColumn();renderOrientation();}
   function renderEdge(id){
     // A traced concept's line is no relation of the graph: it says only where the concept recurs.
     if(String(id).startsWith('trace:')){
-      const link=traceLinks.get(id);if(!link){selectedEdge=null;return renderWelcome();}
+      const link=traceLinks.get(id);if(!link)return dropEdge();
       const {concept,from,to}=link,name=traceName(concept),ends=[from,to].map(value=>label(previewMaterials.get(String(value).replace(/^material:/,''))));
       panelContent.replaceChildren(el('p','eyebrow',t('traceTitle')),el('h1','',quote(name)));
       const endpoints=el('div','edge-endpoints');[from,to].forEach((id,index)=>{const b=button(ends[index],'text-button');b.addEventListener('click',()=>selectNode(id));endpoints.append(b);if(!index)endpoints.append(el('span','','→'));});panelContent.append(endpoints);
       return;
     }
-    const edge=findEdge(id);if(!edge){selectedEdge=null;return renderWelcome();}
+    const edge=findEdge(id);if(!edge)return dropEdge();
     panelContent.replaceChildren();
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.

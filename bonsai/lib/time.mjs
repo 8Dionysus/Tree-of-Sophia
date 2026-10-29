@@ -45,6 +45,11 @@ export const astronomicalYear=(year,era)=>era==='BCE'?1-year:year;
 /** An astronomical year as a historian writes it. */
 export const historicalYear=year=>year<=0?{year:1-year,era:'BCE'}:{year,era:'CE'};
 
+// The first and last day a lexeme's parts name, as [year, month, day], and their order.
+const firstDay=parts=>[parts.year,parts.month??1,parts.day??1];
+const lastDay=parts=>{const month=parts.month??12;return [parts.year,month,parts.day??daysIn(parts.year,month)];};
+const compareDays=(a,b)=>a[0]-b[0]||a[1]-b[1]||a[2]-b[2];
+
 /** The first and last moments a lexeme names, as fractional astronomical years: [from, to). */
 export function lexemeBounds(text){
   const parts=lexemeParts(text);if(!parts)return null;
@@ -82,8 +87,9 @@ export function dateIssues(value){
       if(Object.hasOwn(interval,'start'))lexeme(interval.start,'interval.start');
       if(Object.hasOwn(interval,'end'))lexeme(interval.end,'interval.end');
       // An interval is out of order only where its start begins after its end is over: "1883-07-15" to "1883-07" holds.
-      const a=astronomical?lexemeBounds(interval.start):null,b=astronomical?lexemeBounds(interval.end):null;
-      if(a&&b&&a[0]>=b[1])issues.push('interval: start after end');
+      // The days are compared whole, never as fractions of a year, which round differently on either side.
+      const a=astronomical?lexemeParts(interval.start):null,b=astronomical?lexemeParts(interval.end):null;
+      if(a&&b&&compareDays(firstDay(a),lastDay(b))>0)issues.push('interval: start after end');
     }
   }else if(value.kind==='relative-order'){
     if(has('value')||has('interval'))issues.push('a relative order carries no value or interval');
@@ -130,7 +136,8 @@ const MONTHS={
   ru:{nominative:['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'],genitive:['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря']},
   en:{nominative:['January','February','March','April','May','June','July','August','September','October','November','December']},
 };
-const firmness=(certainty,en)=>({about:certainty==='approximate'?(en?`c.${NB}`:`ок.${NB}`):'',doubt:certainty==='uncertain'?`${NB}(?)`:''});
+// A dating whose firmness is unknown is marked as doubtful, never shown as exact.
+const firmness=(certainty,en)=>({about:certainty==='approximate'?(en?`c.${NB}`:`ок.${NB}`):'',doubt:certainty==='uncertain'||certainty==='unknown'?`${NB}(?)`:''});
 // A year of the common era from 1000 on needs no era; earlier ones and every year before it do.
 const eraOf=(value,en)=>value.era==='BCE'?(en?'BCE':`до${NB}н.${NB}э.`):value.year>=1000?'':(en?'CE':`н.${NB}э.`);
 const withEra=(text,value,en)=>{const era=eraOf(value,en);return era?`${text}${NB}${era}`:text;};

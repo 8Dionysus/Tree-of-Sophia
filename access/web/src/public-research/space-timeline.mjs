@@ -136,6 +136,8 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
     kind:'years',positions,lanes,domain:{min,max},rows:YEAR_ROWS,strip:YEAR_ROWS.era0+4,bounds:[xOfYear(min),undated.size?outsideX:xOfYear(max)],
     xOf:id=>yearOf.has(id)?xOfYear(yearOf.get(id)):undated.has(id)?outsideX:null,xOfYear,
     timeOf:id=>timeOf.get(id)??null,spanOf,isOutside:id=>undated.has(id),reader,
+    /** The first and last year of the scale in words, for a path drawn along it. */
+    scaleEnds:locale=>[formatYears({first:min,last:min,certainty:'exact'},locale),formatYears({first:max-1,last:max-1,certainty:'exact'},locale)],
     lifeSpan:authorId=>lives.get(authorId)?.span??null,
     labels(locale,{laneWidth=null}={}){
       const en=lang(locale)==='en',out=[];
@@ -204,6 +206,8 @@ export function zarathustraTimeline({materials=[],references={},clusters=[],chro
     kind:'book',positions,lanes,domain:{min:0,max:maxChapter},rows:BOOK_ROWS,strip:(dated?BOOK_ROWS.era1:BOOK_ROWS.era0)+4,bounds:[xOfChapter(0),outside.size?outsideX:xOfChapter(maxChapter)],
     xOf,placeOf:id=>{const place=placeOf.get(id);return place?{part:place.part,chapter:place.chapter}:null;},isOutside:id=>outside.has(id),
     groundsOf:id=>groundsOf.get(id)??[],firstGround,outsideWorkOf:id=>outside.has(id)?pick(references[firstGround(id)]?.work,'en')||null:null,
+    /** The Prologue and the last chapter the scale measures, for a path drawn along it. */
+    scaleEnds:locale=>[lang(locale)==='en'?'Prologue':'Пролог',toRoman(maxChapter)],
     labels(locale,{laneWidth=null}={}){
       const en=lang(locale)==='en',out=[];
       for(const chapter of marked)out.push({id:`time:ch${chapter}`,variant:'axis',strip:BOOK_ROWS.axis,title:chapter===0?(en?'Prologue':'Пролог'):toRoman(chapter),subtitle:'',center:[xOfChapter(chapter),0,0]});
@@ -217,7 +221,8 @@ export function zarathustraTimeline({materials=[],references={},clusters=[],chro
       });
       if(outside.size){
         out.push({id:'time:rule:outside',variant:'rule',tone:'strong',title:'',subtitle:'',center:[(xOfChapter(maxChapter)+outsideX)/2,0,0]});
-        out.push({id:'time:outside',variant:'side',strip:BOOK_ROWS.axis,title:en?'outside the book':'вне книги',subtitle:'',center:[outsideX,0,0]});
+        // Its name stays short, so that it keeps its room beside the last chapter's.
+        out.push({id:'time:outside',variant:'side',strip:BOOK_ROWS.axis,title:en?'other texts':'вне книги',subtitle:'',center:[outsideX,0,0]});
       }
       for(const lane of lanes)out.push({id:`time:lane:${lane.id}`,variant:'lane',title:pick(lane.title,locale),subtitle:'',center:[0,lane.y,0],...(laneWidth?{maxWidth:laneWidth}:{})});
       return out;

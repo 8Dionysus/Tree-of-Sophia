@@ -96,6 +96,8 @@ describe('Antiquity on a scale of years',()=>{
     expect(rules.map(label=>label.center[0])).toEqual([-499,-399,-299,-199,-99,1,101,201,301,401].map(timeline.xOfYear));
     expect(rules.filter(label=>label.tone==='strong').map(label=>label.center[0])).toEqual([timeline.xOfYear(1)]);
     expect(timeline.bounds).toEqual([timeline.xOfYear(-499),timeline.xOfYear(401)]);
+    // A path drawn along the scale is named by its first and last year.
+    expect(timeline.scaleEnds('ru').map(text=>text.replaceAll('\u00a0',' '))).toEqual(['500 до н. э.','400 н. э.']);
     const era=id=>labels.find(label=>label.id===`time:${id}`);
     const lives=collection.entities.filter(entry=>entry.kind==='author'&&entry.period==='classical'&&reader.lifeOf(entry.id)).map(entry=>reader.span(reader.lifeOf(entry.id)));
     expect(era('era-classical').span).toEqual([timeline.xOfYear(Math.min(...lives.map(span=>span.from))),timeline.xOfYear(Math.max(...lives.map(span=>span.to)))]);
@@ -130,7 +132,7 @@ describe('the scale of years at its edges',()=>{
     expect(before.labels('ru').find(label=>label.id==='time:undated').title).toBe('вне шкалы');
     expect(before.labels('en').find(label=>label.id==='time:undated').title).toBe('off the scale');
   });
-  it('counts chapters in Roman numerals up to the last one the book has',()=>{
+  it('writes chapter numbers in Roman numerals and reads them back',()=>{
     expect([toRoman(1),toRoman(4),toRoman(46),toRoman(79),toRoman(80)]).toEqual(['I','IV','XLVI','LXXIX','LXXX']);
     for(const n of [1,9,14,40,49,80,99])expect(romanValue(toRoman(n)),String(n)).toBe(n);
   });
@@ -206,6 +208,11 @@ describe('Zarathustra on the order of the book',()=>{
     expect(timeline.xOf('demo:spinoza')).toBeGreaterThan(timeline.xOf('demo:fate'));
     const labels=timeline.labels('ru');
     expect(labels.some(label=>label.title==='вне книги'&&label.variant==='side')).toBe(true);
+    expect(timeline.labels('en').find(label=>label.id==='time:outside').title).toBe('other texts');
+    // A path drawn along the book ends at the last chapter the scale measures.
+    const last=Math.max(...[...timeline.positions.keys()].map(id=>timeline.placeOf(id)?.chapter).filter(Number.isFinite));
+    expect(timeline.domain.max).toBe(last);
+    expect(timeline.scaleEnds('ru')).toEqual(['Пролог',toRoman(last)]);expect(timeline.scaleEnds('en')[0]).toBe('Prologue');
     expect(labels.filter(label=>label.variant==='era').map(label=>label.title)).toEqual(['Часть I','Часть II','Часть III','Часть IV']);
     // With its bonsai, each part names the years it was written.
     const dated=zarathustraTimeline({materials,references:PRIMARY_SOURCES,clusters:[{id:'sources',title:{ru:'Источники'}}],chronology:zarathustraChronology});

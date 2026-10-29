@@ -86,8 +86,10 @@ export function treeIdentities(root){
 }
 
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
-export function checkBonsai(root,id,{validator=treeContracts(root),relations=treeRelations(root),identities=treeIdentities(root)}={}){
+export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
   const {manifest,modules}=loadBonsai(root,id),problems=[],drift=[];
+  // Without a readable relation registry the export's predicates go unchecked, which the check says rather than hides.
+  if(relations===undefined){try{relations=treeRelations(root);}catch(error){relations=null;problems.push(`relation registry: ${error.message}`);}}
   if(manifest.schema!==MANIFEST_SCHEMA)problems.push('manifest schema');
   if(manifest.id!==id)problems.push('manifest id');
   if(modules.chronology)problems.push(...chronologyIssues(modules.chronology).map(issue=>`chronology: ${issue}`));
@@ -101,7 +103,7 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations=tre
       for(const error of validator.validate(contract,item))problems.push(`export ${item.claim_id??item.record_id}${error.path}: ${error.message}`);
     }
     const kinds=new Map(packet.identities.map(item=>[item.tree,item.type]));
-    for(const claim of packet.claims)for(const issue of relations.issues(claim,ref=>kinds.get(ref)))problems.push(`export ${claim.claim_id}: ${issue}`);
+    if(relations)for(const claim of packet.claims)for(const issue of relations.issues(claim,ref=>kinds.get(ref)))problems.push(`export ${claim.claim_id}: ${issue}`);
   }
   for(const [name,entry] of Object.entries(manifest.graft?.contracts??{})){
     const path=join(root,entry.path);

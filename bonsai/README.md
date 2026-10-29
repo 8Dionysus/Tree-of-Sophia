@@ -98,7 +98,8 @@ its subject and object must fall within the predicate's domain and range. It
 then reports drift since the graft: changed contracts and registries, and —
 where `ToS/source-witnesses/` is checked out — identities the bonsai calls
 resolved that the Tree no longer holds, or proposes to mint that the Tree now
-has. It fails only on a broken module or an export the Tree refuses.
+has. It fails only on a broken module, an export the Tree refuses, or a
+relation registry it cannot read.
 
 `export` writes a packet (`tos.bonsai.export.v1`) and never writes into
 `ToS/`: provisional identity records for historical processes, events and
