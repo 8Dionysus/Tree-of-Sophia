@@ -1,8 +1,7 @@
-import {createAtlasLibrary} from '../../constructor/atlas-data.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from './zarathustra-ground-targets.mjs';
 import {extendPublicCollection} from './collection-data.mjs';
-import {antiquityFirstBranches as antiquityData} from './bonsai.mjs';
+import {loadBonsai} from './bonsai.mjs';
 
 const PUBLIC_PROFILE_IDS = Object.freeze({
   zarathustra: 'tos.work.friedrich-nietzsche.also-sprach-zarathustra',
@@ -21,7 +20,6 @@ const SOURCE_ROOT = Object.freeze({
   dossier: {ru: 'Сопоставленные источники', en: 'Sources brought together'},
 });
 const bi = (ru, en) => ({ru, en});
-const ANTIQUITY_BRANCHES = antiquityData.branches;
 const text = value => typeof value === 'string' ? value : '';
 const englishLocator = value => text(value).replace(/Глава/giu, 'Chapter').replace(/Книга/giu, 'Book');
 const sourceRef = (label, ref) => ({label, ...(ref ? {ref} : {})});
@@ -120,6 +118,8 @@ async function makeZarathustra(sources, structure) {
     if (matched) bindings.set(sourceId, {documentId: id, versionId: version.id, unitId: matched.unitId});
   }
   const sourceLibrary = {schema: 'tos_constructor_library_v1', rootId: 'work', fingerprint: '0'.repeat(64), nodes};
+  // Zarathustra's prepared atlas comes with its own stand only.
+  const {createAtlasLibrary} = await import('../../constructor/atlas-data.mjs');
   const library = await createAtlasLibrary(sourceLibrary);
   for (const node of library.nodes) {
     if (node.id === 'work' || ids.includes(node.id)) continue;
@@ -143,6 +143,7 @@ function sourceWorkId(oldWorkId) {
 }
 
 async function makeAntiquity(sources, structureByDocument) {
+  const ANTIQUITY_BRANCHES = (await loadBonsai('antiquity')).firstBranches.branches;
   const docs = [...sources.documents.entries()].map(([id, item]) => [id, item]);
   const listedById = new Map(docs.map(([id, item]) => [id, item.listed]));
   const versionById = new Map(docs.map(([id, item]) => [id, preferredVersion(item.document)]));
@@ -262,7 +263,8 @@ async function makeAntiquity(sources, structureByDocument) {
 /** Prepare a profile-specific, metadata-bounded Constructor library for the public space. */
 export async function createPublicSpace({profile, provider} = {}) {
   if (!['zarathustra', 'antiquity'].includes(profile)) throw new TypeError('An explicit public space profile is required.');
-  const sources = await selectedDocuments(provider, profile);
+  // The stand's own bonsai arrives with it; another stand's never does.
+  const [sources] = await Promise.all([selectedDocuments(provider, profile), loadBonsai(profile)]);
   const structures = new Map();
   for (const [documentId, item] of sources.documents) {
     const version = preferredVersion(item.document, profile === 'zarathustra' ? 'de' : 'en');

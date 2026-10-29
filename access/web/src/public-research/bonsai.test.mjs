@@ -7,7 +7,9 @@ import {chronologyIssues,readChronology} from '../../../../bonsai/lib/chronology
 import {placesIssues,readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {createValidator} from '../../../../bonsai/lib/schema.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,treeContracts,treeRelations} from '../../../../bonsai/lib/graft.mjs';
-import {bonsaiFor} from './bonsai.mjs';
+import {bonsaiFor,loadBonsai as loadStandBonsai} from './bonsai.mjs';
+
+await Promise.all([loadStandBonsai('antiquity'),loadStandBonsai('zarathustra')]);
 
 const root=new URL('../../../../',import.meta.url).pathname;
 const contracts=treeContracts(root),relations=treeRelations(root);

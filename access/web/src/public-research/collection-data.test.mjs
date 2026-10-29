@@ -8,6 +8,9 @@ it('binds navigation through the separate public structure without changing the 
   const fingerprint='b'.repeat(64),prepared={library:{fingerprint,nodes:[],space:{}},bindings:new Map(),documentBindings:new Map()};
   await extendPublicCollection(prepared,{profile:'zarathustra',sources:{documents:new Map([[id,{document:{id,versions:[version]}}]]),manifest:{documents:[{id}]}},
     structures:new Map([[id,[{label:'80',unitId:'published-section-80'}]]])});
+  // The Zarathustra stand's first view holds its own entries; the shared Antiquity entries arrive when asked for.
+  expect(prepared.library.space.collection.some(item=>item.id==='meno-search')).toBe(false);
+  await prepared.library.space.loadCollection();
   const passage=prepared.library.space.collection.find(item=>item.id==='meno-search');
   expect(passage.publicAddress).toMatchObject({documentId:id,versionId:version.id,unitId:'published-section-80',precision:'section-entry'});
   expect(prepared.library.fingerprint).toBe(fingerprint);
@@ -19,6 +22,7 @@ it('connects every retained book lazily while preserving existing collection mat
   const documents=new Map(ids.map(id=>[id,{document:{id,versions:[{id:'published-en',language:'en',revision:'a'.repeat(64)}]}}]));
   const prepared={library:{fingerprint:'b'.repeat(64),nodes:[],space:{}},bindings:new Map(),documentBindings:new Map()};
   await extendPublicCollection(prepared,{profile:'zarathustra',sources:{documents,manifest:{documents:retained.books.map(book=>({id:book.documentId}))}},structures:new Map(ids.map(id=>[id,[]]))});
+  await prepared.library.space.loadCollection();
   const works=prepared.library.space.collection.filter(item=>item.kind==='work');
   for(const book of retained.books){const work=works.find(item=>item.legacyId===book.legacyId);expect(work?.publicDocumentId).toBe(book.documentId);expect(work?.publicVersionId).toBeTruthy();}
   expect(retained.books).toHaveLength(49);

@@ -1,7 +1,6 @@
-import {antiquityCollection as collection} from './bonsai.mjs';
+import {loadAntiquityCollection,loadBonsai} from './bonsai.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 import containedReadings from '../../../public-corpus/contained-reading-targets.v1.json' with {type:'json'};
-import {CLOSE_READING_GUIDES} from '../../constructor/close-reading-guides.mjs';
 
 const bi=(ru,en)=>({ru,en});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value)))),x=>x.toString(16).padStart(2,'0')).join('');
@@ -30,15 +29,13 @@ function retainedEntry(book,version,locator){
   return unitIds.length===1?{documentId:book.documentId,versionId:version.versionId,revision:version.revision,unitId:unitIds[0],precision:'section-entry'}:null;
 }
 const materialId=entry=>entry.kind==='passage'?`antiquity:reading:${entry.id}`:entry.kind==='work'&&publicIds[entry.id]?`antiquity:work:${publicIds[entry.id]}`:`antiquity:catalog:${entry.id}`;
-const entries=()=>[...collection.entities,...collection.eras,...collection.passages,...collection.questions,
+const entries=collection=>[...collection.entities,...collection.eras,...collection.passages,...collection.questions,
   ...collection.terms.map(term=>({...term,id:`lexical:${term.id}`,lexical:true,meta:term.lemma,relatedIds:term.related.map(id=>`lexical:${id}`),sourceRefs:[{label:bi(term.source.title,term.source.title.replace('греческий словарь','Greek dictionary').replace('латинский словарь','Latin dictionary')),url:term.source.url}],readingSteps:term.uses.map(use=>({...use,parts:[use.part],title:bi(`${use.form} · ${use.citation}`,`${use.form} · ${use.citation}`)}))}))
 ].map(entry=>({...entry,legacyId:entry.id,materialId:materialId(entry),period:periods[entry.period]??entry.period,
   relatedIds:[...(entry.relatedIds??[]),...(entry.works??[]),...(entry.about??[]),...(entry.positions??[]).map(x=>x.passage),...(entry.kind==='era'?collection.entities.filter(x=>x.period===entry.period).map(x=>x.id):[]),...(entry.kind==='school'?collection.entities.filter(x=>x.school===entry.id).map(x=>x.id):[])].filter(Boolean),sourceRefs:refs(entry)}));
 
-/** Additional authored navigation, not a second reader or a copy of witness text. */
-export async function extendPublicCollection(prepared,{profile,sources,provider,structures,loadStructure}){
-  const {library,bindings,documentBindings}=prepared;
-  const items=entries(),byId=new Map(library.nodes.map(node=>[node.id,node]));
+/** Bind each collection entry to an exact public place where the published or retained structure allows. */
+async function bindEntries(items,{sources,provider,structures,loadStructure,bindings}){
   const documents=new Map(sources.documents);
   for(const id of Object.values(publicIds))if(!documents.has(id)&&sources.manifest.documents.some(item=>item.id===id))documents.set(id,{document:await provider.document({documentId:id})});
   const sourceStructures=new Map(structures);
@@ -62,15 +59,34 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     bindings.set(item.materialId,{documentId:book.documentId,versionId:version.versionId,revision:version.revision,unitId:reference.unitId,reference,
       containerTitle:target.containerTitle,containerLocator:target.locator});
   }
+  return items;
+}
+
+/** The Antiquity collection's entries, bound to their public places. */
+async function antiquityEntries(context){
+  return bindEntries(entries(await loadAntiquityCollection()),context);
+}
+
+/** Additional authored navigation, not a second reader or a copy of witness text. */
+export async function extendPublicCollection(prepared,{profile,sources,provider,structures,loadStructure}){
+  const {library,bindings,documentBindings}=prepared;
+  const context={sources,provider,structures,loadStructure,bindings};
   if(profile==='zarathustra'){
+    const {CLOSE_READING_GUIDES}=await import('../../constructor/close-reading-guides.mjs');
     const own=library.nodes.map(node=>({...node,materialId:node.id,kind:node.kind==='figure'?'author':node.kind==='tradition'?'school':node.kind,
       readingSteps:(node.inquiry?.grounds??[]).flatMap(ground=>CLOSE_READING_GUIDES[ground.ref]?.moves??[]).map(move=>({title:move.title,body:move.body}))}));
     // Collection metadata does not participate in the constructor identity. The
     // saved Zarathustra graph and its witness addresses remain byte-for-byte.
-    library.space.collection=[...own,...items];
+    // The shared library's Antiquity entries come when the reader first needs them
+    // (the library, a search), never with the stand's first view.
+    const shelf=[...own];library.space.collection=shelf;
+    let pending=null;
+    library.space.loadCollection=()=>pending??=antiquityEntries(context).then(items=>{shelf.push(...items.filter(item=>!shelf.some(held=>(held.materialId??held.id)===item.materialId)));return items;}).catch(error=>{pending=null;throw error;});
     prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)}];
     return prepared;
   }
+  const items=await antiquityEntries(context),byId=new Map(library.nodes.map(node=>[node.id,node]));
+  const {collection}=await loadBonsai('antiquity');
   const predecessor=library.fingerprint;
   const compatibleMaterialIds=library.nodes.map(node=>node.id);
   for(const node of library.nodes){

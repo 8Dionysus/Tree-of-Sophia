@@ -127,6 +127,34 @@ While it turns, the planes of the steps appear, named; at rest the space keeps
 only its stars, a little turned so that its depth shows. Time, Space and
 Proximity stay flat.
 
+Nothing on the stand explains itself in standing text. One hint
+([`space-hints.mjs`](src/public-research/space-hints.mjs)) answers a pointer
+that rests on something, or a keyboard that reaches it: a tool says what it does
+and its key, a star its kind, step, date and place, a link the meaning of its
+kind; Escape closes it first. The gestures, which nothing on the screen can
+show, appear once in a controls window
+([`space-controls.mjs`](src/public-research/space-controls.mjs)) after the
+opening turn, for a mouse or for fingers. "Don't show again" is kept in this
+browser; without it the window returns on the next visit, it reopens from the
+map tools, and where the browser keeps nothing it does not insist.
+
+The space is meant to be played the way a knowledge game is played, with no
+score and nothing hidden ([`space-play.mjs`](src/public-research/space-play.mjs)):
+what grows is the reader's own understanding. Where a branch or route step asks
+a question, and at a riddle (a question star), the reader may write one line of
+their own before the readings open; it becomes a personal record that rises out
+of the star it is about to the near plane. The readings then unfold; setting
+the record beside the reading it stands nearest moves it there and shows what
+that reading rests on (its grounds in the source) and what disputes it. From a
+chosen star on the whole tree, threads lead into the dark toward stars the space
+does not hold yet; following one brings that star in. A branch or route card
+lights its way through the map while it is pointed at. The records stay the
+reader's own proposals in the research workspace, never readings of the Tree.
+
+Each stand loads only its own bonsai; Zarathustra takes the shared library's
+Antiquity entries in a quiet moment after its first view, or when the library is
+opened, and Antiquity never loads Zarathustra's prepared atlas.
+
 A chosen star states when (◷) and where (⌖) its text was written, and on
 Proximity how near it stands (⊙); each fact opens to its statement and sources.
 Measure and completeness ([`space-measure.mjs`](src/public-research/space-measure.mjs))

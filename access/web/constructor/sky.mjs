@@ -13,7 +13,7 @@ import {validateSkyPose} from './sky-pose.mjs';
 // depthCue dims what lies further back; planarMoves keeps a moved star in its
 // own depth; onPose hears every turn of the view. Such a space may lay its
 // stars on named planes of depth (state.planes), shown while it turns.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null}) {
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null}) {
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -93,11 +93,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const underStars=new Set(['rule','thread','hrule','ring']),clipped=new Set(['hrule','ring']);
   const relationColors={contains:'#829dbb',supports:'#b7c991',interprets:'#bea7e1',questions:'#e5a18f',contrasts:'#e09591',echoes:'#8ecbc4',develops:'#e0c48c',compares:'#96b7e4',translates:'#8ebdc9',relates:'#a5b7cf'};
   const hex=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value??'')?value:/^#[a-f\d]{3}$/i.test(value??'')?'#'+[...value.slice(1)].map(c=>c+c).join(''):fallback;
-  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
+  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
   function refresh(state,labels={}){
-    const old=new Map(nodes.map(n=>[n.id,n])),oldEdges=new Map(edges.map(e=>[e.id,e]));
+    const old=new Map(nodes.map(n=>[n.id,n])),oldEdges=new Map(edges.map(e=>[e.id,e])),before=new Map(nodes.map(n=>[n.id,[...n.p]]));
     edges=state.edges.map(item=>{
       const previous=oldEdges.get(item.id);oldEdges.delete(item.id);
       const el=previous?.el??document.createElement('button');
@@ -112,7 +112,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       let n=old.get(item.id);old.delete(item.id);
       if(!n){
         const el=document.createElement('button');el.type='button';el.className='tree-star';el.dataset.node=item.id;
-        const label=document.createElement('span');el.append(label);layer.append(el);n={id:item.id,el,label,screen:{x:0,y:0,s:1},p:[...item.position],target:[...item.position],dragging:false};
+        const label=document.createElement('span');el.append(label);layer.append(el);
+        // A new star may rise out of another one (a thought out of what it is about) and move to its own place.
+        const origin=typeof item.from==='string'?before.get(item.from):Array.isArray(item.from)&&item.from.length===3&&item.from.every(Number.isFinite)?item.from:null;
+        n={id:item.id,el,label,screen:{x:0,y:0,s:1},p:[...(origin??item.position)],target:[...item.position],dragging:false};
         let nodeDrag=null,press=null,swallowed=false;
         const movable=()=>typeof dragNodes==='function'?dragNodes(item.id):dragNodes;
         const pickUp=(pointerId,x,y)=>{n.dragging=true;nodeDrag={id:pointerId,x,y,p:[...n.p],moved:false};};
@@ -184,12 +187,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         Object.assign(n.label.style,{whiteSpace:'normal',display:'block',webkitBoxOrient:'',webkitLineClamp:''});Object.assign(n.titleEl.style,{...clampStyle,display:n.labelLines>1?'-webkit-box':'block',overflow:'hidden'});
       }else{n.label.textContent=n.titleText;Object.assign(n.label.style,clampStyle);}
       n.el.setAttribute('aria-label',item.accessibilityLabel??n.titleText);
-      if(item.hover)n.el.title=item.hover;else n.el.removeAttribute('title');
+      if(item.hover&&nativeTitles)n.el.title=item.hover;else n.el.removeAttribute('title');
       if(item.ownerType)n.el.dataset.ownerType=item.ownerType;else delete n.el.dataset.ownerType;
       return n;
     });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
-    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint)c.el.title=item.hint;else c.el.removeAttribute('title');c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>Array.isArray(line)&&line.length>1):[];
     // A space read in depth may lay its stars on planes, each at its own depth and named at a corner.
@@ -199,8 +202,22 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!plane){const el=document.createElement('div');el.className='tree-plane';el.dataset.plane=item.id;el.hidden=true;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});ruleLayer.append(el);plane={id:item.id,el};}
       plane.el.textContent=typeof item.label==='string'?item.label:'';plane.z=item.z;plane.x=[...item.x];plane.y=[...item.y];plane.color=hex(item.color,'#a9bdd6');plane.el.style.color=plane.color;return plane;
     });oldPlanes.forEach(plane=>plane.el.remove());
+    updateThreads();
     if(!nodes.some(n=>n.id===hover))hover=null;if(!edges.some(e=>e.id===hoverEdge))hoverEdge=null;
     measureLabels=true;resize();
+  }
+  // Threads lead from the chosen star into the dark, toward stars the space does not show; each ends in a small door.
+  // The page says which threads a star has; they follow the chosen star wherever it is chosen from.
+  function updateThreads(){
+    const list=typeof threadsFor==='function'&&selectedId?threadsFor(selectedId)??[]:[];
+    const oldThreads=new Map(threads.map(thread=>[thread.id,thread]));
+    threads=(Array.isArray(list)?list:[]).filter(item=>typeof item?.id==='string'&&typeof item.from==='string'&&Array.isArray(item.direction)&&item.direction.length===2&&item.direction.every(Number.isFinite)).map(item=>{
+      let thread=oldThreads.get(item.id);oldThreads.delete(item.id);
+      if(!thread){const el=document.createElement('button');el.type='button';el.className='tree-thread';el.dataset.thread=item.id;el.hidden=true;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'auto'});el.addEventListener('click',event=>{event.stopPropagation();onThreadSelect?.(item.id);});layer.append(el);thread={id:item.id,el,grown:0};}
+      thread.from=item.from;thread.direction=[...item.direction];thread.color=hex(item.color,'#c9b88e');thread.el.setAttribute('aria-label',typeof item.label==='string'?item.label:item.id);return thread;
+    });oldThreads.forEach(thread=>thread.el.remove());
+    // A thread's door comes right after its star in the keyboard's order.
+    let after=nodes.find(n=>n.id===selectedId)?.el;for(const thread of threads)if(after?.isConnected){if(after.nextSibling!==thread.el)after.after(thread.el);after=thread.el;}
   }
   function project([x,y,z]) {
     const c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
@@ -282,6 +299,24 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     // A scale's labels are measured in their own type, so a name never loses its end to a guess.
     for(const c of clusters)if(c.variant&&!underStars.has(c.variant)){ng.font=getComputedStyle(c.title).font||'12px sans-serif';c.textWidth=ng.measureText(c.title.textContent).width;}
+    // A group's name and subtitle are measured too, so the room it keeps is the room it takes: a subtitle keeps to two
+    // lines where the name's width allows, and the height counts every line it wraps to.
+    for(const c of clusters){
+      if(c.variant)continue;
+      const titleStyle=getComputedStyle(c.title),titleText=c.title.textContent,size=parseFloat(titleStyle.fontSize)||14;
+      ng.font=titleStyle.font||`italic ${size}px serif`;
+      let width=Math.min(230,Math.max(110,Math.ceil(ng.measureText(titleText).width+(parseFloat(titleStyle.letterSpacing)||0)*titleText.length)+12));
+      let height=parseFloat(titleStyle.lineHeight)||size*1.25;
+      if(c.subtitle.textContent){
+        const subStyle=getComputedStyle(c.subtitle),spacing=parseFloat(subStyle.letterSpacing)||0,upper=subStyle.textTransform==='uppercase';
+        ng.font=subStyle.font||'8px sans-serif';
+        const words=(upper?c.subtitle.textContent.toLocaleUpperCase():c.subtitle.textContent).split(/\s+/).filter(Boolean),wide=word=>ng.measureText(word).width+spacing*word.length,space=wide(' ');
+        width=Math.min(230,Math.max(width,Math.ceil((words.reduce((sum,word)=>sum+wide(word),0)+space*(words.length-1))/2)+12));
+        let lines=1,line=0;for(const word of words){const next=line?line+space+wide(word):wide(word);if(line&&next>width-4){lines++;line=wide(word);}else line=next;}
+        height+=(parseFloat(subStyle.marginTop)||5)+lines*(parseFloat(subStyle.lineHeight)||12.8);
+      }
+      c.labelWidth=width;c.labelHeight=Math.ceil(height)+4;
+    }
     for(const e of edges){
       const style=getComputedStyle(e.el),lineHeight=parseFloat(style.lineHeight)||16;ng.font=style.font||'11px sans-serif';
       if(!e.tag){e.labelWidth=Math.min(190,Math.max(56,ng.measureText(e.el.textContent).width+20));e.labelHeight=Math.max(24,lineHeight+10);continue;}
@@ -377,14 +412,18 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       c.el.hidden=!shown;
       if(shown){c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;scaleLabels.push(area);occupied.push(area);}
     }
+    const nodeObstacles=nodes.filter(n=>!n.el.hidden).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     for(const c of clusters){
       if(c.variant)continue;
-      const width=Math.min(230,Math.max(110,c.title.textContent.length*8));let area=null;
-      for(const offset of [-101,-76,106]){const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20,candidate=box(p.x-width/2,top,width,c.subtitle.textContent?40:25);if(inView(candidate)&&!occupied.some(o=>overlaps(candidate,o))){area=candidate;break;}}
+      const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
+      const candidates=[-101,-76,106,-136,140].map(offset=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return box(p.x-width/2,top,width,height);}).filter(inView);
+      // A group's name takes a place clear of the stars where it can, and never one over another name.
+      const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
+      const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
+      if(area&&!clear)c.el.dataset.crowded='true';else delete c.el.dataset.crowded;
       c.el.hidden=!area;
       if(area){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
     }
-    const nodeObstacles=nodes.filter(n=>!n.el.hidden).map(n=>({id:n.id,...box(n.screen.x-9,n.screen.y-9,18,18)}));
     const priority=n=>n.id===selectedId?100:n.id===hover?90:n.prominent?80:near.has(n.id)?70:n.major?50:10;
     for(const n of [...nodes].sort((a,b)=>priority(b)-priority(a))){
       const {x,y}=n.screen,width=n.labelWidth,hot=n.id===selectedId||n.id===hover;
@@ -414,7 +453,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
       if(hot)for(const n of nodes)if(n.labelBox&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
-      visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
+      visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
     }
     for(const e of edges)e.el.hidden=!visibleEdges.has(e.id);
     return occupied;
@@ -488,6 +527,27 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if((hot||neighbor)&&whole)arrow(a,b);
       edgeHits.push({id:edge.id,a,b});
     }
+    // A route's way lights up while its card is pointed at: a golden line through its stars in the order it walks them.
+    const litTarget=lit?1:0;litGlow+=(litTarget-litGlow)*(1-Math.exp(-dt*(lit?9:4)));if(Math.abs(litTarget-litGlow)<.01)litGlow=litTarget;
+    if(litGlow&&lit){
+      const points=lit.map(id=>byId.get(id)?.screen).filter(Boolean);
+      ctx.strokeStyle='#e8cf8f';ctx.lineWidth=1.6;ctx.globalAlpha=.7*litGlow;
+      for(let i=1;i<points.length;i++){ctx.beginPath();ctx.moveTo(points[i-1].x,points[i-1].y);ctx.lineTo(points[i].x,points[i].y);ctx.stroke();}
+      ctx.globalAlpha=.85*litGlow;ctx.lineWidth=1.2;for(const point of points){ctx.beginPath();for(let i=0;i<=20;i++){const angle=i/20*Math.PI*2,x=point.x+Math.cos(angle)*8,y=point.y+Math.sin(angle)*8;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);}ctx.stroke();}
+      ctx.globalAlpha=1;
+    }
+    // A thread grows out of its star and fades into the dark; its door sits where it fades.
+    for(const thread of threads){
+      const from=byId.get(thread.from);thread.grown+=(1-thread.grown)*(1-Math.exp(-dt*4));
+      if(!from||from.el.hidden){thread.el.hidden=true;continue;}
+      const a=from.screen,ahead=project([from.p[0]+thread.direction[0]*60,from.p[1]+thread.direction[1]*60,from.p[2]]);
+      let dx=ahead.x-a.x,dy=ahead.y-a.y;const length=Math.hypot(dx,dy);if(length<.5){thread.el.hidden=true;continue;}dx/=length;dy/=length;
+      const start=11,reach=start+68*thread.grown,steps=6;ctx.strokeStyle=thread.color;ctx.lineWidth=1.1;
+      for(let i=0;i<steps;i++){const t0=start+(reach-start)*i/steps,t1=start+(reach-start)*(i+1)/steps;ctx.globalAlpha=.62*(1-i/steps)*thread.grown;ctx.beginPath();ctx.moveTo(a.x+dx*t0,a.y+dy*t0);ctx.lineTo(a.x+dx*t1,a.y+dy*t1);ctx.stroke();}
+      const ex=a.x+dx*(reach+7),ey=a.y+dy*(reach+7);ctx.globalAlpha=.55*thread.grown;ctx.fillStyle=thread.color;ctx.beginPath();ctx.arc(ex,ey,1.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      thread.el.hidden=!inView(box(ex-4,ey-4,8,8));thread.el.style.transform=`translate3d(${(ex-12).toFixed(2)}px,${(ey-12).toFixed(2)}px,0)`;
+      if(thread.grown<.995)layoutMoving=true;
+    }
     nodes.forEach(n=>{
       const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:.5+.5*near01;
@@ -522,7 +582,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     root.dataset.camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');
     if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,restYaw,restPitch,measured:!!measured});}}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
-    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0))kick();else last=0;
+    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))kick();else last=0;
   }
   function kick(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
   // The part of a segment inside the free area, and whether its end is the segment's own.
@@ -629,14 +689,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   if(secondaryPan)canvas.addEventListener('contextmenu',e=>e.preventDefault());
   canvas.addEventListener('pointermove',e=>{
     if(pinching(e))return;
-    if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}
+    if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';onEdgeHover?.(id);kick();}return;}
     if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;dragBy(drag,dx,dy);
   });
   const release=e=>{
     if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved&&!drag.forcePan;drag=null;canvas.classList.remove('dragging');letGo();
     if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();
   };canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
-  canvas.addEventListener('pointerleave',()=>{if(!drag){hoverEdge=null;canvas.style.cursor='';kick();}});
+  canvas.addEventListener('pointerleave',()=>{if(!drag){if(hoverEdge)onEdgeHover?.(null);hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
   canvas.addEventListener('sophia-renderer-restored',kick);
   const ro=new ResizeObserver(resize);ro.observe(root);paintNebula();resize();
@@ -647,7 +707,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
     restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;
       pan={x:pose.pan[0],y:pose.pan[1]};tpan={...pan};center=[...pose.center];targetCenter=[...pose.center];fitScale=targetFit=pose.fit;kick();},
-    select(id){selectedId=id;kick()},
+    select(id){selectedId=id;updateThreads();kick()},
     selectEdge(id){selectedEdgeId=id;kick()},
     link(id){linkFrom=id;kick()},
     zoomBy(factor){if(Number.isFinite(factor)&&factor>0)zoomTo(tzoom*factor);},
@@ -682,8 +742,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     pose(){return {yaw,pitch,targetYaw:tyaw,targetPitch:tpitch,restYaw,restPitch,measured:!!measured};},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     reveal(id){revealId=id??null;kick();},
+    /** Light a way through the given stars, in order (null puts it out). */
+    light(ids){lit=Array.isArray(ids)&&ids.length>1?[...ids]:null;kick();},
     refresh:resize,
     motion(value){playing=value;kick()},
-    dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());ctx.dispose?.()}
+    dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());threads.forEach(thread=>thread.el.remove());ctx.dispose?.()}
   };
 }
