@@ -5,8 +5,7 @@
 // by the step, which the space shows while it turns. Like a scale, depth is a
 // view: positions are never written into the graph.
 
-const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
-const pick=(value,locale)=>typeof value==='string'?value:value?.[lang(locale)]??value?.en??value?.ru??'';
+import {localeValue} from './locale.mjs';
 
 /**
  * Stars laid in depth by their step, and the planes of the steps that hold
@@ -28,7 +27,7 @@ export function depthLayout(nodes=[],{stepOf=()=>null,depth=null,locale='ru',mar
   if(named.length<2)return {nodes:laid,planes:[]};
   const planes=named.map(([step,points])=>{
     const xs=points.map(point=>point[0]),ys=points.map(point=>point[1]);
-    return {id:`step:${step}`,z:declared.get(step)?.z??0,x:[Math.min(...xs)-margin[0],Math.max(...xs)+margin[0]],y:[Math.min(...ys)-margin[1],Math.max(...ys)+margin[1]],label:pick(declared.get(step)?.label,locale)};
+    return {id:`step:${step}`,z:declared.get(step)?.z??0,x:[Math.min(...xs)-margin[0],Math.max(...xs)+margin[0]],y:[Math.min(...ys)-margin[1],Math.max(...ys)+margin[1]],label:localeValue(declared.get(step)?.label,locale)};
   }).sort((a,b)=>a.z-b.z);
   return {nodes:laid,planes};
 }

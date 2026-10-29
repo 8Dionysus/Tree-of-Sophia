@@ -23,6 +23,8 @@ describe('depth on the lenses that group',()=>{
     const reading=planes.find(plane=>plane.id==='step:reading');
     expect(reading.x[0]).toBeLessThan(-80);expect(reading.x[1]).toBeGreaterThan(100);expect(reading.y[0]).toBeLessThan(50);expect(reading.y[1]).toBeGreaterThan(120);
     expect(depthLayout(nodes,{stepOf:node=>node.step,depth,locale:'ru'}).planes[0].label).toBe('Источник');
+    // The other interface languages name the planes from the bonsai catalogs.
+    for(const [locale,label] of [['es','Fuente'],['de','Quelle'],['zh-Hans','来源']])expect(depthLayout(nodes,{stepOf:node=>node.step,depth,locale}).planes[0].label,locale).toBe(label);
   });
   it('needs no planes for one step, and changes nothing without a declared depth',()=>{
     expect(depthLayout(nodes.slice(1,3),{stepOf:node=>node.step,depth}).planes).toEqual([]);
