@@ -100,32 +100,52 @@ function sign(kind){
 const make=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
 
 /**
- * Mount the window on `root`. It opens with `open()` and closes by its button
- * or Escape; `onClose({never})` hears how it closed. `device()` says whether
- * the reader points with a mouse or with fingers, `locale()` which words to use.
+ * Whether Escape belongs to the window: not while a modal dialog, the reader
+ * or anything else holds the page above it, and not while a word is composed.
  */
-export function mountControls(root,{storage=globalThis.localStorage,locale=()=> 'ru',device=()=> 'mouse',onClose=null}={}){
+export function escapeReaches(panel,event){
+  if(event.isComposing||panel.hidden)return false;
+  if(panel.closest('[inert]'))return false;
+  try{if(document.querySelector('dialog:modal'))return false;}catch{}
+  const active=document.activeElement;
+  return !active||active===document.body||active===document.documentElement||panel.parentElement?.contains(active);
+}
+
+/**
+ * Mount the window on `root`, right after `anchor` (the map tools) so the
+ * keyboard reaches it next to them. It opens with `show()` and closes by its
+ * button or Escape. Ticking "don't show again" is kept at once, and only a
+ * reader's own untick forgets it: closing never rewrites the choice, so a
+ * second tab whose window opened earlier cannot undo it. `device()` says
+ * whether the reader points with a mouse or with fingers, `locale()` which
+ * words to use.
+ */
+export function mountControls(root,{storage=globalThis.localStorage,locale=()=> 'ru',device=()=> 'mouse',anchor=null,onClose=null}={}){
   const panel=make('section','ps-controls');panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');
   const heading=make('h2','ps-controls-title'),list=make('ul','ps-controls-list'),foot=make('div','ps-controls-foot');
   const neverLabel=make('label','ps-controls-never'),never=make('input');never.type='checkbox';const neverText=make('span');neverLabel.append(never,neverText);
   const close=make('button','ps-controls-close');close.type='button';
   heading.id=`ps-controls-title-${Math.random().toString(36).slice(2,8)}`;panel.setAttribute('aria-labelledby',heading.id);
-  foot.append(neverLabel,close);panel.append(heading,list,foot);root.append(panel);
+  foot.append(neverLabel,close);panel.append(heading,list,foot);
+  if(anchor?.parentElement===root)anchor.after(panel);else root.append(panel);
+  never.addEventListener('change',()=>{rememberControls(storage,never.checked);});
+  // Another tab may have chosen meanwhile; the box shows what is kept when this one comes back.
+  const sync=()=>{if(!document.hidden&&!panel.hidden)never.checked=controlsDismissed(storage);};
+  document.addEventListener('visibilitychange',sync);
   let returnTo=null;
   function paint(){
     const w=controlsWords(locale());heading.textContent=w.title;neverText.textContent=w.never;close.textContent=w.close;
     list.replaceChildren(...controlsFor(device(),locale()).map(row=>{const item=make('li','ps-controls-row');item.dataset.sign=row.sign;const glyph=make('span','ps-controls-sign');glyph.append(sign(row.sign));item.append(glyph,make('span','ps-controls-gesture',row.gesture),make('span','ps-controls-action',row.action));return item;}));
   }
-  // The box says what the next visit does: ticked, the window stays closed; unticked, it comes back.
+  // Closing only closes: what the next visit does was kept when the box changed.
   function finish(){
     if(panel.hidden)return;
-    const chose=never.checked,kept=chose||controlsDismissed(storage)?rememberControls(storage,chose):!chose;
     panel.hidden=true;root.dataset.controls='closed';
     if(returnTo?.isConnected&&panel.contains(document.activeElement))returnTo.focus({preventScroll:true});
-    returnTo=null;onClose?.({never:chose,kept});
+    returnTo=null;onClose?.({never:controlsDismissed(storage)});
   }
   close.addEventListener('click',finish);
-  const key=event=>{if(event.key==='Escape'&&!panel.hidden){event.preventDefault();event.stopImmediatePropagation();finish();}};
+  const key=event=>{if(event.key==='Escape'&&escapeReaches(panel,event)){event.preventDefault();event.stopImmediatePropagation();finish();}};
   document.addEventListener('keydown',key,{capture:true});
   return {
     get element(){return panel;},
@@ -137,6 +157,6 @@ export function mountControls(root,{storage=globalThis.localStorage,locale=()=> 
     },
     close:finish,
     refresh(){if(!panel.hidden)paint();},
-    dispose(){document.removeEventListener('keydown',key,{capture:true});panel.remove();},
+    dispose(){document.removeEventListener('keydown',key,{capture:true});document.removeEventListener('visibilitychange',sync);panel.remove();},
   };
 }

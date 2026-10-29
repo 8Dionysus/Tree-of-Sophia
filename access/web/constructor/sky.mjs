@@ -216,6 +216,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!thread){const el=document.createElement('button');el.type='button';el.className='tree-thread';el.dataset.thread=item.id;el.hidden=true;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'auto'});el.addEventListener('click',event=>{event.stopPropagation();onThreadSelect?.(item.id);});layer.append(el);thread={id:item.id,el,grown:0};}
       thread.from=item.from;thread.direction=[...item.direction];thread.color=hex(item.color,'#c9b88e');thread.el.setAttribute('aria-label',typeof item.label==='string'?item.label:item.id);return thread;
     });oldThreads.forEach(thread=>thread.el.remove());
+    // A thread's door comes right after its star in the keyboard's order.
+    let after=nodes.find(n=>n.id===selectedId)?.el;for(const thread of threads)if(after?.isConnected){if(after.nextSibling!==thread.el)after.after(thread.el);after=thread.el;}
   }
   function project([x,y,z]) {
     const c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
@@ -406,7 +408,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
       const candidates=[-101,-76,106,-136,140].map(offset=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return box(p.x-width/2,top,width,height);}).filter(inView);
       // A group's name takes a place clear of the stars where it can, and never one over another name.
-      const area=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)))??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
+      const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!nodeObstacles.some(o=>overlaps(candidate,o,2)));
+      const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
+      if(area&&!clear)c.el.dataset.crowded='true';else delete c.el.dataset.crowded;
       c.el.hidden=!area;
       if(area){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
     }
@@ -514,7 +518,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       edgeHits.push({id:edge.id,a,b});
     }
     // A route's way lights up while its card is pointed at: a golden line through its stars in the order it walks them.
-    litGlow+=((lit?1:0)-litGlow)*(1-Math.exp(-dt*(lit?9:4)));if(litGlow<.01)litGlow=0;
+    const litTarget=lit?1:0;litGlow+=(litTarget-litGlow)*(1-Math.exp(-dt*(lit?9:4)));if(Math.abs(litTarget-litGlow)<.01)litGlow=litTarget;
     if(litGlow&&lit){
       const points=lit.map(id=>byId.get(id)?.screen).filter(Boolean);
       ctx.strokeStyle='#e8cf8f';ctx.lineWidth=1.6;ctx.globalAlpha=.7*litGlow;
@@ -568,7 +572,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     root.dataset.camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');
     if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,restYaw,restPitch,measured:!!measured});}}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
-    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow>0))kick();else last=0;
+    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))kick();else last=0;
   }
   function kick(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
   // The part of a segment inside the free area, and whether its end is the segment's own.

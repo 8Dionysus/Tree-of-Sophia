@@ -11,9 +11,16 @@ import zarathustraManifest from '../../../../bonsai/zarathustra/bonsai.json' wit
 // A stand loads its own bonsai when it opens, and nothing of another's: the
 // manifests are small and always here, the modules come with their stand.
 const json=module=>module.default;
+// The Antiquity collection also serves the shared library of another stand, which needs nothing else of Antiquity's.
+let collectionLoad=null;
+/** The Antiquity collection alone, loaded once. */
+export function loadAntiquityCollection(){
+  collectionLoad??=import('../../../../bonsai/antiquity/collection.json',{with:{type:'json'}}).then(json).catch(error=>{collectionLoad=null;throw error;});
+  return collectionLoad;
+}
 const LOADERS=Object.freeze({
   antiquity:()=>Promise.all([
-    import('../../../../bonsai/antiquity/collection.json',{with:{type:'json'}}),
+    loadAntiquityCollection().then(collection=>({default:collection})),
     import('../../../../bonsai/antiquity/first-branches.json',{with:{type:'json'}}),
     import('../../../../bonsai/antiquity/chronology.json',{with:{type:'json'}}),
     import('../../../../bonsai/antiquity/places.json',{with:{type:'json'}}),

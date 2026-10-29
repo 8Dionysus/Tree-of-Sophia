@@ -51,6 +51,22 @@ export function placeHint(anchor,size,viewport,side='top',{gap=8,margin=8}={}){
 
 const make=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
 
+/** The text an element really shows: words clipped to nothing, hidden or transparent are not shown. */
+function shownText(element){
+  const parts=[],walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);
+  for(let node=walker.nextNode();node;node=walker.nextNode()){
+    const text=node.textContent.trim();if(!text)continue;
+    const style=node.parentElement?getComputedStyle(node.parentElement):null;
+    if(style&&(style.visibility==='hidden'||style.display==='none'||Number(style.opacity)===0))continue;
+    const range=document.createRange();range.selectNodeContents(node);const box=range.getBoundingClientRect();
+    if(box.width<3||box.height<3)continue;
+    // A word cut away by a clipping box is not shown either.
+    const clip=node.parentElement?.closest('*');const own=clip?.getBoundingClientRect();if(own&&(own.width<3||own.height<3))continue;
+    parts.push(text);
+  }
+  return parts.join(' ');
+}
+
 /**
  * Mount the hint on `root`. `selector` names what can give a hint;
  * `describe(element)` may return a card ({eyebrow,title,lines,note}) or words
@@ -62,7 +78,7 @@ export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,
   const find=node=>node instanceof Element?node.closest(selector):null;
   const words=element=>{
     const described=describe?.(element);if(described!==undefined)return described;
-    return hintWords({hint:element.dataset.hint,keys:element.dataset.hintKeys,note:element.dataset.hintNote,shown:element.innerText||element.textContent});
+    return hintWords({hint:element.dataset.hint,keys:element.dataset.hintKeys,note:element.dataset.hintNote,shown:shownText(element)});
   };
   function render(content){
     tip.replaceChildren();
@@ -123,9 +139,19 @@ export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,
   };
   // The keyboard gets the hint as soon as it arrives; a click's focus does not.
   const focusIn=event=>{const element=find(event.target);if(element&&event.target.matches?.(':focus-visible'))schedule(element,120);};
-  const focusOut=event=>{if(target&&!(event.relatedTarget instanceof Node&&target.contains(event.relatedTarget)))hide();};
-  // Escape closes the hint first, and only the hint.
-  const key=event=>{if(event.key==='Escape'&&!tip.hidden){event.preventDefault();event.stopImmediatePropagation();hide();}};
+  // A hint the keyboard has already left neither stays nor arrives late.
+  const focusOut=event=>{
+    const into=event.relatedTarget instanceof Node?event.relatedTarget:null;
+    if(pending&&!(into&&pending.contains(into))){clearTimeout(timer);pending=null;}
+    if(target&&!(into&&target.contains(into)))hide();
+  };
+  // Escape closes the hint first, and only the hint; while a word is composed, or a dialog holds the page, it is not ours.
+  const key=event=>{
+    if(event.key!=='Escape'||tip.hidden||event.isComposing)return;
+    let modal=null;try{modal=document.querySelector('dialog:modal');}catch{}
+    if(modal&&!modal.contains(target)){hide();return;}
+    event.preventDefault();event.stopImmediatePropagation();hide();
+  };
   const press=()=>hide();
   root.addEventListener('pointerover',over);root.addEventListener('pointerout',out);
   root.addEventListener('focusin',focusIn);root.addEventListener('focusout',focusOut);

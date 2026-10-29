@@ -1,4 +1,4 @@
-import {loadBonsai} from './bonsai.mjs';
+import {loadAntiquityCollection,loadBonsai} from './bonsai.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 import containedReadings from '../../../public-corpus/contained-reading-targets.v1.json' with {type:'json'};
 
@@ -64,8 +64,7 @@ async function bindEntries(items,{sources,provider,structures,loadStructure,bind
 
 /** The Antiquity collection's entries, bound to their public places. */
 async function antiquityEntries(context){
-  const {collection}=await loadBonsai('antiquity');
-  return bindEntries(entries(collection),context);
+  return bindEntries(entries(await loadAntiquityCollection()),context);
 }
 
 /** Additional authored navigation, not a second reader or a copy of witness text. */
@@ -80,9 +79,9 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     // saved Zarathustra graph and its witness addresses remain byte-for-byte.
     // The shared library's Antiquity entries come when the reader first needs them
     // (the library, a search), never with the stand's first view.
-    library.space.collection=own;
+    const shelf=[...own];library.space.collection=shelf;
     let pending=null;
-    library.space.loadCollection=()=>pending??=antiquityEntries(context).then(items=>{library.space.collection=[...own,...items];return items;}).catch(error=>{pending=null;throw error;});
+    library.space.loadCollection=()=>pending??=antiquityEntries(context).then(items=>{shelf.push(...items.filter(item=>!shelf.some(held=>(held.materialId??held.id)===item.materialId)));return items;}).catch(error=>{pending=null;throw error;});
     prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)}];
     return prepared;
   }

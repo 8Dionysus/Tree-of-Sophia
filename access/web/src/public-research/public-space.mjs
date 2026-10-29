@@ -18,7 +18,7 @@ import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
 import {depthLayout} from './space-depth.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
-import {controlsShouldOpen,mountControls} from './space-controls.mjs';
+import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
 import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,threadsIntoDark} from './space-play.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
@@ -81,6 +81,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const moreCollection=typeof library.space?.loadCollection==='function'?library.space.loadCollection:null;
   let collectionReady=!moreCollection;
   function absorbCollection(){
+    for(const [id,value]of bindings instanceof Map?bindings:Object.entries(bindings??{}))if(!sourceMap.has(id))sourceMap.set(id,value);
+    for(const [id,value]of documentBindings instanceof Map?documentBindings:Object.entries(documentBindings??{}))if(!workMap.has(id))workMap.set(id,value);
     for(const item of library.space?.collection??[]){
       const id=item.materialId??item.id,legacy=item.legacyId??item.id;
       if(!collectionMaterials.has(id)){const value={...item,id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind};collectionMaterials.set(id,value);if(!previewMaterials.has(id))previewMaterials.set(id,value);}
@@ -241,6 +243,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     clearTimeout(notify.timer);notify.timer=null;statusLabel.textContent=savedStatus();
     personalTop.querySelector('.eyebrow').textContent=t('research');
     panelClose.setAttribute('aria-label',t('close'));personalClose.setAttribute('aria-label',t('close'));
+    controls?.refresh();hints?.hide();
     modeCancel.textContent=t('modeCancel');voiceCache.clear();paintLenses();paintRelations();if(searchValue)renderSearch();if(!compareBar.hidden)renderComparison();reflect();
   }
   const uiActions=[];
@@ -479,6 +482,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const from=resolve(hypothesis.fromId),to=resolve(hypothesis.toId);
       if(from&&to&&from!==to)extraEdges.push({id:`personal-relation:${hypothesis.id}`,from,to,kind:'relates',label:hypothesis.predicateLabel||(locale()==='en'?'Personal relation':'Личная связь'),body:hypothesis.body,color:RELATIONS.relates.color,ownerType:'personal-hypothesis'});
     }
+    // An own reading set beside a reading stands linked to it, in the reader's own view only.
+    for(const record of ownReadings.values()){
+      if(!record.near||!byOwnerId.has(record.id))continue;
+      const from=graphId(record.id),to=resolve(record.near.startsWith('material:')?record.near.slice(9):record.near);
+      if(to&&to!==from)extraEdges.push({id:`personal-near:${record.id}`,from,to,kind:'relates',label:t('ownNearest'),color:RELATIONS.relates.color,ownerType:'personal-hypothesis'});
+    }
     // These are projections of existing proposal relations, never new claims
     // written into the user's graph or admitted to the prepared library.
     for(const proposal of ownerState?.proposals??[]){
@@ -599,45 +608,50 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Following a thread brings its star into the space, out of the star it was followed from.
   function followThread(threadId){
     const graphId=String(threadId).replace(/^thread:/,''),materialId=graphId.slice(9),from=selected;
-    try{const added=model.addMaterial(materialId);state=model.getState();if(from)rising.set(added,from);selectActual(added);notifyGraphResult(t('threadAdded'));reflect();sky?.reveal(added);}
-    catch(error){notify(displayPublicError(error,locale));}
+    // The rising is set before the star exists: adding it draws the space at once.
+    if(from)rising.set(graphId,from);
+    try{const added=model.addMaterial(materialId);state=model.getState();selectActual(added);notifyGraphResult(t('threadAdded'));reflect();sky?.reveal(added);}
+    catch(error){rising.delete(graphId);notify(displayPublicError(error,locale));}
   }
   // Your own reading first. Where a step or a riddle asks, one line of your own is written before the readings open;
-  // it becomes your star in front of what it is about, and then stands beside the reading you find nearest.
+  // it becomes your star in front of what it is about, and can then stand beside the reading you find nearest.
+  // The record keeps your words and what they are about; where it stands, and beside which reading, is your view of it.
   const ownKey=`tos.public-research.own-readings.v1.${profile}`,ownReadings=new Map(),ownDrafts=new Map();
-  try{const saved=JSON.parse(localStorage.getItem(ownKey)||'{}');if(object(saved))for(const [key,value]of Object.entries(saved))if(typeof value==='string')ownReadings.set(key,value);}catch{}
+  try{const saved=JSON.parse(localStorage.getItem(ownKey)||'{}');if(object(saved))for(const [key,value]of Object.entries(saved)){const record=typeof value==='string'?{id:value}:object(value)&&typeof value.id==='string'?{id:value.id,...(typeof value.near==='string'?{near:value.near}:{})}:null;if(record)ownReadings.set(key,record);}}catch{}
   const saveOwnReadings=()=>{try{localStorage.setItem(ownKey,JSON.stringify(Object.fromEntries(ownReadings)));}catch{}};
   const savePersonalPositions=()=>{try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;}};
   const hypothesesNow=()=>workspace?.getState?.()?.hypotheses??personalState?.hypotheses??[];
-  const ownReadingOf=targetId=>{const id=ownReadings.get(targetId);return id?hypothesesNow().find(item=>item.id===id)??null:null;};
+  const ownReadingOf=targetId=>{const record=ownReadings.get(targetId);return record?hypothesesNow().find(item=>item.id===record.id)??null:null;};
+  // The star of a record: its graph node once it was joined to the graph, otherwise its own.
+  const nodeOfOwn=id=>{const mapped=materializedHypotheses.get(id);return mapped&&state.nodes.some(node=>node.id===mapped)?mapped:state.nodes.some(node=>node.id===id)?id:`personal:${id}`;};
   const placeOfGraph=graphId=>graphState().nodes.find(node=>node.id===graphId)?.position??materialOfGraph(graphId)?.position??null;
+  // After the block is drawn again, the keyboard is where it acted.
+  function focusOwn(targetId,selector){requestAnimationFrame(()=>{const box=[...shell.querySelectorAll('.ps-own')].find(item=>item.dataset.target===targetId);box?.querySelector(selector)?.focus({preventScroll:true});});}
   function writeOwnReading(targetId,text){
     if(!workspace?.addHypothesis)return;
     const id=`space:${profile}:own:${crypto.randomUUID()}`,nodeId=`personal:${id}`,targetGraph=graphIdForMaterial(targetId),at=placeOfGraph(targetGraph);
     // Its place and its rising are set before the record exists, so the first view of it already stands in front of its question.
     if(at){personalPositions.set(nodeId,besidePosition(at,0));savePersonalPositions();}
-    rising.set(nodeId,targetGraph);ownReadings.set(targetId,id);saveOwnReadings();
+    rising.set(nodeId,targetGraph);ownReadings.set(targetId,{id});saveOwnReadings();
     try{workspace.addHypothesis({id,kind:'interpretation',title:ownTitle(text),body:text,targetId});personalState=workspace.getState?.()??personalState;notifyGraphResult(t('ownWritten'));}
     catch(error){ownReadings.delete(targetId);saveOwnReadings();rising.delete(nodeId);notify(displayPublicError(error,locale));}
-    reflect();
+    reflect();focusOwn(targetId,'.ps-own-line');
   }
-  // Setting your star beside a reading moves it there; the record keeps your words and now rests on that reading.
+  // Setting your star beside a reading moves it there and links it to that reading in your view; the record itself is untouched,
+  // so the workspace's own undo never splits it.
   function standNearest(targetId,readingGraph){
-    const mine=ownReadingOf(targetId);if(!mine||materializedHypotheses.has(mine.id))return;
-    const next=readingGraph?readingGraph.slice(9):targetId;if(mine.targetId===next)return;
-    const id=`space:${profile}:own:${crypto.randomUUID()}`,nodeId=`personal:${id}`,oldNode=`personal:${mine.id}`,at=placeOfGraph(graphIdForMaterial(next));
-    const index=readingGraph?Math.max(0,[...ownReadings.values()].length%4):0;
-    if(at)personalPositions.set(nodeId,besidePosition(at,index));personalPositions.delete(oldNode);savePersonalPositions();
-    rising.set(nodeId,oldNode);ownReadings.set(targetId,id);saveOwnReadings();
-    try{workspace.addHypothesis({id,kind:mine.kind??'interpretation',title:mine.title,body:mine.body,targetId:next});workspace.removeHypothesis?.(mine.id);personalState=workspace.getState?.()??personalState;}
-    catch(error){ownReadings.set(targetId,mine.id);saveOwnReadings();notify(displayPublicError(error,locale));}
-    reflect();
+    const record=ownReadings.get(targetId),mine=ownReadingOf(targetId);if(!record||!mine)return;
+    if((record.near??null)===(readingGraph??null))return;
+    const nodeId=nodeOfOwn(mine.id),index=readingGraph?[...ownReadings.values()].filter(item=>item!==record&&item.near===readingGraph).length:0,at=placeOfGraph(readingGraph??graphIdForMaterial(targetId));
+    if(at){personalPositions.set(nodeId,besidePosition(at,index));savePersonalPositions();}
+    if(readingGraph)record.near=readingGraph;else delete record.near;saveOwnReadings();
+    reflect();focusOwn(targetId,'.ps-own-choice[aria-pressed="true"]');
   }
   function ownReadingBlock(parent,targetId){
     if(!workspace?.addHypothesis||!targetId)return null;
     const targetGraph=graphIdForMaterial(targetId),mine=ownReadingOf(targetId),edges=playEdges();
     const around=readingsAround(targetGraph,{edges,rungOf:rungOfGraph}).filter(item=>materialOfGraph(item.id));
-    const box=el('section','ps-own');box.dataset.state=mine?'written':'open';
+    const box=el('section','ps-own');box.dataset.state=mine?'written':'open';box.dataset.target=targetId;
     const nameOf=graphId=>keepDots(label(materialOfGraph(graphId)));
     const row=(graphId,small)=>{const b=button('','connection-target');b.append(el('small','',small),el('span','',nameOf(graphId)));b.addEventListener('click',()=>selectNode(graphId));return b;};
     if(!mine){
@@ -658,15 +672,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       parent.append(box);return box;
     }
     const own=button('','ps-own-line');own.append(el('span','eyebrow',t('ownMine')),el('span','ps-own-text',mine.body));
-    own.addEventListener('click',()=>selectNode(`personal:${mine.id}`));box.append(own);
+    own.addEventListener('click',()=>selectNode(nodeOfOwn(mine.id)));box.append(own);
     if(around.length){
-      const near=el('div','ps-own-near');near.append(el('p','eyebrow',t('ownNearest')));
-      const chosen=mine.targetId&&mine.targetId!==targetId?graphIdForMaterial(mine.targetId):null,fixed=materializedHypotheses.has(mine.id);
-      for(const item of around){const b=button('','ps-own-choice');b.append(el('span','',nameOf(item.id)),el('small','',relationWord(item.kind)||kindName(materialOfGraph(item.id)?.kind)));b.setAttribute('aria-pressed',String(chosen===item.id));b.disabled=fixed;b.addEventListener('click',()=>standNearest(targetId,chosen===item.id?null:item.id));near.append(b);}
-      const none=button(t('ownNone'),'ps-own-choice ps-own-none');none.setAttribute('aria-pressed',String(!chosen));none.disabled=fixed;none.addEventListener('click',()=>standNearest(targetId,null));near.append(none);
+      const near=el('div','ps-own-near');near.setAttribute('role','group');near.append(el('p','eyebrow',t('ownNearest')));
+      const chosen=ownReadings.get(targetId)?.near??null;
+      for(const item of around){const b=button('','ps-own-choice');b.append(el('span','',nameOf(item.id)),el('small','',relationWord(item.kind)||kindName(materialOfGraph(item.id)?.kind)));b.setAttribute('aria-pressed',String(chosen===item.id));b.addEventListener('click',()=>standNearest(targetId,chosen===item.id?null:item.id));near.append(b);}
+      const none=button(t('ownNone'),'ps-own-choice ps-own-none');none.setAttribute('aria-pressed',String(!chosen));none.addEventListener('click',()=>standNearest(targetId,null));near.append(none);
       box.append(near);
       // What follows from standing there: what that reading rests on, and what disputes it.
-      if(chosen){
+      if(chosen&&materialOfGraph(chosen)){
         // A reading rests first on its grounds in the source, else on the sources it is linked to; it is disputed
         // by what answers it otherwise or puts it in question, and by the other reading authored against it.
         const reading=materialOfGraph(chosen),rests=el('div','ps-own-follows'),against=el('div','ps-own-follows');
@@ -801,7 +815,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const kind=layoutKind();if(kind)shell.dataset.scale=kind;else delete shell.dataset.scale;
     turnButton.hidden=measuredLens(lens);controlsButton.hidden=measuredLens(lens);
     if(measuredLens(lens)&&controls?.open)controls.close();
-    else if(!measuredLens(lens)&&controls&&!controlsTimer&&!controls.open)controlsTimer=setTimeout(()=>openControlsOnce(),900);
+    else if(!measuredLens(lens)&&controls&&!controlsDone&&!controlsTimer&&!controls.open)controlsTimer=setTimeout(()=>openControlsOnce(),900);
     refreshSky();
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
     if(!notify.timer)statusLabel.textContent=savedStatus();
@@ -818,9 +832,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.dataset.positions=kind;
       b.append(el('span','lens-icon',item.icon),el('span','lens-name',tr(item.title,locale())));
       setHint(b,tr(item.description,locale()));
-      b.addEventListener('click',()=>{lens=item.id;
+      b.addEventListener('click',event=>{lens=item.id;const refocus=event.detail===0||lensList.contains(document.activeElement);
       // An open branch reads on the tree, on the scale of time and on the map of places; other lenses look at the whole space.
-      if(route&&!['tree','time','space'].includes(lens)){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();frameSky();});lensList.append(b);}
+      if(route&&!['tree','time','space'].includes(lens)){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();frameSky();
+      // The lenses are drawn again; the keyboard stays on the one it chose.
+      if(refocus)lensList.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});});lensList.append(b);}
     // On a phone the lenses scroll in one row; the chosen one stays in sight, also when a link opened it.
     const chosen=lensList.querySelector('[aria-pressed="true"]');
     if(chosen&&lensList.scrollWidth>lensList.clientWidth&&(chosen.offsetLeft<lensList.scrollLeft||chosen.offsetLeft+chosen.offsetWidth>lensList.scrollLeft+lensList.clientWidth))lensList.scrollLeft=chosen.offsetLeft-(lensList.clientWidth-chosen.offsetWidth)/2;
@@ -998,7 +1014,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(!body.childElementCount)fold.classList.add('ps-fact-plain');
     parent.append(fold);
   }
-  function renderNode(id){
+  function renderNode(id,{own=true}={}){
     const materialId=id.startsWith('material:')?id.slice(9):null;
     const preview=materialId&&previewMaterials.get(materialId);
     const node=graphState().nodes.find(item=>item.id===id)??(preview?{id,materialId,kind:preview.kind,sourceIds:[]}:null);if(!node){selected=null;return renderWelcome();}
@@ -1027,7 +1043,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const body=material.atlasBody??material.body;
       if(body)panelContent.append(el('p','body',tr(body,locale())));
       // A riddle asks the reader first: its question, the reader's own line, and only then its readings, folded until written.
-      const riddle=material.kind==='question'&&materials.has(material.id),answered=!riddle||!!ownReadingOf(material.id);
+      const riddle=own&&material.kind==='question'&&materials.has(material.id),answered=!riddle||!!ownReadingOf(material.id);
       if(riddle){const asks=material.inquiry?.question??material.question;if(tr(asks,locale()).trim())inquiryQuestion(panelContent,asks);ownReadingBlock(panelContent,material.id);}
       else if(tr(material.question,locale()).trim()&&!material.inquiry?.question){const questionCard=el('section','ps-question-card');questionCard.append(el('span','eyebrow',t('questionLabel')),el('p','',tr(material.question,locale())));panelContent.append(questionCard);}
       const inquiry=material.inquiry;
@@ -1350,7 +1366,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function renderStepNode(){
     panelContent.replaceChildren();if(!routeStepNode)return;
     const node=graphState().nodes.find(item=>item.id===routeStepNode);if(!node)return;
-    renderNode(routeStepNode);
+    // A step that asks already holds the reader's own line; its star does not ask again beneath it.
+    const step=route?.source==='atlas'?routes.find(item=>item.id===route.id)?.steps?.[routeIndex]:null;
+    renderNode(routeStepNode,{own:!step?.question});
     const parts=[...panelContent.childNodes],fold=document.createElement('details');fold.className='ps-step-node';fold.open=stepNodeOpen;
     fold.addEventListener('toggle',()=>{stepNodeOpen=fold.open;});
     fold.append(el('summary','',`${t('onMap')} · ${label(node.ownerType==='personal-hypothesis'?node:matForNode(node)??node)}`),...parts);
@@ -1402,7 +1420,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return null;
   }
   function openCollection(){
-    if(!collectionReady){void loadMoreCollection().then(()=>{if(!destroyed)openCollection();}).catch(()=>notify(t('unavailable')));return;}
+    if(!collectionReady)void loadMoreCollection().then(()=>{if(!destroyed&&dialog.open&&collectionRoot?.isConnected)collectionView?.refresh();}).catch(()=>{});
     if(dialog.open)dialog.close();dialog.replaceChildren();collectionRoot=makeDialog(t('library'));collectionRoot.classList.add('ps-collection');
     const collectionHeader=dialog.querySelector('.dialog-top');collectionHeader.insertBefore(localeButtonContainer(),collectionHeader.lastChild);
     const entries=Array.isArray(library.space?.collection)&&library.space.collection.length?library.space.collection:(library.nodes??[]);
@@ -1562,26 +1580,37 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   });
   // The controls window opens by itself once, after the space's first turn, on a space that turns; it closes for good
   // only when asked, and comes back from the map tools.
-  let lastPointer=null,controlsOpened=false,controlsTimer=0;
+  // controlsDone: this visit has settled whether the window opens by itself (it opened, or it is not to).
+  let lastPointer=null,controlsDone=false,controlsTimer=0;
   const notePointer=event=>{lastPointer=event.pointerType==='mouse'?'mouse':'touch';};
   shell.addEventListener('pointerdown',notePointer,{capture:true});
   const storageOf=()=>{try{return window.localStorage;}catch{return null;}};
-  controls=mountControls(shell,{storage:storageOf(),locale:()=>locale(),device:()=>lastPointer??(window.matchMedia?.('(hover: none) and (pointer: coarse)').matches?'touch':'mouse')});
+  controls=mountControls(shell,{storage:storageOf(),anchor:mapTools,locale:()=>locale(),device:()=>lastPointer??(window.matchMedia?.('(hover: none) and (pointer: coarse)').matches?'touch':'mouse')});
+  // The window stands over the free part of the map, no wider or taller than it, so it covers none of the tools around.
   function placeControls(){
     const panel=controls?.element;if(!panel||panel.hidden)return;
-    const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});
-    if(!area){panel.style.left='';panel.style.top='';return;}
-    const width=panel.offsetWidth,height=panel.offsetHeight;
+    const area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};
+    const room={width:Math.max(220,area.right-area.left),height:Math.max(160,area.bottom-area.top)};
+    panel.style.width=`${Math.round(Math.min(420,room.width))}px`;panel.style.maxHeight=`${Math.round(room.height)}px`;
+    const width=panel.offsetWidth,height=Math.min(panel.offsetHeight,room.height);
     panel.style.left=`${Math.round(Math.max(8,Math.min(shell.clientWidth-width-8,(area.left+area.right)/2-width/2)))}px`;
     panel.style.top=`${Math.round(Math.max(8,Math.min(shell.clientHeight-height-8,(area.top+area.bottom)/2-height/2)))}px`;
   }
   function openControlsOnce(){
     clearTimeout(controlsTimer);controlsTimer=0;
-    if(destroyed||controlsOpened||controls.open)return;
-    if(!controlsShouldOpen({storage:storageOf(),flat:measuredLens(lens)}))return;
-    // Not over a press, the library or a reading that has the reader's attention; it waits for them to end.
-    if(dialog.open||shell.querySelector('.tree-sky.dragging')||!searchResults.hidden){controlsTimer=setTimeout(openControlsOnce,1200);return;}
-    controlsOpened=true;controls.show();placeControls();
+    if(destroyed||controlsDone||controls.open)return;
+    const storage=storageOf();
+    // A reader who asked not to see it again is settled at once, without touching storage again this visit.
+    if(controlsDismissed(storage)){controlsDone=true;return;}
+    // On a flat lens it waits for the first space that turns.
+    if(measuredLens(lens))return;
+    // Not over a press, the library, the reader or a search that has the reader's attention; it waits for them to end.
+    const busy=dialog.open||!searchResults.hidden||shell.querySelector('.tree-sky.dragging')||shell.closest('[inert]')||document.querySelector('[data-corpus-reading]');
+    if(busy){controlsTimer=setTimeout(openControlsOnce,1200);return;}
+    controlsDone=true;
+    // Where the browser keeps nothing, the window does not insist.
+    if(!controlsShouldOpen({storage}))return;
+    controls.show();placeControls();
   }
   const firstTurn=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?400:2700;
   controlsTimer=setTimeout(openControlsOnce,firstTurn);

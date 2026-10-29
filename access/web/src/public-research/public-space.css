@@ -510,7 +510,9 @@
 #tree .ps-map-tools .ps-globe[hidden]{display:none}
 
 /* ── a group's name lies on a soft dark ground, so the lines under it do not cut through its letters ── */
-#tree .tree-cluster:not([data-variant])::before{content:'';position:absolute;inset:-8px -16px;z-index:-1;background:radial-gradient(closest-side,#050a14e0,#050a1400);pointer-events:none}
+#tree .tree-cluster:not([data-variant])::before{content:'';position:absolute;inset:-6px -12px;z-index:-1;background:radial-gradient(closest-side,#050a14d0,#050a1400);pointer-events:none}
+/* Over stars the ground stays faint, so the stars beneath still show. */
+#tree .tree-cluster:not([data-variant])[data-crowded=true]::before{background:radial-gradient(closest-side,#050a1466,#050a1400)}
 
 /* ── the hint: one quiet card next to what the pointer rests on or the keyboard reaches ── */
 #tree .ps-hint{position:fixed;left:0;top:0;z-index:40;display:grid;gap:3px;max-width:min(300px,calc(100vw - 16px));padding:7px 10px 8px;border:1px solid #8aa0b844;border-radius:5px;background:#08111ff2;box-shadow:0 10px 30px #000a;color:#d6dfeb;font:12px/1.45 var(--ps-sans);pointer-events:none;animation:ps-hint-in .14s ease-out}
