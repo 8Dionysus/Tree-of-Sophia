@@ -1,0 +1,585 @@
+{
+  "schema": "tos.bonsai.places.v1",
+  "bonsai": "zarathustra",
+  "checked": "2026-10-29",
+  "posture": {
+    "ru": "Места написания частей книги и текстов её карты, или места жизни их авторов в эти годы, каждое со своим источником; и место, где пришла мысль о вечном возвращении. Предложение стенда, не канон.",
+    "en": "Where the book’s parts and the texts of its map were written, or where their authors lived in those years, each with its source; and the place where the thought of eternal recurrence came. The stand’s proposal, not canon."
+  },
+  "frame": {
+    "crs": "EPSG:4326",
+    "axes": "longitude, latitude (degrees)",
+    "points": {
+      "ru": "Опорные точки, которые публикует газеттир; только для показа, не геометрия Древа.",
+      "en": "Representative points as the gazetteer publishes them; for display only, not a Tree geometry."
+    }
+  },
+  "sources": {
+    "ecce-homo-za-1": {
+      "short": "Ecce Homo · eKGWB",
+      "title": "F. Nietzsche. Ecce Homo, “Also sprach Zarathustra” §1. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/EH-Za-1"
+    },
+    "ecce-homo-za-4": {
+      "short": "Ecce Homo · eKGWB",
+      "title": "F. Nietzsche. Ecce Homo, “Also sprach Zarathustra” §4. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/EH-Za-4"
+    },
+    "ewb-deleuze": {
+      "short": "EWB",
+      "title": "Gilles Deleuze. Encyclopedia of World Biography (Gale), via Encyclopedia.com",
+      "url": "https://encyclopedia.com/history/encyclopedias-almanacs-transcripts-and-maps/deleuze-gilles"
+    },
+    "foerster-nietzsche": {
+      "short": "Förster-Nietzsche",
+      "title": "E. Förster-Nietzsche. How Zarathustra came into being: introduction to Thus Spake Zarathustra, tr. T. Common (Project Gutenberg #1998)",
+      "url": "https://www.gutenberg.org/cache/epub/1998/pg1998.txt"
+    },
+    "gay-science-iv": {
+      "short": "FW · eKGWB",
+      "title": "F. Nietzsche. Die fröhliche Wissenschaft, Book IV “Sanctus Januarius”: motto and §276. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/FW-276"
+    },
+    "iep-epictetus": {
+      "short": "IEP · Seddon",
+      "title": "Keith H. Seddon. Epictetus (55—135 C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/epictetu/"
+    },
+    "iep-marcus": {
+      "short": "IEP · Sellars",
+      "title": "John Sellars. Marcus Aurelius (121—180 C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/marcus-aurelius/"
+    },
+    "iep-spinoza": {
+      "short": "IEP · Dutton",
+      "title": "Blake D. Dutton. Benedict De Spinoza (1632—1677). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/spinoza/"
+    },
+    "larousse-camus": {
+      "short": "Larousse",
+      "title": "Albert Camus. Encyclopédie Larousse",
+      "url": "https://www.larousse.fr/encyclopedie/personnage/Albert_Camus/111047"
+    },
+    "letter-1882-192": {
+      "short": "eKGWB · BVN 1882,192",
+      "title": "F. Nietzsche. Letter to F. Overbeck, Genoa, 29 January 1882. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1882,192"
+    },
+    "letter-1883-373": {
+      "short": "eKGWB · BVN 1883,373",
+      "title": "F. Nietzsche. Letter to F. Overbeck, Rapallo, 10 February 1883. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1883,373"
+    },
+    "letter-1883-381": {
+      "short": "eKGWB · BVN 1883,381",
+      "title": "F. Nietzsche. Letter to H. Köselitz, Rapallo, 19 February 1883. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1883,381"
+    },
+    "letter-1883-430": {
+      "short": "eKGWB · BVN 1883,430",
+      "title": "F. Nietzsche. Letter to E. Nietzsche, Sils-Maria, 6 July 1883. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1883,430"
+    },
+    "letter-1884-479": {
+      "short": "eKGWB · BVN 1884,479",
+      "title": "F. Nietzsche. Letter to E. Schmeitzner, Nice, 18 January 1884. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1884,479"
+    },
+    "letter-1884-556": {
+      "short": "eKGWB · BVN 1884,556",
+      "title": "F. Nietzsche. Letter to E. Nietzsche, Menton, after 15 November 1884. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1884,556"
+    },
+    "letter-1885-572": {
+      "short": "eKGWB · BVN 1885,572",
+      "title": "F. Nietzsche. Letter to C. von Gersdorff, Nice, 12 February 1885. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1885,572"
+    },
+    "nachlass-1881": {
+      "short": "NF 1881 · eKGWB",
+      "title": "F. Nietzsche. Nachgelassene Fragmente Frühjahr–Herbst 1881, 11[141]. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/NF-1881,11%5B141%5D"
+    },
+    "nietzschehaus-1883": {
+      "short": "Nietzsche-Haus",
+      "title": "Nietzsche-Haus Sils Maria. Friedrich Nietzsche in Sils Maria: the summer months of 1883",
+      "url": "https://nietzschehaus.ch/friedrich-nietzsche-in-sils-maria/thema-2/"
+    },
+    "perseus-meditations": {
+      "short": "Perseus · Leopold",
+      "title": "Marcus Aurelius. Ad se ipsum, ed. J. H. Leopold (Teubner, 1908), I.17 and II.17. Perseus Digital Library",
+      "url": "https://www.perseus.tufts.edu/hopper/text?doc=Perseus%3Atext%3A2008.01.0641%3Abook%3D1%3Achapter%3D17"
+    },
+    "sep-deleuze": {
+      "short": "SEP · Smith, Protevi & Voss",
+      "title": "Daniel W. Smith, John Protevi, Daniela Voss. Gilles Deleuze. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/deleuze/"
+    },
+    "sep-epictetus": {
+      "short": "SEP · Graver",
+      "title": "Margaret Graver. Epictetus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/epictetus/"
+    },
+    "sep-heraclitus": {
+      "short": "SEP · Graham",
+      "title": "Daniel W. Graham. Heraclitus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/heraclitus/"
+    },
+    "sep-spinoza": {
+      "short": "SEP · Nadler",
+      "title": "Steven Nadler. Baruch Spinoza. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/spinoza/"
+    },
+    "sks-repetition": {
+      "short": "SKS K4",
+      "title": "Søren Kierkegaards Skrifter, vol. K4: text account (Tekstredegørelse) to Gjentagelsen. Royal Danish Library",
+      "url": "https://tekster.kb.dk/text/sks-g-txr-root"
+    },
+    "strickland-monadology": {
+      "short": "Strickland 2020",
+      "title": "L. Strickland. The Monadology. In: Leibniz’s Key Philosophical Writings: A Guide. Oxford University Press, 2020 (accepted version, MMU e-space)",
+      "url": "https://e-space.mmu.ac.uk/622962/3/Monadology.pdf"
+    },
+    "wikipedia-deleuze": {
+      "short": "Wikipedia",
+      "title": "Gilles Deleuze. Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Gilles_Deleuze"
+    }
+  },
+  "places": {
+    "rapallo": {
+      "label": {
+        "ru": "Рапалло",
+        "en": "Rapallo"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q210098",
+          "url": "https://www.wikidata.org/wiki/Q210098"
+        }
+      ],
+      "point": [
+        9.2333333333333,
+        44.35
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q210098.json"
+    },
+    "sils-maria": {
+      "label": {
+        "ru": "Сильс-Мария",
+        "en": "Sils Maria"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q3483936",
+          "url": "https://www.wikidata.org/wiki/Q3483936"
+        }
+      ],
+      "point": [
+        9.76389,
+        46.4292
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q3483936.json"
+    },
+    "surlej": {
+      "label": {
+        "ru": "Сурлей",
+        "en": "Surlej"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q1575520",
+          "url": "https://www.wikidata.org/wiki/Q1575520"
+        }
+      ],
+      "point": [
+        9.81061,
+        46.459
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q1575520.json"
+    },
+    "nice": {
+      "label": {
+        "ru": "Ницца",
+        "en": "Nice"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q33959",
+          "url": "https://www.wikidata.org/wiki/Q33959"
+        }
+      ],
+      "point": [
+        7.2683333333333,
+        43.701944444444
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q33959.json"
+    },
+    "genoa": {
+      "label": {
+        "ru": "Генуя",
+        "en": "Genoa"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q1449",
+          "url": "https://www.wikidata.org/wiki/Q1449"
+        }
+      ],
+      "point": [
+        8.93388888888889,
+        44.407222222222224
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q1449.json"
+    },
+    "the-hague": {
+      "label": {
+        "ru": "Гаага",
+        "en": "The Hague"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q36600",
+          "url": "https://www.wikidata.org/wiki/Q36600"
+        }
+      ],
+      "point": [
+        4.31,
+        52.08
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q36600.json"
+    },
+    "vienna": {
+      "label": {
+        "ru": "Вена",
+        "en": "Vienna"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q1741",
+          "url": "https://www.wikidata.org/wiki/Q1741"
+        }
+      ],
+      "point": [
+        16.3725,
+        48.208333333333336
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q1741.json"
+    },
+    "berlin": {
+      "label": {
+        "ru": "Берлин",
+        "en": "Berlin"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q64",
+          "url": "https://www.wikidata.org/wiki/Q64"
+        }
+      ],
+      "point": [
+        13.383333333333,
+        52.516666666667
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q64.json"
+    },
+    "ephesus": {
+      "label": {
+        "ru": "Эфес",
+        "en": "Ephesus"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "599612",
+          "url": "https://pleiades.stoa.org/places/599612"
+        },
+        {
+          "scheme": "wikidata",
+          "id": "Q47611",
+          "url": "https://www.wikidata.org/wiki/Q47611"
+        }
+      ],
+      "point": [
+        27.34240298195866,
+        37.940164271971945
+      ],
+      "point_source": "https://pleiades.stoa.org/places/599612/json"
+    },
+    "nicopolis-epirus": {
+      "label": {
+        "ru": "Никополь Эпирский",
+        "en": "Nicopolis in Epirus"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "531013",
+          "url": "https://pleiades.stoa.org/places/531013"
+        }
+      ],
+      "point": [
+        20.7360035,
+        39.0157
+      ],
+      "point_source": "https://pleiades.stoa.org/places/531013/json"
+    },
+    "clermont-ferrand": {
+      "label": {
+        "ru": "Клермон-Ферран",
+        "en": "Clermont-Ferrand"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q42168",
+          "url": "https://www.wikidata.org/wiki/Q42168"
+        }
+      ],
+      "point": [
+        3.0869444444444,
+        45.779722222222
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q42168.json"
+    },
+    "paris": {
+      "label": {
+        "ru": "Париж",
+        "en": "Paris"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q90",
+          "url": "https://www.wikidata.org/wiki/Q90"
+        }
+      ],
+      "point": [
+        2.352222222222222,
+        48.85666666666667
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q90.json"
+    },
+    "lyon": {
+      "label": {
+        "ru": "Лион",
+        "en": "Lyon"
+      },
+      "gazetteer": [
+        {
+          "scheme": "wikidata",
+          "id": "Q456",
+          "url": "https://www.wikidata.org/wiki/Q456"
+        }
+      ],
+      "point": [
+        4.835,
+        45.7675
+      ],
+      "point_source": "https://www.wikidata.org/wiki/Special:EntityData/Q456.json"
+    }
+  },
+  "situations": {
+    "tos.historical-event.friedrich-nietzsche.recurrence-thought": {
+      "place": "surlej",
+      "basis": "event",
+      "statement": {
+        "ru": "«Ecce Homo»: в тот день Ницше шёл лесом вдоль озера Сильваплана и остановился у огромного пирамидального камня недалеко от Сурлея — там пришла мысль. Запись в тетради помечена Сильс-Марией.",
+        "en": "Ecce Homo: that day Nietzsche walked through the woods by Lake Silvaplana and stopped at a huge pyramidal rock not far from Surlej, where the thought came to him. The notebook entry is marked Sils-Maria."
+      },
+      "sources": [
+        "ecce-homo-za-1",
+        "nachlass-1881"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.albert-camus.myth-of-sisyphus-composition": {
+      "place": "clermont-ferrand",
+      "basis": "composition",
+      "statement": {
+        "ru": "«Ларусс»: в июне 1940 г. Камю вместе с редакцией газеты перебрался в Клермон-Ферран, где написал основную часть «Мифа о Сизифе»; в 1941 г. в Оране он завершил книгу.",
+        "en": "Larousse: in June 1940 Camus withdrew with his newspaper to Clermont-Ferrand, where he wrote most of The Myth of Sisyphus; in 1941, in Oran, he put the finishing touches to it."
+      },
+      "sources": [
+        "larousse-camus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.baruch-spinoza.ethics-composition": {
+      "place": "the-hague",
+      "basis": "composition",
+      "statement": {
+        "ru": "Начата «Этика» в Рейнсбурге и Ворбурге, а закончена в Гааге: Спиноза переехал туда в 1670 г., вернулся к книге и к 1675 г. её завершил (IEP).",
+        "en": "The Ethics was begun at Rijnsburg and Voorburg and finished in The Hague: Spinoza moved there in 1670, turned back to the book and had completed it by 1675 (IEP)."
+      },
+      "sources": [
+        "iep-spinoza",
+        "sep-spinoza"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.epictetus.enchiridion-composition": {
+      "place": "nicopolis-epirus",
+      "basis": "activity",
+      "statement": {
+        "ru": "«Руководство» — краткое извлечение из «Бесед» (SEP), то есть из преподавания в Никополе; где и когда сделано извлечение, источники не говорят.",
+        "en": "The Encheiridion is a brief abridgment of the Discourses (SEP), that is, of the teaching at Nicopolis; where and when the abridgment was made, the sources do not say."
+      },
+      "sources": [
+        "sep-epictetus",
+        "iep-epictetus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.friedrich-nietzsche.gay-science-book-4-composition": {
+      "place": "genoa",
+      "basis": "composition",
+      "statement": {
+        "ru": "Ницше пометил четвёртую книгу строкой «Генуя, в январе 1882»; его письма той зимы, как письмо Овербеку от 29 января 1882 г., написаны в Генуе.",
+        "en": "Nietzsche marked Book IV with the line “Genoa, in January 1882”; his letters of that winter, such as the one to Overbeck of 29 January 1882, are written from Genoa."
+      },
+      "sources": [
+        "gay-science-iv",
+        "letter-1882-192"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-1-composition": {
+      "place": "rapallo",
+      "basis": "composition",
+      "statement": {
+        "ru": "«Ecce Homo»: ту зиму Ницше жил в тихой бухте Рапалло близ Генуи, и первая часть пришла к нему на двух прогулках — к Дзоальи и вокруг бухты Санта-Маргерита до Портофино. Письма тех недель помечены Рапалло.",
+        "en": "Ecce Homo: that winter Nietzsche lived in the quiet bay of Rapallo near Genoa, and the first part came to him on two walks, towards Zoagli and round the bay of Santa Margherita to Portofino. His letters of those weeks are dated Rapallo."
+      },
+      "sources": [
+        "ecce-homo-za-1",
+        "letter-1883-381",
+        "letter-1883-373"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-2-composition": {
+      "place": "sils-maria",
+      "basis": "composition",
+      "statement": {
+        "ru": "«Ecce Homo»: летом, вернувшись на то место, где впервые блеснула мысль «Заратустры», Ницше нашёл вторую часть; письма июля 1883 г. помечены Сильс-Марией. «Ночную песнь» он сложил ещё весной в Риме.",
+        "en": "Ecce Homo: in the summer, back at the place where the thought of Zarathustra had first flashed upon him, Nietzsche found the second part; his letters of July 1883 are dated Sils-Maria. The Night Song had been composed earlier, in Rome, in the spring."
+      },
+      "sources": [
+        "ecce-homo-za-4",
+        "letter-1883-430",
+        "nietzschehaus-1883"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-3-composition": {
+      "place": "nice",
+      "basis": "composition",
+      "statement": {
+        "ru": "«Ecce Homo»: третью часть Ницше нашёл зимой под небом Ниццы, а главу «О старых и новых скрижалях» сочинил, поднимаясь от станции к мавританскому гнезду Эз. Письма января 1884 г. помечены Ниццей.",
+        "en": "Ecce Homo: Nietzsche found the third part in the winter under the sky of Nice, and composed “Of Old and New Tables” on the climb from the station to the Moorish eyrie of Èze. His letters of January 1884 are dated Nice."
+      },
+      "sources": [
+        "ecce-homo-za-4",
+        "letter-1884-479"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-4-composition": {
+      "place": "nice",
+      "basis": "composition",
+      "statement": {
+        "ru": "Рукопись закончена в Ницце: 12 февраля 1885 г. Ницше пишет оттуда, что четвёртая часть существует. Начало работы в Ментоне в ноябре 1884 г. известно только от Ферстер-Ницше; письма показывают лишь, что он был тогда в Ментоне.",
+        "en": "The manuscript was finished in Nice: on 12 February 1885 Nietzsche writes from there that a fourth part exists. That he began work at Menton in November 1884 rests on Förster-Nietzsche alone; his letters show only that he was in Menton then."
+      },
+      "sources": [
+        "letter-1885-572",
+        "letter-1884-556",
+        "foerster-nietzsche"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.gilles-deleuze.difference-and-repetition-composition": {
+      "place": "lyon",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написана книга, источники не говорят. В 1964–1969 гг. Делёз был профессором Лионского университета.",
+        "en": "The sources do not say where the book was written. From 1964 to 1969 Deleuze was a professor at the University of Lyon."
+      },
+      "sources": [
+        "wikipedia-deleuze",
+        "ewb-deleuze"
+      ],
+      "footing": "medium"
+    },
+    "tos.historical-process.gilles-deleuze.nietzsche-and-philosophy-composition": {
+      "place": "paris",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написана книга, источники не говорят. С 1957 г. Делёз преподавал в Сорбонне, в 1960–1964 гг. работал в CNRS; большую часть жизни он прожил в Париже (EWB).",
+        "en": "The sources do not say where the book was written. From 1957 Deleuze taught at the Sorbonne and in 1960–1964 held a post at the CNRS; he lived most of his life in Paris (EWB)."
+      },
+      "sources": [
+        "ewb-deleuze",
+        "sep-deleuze"
+      ],
+      "footing": "medium"
+    },
+    "tos.historical-process.gottfried-wilhelm-leibniz.monadology-composition": {
+      "place": "vienna",
+      "basis": "composition",
+      "statement": {
+        "ru": "Стрикленд: «Монадология» писалась летом и осенью 1714 г., в конце двухлетнего пребывания Лейбница в Вене; закончена она, вероятно, уже в Ганновере.",
+        "en": "Strickland: the Monadology was written in the summer and autumn of 1714, at the tail end of Leibniz’s two-year stay in Vienna; it was likely completed only after his return to Hanover."
+      },
+      "sources": [
+        "strickland-monadology"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.heraclitus.book-composition": {
+      "place": "ephesus",
+      "basis": "activity",
+      "statement": {
+        "ru": "SEP: Гераклит — философ из Эфеса, деятельность которого приходится примерно на 500 г. до н. э.; свою книгу, по преданию, он положил в храм Артемиды в Эфесе.",
+        "en": "SEP: Heraclitus was a philosopher of Ephesus, active around 500 BCE; he is said to have deposited his book in the temple of Artemis at Ephesus."
+      },
+      "sources": [
+        "sep-heraclitus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.marcus-aurelius.meditations-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написана шестая книга, неизвестно: у неё нет пометы о месте. Первую книгу замыкает помета «У квадов, на Грануе», вторую — «В Карнунте»; по IEP, вся книга, вероятно, писалась в походах в Центральной Европе.",
+        "en": "Where Book VI was written is unknown: it carries no note of place. Book I closes with the note “Among the Quadi, on the Granua”, Book II with “At Carnuntum”; per IEP, the whole was probably written on campaign in central Europe."
+      },
+      "sources": [
+        "perseus-meditations",
+        "iep-marcus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.soren-kierkegaard.repetition-composition": {
+      "place": "berlin",
+      "basis": "composition",
+      "statement": {
+        "ru": "По SKS, первая фаза — берлинская: в мае 1843 г. Кьеркегор пробыл в Берлине три недели и вернулся с текстом примерно в 78 страниц; расширял и переписывал его он уже в Копенгагене. На беловике сначала стояло «Берлин, в мае 1843», позже зачёркнутое.",
+        "en": "Per SKS, the first phase was in Berlin: in May 1843 Kierkegaard spent three weeks there and came back with a text of about 78 printed pages; he expanded and rewrote it in Copenhagen. The fair copy first bore “Berlin, in May 1843”, later struck out."
+      },
+      "sources": [
+        "sks-repetition"
+      ],
+      "footing": "high"
+    }
+  }
+}

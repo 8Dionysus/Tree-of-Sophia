@@ -1,0 +1,766 @@
+{
+  "schema": "tos.bonsai.chronology.v1",
+  "bonsai": "zarathustra",
+  "checked": "2026-10-29",
+  "posture": {
+    "ru": "Датировки написания частей книги и текстов, на которые опирается её карта, а также мысли о вечном возвращении — в грамматике дат Древа. Каждая опирается на названный источник, говорит, насколько твёрдо стоит, и сохраняет его неопределённость. Это предложение стенда, а не канон.",
+    "en": "Datings of the writing of the book’s parts, of the texts its map rests on, and of the thought of eternal recurrence, in the Tree’s date grammar. Each rests on the source it names, says how firmly it stands and keeps that source’s uncertainty. It is the stand’s proposal, not canon."
+  },
+  "numbering": {
+    "year_numbering": "astronomical",
+    "calendar": null,
+    "note": {
+      "ru": "Годы до н. э. переведены в астрономический счёт (1 г. до н. э. = 0). Даты взяты так, как их дают источники; календарь не утверждается и не пересчитывается. Формулировка даты в source_wording — выражение бонсая по названному источнику или, где отмечен язык оригинала, его собственные слова.",
+      "en": "Years BCE are converted to astronomical numbering (1 BCE = 0). Dates are taken as the sources give them; no calendar is asserted or converted. The source_wording of a dating is the bonsai’s expression after the named source or, where the original language is marked, the source’s own words."
+    }
+  },
+  "sources": {
+    "ecce-homo-za-1": {
+      "short": "Ecce Homo · eKGWB",
+      "title": "F. Nietzsche. Ecce Homo, “Also sprach Zarathustra” §1. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/EH-Za-1"
+    },
+    "ecce-homo-za-4": {
+      "short": "Ecce Homo · eKGWB",
+      "title": "F. Nietzsche. Ecce Homo, “Also sprach Zarathustra” §4. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/EH-Za-4"
+    },
+    "ecce-homo-fw": {
+      "short": "Ecce Homo · eKGWB",
+      "title": "F. Nietzsche. Ecce Homo, “Die fröhliche Wissenschaft”. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/EH-FW"
+    },
+    "nachlass-1881": {
+      "short": "NF 1881 · eKGWB",
+      "title": "F. Nietzsche. Nachgelassene Fragmente Frühjahr–Herbst 1881, 11[141]. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/NF-1881,11%5B141%5D"
+    },
+    "letter-1882-256": {
+      "short": "eKGWB · BVN 1882,256",
+      "title": "F. Nietzsche. Letter to L. von Salomé, Tautenburg, 2 July 1882. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1882,256"
+    },
+    "letter-1883-377": {
+      "short": "eKGWB · BVN 1883,377",
+      "title": "F. Nietzsche. Letter to E. Schmeitzner, Rapallo, 14 February 1883. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1883,377"
+    },
+    "letter-1883-381": {
+      "short": "eKGWB · BVN 1883,381",
+      "title": "F. Nietzsche. Letter to H. Köselitz, Rapallo, 19 February 1883. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1883,381"
+    },
+    "letter-1883-430": {
+      "short": "eKGWB · BVN 1883,430",
+      "title": "F. Nietzsche. Letter to E. Nietzsche, Sils-Maria, 6 July 1883. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1883,430"
+    },
+    "letter-1883-433": {
+      "short": "eKGWB · BVN 1883,433",
+      "title": "F. Nietzsche. Letter to H. Köselitz, Sils-Maria, 13 July 1883. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1883,433"
+    },
+    "letter-1884-479": {
+      "short": "eKGWB · BVN 1884,479",
+      "title": "F. Nietzsche. Letter to E. Schmeitzner, Nice, 18 January 1884. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1884,479"
+    },
+    "letter-1884-480": {
+      "short": "eKGWB · BVN 1884,480",
+      "title": "F. Nietzsche. Letter to F. Overbeck, Nice, 25 January 1884. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1884,480"
+    },
+    "letter-1884-556": {
+      "short": "eKGWB · BVN 1884,556",
+      "title": "F. Nietzsche. Letter to E. Nietzsche, Menton, after 15 November 1884. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1884,556"
+    },
+    "letter-1885-572": {
+      "short": "eKGWB · BVN 1885,572",
+      "title": "F. Nietzsche. Letter to C. von Gersdorff, Nice, 12 February 1885. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/BVN-1885,572"
+    },
+    "foerster-nietzsche": {
+      "short": "Förster-Nietzsche",
+      "title": "E. Förster-Nietzsche. How Zarathustra came into being: introduction to Thus Spake Zarathustra, tr. T. Common (Project Gutenberg #1998)",
+      "url": "https://www.gutenberg.org/cache/epub/1998/pg1998.txt"
+    },
+    "nietzschehaus-1883": {
+      "short": "Nietzsche-Haus",
+      "title": "Nietzsche-Haus Sils Maria. Friedrich Nietzsche in Sils Maria: the summer months of 1883",
+      "url": "https://nietzschehaus.ch/friedrich-nietzsche-in-sils-maria/thema-2/"
+    },
+    "gay-science-iv": {
+      "short": "FW · eKGWB",
+      "title": "F. Nietzsche. Die fröhliche Wissenschaft, Book IV “Sanctus Januarius”: motto and §276. Digitale Kritische Gesamtausgabe (eKGWB), Nietzsche Source",
+      "url": "https://www.nietzschesource.org/eKGWB/FW-276"
+    },
+    "sep-spinoza": {
+      "short": "SEP · Nadler",
+      "title": "Steven Nadler. Baruch Spinoza. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/spinoza/"
+    },
+    "iep-spinoza": {
+      "short": "IEP · Dutton",
+      "title": "Blake D. Dutton. Benedict De Spinoza (1632—1677). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/spinoza/"
+    },
+    "britannica-spinoza": {
+      "short": "Britannica",
+      "title": "Benedict de Spinoza. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Benedict-de-Spinoza"
+    },
+    "strickland-monadology": {
+      "short": "Strickland 2020",
+      "title": "L. Strickland. The Monadology. In: Leibniz’s Key Philosophical Writings: A Guide. Oxford University Press, 2020 (accepted version, MMU e-space)",
+      "url": "https://e-space.mmu.ac.uk/622962/3/Monadology.pdf"
+    },
+    "sks-repetition": {
+      "short": "SKS K4",
+      "title": "Søren Kierkegaards Skrifter, vol. K4: text account (Tekstredegørelse) to Gjentagelsen. Royal Danish Library",
+      "url": "https://tekster.kb.dk/text/sks-g-txr-root"
+    },
+    "sep-heraclitus": {
+      "short": "SEP · Graham",
+      "title": "Daniel W. Graham. Heraclitus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/heraclitus/"
+    },
+    "sep-epictetus": {
+      "short": "SEP · Graver",
+      "title": "Margaret Graver. Epictetus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/epictetus/"
+    },
+    "iep-marcus": {
+      "short": "IEP · Sellars",
+      "title": "John Sellars. Marcus Aurelius (121—180 C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/marcus-aurelius/"
+    },
+    "sep-marcus": {
+      "short": "SEP · Kamtekar",
+      "title": "Rachana Kamtekar. Marcus Aurelius. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/marcus-aurelius/"
+    },
+    "larousse-camus": {
+      "short": "Larousse",
+      "title": "Albert Camus. Encyclopédie Larousse",
+      "url": "https://www.larousse.fr/encyclopedie/personnage/Albert_Camus/111047"
+    },
+    "sep-camus": {
+      "short": "SEP · Aronson",
+      "title": "Ronald Aronson. Albert Camus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/camus/"
+    },
+    "geske-carnets": {
+      "short": "Geske 2012",
+      "title": "S. F. A. O. de Lócio e Silva Geske. O avesso e o direito da escritura. Revista Moara 37 (2012), citing Camus’ Carnets",
+      "url": "https://periodicos.ufpa.br/index.php/moara/article/download/1354/1790"
+    },
+    "sep-deleuze": {
+      "short": "SEP · Smith, Protevi & Voss",
+      "title": "Daniel W. Smith, John Protevi, Daniela Voss. Gilles Deleuze. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/deleuze/"
+    },
+    "ewb-deleuze": {
+      "short": "EWB",
+      "title": "Gilles Deleuze. Encyclopedia of World Biography (Gale), via Encyclopedia.com",
+      "url": "https://encyclopedia.com/history/encyclopedias-almanacs-transcripts-and-maps/deleuze-gilles"
+    },
+    "wikipedia-deleuze": {
+      "short": "Wikipedia",
+      "title": "Gilles Deleuze. Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Gilles_Deleuze"
+    }
+  },
+  "lives": {
+    "heraclitus": "tos.biographical-phase.heraclitus.activity"
+  },
+  "compositions": {
+    "works": {},
+    "passages": {},
+    "references": {
+      "z-prologue": "tos.historical-process.friedrich-nietzsche.zarathustra-part-1-composition",
+      "z-metamorphoses": "tos.historical-process.friedrich-nietzsche.zarathustra-part-1-composition",
+      "z-happy-isles": "tos.historical-process.friedrich-nietzsche.zarathustra-part-2-composition",
+      "z-pitiful": "tos.historical-process.friedrich-nietzsche.zarathustra-part-2-composition",
+      "z-redemption": "tos.historical-process.friedrich-nietzsche.zarathustra-part-2-composition",
+      "z-vision": "tos.historical-process.friedrich-nietzsche.zarathustra-part-3-composition",
+      "z-convalescent": "tos.historical-process.friedrich-nietzsche.zarathustra-part-3-composition",
+      "z-seven-seals": "tos.historical-process.friedrich-nietzsche.zarathustra-part-3-composition",
+      "z-drunken-song": "tos.historical-process.friedrich-nietzsche.zarathustra-part-4-composition",
+      "z-sign": "tos.historical-process.friedrich-nietzsche.zarathustra-part-4-composition",
+      "gs276": "tos.historical-process.friedrich-nietzsche.gay-science-book-4-composition",
+      "gs341": "tos.historical-process.friedrich-nietzsche.gay-science-book-4-composition",
+      "spinoza1d7": "tos.historical-process.baruch-spinoza.ethics-composition",
+      "spinoza3p6": "tos.historical-process.baruch-spinoza.ethics-composition",
+      "spinoza3p7-8": "tos.historical-process.baruch-spinoza.ethics-composition",
+      "leibniz53-55": "tos.historical-process.gottfried-wilhelm-leibniz.monadology-composition",
+      "kierkegaard-repetition": "tos.historical-process.soren-kierkegaard.repetition-composition",
+      "heraclitus-river": "tos.historical-process.heraclitus.book-composition",
+      "heraclitus-cosmos": "tos.historical-process.heraclitus.book-composition",
+      "epictetus1": "tos.historical-process.epictetus.enchiridion-composition",
+      "marcus6-44": "tos.historical-process.marcus-aurelius.meditations-composition",
+      "camus-sisyphus": "tos.historical-process.albert-camus.myth-of-sisyphus-composition",
+      "deleuze-repetition": "tos.historical-process.gilles-deleuze.difference-and-repetition-composition",
+      "deleuze-nietzsche-return": "tos.historical-process.gilles-deleuze.nietzsche-and-philosophy-composition"
+    }
+  },
+  "situations": {
+    "tos.historical-event.friedrich-nietzsche.recurrence-thought": {
+      "type": "historical-event",
+      "label": {
+        "ru": "Мысль о вечном возвращении",
+        "en": "The thought of eternal recurrence"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "value": "1881-08",
+        "source_wording": {
+          "text": "August 1881",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "В «Ecce Homo» Ницше относит основную мысль «Заратустры», мысль о вечном возвращении, к августу 1881 г.; запись в тетради того лета подписана: «Начало августа 1881 в Сильс-Марии».",
+        "en": "In Ecce Homo Nietzsche dates the fundamental idea of Zarathustra, the thought of eternal recurrence, to August 1881; the notebook entry of that summer is signed “Beginning of August 1881 in Sils-Maria”."
+      },
+      "sources": [
+        "ecce-homo-za-1",
+        "nachlass-1881"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-1-composition": {
+      "type": "historical-process",
+      "work": "also-sprach-zarathustra",
+      "label": {
+        "ru": "Написание первой части «Так говорил Заратустра»",
+        "en": "Writing: Thus Spoke Zarathustra, Part I"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "1883-01",
+          "end": "1883-02"
+        },
+        "source_wording": {
+          "text": "January–February 1883",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "19 февраля 1883 г. Ницше пишет Кёзелицу, что «Заратустра» возник за десять ясных январских дней; 14 февраля рукопись «только что закончена» и отправлена издателю. «Ecce Homo» относит её завершение к февралю 1883 г., Ферстер-Ницше — к первой половине февраля.",
+        "en": "On 19 February 1883 Nietzsche writes to Köselitz that his Zarathustra came into being in ten bright January days; on 14 February the manuscript is “just finished” and sent to the publisher. Ecce Homo dates its completion to February 1883, Förster-Nietzsche to the first half of February."
+      },
+      "sources": [
+        "letter-1883-381",
+        "letter-1883-377",
+        "ecce-homo-za-1",
+        "foerster-nietzsche"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-2-composition": {
+      "type": "historical-process",
+      "work": "also-sprach-zarathustra",
+      "label": {
+        "ru": "Написание второй части «Так говорил Заратустра»",
+        "en": "Writing: Thus Spoke Zarathustra, Part II"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "1883-06",
+          "end": "1883-07"
+        },
+        "source_wording": {
+          "text": "June–July 1883",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "«Ecce Homo»: летом Ницше нашёл второго «Заратустру» — «хватило десяти дней». 6 июля 1883 г. вторая часть уже существует, 13 июля рукопись для типографии будет готова через два дня; Ферстер-Ницше называет время с 26 июня по 6 июля.",
+        "en": "Ecce Homo: in the summer Nietzsche found the second Zarathustra — “ten days sufficed”. On 6 July 1883 the second part exists; on 13 July the printer’s copy will be ready in two days; Förster-Nietzsche gives 26 June to 6 July."
+      },
+      "sources": [
+        "ecce-homo-za-4",
+        "letter-1883-430",
+        "letter-1883-433",
+        "foerster-nietzsche"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-3-composition": {
+      "type": "historical-process",
+      "work": "also-sprach-zarathustra",
+      "label": {
+        "ru": "Написание третьей части «Так говорил Заратустра»",
+        "en": "Writing: Thus Spoke Zarathustra, Part III"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "value": "1884-01",
+        "source_wording": {
+          "text": "January 1884, finished by 18 January",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "«Ecce Homo»: следующей зимой Ницше нашёл третьего «Заратустру». 18 января 1884 г. он пишет издателю, что книга готова и найдена «за пару недель», 25 января — что она «совершенно закончена» с прошлой пятницы. Подготовка шла с лета 1883 г. в Сильс-Марии.",
+        "en": "Ecce Homo: the following winter Nietzsche found the third Zarathustra. On 18 January 1884 he writes to his publisher that it is finished, found “in a couple of weeks”, and on 25 January that it has been completely finished since last Friday. Preparatory work went back to the summer of 1883 in Sils-Maria."
+      },
+      "sources": [
+        "ecce-homo-za-4",
+        "letter-1884-479",
+        "letter-1884-480",
+        "nietzschehaus-1883"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.friedrich-nietzsche.zarathustra-part-4-composition": {
+      "type": "historical-process",
+      "work": "also-sprach-zarathustra",
+      "label": {
+        "ru": "Написание четвёртой части «Так говорил Заратустра»",
+        "en": "Writing: Thus Spoke Zarathustra, Part IV"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "1884-11",
+          "end": "1885-02"
+        },
+        "source_wording": {
+          "text": "winter 1884–85",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "В середине ноября 1884 г. Ницше рассчитывает к январю найти издателя для «четвёртого Заратустры»; 12 февраля 1885 г. он сообщает, что четвёртая, последняя часть существует. По Ферстер-Ницше, он начал обрабатывать заметки в ноябре и закончил рукопись между концом января и серединой февраля 1885 г.",
+        "en": "In mid-November 1884 Nietzsche expects to need a publisher for “the fourth Zarathustra” in January; on 12 February 1885 he announces that a fourth and last part exists. Per Förster-Nietzsche, he began to elaborate his notes in November and finished the manuscript between the end of January and mid-February 1885."
+      },
+      "sources": [
+        "letter-1884-556",
+        "letter-1885-572",
+        "foerster-nietzsche"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.friedrich-nietzsche.gay-science-book-4-composition": {
+      "type": "historical-process",
+      "work": "die-froehliche-wissenschaft",
+      "label": {
+        "ru": "Написание четвёртой книги «Весёлой науки»",
+        "en": "Writing: The Gay Science, Book IV"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "value": "1882-01",
+        "source_wording": {
+          "text": "Genua im Januar 1882",
+          "language": "de"
+        }
+      },
+      "statement": {
+        "ru": "Четвёртую книгу, «Sanctus Januarius», Ницше пометил строкой «Генуя, в январе 1882»; в «Ecce Homo» вся она — дар этого января. Рукопись для печати закончена летом 1882 г., книга вышла в августе.",
+        "en": "Nietzsche marked Book IV, “Sanctus Januarius”, with the line “Genoa, in January 1882”; in Ecce Homo the whole of it is that January’s gift. The printer’s copy was finished in the summer of 1882, and the book appeared in August."
+      },
+      "sources": [
+        "gay-science-iv",
+        "ecce-homo-fw",
+        "letter-1882-256"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.baruch-spinoza.ethics-composition": {
+      "type": "historical-process",
+      "work": "ethica",
+      "label": {
+        "ru": "Написание «Этики» Спинозы",
+        "en": "Writing: Spinoza’s Ethics"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "1661",
+          "end": "1675"
+        },
+        "source_wording": {
+          "text": "the early 1660s to 1675",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Над «Этикой» Спиноза работал уже в Рейнсбурге с 1661 г. (Britannica) и в Ворбурге (SEP); к 1665 г. её значительные части ходили в черновиках среди друзей в Амстердаме. После переезда в Гаагу (1670) он вернулся к ней, и к 1675 г. она была закончена (IEP); издана посмертно в 1677 г.",
+        "en": "Spinoza was working on the Ethics already at Rijnsburg from 1661 (Britannica) and at Voorburg (SEP); by 1665 substantial portions circulated in draft among his friends in Amsterdam. After his move to The Hague (1670) he turned back to it, and by 1675 it was complete (IEP); it was published posthumously in 1677."
+      },
+      "sources": [
+        "britannica-spinoza",
+        "sep-spinoza",
+        "iep-spinoza"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.gottfried-wilhelm-leibniz.monadology-composition": {
+      "type": "historical-process",
+      "work": "monadologie",
+      "label": {
+        "ru": "Написание «Монадологии» Лейбница",
+        "en": "Writing: Leibniz’s Monadology"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "value": "1714",
+        "source_wording": {
+          "text": "in the summer and autumn of 1714",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Летом и осенью 1714 г., в конце двухлетнего пребывания в Вене, Лейбниц писал «Начала природы и благодати» и «Монадологию»; вторую он, вероятно, закончил уже после возвращения в Ганновер в середине сентября (Стрикленд). Впервые напечатана в 1720 г.",
+        "en": "In the summer and autumn of 1714, at the tail end of a two-year stay in Vienna, Leibniz wrote the Principles of Nature and Grace and the Monadology, the latter likely completed only after his return to Hanover in mid-September (Strickland). It first appeared in print in 1720."
+      },
+      "sources": [
+        "strickland-monadology"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.soren-kierkegaard.repetition-composition": {
+      "type": "historical-process",
+      "work": "gjentagelsen",
+      "label": {
+        "ru": "Написание «Повторения» Кьеркегора",
+        "en": "Writing: Kierkegaard’s Repetition"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "1843-05",
+          "end": "1843-07"
+        },
+        "source_wording": {
+          "text": "May to July 1843",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "По текстологическому отчёту SKS, книга возникла за три месяца, с мая по июль 1843 г.: в мае Кьеркегор написал в Берлине первый текст примерно в 78 страниц, в июне расширил его, а конец второй части переписал под впечатлением от помолвки Регины Ольсен; правка могла продолжаться до сентября. Книга вышла 16 октября 1843 г.",
+        "en": "Per the SKS text account, the book came into being over three months, May to July 1843: in May Kierkegaard wrote in Berlin a first text of about 78 printed pages, expanded it in June and rewrote the end of the second part after news of Regine Olsen’s engagement; revision may have run into September. It appeared on 16 October 1843."
+      },
+      "sources": [
+        "sks-repetition"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.heraclitus.activity": {
+      "type": "biographical-phase",
+      "subject": "heraclitus",
+      "label": {
+        "ru": "Гераклит: годы деятельности",
+        "en": "Heraclitus: years of activity"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "value": "-0499",
+        "source_wording": {
+          "text": "active around 500 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Гераклит — греческий философ из Эфеса, деятельность которого приходится примерно на 500 г. до н. э.",
+        "en": "SEP: Heraclitus was a Greek philosopher of Ephesus, active around 500 BCE."
+      },
+      "sources": [
+        "sep-heraclitus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.heraclitus.book-composition": {
+      "type": "historical-process",
+      "work": "heraclitus-book",
+      "label": {
+        "ru": "Написание книги Гераклита",
+        "en": "Writing: Heraclitus’ book"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.heraclitus.activity"
+        },
+        "source_wording": {
+          "text": "during the activity of Heraclitus",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Отдельной датировки нет: по преданию, Гераклит написал одну книгу и положил её в храм Артемиды в Эфесе; её фрагменты известны по цитатам поздних авторов.",
+        "en": "No dating of its own: Heraclitus is said to have written a single book and deposited it in the temple of Artemis at Ephesus; its fragments survive in later authors’ quotations."
+      },
+      "sources": [
+        "sep-heraclitus"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    },
+    "tos.historical-process.epictetus.enchiridion-composition": {
+      "type": "historical-process",
+      "work": "enchiridion",
+      "label": {
+        "ru": "Написание: «Руководство»",
+        "en": "Writing: Enchiridion"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "value": "0108",
+        "source_wording": {
+          "text": "c. 108 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: «Руководство» — краткое извлечение из «Бесед». Когда оно сделано, источник не говорит, поэтому оно датировано по преподаванию, которое передают «Беседы»: около 108 г. по датировке Миллара.",
+        "en": "SEP: the Encheiridion is a brief abridgment of the Discourses. When it was made, the source does not say, so it is dated by the teaching the Discourses represent: around 108 by Millar’s dating."
+      },
+      "sources": [
+        "sep-epictetus"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    },
+    "tos.historical-process.marcus-aurelius.meditations-composition": {
+      "type": "historical-process",
+      "work": "meditations",
+      "label": {
+        "ru": "Написание «Размышлений» Марка Аврелия",
+        "en": "Writing: Marcus Aurelius’ Meditations"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "0171",
+          "end": "0175"
+        },
+        "source_wording": {
+          "text": "c. C.E. 171–175",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "IEP: «Размышления», вероятно, написаны в походах в Центральной Европе, около 171–175 гг.; SEP: по крайней мере часть — в последние годы военных кампаний. Шестая книга отдельной даты не имеет.",
+        "en": "IEP: the Meditations were probably written while Marcus was on campaign in central Europe, c. 171–175; SEP: at least part was written during the last years of his military campaigns. Book VI has no date of its own."
+      },
+      "sources": [
+        "iep-marcus",
+        "sep-marcus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.albert-camus.myth-of-sisyphus-composition": {
+      "type": "historical-process",
+      "work": "le-mythe-de-sisyphe",
+      "label": {
+        "ru": "Написание «Мифа о Сизифе»",
+        "en": "Writing: The Myth of Sisyphus"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "1940",
+          "end": "1941-02"
+        },
+        "source_wording": {
+          "text": "begun in 1940, finished in February 1941",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Камю начал эссе в 1940 г., основную часть написал после июня 1940 г. и завершил в 1941 г. («Ларусс»); «Записные книжки» в феврале 1941 г. отмечают: «Сизиф закончен». В сентябре 1941 г. «три абсурда» отправлены из Алжира парижскому издателю (SEP); книга вышла в 1942 г.",
+        "en": "Camus began the essay in 1940, wrote most of it after June 1940 and finished it in 1941 (Larousse); his Carnets note in February 1941: “Sisyphus finished.” In September 1941 the three “absurds” were sent from Algeria to the Paris publisher (SEP); the book appeared in 1942."
+      },
+      "sources": [
+        "larousse-camus",
+        "geske-carnets",
+        "sep-camus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.gilles-deleuze.nietzsche-and-philosophy-composition": {
+      "type": "historical-process",
+      "work": "nietzsche-et-la-philosophie",
+      "label": {
+        "ru": "Написание книги Делёза «Ницше и философия»",
+        "en": "Writing: Deleuze’s Nietzsche and Philosophy"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "end": "1962"
+        },
+        "source_wording": {
+          "text": "published in 1962",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Когда написана книга, источники не говорят; она вышла в 1962 г. (SEP). С 1957 г. Делёз преподавал историю философии в Сорбонне, в 1960–1964 гг. работал в Национальном центре научных исследований.",
+        "en": "The sources do not say when the book was written; it appeared in 1962 (SEP). From 1957 Deleuze taught the history of philosophy at the Sorbonne, and in 1960–1964 he held a post at the National Centre for Scientific Research."
+      },
+      "sources": [
+        "sep-deleuze",
+        "ewb-deleuze"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    },
+    "tos.historical-process.gilles-deleuze.difference-and-repetition-composition": {
+      "type": "historical-process",
+      "work": "difference-et-repetition",
+      "label": {
+        "ru": "Написание книги Делёза «Различие и повторение»",
+        "en": "Writing: Deleuze’s Difference and Repetition"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "end": "1968"
+        },
+        "source_wording": {
+          "text": "published in 1968",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Когда написана книга, источники не говорят; это основная диссертация Делёза на степень доктора, вышедшая в 1968 г. (SEP). В 1964–1969 гг. он был профессором Лионского университета.",
+        "en": "The sources do not say when the book was written; it is Deleuze’s primary thesis for the doctorat d’État, published in 1968 (SEP). From 1964 to 1969 he was a professor at the University of Lyon."
+      },
+      "sources": [
+        "sep-deleuze",
+        "wikipedia-deleuze"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    }
+  },
+  "book": {
+    "work": "also-sprach-zarathustra",
+    "edition": {
+      "title": "Thus Spake Zarathustra: A Book for All and None, tr. Thomas Common (Project Gutenberg #1998)",
+      "url": "https://www.gutenberg.org/ebooks/1998",
+      "numbering": {
+        "ru": "По оглавлению издания: Пролог без номера, главы I–LXXX.",
+        "en": "By the edition’s table of contents: the Prologue unnumbered, chapters I–LXXX."
+      }
+    },
+    "parts": [
+      {
+        "part": 1,
+        "chapters": [
+          0,
+          22
+        ],
+        "writing": "tos.historical-process.friedrich-nietzsche.zarathustra-part-1-composition"
+      },
+      {
+        "part": 2,
+        "chapters": [
+          23,
+          44
+        ],
+        "writing": "tos.historical-process.friedrich-nietzsche.zarathustra-part-2-composition"
+      },
+      {
+        "part": 3,
+        "chapters": [
+          45,
+          60
+        ],
+        "writing": "tos.historical-process.friedrich-nietzsche.zarathustra-part-3-composition"
+      },
+      {
+        "part": 4,
+        "chapters": [
+          61,
+          80
+        ],
+        "writing": "tos.historical-process.friedrich-nietzsche.zarathustra-part-4-composition"
+      }
+    ]
+  }
+}

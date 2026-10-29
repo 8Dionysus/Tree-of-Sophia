@@ -1,4 +1,4 @@
-import collection from './antiquity-collection-data.json' with {type:'json'};
+import {antiquityCollection as collection} from './bonsai.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 import containedReadings from '../../../public-corpus/contained-reading-targets.v1.json' with {type:'json'};
 import {CLOSE_READING_GUIDES} from '../../constructor/close-reading-guides.mjs';

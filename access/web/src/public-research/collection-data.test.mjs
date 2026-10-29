@@ -1,7 +1,7 @@
 import {expect,it} from 'vitest';
 import {extendPublicCollection} from './collection-data.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
-import collection from './antiquity-collection-data.json' with {type:'json'};
+import collection from '../../../../bonsai/antiquity/collection.json' with {type:'json'};
 
 it('binds navigation through the separate public structure without changing the Zarathustra graph identity',async()=>{
   const id='tos.work.plato.meno',version={id:'published-en',language:'en',revision:'a'.repeat(64)};

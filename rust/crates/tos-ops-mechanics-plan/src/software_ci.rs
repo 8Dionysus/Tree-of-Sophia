@@ -148,6 +148,7 @@ fn select_checked(
                     "evals/",
                     "manifests/",
                     "scripts/",
+                    "bonsai/",
                 ]
                 .iter()
                 .any(|prefix| path.starts_with(prefix))
@@ -178,7 +179,12 @@ fn select_checked(
             mode = mode.max(1);
         } else if path.starts_with("access/deploy/cloudflare-worker/") {
             worker = true;
-        } else if path.starts_with("access/web/") || path.starts_with("access/e2e/") {
+        } else if path.starts_with("access/web/")
+            || path.starts_with("access/e2e/")
+            || path.starts_with("bonsai/")
+        {
+            // A stand's bonsai is read only by the browser build and its tests,
+            // which also check the bonsai's export against the Tree's contracts.
             mode = mode.max(1);
         } else if path.starts_with("access/src/") || path.starts_with("access/tests/") {
             mode = mode.max(2);
@@ -846,6 +852,14 @@ mod tests {
             ),
             (vec!["ToS/AGENTS.md"], "none", true, "source", false, false),
             (
+                vec!["bonsai/AGENTS.md", "bonsai/README.md"],
+                "none",
+                false,
+                "source",
+                false,
+                false,
+            ),
+            (
                 vec!["ToS/doctrine/README.md", "QUESTBOOK.md"],
                 "none",
                 true,
@@ -939,6 +953,12 @@ mod tests {
             (vec!["README.md", "docs/RELEASING.md"], "none", false, false),
             (vec!["access/web/src/Graph.tsx"], "browser", false, false),
             (vec!["access/e2e/test_webmcp.mjs"], "browser", false, false),
+            (
+                vec!["bonsai/antiquity/chronology.json", "bonsai/lib/time.mjs"],
+                "browser",
+                false,
+                false,
+            ),
             (
                 vec!["access/src/tos_access/native_access_core.py"],
                 "reader",

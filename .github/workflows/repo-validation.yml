@@ -163,6 +163,8 @@ jobs:
           sparse-checkout: |
             /access/
             !/access/web/dist/
+            # The public stands read their bonsai; its tests check the export against ToS/contracts.
+            /bonsai/
             /scripts/
             /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
             /docs/validation/validation_lanes.json

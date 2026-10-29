@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => {
       allow: [
         fileURLToPath(new URL(".", import.meta.url)),
         fileURLToPath(new URL("../shared", import.meta.url)),
+        // The public stands read their bonsai from the repository root.
+        fileURLToPath(new URL("../../bonsai", import.meta.url)),
         fileURLToPath(new URL("../deploy/cloudflare-worker/generated", import.meta.url)),
       ],
     },

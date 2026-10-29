@@ -1,0 +1,293 @@
+{
+  "schema": "tos.bonsai.v1",
+  "id": "antiquity",
+  "title": {
+    "ru": "Античность",
+    "en": "Antiquity"
+  },
+  "stand": {
+    "path": "/antiquity/",
+    "profile": "antiquity",
+    "consumer": "access/web/src/public-research/"
+  },
+  "posture": {
+    "ru": "Мини-Древо стенда «Античность»: его навигация, хронология, места и линзы в формах Древа. Всё здесь — предложение стенда; в Древо оно попадает только через экспорт кандидатов и маршруты владельцев источников.",
+    "en": "The Antiquity stand’s mini-Tree: its navigation, chronology, places and lenses in the Tree’s shapes. Everything here is the stand’s proposal; it reaches the Tree only as exported candidates through the source owners’ routes."
+  },
+  "graft": {
+    "tree_revision": "960f3e41936caea5b78ef6a353db14e80a71875b",
+    "grafted": "2026-10-29",
+    "note": {
+      "ru": "Ревизия Древа и дайджесты контрактов и реестров, по которым бонсай сложен. Изменение контракта или реестра сообщается как сдвиг; экспорт проверяется по контрактам и реестру связей текущей рабочей копии.",
+      "en": "The Tree revision and the digests of the contracts and registries the bonsai was shaped by. A changed contract or registry is reported as drift; the export is checked against the contracts and the relation registry of the current checkout."
+    },
+    "contracts": {
+      "historicalDate": {
+        "path": "ToS/contracts/historical-claim.schema.json",
+        "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750"
+      },
+      "temporal_claim": {
+        "path": "ToS/contracts/source-temporal-claim.schema.json",
+        "schema_version": "tos_source_temporal_claim_v1",
+        "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4"
+      },
+      "relation_claim": {
+        "path": "ToS/contracts/source-relation-claim.schema.json",
+        "schema_version": "tos_source_relation_claim_v1",
+        "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe"
+      },
+      "context_claim": {
+        "path": "ToS/contracts/historical-context-claim.schema.json",
+        "schema_version": "tos_historical_context_claim_v1",
+        "sha256": "15e5823b6b812494853076223025250afa9922636ff9509ec20129d8972f894d"
+      },
+      "claim_record": {
+        "path": "ToS/contracts/source-claim-record.schema.json",
+        "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+      },
+      "claim_packet": {
+        "path": "ToS/contracts/claim-packet.schema.json",
+        "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd"
+      },
+      "historical_record": {
+        "path": "ToS/contracts/historical-record.schema.json",
+        "schema_version": "tos_historical_record_v1",
+        "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2"
+      },
+      "corpus_record": {
+        "path": "ToS/contracts/corpus-record.schema.json",
+        "schema_version": "tos_corpus_record_v1",
+        "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851"
+      },
+      "relation_types": {
+        "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "sha256": "1df99dfdabb4e4f41564b0e8430124aa9c36c120781bf5f5db8e63f57d3421bb"
+      },
+      "entity_types": {
+        "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "sha256": "3bb7f36d51201a576239fef2281c7a5ecb6c5f71fb048d65037d2d83cde8b847"
+      }
+    }
+  },
+  "modules": [
+    {
+      "id": "collection",
+      "path": "collection.json",
+      "role": {
+        "ru": "Авторская навигация прежнего Древа Античности: авторы, произведения, места, ветви, вопросы, эпохи, словарь. Без текста источников и якорей цитат.",
+        "en": "Authored navigation of the earlier Antiquity tree: authors, works, passages, branches, questions, eras, terms. No source text or quotation anchors."
+      },
+      "format": "collection, sourceRevision 99e81af653c82765b587c870db3c0f605d794fae",
+      "identities": "material IDs antiquity:reading:*, antiquity:catalog:* stay stable for saved graphs"
+    },
+    {
+      "id": "first-branches",
+      "path": "first-branches.json",
+      "role": {
+        "ru": "Первые шесть ветвей, с которыми стенд был опубликован; их ID материалов держат сохранённые личные графы.",
+        "en": "The first six branches the stand was published with; saved personal graphs rely on their material IDs."
+      },
+      "format": "space data, sourceRevision 99e81af653c82765b587c870db3c0f605d794fae"
+    },
+    {
+      "id": "chronology",
+      "path": "chronology.json",
+      "role": {
+        "ru": "Датировки жизней, периодов и сочинений в грамматике дат Древа.",
+        "en": "Datings of lives, phases and writings in the Tree’s date grammar."
+      },
+      "format": "tos.bonsai.chronology.v1",
+      "exports": [
+        "historical_dating",
+        "historical_work",
+        "biographical_subject"
+      ]
+    },
+    {
+      "id": "places",
+      "path": "places.json",
+      "role": {
+        "ru": "Места написания или деятельности, с источником и опорными точками газеттира.",
+        "en": "Places of writing or activity, with their source and the gazetteer’s representative points."
+      },
+      "format": "tos.bonsai.places.v1",
+      "exports": [
+        "historical_place"
+      ]
+    },
+    {
+      "id": "basemap",
+      "path": "../shared/coastlines.json",
+      "role": {
+        "ru": "Береговые линии Natural Earth 1:50m, обрезанные по Европе и Средиземноморью и упрощённые; подложка карты мест, общая для стендов.",
+        "en": "Natural Earth 1:50m coastlines, clipped to Europe and the Mediterranean and simplified; the backdrop of the map of places, shared by the stands."
+      },
+      "format": "tos.bonsai.basemap.v1"
+    },
+    {
+      "id": "identities",
+      "path": "identities.json",
+      "role": {
+        "ru": "Карта прививки: какая идентичность Древа стоит за каждым ID бонсая и есть ли она уже в Древе.",
+        "en": "The graft map: which Tree identity each bonsai ID stands for and whether the Tree already holds it."
+      },
+      "format": "tos.bonsai.identities.v1"
+    }
+  ],
+  "lenses": {
+    "tree": {
+      "positions": "group",
+      "short": {
+        "ru": "ветви",
+        "en": "branches"
+      },
+      "groups": {
+        "ru": "по ветвям: положение звезды задаёт раскладка карты и ничего не измеряет",
+        "en": "by branch: a star’s place comes from the map’s layout and measures nothing"
+      }
+    },
+    "sources": {
+      "positions": "group",
+      "short": {
+        "ru": "ступени",
+        "en": "steps"
+      },
+      "groups": {
+        "ru": "по ступеням от произведения к месту и прочтению",
+        "en": "by steps from a work to a passage and its reading"
+      }
+    },
+    "meaning": {
+      "positions": "group",
+      "short": {
+        "ru": "прочтения",
+        "en": "readings"
+      },
+      "groups": {
+        "ru": "по прочтениям, вопросам и их основаниям",
+        "en": "by readings, questions and their grounds"
+      }
+    },
+    "tensions": {
+      "positions": "group",
+      "short": {
+        "ru": "различия",
+        "en": "differences"
+      },
+      "groups": {
+        "ru": "по различиям в предложенных маршрутах",
+        "en": "by the differences in the proposed routes"
+      }
+    },
+    "time": {
+      "positions": "measure",
+      "short": {
+        "ru": "годы",
+        "en": "years"
+      },
+      "measures": {
+        "ru": "годы написания по хронологии бонсая",
+        "en": "years of writing, from the bonsai’s chronology"
+      },
+      "groups": {
+        "ru": "строки — ветви",
+        "en": "rows are branches"
+      }
+    },
+    "space": {
+      "positions": "measure",
+      "short": {
+        "ru": "место",
+        "en": "place"
+      },
+      "measures": {
+        "ru": "долготу и широту места написания или деятельности",
+        "en": "longitude and latitude of the place of writing or activity"
+      },
+      "groups": {
+        "ru": "без места — отдельно, за краем карты",
+        "en": "placeless writings stand apart, off the map"
+      }
+    },
+    "proximity": {
+      "positions": "measure",
+      "short": {
+        "ru": "расстояние",
+        "en": "distance"
+      },
+      "measures": {
+        "ru": "расстояние от выбранного хода по названному критерию",
+        "en": "distance from the chosen move by the named criterion"
+      },
+      "groups": {
+        "ru": "направление — ветвь",
+        "en": "direction is the branch"
+      },
+      "criteria": [
+        {
+          "id": "concepts",
+          "label": {
+            "ru": "Общие понятия",
+            "en": "Shared concepts"
+          },
+          "measure": {
+            "ru": "1 − доля общих понятий (мера Жаккара) у мест двух ходов",
+            "en": "1 − the share of concepts two moves’ passages have in common (Jaccard)"
+          },
+          "unit": {
+            "ru": "",
+            "en": ""
+          },
+          "requires": "concepts"
+        },
+        {
+          "id": "relations",
+          "label": {
+            "ru": "Шаги по переходам",
+            "en": "Steps along transitions"
+          },
+          "measure": {
+            "ru": "наименьшее число авторских переходов между ходами",
+            "en": "the fewest authored transitions between two moves"
+          },
+          "unit": {
+            "ru": "шаг",
+            "en": "step"
+          }
+        },
+        {
+          "id": "time",
+          "label": {
+            "ru": "Разница во времени",
+            "en": "Distance in time"
+          },
+          "measure": {
+            "ru": "разница середин датировок написания",
+            "en": "the difference between the midpoints of the datings of writing"
+          },
+          "unit": {
+            "ru": "лет",
+            "en": "years"
+          },
+          "requires": "chronology"
+        },
+        {
+          "id": "place",
+          "label": {
+            "ru": "Расстояние между местами",
+            "en": "Distance between places"
+          },
+          "measure": {
+            "ru": "расстояние по дуге большого круга между местами написания или деятельности",
+            "en": "great-circle distance between the places of writing or activity"
+          },
+          "unit": {
+            "ru": "км",
+            "en": "km"
+          },
+          "requires": "places"
+        }
+      ]
+    }
+  }
+}

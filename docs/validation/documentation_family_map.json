@@ -424,6 +424,60 @@
       ]
     },
     {
+      "id": "bonsai",
+      "label": "stand bonsai: the self-contained mini-Trees the public stands read",
+      "match": {
+        "prefix": "bonsai/"
+      },
+      "consumer": [
+        "public research stand",
+        "bonsai check and export",
+        "ToS source-owner intake of exported candidates"
+      ],
+      "load_moment": "when a public stand's data, chronology, places, lens settings or Tree export change",
+      "owner": "bonsai/AGENTS.md and each bonsai manifest; ToS source owners decide any intake of its export",
+      "roles": {
+        "authored": "stand data modules, lens settings and graft maps",
+        "generated": "export packets written on request outside the checkout",
+        "executable": "bonsai readers, Tree-contract check and export",
+        "runtime": "the stand's browser view only",
+        "tool": "bonsai check and export command",
+        "receipt": "export packet of unreviewed candidates, not admission"
+      },
+      "currentness_inputs": [
+        "bonsai/AGENTS.md",
+        "bonsai/README.md",
+        "bonsai/lib/"
+      ],
+      "next_organ": [
+        "the consuming stand under access/web/src/public-research/",
+        "ToS source-owner claim intake"
+      ],
+      "context": {
+        "posture": "on_demand",
+        "metric": "whitespace_tokens_v1",
+        "max_tokens": 1800,
+        "surfaces": [
+          "bonsai/AGENTS.md",
+          "bonsai/README.md"
+        ]
+      },
+      "public_safety": {
+        "posture": "public_proposal_data",
+        "forbidden": [
+          "source text",
+          "private payload",
+          "secrets",
+          "canon or admission claims"
+        ],
+        "boundary": "a bonsai proposes for its stand and exports candidates; it never writes into ToS or admits meaning"
+      },
+      "validation_lane": "release",
+      "authority_keys": [
+        "stand_bonsai"
+      ]
+    },
+    {
       "id": "docs",
       "label": "rationale and validation documentation",
       "match": {
@@ -1129,6 +1183,13 @@
       "strength": "tool",
       "family_id": "access",
       "family_owner": "access/AGENTS.md and the exact access contract or adapter; ToS/derived-exports remains the data authority"
+    },
+    {
+      "id": "stand_bonsai",
+      "owner": "bonsai/AGENTS.md",
+      "strength": "authored",
+      "family_id": "bonsai",
+      "family_owner": "bonsai/AGENTS.md and each bonsai manifest; ToS source owners decide any intake of its export"
     },
     {
       "id": "decision_rationale",

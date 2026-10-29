@@ -40,14 +40,81 @@ an explicit reading hash opens its exact passage.
 The shared Library also exposes the retained research collection: all fifteen
 Antiquity branches, author and era browsing, work maps, close-reading prompts,
 argument readings and lexical dossiers, with Russian and English presentation.
-`antiquity-collection-data.json` records its authored source revision and excludes
-witness text and quotation anchors. Published section entries use the separate
+The collection lives in the stand's bonsai
+([`bonsai/antiquity/collection.json`](../../bonsai/antiquity/collection.json)); it
+records its authored source revision and excludes witness text and quotation
+anchors. Published section entries use the separate
 provider structure; they are not exact word-span alignments. The readable corpus
 selection remains separate from this larger bibliographic collection.
 Zarathustra's source pointers and independently grounded alternatives use the
 same reading actions. Extending the Antiquity graph copies its explicitly
 compatible predecessor through the current Rust validator and retains the
 original namespace; browsing a route does not fill the personal graph.
+
+The space follows the tree's own rule: tree for orientation, graph for
+relation, source for authority. The left rail holds lenses and research actions;
+a path line above the map names where the reader stands (space › branch or
+route › move or step › chosen star) and each level climbs back up; the reading
+column on the right holds the space's overview with its branches, an open branch
+read top to bottom, or the chosen star or link. On a narrow screen the column is
+a sheet over a tool bar. Map controls sit at the map's corner; the camera never
+turns or refits on a selection and pans only to bring a hidden star into view.
+
+Both spaces name what their data already says, without adding relations or
+sources ([`space-legibility.mjs`](src/public-research/space-legibility.mjs)).
+A link's kind is a word, a line pattern and a weight, not a hue alone; the
+legend lists the kinds, filters by them and says what a star's form means: a
+disc for a source or its context, a ring for an authored proposal, a broken
+ring for a personal record. The panel places each star on the ladder of
+interpretation (source, reading, comparison) and says on what footing a link
+stands; star positions group material and measure nothing, except in the
+measuring lenses below. Antiquity restores its four authored transitions (continuation,
+qualification, contrast, analogy) and walks branches by moves, each named by
+author, work and place. Zarathustra
+walks routes by steps; a step names the places of its own grounds, since its
+node is a concept or thinker shared by other routes. A route that walks an
+atlas link against its direction states the link as authored. Search finds
+branches, routes and steps by their own names before their prose.
+
+Each stand reads its own bonsai — the mini-Tree under [`bonsai/`](../../bonsai/README.md)
+that keeps its chronology, places and lens settings in the Tree's shapes —
+through [`bonsai.mjs`](src/public-research/bonsai.mjs). The rail sets the lenses
+that measure apart from those that group: Time, Space and Proximity place a star
+only by a value its bonsai states, with that value's source.
+
+Time ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)) is a scale
+of years in Antiquity. A move stands within the span its bonsai dates the
+writing of its passage or work — a date, an interval, a phase of a life, or the
+author's life or years of activity where no source dates it closer — each a
+Tree `historicalDate` with its source and footing. Moves sharing one span in a
+branch spread over it in step order; each branch is a row whose name opens it;
+an era's bracket spans its authors' lives. A concept chosen above the panel is
+traced through the stars that carry it in the order of the scale; a star off
+the scale carries it without joining the line. In Zarathustra the horizontal is the
+order of the book's chapters: a star stands at the first chapter it rests on,
+each part names the years it was written, and stars grounded only in other texts
+stand outside the scale.
+
+Space ([`space-geography.mjs`](src/public-research/space-geography.mjs)) is a map:
+a star stands where its bonsai says its text was written, or where its author
+lived in the dated span, at the gazetteer's representative point (Pleiades,
+Wikidata), over Natural Earth coastlines; stars at one place gather round it,
+and a star whose place the sources leave open stands apart past the map's edge.
+Proximity ([`space-proximity.mjs`](src/public-research/space-proximity.mjs))
+measures from the chosen star by one criterion the bonsai names — shared
+concepts or grounds, steps along links, years, chapters or kilometres — in
+rings that carry the scale; the direction groups by branch or circle, and the
+centre lists its nearest stars.
+
+A chosen star states when (◷) and where (⌖) its text was written, and on
+Proximity how near it stands (⊙); each fact opens to its statement and sources.
+Measure and completeness ([`space-measure.mjs`](src/public-research/space-measure.mjs))
+counts what the bonsai dates and places, by kind, precision (a dating within a
+phase or a life no firmer than that span), footing and era, and draws how each
+branch or route walks time or the book. These positions are
+display only and never enter the saved graph. Zoom and pan follow the scale, an
+open branch or route reads top to bottom on Time and Space, and `treeLens`,
+`treeCriterion` and `treeConcept` link to a view.
 
 The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and

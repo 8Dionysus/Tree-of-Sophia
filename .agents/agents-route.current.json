@@ -25,15 +25,15 @@
       "whitespace_tokens": 611
     },
     {
-      "bytes": 5317,
+      "bytes": 5480,
       "inheritance_stack": [
         "AGENTS.md"
       ],
-      "lines": 89,
+      "lines": 90,
       "path": "AGENTS.md",
-      "sha256": "87c02030e62a653c68c0bef994a4e565d0a1c2335481ad403603ec7f408f4637",
+      "sha256": "53b9b66c88d0bb05fe97fbbb45d43b1179dee493c1d08ffd0368b4fc18822c75",
       "tracked": true,
-      "whitespace_tokens": 648
+      "whitespace_tokens": 668
     },
     {
       "bytes": 2288,
@@ -386,6 +386,18 @@
       "whitespace_tokens": 297
     },
     {
+      "bytes": 1936,
+      "inheritance_stack": [
+        "AGENTS.md",
+        "bonsai/AGENTS.md"
+      ],
+      "lines": 38,
+      "path": "bonsai/AGENTS.md",
+      "sha256": "ba85eeccc83fa49640c89e7bfee6ebd1c2e9f2847bbb7d59684636e1fd9c5722",
+      "tracked": true,
+      "whitespace_tokens": 307
+    },
+    {
       "bytes": 1011,
       "inheritance_stack": [
         "AGENTS.md",
@@ -679,13 +691,13 @@
   "generated_by": "rust/crates/tos-ops-mechanics-plan/src/route_cards.rs",
   "influencing_surfaces": [
     {
-      "bytes": 5317,
+      "bytes": 5480,
       "exists": true,
-      "lines": 89,
+      "lines": 90,
       "path": "AGENTS.md",
       "role": "active prompt-light repository identity, owner routes, semantic boundaries, validation selection, and completion",
-      "sha256": "87c02030e62a653c68c0bef994a4e565d0a1c2335481ad403603ec7f408f4637",
-      "whitespace_tokens": 648
+      "sha256": "53b9b66c88d0bb05fe97fbbb45d43b1179dee493c1d08ffd0368b4fc18822c75",
+      "whitespace_tokens": 668
     },
     {
       "bytes": 3163,
@@ -706,22 +718,22 @@
       "whitespace_tokens": 893
     },
     {
-      "bytes": 6173,
+      "bytes": 6238,
       "exists": true,
-      "lines": 111,
+      "lines": 112,
       "path": "README.md",
       "role": "human entrypoint and links to canonical route surfaces",
-      "sha256": "431b9ec1480d5f0b4605401f58041ca8fc85edf3e8d8526b1b1fa333291b103d",
-      "whitespace_tokens": 680
+      "sha256": "f335f758f6de1c41c3258854300aecb1136c544a4c102e2f20ae3c94f92da3fc",
+      "whitespace_tokens": 689
     },
     {
-      "bytes": 3175,
+      "bytes": 3361,
       "exists": true,
-      "lines": 68,
+      "lines": 69,
       "path": "VALIDATION.md",
       "role": "on-demand human selector for named validation lanes and district procedures",
-      "sha256": "fd0c045570717a50f0a9c2b9c7497e1f4de402c5d9bf5f4560fcd9cf244fb258",
-      "whitespace_tokens": 418
+      "sha256": "9ba58056a6caa1e8516c3437392b0bb174c41d12e08292473a0f8b4bd7e08c7a",
+      "whitespace_tokens": 448
     },
     {
       "bytes": 3930,
@@ -841,13 +853,13 @@
       "whitespace_tokens": 6018
     },
     {
-      "bytes": 104855,
+      "bytes": 104977,
       "exists": true,
-      "lines": 1547,
+      "lines": 1549,
       "path": ".github/workflows/repo-validation.yml",
       "role": "CI execution of the release lane",
-      "sha256": "6705113da3f3dea75bb7442dba34c637fc7981d904f935e6d4308551cc3635dd",
-      "whitespace_tokens": 5770
+      "sha256": "712ee1aeabd15b89d4aacf69c48b8a29c684a05c1050152cf8d93762398c4a36",
+      "whitespace_tokens": 5785
     },
     {
       "bytes": 1193,
@@ -880,9 +892,9 @@
     }
   ],
   "route_card_counts": {
-    "discovered_by_inventory": 51,
+    "discovered_by_inventory": 52,
     "discovered_untracked": [],
-    "tracked_exact_basename": 51,
+    "tracked_exact_basename": 52,
     "tracked_only": []
   },
   "route_card_discovery": {
@@ -905,6 +917,7 @@
       ".github",
       "ToS",
       "access",
+      "bonsai",
       "docs",
       "mechanics",
       "rust",
@@ -926,7 +939,7 @@
     "near_duplicate_cards": "manual review"
   },
   "source_inventory": "docs/validation/agents_route_inventory.json",
-  "source_inventory_sha256": "ddfe9f57bfe3a535d302f2ccbc0e7e62fc4108d517f3ab589e28e4d31525cd44",
+  "source_inventory_sha256": "a5242a888e2efcd2fd71769aa944dd2ef483e65773a2079e590cdc291768dabd",
   "task_routes": [
     {
       "additional_context_tokens": 14629,
@@ -965,7 +978,7 @@
         "ToS/AGENTS.md",
         "ToS/source-witnesses/AGENTS.md"
       ],
-      "inherited_context_tokens": 1434,
+      "inherited_context_tokens": 1454,
       "on_demand_surfaces": [
         {
           "bytes": 77893,
@@ -1059,7 +1072,7 @@
         "ToS/AGENTS.md",
         "ToS/doctrine/AGENTS.md"
       ],
-      "inherited_context_tokens": 1186,
+      "inherited_context_tokens": 1206,
       "on_demand_surfaces": [
         {
           "bytes": 50577,
@@ -1153,7 +1166,7 @@
         "ToS/AGENTS.md",
         "ToS/contracts/AGENTS.md"
       ],
-      "inherited_context_tokens": 1124,
+      "inherited_context_tokens": 1144,
       "on_demand_surfaces": [
         {
           "bytes": 15934,
@@ -1247,7 +1260,7 @@
         "ToS/AGENTS.md",
         "ToS/contracts/AGENTS.md"
       ],
-      "inherited_context_tokens": 1124,
+      "inherited_context_tokens": 1144,
       "on_demand_surfaces": [
         {
           "bytes": 12129,
@@ -1350,7 +1363,7 @@
         "ToS/AGENTS.md",
         "ToS/candidate-intake/AGENTS.md"
       ],
-      "inherited_context_tokens": 1058,
+      "inherited_context_tokens": 1078,
       "on_demand_surfaces": [
         {
           "bytes": 24528,
@@ -1472,7 +1485,7 @@
         "ToS/philosophy/AGENTS.md",
         "ToS/philosophy/graph-workbench/AGENTS.md"
       ],
-      "inherited_context_tokens": 1313,
+      "inherited_context_tokens": 1333,
       "on_demand_surfaces": [
         {
           "bytes": 4085,
@@ -1583,7 +1596,7 @@
         "AGENTS.md",
         "access/AGENTS.md"
       ],
-      "inherited_context_tokens": 945,
+      "inherited_context_tokens": 965,
       "on_demand_surfaces": [
         {
           "bytes": 5413,
@@ -1659,6 +1672,117 @@
       ]
     },
     {
+      "additional_context_tokens": 2063,
+      "completion_evidence": [
+        {
+          "bytes": 1936,
+          "exists": true,
+          "lines": 38,
+          "path": "bonsai/AGENTS.md",
+          "role": "completion",
+          "sha256": "ba85eeccc83fa49640c89e7bfee6ebd1c2e9f2847bbb7d59684636e1fd9c5722",
+          "whitespace_tokens": 307
+        },
+        {
+          "bytes": 8056,
+          "exists": true,
+          "lines": 133,
+          "path": "bonsai/README.md",
+          "role": "completion",
+          "sha256": "79f332502c129cdbbf65240557e1f22f753657370e5bacc550a38d371589d7f4",
+          "whitespace_tokens": 1258
+        },
+        {
+          "bytes": 11000,
+          "exists": true,
+          "lines": 136,
+          "path": "bonsai/lib/export.mjs",
+          "role": "completion",
+          "sha256": "352ddc9f45bc030b8c9b24f035b5c0fbe8b705e9b2c0710f7801dbaea501facd",
+          "whitespace_tokens": 704
+        }
+      ],
+      "id": "stand_bonsai",
+      "inheritance_stack": [
+        "AGENTS.md",
+        "bonsai/AGENTS.md"
+      ],
+      "inherited_context_tokens": 975,
+      "on_demand_surfaces": [
+        {
+          "bytes": 8056,
+          "exists": true,
+          "lines": 133,
+          "path": "bonsai/README.md",
+          "role": "on_demand",
+          "sha256": "79f332502c129cdbbf65240557e1f22f753657370e5bacc550a38d371589d7f4",
+          "whitespace_tokens": 1258
+        },
+        {
+          "bytes": 10780,
+          "exists": true,
+          "lines": 431,
+          "path": "ToS/contracts/historical-claim.schema.json",
+          "role": "on_demand",
+          "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750",
+          "whitespace_tokens": 684
+        },
+        {
+          "bytes": 1820,
+          "exists": true,
+          "lines": 55,
+          "path": "ToS/contracts/source-temporal-claim.schema.json",
+          "role": "on_demand",
+          "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4",
+          "whitespace_tokens": 121
+        }
+      ],
+      "owner_exists": true,
+      "owner_handoff": {
+        "bytes": 1936,
+        "exists": true,
+        "lines": 38,
+        "path": "bonsai/AGENTS.md",
+        "role": "owner_handoff",
+        "sha256": "ba85eeccc83fa49640c89e7bfee6ebd1c2e9f2847bbb7d59684636e1fd9c5722",
+        "whitespace_tokens": 307
+      },
+      "owner_handoff_context_tokens": 0,
+      "owner_in_inheritance_stack": true,
+      "owner_route": "bonsai/AGENTS.md",
+      "target": "bonsai/README.md",
+      "target_exists": true,
+      "validation_paths": [
+        {
+          "bytes": 8126,
+          "exists": true,
+          "lines": 122,
+          "path": "bonsai/lib/graft.mjs",
+          "role": "validation",
+          "sha256": "dc1c86ebc7e61c1a7392c335003602ff49b9b99980a6abbc27c7ad09a7632ebb",
+          "whitespace_tokens": 588
+        },
+        {
+          "bytes": 7960,
+          "exists": true,
+          "lines": 107,
+          "path": "bonsai/lib/schema.mjs",
+          "role": "validation",
+          "sha256": "f7e59e1545888d511ff91fe986440028b40e84a05411dfce8aa8f162569f5faa",
+          "whitespace_tokens": 419
+        },
+        {
+          "bytes": 23858,
+          "exists": true,
+          "lines": 260,
+          "path": "access/web/src/public-research/bonsai.test.mjs",
+          "role": "validation",
+          "sha256": "c4ba26fd9b792bfe799ca52f84093c822505b3fc75041f68237a6ca611a52113",
+          "whitespace_tokens": 941
+        }
+      ]
+    },
+    {
       "additional_context_tokens": 2230,
       "completion_evidence": [
         {
@@ -1695,7 +1819,7 @@
         "ToS/AGENTS.md",
         "ToS/zarathustra/AGENTS.md"
       ],
-      "inherited_context_tokens": 1200,
+      "inherited_context_tokens": 1220,
       "on_demand_surfaces": [
         {
           "bytes": 6986,
@@ -1807,7 +1931,7 @@
         "mechanics/AGENTS.md",
         "mechanics/boundary-bridge/AGENTS.md"
       ],
-      "inherited_context_tokens": 944,
+      "inherited_context_tokens": 964,
       "on_demand_surfaces": [
         {
           "bytes": 8313,
@@ -1910,7 +2034,7 @@
         "docs/AGENTS.md",
         "docs/decisions/AGENTS.md"
       ],
-      "inherited_context_tokens": 954,
+      "inherited_context_tokens": 974,
       "on_demand_surfaces": [
         {
           "bytes": 1864,
@@ -1977,7 +2101,7 @@
       ]
     },
     {
-      "additional_context_tokens": 16118,
+      "additional_context_tokens": 16177,
       "completion_evidence": [
         {
           "bytes": 1180,
@@ -2007,13 +2131,13 @@
           "whitespace_tokens": 389
         },
         {
-          "bytes": 104855,
+          "bytes": 104977,
           "exists": true,
-          "lines": 1547,
+          "lines": 1549,
           "path": ".github/workflows/repo-validation.yml",
           "role": "completion",
-          "sha256": "6705113da3f3dea75bb7442dba34c637fc7981d904f935e6d4308551cc3635dd",
-          "whitespace_tokens": 5770
+          "sha256": "712ee1aeabd15b89d4aacf69c48b8a29c684a05c1050152cf8d93762398c4a36",
+          "whitespace_tokens": 5785
         }
       ],
       "id": "release_validation",
@@ -2021,16 +2145,16 @@
         "AGENTS.md",
         "rust/AGENTS.md"
       ],
-      "inherited_context_tokens": 778,
+      "inherited_context_tokens": 798,
       "on_demand_surfaces": [
         {
-          "bytes": 3175,
+          "bytes": 3361,
           "exists": true,
-          "lines": 68,
+          "lines": 69,
           "path": "VALIDATION.md",
           "role": "on_demand",
-          "sha256": "fd0c045570717a50f0a9c2b9c7497e1f4de402c5d9bf5f4560fcd9cf244fb258",
-          "whitespace_tokens": 418
+          "sha256": "9ba58056a6caa1e8516c3437392b0bb174c41d12e08292473a0f8b4bd7e08c7a",
+          "whitespace_tokens": 448
         },
         {
           "bytes": 47975,
@@ -2051,22 +2175,22 @@
           "whitespace_tokens": 1888
         },
         {
-          "bytes": 38198,
+          "bytes": 38294,
           "exists": true,
           "lines": 561,
           "path": "docs/RELEASING.md",
           "role": "on_demand",
-          "sha256": "de917d3ec4dc562bc1901aae51d4c517c22f4ee6eea1ea57c32e189d950daba1",
-          "whitespace_tokens": 4797
+          "sha256": "ffd8e572d3be2b525303a41fbfd51a372fb6a1245cc5707b8a81199e100975d6",
+          "whitespace_tokens": 4811
         },
         {
-          "bytes": 104855,
+          "bytes": 104977,
           "exists": true,
-          "lines": 1547,
+          "lines": 1549,
           "path": ".github/workflows/repo-validation.yml",
           "role": "on_demand",
-          "sha256": "6705113da3f3dea75bb7442dba34c637fc7981d904f935e6d4308551cc3635dd",
-          "whitespace_tokens": 5770
+          "sha256": "712ee1aeabd15b89d4aacf69c48b8a29c684a05c1050152cf8d93762398c4a36",
+          "whitespace_tokens": 5785
         }
       ],
       "owner_exists": true,
@@ -2115,7 +2239,7 @@
       ]
     },
     {
-      "additional_context_tokens": 4085,
+      "additional_context_tokens": 4184,
       "completion_evidence": [
         {
           "bytes": 1043,
@@ -2159,7 +2283,7 @@
         "AGENTS.md",
         ".agents/AGENTS.md"
       ],
-      "inherited_context_tokens": 779,
+      "inherited_context_tokens": 799,
       "on_demand_surfaces": [
         {
           "bytes": 3462,
@@ -2180,13 +2304,13 @@
           "whitespace_tokens": 1957
         },
         {
-          "bytes": 27395,
+          "bytes": 28799,
           "exists": true,
-          "lines": 882,
+          "lines": 929,
           "path": "docs/validation/agents_route_inventory.json",
           "role": "on_demand",
-          "sha256": "ddfe9f57bfe3a535d302f2ccbc0e7e62fc4108d517f3ab589e28e4d31525cd44",
-          "whitespace_tokens": 1703
+          "sha256": "a5242a888e2efcd2fd71769aa944dd2ef483e65773a2079e590cdc291768dabd",
+          "whitespace_tokens": 1802
         }
       ],
       "owner_exists": true,
@@ -2270,7 +2394,7 @@
         "AGENTS.md",
         "evals/AGENTS.md"
       ],
-      "inherited_context_tokens": 845,
+      "inherited_context_tokens": 865,
       "on_demand_surfaces": [
         {
           "bytes": 1197,
@@ -2381,7 +2505,7 @@
         "AGENTS.md",
         "stats/AGENTS.md"
       ],
-      "inherited_context_tokens": 833,
+      "inherited_context_tokens": 853,
       "on_demand_surfaces": [
         {
           "bytes": 3068,
@@ -2492,7 +2616,7 @@
         "AGENTS.md",
         "kag/AGENTS.md"
       ],
-      "inherited_context_tokens": 873,
+      "inherited_context_tokens": 893,
       "on_demand_surfaces": [
         {
           "bytes": 1633,
@@ -2585,7 +2709,7 @@
         "AGENTS.md",
         "memo/AGENTS.md"
       ],
-      "inherited_context_tokens": 797,
+      "inherited_context_tokens": 817,
       "on_demand_surfaces": [
         {
           "bytes": 903,

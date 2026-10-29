@@ -27,6 +27,7 @@ the touched surface and risk are known.
 | Philosophy atlas or graph preparation | [philosophy](ToS/philosophy/AGENTS.md) |
 | Golden kernel or bounded public entry | [Zarathustra](ToS/zarathustra/AGENTS.md) |
 | CLI, HTTP, native MCP, site, WebMCP or software/data delivery | [access/AGENTS.md](access/AGENTS.md) and the exact native crate or adapter |
+| A public stand's own data, experiments and export toward the Tree | [bonsai/AGENTS.md](bonsai/AGENTS.md), then the stand in [access/web](access/web/README.md) |
 | Repeatable operation | [mechanics/AGENTS.md](mechanics/AGENTS.md), then the active part |
 | Durable rationale | [docs/decisions/AGENTS.md](docs/decisions/AGENTS.md) |
 | Measurement, proof pressure, KAG source-return export or memory candidate | [stats](stats/AGENTS.md), [evals](evals/AGENTS.md), [kag](kag/AGENTS.md) or [memo](memo/AGENTS.md) |

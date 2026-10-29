@@ -97,6 +97,7 @@ authority, and canon require matching source evidence and owner review.
 | Navigate model-facing tools and owner ports | [.agents/README](.agents/README.md) · [agent-surface map](.agents/agent-surface.manifest.json) · [agent-surface validation](.agents/VALIDATION.md) |
 | Install standalone access | [access](access/README.md) · [runtime contract](access/contracts/runtime-manifest.v1.json) · [web actions](access/contracts/web-actions.v1.json) |
 | Enter the philosophical tree | [ToS](ToS/README.md) · [philosophy](ToS/philosophy/) |
+| Grow a public stand's mini-Tree | [bonsai](bonsai/README.md) |
 | Inspect the evidence foundation | [doctrine](ToS/doctrine/CORPUS_FOUNDATION.md) · [source witnesses](ToS/source-witnesses/README.md) |
 | Follow the golden kernel | [contract](ToS/zarathustra/GOLDEN_GROWTH_KERNEL.md) · [public route](ToS/zarathustra/public-entry/TINY_ENTRY_ROUTE.md) · [worked capsule](ToS/zarathustra/prologue-1/TRILINGUAL_ENTRY.md) |
 | Follow derived routes | [root-map source](scripts/root_entry_map.source.json) · [bounded KAG export](mechanics/boundary-bridge/parts/derived-kag-seam/docs/KAG_EXPORT.md) |

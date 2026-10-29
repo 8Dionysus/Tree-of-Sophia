@@ -26,6 +26,7 @@ const EXPECTED_FAMILY_IDS: &[&str] = &[
     "access",
     "agents-other",
     "agents-skills",
+    "bonsai",
     "docs",
     "evals",
     "github",
@@ -103,7 +104,7 @@ const EXPECTED_PUBLIC_FORBIDDEN_MARKERS: &[&str] = &[
     "terminal_pid",
 ];
 fn expected_family_matches() -> Value {
-    json!({"root": {"kind": "root_files"}, "agents-skills": {"prefix": ".agents/skills/"}, "agents-other": {"prefix": ".agents/", "exclude_prefixes": [".agents/skills/"]}, "github": {"prefix": ".github/"}, "tos": {"prefix": "ToS/"}, "access": {"prefix": "access/"}, "docs": {"prefix": "docs/"}, "evals": {"prefix": "evals/"}, "stats": {"prefix": "stats/"}, "kag": {"prefix": "kag/"}, "mechanics": {"prefix": "mechanics/"}, "scripts": {"prefix": "scripts/"}, "tests": {"prefix": "tests/"}, "manifests": {"prefix": "manifests/"}, "memo": {"prefix": "memo/"}, "quests": {"prefix": "quests/"}, "rust": {"prefix": "rust/"}})
+    json!({"root": {"kind": "root_files"}, "agents-skills": {"prefix": ".agents/skills/"}, "agents-other": {"prefix": ".agents/", "exclude_prefixes": [".agents/skills/"]}, "github": {"prefix": ".github/"}, "tos": {"prefix": "ToS/"}, "access": {"prefix": "access/"}, "bonsai": {"prefix": "bonsai/"}, "docs": {"prefix": "docs/"}, "evals": {"prefix": "evals/"}, "stats": {"prefix": "stats/"}, "kag": {"prefix": "kag/"}, "mechanics": {"prefix": "mechanics/"}, "scripts": {"prefix": "scripts/"}, "tests": {"prefix": "tests/"}, "manifests": {"prefix": "manifests/"}, "memo": {"prefix": "memo/"}, "quests": {"prefix": "quests/"}, "rust": {"prefix": "rust/"}})
 }
 const EXPECTED_GENERATED_CARRIER_PATHS: &[&str] =
     &["docs/validation/documentation-family.current.json"];

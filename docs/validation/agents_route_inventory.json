@@ -14,6 +14,7 @@
       ".github",
       "ToS",
       "access",
+      "bonsai",
       "docs",
       "mechanics",
       "rust",
@@ -462,6 +463,52 @@
       "handoff_routes": [
         "ToS/derived-exports/AGENTS.md",
         "access/load-readiness/README.md"
+      ]
+    },
+    {
+      "id": "stand_bonsai",
+      "prompt": "Grow, check or export the bonsai of a public stand: its self-contained mini-Tree, kept in the Tree's shapes but never written into the Tree.",
+      "target": "bonsai/README.md",
+      "owner_route": "bonsai/AGENTS.md",
+      "required_scopes": [
+        "stand data modules",
+        "Tree date grammar",
+        "graft map and drift",
+        "candidate export"
+      ],
+      "required_markers": [
+        "self-contained mini-Tree",
+        "historicalDate",
+        "graft map",
+        "candidate records and claims"
+      ],
+      "boundary_markers": [
+        "never writes into `ToS/`",
+        "admits nothing",
+        "unreviewed"
+      ],
+      "on_demand_surfaces": [
+        "bonsai/README.md",
+        "ToS/contracts/historical-claim.schema.json",
+        "ToS/contracts/source-temporal-claim.schema.json"
+      ],
+      "validation_lanes": [
+        "release",
+        "route_docs"
+      ],
+      "validation_paths": [
+        "bonsai/lib/graft.mjs",
+        "bonsai/lib/schema.mjs",
+        "access/web/src/public-research/bonsai.test.mjs"
+      ],
+      "completion_evidence": [
+        "bonsai/AGENTS.md",
+        "bonsai/README.md",
+        "bonsai/lib/export.mjs"
+      ],
+      "handoff_routes": [
+        "access/web/README.md",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/README.md"
       ]
     },
     {
