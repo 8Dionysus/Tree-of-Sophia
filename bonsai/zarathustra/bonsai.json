@@ -1,0 +1,305 @@
+{
+  "schema": "tos.bonsai.v1",
+  "id": "zarathustra",
+  "title": {
+    "ru": "Заратустра",
+    "en": "Zarathustra"
+  },
+  "stand": {
+    "path": "/zarathustra/",
+    "profile": "zarathustra",
+    "consumer": "access/web/src/public-research/"
+  },
+  "posture": {
+    "ru": "Мини-Древо стенда «Заратустра»: хронология книги и текстов, на которые опирается карта, их места и линзы стенда — в формах Древа. Сама карта вечного возвращения привита из атласа конструктора и названа здесь как заимствованный модуль. Всё это — предложение стенда; в Древо оно попадает только через экспорт кандидатов.",
+    "en": "The Zarathustra stand’s mini-Tree: the chronology of the book and of the texts its map rests on, their places and the stand’s lenses, in the Tree’s shapes. The map of eternal recurrence itself is grafted from the constructor’s atlas and named here as a borrowed module. All of it is the stand’s proposal; it reaches the Tree only as exported candidates."
+  },
+  "graft": {
+    "tree_revision": "960f3e41936caea5b78ef6a353db14e80a71875b",
+    "grafted": "2026-10-29",
+    "note": {
+      "ru": "Ревизия Древа и дайджесты контрактов, по которым бонсай сложен. Изменение контракта сообщается как сдвиг; экспорт проверяется по контрактам текущей рабочей копии.",
+      "en": "The Tree revision and contract digests the bonsai was shaped by. A changed contract is reported as drift; the export is checked against the contracts of the current checkout."
+    },
+    "contracts": {
+      "historicalDate": {
+        "path": "ToS/contracts/historical-claim.schema.json",
+        "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750"
+      },
+      "temporal_claim": {
+        "path": "ToS/contracts/source-temporal-claim.schema.json",
+        "schema_version": "tos_source_temporal_claim_v1",
+        "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4"
+      },
+      "relation_claim": {
+        "path": "ToS/contracts/source-relation-claim.schema.json",
+        "schema_version": "tos_source_relation_claim_v1",
+        "sha256": "14a7bbf923b30ced37953649cfced1b10069adb2f63266c56aea7f115318defe"
+      },
+      "context_claim": {
+        "path": "ToS/contracts/historical-context-claim.schema.json",
+        "schema_version": "tos_historical_context_claim_v1",
+        "sha256": "15e5823b6b812494853076223025250afa9922636ff9509ec20129d8972f894d"
+      },
+      "claim_record": {
+        "path": "ToS/contracts/source-claim-record.schema.json",
+        "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+      },
+      "claim_packet": {
+        "path": "ToS/contracts/claim-packet.schema.json",
+        "sha256": "7daa1aa9831000a6ad56a0dfab38cfbb06cfd7a6d2cdfaa1aff264f2c33999cd"
+      },
+      "historical_record": {
+        "path": "ToS/contracts/historical-record.schema.json",
+        "schema_version": "tos_historical_record_v1",
+        "sha256": "252cffe61616fd258254b71f42872ee2c8b9446901bd4383e47d21bf4e1376c2"
+      },
+      "corpus_record": {
+        "path": "ToS/contracts/corpus-record.schema.json",
+        "schema_version": "tos_corpus_record_v1",
+        "sha256": "a0947108d13950656ece81642d47ab4f1166f5c7ebb14c6ef74b097c9175c851"
+      }
+    }
+  },
+  "modules": [
+    {
+      "id": "atlas",
+      "borrowed": [
+        "access/web/constructor/atlas-content.mjs",
+        "access/web/constructor/atlas-data.mjs",
+        "access/web/constructor/atlas-routes.mjs",
+        "access/web/constructor/relation-inquiry.mjs",
+        "access/web/constructor/inquiry-sources-concepts.mjs",
+        "access/web/constructor/inquiry-readings-echoes.mjs",
+        "access/web/constructor/inquiry-foundation.mjs",
+        "access/web/constructor/source-references.mjs",
+        "access/web/constructor/close-reading-guides.mjs"
+      ],
+      "owner": "access/web/constructor/README.md",
+      "role": {
+        "ru": "Карта вечного возвращения: материалы, связи, маршруты, основания и путеводители чтения. Её держит конструктор; стенд читает её как привой и не переписывает.",
+        "en": "The map of eternal recurrence: materials, relations, routes, grounds and reading guides. The constructor owns it; the stand reads it as a graft and does not rewrite it."
+      }
+    },
+    {
+      "id": "chronology",
+      "path": "chronology.json",
+      "role": {
+        "ru": "Когда написаны четыре части книги и тексты, на которые опирается карта, и когда пришла мысль о вечном возвращении, — в грамматике дат Древа; порядок глав книги.",
+        "en": "When the book’s four parts and the texts its map rests on were written, and when the thought of eternal recurrence came, in the Tree’s date grammar; the order of the book’s chapters."
+      },
+      "format": "tos.bonsai.chronology.v1",
+      "exports": [
+        "historical_dating",
+        "historical_work",
+        "biographical_subject"
+      ]
+    },
+    {
+      "id": "places",
+      "path": "places.json",
+      "role": {
+        "ru": "Где они написаны и где пришла мысль о возвращении — с источником и опорными точками газеттира.",
+        "en": "Where they were written and where the thought of recurrence came, with source and the gazetteer’s representative points."
+      },
+      "format": "tos.bonsai.places.v1",
+      "exports": [
+        "historical_place"
+      ]
+    },
+    {
+      "id": "basemap",
+      "path": "../shared/coastlines.json",
+      "role": {
+        "ru": "Береговые линии Natural Earth 1:50m, обрезанные по Европе и Средиземноморью и упрощённые; подложка карты мест, общая для стендов.",
+        "en": "Natural Earth 1:50m coastlines, clipped to Europe and the Mediterranean and simplified; the backdrop of the map of places, shared by the stands."
+      },
+      "format": "tos.bonsai.basemap.v1"
+    },
+    {
+      "id": "identities",
+      "path": "identities.json",
+      "role": {
+        "ru": "Карта прививки: какая идентичность Древа стоит за каждым ID бонсая и есть ли она уже в Древе.",
+        "en": "The graft map: which Tree identity each bonsai ID stands for and whether the Tree already holds it."
+      },
+      "format": "tos.bonsai.identities.v1"
+    }
+  ],
+  "lenses": {
+    "tree": {
+      "positions": "group",
+      "short": {
+        "ru": "круги карты",
+        "en": "the map’s circles"
+      },
+      "groups": {
+        "ru": "по кругам карты: положение задаёт раскладка атласа и ничего не измеряет",
+        "en": "by the map’s circles: a place comes from the atlas layout and measures nothing"
+      }
+    },
+    "meaning": {
+      "positions": "group",
+      "short": {
+        "ru": "смыслы",
+        "en": "meanings"
+      },
+      "groups": {
+        "ru": "по понятиям, прочтениям и вопросам",
+        "en": "by concepts, readings and questions"
+      }
+    },
+    "sources": {
+      "positions": "group",
+      "short": {
+        "ru": "ступени",
+        "en": "steps"
+      },
+      "groups": {
+        "ru": "по ступеням от книги к главе и прочтению",
+        "en": "by steps from the book to a chapter and its reading"
+      }
+    },
+    "tensions": {
+      "positions": "group",
+      "short": {
+        "ru": "противоречия",
+        "en": "tensions"
+      },
+      "groups": {
+        "ru": "по вопросам и несовпадающим прочтениям",
+        "en": "by questions and competing readings"
+      }
+    },
+    "images": {
+      "positions": "group",
+      "short": {
+        "ru": "образы",
+        "en": "images"
+      },
+      "groups": {
+        "ru": "по образам и символам",
+        "en": "by images and symbols"
+      }
+    },
+    "history": {
+      "positions": "group",
+      "short": {
+        "ru": "переклички",
+        "en": "resonances"
+      },
+      "groups": {
+        "ru": "по мыслителям и перекличкам",
+        "en": "by thinkers and resonances"
+      }
+    },
+    "time": {
+      "positions": "measure",
+      "short": {
+        "ru": "порядок книги",
+        "en": "the book’s order"
+      },
+      "measures": {
+        "ru": "порядок глав книги, от Пролога до четвёртой части",
+        "en": "the order of the book’s chapters, from the Prologue to Part Four"
+      },
+      "groups": {
+        "ru": "строки — круги карты",
+        "en": "rows are the map’s circles"
+      }
+    },
+    "space": {
+      "positions": "measure",
+      "short": {
+        "ru": "место",
+        "en": "place"
+      },
+      "measures": {
+        "ru": "долготу и широту места, где написан текст основания",
+        "en": "longitude and latitude of where the text a star rests on was written"
+      },
+      "groups": {
+        "ru": "без места — отдельно, за краем карты",
+        "en": "placeless stars stand apart, off the map"
+      }
+    },
+    "proximity": {
+      "positions": "measure",
+      "short": {
+        "ru": "расстояние",
+        "en": "distance"
+      },
+      "measures": {
+        "ru": "расстояние от выбранной звезды по названному критерию",
+        "en": "distance from the chosen star by the named criterion"
+      },
+      "groups": {
+        "ru": "направление — круг карты",
+        "en": "direction is the map’s circle"
+      },
+      "criteria": [
+        {
+          "id": "grounds",
+          "label": {
+            "ru": "Общие основания",
+            "en": "Shared grounds"
+          },
+          "measure": {
+            "ru": "1 − доля общих мест источников (мера Жаккара), на которые опираются две звезды",
+            "en": "1 − the share of source places two stars rest on in common (Jaccard)"
+          },
+          "unit": {
+            "ru": "",
+            "en": ""
+          }
+        },
+        {
+          "id": "relations",
+          "label": {
+            "ru": "Шаги по связям",
+            "en": "Steps along relations"
+          },
+          "measure": {
+            "ru": "наименьшее число связей карты между звёздами",
+            "en": "the fewest relations of the map between two stars"
+          },
+          "unit": {
+            "ru": "шаг",
+            "en": "step"
+          }
+        },
+        {
+          "id": "chapters",
+          "label": {
+            "ru": "Главы между ними",
+            "en": "Chapters apart"
+          },
+          "measure": {
+            "ru": "разница номеров первых глав, на которые звёзды опираются",
+            "en": "the difference between the first chapters two stars rest on"
+          },
+          "unit": {
+            "ru": "гл.",
+            "en": "ch."
+          }
+        },
+        {
+          "id": "place",
+          "label": {
+            "ru": "Расстояние между местами",
+            "en": "Distance between places"
+          },
+          "measure": {
+            "ru": "расстояние по дуге большого круга между местами, где написаны их тексты",
+            "en": "great-circle distance between where their texts were written"
+          },
+          "unit": {
+            "ru": "км",
+            "en": "km"
+          },
+          "requires": "places"
+        }
+      ]
+    }
+  }
+}

@@ -1,53 +1,57 @@
 import {describe,expect,it} from 'vitest';
-import collection from './antiquity-collection-data.json' with {type:'json'};
-import dating from './antiquity-dating.json' with {type:'json'};
+import collection from '../../../../bonsai/antiquity/collection.json' with {type:'json'};
+import chronology from '../../../../bonsai/antiquity/chronology.json' with {type:'json'};
+import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {RESEARCH_ROUTES} from '../../constructor/atlas-routes.mjs';
 import {PRIMARY_SOURCES} from '../../constructor/source-references.mjs';
 import {INQUIRY_SOURCES_CONCEPTS} from '../../constructor/inquiry-sources-concepts.mjs';
 import {INQUIRY_READINGS_ECHOES} from '../../constructor/inquiry-readings-echoes.mjs';
-import {antiquityTimeline,bookPlace,datingOf,dodgeRow,formatSpan,parseLifeYears,romanValue,stackColumns,stepTimeline,zarathustraTimeline} from './space-timeline.mjs';
+import zarathustraChronology from '../../../../bonsai/zarathustra/chronology.json' with {type:'json'};
+import {antiquityTimeline,bookPlace,dodgeRow,formatYears,romanValue,stackColumns,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
+import {datingKind} from './space-measure.mjs';
 
-describe('authored life dates',()=>{
-  it('reads every form the collection uses, keeping how precise the line is',()=>{
-    expect(parseLifeYears('469–399 BCE')).toEqual({start:-469,end:-399,precision:'year'});
-    expect(parseLifeYears('c. 429–347 BCE')).toEqual({start:-429,end:-347,precision:'approx'});
-    expect(parseLifeYears('45–47–c. 120 CE')).toEqual({start:45,end:120,precision:'approx'});
-    expect(parseLifeYears('c. 1 BCE–65 CE')).toEqual({start:-1,end:65,precision:'approx'});
-    expect(parseLifeYears('mid-90s to mid-50s BCE')).toEqual({start:-95,end:-55,precision:'decade'});
-    expect(parseLifeYears('50s–c. 135 CE')).toEqual({start:55,end:135,precision:'decade'});
-    expect(parseLifeYears('5th–4th c. BCE · early treatises of the corpus')).toEqual({start:-500,end:-301,precision:'century'});
-    expect(parseLifeYears('3rd century CE · period of activity')).toEqual({start:201,end:300,precision:'century'});
-    expect(parseLifeYears('')).toBeNull();
-  });
-  it('dates every author of the collection, inside the period the collection gives',()=>{
-    const bounds={classical:[-500,-300],hellenistic:[-350,0],roman:[-100,300],late:[200,400]};
+describe('the lives the chronology dates',()=>{
+  const reader=readChronology(chronology);
+  it('dates every author of the collection from a named source, inside the period the collection gives',()=>{
+    const bounds={classical:[-500,-300],hellenistic:[-350,0],roman:[-100,300],late:[100,400]};
     for(const author of collection.entities.filter(entry=>entry.kind==='author')){
-      const years=parseLifeYears(author.meta.en);expect(years,author.id).toBeTruthy();
-      expect(years.start,author.id).toBeLessThanOrEqual(years.end);
-      const middle=(years.start+years.end)/2,[low,high]=bounds[author.period];
+      const id=reader.lifeOf(author.id);
+      // A corpus of many hands has no life; its treatises keep their own datings.
+      if(author.id==='hippocrates'){expect(id).toBeNull();continue;}
+      const span=reader.span(id);expect(span,author.id).toBeTruthy();
+      expect(reader.sources(id).length,author.id).toBeGreaterThan(0);
+      expect(reader.sources(id).every(source=>!/example\.org/.test(source.url)),author.id).toBe(true);
+      const middle=(span.from+span.to)/2,[low,high]=bounds[author.period];
       expect(middle,author.id).toBeGreaterThanOrEqual(low);expect(middle,author.id).toBeLessThanOrEqual(high);
     }
+  });
+  it('keeps a floruit apart from a life: what a source dates only by activity is called so',()=>{
+    expect(reader.lifeOf('sextus')).toBe('tos.biographical-phase.sextus-empiricus.activity');
+    expect(reader.situation(reader.lifeOf('sextus')).dating.certainty).toBe('uncertain');
+    expect(reader.lifeOf('laertius')).toBe('tos.biographical-phase.diogenes-laertius.activity');
   });
 });
 
 describe('Antiquity on a scale of years',()=>{
   const entries=[...collection.entities,...collection.eras,...collection.passages];
   const routes=collection.branches.map(branch=>({id:branch.id,title:branch.rootTitle,steps:branch.nodes.map(node=>({nodeId:`antiquity:reading:${node.id}`}))}));
-  const timeline=antiquityTimeline({routes,entries});
+  const timeline=antiquityTimeline({routes,entries,chronology}),reader=readChronology(chronology);
   it('places every move of every branch, one row per branch, one line per row',()=>{
     for(const branch of collection.branches)for(const node of branch.nodes)expect(timeline.positions.has(`antiquity:reading:${node.id}`),node.id).toBe(true);
     expect(timeline.lanes.map(lane=>lane.id)).toEqual(collection.branches.map(branch=>branch.id));
-    const rows=new Set([...timeline.positions.values()].map(([,y])=>y));
+    const rows=new Set([...timeline.positions.values()].map(([,y])=>Math.round(y/36)));
     expect(rows.size).toBe(collection.branches.length);
   });
-  it('keeps a move within its author\'s life, which the data dates instead of the move',()=>{
-    const authors=new Map(collection.entities.filter(entry=>entry.kind==='author').map(author=>[author.id,parseLifeYears(author.meta.en)]));
+  it('needs a chronology: without one it measures nothing',()=>{
+    expect(antiquityTimeline({routes,entries})).toBeNull();
+  });
+  it('keeps every move within the span its writing is dated to, which is never a guess',()=>{
     for(const [id,[x]] of timeline.positions){
-      const life=timeline.lifeOf(id),years=authors.get(life.authorId),nominal=timeline.xOf(id);
-      expect(life.start,id).toBe(years.start);expect(life.end,id).toBe(years.end);
-      expect(nominal,id).toBeGreaterThanOrEqual(timeline.xOfYear(years.start));expect(nominal,id).toBeLessThanOrEqual(timeline.xOfYear(years.end));
-      // Neighbours on one row keep a gap, so a star may stand a little off its value, never far.
-      expect(Math.abs(x-nominal),id).toBeLessThanOrEqual(24);
+      const span=timeline.spanOf(id),time=timeline.timeOf(id);
+      expect(time.composition,id).toBeTruthy();expect(span,id).toBeTruthy();
+      expect(x,id).toBeGreaterThanOrEqual(timeline.xOfYear(span.from)-1e-9);expect(x,id).toBeLessThanOrEqual(timeline.xOfYear(span.to)+1e-9);
+      // Neighbours on one row keep a gap, so a star may stand a little off its value, never outside its span.
+      expect(Math.abs(x-timeline.xOf(id)),id).toBeLessThanOrEqual(24);
     }
   });
   it('keeps time on the horizontal: a later author stands to the right',()=>{
@@ -58,9 +62,23 @@ describe('Antiquity on a scale of years',()=>{
     expect(x(byAuthor('epicurus'))).toBeLessThan(x(byAuthor('seneca')));
     expect(x(byAuthor('seneca'))).toBeLessThan(x(byAuthor('sextus')));
   });
-  it('never puts two stars on one point',()=>{
+  it('orders Plato\'s dialogues by their phases and puts Cicero\'s On Duties in 44 BCE',()=>{
+    const x=passage=>timeline.positions.get(`antiquity:reading:${passage}`)[0];
+    const of=work=>collection.passages.find(passage=>passage.workId===work&&timeline.positions.has(`antiquity:reading:${passage.id}`)).id;
+    expect(x(of('apology'))).toBeLessThan(x(of('meno')));
+    expect(x(of('meno'))).toBeLessThan(x(of('republic')));
+    expect(x(of('republic'))).toBeLessThan(x(of('sophist')));
+    expect(x(of('sophist'))).toBeLessThan(x(of('metaphysics')));
+    const officium=x(of('de-officiis'));expect(officium).toBeGreaterThanOrEqual(timeline.xOfYear(-43));expect(officium).toBeLessThanOrEqual(timeline.xOfYear(-42));
+  });
+  it('never puts two stars on one point, and stars that share a dating stand in a short column',()=>{
     const seen=new Set();
-    for(const [id,[x,y]] of timeline.positions){const key=`${x}:${y.toFixed(2)}`;expect(seen.has(key),id).toBe(false);seen.add(key);}
+    for(const [id,[x,y]] of timeline.positions){
+      const key=`${x.toFixed(3)}:${y.toFixed(3)}`;expect(seen.has(key),id).toBe(false);seen.add(key);
+      const lane=timeline.lanes.reduce((a,b)=>Math.abs(b.y-y)<Math.abs(a.y-y)?b:a);expect(Math.abs(y-lane.y),id).toBeLessThanOrEqual(21);
+    }
+    const column=stackColumns(new Map([['a',0],['b',1],['c',2],['d',40]]),6,7);
+    expect([column.get('a'),column.get('b'),column.get('c'),column.get('d')]).toEqual([0,-7,7,0]);
   });
   it('labels centuries, eras and rows in both languages',()=>{
     const ru=timeline.labels('ru'),en=timeline.labels('en');
@@ -72,92 +90,67 @@ describe('Antiquity on a scale of years',()=>{
     expect(lanes.map(label=>label.ref)).toEqual(collection.branches.map(branch=>branch.id));
     expect(ru.filter(label=>label.variant==='thread')).toHaveLength(collection.branches.length);
   });
-  it('spans an era over the lives of its authors in the collection, and rules every century',()=>{
-    const labels=timeline.labels('en'),era=id=>labels.find(label=>label.id===`time:${id}`);
-    expect(era('era-classical').span).toEqual([timeline.xOfYear(-500),timeline.xOfYear(-301)]);
-    expect(era('era-late').span).toEqual([timeline.xOfYear(204),timeline.xOfYear(305)]);
+  it('rules each century where it begins, in astronomical years, and spans an era over its authors\' lives',()=>{
+    const labels=timeline.labels('en'),rules=labels.filter(label=>label.variant==='rule');
+    // A century begins at its year 100k + 1: 400 BCE is the astronomical year −399, 1 CE is 1.
+    expect(rules.map(label=>label.center[0])).toEqual([-499,-399,-299,-199,-99,1,101,201,301,401].map(timeline.xOfYear));
+    expect(rules.filter(label=>label.tone==='strong').map(label=>label.center[0])).toEqual([timeline.xOfYear(1)]);
+    expect(timeline.bounds).toEqual([timeline.xOfYear(-499),timeline.xOfYear(401)]);
+    const era=id=>labels.find(label=>label.id===`time:${id}`);
+    const lives=collection.entities.filter(entry=>entry.kind==='author'&&entry.period==='classical'&&reader.lifeOf(entry.id)).map(entry=>reader.span(reader.lifeOf(entry.id)));
+    expect(era('era-classical').span).toEqual([timeline.xOfYear(Math.min(...lives.map(span=>span.from))),timeline.xOfYear(Math.max(...lives.map(span=>span.to)))]);
     // Overlapping eras take alternate rows of the strip.
     expect(era('era-classical').strip).not.toBe(era('era-hellenistic').strip);
-    const rules=labels.filter(label=>label.variant==='rule');
-    expect(rules.map(label=>label.center[0])).toEqual([-500,-400,-300,-200,-100,0,100,200,300,400].map(timeline.xOfYear));
-    expect(rules.filter(label=>label.tone==='strong').map(label=>label.center[0])).toEqual([timeline.xOfYear(0)]);
-    expect(timeline.bounds).toEqual([timeline.xOfYear(-500),timeline.xOfYear(400)]);
   });
 });
 
-describe('proposed datings of Antiquity works',()=>{
-  const works=new Map(collection.entities.filter(entry=>entry.kind==='work').map(work=>[work.id,work]));
-  const passages=new Map(collection.passages.map(passage=>[passage.id,passage]));
-  const lives=new Map(collection.entities.filter(entry=>entry.kind==='author').map(author=>[author.id,parseLifeYears(author.meta.en)]));
-  it('name their posture in both languages and every source they rest on',()=>{
-    expect(dating.posture.ru).toMatch(/не канон/);expect(dating.posture.en).toMatch(/not canon/);
-    expect(dating.checked).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    for(const [id,source] of Object.entries(dating.sources)){expect(source.url,id).toMatch(/^https:\/\//);expect(source.short,id).toBeTruthy();expect(source.title,id).toBeTruthy();}
-    for(const [id,group] of Object.entries(dating.groups))for(const ref of group.sources)expect(dating.sources[ref],`${id} → ${ref}`).toBeTruthy();
+describe('the Antiquity chronology',()=>{
+  const reader=readChronology(chronology),works=new Map(collection.entities.filter(entry=>entry.kind==='work').map(work=>[work.id,work]));
+  const walked=new Set(collection.branches.flatMap(branch=>branch.nodes.map(node=>node.source.workId)));
+  it('names its posture in both languages and every source it rests on',()=>{
+    expect(chronology.posture.ru).toMatch(/не канон/);expect(chronology.posture.en).toMatch(/not canon/);
+    expect(chronology.checked).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    for(const [id,source] of Object.entries(chronology.sources)){expect(source.url,id).toMatch(/^https:\/\//);expect(source.short,id).toBeTruthy();expect(source.title,id).toBeTruthy();}
   });
-  it('date only works and passages the collection holds, each within its author\'s life and with a source',()=>{
-    const check=(key,{passageId,workId})=>{
-      const value=datingOf(dating,{passageId,workId});expect(value,key).toBeTruthy();
-      expect(value.start,key).toBeLessThanOrEqual(value.end);expect(value.sources.length,key).toBeGreaterThan(0);
-      expect(['year','range','approx']).toContain(value.precision);expect(['high','medium','low']).toContain(value.confidence);
-      // A dating resting only on Wikipedia says so.
-      if(value.sources.every(source=>/wikipedia\.org/.test(source.url)))expect(value.confidence,key).not.toBe('high');
-      expect(value.basis?.ru,key).toBeTruthy();expect(value.basis?.en,key).toBeTruthy();
-      const author=passageId?passages.get(passageId).author:works.get(workId).author,life=lives.get(author);
-      expect(value.start,key).toBeGreaterThanOrEqual(life.start);expect(value.end,key).toBeLessThanOrEqual(life.end);
-    };
-    for(const [id,work] of Object.entries(dating.works)){expect(works.has(id),id).toBe(true);if(work.group)expect(dating.groups[work.group],id).toBeTruthy();for(const ref of work.sources??[])expect(dating.sources[ref],`${id} → ${ref}`).toBeTruthy();check(id,{workId:id});}
-    for(const id of Object.keys(dating.passages)){expect(passages.has(id),id).toBe(true);check(id,{passageId:id,workId:passages.get(id).workId});}
+  it('dates the writing of every work a branch walks, each in a kind of the Tree\'s date grammar',()=>{
+    const kinds=new Map();
+    for(const workId of walked){
+      const situation=reader.compositionOf({workId});expect(situation,workId).toBeTruthy();
+      const kind=datingKind(situation,reader);kinds.set(kind,(kinds.get(kind)??0)+1);
+      expect(reader.situation(situation).work,workId).toBe(workId);
+      expect(reader.span(situation),workId).toBeTruthy();
+    }
+    expect(kinds.get('date-assertion')).toBeGreaterThanOrEqual(1);
+    expect(kinds.get('interval-assertion')).toBeGreaterThan(5);
+    expect(kinds.get('relative-phase')).toBeGreaterThan(20);
+    // "Within the author's life" is a stated dating, not a fallback.
+    for(const workId of ['menoeceus','doctrines','adversus-coloten'])expect(datingKind(reader.compositionOf({workId}),reader),workId).toBe('relative-life');
+    expect(datingKind(reader.compositionOf({workId:'outlines'}),reader)).toBe('relative-activity');
   });
-  it('prefer a passage\'s own dating to its work\'s, and a work\'s own sources to its group\'s',()=>{
-    expect(datingOf(dating,{passageId:'plotinus-sculpture',workId:'enneads'})).toMatchObject({start:253,end:263});
-    expect(datingOf(dating,{workId:'enneads'})).toMatchObject({start:253,end:270});
-    expect(datingOf(dating,{workId:'laws'}).sources.map(source=>source.id)).toEqual(['iep-plato','britannica-plato-late']);
-    expect(datingOf(dating,{workId:'apology'})).toMatchObject({start:-399,end:-387,precision:'range'});
-    expect(datingOf(dating,{workId:'memorabilia'})).toMatchObject({start:-371,end:-354,confidence:'low'});
-    expect(datingOf(dating,{workId:'rhetoric'})).toMatchObject({start:-367,end:-323,confidence:'high'});
-    expect(datingOf(dating,{workId:'adversus-coloten'})).toBeNull();
-    expect(datingOf(dating,{workId:'sacred-disease'}).label).toEqual({ru:'вторая половина V в. до н. э.',en:'second half of the 5th c. BCE'});
+  it('keeps a writing within its author\'s dated life, and a weak footing marked weak',()=>{
+    for(const workId of walked){
+      const situation=reader.compositionOf({workId}),span=reader.span(situation),lifeId=reader.lifeOf(works.get(workId).author),life=lifeId?reader.span(lifeId):null;
+      if(life){expect(span.from,workId).toBeGreaterThanOrEqual(life.from);expect(span.to,workId).toBeLessThanOrEqual(life.to);}
+      const sources=reader.sources(situation);expect(sources.length,workId).toBeGreaterThan(0);
+      if(sources.every(source=>/wikipedia\.org/.test(source.url)))expect(reader.situation(situation).footing,workId).not.toBe('high');
+    }
   });
-  it('reads as precise as it claims, in both languages',()=>{
-    expect(formatSpan({start:-387,end:-380,precision:'approx'},'ru')).toBe('ок. 387–380 до н. э.');
-    expect(formatSpan({start:-44,end:-44,precision:'year'},'en')).toBe('44 BCE');
-    expect(formatSpan({start:108,end:108,precision:'approx'},'en')).toBe('c. 108 CE');
-    expect(formatSpan({start:-1,end:65,precision:'approx'},'ru')).toBe('ок. 1 до н. э. – 65 н. э.');
-    expect(formatSpan({},'ru')).toBe('');
+  it('prefers a passage\'s own writing to its work\'s and keeps each source with its dating',()=>{
+    expect(reader.span(reader.compositionOf({passageId:'plotinus-sculpture',workId:'enneads'}))).toMatchObject({first:253,last:263});
+    expect(reader.span(reader.compositionOf({workId:'enneads'}))).toMatchObject({first:253,last:270});
+    expect(reader.sources(reader.compositionOf({workId:'laws'})).map(source=>source.id)).toEqual(['iep-plato','britannica-plato-late']);
+    expect(reader.span(reader.compositionOf({workId:'apology'}))).toMatchObject({first:-398,last:-386,relation:'during',anchor:'tos.biographical-phase.plato.early-dialogues'});
+    expect(reader.situation(reader.compositionOf({workId:'memorabilia'})).footing).toBe('low');
+    expect(reader.situation(reader.compositionOf({workId:'rhetoric'})).footing).toBe('high');
+    expect(reader.situation(reader.compositionOf({workId:'sacred-disease'})).display).toEqual({ru:'вторая половина V в. до н. э.',en:'second half of the 5th c. BCE'});
+    expect(formatYears(reader.span(reader.compositionOf({workId:'de-officiis'})),'ru').replaceAll('\u00a0',' ')).toBe('44 до н. э.');
   });
 });
 
-describe('Antiquity with proposed datings',()=>{
-  const entries=[...collection.entities,...collection.eras,...collection.passages];
-  const routes=collection.branches.map(branch=>({id:branch.id,title:branch.rootTitle,steps:branch.nodes.map(node=>({nodeId:`antiquity:reading:${node.id}`}))}));
-  const timeline=antiquityTimeline({routes,entries,dating});
-  it('keeps every move within its dating, or within its author\'s life where none is proposed',()=>{
-    let dated=0;
-    for(const [id,[x]] of timeline.positions){
-      const span=timeline.spanOf(id),life=timeline.lifeOf(id);if(life.composed)dated++;
-      expect(x,id).toBeGreaterThanOrEqual(timeline.xOfYear(span.start)-1e-9);expect(x,id).toBeLessThanOrEqual(timeline.xOfYear(span.end)+1e-9);
-      if(!life.composed)expect(span).toMatchObject({start:life.start,end:life.end});
-    }
-    expect(dated).toBeGreaterThan(100);
-  });
-  it('orders Plato\'s dialogues by their periods and puts Cicero\'s On Duties at 44 BCE',()=>{
-    const x=passage=>timeline.positions.get(`antiquity:reading:${passage}`)[0];
-    const of=work=>collection.passages.find(passage=>passage.workId===work&&timeline.positions.has(`antiquity:reading:${passage.id}`)).id;
-    expect(x(of('apology'))).toBeLessThan(x(of('meno')));
-    expect(x(of('meno'))).toBeLessThan(x(of('republic')));
-    expect(x(of('republic'))).toBeLessThan(x(of('sophist')));
-    expect(x(of('sophist'))).toBeLessThan(x(of('metaphysics')));
-    expect(x(of('de-officiis'))).toBeCloseTo(timeline.xOfYear(-44),9);
-  });
-  it('lets stars that share a dating stand in a short column on their row, never on one point',()=>{
-    const seen=new Set();
-    for(const [id,[x,y]] of timeline.positions){
-      const key=`${x.toFixed(3)}:${y.toFixed(3)}`;expect(seen.has(key),id).toBe(false);seen.add(key);
-      const lane=timeline.lanes.reduce((a,b)=>Math.abs(b.y-y)<Math.abs(a.y-y)?b:a);expect(Math.abs(y-lane.y),id).toBeLessThanOrEqual(21);
-    }
-    const column=stackColumns(new Map([['a',0],['b',1],['c',2],['d',40]]),6,7);
-    expect([column.get('a'),column.get('b'),column.get('c'),column.get('d')]).toEqual([0,-7,7,0]);
+describe('a concept traced on a scale',()=>{
+  it('joins the stars that carry it in the order of the scale, leaving out what the scale cannot place',()=>{
+    const xs={a:30,b:10,c:20,d:NaN};
+    expect(trajectory(['a','b','c','d','a'],id=>xs[id])).toEqual({ids:['b','c','a'],links:[['b','c'],['c','a']]});
   });
 });
 
@@ -182,6 +175,9 @@ describe('Zarathustra on the order of the book',()=>{
     const labels=timeline.labels('ru');
     expect(labels.some(label=>label.title==='вне книги'&&label.variant==='side')).toBe(true);
     expect(labels.filter(label=>label.variant==='era').map(label=>label.title)).toEqual(['Часть I','Часть II','Часть III','Часть IV']);
+    // With its bonsai, each part names the years it was written.
+    const dated=zarathustraTimeline({materials,references:PRIMARY_SOURCES,clusters:[{id:'sources',title:{ru:'Источники'}}],chronology:zarathustraChronology});
+    expect(dated.labels('en').filter(label=>label.variant==='era').map(label=>label.title)).toEqual(['Part I · 1883','Part II · 1883','Part III · 1884','Part IV · 1884–1885']);
     // A part spans the chapters the map cites from it; the texts outside the book stand past a strong rule.
     const part=labels.find(label=>label.id==='time:part2');expect(part.span[0]).toBeLessThanOrEqual(timeline.xOf('demo:fate'));expect(part.span[1]).toBeGreaterThanOrEqual(timeline.xOf('demo:fate'));
     const outside=labels.find(label=>label.id==='time:rule:outside');expect(outside.tone).toBe('strong');

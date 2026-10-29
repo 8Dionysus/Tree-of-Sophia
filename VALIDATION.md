@@ -30,6 +30,7 @@ only; the validator rejects Python commands in the manifest.
 | owner-local statistics | `local_stats_port` |
 | cross-family documentation | `cross_corpus_documentation` |
 | standalone software | `release` through `tos-release-check`; `software_browser` for browser behavior after the software build |
+| a stand's bonsai under `bonsai/` | `release` builds the stands that read it; `software_browser` runs their tests, which check each bonsai and its export against the Tree's contracts |
 | Rust workspace and crates | `rust_workspace` with the pinned toolchain, WASM target and matching wasm-bindgen CLI; it verifies implemented Rust packages and installed native consumers |
 | data or historical integration | select the affected owner operation in `docs/RELEASING.md`; no combined integration gate |
 

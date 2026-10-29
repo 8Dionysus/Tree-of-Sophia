@@ -1,0 +1,855 @@
+{
+  "schema": "tos.bonsai.places.v1",
+  "bonsai": "antiquity",
+  "checked": "2026-10-29",
+  "posture": {
+    "ru": "Места написания или деятельности, каждое со своим источником. Предложение стенда, не канон.",
+    "en": "Places of writing or activity, each with its source. The stand’s proposal, not canon."
+  },
+  "frame": {
+    "crs": "EPSG:4326",
+    "axes": "longitude, latitude (degrees)",
+    "points": {
+      "ru": "Опорные точки, которые публикует газеттир; только для показа, не геометрия Древа.",
+      "en": "Representative points as the gazetteer publishes them; for display only, not a Tree geometry."
+    }
+  },
+  "sources": {
+    "iep-plato": {
+      "short": "IEP · Brickhouse & Smith",
+      "title": "Thomas Brickhouse, Nicholas D. Smith. Plato (427—347 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/plato/"
+    },
+    "britannica-plato": {
+      "short": "Britannica",
+      "title": "Plato. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Plato"
+    },
+    "sep-aristotle": {
+      "short": "SEP · Shields",
+      "title": "Christopher Shields. Aristotle. Stanford Encyclopedia of Philosophy (Winter 2024 Edition)",
+      "url": "https://plato.stanford.edu/archives/win2024/entries/aristotle/"
+    },
+    "sep-rhetoric": {
+      "short": "SEP · Rapp",
+      "title": "Christof Rapp. Aristotle's Rhetoric. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/aristotle-rhetoric/"
+    },
+    "sep-aristotle-ethics": {
+      "short": "SEP · Kraut",
+      "title": "Richard Kraut. Aristotle's Ethics. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/aristotle-ethics/"
+    },
+    "sep-aristotle-politics": {
+      "short": "SEP · Miller",
+      "title": "Fred Miller. Aristotle's Political Theory. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/aristotle-politics/"
+    },
+    "eb1911-athens": {
+      "short": "EB 1911",
+      "title": "Constitution of Athens. Encyclopædia Britannica, 11th edition (1911), Wikisource",
+      "url": "https://en.wikisource.org/wiki/1911_Encyclop%C3%A6dia_Britannica/Constitution_of_Athens"
+    },
+    "iep-xenophon": {
+      "short": "IEP · Browning",
+      "title": "Eve A. Browning. Xenophon (430—354 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/xenophon/"
+    },
+    "britannica-xenophon": {
+      "short": "Britannica",
+      "title": "Xenophon. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Xenophon"
+    },
+    "iep-hippocrates": {
+      "short": "IEP · Boylan",
+      "title": "Michael Boylan. Hippocrates (c. 450—c. 380 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/hippocra/"
+    },
+    "jones-loeb-hippocrates": {
+      "short": "Loeb · Jones",
+      "title": "W. H. S. Jones (tr.). Hippocrates, vol. I. Loeb Classical Library, 1923: general introduction (archive.org)",
+      "url": "https://archive.org/details/hippocrates01hippuoft"
+    },
+    "sep-epicurus": {
+      "short": "SEP · Konstan",
+      "title": "David Konstan. Epicurus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/epicurus/"
+    },
+    "sep-lucretius": {
+      "short": "SEP · Trépanier",
+      "title": "Simon Trépanier. Lucretius. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/lucretius/"
+    },
+    "iep-lucretius": {
+      "short": "IEP · Simpson",
+      "title": "David Simpson. Lucretius (c. 99—c. 55 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/lucretiu/"
+    },
+    "falconer-laelius": {
+      "short": "Loeb · Falconer",
+      "title": "W. A. Falconer (tr.). Cicero, Laelius de Amicitia. Loeb Classical Library, 1923: introduction (LacusCurtius)",
+      "url": "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Cicero/Laelius_de_Amicitia/introduction*.html"
+    },
+    "winstedt-atticus": {
+      "short": "Loeb · Winstedt",
+      "title": "E. O. Winstedt (tr.). Cicero, Letters to Atticus, vol. III. Loeb Classical Library, 1918 (Project Gutenberg)",
+      "url": "https://www.gutenberg.org/files/51403/51403-h/51403-h.htm"
+    },
+    "rackham-de-fato": {
+      "short": "Loeb · Rackham",
+      "title": "H. Rackham (tr.). Cicero, De Oratore III; De Fato; Paradoxa Stoicorum; De Partitione Oratoria. Loeb Classical Library 349, 1942: introduction to De Fato (archive.org)",
+      "url": "https://archive.org/details/cicero-in-28-volumes.-vol.-4-loeb-349"
+    },
+    "wikipedia-de-fato": {
+      "short": "Wikipedia · Sharples",
+      "title": "De Fato. Wikipedia (citing R. W. Sharples, 1991)",
+      "url": "https://en.wikipedia.org/wiki/De_Fato"
+    },
+    "grande-sanchez": {
+      "short": "Grande Sánchez 2025",
+      "title": "P. J. Grande Sánchez. The Greek Philosophical Sources in Cicero’s De Fato. Religions 16.7 (2025), 824",
+      "url": "https://www.mdpi.com/2077-1444/16/7/824"
+    },
+    "holden-de-officiis": {
+      "short": "Holden",
+      "title": "H. A. Holden (ed.). M. Tullii Ciceronis De officiis libri tres, 3rd ed. Cambridge University Press, 1879 (archive.org)",
+      "url": "https://archive.org/details/deofficiislibrit00cice_0"
+    },
+    "sep-seneca": {
+      "short": "SEP · Vogt",
+      "title": "Katja Vogt. Seneca. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/seneca/"
+    },
+    "gummere-epistulae": {
+      "short": "Loeb · Gummere",
+      "title": "R. M. Gummere (tr.). Seneca, Epistulae Morales, vol. I. Loeb Classical Library, 1917: introduction (archive.org)",
+      "url": "https://archive.org/details/adluciliumepistu01sene"
+    },
+    "sep-epictetus": {
+      "short": "SEP · Graver",
+      "title": "Margaret Graver. Epictetus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/epictetus/"
+    },
+    "iep-epictetus": {
+      "short": "IEP · Seddon",
+      "title": "Keith H. Seddon. Epictetus (55—135 C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/epictetu/"
+    },
+    "kechagia-colotes": {
+      "short": "Kechagia 2011",
+      "title": "E. Kechagia. Why did Plutarch write against Colotes? Reading the prooemium of Πρὸς Κωλώτην. In: Plutarch Against Colotes: A Lesson in History of Philosophy. Oxford University Press, 2011, 18–45 (ORA)",
+      "url": "https://ora.ox.ac.uk/objects/uuid:254b0850-09be-45cb-b805-595f1c79419b"
+    },
+    "sep-plutarch": {
+      "short": "SEP · Karamanolis",
+      "title": "George Karamanolis. Plutarch. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/plutarch/"
+    },
+    "sep-sextus": {
+      "short": "SEP · Morison",
+      "title": "Benjamin Morison. Sextus Empiricus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/sextus-empiricus/"
+    },
+    "bury-outlines": {
+      "short": "Loeb · Bury",
+      "title": "R. G. Bury (tr.). Sextus Empiricus, vol. I: Outlines of Pyrrhonism. Loeb Classical Library, 1933: introduction (archive.org)",
+      "url": "https://archive.org/details/in.ernet.dli.2015.183761"
+    },
+    "porphyry-life": {
+      "short": "Porphyry · MacKenna",
+      "title": "Porphyry. On the Life of Plotinus and the Order of His Books, tr. S. MacKenna (1917). Wikisource",
+      "url": "https://en.wikisource.org/wiki/Life_of_Plotinus"
+    },
+    "sep-plotinus": {
+      "short": "SEP · Kalligas",
+      "title": "Paul Kalligas. Plotinus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/plotinus/"
+    },
+    "pearse-isagoge": {
+      "short": "R. Pearse · tertullian.org",
+      "title": "Roger Pearse. Porphyry, Introduction (Isagoge): preface to the online edition (2007), citing Ammonius, Elias and David",
+      "url": "https://tertullian.org/fathers/porphyry_isagogue_01_intro.htm"
+    }
+  },
+  "places": {
+    "athens": {
+      "label": {
+        "ru": "Афины",
+        "en": "Athens"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "579885",
+          "url": "https://pleiades.stoa.org/places/579885"
+        }
+      ],
+      "point": [
+        23.723954796773654,
+        37.97164747289856
+      ],
+      "point_source": "https://pleiades.stoa.org/places/579885/json"
+    },
+    "rome": {
+      "label": {
+        "ru": "Рим",
+        "en": "Rome"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "423025",
+          "url": "https://pleiades.stoa.org/places/423025"
+        }
+      ],
+      "point": [
+        12.491258174554883,
+        41.8899769864849
+      ],
+      "point_source": "https://pleiades.stoa.org/places/423025/json"
+    },
+    "puteoli": {
+      "label": {
+        "ru": "Путеолы",
+        "en": "Puteoli"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "432815",
+          "url": "https://pleiades.stoa.org/places/432815"
+        }
+      ],
+      "point": [
+        14.121741499999999,
+        40.825838
+      ],
+      "point_source": "https://pleiades.stoa.org/places/432815/json"
+    },
+    "campania": {
+      "label": {
+        "ru": "Кампания",
+        "en": "Campania"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "432742",
+          "url": "https://pleiades.stoa.org/places/432742"
+        }
+      ],
+      "point": [
+        13.622430012426932,
+        41.390186223893345
+      ],
+      "point_source": "https://pleiades.stoa.org/places/432742/json"
+    },
+    "nicopolis-epirus": {
+      "label": {
+        "ru": "Никополь Эпирский",
+        "en": "Nicopolis in Epirus"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "531013",
+          "url": "https://pleiades.stoa.org/places/531013"
+        }
+      ],
+      "point": [
+        20.7360035,
+        39.0157
+      ],
+      "point_source": "https://pleiades.stoa.org/places/531013/json"
+    },
+    "chaeronea": {
+      "label": {
+        "ru": "Херонея",
+        "en": "Chaeronea"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "540701",
+          "url": "https://pleiades.stoa.org/places/540701"
+        }
+      ],
+      "point": [
+        22.8414259,
+        38.493967749999996
+      ],
+      "point_source": "https://pleiades.stoa.org/places/540701/json"
+    },
+    "sicily": {
+      "label": {
+        "ru": "Сицилия",
+        "en": "Sicily"
+      },
+      "gazetteer": [
+        {
+          "scheme": "pleiades",
+          "id": "462492",
+          "url": "https://pleiades.stoa.org/places/462492"
+        }
+      ],
+      "point": [
+        14.046517222907195,
+        37.592530586002724
+      ],
+      "point_source": "https://pleiades.stoa.org/places/462492/json"
+    }
+  },
+  "situations": {
+    "tos.historical-process.aristotle.athenian-constitution-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. EB 1911 датирует его 329–322 гг., вторым пребыванием Аристотеля в Афинах; по SEP, большинство исследователей приписывают его одному из учеников Аристотеля.",
+        "en": "The sources do not say where it was written. EB 1911 dates it to 329–322, Aristotle’s second residence in Athens; per SEP, most scholars now attribute it to one of his pupils."
+      },
+      "sources": [
+        "eb1911-athens",
+        "sep-aristotle-politics"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.aristotle.de-anima-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Он отнесён к годам Ликея: в 335 г. Аристотель вернулся в Афины и учил в Ликее, а в 323 г. покинул город.",
+        "en": "The sources do not say where the treatise was written. It is dated to the Lyceum years: Aristotle returned to Athens in 335, taught at the Lyceum and left the city in 323."
+      },
+      "sources": [
+        "sep-aristotle"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.aristotle.eudemian-ethics-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Он отнесён к годам Ликея: в 335 г. Аристотель вернулся в Афины и учил в Ликее, а в 323 г. покинул город. SEP при этом отмечает, что «Евдемову этику» обычно считают более ранней, чем «Никомахову».",
+        "en": "The sources do not say where the treatise was written. It is dated to the Lyceum years: Aristotle returned to Athens in 335, taught at the Lyceum and left the city in 323. SEP notes, however, that the Eudemian Ethics is widely assumed to be earlier than the Nicomachean."
+      },
+      "sources": [
+        "sep-aristotle",
+        "sep-aristotle-ethics"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.aristotle.metaphysics-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Он отнесён к годам Ликея: в 335 г. Аристотель вернулся в Афины и учил в Ликее, а в 323 г. покинул город.",
+        "en": "The sources do not say where the treatise was written. It is dated to the Lyceum years: Aristotle returned to Athens in 335, taught at the Lyceum and left the city in 323."
+      },
+      "sources": [
+        "sep-aristotle"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.aristotle.nicomachean-ethics-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Он отнесён к годам Ликея: в 335 г. Аристотель вернулся в Афины и учил в Ликее, а в 323 г. покинул город.",
+        "en": "The sources do not say where the treatise was written. It is dated to the Lyceum years: Aristotle returned to Athens in 335, taught at the Lyceum and left the city in 323."
+      },
+      "sources": [
+        "sep-aristotle"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.aristotle.poetics-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Он отнесён к годам Ликея: в 335 г. Аристотель вернулся в Афины и учил в Ликее, а в 323 г. покинул город.",
+        "en": "The sources do not say where the treatise was written. It is dated to the Lyceum years: Aristotle returned to Athens in 335, taught at the Lyceum and left the city in 323."
+      },
+      "sources": [
+        "sep-aristotle"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.aristotle.politics-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Он отнесён к годам Ликея: в 335 г. Аристотель вернулся в Афины и учил в Ликее, а в 323 г. покинул город.",
+        "en": "The sources do not say where the treatise was written. It is dated to the Lyceum years: Aristotle returned to Athens in 335, taught at the Lyceum and left the city in 323."
+      },
+      "sources": [
+        "sep-aristotle"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.aristotle.rhetoric-composition": {
+      "place": "athens",
+      "basis": "composition",
+      "statement": {
+        "ru": "SEP: по крайней мере ядро I и II книг, по-видимому, раннее сочинение, написанное в первое пребывание Аристотеля в Афинах; отдельные исторические отсылки относятся к более позднему времени.",
+        "en": "SEP: at least the core of Books I and II seems to be an early work, written during Aristotle’s first stay in Athens; some historical references belong to a later time."
+      },
+      "sources": [
+        "sep-rhetoric"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.cicero.de-amicitia-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан «Лелий», источники не говорят. Фальконер относит его к осени 44 г.: тогда Цицерон спрашивал Аттика о трибунате Гая Фанния; письма помещают Цицерона в Путеолах до начала ноября, затем в Арпине.",
+        "en": "The sources do not say where the Laelius was written. Falconer places it in the autumn of 44, when Cicero asked Atticus about C. Fannius’ tribunate; the letters place Cicero at Puteoli until early November, then at Arpinum."
+      },
+      "sources": [
+        "falconer-laelius",
+        "winstedt-atticus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.cicero.de-fato-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан трактат, источники расходятся. Беседа происходит на вилле Цицерона в Путеолах; по Шарплсу (через Википедию), он написан там между 17 апреля и 23 мая 44 г., а Гранде Санчес датирует его июнем 44 г., когда письма помещают Цицерона в Тускуле и Анции.",
+        "en": "The sources disagree on where it was written. The dialogue is set at Cicero’s villa at Puteoli; per Sharples (via Wikipedia) it was written there between 17 April and 23 May 44, while Grande Sánchez dates it to June 44, when the letters place Cicero at Tusculum and Antium."
+      },
+      "sources": [
+        "rackham-de-fato",
+        "wikipedia-de-fato",
+        "grande-sanchez"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.cicero.de-officiis-composition": {
+      "place": "puteoli",
+      "basis": "composition",
+      "statement": {
+        "ru": "После Первой филиппики Цицерон удалился на виллу в Путеолах и, по Холдену, писал трактат там в октябре и ноябре 44 г.; в письмах Аттику он 25 октября работает над ним в Путеолах, а к 5 ноября закончены две книги. Третью он, вероятно, завершал уже в Арпине.",
+        "en": "After the First Philippic Cicero retired to his villa at Puteoli and, per Holden, wrote the work there in October and November 44; his letters to Atticus show him at work on it at Puteoli on 25 October and two books finished by 5 November. The third was probably completed at Arpinum."
+      },
+      "sources": [
+        "holden-de-officiis",
+        "winstedt-atticus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.epictetus.discourses-composition": {
+      "place": "nicopolis-epirus",
+      "basis": "activity",
+      "statement": {
+        "ru": "«Беседы» передают позднее преподавание Эпиктета в его школе в Никополе Эпирском, около 108 г. по датировке Миллара (SEP); записал их ученик Арриан. Где Арриан их записывал, источники не говорят.",
+        "en": "The Discourses record Epictetus’ later teaching at his school in Nicopolis in Epirus, around 108 by Millar’s dating (SEP); his pupil Arrian wrote them up. Where Arrian did so, the sources do not say."
+      },
+      "sources": [
+        "sep-epictetus",
+        "iep-epictetus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.epictetus.enchiridion-composition": {
+      "place": "nicopolis-epirus",
+      "basis": "activity",
+      "statement": {
+        "ru": "«Руководство» — краткое извлечение из «Бесед» (SEP), то есть из преподавания в Никополе; где и когда сделано извлечение, источники не говорят.",
+        "en": "The Encheiridion is a brief abridgment of the Discourses (SEP), that is, of the teaching at Nicopolis; where and when the abridgment was made, the sources do not say."
+      },
+      "sources": [
+        "sep-epictetus",
+        "iep-epictetus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.epicurus.letter-to-menoeceus-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где и когда написано письмо, источники не говорят. Эпикур учил в Митилене и Лампсаке, а с 307/306 г. до смерти жил в Афинах, где купил Сад.",
+        "en": "The sources say neither where nor when the letter was written. Epicurus taught at Mytilene and Lampsacus and from 307/306 until his death lived in Athens, where he bought the Garden."
+      },
+      "sources": [
+        "sep-epicurus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.epicurus.principal-doctrines-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где и когда составлены «Главные мысли», источники не говорят: это изречения, извлечённые из сочинений Эпикура или его ближайших учеников. Эпикур с 307/306 г. до смерти жил в Афинах, в Саду.",
+        "en": "The sources say neither where nor when the Principal Doctrines were put together: they are sayings excerpted from the writings of Epicurus or his close associates. From 307/306 until his death Epicurus lived in Athens, in the Garden."
+      },
+      "sources": [
+        "sep-epicurus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.hippocratic-corpus.ancient-medicine-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Корпус связывают с врачебной школой Коса, но это приписывание школе, а не место написания; само деление сочинений на косские и книдские спорно.",
+        "en": "The sources do not say where the treatise was written. The corpus is linked with the medical school of Cos, but that is an attribution to a school, not a place of writing; the very division into Coan and Cnidian works is disputed."
+      },
+      "sources": [
+        "iep-hippocrates",
+        "jones-loeb-hippocrates"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.hippocratic-corpus.sacred-disease-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Корпус связывают с врачебной школой Коса, но это приписывание школе, а не место написания; само деление сочинений на косские и книдские спорно.",
+        "en": "The sources do not say where the treatise was written. The corpus is linked with the medical school of Cos, but that is an attribution to a school, not a place of writing; the very division into Coan and Cnidian works is disputed."
+      },
+      "sources": [
+        "iep-hippocrates",
+        "jones-loeb-hippocrates"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.lucretius.de-rerum-natura-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написана поэма, источники не говорят: о жизни Лукреция почти ничего не известно.",
+        "en": "The sources do not say where the poem was written: almost nothing is known of Lucretius’ life."
+      },
+      "sources": [
+        "sep-lucretius",
+        "iep-lucretius"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.apology-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Ранние диалоги написаны после смерти Сократа и до первой поездки Платона на Сицилию в 387 г.; тогда он покинул Афины, жил сначала в Мегаре, а затем, возможно, в других местах.",
+        "en": "The sources do not say where the dialogue was written. The early dialogues were written after Socrates’ death and before Plato’s first journey to Sicily in 387; he then left Athens, stayed first in Megara and then perhaps elsewhere."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.cratylus-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Он отнесён к переходу от ранних диалогов к средним (ок. 387–380), когда Платон вернулся в Афины и основал Академию; Академия оставалась его домом, кроме двух поездок на Сицилию.",
+        "en": "The sources do not say where the dialogue was written. It belongs between the early and the middle dialogues (c. 387–380), when Plato returned to Athens and founded the Academy, his home base thereafter apart from two journeys to Sicily."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.crito-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Ранние диалоги написаны после смерти Сократа и до первой поездки Платона на Сицилию в 387 г.; тогда он покинул Афины, жил сначала в Мегаре, а затем, возможно, в других местах.",
+        "en": "The sources do not say where the dialogue was written. The early dialogues were written after Socrates’ death and before Plato’s first journey to Sicily in 387; he then left Athens, stayed first in Megara and then perhaps elsewhere."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.gorgias-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Ранние диалоги написаны после смерти Сократа и до первой поездки Платона на Сицилию в 387 г.; тогда он покинул Афины, жил сначала в Мегаре, а затем, возможно, в других местах.",
+        "en": "The sources do not say where the dialogue was written. The early dialogues were written after Socrates’ death and before Plato’s first journey to Sicily in 387; he then left Athens, stayed first in Megara and then perhaps elsewhere."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.ion-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Ранние диалоги написаны после смерти Сократа и до первой поездки Платона на Сицилию в 387 г.; тогда он покинул Афины, жил сначала в Мегаре, а затем, возможно, в других местах.",
+        "en": "The sources do not say where the dialogue was written. The early dialogues were written after Socrates’ death and before Plato’s first journey to Sicily in 387; he then left Athens, stayed first in Megara and then perhaps elsewhere."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.laches-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Ранние диалоги написаны после смерти Сократа и до первой поездки Платона на Сицилию в 387 г.; тогда он покинул Афины, жил сначала в Мегаре, а затем, возможно, в других местах.",
+        "en": "The sources do not say where the dialogue was written. The early dialogues were written after Socrates’ death and before Plato’s first journey to Sicily in 387; he then left Athens, stayed first in Megara and then perhaps elsewhere."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.laws-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Поздние диалоги (ок. 355–347) относятся к последним тринадцати годам Платона, прожитым в Академии.",
+        "en": "The sources do not say where the dialogue was written. The late dialogues (c. 355–347) belong to the last thirteen years of Plato’s life, which he spent at the Academy."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.lysis-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Ранние диалоги написаны после смерти Сократа и до первой поездки Платона на Сицилию в 387 г.; тогда он покинул Афины, жил сначала в Мегаре, а затем, возможно, в других местах.",
+        "en": "The sources do not say where the dialogue was written. The early dialogues were written after Socrates’ death and before Plato’s first journey to Sicily in 387; he then left Athens, stayed first in Megara and then perhaps elsewhere."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.meno-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Он отнесён к переходу от ранних диалогов к средним (ок. 387–380), когда Платон вернулся в Афины и основал Академию; Академия оставалась его домом, кроме двух поездок на Сицилию.",
+        "en": "The sources do not say where the dialogue was written. It belongs between the early and the middle dialogues (c. 387–380), when Plato returned to Athens and founded the Academy, his home base thereafter apart from two journeys to Sicily."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.parmenides-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Он относится ко времени, когда домом Платона оставалась Академия в Афинах, откуда он дважды ездил на Сицилию.",
+        "en": "The sources do not say where the dialogue was written. It belongs to the years when the Academy at Athens remained Plato’s home base, from which he twice travelled to Sicily."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.phaedo-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Средние диалоги (ок. 380–360) написаны в годы, когда домом Платона была Академия в Афинах.",
+        "en": "The sources do not say where the dialogue was written. The middle dialogues (c. 380–360) belong to the years when the Academy at Athens was Plato’s home base."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.phaedrus-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Он относится ко времени, когда домом Платона оставалась Академия в Афинах, откуда он дважды ездил на Сицилию.",
+        "en": "The sources do not say where the dialogue was written. It belongs to the years when the Academy at Athens remained Plato’s home base, from which he twice travelled to Sicily."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.philebus-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Поздние диалоги (ок. 355–347) относятся к последним тринадцати годам Платона, прожитым в Академии.",
+        "en": "The sources do not say where the dialogue was written. The late dialogues (c. 355–347) belong to the last thirteen years of Plato’s life, which he spent at the Academy."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.protagoras-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Ранние диалоги написаны после смерти Сократа и до первой поездки Платона на Сицилию в 387 г.; тогда он покинул Афины, жил сначала в Мегаре, а затем, возможно, в других местах.",
+        "en": "The sources do not say where the dialogue was written. The early dialogues were written after Socrates’ death and before Plato’s first journey to Sicily in 387; he then left Athens, stayed first in Megara and then perhaps elsewhere."
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.republic-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Средние диалоги (ок. 380–360) написаны в годы, когда домом Платона была Академия в Афинах.",
+        "en": "The sources do not say where the dialogue was written. The middle dialogues (c. 380–360) belong to the years when the Academy at Athens was Plato’s home base."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.sophist-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Поздние диалоги (ок. 355–347) относятся к последним тринадцати годам Платона, прожитым в Академии.",
+        "en": "The sources do not say where the dialogue was written. The late dialogues (c. 355–347) belong to the last thirteen years of Plato’s life, which he spent at the Academy."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.symposium-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Средние диалоги (ок. 380–360) написаны в годы, когда домом Платона была Академия в Афинах.",
+        "en": "The sources do not say where the dialogue was written. The middle dialogues (c. 380–360) belong to the years when the Academy at Athens was Plato’s home base."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.theaetetus-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Он относится ко времени, когда домом Платона оставалась Академия в Афинах, откуда он дважды ездил на Сицилию.",
+        "en": "The sources do not say where the dialogue was written. It belongs to the years when the Academy at Athens remained Plato’s home base, from which he twice travelled to Sicily."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plato.timaeus-composition": {
+      "place": "athens",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан диалог, источники не говорят. Поздние диалоги (ок. 355–347) относятся к последним тринадцати годам Платона, прожитым в Академии.",
+        "en": "The sources do not say where the dialogue was written. The late dialogues (c. 355–347) belong to the last thirteen years of Plato’s life, which he spent at the Academy."
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plotinus.ennead-1-6-composition": {
+      "place": "rome",
+      "basis": "activity",
+      "statement": {
+        "ru": "«О прекрасном» открывает хронологический список Порфирия. Плотин поселился в Риме сорока лет, в правление Филиппа, и начал писать на темы бесед своей школы с первого года Галлиена; в эти годы он жил и учил в Риме. Прямо «написано в Риме» источники не говорят.",
+        "en": "On Beauty heads Porphyry’s chronological list. Plotinus settled in Rome at forty, in the reign of Philip, and began writing on topics raised in his school from the first year of Gallienus; in these years he lived and taught in Rome. No source says in so many words that it was written in Rome."
+      },
+      "sources": [
+        "porphyry-life",
+        "sep-plotinus"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.plutarch.adversus-coloten-composition": {
+      "place": "chaeronea",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. Кехайя читает вступление как письменную версию беседы в школе, которую Плутарх вёл в Херонее; по SEP, большую часть жизни Плутарх провёл в родной Херонее и в соседних Дельфах.",
+        "en": "The sources do not say where it was written. Kechagia reads the prooemium as presenting it as the written version of a discussion in the school Plutarch ran at Chaeronea; per SEP, Plutarch spent most of his life in his native Chaeronea and nearby Delphi."
+      },
+      "sources": [
+        "kechagia-colotes",
+        "sep-plutarch"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.porphyry.isagoge-composition": {
+      "place": "sicily",
+      "basis": "composition",
+      "statement": {
+        "ru": "По всем античным комментаторам — Аммонию, Элию и Давиду, — «Введение» написано Порфирием на Сицилии в 268–270 гг. и послано Хрисаорию. Сам Порфирий пишет, что уехал на Сицилию к Пробу, жившему близ Лилибея.",
+        "en": "According to all the ancient commentators, Ammonius, Elias and David, Porphyry wrote the Isagoge in Sicily in 268–270 and sent it to Chrysaorius. Porphyry himself writes that he left for Sicily because Probus lived there not far from Lilybaeum."
+      },
+      "sources": [
+        "pearse-isagoge",
+        "porphyry-life"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.seneca.de-beneficiis-composition": {
+      "place": "rome",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. До 62 г. Сенека был в Риме советником Нерона, затем удалился от дел и, по Гаммиру, ездил по Южной Италии, так что поздние части могли быть написаны вне Рима.",
+        "en": "The sources do not say where it was written. Until 62 Seneca was in Rome as Nero’s adviser; he then retired and, per Gummere, travelled about southern Italy, so later parts may have been written elsewhere."
+      },
+      "sources": [
+        "sep-seneca",
+        "gummere-epistulae"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.seneca.de-clementia-composition": {
+      "place": "rome",
+      "basis": "activity",
+      "statement": {
+        "ru": "Где написан трактат, источники не говорят. SEP датирует «О милосердии» 55 или 56 гг.: Сенека обращается к Нерону в начале его правления, будучи в Риме среди его советников.",
+        "en": "The sources do not say where it was written. SEP dates On Mercy to 55 or 56: Seneca addresses Nero early in his reign, as one of his advisers in Rome."
+      },
+      "sources": [
+        "sep-seneca"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.seneca.letters-to-lucilius-composition": {
+      "place": "campania",
+      "basis": "activity",
+      "statement": {
+        "ru": "Письма — плод последних лет (62–65), проведённых в отставке; по Гаммиру, Сенека тогда ездил по Южной Италии, и отдельные письма помечены Кампанией, Байями, дорогой на Неаполь. У девятого письма своего места нет: Кампания здесь — обобщение по краю.",
+        "en": "The letters are the product of the last years (62–65), spent in retirement; per Gummere, Seneca then travelled about southern Italy, and single letters are written from Campania, Baiae and the road to Naples. Letter 9 names no place of its own: Campania here summarises the region."
+      },
+      "sources": [
+        "sep-seneca",
+        "gummere-epistulae"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.sextus-empiricus.outlines-of-pyrrhonism-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где и когда написаны «Положения», неизвестно: о жизни Секста почти ничего не известно (SEP). Бьюри полагает, что он какое-то время жил в Риме и знал Афины и Александрию.",
+        "en": "Where and when the Outlines were written is unknown: little or nothing is known of Sextus’ life (SEP). Bury thinks he resided for some time in Rome and knew Athens and Alexandria."
+      },
+      "sources": [
+        "sep-sextus",
+        "bury-outlines"
+      ],
+      "footing": "high"
+    },
+    "tos.historical-process.xenophon.memorabilia-composition": {
+      "basis": "unknown",
+      "statement": {
+        "ru": "Где написаны «Воспоминания», источники не говорят. До 371 г. Ксенофонт жил в имении в Элиде близ Олимпии; по IEP, потом он перебрался в Коринф, где и умер, Britannica считает это преданием сомнительной надёжности.",
+        "en": "The sources do not say where the Memorabilia was written. Until 371 Xenophon lived on an estate in Elis near Olympia; per IEP he then moved to Corinth, where he died, which Britannica treats as a tradition of doubtful authority."
+      },
+      "sources": [
+        "iep-xenophon",
+        "britannica-xenophon"
+      ],
+      "footing": "high"
+    }
+  }
+}

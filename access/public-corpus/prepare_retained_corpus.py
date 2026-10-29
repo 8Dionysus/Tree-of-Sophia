@@ -788,7 +788,7 @@ def main() -> int:
     map_books: list[dict[str, Any]] = []
     new_acq: list[dict[str, Any]] = []
     mapping: dict[str, str] = {}
-    collection = load(REPO / "access/web/src/public-research/antiquity-collection-data.json")
+    collection = load(REPO / "bonsai/antiquity/collection.json")
     entity_by_legacy = {e.get("id"): e for e in collection.get("entities", []) if e.get("kind") == "work"}
     author_by_id = {e.get("id"): e for e in collection.get("entities", []) if e.get("kind") == "author"}
 

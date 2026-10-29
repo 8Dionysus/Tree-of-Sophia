@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import collection from './antiquity-collection-data.json' with {type:'json'};
+import collection from '../../../../bonsai/antiquity/collection.json' with {type:'json'};
 import {ANTIQUITY_TRANSITIONS,SHARED_RELATION_LINES,isAuthoredTransition,ladderRung,nodeForm,partName,referenceLine,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {RELATIONS} from '../../constructor/atlas-view.mjs';
 import {RESEARCH_ROUTES} from '../../constructor/atlas-routes.mjs';

@@ -1,0 +1,2577 @@
+{
+  "schema": "tos.bonsai.chronology.v1",
+  "bonsai": "antiquity",
+  "checked": "2026-10-29",
+  "posture": {
+    "ru": "Датировки жизней, периодов и сочинений в грамматике дат Древа. Каждая опирается на названный источник, говорит, насколько твёрдо стоит, и сохраняет его неопределённость. Это предложение стенда, а не канон и не окончательное решение спорных датировок.",
+    "en": "Datings of lives, phases and works in the Tree’s date grammar. Each rests on the source it names, says how firmly it stands and keeps that source’s uncertainty. It is the stand’s proposal, not canon and no final settlement of disputed datings."
+  },
+  "numbering": {
+    "year_numbering": "astronomical",
+    "calendar": null,
+    "note": {
+      "ru": "Годы до н. э. переведены в астрономический счёт (1 г. до н. э. = 0); календарь источники не называют, и он не утверждается. Формулировка даты в source_wording — выражение бонсая по названному источнику, а не дословная цитата.",
+      "en": "Years BCE are converted to astronomical numbering (1 BCE = 0); the sources name no calendar and none is asserted. The source_wording of a dating is the bonsai’s expression after the named source, not a verbatim quotation."
+    }
+  },
+  "sources": {
+    "iep-plato": {
+      "short": "IEP · Brickhouse & Smith",
+      "title": "Thomas Brickhouse, Nicholas D. Smith. Plato (427—347 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/plato/"
+    },
+    "sep-theaetetus": {
+      "short": "SEP · Verde",
+      "title": "Francesco Verde. Plato on Knowledge in the Theaetetus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/plato-theaetetus/"
+    },
+    "britannica-plato-late": {
+      "short": "Britannica",
+      "title": "Plato: Late dialogues. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Plato/Late-dialogues"
+    },
+    "britannica-aristotle-lyceum": {
+      "short": "Britannica",
+      "title": "Aristotle: The Lyceum. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Aristotle/The-Lyceum"
+    },
+    "sep-aristotle": {
+      "short": "SEP · Shields",
+      "title": "Christopher Shields. Aristotle. Stanford Encyclopedia of Philosophy (Winter 2024 Edition)",
+      "url": "https://plato.stanford.edu/archives/win2024/entries/aristotle/"
+    },
+    "britannica-eudemian": {
+      "short": "Britannica",
+      "title": "Eudemian Ethics. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/topic/Eudemian-Ethics"
+    },
+    "sep-rhetoric": {
+      "short": "SEP · Rapp",
+      "title": "Christof Rapp. Aristotle's Rhetoric. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/aristotle-rhetoric/"
+    },
+    "sep-aristotle-politics": {
+      "short": "SEP · Miller",
+      "title": "Fred Miller. Aristotle's Political Theory. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/aristotle-politics/"
+    },
+    "wikipedia-hippocratic-corpus": {
+      "short": "Wikipedia · Jouanna",
+      "title": "Hippocratic Corpus. Wikipedia (citing J. Jouanna, Hippocrates, 1999, Appendix 3)",
+      "url": "https://en.wikipedia.org/wiki/Hippocratic_Corpus"
+    },
+    "wikipedia-memorabilia": {
+      "short": "Wikipedia",
+      "title": "Memorabilia (Xenophon). Wikipedia (no study cited for the dating)",
+      "url": "https://en.wikipedia.org/wiki/Memorabilia_(Xenophon)"
+    },
+    "iep-xenophon": {
+      "short": "IEP · Browning",
+      "title": "Eve A. Browning. Xenophon (430—354 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/xenophon/"
+    },
+    "sep-aristotle-ethics": {
+      "short": "SEP · Kraut",
+      "title": "Richard Kraut. Aristotle's Ethics. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/aristotle-ethics/"
+    },
+    "eb1911-athens": {
+      "short": "EB 1911",
+      "title": "Constitution of Athens. Encyclopædia Britannica, 11th edition (1911), Wikisource",
+      "url": "https://en.wikisource.org/wiki/1911_Encyclop%C3%A6dia_Britannica/Constitution_of_Athens"
+    },
+    "britannica-on-duties": {
+      "short": "Britannica",
+      "title": "On Duties. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/topic/On-Duties"
+    },
+    "britannica-cicero": {
+      "short": "Britannica",
+      "title": "Cicero: Philosophy. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Cicero/Philosophy"
+    },
+    "sep-cicero": {
+      "short": "SEP · Woolf",
+      "title": "Raphael Woolf. Cicero. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/cicero/"
+    },
+    "sep-lucretius": {
+      "short": "SEP · Trépanier",
+      "title": "Simon Trépanier. Lucretius. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/lucretius/"
+    },
+    "sep-seneca": {
+      "short": "SEP · Vogt",
+      "title": "Katja Vogt. Seneca. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/seneca/"
+    },
+    "wikipedia-de-beneficiis": {
+      "short": "Wikipedia",
+      "title": "De Beneficiis. Wikipedia (citing J. M. Cooper & J. F. Procopé; G. B. Conte)",
+      "url": "https://en.wikipedia.org/wiki/De_Beneficiis"
+    },
+    "sep-epictetus": {
+      "short": "SEP · Graver",
+      "title": "Margaret Graver. Epictetus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/epictetus/"
+    },
+    "ep-plotinus": {
+      "short": "Encyclopedia of Philosophy",
+      "title": "Philip Merlan, rev. Paul Kalligas. Plotinus (c. 205–270). Encyclopedia of Philosophy, via Encyclopedia.com",
+      "url": "https://encyclopedia.com/humanities/encyclopedias-almanacs-transcripts-and-maps/plotinus-c-205-270"
+    },
+    "sep-plotinus": {
+      "short": "SEP · Kalligas",
+      "title": "Paul Kalligas. Plotinus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/plotinus/"
+    },
+    "pearse-isagoge": {
+      "short": "R. Pearse · tertullian.org",
+      "title": "Roger Pearse. Porphyry, Introduction (Isagoge): preface to the online edition (2007), citing Ammonius, Elias and David",
+      "url": "https://tertullian.org/fathers/porphyry_isagogue_01_intro.htm"
+    },
+    "sep-plato": {
+      "short": "SEP · Kraut",
+      "title": "Richard Kraut. Plato. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/plato/"
+    },
+    "sep-socrates": {
+      "short": "SEP · Nails & Monoson",
+      "title": "Debra Nails, S. Sara Monoson. Socrates. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/socrates/"
+    },
+    "sep-plutarch": {
+      "short": "SEP · Karamanolis",
+      "title": "George Karamanolis. Plutarch. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/plutarch/"
+    },
+    "sep-porphyry": {
+      "short": "SEP · Emilsson",
+      "title": "Eyjólfur Emilsson. Porphyry. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/porphyry/"
+    },
+    "sep-epicurus": {
+      "short": "SEP · Konstan",
+      "title": "David Konstan. Epicurus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/epicurus/"
+    },
+    "sep-marcus": {
+      "short": "SEP · Kamtekar",
+      "title": "Rachana Kamtekar. Marcus Aurelius. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/marcus-aurelius/"
+    },
+    "sep-sextus": {
+      "short": "SEP · Morison",
+      "title": "Benjamin Morison. Sextus Empiricus. Stanford Encyclopedia of Philosophy",
+      "url": "https://plato.stanford.edu/entries/sextus-empiricus/"
+    },
+    "iep-plotinus": {
+      "short": "IEP · Moore",
+      "title": "Edward Moore. Plotinus (204—270 C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/plotinus/"
+    },
+    "iep-diogenes": {
+      "short": "IEP · Piering",
+      "title": "Julie Piering. Diogenes of Sinope (c. 404—323 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/diogenes-of-sinope/"
+    },
+    "iep-epicurus": {
+      "short": "IEP · O’Keefe",
+      "title": "Tim O’Keefe. Epicurus (341—271 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/epicur/"
+    },
+    "iep-lucretius": {
+      "short": "IEP · Simpson",
+      "title": "David Simpson. Lucretius (c. 99—c. 55 B.C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/lucretiu/"
+    },
+    "iep-seneca": {
+      "short": "IEP · Wagoner",
+      "title": "Robert Wagoner. Seneca (c. 4 B.C.E.—65 C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/seneca/"
+    },
+    "iep-epictetus": {
+      "short": "IEP · Seddon",
+      "title": "Keith H. Seddon. Epictetus (55—135 C.E.). Internet Encyclopedia of Philosophy",
+      "url": "https://iep.utm.edu/epictetu/"
+    },
+    "britannica-xenophon": {
+      "short": "Britannica",
+      "title": "Xenophon. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Xenophon"
+    },
+    "britannica-zeno": {
+      "short": "Britannica",
+      "title": "Zeno of Citium. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Zeno-of-Citium"
+    },
+    "britannica-laertius": {
+      "short": "Britannica",
+      "title": "Diogenes Laërtius. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Diogenes-Laertius"
+    },
+    "britannica-sextus": {
+      "short": "Britannica",
+      "title": "Sextus Empiricus. Encyclopædia Britannica",
+      "url": "https://www.britannica.com/biography/Sextus-Empiricus"
+    }
+  },
+  "lives": {
+    "cicero": "tos.biographical-phase.cicero.lifetime",
+    "plutarch": "tos.biographical-phase.plutarch.lifetime",
+    "plotinus": "tos.biographical-phase.plotinus.lifetime",
+    "porphyry": "tos.biographical-phase.porphyry.lifetime",
+    "socrates": "tos.biographical-phase.socrates.lifetime",
+    "plato": "tos.biographical-phase.plato.lifetime",
+    "aristotle": "tos.biographical-phase.aristotle.lifetime",
+    "xenophon": "tos.biographical-phase.xenophon.lifetime",
+    "diogenes": "tos.biographical-phase.diogenes-of-sinope.lifetime",
+    "epicurus": "tos.biographical-phase.epicurus.lifetime",
+    "zeno": "tos.biographical-phase.zeno-of-citium.lifetime",
+    "lucretius": "tos.biographical-phase.lucretius.lifetime",
+    "seneca": "tos.biographical-phase.seneca.lifetime",
+    "epictetus": "tos.biographical-phase.epictetus.lifetime",
+    "marcus": "tos.biographical-phase.marcus-aurelius.lifetime",
+    "sextus": "tos.biographical-phase.sextus-empiricus.activity",
+    "laertius": "tos.biographical-phase.diogenes-laertius.activity"
+  },
+  "compositions": {
+    "works": {
+      "apology": "tos.historical-process.plato.apology-composition",
+      "crito": "tos.historical-process.plato.crito-composition",
+      "gorgias": "tos.historical-process.plato.gorgias-composition",
+      "ion": "tos.historical-process.plato.ion-composition",
+      "laches": "tos.historical-process.plato.laches-composition",
+      "lysis": "tos.historical-process.plato.lysis-composition",
+      "protagoras": "tos.historical-process.plato.protagoras-composition",
+      "cratylus": "tos.historical-process.plato.cratylus-composition",
+      "meno": "tos.historical-process.plato.meno-composition",
+      "phaedo": "tos.historical-process.plato.phaedo-composition",
+      "symposium": "tos.historical-process.plato.symposium-composition",
+      "republic": "tos.historical-process.plato.republic-composition",
+      "parmenides": "tos.historical-process.plato.parmenides-composition",
+      "phaedrus": "tos.historical-process.plato.phaedrus-composition",
+      "theaetetus": "tos.historical-process.plato.theaetetus-composition",
+      "sophist": "tos.historical-process.plato.sophist-composition",
+      "philebus": "tos.historical-process.plato.philebus-composition",
+      "timaeus": "tos.historical-process.plato.timaeus-composition",
+      "laws": "tos.historical-process.plato.laws-composition",
+      "de-anima": "tos.historical-process.aristotle.de-anima-composition",
+      "ethics": "tos.historical-process.aristotle.nicomachean-ethics-composition",
+      "metaphysics": "tos.historical-process.aristotle.metaphysics-composition",
+      "poetics": "tos.historical-process.aristotle.poetics-composition",
+      "politics": "tos.historical-process.aristotle.politics-composition",
+      "rhetoric": "tos.historical-process.aristotle.rhetoric-composition",
+      "eudemian-ethics": "tos.historical-process.aristotle.eudemian-ethics-composition",
+      "athenian-constitution": "tos.historical-process.aristotle.athenian-constitution-composition",
+      "de-officiis": "tos.historical-process.cicero.de-officiis-composition",
+      "de-amicitia": "tos.historical-process.cicero.de-amicitia-composition",
+      "de-fato": "tos.historical-process.cicero.de-fato-composition",
+      "on-nature": "tos.historical-process.lucretius.de-rerum-natura-composition",
+      "de-clementia": "tos.historical-process.seneca.de-clementia-composition",
+      "de-beneficiis": "tos.historical-process.seneca.de-beneficiis-composition",
+      "letters": "tos.historical-process.seneca.letters-to-lucilius-composition",
+      "discourses": "tos.historical-process.epictetus.discourses-composition",
+      "enchiridion": "tos.historical-process.epictetus.enchiridion-composition",
+      "sacred-disease": "tos.historical-process.hippocratic-corpus.sacred-disease-composition",
+      "ancient-medicine": "tos.historical-process.hippocratic-corpus.ancient-medicine-composition",
+      "memorabilia": "tos.historical-process.xenophon.memorabilia-composition",
+      "enneads": "tos.historical-process.plotinus.enneads-composition",
+      "isagoge": "tos.historical-process.porphyry.isagoge-composition",
+      "adversus-coloten": "tos.historical-process.plutarch.adversus-coloten-composition",
+      "doctrines": "tos.historical-process.epicurus.principal-doctrines-composition",
+      "menoeceus": "tos.historical-process.epicurus.letter-to-menoeceus-composition",
+      "outlines": "tos.historical-process.sextus-empiricus.outlines-of-pyrrhonism-composition"
+    },
+    "passages": {
+      "plotinus-symmetry": "tos.historical-process.plotinus.ennead-1-6-composition",
+      "plotinus-sculpture": "tos.historical-process.plotinus.ennead-1-6-composition"
+    }
+  },
+  "situations": {
+    "tos.biographical-phase.cicero.lifetime": {
+      "type": "biographical-phase",
+      "subject": "cicero",
+      "label": {
+        "ru": "Цицерон: годы жизни",
+        "en": "Cicero: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0105",
+          "end": "-0042"
+        },
+        "source_wording": {
+          "text": "106–43 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Марк Туллий Цицерон, 106–43 до н. э.",
+        "en": "SEP: Marcus Tullius Cicero, 106–43 BCE."
+      },
+      "sources": [
+        "sep-cicero"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plutarch.lifetime": {
+      "type": "biographical-phase",
+      "subject": "plutarch",
+      "label": {
+        "ru": "Плутарх: годы жизни",
+        "en": "Plutarch: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "0045",
+          "end": "0120"
+        },
+        "source_wording": {
+          "text": "ca. 45–120 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Плутарх Херонейский, ок. 45–120 н. э.; родился между 45 и 47 гг.",
+        "en": "SEP: Plutarch of Chaeronea, ca. 45–120 CE; born between 45 and 47."
+      },
+      "sources": [
+        "sep-plutarch"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plotinus.lifetime": {
+      "type": "biographical-phase",
+      "subject": "plotinus",
+      "label": {
+        "ru": "Плотин: годы жизни",
+        "en": "Plotinus: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "0204",
+          "end": "0270"
+        },
+        "source_wording": {
+          "text": "204—270 C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "IEP: Плотин, 204–270 н. э.; год рождения выводится из сообщения Порфирия (SEP).",
+        "en": "IEP: Plotinus, 204–270 CE; the year of birth is inferred from Porphyry’s report (SEP)."
+      },
+      "sources": [
+        "iep-plotinus",
+        "sep-plotinus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.porphyry.lifetime": {
+      "type": "biographical-phase",
+      "subject": "porphyry",
+      "label": {
+        "ru": "Порфирий: годы жизни",
+        "en": "Porphyry: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "uncertain",
+        "interval": {
+          "start": "0234",
+          "end": "0305"
+        },
+        "source_wording": {
+          "text": "234?–305? C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Порфирий, 234?–305? н. э.; оба года под вопросом.",
+        "en": "SEP: Porphyry, 234?–305? CE; both years are uncertain."
+      },
+      "sources": [
+        "sep-porphyry"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.socrates.lifetime": {
+      "type": "biographical-phase",
+      "subject": "socrates",
+      "label": {
+        "ru": "Сократ: годы жизни",
+        "en": "Socrates: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0468",
+          "end": "-0398"
+        },
+        "source_wording": {
+          "text": "469–399 B.C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Сократ, 469–399 до н. э.",
+        "en": "SEP: Socrates, 469–399 B.C.E."
+      },
+      "sources": [
+        "sep-socrates"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plato.lifetime": {
+      "type": "biographical-phase",
+      "subject": "plato",
+      "label": {
+        "ru": "Платон: годы жизни",
+        "en": "Plato: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0428",
+          "end": "-0346"
+        },
+        "source_wording": {
+          "text": "429?–347 B.C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Платон, 429?–347 до н. э.; IEP: родился в 428/427, умер в 348/347 до н. э.",
+        "en": "SEP: Plato, 429?–347 B.C.E.; IEP: born 428/427, died 348/347 B.C.E."
+      },
+      "sources": [
+        "sep-plato",
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.aristotle.lifetime": {
+      "type": "biographical-phase",
+      "subject": "aristotle",
+      "label": {
+        "ru": "Аристотель: годы жизни",
+        "en": "Aristotle: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0383",
+          "end": "-0321"
+        },
+        "source_wording": {
+          "text": "384–322 B.C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Аристотель, 384–322 до н. э.",
+        "en": "SEP: Aristotle, 384–322 B.C.E."
+      },
+      "sources": [
+        "sep-aristotle"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.xenophon.lifetime": {
+      "type": "biographical-phase",
+      "subject": "xenophon",
+      "label": {
+        "ru": "Ксенофонт: годы жизни",
+        "en": "Xenophon: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0429",
+          "end": "-0353"
+        },
+        "source_wording": {
+          "text": "430—354 B.C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "IEP: Ксенофонт, 430–354 до н. э.; Britannica: родился ок. 430, умер незадолго до 350.",
+        "en": "IEP: Xenophon, 430–354 B.C.E.; Britannica: born c. 430, died shortly before 350."
+      },
+      "sources": [
+        "iep-xenophon",
+        "britannica-xenophon"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.diogenes-of-sinope.lifetime": {
+      "type": "biographical-phase",
+      "subject": "diogenes",
+      "label": {
+        "ru": "Диоген Синопский: годы жизни",
+        "en": "Diogenes of Sinope: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0403",
+          "end": "-0322"
+        },
+        "source_wording": {
+          "text": "c. 404—323 B.C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "IEP: Диоген Синопский, ок. 404–323 до н. э.",
+        "en": "IEP: Diogenes of Sinope, c. 404–323 B.C.E."
+      },
+      "sources": [
+        "iep-diogenes"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.epicurus.lifetime": {
+      "type": "biographical-phase",
+      "subject": "epicurus",
+      "label": {
+        "ru": "Эпикур: годы жизни",
+        "en": "Epicurus: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0340",
+          "end": "-0269"
+        },
+        "source_wording": {
+          "text": "341–270 B.C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Эпикур, 341–270 до н. э.; IEP: умер около 271 или 270.",
+        "en": "SEP: Epicurus, 341–270 B.C.E.; IEP: died around 271 or 270."
+      },
+      "sources": [
+        "sep-epicurus",
+        "iep-epicurus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.zeno-of-citium.lifetime": {
+      "type": "biographical-phase",
+      "subject": "zeno",
+      "label": {
+        "ru": "Зенон Китийский: годы жизни",
+        "en": "Zeno of Citium: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0334",
+          "end": "-0262"
+        },
+        "source_wording": {
+          "text": "born c. 335 bce … died c. 263",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Britannica: Зенон Китийский родился ок. 335 до н. э. в Китии на Кипре, умер ок. 263 в Афинах.",
+        "en": "Britannica: Zeno of Citium was born c. 335 BCE at Citium, Cyprus, and died c. 263 in Athens."
+      },
+      "sources": [
+        "britannica-zeno"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.lucretius.lifetime": {
+      "type": "biographical-phase",
+      "subject": "lucretius",
+      "label": {
+        "ru": "Лукреций: годы жизни",
+        "en": "Lucretius: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0094",
+          "end": "-0054"
+        },
+        "source_wording": {
+          "text": "mid-90s to mid-50s BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Тит Лукреций Кар, с середины 90-х до середины 50-х гг. до н. э.; IEP: ок. 99 — ок. 55.",
+        "en": "SEP: Titus Lucretius Carus, mid-90s to mid-50s BCE; IEP: c. 99–c. 55."
+      },
+      "sources": [
+        "sep-lucretius",
+        "iep-lucretius"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.seneca.lifetime": {
+      "type": "biographical-phase",
+      "subject": "seneca",
+      "label": {
+        "ru": "Сенека: годы жизни",
+        "en": "Seneca: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "0000",
+          "end": "0065"
+        },
+        "source_wording": {
+          "text": "c. 1 BCE – CE 65",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Луций Анней Сенека, ок. 1 до н. э. — 65 н. э.; IEP: ок. 4 до н. э. — 65 н. э.",
+        "en": "SEP: Lucius Annaeus Seneca, c. 1 BCE – CE 65; IEP: c. 4 BCE – 65 CE."
+      },
+      "sources": [
+        "sep-seneca",
+        "iep-seneca"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.epictetus.lifetime": {
+      "type": "biographical-phase",
+      "subject": "epictetus",
+      "label": {
+        "ru": "Эпиктет: годы жизни",
+        "en": "Epictetus: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "0055",
+          "end": "0135"
+        },
+        "source_wording": {
+          "text": "55–135 C.E.",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "IEP: Эпиктет, 55–135 н. э.; SEP: родился в 50-е годы, умер около 135.",
+        "en": "IEP: Epictetus, 55–135 C.E.; SEP: born sometime in the 50s, died around 135."
+      },
+      "sources": [
+        "iep-epictetus",
+        "sep-epictetus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.marcus-aurelius.lifetime": {
+      "type": "biographical-phase",
+      "subject": "marcus",
+      "label": {
+        "ru": "Марк Аврелий: годы жизни",
+        "en": "Marcus Aurelius: lifetime"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "0121",
+          "end": "0180"
+        },
+        "source_wording": {
+          "text": "Born in 121 CE … his death in 180",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: Марк Аврелий родился в 121 г. и правил до смерти в 180 г.",
+        "en": "SEP: Marcus Aurelius was born in 121 CE and reigned until his death in 180."
+      },
+      "sources": [
+        "sep-marcus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.sextus-empiricus.activity": {
+      "type": "biographical-phase",
+      "subject": "sextus",
+      "label": {
+        "ru": "Секст Эмпирик: годы деятельности",
+        "en": "Sextus Empiricus: years of activity"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "uncertain",
+        "interval": {
+          "start": "0100",
+          "end": "0250"
+        },
+        "source_wording": {
+          "text": "anywhere between 100 CE and the first half of the third century CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP: о жизни Секста Эмпирика почти ничего не известно, в том числе когда и где он жил; по лучшим оценкам — где-то между 100 г. и первой половиной III в. н. э. Britannica: расцвет в III в.",
+        "en": "SEP: little or nothing is known of the life of Sextus Empiricus, including when and where he lived; best estimates put him anywhere between 100 CE and the first half of the third century. Britannica: flourished 3rd century."
+      },
+      "sources": [
+        "sep-sextus",
+        "britannica-sextus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.diogenes-laertius.activity": {
+      "type": "biographical-phase",
+      "subject": "laertius",
+      "label": {
+        "ru": "Диоген Лаэртский: годы деятельности",
+        "en": "Diogenes Laertius: years of activity"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "0201",
+          "end": "0300"
+        },
+        "source_wording": {
+          "text": "flourished 3rd century ce",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Britannica: Диоген Лаэртский, расцвет в III в. н. э.",
+        "en": "Britannica: Diogenes Laërtius flourished in the 3rd century CE."
+      },
+      "sources": [
+        "britannica-laertius"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plato.early-dialogues": {
+      "type": "biographical-phase",
+      "subject": "plato",
+      "label": {
+        "ru": "Ранние диалоги Платона",
+        "en": "Plato’s early dialogues"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0398",
+          "end": "-0386"
+        },
+        "source_wording": {
+          "text": "c. 399–387 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию)",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content)"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plato.early-to-middle-dialogues": {
+      "type": "biographical-phase",
+      "subject": "plato",
+      "label": {
+        "ru": "Переход от ранних диалогов Платона к средним",
+        "en": "Plato’s dialogues between the early and the middle"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0386",
+          "end": "-0379"
+        },
+        "source_wording": {
+          "text": "c. 387–380 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Переход от ранних диалогов к средним (группировка Brickhouse & Smith)",
+        "en": "Between the early and the middle dialogues (Brickhouse & Smith's grouping)"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plato.middle-dialogues": {
+      "type": "biographical-phase",
+      "subject": "plato",
+      "label": {
+        "ru": "Средние диалоги Платона",
+        "en": "Plato’s middle dialogues"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0379",
+          "end": "-0359"
+        },
+        "source_wording": {
+          "text": "c. 380–360 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Средние диалоги (группировка Brickhouse & Smith)",
+        "en": "Middle dialogues (Brickhouse & Smith's grouping)"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plato.middle-to-late-dialogues": {
+      "type": "biographical-phase",
+      "subject": "plato",
+      "label": {
+        "ru": "Переход от средних диалогов Платона к поздним",
+        "en": "Plato’s dialogues between the middle and the late"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0359",
+          "end": "-0354"
+        },
+        "source_wording": {
+          "text": "c. 360–355 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Переход от средних диалогов к поздним (группировка Brickhouse & Smith)",
+        "en": "Between the middle and the late dialogues (Brickhouse & Smith's grouping)"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.plato.late-dialogues": {
+      "type": "biographical-phase",
+      "subject": "plato",
+      "label": {
+        "ru": "Поздние диалоги Платона",
+        "en": "Plato’s late dialogues"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0354",
+          "end": "-0346"
+        },
+        "source_wording": {
+          "text": "c. 355–347 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздние диалоги, до смерти Платона в 347 г. (группировка Brickhouse & Smith)",
+        "en": "Late dialogues, before Plato's death in 347 (Brickhouse & Smith's grouping)"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.aristotle.lyceum": {
+      "type": "biographical-phase",
+      "subject": "aristotle",
+      "label": {
+        "ru": "Аристотель в Ликее",
+        "en": "Aristotle at the Lyceum"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0334",
+          "end": "-0322"
+        },
+        "source_wording": {
+          "text": "c. 335–323 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались",
+        "en": "Most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly"
+      },
+      "sources": [
+        "britannica-aristotle-lyceum",
+        "sep-aristotle"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.biographical-phase.cicero.late-philosophical-writing": {
+      "type": "biographical-phase",
+      "subject": "cicero",
+      "label": {
+        "ru": "Поздние философские сочинения Цицерона",
+        "en": "Cicero’s late philosophical writing"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0044",
+          "end": "-0043"
+        },
+        "source_wording": {
+          "text": "45–44 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздний период философских сочинений Цицерона, с февраля 45 по ноябрь 44 г.",
+        "en": "Cicero's late period of philosophical writing, February 45 to November 44"
+      },
+      "sources": [
+        "britannica-cicero",
+        "sep-cicero"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.apology-composition": {
+      "type": "historical-process",
+      "work": "apology",
+      "label": {
+        "ru": "Написание: «Апология Сократа»",
+        "en": "Writing: Apology of Socrates"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-dialogues"
+        },
+        "source_wording": {
+          "text": "Apology of Socrates: Plato’s early dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию); сочинение «Апология Сократа» отнесено к этой группе",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content); the work Apology of Socrates is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.crito-composition": {
+      "type": "historical-process",
+      "work": "crito",
+      "label": {
+        "ru": "Написание: «Критон»",
+        "en": "Writing: Crito"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-dialogues"
+        },
+        "source_wording": {
+          "text": "Crito: Plato’s early dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию); сочинение «Критон» отнесено к этой группе",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content); the work Crito is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.gorgias-composition": {
+      "type": "historical-process",
+      "work": "gorgias",
+      "label": {
+        "ru": "Написание: «Горгий»",
+        "en": "Writing: Gorgias"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-dialogues"
+        },
+        "source_wording": {
+          "text": "Gorgias: Plato’s early dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию); сочинение «Горгий» отнесено к этой группе",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content); the work Gorgias is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.ion-composition": {
+      "type": "historical-process",
+      "work": "ion",
+      "label": {
+        "ru": "Написание: «Ион»",
+        "en": "Writing: Ion"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-dialogues"
+        },
+        "source_wording": {
+          "text": "Ion: Plato’s early dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию); сочинение «Ион» отнесено к этой группе",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content); the work Ion is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.laches-composition": {
+      "type": "historical-process",
+      "work": "laches",
+      "label": {
+        "ru": "Написание: «Лахет»",
+        "en": "Writing: Laches"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-dialogues"
+        },
+        "source_wording": {
+          "text": "Laches: Plato’s early dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию); сочинение «Лахет» отнесено к этой группе",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content); the work Laches is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.lysis-composition": {
+      "type": "historical-process",
+      "work": "lysis",
+      "label": {
+        "ru": "Написание: «Лисид»",
+        "en": "Writing: Lysis"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-dialogues"
+        },
+        "source_wording": {
+          "text": "Lysis: Plato’s early dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию); сочинение «Лисид» отнесено к этой группе",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content); the work Lysis is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.protagoras-composition": {
+      "type": "historical-process",
+      "work": "protagoras",
+      "label": {
+        "ru": "Написание: «Протагор»",
+        "en": "Writing: Protagoras"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-dialogues"
+        },
+        "source_wording": {
+          "text": "Protagoras: Plato’s early dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ранние диалоги: после смерти Сократа и до первой поездки Платона на Сицилию в 387 г. (группировка Brickhouse & Smith по стилометрии и содержанию); сочинение «Протагор» отнесено к этой группе",
+        "en": "Early dialogues: after Socrates' death and before Plato's first trip to Sicily in 387 (Brickhouse & Smith's grouping by stylometry and content); the work Protagoras is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.cratylus-composition": {
+      "type": "historical-process",
+      "work": "cratylus",
+      "label": {
+        "ru": "Написание: «Кратил»",
+        "en": "Writing: Cratylus"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-to-middle-dialogues"
+        },
+        "source_wording": {
+          "text": "Cratylus: Plato’s dialogues between the early and the middle",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Переход от ранних диалогов к средним (группировка Brickhouse & Smith); сочинение «Кратил» отнесено к этой группе",
+        "en": "Between the early and the middle dialogues (Brickhouse & Smith's grouping); the work Cratylus is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.meno-composition": {
+      "type": "historical-process",
+      "work": "meno",
+      "label": {
+        "ru": "Написание: «Менон»",
+        "en": "Writing: Meno"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.early-to-middle-dialogues"
+        },
+        "source_wording": {
+          "text": "Meno: Plato’s dialogues between the early and the middle",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Переход от ранних диалогов к средним (группировка Brickhouse & Smith); сочинение «Менон» отнесено к этой группе",
+        "en": "Between the early and the middle dialogues (Brickhouse & Smith's grouping); the work Meno is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.phaedo-composition": {
+      "type": "historical-process",
+      "work": "phaedo",
+      "label": {
+        "ru": "Написание: «Федон»",
+        "en": "Writing: Phaedo"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.middle-dialogues"
+        },
+        "source_wording": {
+          "text": "Phaedo: Plato’s middle dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Средние диалоги (группировка Brickhouse & Smith); сочинение «Федон» отнесено к этой группе",
+        "en": "Middle dialogues (Brickhouse & Smith's grouping); the work Phaedo is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.symposium-composition": {
+      "type": "historical-process",
+      "work": "symposium",
+      "label": {
+        "ru": "Написание: «Пир»",
+        "en": "Writing: Symposium"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.middle-dialogues"
+        },
+        "source_wording": {
+          "text": "Symposium: Plato’s middle dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Средние диалоги (группировка Brickhouse & Smith); сочинение «Пир» отнесено к этой группе",
+        "en": "Middle dialogues (Brickhouse & Smith's grouping); the work Symposium is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.republic-composition": {
+      "type": "historical-process",
+      "work": "republic",
+      "label": {
+        "ru": "Написание: «Государство»",
+        "en": "Writing: Republic"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.middle-dialogues"
+        },
+        "source_wording": {
+          "text": "Republic: Plato’s middle dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Средние диалоги (группировка Brickhouse & Smith); сочинение «Государство» отнесено к этой группе",
+        "en": "Middle dialogues (Brickhouse & Smith's grouping); the work Republic is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported",
+      "note": {
+        "ru": "книги II–X; книга I относится к ранним диалогам",
+        "en": "Books II–X; Book I belongs to the early dialogues"
+      }
+    },
+    "tos.historical-process.plato.parmenides-composition": {
+      "type": "historical-process",
+      "work": "parmenides",
+      "label": {
+        "ru": "Написание: «Парменид»",
+        "en": "Writing: Parmenides"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.middle-to-late-dialogues"
+        },
+        "source_wording": {
+          "text": "Parmenides: Plato’s dialogues between the middle and the late",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Переход от средних диалогов к поздним (группировка Brickhouse & Smith); сочинение «Парменид» отнесено к этой группе",
+        "en": "Between the middle and the late dialogues (Brickhouse & Smith's grouping); the work Parmenides is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.phaedrus-composition": {
+      "type": "historical-process",
+      "work": "phaedrus",
+      "label": {
+        "ru": "Написание: «Федр»",
+        "en": "Writing: Phaedrus"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.middle-to-late-dialogues"
+        },
+        "source_wording": {
+          "text": "Phaedrus: Plato’s dialogues between the middle and the late",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Переход от средних диалогов к поздним (группировка Brickhouse & Smith); сочинение «Федр» отнесено к этой группе",
+        "en": "Between the middle and the late dialogues (Brickhouse & Smith's grouping); the work Phaedrus is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.theaetetus-composition": {
+      "type": "historical-process",
+      "work": "theaetetus",
+      "label": {
+        "ru": "Написание: «Теэтет»",
+        "en": "Writing: Theaetetus"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0368",
+          "end": "-0354"
+        },
+        "source_wording": {
+          "text": "c. 369–355 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "SEP датирует диалог примерно 369 г.; Brickhouse & Smith относят его к переходу к поздним диалогам, ок. 360–355",
+        "en": "SEP dates the dialogue to about 369; Brickhouse & Smith place it between the middle and the late dialogues, c. 360–355"
+      },
+      "sources": [
+        "sep-theaetetus",
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.sophist-composition": {
+      "type": "historical-process",
+      "work": "sophist",
+      "label": {
+        "ru": "Написание: «Софист»",
+        "en": "Writing: Sophist"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.late-dialogues"
+        },
+        "source_wording": {
+          "text": "Sophist: Plato’s late dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздние диалоги, до смерти Платона в 347 г. (группировка Brickhouse & Smith); сочинение «Софист» отнесено к этой группе",
+        "en": "Late dialogues, before Plato's death in 347 (Brickhouse & Smith's grouping); the work Sophist is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.philebus-composition": {
+      "type": "historical-process",
+      "work": "philebus",
+      "label": {
+        "ru": "Написание: «Филеб»",
+        "en": "Writing: Philebus"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.late-dialogues"
+        },
+        "source_wording": {
+          "text": "Philebus: Plato’s late dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздние диалоги, до смерти Платона в 347 г. (группировка Brickhouse & Smith); сочинение «Филеб» отнесено к этой группе",
+        "en": "Late dialogues, before Plato's death in 347 (Brickhouse & Smith's grouping); the work Philebus is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.timaeus-composition": {
+      "type": "historical-process",
+      "work": "timaeus",
+      "label": {
+        "ru": "Написание: «Тимей»",
+        "en": "Writing: Timaeus"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.late-dialogues"
+        },
+        "source_wording": {
+          "text": "Timaeus: Plato’s late dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздние диалоги, до смерти Платона в 347 г. (группировка Brickhouse & Smith); сочинение «Тимей» отнесено к этой группе",
+        "en": "Late dialogues, before Plato's death in 347 (Brickhouse & Smith's grouping); the work Timaeus is placed in this group"
+      },
+      "sources": [
+        "iep-plato"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plato.laws-composition": {
+      "type": "historical-process",
+      "work": "laws",
+      "label": {
+        "ru": "Написание: «Законы»",
+        "en": "Writing: Laws"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plato.late-dialogues"
+        },
+        "source_wording": {
+          "text": "Laws: Plato’s late dialogues",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздние диалоги, до смерти Платона в 347 г. (группировка Brickhouse & Smith); сочинение «Законы» отнесено к этой группе",
+        "en": "Late dialogues, before Plato's death in 347 (Brickhouse & Smith's grouping); the work Laws is placed in this group"
+      },
+      "sources": [
+        "iep-plato",
+        "britannica-plato-late"
+      ],
+      "footing": "high",
+      "epistemic": "reported",
+      "note": {
+        "ru": "оставлены незаконченными к смерти Платона",
+        "en": "left unfinished at Plato's death"
+      }
+    },
+    "tos.historical-process.aristotle.de-anima-composition": {
+      "type": "historical-process",
+      "work": "de-anima",
+      "label": {
+        "ru": "Написание: «О душе»",
+        "en": "Writing: On the Soul"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.aristotle.lyceum"
+        },
+        "source_wording": {
+          "text": "On the Soul: Aristotle at the Lyceum",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались; сочинение «О душе» отнесено к этой группе",
+        "en": "Most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly; the work On the Soul is placed in this group"
+      },
+      "sources": [
+        "britannica-aristotle-lyceum",
+        "sep-aristotle"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.aristotle.nicomachean-ethics-composition": {
+      "type": "historical-process",
+      "work": "ethics",
+      "label": {
+        "ru": "Написание: «Никомахова этика»",
+        "en": "Writing: Nicomachean Ethics"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.aristotle.lyceum"
+        },
+        "source_wording": {
+          "text": "Nicomachean Ethics: Aristotle at the Lyceum",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались; сочинение «Никомахова этика» отнесено к этой группе",
+        "en": "Most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly; the work Nicomachean Ethics is placed in this group"
+      },
+      "sources": [
+        "britannica-aristotle-lyceum",
+        "sep-aristotle"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.aristotle.metaphysics-composition": {
+      "type": "historical-process",
+      "work": "metaphysics",
+      "label": {
+        "ru": "Написание: «Метафизика»",
+        "en": "Writing: Metaphysics"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.aristotle.lyceum"
+        },
+        "source_wording": {
+          "text": "Metaphysics: Aristotle at the Lyceum",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались; сочинение «Метафизика» отнесено к этой группе",
+        "en": "Most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly; the work Metaphysics is placed in this group"
+      },
+      "sources": [
+        "britannica-aristotle-lyceum",
+        "sep-aristotle"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.aristotle.poetics-composition": {
+      "type": "historical-process",
+      "work": "poetics",
+      "label": {
+        "ru": "Написание: «Поэтика»",
+        "en": "Writing: Poetics"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.aristotle.lyceum"
+        },
+        "source_wording": {
+          "text": "Poetics: Aristotle at the Lyceum",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались; сочинение «Поэтика» отнесено к этой группе",
+        "en": "Most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly; the work Poetics is placed in this group"
+      },
+      "sources": [
+        "britannica-aristotle-lyceum",
+        "sep-aristotle"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.aristotle.politics-composition": {
+      "type": "historical-process",
+      "work": "politics",
+      "label": {
+        "ru": "Написание: «Политика»",
+        "en": "Writing: Politics"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.aristotle.lyceum"
+        },
+        "source_wording": {
+          "text": "Politics: Aristotle at the Lyceum",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались; сочинение «Политика» отнесено к этой группе",
+        "en": "Most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly; the work Politics is placed in this group"
+      },
+      "sources": [
+        "sep-aristotle-politics",
+        "britannica-aristotle-lyceum"
+      ],
+      "footing": "high",
+      "epistemic": "reported",
+      "note": {
+        "ru": "в эти годы Аристотель писал «Политику» или по крайней мере работал над ней; порядок книг спорен",
+        "en": "in these years Aristotle wrote, or at least worked on, the Politics; the order of its books is disputed"
+      }
+    },
+    "tos.historical-process.aristotle.rhetoric-composition": {
+      "type": "historical-process",
+      "work": "rhetoric",
+      "label": {
+        "ru": "Написание: «Риторика»",
+        "en": "Writing: Rhetoric"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0366",
+          "end": "-0322"
+        },
+        "source_wording": {
+          "text": "c. 367–323 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Ядро книг I–II, по распространённому мнению, написано в первый афинский период, при Академии (с ок. 367 до 347); примеры могли обновляться позже, а части сведены воедино лишь в первом полном издании; датировка спорна",
+        "en": "The core of Books I–II is widely held to date from Aristotle's first stay in Athens, at the Academy (from about 367 to 347); its examples may have been updated later and the parts were joined only in the first complete edition; the dating is disputed"
+      },
+      "sources": [
+        "sep-rhetoric",
+        "sep-aristotle"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.aristotle.eudemian-ethics-composition": {
+      "type": "historical-process",
+      "work": "eudemian-ethics",
+      "label": {
+        "ru": "Написание: «Евдемова этика»",
+        "en": "Writing: Eudemian Ethics"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.aristotle.lyceum"
+        },
+        "source_wording": {
+          "text": "Eudemian Ethics: Aristotle at the Lyceum",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Большинство сохранившихся трактатов, вероятно, относится ко второму афинскому периоду (Ликей, 335–323); их порядок не установлен, главные трактаты многократно перерабатывались; сочинение «Евдемова этика» отнесено к этой группе",
+        "en": "Most surviving treatises probably belong to the second Athenian period (the Lyceum, 335–323); their order is uncertain and the main treatises were reworked repeatedly; the work Eudemian Ethics is placed in this group"
+      },
+      "sources": [
+        "britannica-aristotle-lyceum",
+        "sep-aristotle",
+        "britannica-eudemian",
+        "sep-aristotle-ethics"
+      ],
+      "footing": "high",
+      "epistemic": "reported",
+      "note": {
+        "ru": "обычно считается более ранней, чем «Никомахова этика»",
+        "en": "usually presumed earlier than the Nicomachean Ethics"
+      }
+    },
+    "tos.historical-process.aristotle.athenian-constitution-composition": {
+      "type": "historical-process",
+      "work": "athenian-constitution",
+      "label": {
+        "ru": "Написание: «Афинская полития»",
+        "en": "Writing: The Athenian Constitution"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0328",
+          "end": "-0321"
+        },
+        "source_wording": {
+          "text": "329–322 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Событие датировано архонтством Кефисофонта (329); 322 — предел по двум местам трактата; ныне его чаще приписывают ученику Аристотеля, возможно, по его указанию в конце жизни",
+        "en": "An event is dated by the archonship of Cephisophon (329); two passages set 322 as the limit; it is now mostly credited to a pupil of Aristotle, perhaps at his direction late in his life"
+      },
+      "sources": [
+        "eb1911-athens",
+        "sep-aristotle-politics"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.cicero.de-officiis-composition": {
+      "type": "historical-process",
+      "work": "de-officiis",
+      "label": {
+        "ru": "Написание: «Об обязанностях»",
+        "en": "Writing: On Duties"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "value": "-0043",
+        "source_wording": {
+          "text": "44 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Написан в 44 г. до н. э.",
+        "en": "Written in 44 BCE"
+      },
+      "sources": [
+        "britannica-on-duties"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.cicero.de-amicitia-composition": {
+      "type": "historical-process",
+      "work": "de-amicitia",
+      "label": {
+        "ru": "Написание: «О дружбе»",
+        "en": "Writing: On Friendship"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.cicero.late-philosophical-writing"
+        },
+        "source_wording": {
+          "text": "On Friendship: Cicero’s late philosophical writing",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздний период философских сочинений Цицерона, с февраля 45 по ноябрь 44 г.; сочинение «О дружбе» отнесено к этой группе",
+        "en": "Cicero's late period of philosophical writing, February 45 to November 44; the work On Friendship is placed in this group"
+      },
+      "sources": [
+        "britannica-cicero",
+        "sep-cicero"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.cicero.de-fato-composition": {
+      "type": "historical-process",
+      "work": "de-fato",
+      "label": {
+        "ru": "Написание: «О судьбе»",
+        "en": "Writing: On Fate"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "approximate",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.cicero.late-philosophical-writing"
+        },
+        "source_wording": {
+          "text": "On Fate: Cicero’s late philosophical writing",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Поздний период философских сочинений Цицерона, с февраля 45 по ноябрь 44 г.; сочинение «О судьбе» отнесено к этой группе",
+        "en": "Cicero's late period of philosophical writing, February 45 to November 44; the work On Fate is placed in this group"
+      },
+      "sources": [
+        "britannica-cicero",
+        "sep-cicero"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.lucretius.de-rerum-natura-composition": {
+      "type": "historical-process",
+      "work": "on-nature",
+      "label": {
+        "ru": "Написание: «О природе вещей»",
+        "en": "Writing: On the Nature of Things"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0058",
+          "end": "-0054"
+        },
+        "source_wording": {
+          "text": "c. 59–55 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Обычная датировка — начало 50-х; Цицерон упоминает поэму в письме брату в феврале 54 г.; предлагалась и более поздняя дата (Hutchinson: 49–48)",
+        "en": "The standard view places it in the early 50s; Cicero mentions the poem to his brother in February 54; a later date has also been proposed (Hutchinson: 49–48)"
+      },
+      "sources": [
+        "sep-lucretius"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.seneca.de-clementia-composition": {
+      "type": "historical-process",
+      "work": "de-clementia",
+      "label": {
+        "ru": "Написание: «О милосердии»",
+        "en": "Writing: On Clemency"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "0055",
+          "end": "0056"
+        },
+        "source_wording": {
+          "text": "55–56 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Единственный трактат Сенеки, датируемый с некоторой уверенностью: обращён к Нерону в начале правления (55 или 56)",
+        "en": "The one treatise of Seneca dated with some certainty: addressed to Nero early in his reign (55 or 56)"
+      },
+      "sources": [
+        "sep-seneca"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.seneca.de-beneficiis-composition": {
+      "type": "historical-process",
+      "work": "de-beneficiis",
+      "label": {
+        "ru": "Написание: «О благодеяниях»",
+        "en": "Writing: On Benefits"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "0056",
+          "end": "0064"
+        },
+        "source_wording": {
+          "text": "c. 56–64 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Вероятно, 56–62; законченный трактат упомянут в «Письмах к Луцилию» (81.3), то есть не позже 64",
+        "en": "Very likely 56–62; the finished work is mentioned in the Letters to Lucilius (81.3), so by 64"
+      },
+      "sources": [
+        "wikipedia-de-beneficiis"
+      ],
+      "footing": "medium",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.seneca.letters-to-lucilius-composition": {
+      "type": "historical-process",
+      "work": "letters",
+      "label": {
+        "ru": "Написание: «Нравственные письма к Луцилию»",
+        "en": "Writing: Letters to Lucilius"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "0062",
+          "end": "0065"
+        },
+        "source_wording": {
+          "text": "62–65 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Последние годы Сенеки, 62–65",
+        "en": "Seneca's last years, 62–65"
+      },
+      "sources": [
+        "sep-seneca"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.epictetus.discourses-composition": {
+      "type": "historical-process",
+      "work": "discourses",
+      "label": {
+        "ru": "Написание: «Беседы»",
+        "en": "Writing: Discourses"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "value": "0108",
+        "source_wording": {
+          "text": "c. 108 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Учение «Бесед» относится к поздним годам Эпиктета, около 108 г.; записано Аррианом",
+        "en": "The teaching in the Discourses is from Epictetus' later career, around 108; written up by Arrian"
+      },
+      "sources": [
+        "sep-epictetus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.epictetus.enchiridion-composition": {
+      "type": "historical-process",
+      "work": "enchiridion",
+      "label": {
+        "ru": "Написание: «Руководство»",
+        "en": "Writing: Enchiridion"
+      },
+      "dating": {
+        "kind": "date-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "value": "0108",
+        "source_wording": {
+          "text": "c. 108 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Сокращение «Бесед»: то же учение, около 108 г.",
+        "en": "An abridgment of the Discourses: the same teaching, around 108"
+      },
+      "sources": [
+        "sep-epictetus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.hippocratic-corpus.sacred-disease-composition": {
+      "type": "historical-process",
+      "work": "sacred-disease",
+      "label": {
+        "ru": "Написание: «О священной болезни»",
+        "en": "Writing: On the Sacred Disease"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0449",
+          "end": "-0400"
+        },
+        "source_wording": {
+          "text": "second half of the 5th c. BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Jouanna относит трактат к сочинениям одного автора второй половины V в. вместе с «О воздухах, водах, местностях» и «Прогностиком»",
+        "en": "Jouanna assigns it to one author of the later fifth century together with Airs, Waters, Places and Prognostic"
+      },
+      "sources": [
+        "wikipedia-hippocratic-corpus"
+      ],
+      "footing": "medium",
+      "epistemic": "reported",
+      "display": {
+        "ru": "вторая половина V в. до н. э.",
+        "en": "second half of the 5th c. BCE"
+      }
+    },
+    "tos.historical-process.hippocratic-corpus.ancient-medicine-composition": {
+      "type": "historical-process",
+      "work": "ancient-medicine",
+      "label": {
+        "ru": "Написание: «О древней медицине»",
+        "en": "Writing: On Ancient Medicine"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "-0499",
+          "end": "-0400"
+        },
+        "source_wording": {
+          "text": "5th c. BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Jouanna относит трактат к сочинениям V века",
+        "en": "Jouanna counts it among the fifth-century works"
+      },
+      "sources": [
+        "wikipedia-hippocratic-corpus"
+      ],
+      "footing": "medium",
+      "epistemic": "reported",
+      "display": {
+        "ru": "V в. до н. э.",
+        "en": "5th c. BCE"
+      }
+    },
+    "tos.historical-process.xenophon.memorabilia-composition": {
+      "type": "historical-process",
+      "work": "memorabilia",
+      "label": {
+        "ru": "Написание: «Воспоминания о Сократе»",
+        "en": "Writing: Memorabilia"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "approximate",
+        "interval": {
+          "start": "-0370",
+          "end": "-0353"
+        },
+        "source_wording": {
+          "text": "c. 371–354 BCE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Вероятно, завершены после 371: глава III.5 предполагает военное положение после битвы при Левктрах; Ксенофонт умер около 354",
+        "en": "Probably completed after 371: chapter III.5 seems to assume the military situation after the battle of Leuctra; Xenophon died about 354"
+      },
+      "sources": [
+        "wikipedia-memorabilia",
+        "iep-xenophon"
+      ],
+      "footing": "low",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plotinus.enneads-composition": {
+      "type": "historical-process",
+      "work": "enneads",
+      "label": {
+        "ru": "Написание: «Эннеады»",
+        "en": "Writing: Enneads"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "0253",
+          "end": "0270"
+        },
+        "source_wording": {
+          "text": "253–270 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Плотин писал трактаты в последние шестнадцать лет жизни, с 253 по 270; порядок их написания записан Порфирием",
+        "en": "Plotinus wrote his treatises in the last sixteen years of his life, 253 to 270; Porphyry recorded their order"
+      },
+      "sources": [
+        "ep-plotinus",
+        "sep-plotinus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.porphyry.isagoge-composition": {
+      "type": "historical-process",
+      "work": "isagoge",
+      "label": {
+        "ru": "Написание: «Введение (Исагога)»",
+        "en": "Writing: Isagoge (Introduction)"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "0268",
+          "end": "0270"
+        },
+        "source_wording": {
+          "text": "268–270 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "По свидетельству античных комментаторов (Аммоний, Элий, Давид), написано на Сицилии в 268–270 гг.",
+        "en": "According to the ancient commentators (Ammonius, Elias, David), written in Sicily in 268–270"
+      },
+      "sources": [
+        "pearse-isagoge"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plotinus.ennead-1-6-composition": {
+      "type": "historical-process",
+      "work": "enneads",
+      "label": {
+        "ru": "Написание трактата I.6 «О прекрасном»",
+        "en": "Writing: treatise I.6, On Beauty"
+      },
+      "dating": {
+        "kind": "interval-assertion",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": "astronomical",
+        "certainty": "exact",
+        "interval": {
+          "start": "0253",
+          "end": "0263"
+        },
+        "source_wording": {
+          "text": "253–263 CE",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Трактат I.6 «О прекрасном» стоит первым в хронологическом списке Порфирия, среди написанных до 263 г.",
+        "en": "Treatise I.6, On Beauty, is first in Porphyry's chronological list, among those written before 263"
+      },
+      "sources": [
+        "ep-plotinus"
+      ],
+      "footing": "high",
+      "epistemic": "reported"
+    },
+    "tos.historical-process.plutarch.adversus-coloten-composition": {
+      "type": "historical-process",
+      "work": "adversus-coloten",
+      "label": {
+        "ru": "Написание: «Против Колота»",
+        "en": "Writing: Against Colotes"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "exact",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.plutarch.lifetime"
+        },
+        "source_wording": {
+          "text": "during the lifetime of Plutarch",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Отдельной датировки нет: сочинение написано при жизни автора.",
+        "en": "No dating of its own: the work was written during its author’s life."
+      },
+      "sources": [
+        "sep-plutarch"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    },
+    "tos.historical-process.epicurus.principal-doctrines-composition": {
+      "type": "historical-process",
+      "work": "doctrines",
+      "label": {
+        "ru": "Написание: «Главные мысли»",
+        "en": "Writing: Principal Doctrines"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "exact",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.epicurus.lifetime"
+        },
+        "source_wording": {
+          "text": "during the lifetime of Epicurus",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Отдельной датировки нет: сочинение написано при жизни автора.",
+        "en": "No dating of its own: the work was written during its author’s life."
+      },
+      "sources": [
+        "sep-epicurus",
+        "iep-epicurus"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    },
+    "tos.historical-process.epicurus.letter-to-menoeceus-composition": {
+      "type": "historical-process",
+      "work": "menoeceus",
+      "label": {
+        "ru": "Написание: «Письмо к Менекею»",
+        "en": "Writing: Letter to Menoeceus"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "exact",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.epicurus.lifetime"
+        },
+        "source_wording": {
+          "text": "during the lifetime of Epicurus",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Отдельной датировки нет: сочинение написано при жизни автора.",
+        "en": "No dating of its own: the work was written during its author’s life."
+      },
+      "sources": [
+        "sep-epicurus",
+        "iep-epicurus"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    },
+    "tos.historical-process.sextus-empiricus.outlines-of-pyrrhonism-composition": {
+      "type": "historical-process",
+      "work": "outlines",
+      "label": {
+        "ru": "Написание: «Пирроновы положения»",
+        "en": "Writing: Outlines of Pyrrhonism"
+      },
+      "dating": {
+        "kind": "relative-order",
+        "role": "historical-time",
+        "calendar": null,
+        "year_numbering": null,
+        "certainty": "exact",
+        "relative": {
+          "relation": "during",
+          "anchor_ref": "tos.biographical-phase.sextus-empiricus.activity"
+        },
+        "source_wording": {
+          "text": "during the years of activity of Sextus Empiricus",
+          "language": "en"
+        }
+      },
+      "statement": {
+        "ru": "Отдельной датировки нет: сочинение написано в годы деятельности автора.",
+        "en": "No dating of its own: the work was written during its author’s years of activity."
+      },
+      "sources": [
+        "sep-sextus",
+        "britannica-sextus"
+      ],
+      "footing": "high",
+      "epistemic": "inferred"
+    }
+  }
+}

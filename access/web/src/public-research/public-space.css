@@ -53,6 +53,58 @@
 #tree .ps-lens-rail .lens-list{display:grid;gap:2px;margin:0 0 26px}
 #tree .ps-lens-rail .lens{min-height:40px;padding:8px 10px;font:13px/1.3 var(--ps-sans)}
 #tree .ps-lens-rail .lens-icon{font-size:17px}
+/* Lenses that measure stand apart from those that group; the map shows their scale. */
+#tree .ps-lens-divider{display:block;height:1px;margin:6px 10px;background:linear-gradient(90deg,#8ea2ba40,#8ea2ba00)}
+#tree .ps-lens-rail .lens-name{min-width:0}
+/* A measuring lens keeps its few controls at the top of the column. */
+#tree .ps-column>.ps-lens-controls{order:0;margin:0;padding:14px 20px 12px;border-bottom:1px solid var(--ps-line)}
+#tree .ps-column>.ps-lens-controls[hidden]{display:none}
+#tree .ps-lens-controls .minor-title{margin:0 0 2px}
+#tree .ps-chip-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+#tree .ps-trace-chip,#tree .ps-near-chip{display:inline-flex;align-items:baseline;gap:6px;min-height:30px;padding:4px 11px;border:1px solid #8ea2ba40;border-radius:999px;color:#c2ccd8;font:12.5px/1.2 var(--ps-sans)}
+#tree .ps-trace-chip small{color:#7f93a9;font-size:11px;font-variant-numeric:tabular-nums}
+#tree .ps-trace-chip:hover,#tree .ps-near-chip:hover{border-color:#d6b66f80;color:#f0dfb4}
+#tree .ps-trace-chip[aria-pressed=true],#tree .ps-near-chip[aria-pressed=true]{border-color:#d6b66fa0;color:#f0dfb4;background:#d6b66f1a}
+#tree .ps-chip-more{min-width:44px;justify-content:center;border-style:dashed;color:#8ea2ba}
+#tree .ps-chip-row[data-open=false] .ps-chip-extra{display:none}
+/* A star's facts: one short line each, under its title, opening to what they rest on. */
+#tree .ps-fact{margin:2px 0 4px;color:#c2ccd8;font:13px/1.5 var(--ps-sans)}
+#tree .ps-fact>summary{display:flex;align-items:baseline;gap:8px;list-style:none;cursor:pointer}
+#tree .ps-fact>summary::-webkit-details-marker{display:none}
+#tree .ps-fact.ps-fact-plain>summary{cursor:default}
+#tree .ps-fact-icon{flex:none;width:16px;color:#d9c391;text-align:center}
+#tree .ps-fact-value{flex:none;max-width:62%;color:#e7ddc6}
+#tree .ps-fact-context{min-width:0;color:#8ea2ba}
+#tree .ps-fact:not(.ps-fact-plain)>summary::after{content:'›';margin-left:2px;color:#6f849c;transition:transform .2s}
+#tree .ps-fact[open]>summary::after{transform:rotate(90deg)}
+#tree .ps-fact[data-kind=relative-life] .ps-fact-value,#tree .ps-fact[data-kind=activity] .ps-fact-value{color:#c9c2b1}
+#tree .ps-fact[data-kind=unknown] .ps-fact-value,#tree .ps-fact[data-kind=unknown-date] .ps-fact-value{color:#8ea2ba}
+#tree .ps-fact-body{margin:6px 0 10px 24px;padding-left:10px;border-left:1px solid #8ea2ba30;color:#a9b8c9;font:12.5px/1.55 var(--ps-sans)}
+#tree .ps-fact-body p{margin:0 0 6px}
+#tree .ps-fact-footing{color:#e0a58c}
+#tree .ps-fact-life{color:#c2ccd8}
+#tree .ps-fact-sources{display:flex;flex-wrap:wrap;gap:4px 12px}
+#tree .ps-fact-sources a{color:#d9c391;text-decoration:none}
+#tree .ps-fact-sources a:hover{text-decoration:underline}
+/* Measure and completeness: bars for counts, a shared scale for paths. */
+#tree .ps-measure-block{margin:0 0 20px}
+#tree .ps-bar{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(48px,1fr) auto;align-items:center;gap:8px;width:100%;min-height:26px;padding:2px 0;color:#c2ccd8;font:12.5px/1.35 var(--ps-sans);text-align:left}
+#tree button.ps-bar:hover .ps-bar-label{color:#f0dfb4}
+#tree .ps-bar-label{min-width:0;overflow-wrap:anywhere}
+#tree .ps-bar-track{position:relative;height:6px;overflow:hidden;border-radius:3px;background:#9fb3cc1c}
+#tree .ps-bar-track i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:#b9a47a}
+#tree .ps-bar-n{color:#90a2b6;font-variant-numeric:tabular-nums}
+#tree .ps-path-row{display:grid;gap:2px;width:100%;padding:5px 0;text-align:left;border-bottom:1px solid #8ea2ba14}
+#tree .ps-path-row:hover .ps-path-title{color:#f0dfb4}
+#tree .ps-path-head{display:flex;justify-content:space-between;gap:10px;color:#c2ccd8;font:12.5px/1.35 var(--ps-sans)}
+#tree .ps-path-count{flex:none;color:#8ea2ba;font-variant-numeric:tabular-nums}
+#tree .ps-spark{display:block;width:100%;height:18px}
+#tree .ps-spark-base{stroke:#8ea2ba33;stroke-width:1}
+#tree .ps-spark-step{fill:none;stroke:#9fb3cc80;stroke-width:1}
+#tree .ps-spark-back{fill:none;stroke:#e0b06a;stroke-width:1.2}
+#tree .ps-spark-dot{fill:#e7ddc6}
+#tree .ps-path-scale{display:flex;justify-content:space-between;margin-top:4px;color:#7f93a9;font:11px/1.3 var(--ps-sans)}
+#tree .ps-measure-list{margin:0 0 12px;color:#a9b8c9;font:12.5px/1.6 var(--ps-sans)}
 #tree .ps-main-actions{display:grid;gap:1px;margin:0 0 12px}
 #tree .ps-top-action{display:flex;align-items:center;gap:10px;min-height:36px;padding:6px 10px;border-left:1px solid transparent;border-radius:0 4px 4px 0;color:#a9b8c9;font:12.5px/1.3 var(--ps-sans);text-align:left;transition:background .2s,color .2s}
 #tree .ps-top-action:hover{color:#f0dfb8;background:linear-gradient(90deg,#d0b77b10,transparent)}
@@ -306,6 +358,22 @@
 #tree .tree-cluster[data-variant=lane][data-ref]{cursor:pointer}
 #tree .tree-cluster[data-variant=lane][data-ref]:hover .cluster-title{color:#f0dfb4}
 #tree .tree-cluster[data-variant] .cluster-subtitle{display:none}
+/* A plane's graticule and a measure's rings lie under the stars, clipped to the free area. */
+#tree .tree-cluster[data-variant=hrule]{border-top:1px solid #9fb3cc14;text-shadow:none}
+#tree .tree-cluster[data-variant=ring]{border:1px solid #9fb3cc24;border-radius:50%;text-shadow:none}
+#tree .tree-cluster[data-variant=ring][data-tone=strong]{border:1px dashed #d9c39150}
+#tree .tree-cluster[data-variant=place]{height:16px}
+#tree .tree-cluster[data-variant=place]::before{content:'';position:absolute;left:0;top:5.5px;width:5px;height:5px;border-radius:50%;background:#d9c391b0;box-shadow:0 0 0 2px #d9c39124}
+#tree .tree-cluster[data-variant=place] .cluster-title{display:block;padding-left:10px;color:#e0cfa2;font:12px/16px var(--ps-serif);overflow:hidden;text-overflow:ellipsis}
+#tree .tree-cluster[data-variant=place][data-side=left]::before{left:auto;right:0}
+#tree .tree-cluster[data-variant=place][data-side=left] .cluster-title{padding:0 10px 0 0;text-align:right}
+#tree .tree-cluster[data-variant=place]:is([data-side=above],[data-side=below])::before{display:none}
+#tree .tree-cluster[data-variant=place]:is([data-side=above],[data-side=below]) .cluster-title{padding:0;text-align:center}
+#tree .tree-cluster[data-variant=place][data-tone=quiet]::before{background:#9fb3cc80;box-shadow:none}
+#tree .tree-cluster[data-variant=place][data-tone=quiet] .cluster-title{color:#a9b6c6}
+#tree .tree-cluster[data-variant=tick] .cluster-title,#tree .tree-cluster[data-variant=ytick] .cluster-title{display:block;color:#8ea2ba;font:10.5px/16px var(--ps-sans);letter-spacing:.03em}
+#tree .tree-cluster[data-variant=tick] .cluster-title{text-align:center}
+#tree .tree-cluster[data-variant=ytick] .cluster-title{text-align:right}
 #tree .ps-life-line{margin:-8px 0 12px;color:#9fb0c2;font:11.5px/1.6 var(--ps-sans)}
 #tree .ps-dating-line+.ps-life-line{margin-top:-10px}
 #tree .ps-dating-line a{color:#d9c391;text-decoration:none;border-bottom:1px solid #d9c39150;white-space:nowrap}
@@ -362,6 +430,7 @@
   #tree .ps-lens-rail .lens{flex:1 0 auto;flex-direction:column;justify-content:center;gap:2px;min-width:58px;min-height:52px;padding:4px 6px;font-size:11px;white-space:nowrap;border-left:0;border-bottom:1px solid transparent;border-radius:4px 4px 0 0}
   #tree .ps-lens-rail .lens[aria-pressed=true]{border-bottom-color:#c6ae7c;background:linear-gradient(0deg,#d0b77b13,transparent)}
   #tree .ps-lens-rail .lens-icon{font-size:18px;line-height:20px}
+  #tree .ps-lens-divider{flex:none;width:1px;height:auto;margin:10px 3px;background:#8ea2ba38}
   #tree.pr-public-space .ps-orientation{top:168px;left:16px;right:16px}
   #tree.pr-public-space .ps-orientation .ps-space-title{flex:0 1 auto;min-width:0;overflow:hidden;font-size:21px;white-space:nowrap;text-overflow:ellipsis}
   #tree .ps-crumb-root{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -388,6 +457,12 @@
   #tree.pr-public-space[data-sheet=open] .ps-column-title::after{content:'▾'}
   #tree.pr-public-space[data-sheet=peek] .ps-column>:not(.reading-top){display:none}
   #tree.pr-public-space[data-sheet=peek] .ps-column>.reading-top{border-bottom:0;border-radius:10px}
+  #tree .ps-column>.ps-lens-controls{padding:10px 16px 10px}
+  /* On a phone the concepts scroll in one row, all of them, and the sheet keeps its room for the star. */
+  #tree :is(.ps-trace,.ps-near) .ps-chip-row{flex-wrap:nowrap;overflow-x:auto;margin-right:-16px;padding-right:16px;scrollbar-width:none}
+  #tree .ps-trace .ps-chip-row .ps-chip-extra{display:inline-flex}
+  #tree .ps-trace .ps-chip-more{display:none}
+  #tree .ps-trace-chip,#tree .ps-near-chip{flex:none}
   #tree .ps-column>.ps-route-dock{padding:2px 16px 6px}
   #tree .ps-column>.ps-panel-content{padding:10px 16px 22px}
   #tree.pr-public-space .ps-panel h1{font-size:22px}

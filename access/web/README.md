@@ -40,8 +40,10 @@ an explicit reading hash opens its exact passage.
 The shared Library also exposes the retained research collection: all fifteen
 Antiquity branches, author and era browsing, work maps, close-reading prompts,
 argument readings and lexical dossiers, with Russian and English presentation.
-`antiquity-collection-data.json` records its authored source revision and excludes
-witness text and quotation anchors. Published section entries use the separate
+The collection lives in the stand's bonsai
+([`bonsai/antiquity/collection.json`](../../bonsai/antiquity/collection.json)); it
+records its authored source revision and excludes witness text and quotation
+anchors. Published section entries use the separate
 provider structure; they are not exact word-span alignments. The readable corpus
 selection remains separate from this larger bibliographic collection.
 Zarathustra's source pointers and independently grounded alternatives use the
@@ -65,8 +67,8 @@ legend lists the kinds, filters by them and says what a star's form means: a
 disc for a source or its context, a ring for an authored proposal, a broken
 ring for a personal record. The panel places each star on the ladder of
 interpretation (source, reading, comparison) and says on what footing a link
-stands; star positions group material and measure nothing, except in the Time
-lens below. Antiquity restores its four authored transitions (continuation,
+stands; star positions group material and measure nothing, except in the
+measuring lenses below. Antiquity restores its four authored transitions (continuation,
 qualification, contrast, analogy) and walks branches by moves, each named by
 author, work and place. Zarathustra
 walks routes by steps; a step names the places of its own grounds, since its
@@ -74,24 +76,43 @@ node is a concept or thinker shared by other routes. A route that walks an
 atlas link against its direction states the link as authored. Search finds
 branches, routes and steps by their own names before their prose.
 
-The Time lens measures only what the data already dates or orders
-([`space-timeline.mjs`](src/public-research/space-timeline.mjs)). In Antiquity
-the horizontal is a scale of years. The collection dates authors, not works;
-[`antiquity-dating.json`](src/public-research/antiquity-dating.json) proposes
-approximate dates of composition for works and passages, each naming its source,
-its uncertainty and how firmly it stands (on a study, on a summary of
-scholarship, or on a source citing none), as a proposal rather than canon. A move stands
-within its dating, or within its author's life where none is proposed; moves
-sharing one span in a branch spread over it in step order, and stars that still
-meet share a short column without leaving their span. Each branch is a row whose
-name opens it, an era's bracket spans its authors' lives, and a chosen move
-shows its span on the scale and its dating with sources in the panel. In
-Zarathustra the horizontal is the order of the book's chapters: a star stands at
-the first chapter it rests on, a part's bracket spans the chapters the map cites,
-and stars grounded only in other texts stand outside the scale. These positions are display only and never
-enter the saved graph. Zoom and pan follow the scale while rows keep their
-height, the map controls join the heading row, an open branch or route reads top
-to bottom on the same scale, and `treeLens=time` links to the lens.
+Each stand reads its own bonsai — the mini-Tree under [`bonsai/`](../../bonsai/README.md)
+that keeps its chronology, places and lens settings in the Tree's shapes —
+through [`bonsai.mjs`](src/public-research/bonsai.mjs). The rail sets the lenses
+that measure apart from those that group: Time, Space and Proximity place a star
+only by a value its bonsai states, with that value's source.
+
+Time ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)) is a scale
+of years in Antiquity. A move stands within the span its bonsai dates the
+writing of its passage or work — a date, an interval, a phase of a life, or the
+author's life or years of activity where no source dates it closer — each a
+Tree `historicalDate` with its source and footing. Moves sharing one span in a
+branch spread over it in step order; each branch is a row whose name opens it;
+an era's bracket spans its authors' lives. A concept chosen above the panel is
+traced through the moves that carry it. In Zarathustra the horizontal is the
+order of the book's chapters: a star stands at the first chapter it rests on,
+each part names the years it was written, and stars grounded only in other texts
+stand outside the scale.
+
+Space ([`space-geography.mjs`](src/public-research/space-geography.mjs)) is a map:
+a star stands where its bonsai says its text was written, or where its author
+lived in the dated span, at the gazetteer's representative point (Pleiades,
+Wikidata), over Natural Earth coastlines; stars at one place gather round it,
+and a star whose place the sources leave open stands apart past the map's edge.
+Proximity ([`space-proximity.mjs`](src/public-research/space-proximity.mjs))
+measures from the chosen star by one criterion the bonsai names — shared
+concepts or grounds, steps along links, years, chapters or kilometres — in
+rings that carry the scale; the direction groups by branch or circle, and the
+centre lists its nearest stars.
+
+A chosen star states when (◷) and where (⌖) its text was written, and on
+Proximity how near it stands (⊙); each fact opens to its statement and sources.
+Measure and completeness ([`space-measure.mjs`](src/public-research/space-measure.mjs))
+counts what the bonsai dates and places, by kind, precision, footing and era,
+and draws how each branch or route walks time or the book. These positions are
+display only and never enter the saved graph. Zoom and pan follow the scale, an
+open branch or route reads top to bottom on Time and Space, and `treeLens`,
+`treeCriterion` and `treeConcept` link to a view.
 
 The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and

@@ -74,7 +74,8 @@ question.maxLength = 4000;
 question.placeholder = strings.placeholder;
 question.autocomplete = 'off';
 questionLabel.append(question);
-const saveState = h('p', 'pr-save-state', english ? 'Your question is saved on this device.' : 'Вопрос сохраняется в блокноте на этом устройстве.');
+// The question's status speaks only when something happened: saving, saved, a conflict or an error.
+const saveState = h('p', 'pr-save-state', '');saveState.setAttribute('role', 'status');
 saveState.setAttribute('role', 'status');
 saveState.setAttribute('aria-live', 'polite');
 const resolveQuestionConflict = button(english ? 'Keep this draft and load the saved question' : 'Сохранить этот черновик и открыть сохранённый вопрос', 'pr-question-recover');
@@ -319,7 +320,7 @@ function setLanguage(value,{updateUrl=true}={}){
   switchProfile.href=alternate+`?lang=${locale}`;
   if(questionLabel.firstChild?.nodeType===Node.TEXT_NODE)questionLabel.firstChild.nodeValue=strings.question;
   question.placeholder=strings.placeholder;
-  saveState.textContent=questionTouched?(english?'Your question has unsaved changes.':'В вопросе есть несохранённые изменения.'):(english?'Your question is saved on this device.':'Вопрос сохраняется в блокноте на этом устройстве.');
+  saveState.textContent=questionTouched?(english?'Your question has unsaved changes.':'В вопросе есть несохранённые изменения.'):'';
   questionHistoryTitle.textContent=english?'Previous questions':'Предыдущие вопросы';
   resolveQuestionConflict.textContent=english?'Keep this draft and load the saved question':'Сохранить этот черновик и открыть сохранённый вопрос';
   if(questionHistory.open)void renderQuestionHistory();

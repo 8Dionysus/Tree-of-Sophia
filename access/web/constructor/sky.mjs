@@ -76,10 +76,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const layer=makeLayer('tree-stars'),clusterLayer=makeLayer('tree-clusters'),edgeLayer=makeLayer('edge-labels');
   // A scale's rules and rows' threads lie under the stars.
   const ruleLayer=makeLayer('tree-rules');if(ruleLayer.nextElementSibling!==layer)root.insertBefore(ruleLayer,layer);
-  const underStars=new Set(['rule','thread']);
+  // A plane's parallels and a measure's rings are clipped to the free area, under the rules.
+  const ringLayer=makeLayer('tree-rings');if(ringLayer.nextElementSibling!==ruleLayer)root.insertBefore(ringLayer,ruleLayer);
+  const underStars=new Set(['rule','thread','hrule','ring']),clipped=new Set(['hrule','ring']);
   const relationColors={contains:'#829dbb',supports:'#b7c991',interprets:'#bea7e1',questions:'#e5a18f',contrasts:'#e09591',echoes:'#8ecbc4',develops:'#e0c48c',compares:'#96b7e4',translates:'#8ebdc9',relates:'#a5b7cf'};
   const hex=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value??'')?value:/^#[a-f\d]{3}$/i.test(value??'')?'#'+[...value.slice(1)].map(c=>c+c).join(''):fallback;
-  let nodes=[],edges=[],clusters=[],selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
+  let nodes=[],edges=[],clusters=[],backdrop=[],selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
   function refresh(state,labels={}){
@@ -124,7 +126,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return n;
     });old.forEach(n=>n.el.remove());
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
-    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;const home=underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint)c.el.title=item.hint;else c.el.removeAttribute('title');c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint)c.el.title=item.hint;else c.el.removeAttribute('title');c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
+    backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>Array.isArray(line)&&line.length>1):[];
     if(!nodes.some(n=>n.id===hover))hover=null;if(!edges.some(e=>e.id===hoverEdge))hoverEdge=null;
     measureLabels=true;resize();
   }
@@ -133,10 +137,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     x=(x-center[0])*fitScale;y=(y-center[1])*fitScale;z=(z-center[2])*fitScale;
     const rx=x*c-z*s,rz=x*s+z*c,ry=y*cp-rz*sp,zz=y*sp+rz*cp,depth=FOCAL/Math.max(130,FOCAL-zz);
     // Fill a wide viewport with the atlas while stars and atmosphere keep their shape.
-    const stretchX=clamp(((viewport.right-viewport.left)/Math.max(1,viewport.bottom-viewport.top))/(880/540),1,2.1),scale=base*fitScale*zoom*depth;
-    // A measured layout zooms and pans along its scale only; its rows keep their height.
-    const zoomY=measured?1:zoom;
-    return {x:(viewport.left+viewport.right)*.5+rx*base*zoom*depth*stretchX+pan.x,y:(viewport.top+viewport.bottom)*.5+ry*base*zoomY*depth*stretchY+(measured?0:pan.y),s:scale,sX:scale*stretchX,sY:base*fitScale*zoomY*depth*stretchY};
+    // A plane measures both axes in one unit, so it is never stretched; other layouts fill a wide viewport.
+    const plane=measured?.axes==='xy',stretchX=plane?1:clamp(((viewport.right-viewport.left)/Math.max(1,viewport.bottom-viewport.top))/(880/540),1,2.1),scale=base*fitScale*zoom*depth;
+    // A scale zooms and pans along its axis only and its rows keep their height; a plane zooms and pans both ways.
+    const scaleOnly=measured?.axes==='x',zoomY=scaleOnly?1:zoom;
+    return {x:(viewport.left+viewport.right)*.5+rx*base*zoom*depth*stretchX+pan.x,y:(viewport.top+viewport.bottom)*.5+ry*base*zoomY*depth*stretchY+(scaleOnly?0:pan.y),s:scale,sX:scale*stretchX,sY:base*fitScale*zoomY*depth*stretchY};
   }
   function resize(){
     const first=w===1;w=Math.max(1,root.clientWidth);h=Math.max(1,root.clientHeight);dpr=Math.min(devicePixelRatio||1,softwareRenderer?1:1.25);
@@ -232,8 +237,21 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // above the map at the x of their value, its rows' names to a strip at its left, and its rules and rows'
     // threads lie under the stars. Its labels give way only to one another; a band's name keeps to the band in view.
     const scaleLabels=[],vl=targetViewport.left,vr=targetViewport.right,vt=targetViewport.top,vb=targetViewport.bottom;
+    ringLayer.style.clipPath=`inset(${vt.toFixed(1)}px ${Math.max(0,w-vr).toFixed(1)}px ${Math.max(0,h-vb).toFixed(1)}px ${vl.toFixed(1)}px)`;
     for(const c of clusters.filter(c=>c.variant).sort((a,b)=>(b.variant==='span')-(a.variant==='span'))){
       const p=project(c.p),xs=c.span?c.span.map(x=>project([x,c.p[1],c.p[2]]).x).sort((a,b)=>a-b):null;
+      if(c.variant==='ring'){
+        // A ring keeps its radius in the layout's units, so it grows and shrinks with the zoom.
+        const r=Math.abs(project([c.p[0]+(c.radius??0),c.p[1],c.p[2]]).x-p.x),shown=r>=2;
+        c.el.hidden=!shown;
+        if(shown)Object.assign(c.el.style,{width:(2*r).toFixed(1)+'px',height:(2*r).toFixed(1)+'px',transform:`translate3d(${(p.x-r).toFixed(2)}px,${(p.y-r).toFixed(2)}px,0)`});
+        continue;
+      }
+      if(c.variant==='hrule'){
+        const shown=p.y>=vt-1&&p.y<=vb+1;c.el.hidden=!shown;
+        if(shown)Object.assign(c.el.style,{width:Math.max(0,vr-vl).toFixed(1)+'px',height:'1px',transform:`translate3d(${vl.toFixed(2)}px,${p.y.toFixed(2)}px,0)`});
+        continue;
+      }
       if(underStars.has(c.variant)){
         const rule=c.variant==='rule',from=rule?p.x:Math.max(vl,xs?.[0]??p.x),to=rule?p.x:Math.min(vr,xs?.[1]??p.x),top=rule?vt-(c.strip??4):p.y;
         const shown=rule?p.x>=vl-1&&p.x<=vr+1:to-from>=2&&p.y>=vt-2&&p.y<=vb+2;
@@ -244,6 +262,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const height=16,width=Math.min(c.maxWidth??260,Math.max(24,Math.ceil(c.textWidth??c.title.textContent.length*7.4)+(c.variant==='lane'?4:12)));
       let area,text;
       if(c.variant==='lane'){const right=vl-14,left=Math.max(4,right-width);area=text=box(left,p.y-height/2,right-left,height);}
+      else if(c.variant==='ytick'){const right=vl-6,left=Math.max(4,right-width);area=text=box(left,p.y-height/2,right-left,height);}
+      else if(c.variant==='place'||c.variant==='tick'){
+        // A name at a point of the plane: a place beside its dot — to the right, else to the left, else above or below
+        // without its dot — and a tick centred on its mark; neither leaves the free area nor covers another name.
+        const wide=width+(c.variant==='place'?10:0);
+        const candidates=c.variant==='place'?[['right',p.x-3,p.y-height/2],['left',p.x-wide+3,p.y-height/2],['above',p.x-width/2,p.y-height-12],['below',p.x-width/2,p.y+12]]
+          :[['',c.align==='end'?p.x-width-6:c.align==='start'?p.x+6:p.x-width/2,p.y-height/2]];
+        let chosen=null;
+        for(const [side,left,top] of candidates){const candidate=box(left,top,side==='above'||side==='below'?width:wide,height);if(inView(candidate)&&!scaleLabels.some(o=>overlaps(candidate,o,2))&&!uiObstacles.some(o=>overlaps(candidate,o,0))){chosen={side,area:candidate};break;}}
+        c.el.hidden=!chosen;
+        if(chosen){area=chosen.area;if(chosen.side)c.el.dataset.side=chosen.side;c.el.style.width=(area.right-area.left).toFixed(1)+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;scaleLabels.push(area);occupied.push(area);}
+        continue;
+      }
       else{
         if(xs&&(xs[1]<vl-8||xs[0]>vr+8)){c.el.hidden=true;continue;}
         // A band keeps a visible width however short its span; its name keeps to the part in view.
@@ -260,7 +291,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         c.el.style.setProperty('--band-left',band?(band[0]-left).toFixed(1)+'px':'0px');c.el.style.setProperty('--band-width',band?(band[1]-band[0]).toFixed(1)+'px':'0px');
         if(band)c.el.dataset.band='true';else delete c.el.dataset.band;
       }
-      const fits=c.variant==='lane'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2:text.left>=vl-12&&text.right<=vr+12;
+      const fits=c.variant==='lane'||c.variant==='ytick'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2:text.left>=vl-12&&text.right<=vr+12;
       // A scale never writes over the page's own panels, even when the map is squeezed under a sheet.
       const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0));
       c.el.hidden=!shown;
@@ -318,7 +349,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const approach=(current,target)=>{if(Math.abs(current-target)>.015)layoutMoving=true;return Math.abs(current-target)<.002?target:current+(target-current)*ease;};
     center=center.map((v,i)=>approach(v,targetCenter[i]));fitScale=approach(fitScale,targetFit);stretchY=approach(stretchY,tstretchY);
     // A measured scale pans no further than its own overhang at the zoom it is heading to.
-    if(measured){const span=Math.abs(project([measured[1],center[1],0]).x-project([measured[0],center[1],0]).x)*tzoom/Math.max(.01,zoom),limit=Math.max(0,(span-(targetViewport.right-targetViewport.left))/2+24);tpan.x=clamp(tpan.x,-limit,limit);tpan.y=0;}
+    if(measured){
+      const ratio=tzoom/Math.max(.01,zoom),overhang=(a,b,room)=>Math.max(0,(Math.abs(b-a)*ratio-room)/2+24);
+      const sx=overhang(project([measured.x[0],center[1],0]).x,project([measured.x[1],center[1],0]).x,targetViewport.right-targetViewport.left);tpan.x=clamp(tpan.x,-sx,sx);
+      if(measured.axes==='xy'){const sy=overhang(project([center[0],measured.y[0],0]).y,project([center[0],measured.y[1],0]).y,targetViewport.bottom-targetViewport.top);tpan.y=clamp(tpan.y,-sy,sy);}else tpan.y=0;
+    }
     for(const side of ['left','right','top','bottom'])viewport[side]=approach(viewport[side],targetViewport[side]);
     for(const n of nodes)if(!n.dragging)n.p=n.p.map((v,i)=>approach(v,n.target[i]));
     for(const c of clusters)c.p=c.p.map((v,i)=>approach(v,c.target[i]));
@@ -335,6 +370,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     for(const edge of [selectedEdge,hoveredEdge])if(edge){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
     for(const edge of edges)if(!edge.muted&&(edge.from===focusId||edge.to===focusId)){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
     const focused=near.size>0;edgeHits=[];
+    if(measured&&backdrop.length){
+      ctx.strokeStyle='#8fa8c4';ctx.globalAlpha=.3;ctx.lineWidth=.9;ctx.beginPath();
+      for(const line of backdrop){let previous=null;for(const [x,y] of line){const point=project([x,y,0]);if(previous){const cut=clipSegment(previous,point);if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}}
+      ctx.stroke();ctx.globalAlpha=1;
+    }
     for(const edge of edges){
       let a=byId.get(edge.from)?.screen,b=byId.get(edge.to)?.screen,whole=true;if(!a||!b)continue;
       if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
@@ -400,17 +440,17 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const dx=p.x<area.left+mx?area.left+mx-p.x:p.x>area.right-mx?area.right-mx-p.x:0,dy=p.y<area.top+my?area.top+my-p.y:p.y>area.bottom-my?area.bottom-my-p.y:0;
     if(dx||dy){tpan={x:tpan.x+dx,y:tpan.y+dy};kick();}
   }
-  const zoomTo=value=>{tzoom=measured?clamp(value,1,4):clamp(value,.65,2.2);kick();};
+  const zoomTo=value=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.65,2.2);kick();};
   const wheel=e=>{
     e.preventDefault();const before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012));
     // On a measured scale the moment under the pointer stays under it.
-    if(measured&&before>0){const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left-(targetViewport.left+targetViewport.right)/2;tpan={x:x-(x-tpan.x)*tzoom/before,y:0};kick();}
+    if(measured&&before>0){const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left-(targetViewport.left+targetViewport.right)/2,y=e.clientY-rect.top-(targetViewport.top+targetViewport.bottom)/2;tpan={x:x-(x-tpan.x)*tzoom/before,y:measured.axes==='xy'?y-(y-tpan.y)*tzoom/before:0};kick();}
   };
   // The wheel zooms over the sky and over what lies on it: stars, link labels and a scale's names.
   for(const target of [canvas,layer,edgeLayer,clusterLayer])target.addEventListener('wheel',wheel,{passive:false});
   const pointer=e=>{const rect=canvas.getBoundingClientRect();return{x:e.clientX-rect.left,y:e.clientY-rect.top};};
   canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;revealId=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging')});
-  canvas.addEventListener('pointermove',e=>{if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;if(measured||(rotate?drag.shift:!drag.shift)){tpan={x:drag.pan.x+dx,y:measured?0:drag.pan.y+dy}}else{tyaw=clamp(drag.yaw+dx*.0025,-.9,.9);tpitch=clamp(drag.pitch+dy*.0025,-.6,.6)}kick()});
+  canvas.addEventListener('pointermove',e=>{if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;if(measured||(rotate?drag.shift:!drag.shift)){tpan={x:drag.pan.x+dx,y:measured?.axes==='x'?0:drag.pan.y+dy}}else{tyaw=clamp(drag.yaw+dx*.0025,-.9,.9);tpitch=clamp(drag.pitch+dy*.0025,-.6,.6)}kick()});
   const release=e=>{if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved;drag=null;canvas.classList.remove('dragging');if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();};canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   canvas.addEventListener('pointerleave',()=>{if(!drag){hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
@@ -427,20 +467,25 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     selectEdge(id){selectedEdgeId=id;kick()},
     link(id){linkFrom=id;kick()},
     zoomBy(factor){if(Number.isFinite(factor)&&factor>0)zoomTo(tzoom*factor);},
-    frame({fill=false,x=null}={}){
+    frame({fill=false,x=null,y=null,plane=false}={}){
       if(fill)resize();tstretchY=1;measured=null;
       if(nodes.length){
         const points=nodes.map(n=>n.target),min=[0,1,2].map(i=>Math.min(...points.map(p=>p[i]))),max=[0,1,2].map(i=>Math.max(...points.map(p=>p[i])));
         if(Array.isArray(x)&&x.length===2&&x.every(Number.isFinite)){min[0]=Math.min(min[0],x[0]);max[0]=Math.max(max[0],x[1]);}
+        if(Array.isArray(y)&&y.length===2&&y.every(Number.isFinite)){min[1]=Math.min(min[1],y[0]);max[1]=Math.max(max[1],y[1]);}
         targetCenter=min.map((v,i)=>(v+max[i])/2);
-        if(fill){
-          // A measured layout fills its free area: the width holds the scale, its rows share the height.
-          const vw=targetViewport.right-targetViewport.left,vh=targetViewport.bottom-targetViewport.top,b=Math.max(.1,Math.min(vw/880,vh/540,1.7)),sx=clamp((vw/vh)/(880/540),1,2.1);
-          const dx=Math.max(1,max[0]-min[0]),dy=Math.max(1,max[1]-min[1]);
-          targetFit=Math.min(1.6,.94*vw/(dx*b*sx));tstretchY=clamp(.86*vh/(dy*targetFit*b),.5,6);targetFit=Math.min(targetFit,.86*vh/(dy*b*tstretchY));measured=[min[0],max[0]];
+        const vw=targetViewport.right-targetViewport.left,vh=targetViewport.bottom-targetViewport.top,b=Math.max(.1,Math.min(vw/880,vh/540,1.7)),sx=clamp((vw/vh)/(880/540),1,2.1);
+        const dx=Math.max(1,max[0]-min[0]),dy=Math.max(1,max[1]-min[1]);
+        if(fill&&plane){
+          // A plane keeps one unit on both axes: the whole extent fits the free area without stretching.
+          targetFit=Math.min(.92*vw/(dx*b),.88*vh/(dy*b));measured={axes:'xy',x:[min[0],max[0]],y:[min[1],max[1]]};
+        }else if(fill){
+          // A scale fills its free area: the width holds the scale, its rows share the height.
+          targetFit=Math.min(1.6,.94*vw/(dx*b*sx));tstretchY=clamp(.86*vh/(dy*targetFit*b),.5,6);targetFit=Math.min(targetFit,.86*vh/(dy*b*tstretchY));measured={axes:'x',x:[min[0],max[0]]};
         }else targetFit=Math.min(1.6,810/Math.max(510,max[0]-min[0]),455/Math.max(285,max[1]-min[1]),900/Math.max(560,max[2]-min[2]));
       }
-      tyaw=0;tpitch=-.055;tzoom=1;tpan={x:0,y:0};resize()},
+      // A measured layout is seen straight on, so the view's tilt does not bend its measure.
+      tyaw=0;tpitch=measured?0:-.055;tzoom=1;tpan={x:0,y:0};resize()},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     reveal(id){revealId=id??null;kick();},
     refresh:resize,

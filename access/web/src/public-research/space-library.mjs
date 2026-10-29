@@ -2,7 +2,7 @@ import {createAtlasLibrary} from '../../constructor/atlas-data.mjs';
 import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from './zarathustra-ground-targets.mjs';
 import {extendPublicCollection} from './collection-data.mjs';
-import antiquityData from './antiquity-space-data.json' with {type: 'json'};
+import {antiquityFirstBranches as antiquityData} from './bonsai.mjs';
 
 const PUBLIC_PROFILE_IDS = Object.freeze({
   zarathustra: 'tos.work.friedrich-nietzsche.also-sprach-zarathustra',
