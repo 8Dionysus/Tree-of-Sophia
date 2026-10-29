@@ -1,3 +1,4 @@
+import {resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 // Measure and completeness: what a stand's data dates, places and links, and
 // what it does not. Counts come from the bonsai and the routes as they stand;
 // nothing here is estimated. A branch's "returns" count the steps that go back
@@ -5,8 +6,8 @@
 // that turns to an earlier text, which the branch's order shows and the scale
 // measures.
 
-const lang=locale=>String(locale||'ru').startsWith('en')?'en':'ru';
-const pick=(value,locale)=>typeof value==='string'?value:value?.[lang(locale)]??value?.en??value?.ru??'';
+const lang=resolveLocale;
+const pick=localeValue;
 const count=(map,key)=>map.set(key,(map.get(key)??0)+1);
 
 /** How many times a sequence of values steps back below its previous value. */

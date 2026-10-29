@@ -11,8 +11,9 @@ Shared renderers under `src/observatory/` present validated backend packets.
 Interface labels follow the selected UI language. Source titles, quotations,
 form wording and vocabulary labels keep their delivered wording; the UI does
 not translate them. Missing language variants show their actual fallback.
-The public profiles provide Russian and English display names for the selected
-works; source metadata and quoted text remain unchanged.
+The public profiles provide Russian, English, Spanish, German and Simplified
+Chinese display names for the selected works; source metadata and quoted text
+remain unchanged.
 
 Readable context keeps source qualifications, exact number lexemes and field
 order. Recognized fields receive interface labels, unknown fields remain
@@ -33,13 +34,16 @@ branches alongside the shared public corpus reader and research workspace.
 Prepared readings remain proposals. A bibliographic pointer becomes an exact
 reading action only when it binds to a unit in the selected public version.
 Unavailable works retain their metadata without substituting private text.
-The interface and prepared paths support Russian and English. Source passages
+The interface and prepared paths support Russian, English, Spanish, German and
+Simplified Chinese (`ru`, `en`, `es`, `de`, `zh-Hans`). The language control is
+available in the space and the reader; URLs and the local preference retain the
+choice across profiles. Source passages
 keep their edition language. Plain entry and profile switching open the space;
 an explicit reading hash opens its exact passage.
 
 The shared Library also exposes the retained research collection: all fifteen
 Antiquity branches, author and era browsing, work maps, close-reading prompts,
-argument readings and lexical dossiers, with Russian and English presentation.
+argument readings and lexical dossiers, with presentation in all five languages.
 The collection lives in the stand's bonsai
 ([`bonsai/antiquity/collection.json`](../../bonsai/antiquity/collection.json)); it
 records its authored source revision and excludes witness text and quotation
@@ -176,6 +180,26 @@ camera in memory. Browser history and named places store bounded IDs, query
 state and poses, not source packets or exploration cursors. The full local
 workspace export/import has a separate explicit replace flow; see the
 [research shelf guide](src/research-shelf/README.md).
+
+### Public presentation languages
+
+The public adapter's [locale helper](src/public-research/locale.mjs) selects
+authored display forms and messages from its per-language catalogs and the
+stand-owned [Bonsai catalogs](../../bonsai/locales/). The existing bilingual
+library is constructed and fingerprinted before display translation; choosing
+a language preserves graph namespaces, material IDs, edition revisions and
+exact source addresses. Plain source strings and personal text remain literal.
+The reader's language control changes its interface while keeping the selected
+edition and passage. A language of the interface does not imply an edition in
+that language. New Zarathustra ground actions keep the existing German default
+for Russian presentation and use German for German presentation; other interface
+languages use the English fallback. Explicit reading links and an already open
+edition keep their exact addresses when the interface changes.
+
+Catalog keys retain the exact English presentation message. A context key is
+used where the same word has different roles, such as `corpus-reader:Reading`
+for reading a book rather than an interpretative reading. Translation checks
+compare language coverage, placeholders and the authored Bonsai display forms.
 
 ## WebMCP
 

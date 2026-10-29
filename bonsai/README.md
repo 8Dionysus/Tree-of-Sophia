@@ -17,6 +17,14 @@ The stands under [`access/web/src/public-research/`](../access/web/src/public-re
 read their bonsai through one adapter, `bonsai.mjs`. They present what a bonsai
 holds and never write to it.
 
+The display catalogs under [`locales/`](locales/) provide Spanish, German and
+Simplified Chinese forms alongside the modules' Russian and English wording.
+[`lib/locales.mjs`](lib/locales.mjs) resolves these interface languages and the
+stand's display messages. The public adapter applies them after constructing
+the existing library identity. A translated label does not change a source's
+wording, dating, coordinates, identity, review status or export; quoted evidence
+and the text of an edition retain their own languages.
+
 ## What a bonsai holds
 
 Each `bonsai/<stand>/bonsai.json` is a manifest (`tos.bonsai.v1`): the stand

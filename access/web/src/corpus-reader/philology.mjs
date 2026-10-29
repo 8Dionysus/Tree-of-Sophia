@@ -1,3 +1,4 @@
+import {localeText,copyLocale,localeLabels} from '../public-research/locale.mjs';
 import './philology.css';
 import {referenceKey, validateReference} from './model.mjs';
 import {languageName} from '../observatory/human-presentation.mjs';
@@ -152,7 +153,7 @@ function appendMetadata(parent, heading, value, locale, labels) {
   section.append(element('h3', '', heading));
   for (const [key, item] of rows) {
     const row = element('p', 'cr-philology-meta');
-    row.append(element('strong', '', labels[key] || ({id: locale === 'en' ? 'Identifier: ' : 'Идентификатор: ', name: locale === 'en' ? 'Name: ' : 'Название: ', url: locale === 'en' ? 'Link: ' : 'Ссылка: ', version: locale === 'en' ? 'Version: ' : 'Версия: ', license: locale === 'en' ? 'License: ' : 'Лицензия: '})[key] || (locale === 'en' ? 'Details: ' : 'Сведения: ')));
+    row.append(element('strong', '', labels[key] || ({id: copyLocale(locale) === 'en' ? localeText('Identifier: ',locale) : 'Идентификатор: ', name: copyLocale(locale) === 'en' ? localeText('Name: ',locale) : 'Название: ', url: copyLocale(locale) === 'en' ? localeText('Link: ',locale) : 'Ссылка: ', version: copyLocale(locale) === 'en' ? localeText('Version: ',locale) : 'Версия: ', license: copyLocale(locale) === 'en' ? localeText('License: ',locale) : 'Лицензия: '})[key] || (copyLocale(locale) === 'en' ? localeText('Details: ',locale) : 'Сведения: ')));
     const url = /url|uri|href/i.test(key) ? safeUrl(item) : '';
     if (url) {
       const link = element('a', '', item); link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; row.append(link);
@@ -168,14 +169,14 @@ const MORPH = {
 };
 const TAGS={NN:'noun',V:'verb',ADJ:'adjective',ADV:'adverb',ART:'article',PRO:'pronoun',PREP:'preposition',CONJ:'conjunction',Masc:'masculine',Fem:'feminine',Neut:'neuter',Nom:'nominative',Acc:'accusative',Gen:'genitive',Dat:'dative',Sg:'singular',Pl:'plural',Pres:'present',Past:'past',Perf:'perfect',Ind:'indicative',Subj:'subjunctive',Imp:'imperative',Inf:'infinitive',Part:'participle','1':'1st','2':'2nd','3':'3rd'};
 export function morphologyLabel(value, locale) {
- const en=String(locale||'ru').toLowerCase().startsWith('en');
+ const en=(copyLocale(locale||'ru')==='en');
  if (typeof value !== 'string') return localized(value,locale);
  if (value.includes('<')) return value.split(/(\s*\/\s*)/).map((analysis,index)=>{
    if(index%2)return analysis;
    const tags=[...analysis.matchAll(/<([^<>]+)>/g)];
-   return tags.map(match=>MORPH[TAGS[match[1]]]?.[en?1:0]??match[0]).join(' · ')||analysis;
+   return tags.map(match=>(MORPH[TAGS[match[1]]]?localeText(MORPH[TAGS[match[1]]][en?1:0],locale):match[0])).join(' · ')||analysis;
  }).join('');
- return value.split(/(\s*[·/]\s*|\s+)/).map(part=>MORPH[part]?.[en?1:0] ?? part).join('');
+ return value.split(/(\s*[·/]\s*|\s+)/).map(part=>(MORPH[part]?localeText(MORPH[part][en?1:0],locale):part)).join('');
 }
 
 function renderCandidate(parent, candidate, index, locale, words) {
@@ -220,7 +221,7 @@ export function renderPhilology(body, {
   result = null, busy = false, concordance = null, searchAvailable = false,
   onConcordance, onMore, onOccurrence, onMappingTarget,
 } = {}) {
-  const words = COPY[String(locale).toLowerCase().startsWith('en') ? 'en' : 'ru'];
+  const words = localeLabels(COPY[copyLocale(locale)],locale);
   const multiword=Boolean(form) && !isSingleWordSelection(form);
   body.append(element('h2', 'cr-inspector-title', multiword ? words.passage : words.title));
   const selected = element('blockquote', 'cr-philology-form', form || words.choose);
@@ -228,7 +229,7 @@ export function renderPhilology(body, {
   const source = reference?.target;
   const exact = element('dl', 'cr-philology-address');
   const address = source ? [source.workId, source.expressionId, source.editionId, source.itemId, source.fileId, source.textLayerRef, source.fileSha256, source.textLayerSha256].filter(Boolean).join(' › ') : '';
-  for (const [label, value] of [[words.language, language ? languageName(language, locale) : ''], [words.address, address], [String(locale).startsWith('en') ? 'Version / unit' : 'Версия / фрагмент', reference ? `${reference.versionId} / ${reference.unitId}` : ''], [String(locale).startsWith('en') ? 'Code-point offsets' : 'Позиции символов Unicode', reference?.selector ? `${reference.selector.start}–${reference.selector.end}` : '']]) {
+  for (const [label, value] of [[words.language, language ? languageName(language, locale) : ''], [words.address, address], [(copyLocale(locale)==='en') ? localeText('Version / unit',locale) : 'Версия / фрагмент', reference ? `${reference.versionId} / ${reference.unitId}` : ''], [(copyLocale(locale)==='en') ? localeText('Code-point offsets',locale) : 'Позиции символов Unicode', reference?.selector ? `${reference.selector.start}–${reference.selector.end}` : '']]) {
     if (!value) continue;
     exact.append(element('dt', '', label), element('dd', '', value));
   }
@@ -286,7 +287,7 @@ export function renderPhilology(body, {
       const targetReference=mapping.targetReference,targetScope=targetReference?.target;
       if(targetScope&&targetReference.selector){
         const address=[targetScope.workId,targetScope.expressionId,targetScope.editionId,targetScope.itemId,targetScope.fileId,targetScope.textLayerRef,targetScope.fileSha256,targetScope.textLayerSha256,
-          `${targetReference.selector.start}–${targetReference.selector.end} ${locale === 'en' ? 'code points' : 'символов'}`].filter(Boolean).join(' › ');
+          `${targetReference.selector.start}–${targetReference.selector.end} ${copyLocale(locale) === 'en' ? localeText('code points',locale) : 'символов'}`].filter(Boolean).join(' › ');
         const details=element('details','cr-philology-exact');details.append(element('summary','',words.address),element('p','cr-philology-context-address',address));card.append(details);
       }
       if(mapping.reviewBasis)card.append(element('p','cr-philology-muted',`${words.reviewBasis}: ${mapping.reviewBasis}`));

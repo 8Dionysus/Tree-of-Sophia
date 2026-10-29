@@ -496,3 +496,9 @@
   #tree .pr-spaces>*{padding:0 8px;font-size:11px}
   #tree .ps-header .corpus-open{padding:0 8px}
 }
+
+/* One native language control stays usable when translated names grow. */
+#tree .ps-locale-select,.ps-dialog .ps-locale-select{max-width:132px;min-height:36px;padding:5px 22px 5px 8px;border:1px solid #8296ad3a;border-radius:5px;background:#0a1324;color:#e1c697;font:12px/1.4 var(--ps-sans,system-ui,sans-serif)}
+#tree[data-locale="zh-Hans"]{--ps-serif:'Noto Serif CJK SC','Songti SC',SimSun,serif;--ps-sans:'Noto Sans CJK SC','Microsoft YaHei',system-ui,sans-serif}
+#tree[data-locale="zh-Hans"] :is(.ps-rail-title,.ps-card-kicker,.ps-result small){letter-spacing:.04em}
+#tree :is(.ps-step-text,.ps-reading-body,.ps-route-question,.ps-result strong){overflow-wrap:anywhere;hyphens:auto}

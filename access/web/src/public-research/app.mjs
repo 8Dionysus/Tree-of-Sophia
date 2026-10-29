@@ -1,3 +1,5 @@
+import {resolveLocale,copyLocale,localeText,localeLabels} from './locale.mjs';
+import {setUiLanguage} from '../observatory/ui-i18n.mjs';
 import {mountCorpusEntry} from '../corpus-reader/host.mjs';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
 import {createPublicCorpusProvider} from '../corpus-reader/public-provider.mjs';
@@ -12,8 +14,10 @@ import './public-research.css';
 const root = document.querySelector('#public-research') ?? document.querySelector('#public-reader-host');
 const profile = root?.dataset.profile === 'antiquity' ? 'antiquity' : 'zarathustra';
 const requestedLocale=new URLSearchParams(location.search).get('lang');
-let locale=requestedLocale==='en'||requestedLocale==='ru'?requestedLocale:(navigator.language.toLowerCase().startsWith('en')?'en':'ru');
-let english=locale==='en';
+let savedLocale;try{savedLocale=localStorage.getItem('tos.public-research.locale.v1');}catch{}
+let locale=resolveLocale(requestedLocale,null)??resolveLocale(savedLocale,null)??(navigator.languages??[navigator.language]).map(value=>resolveLocale(value,null)).find(Boolean)??'ru';
+let english=copyLocale(locale)==='en';
+setUiLanguage(locale);
 const copy = {
   zarathustra: {
     title: 'Заратустра', eyebrow: 'Читать и исследовать',
@@ -34,9 +38,9 @@ const copyEn={
   zarathustra:{title:'Zarathustra',eyebrow:'Read and explore',intro:'One work. Many returns to its words.',description:'Read available editions, mark exact passages, and keep your own thoughts in a shared notebook.',question:'What question brings you to Zarathustra?',placeholder:'For example: what changes when a person creates their own values?',other:'Antiquity',status:'Corpus details load when requested.'},
   antiquity:{title:'Antiquity',eyebrow:'Read and explore',intro:'One question moves across texts and voices.',description:'Compare available sources, save exact places, and return to your own line of inquiry.',question:'What question will you carry through ancient texts?',placeholder:'For example: what makes a life good?',other:'Zarathustra',status:'Corpus details load when requested.'},
 };
-const stringsFor=()=>english?copyEn[profile]:copy[profile];
+const stringsFor=()=>english?localeLabels(copyEn[profile],locale):copy[profile];
 let strings=stringsFor();
-document.title=`${strings.title} · ${english?'Tree of Sophia':'Древо Софии'}`;
+document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;
 
 const h = (tag, cls, value) => { const node = document.createElement(tag); if (cls) node.className = cls; if (value !== undefined) node.textContent = value; return node; };
 const button = (label, cls = '') => { const node = h('button', cls, label); node.type = 'button'; return node; };
@@ -49,7 +53,7 @@ const toolbar = h('nav', 'main-tools pr-toolbar');
 const readerRoot = h('main', 'pr-page pr-space-page');
 readerRoot.id = 'public-reader-host';
 const header = h('header', 'header pr-header');
-header.append(link(english ? 'Tree of Sophia' : 'Древо Софии', profileUrl(profile), 'pr-wordmark'), toolbar);
+header.append(link(english ? localeText('Tree of Sophia',locale) : 'Древо Софии', profileUrl(profile), 'pr-wordmark'), toolbar);
 const hero = h('section', 'pr-hero');
 const eyebrow = h('p', 'pr-eyebrow', strings.eyebrow);
 const title = h('h1', '', strings.title);
@@ -62,7 +66,7 @@ const currentSpace = h('span', 'pr-space-current', strings.title);
 currentSpace.setAttribute('aria-current', 'page');
 const switchProfile = link(strings.other, alternate, 'pr-switch');
 switchProfile.href = `${alternate}?lang=${locale}`;
-const labelSpaces = () => { spacesNav.setAttribute('aria-label', english ? 'Spaces' : 'Пространства'); switchProfile.setAttribute('aria-label', `${english ? 'Explore' : 'Перейти'}: ${strings.other}`); };
+const labelSpaces = () => { spacesNav.setAttribute('aria-label', english ? localeText('Spaces',locale) : 'Пространства'); switchProfile.setAttribute('aria-label', `${english ? localeText('Explore',locale) : 'Перейти'}: ${strings.other}`); };
 labelSpaces();
 if (profile === 'zarathustra') spacesNav.append(currentSpace, switchProfile); else spacesNav.append(switchProfile, currentSpace);
 toolbar.append(spacesNav);
@@ -78,11 +82,11 @@ questionLabel.append(question);
 const saveState = h('p', 'pr-save-state', '');saveState.setAttribute('role', 'status');
 saveState.setAttribute('role', 'status');
 saveState.setAttribute('aria-live', 'polite');
-const resolveQuestionConflict = button(english ? 'Keep this draft and load the saved question' : 'Сохранить этот черновик и открыть сохранённый вопрос', 'pr-question-recover');
+const resolveQuestionConflict = button(english ? localeText('Keep this draft and load the saved question',locale) : 'Сохранить этот черновик и открыть сохранённый вопрос', 'pr-question-recover');
 resolveQuestionConflict.hidden = true;
 const questionHistory = document.createElement('details');
 questionHistory.className = 'pr-question-history';
-const questionHistoryTitle = h('summary', '', english ? 'Previous questions' : 'Предыдущие вопросы');
+const questionHistoryTitle = h('summary', '', english ? localeText('Previous questions',locale) : 'Предыдущие вопросы');
 const questionHistoryList = h('div', 'pr-question-history-list');
 questionHistory.append(questionHistoryTitle, questionHistoryList);
 const status = h('p', 'pr-provider-state', strings.status);
@@ -115,7 +119,7 @@ const questionListeners = new Set();
 const notifyQuestion = () => { for (const listener of questionListeners) listener(question.value); };
 const historyId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 let corpusWorkCount;
-function refreshProviderStatus(){status.textContent=corpusWorkCount===false?(english?'The public corpus could not be reached. Open the reader to check source availability.':'Не удалось связаться с публичным корпусом. Откройте чтение, чтобы проверить доступность источника.'):Number.isInteger(corpusWorkCount)?(english?`${corpusWorkCount} works are listed. Text is loaded in bounded passages.`:`Произведений в списке: ${corpusWorkCount}. Текст загружается небольшими фрагментами.`):strings.status;}
+function refreshProviderStatus(){status.textContent=corpusWorkCount===false?(english?localeText('The public corpus could not be reached. Open the reader to check source availability.',locale):'Не удалось связаться с публичным корпусом. Откройте чтение, чтобы проверить доступность источника.'):Number.isInteger(corpusWorkCount)?(english?localeText("{0} works are listed. Text is loaded in bounded passages.",locale,[corpusWorkCount]):`Произведений в списке: ${corpusWorkCount}. Текст загружается небольшими фрагментами.`):strings.status;}
 
 function validRoute(value) {
   if (typeof value !== 'string' || !value.startsWith('#reading=')) return null;
@@ -141,7 +145,7 @@ function persistQuestion() {
     if (sequence === questionSequence) {
       questionTouched = false;
       resolveQuestionConflict.hidden = true;
-      saveState.textContent = english ? 'Saved in the shared notebook on this device.' : 'Сохранено в общем блокноте на этом устройстве.';
+      saveState.textContent = english ? localeText('Saved in the shared notebook on this device.',locale) : 'Сохранено в общем блокноте на этом устройстве.';
       if (questionHistory.open) void renderQuestionHistory();
     }
     return true;
@@ -149,8 +153,8 @@ function persistQuestion() {
     if (sequence === questionSequence) {
       resolveQuestionConflict.hidden = error?.code !== 'conflict';
       saveState.textContent = error?.code === 'conflict'
-        ? (english ? 'This question changed in another tab. Keep this draft before loading the saved question.' : 'Вопрос изменился в другой вкладке. Сохраните этот черновик перед открытием общего вопроса.')
-        : (english ? 'Could not save. Your text remains here until you leave.' : 'Не удалось сохранить. Текст останется здесь, пока вы не уйдёте со страницы.');
+        ? (english ? localeText('This question changed in another tab. Keep this draft before loading the saved question.',locale) : 'Вопрос изменился в другой вкладке. Сохраните этот черновик перед открытием общего вопроса.')
+        : (english ? localeText('Could not save. Your text remains here until you leave.',locale) : 'Не удалось сохранить. Текст останется здесь, пока вы не уйдёте со страницы.');
     }
     return false;
   });
@@ -161,7 +165,7 @@ function scheduleQuestionSave() {
   questionSequence += 1;
   notifyQuestion();
   clearTimeout(saveTimer);
-  saveState.textContent = english ? 'Saving…' : 'Сохраняется…';
+  saveState.textContent = english ? localeText('Saving…',locale) : 'Сохраняется…';
   saveTimer = setTimeout(() => void persistQuestion(), 250);
 }
 
@@ -205,18 +209,18 @@ async function renderQuestionHistory() {
     }
     const renderEntry = item => {
       const row = h('div', 'pr-question-history-entry');
-      const kind = item.value.unsaved ? (english ? 'Draft preserved after a conflict' : 'Черновик, сохранённый после конфликта')
-        : (english ? 'Saved editing snapshot' : 'Сохранённый снимок редактирования');
+      const kind = item.value.unsaved ? (english ? localeText('Draft preserved after a conflict',locale) : 'Черновик, сохранённый после конфликта')
+        : (english ? localeText('Saved editing snapshot',locale) : 'Сохранённый снимок редактирования');
       const date = new Date(item.value.changedAt);
-      const timestamp = Number.isFinite(date.getTime()) ? date.toLocaleString(english ? 'en' : 'ru') : item.value.changedAt;
+      const timestamp = Number.isFinite(date.getTime()) ? date.toLocaleString(locale) : item.value.changedAt;
       row.append(h('small', '', [kind, timestamp].filter(Boolean).join(' · ')), h('p', '', item.value.value));
-      const restore = button(english ? 'Use this question' : 'Сделать текущим вопросом', 'pr-question-restore');
+      const restore = button(english ? localeText('Use this question',locale) : 'Сделать текущим вопросом', 'pr-question-restore');
       const feedback = h('p', 'pr-save-state'); feedback.setAttribute('role', 'status');
       restore.disabled = item.value.value.length > 4000;
       restore.addEventListener('click', async () => {
         if (restoringHistoryQuestion) return;
         if (workspaceView?.hasUnsavedDraft?.()) {
-          feedback.textContent = english ? 'Save or export the current thought draft before changing its question.'
+          feedback.textContent = english ? localeText('Save or export the current thought draft before changing its question.',locale)
             : 'Сохраните или экспортируйте текущий черновик мысли перед сменой его вопроса.';
           return;
         }
@@ -224,23 +228,23 @@ async function renderQuestionHistory() {
         try {
           const sequence = questionSequence, currentText = question.value;
           if (!(await persistQuestion())) {
-            feedback.textContent = english ? 'The saved question could not be changed. Your current text remains here.'
+            feedback.textContent = english ? localeText('The saved question could not be changed. Your current text remains here.',locale)
               : 'Не удалось сменить сохранённый вопрос. Текущий текст остаётся здесь.';
             return;
           }
           if (sequence !== questionSequence || currentText !== question.value) {
-            feedback.textContent = english ? 'Your question changed while saving. The current edits remain here; choose the snapshot again when ready.'
+            feedback.textContent = english ? localeText('Your question changed while saving. The current edits remain here; choose the snapshot again when ready.',locale)
               : 'Во время сохранения вопрос изменился. Новые правки остаются здесь; выберите снимок снова, когда будете готовы.';
             return;
           }
           if (!(await setQuestion(item.value.value))) {
-            feedback.textContent = english ? 'The saved question could not be changed. Your current text remains here.'
+            feedback.textContent = english ? localeText('The saved question could not be changed. Your current text remains here.',locale)
               : 'Не удалось сменить сохранённый вопрос. Текущий текст остаётся здесь.';
             return;
           }
           question.focus();
         } catch {
-          feedback.textContent = english ? 'This snapshot could not be restored. Both saved versions remain in history.'
+          feedback.textContent = english ? localeText('This snapshot could not be restored. Both saved versions remain in history.',locale)
             : 'Не удалось восстановить снимок. Обе сохранённые версии остаются в истории.';
         } finally { restoringHistoryQuestion = false; restore.disabled = item.value.value.length > 4000; }
       });
@@ -251,11 +255,11 @@ async function renderQuestionHistory() {
       const group = h('details', 'pr-question-history-group'); group.dataset.historyGroup = items.at(-1).key;
       group.open = openGroups.has(group.dataset.historyGroup);
       const snippet = items[0].value.value.slice(0, 100);
-      group.append(h('summary', '', `${items.length} ${english ? 'editing snapshots' : 'снимков редактирования'} · ${snippet}${items[0].value.value.length > 100 ? '…' : ''}`), ...items.map(renderEntry));
+      group.append(h('summary', '', `${items.length} ${english ? localeText('editing snapshots',locale) : 'снимков редактирования'} · ${snippet}${items[0].value.value.length > 100 ? '…' : ''}`), ...items.map(renderEntry));
       return group;
     });
-    questionHistoryList.replaceChildren(...(rows.length ? rows : [h('p', '', english ? 'No earlier saved questions.' : 'Ранее сохранённых вопросов нет.')]));
-  } catch { if (request === questionHistoryRender) questionHistoryList.textContent = english ? 'Could not load previous questions.' : 'Не удалось загрузить предыдущие вопросы.'; }
+    questionHistoryList.replaceChildren(...(rows.length ? rows : [h('p', '', english ? localeText('No earlier saved questions.',locale) : 'Ранее сохранённых вопросов нет.')]));
+  } catch { if (request === questionHistoryRender) questionHistoryList.textContent = english ? localeText('Could not load previous questions.',locale) : 'Не удалось загрузить предыдущие вопросы.'; }
 }
 
 async function retainQuestionDraftAndRefresh() {
@@ -264,16 +268,16 @@ async function retainQuestionDraftAndRefresh() {
     await notebook.setPreference(`${QUESTION_HISTORY_PREFIX}${historyId()}`,
       {value, changedAt:new Date().toISOString(), unsaved:true}, {expectedValue:undefined});
     if (sequence !== questionSequence || value !== question.value) {
-      saveState.textContent = english ? 'A copy of the earlier draft was saved. The current edits remain here.' : 'Копия прежнего черновика сохранена. Текущие изменения остаются здесь.';
+      saveState.textContent = english ? localeText('A copy of the earlier draft was saved. The current edits remain here.',locale) : 'Копия прежнего черновика сохранена. Текущие изменения остаются здесь.';
       return;
     }
     questionTouched = false;
     if (!(await refreshQuestion())) { questionTouched = true; throw new Error('Could not load the saved question.'); }
     resolveQuestionConflict.hidden = true;
-    saveState.textContent = english ? 'Your draft is in Previous questions; the shared saved question is shown.' : 'Черновик сохранён в предыдущих вопросах; показан общий сохранённый вопрос.';
+    saveState.textContent = english ? localeText('Your draft is in Previous questions; the shared saved question is shown.',locale) : 'Черновик сохранён в предыдущих вопросах; показан общий сохранённый вопрос.';
     if (questionHistory.open) await renderQuestionHistory();
   } catch {
-    saveState.textContent = english ? 'Could not preserve the draft. Your text remains here.' : 'Не удалось сохранить черновик. Ваш текст остаётся здесь.';
+    saveState.textContent = english ? localeText('Could not preserve the draft. Your text remains here.',locale) : 'Не удалось сохранить черновик. Ваш текст остаётся здесь.';
   }
 }
 
@@ -281,12 +285,12 @@ function confirmDraftNavigation() {
   return new Promise(resolve => {
     const dialog = document.createElement('dialog'); dialog.className = 'pr-draft-dialog';
     dialog.setAttribute('aria-labelledby', 'pr-draft-dialog-title');
-    const heading = h('h2', '', english ? 'Unsaved research draft' : 'Несохранённый черновик исследования'); heading.id = 'pr-draft-dialog-title';
+    const heading = h('h2', '', english ? localeText('Unsaved research draft',locale) : 'Несохранённый черновик исследования'); heading.id = 'pr-draft-dialog-title';
     const description = h('p', '', english
-      ? 'Your research draft and selected sources are not saved. Stay to save or copy them, or leave and discard this draft.'
+      ? localeText('Your research draft and selected sources are not saved. Stay to save or copy them, or leave and discard this draft.',locale)
       : 'Черновик исследования и выбранные источники не сохранены. Останьтесь, чтобы сохранить или скопировать их, либо перейдите и потеряете этот черновик.');
-    const stay = button(english ? 'Keep editing' : 'Продолжить работу');
-    const leave = button(english ? 'Leave and discard draft' : 'Перейти и потерять черновик');
+    const stay = button(english ? localeText('Keep editing',locale) : 'Продолжить работу');
+    const leave = button(english ? localeText('Leave and discard draft',locale) : 'Перейти и потерять черновик');
     let finished = false;
     const finish = result => { if (finished) return; finished = true; dialog.close(); dialog.remove(); resolve(result); };
     stay.addEventListener('click', () => finish(false)); leave.addEventListener('click', () => finish(true));
@@ -308,24 +312,25 @@ async function switchProfiles(event) {
     location.assign(next.toString());
   } catch {
     allowProfileLeave = false;
-    status.textContent = english ? 'Could not save this profile before switching.' : 'Не удалось сохранить состояние профиля перед переключением.';
+    status.textContent = english ? localeText('Could not save this profile before switching.',locale) : 'Не удалось сохранить состояние профиля перед переключением.';
   }
 }
 
 function setLanguage(value,{updateUrl=true}={}){
-  if(!['ru','en'].includes(value)||value===locale)return;
-  locale=value;english=locale==='en';strings=stringsFor();document.documentElement.lang=locale;document.title=`${strings.title} · ${english?'Tree of Sophia':'Древо Софии'}`;refreshProviderStatus();
-  header.querySelector('.pr-wordmark').textContent=english?'Tree of Sophia':'Древо Софии';
+  value=resolveLocale(value,null);if(!value||value===locale)return;
+  locale=value;english=copyLocale(locale)==='en';try{localStorage.setItem('tos.public-research.locale.v1',locale);}catch{};strings=stringsFor();document.documentElement.lang=locale;document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;refreshProviderStatus();
+  header.querySelector('.pr-wordmark').textContent=english?localeText('Tree of Sophia',locale):'Древо Софии';
   switchProfile.textContent=strings.other;currentSpace.textContent=strings.title;labelSpaces();
   switchProfile.href=alternate+`?lang=${locale}`;
   if(questionLabel.firstChild?.nodeType===Node.TEXT_NODE)questionLabel.firstChild.nodeValue=strings.question;
   question.placeholder=strings.placeholder;
-  saveState.textContent=questionTouched?(english?'Your question has unsaved changes.':'В вопросе есть несохранённые изменения.'):'';
-  questionHistoryTitle.textContent=english?'Previous questions':'Предыдущие вопросы';
-  resolveQuestionConflict.textContent=english?'Keep this draft and load the saved question':'Сохранить этот черновик и открыть сохранённый вопрос';
+  saveState.textContent=questionTouched?(english?localeText('Your question has unsaved changes.',locale):'В вопросе есть несохранённые изменения.'):'';
+  questionHistoryTitle.textContent=english?localeText('Previous questions',locale):'Предыдущие вопросы';
+  resolveQuestionConflict.textContent=english?localeText('Keep this draft and load the saved question',locale):'Сохранить этот черновик и открыть сохранённый вопрос';
   if(questionHistory.open)void renderQuestionHistory();
   if(updateUrl){const url=new URL(location.href);url.searchParams.set('lang',locale);history.replaceState(history.state,'',url);}
-  document.dispatchEvent(new CustomEvent('sophia-ui-language',{detail:{locale}}));
+  setUiLanguage(locale);
+  document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;
   spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
 }
 
@@ -335,7 +340,7 @@ function mountJourneys(items, documentIds) {
     && ['id', 'title', 'question', 'documentId', 'versionId', 'unitId'].every(key => typeof item[key] === 'string' && item[key].trim().length > 0 && item[key].length <= 2048)
     && documentIds.includes(item.documentId));
   if (!usable.length) return;
-  const heading = h('h2', 'pr-journeys-title', english ? 'Reading paths' : 'Показательные маршруты');
+  const heading = h('h2', 'pr-journeys-title', english ? localeText('Reading paths',locale) : 'Показательные маршруты');
   journeys.setAttribute('aria-labelledby', 'pr-journeys-heading');
   heading.id = 'pr-journeys-heading';
   const list = h('div', 'pr-journey-list');
@@ -344,36 +349,36 @@ function mountJourneys(items, documentIds) {
     const name = h('h3', '', item.title);
     const prompt = h('p', '', item.question);
     const details = h('details', 'pr-journey-details');
-    details.append(h('summary', '', english ? 'Explore the question and voices' : 'Развернуть вопрос и голоса'));
+    details.append(h('summary', '', english ? localeText('Explore the question and voices',locale) : 'Развернуть вопрос и голоса'));
     const openPlace = async target => {
       try {
         if (!window.tosPublicResearch?.getQuestion().trim() && !(await window.tosPublicResearch?.setQuestion(item.question))) return;
         await window.tosPublicResearch?.open({documentId: target.documentId, versionId: target.versionId, unitId: target.unitId});
       } catch {
-        status.textContent = english ? 'This reading path could not be opened.' : 'Не удалось открыть этот маршрут чтения.';
+        status.textContent = english ? localeText('This reading path could not be opened.',locale) : 'Не удалось открыть этот маршрут чтения.';
       }
     };
     if (typeof item.readingHypothesis === 'string') {
-      details.append(h('h4', '', english ? 'A reading to test' : 'Чтение для проверки'), h('p', '', item.readingHypothesis));
+      details.append(h('h4', '', english ? localeText('A reading to test',locale) : 'Чтение для проверки'), h('p', '', item.readingHypothesis));
     }
     if (typeof item.strongAlternative === 'string') {
-      details.append(h('h4', '', english ? 'A strong alternative' : 'Сильная альтернатива'), h('p', '', item.strongAlternative));
+      details.append(h('h4', '', english ? localeText('A strong alternative',locale) : 'Сильная альтернатива'), h('p', '', item.strongAlternative));
     }
     if (Array.isArray(item.steps)) {
       const steps = h('ol', 'pr-journey-steps');
       for (const step of item.steps) {
         const row = h('li', 'pr-journey-step');
         row.append(h('h4', '', step.title), h('small', 'pr-journey-voice', step.voice), h('p', '', step.prompt));
-        const openStep = button(english ? 'Read the source' : 'Прочитать источник', 'pr-journey-open');
+        const openStep = button(english ? localeText('Read the source',locale) : 'Прочитать источник', 'pr-journey-open');
         openStep.addEventListener('click', () => void openPlace(step));
         row.append(openStep); steps.append(row);
       }
       details.append(steps);
     }
     details.append(h('p', '', english
-      ? 'Return to your question, select two exact grounds, and save your thesis with an objection in My research.'
+      ? localeText('Return to your question, select two exact grounds, and save your thesis with an objection in My research.',locale)
       : 'Вернитесь к своему вопросу: выберите два точных основания и сохраните тезис с возражением в «Моём исследовании».'));
-    const open = button(english ? 'Start reading' : 'Начать чтение', 'pr-journey-open');
+    const open = button(english ? localeText('Start reading',locale) : 'Начать чтение', 'pr-journey-open');
     open.addEventListener('click', () => { details.open = true; void openPlace(item); });
     card.append(name, prompt, open, details);
     list.append(card);
@@ -418,7 +423,7 @@ async function start() {
     resolveQuestionReady(true);
   } catch {
     resolveQuestionReady(false);
-    saveState.textContent = english ? 'Notebook storage is unavailable. Your question may not persist.' : 'Блокнот недоступен. Вопрос может не сохраниться.';
+    saveState.textContent = english ? localeText('Notebook storage is unavailable. Your question may not persist.',locale) : 'Блокнот недоступен. Вопрос может не сохраниться.';
   }
   if(appDisposed)return;
   await initializePublicReaderRules();
@@ -431,13 +436,13 @@ async function start() {
   const activeRoute = validRoute(location.hash);
   if(appDisposed)return;
   if (location.hash !== (activeRoute ?? '')) history.replaceState(history.state, '', `${location.pathname}${location.search}${activeRoute ?? ''}`);
-  entry = mountCorpusEntry({root: readerRoot, provider, notebook, toolbar, locale: () => locale, route: true, dbName: DB_NAME,
+  entry = mountCorpusEntry({root: readerRoot, provider, notebook, toolbar, locale: () => locale, onUiLocaleChange:setLanguage, route: true, dbName: DB_NAME,
     onLibraryRequest:()=>spaceView?.openCollection(),
     onReturnFocusFallback:()=>spaceView?.restoreFocus?.(),
     onReadingLocation(address) {
       const saved = validRoute(encodeReadingRoute(address));
       if (saved) void notebook.setPreference(routeKey(profile), saved).catch(() => {
-        saveState.textContent = english ? 'Could not save this reading position.' : 'Не удалось сохранить это место чтения.';
+        saveState.textContent = english ? localeText('Could not save this reading position.',locale) : 'Не удалось сохранить это место чтения.';
       });
     }});
   entry.opener.disabled = true;
@@ -502,6 +507,6 @@ questionHistory.addEventListener('toggle', () => { if(questionHistory.open)void 
 if(import.meta.hot)import.meta.hot.dispose(disposeApp);
 
 void start().catch(error => {
-  const message = h('p', 'pr-error', english ? 'The reader could not start. Reload the page to try again.' : 'Не удалось запустить читатель. Перезагрузите страницу.');
+  const message = h('p', 'pr-error', english ? localeText('The reader could not start. Reload the page to try again.',locale) : 'Не удалось запустить читатель. Перезагрузите страницу.');
   readerRoot.append(message);
 });
