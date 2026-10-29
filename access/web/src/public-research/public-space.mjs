@@ -11,12 +11,13 @@ import {describeSourceLocator} from './source-address.mjs';
 import {personalKind,readPersonalKinds} from './personal-kind.mjs';
 import {isAuthoredTransition,ladderRung,nodeForm,partName,relationStyle,routeVoices,searchScore,sourceLine,stepWitness} from './space-legibility.mjs';
 import {antiquityTimeline,formatDating,formatYears,stepTimeline,trajectory,zarathustraTimeline} from './space-timeline.mjs';
-import {bonsaiFor,lensPositions} from './bonsai.mjs';
+import {bonsaiFor,depthOf,lensPositions} from './bonsai.mjs';
 import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
+import {depthLayout} from './space-depth.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -35,8 +36,8 @@ const extraTranslations={
 Object.assign(extraTranslations.ru,{zoomIn:'Увеличить Древо',zoomOut:'Уменьшить Древо',mapSearch:'Искать в пространстве…',mapSearchHint:'Поиск по названиям и описаниям пространства; полный текст ищите в Чтении.',personal:'Личная запись',personalUnknown:'Вид записи не указан',pendingProposal:'Личное предложение · ожидает проверки · не канон',growEmpty:'Создайте собственную мысль в этом пространстве.',routeQuestion:'Вопрос маршрута',generalQuestion:'Общий вопрос',lensQuestion:'Вопрос этого взгляда',modeCancel:'Отменить выбор',modeFirst:'Выберите первую звезду',modeSecond:'Выберите вторую звезду',modeCompare:'Сопоставление',modeConnect:'Связь',stepName:'Шаг',voice:'Голос'});
 Object.assign(extraTranslations.en,{zoomIn:'Zoom in on the tree',zoomOut:'Zoom out on the tree',mapSearch:'Search this space…',mapSearchHint:'Searches space titles and descriptions; search full text in the reader.',personal:'Personal record',personalUnknown:'Record type not specified',pendingProposal:'Personal proposal · pending review · not canon',growEmpty:'Create your own thought in this space.',routeQuestion:'Route question',generalQuestion:'General question',lensQuestion:'Question for this view',modeCancel:'Cancel selection',modeFirst:'Choose the first star',modeSecond:'Choose the second star',modeCompare:'Compare',modeConnect:'Connect',stepName:'Step',voice:'Voice'});
 Object.assign(extraTranslations.ru,{excerpt:'Выдержка',proposalGrounds:'Основания этого предложения',manualOrigin:'Ручной ввод',agentOrigin:'Ответ внешнего агента',personalOrigin:'Личное предложение',pending:'Ожидает проверки',notCanon:'Не канон',postureShort:'Прочтения · не канон'});
-Object.assign(extraTranslations.ru,{dragHint:'перетаскивание сдвигает карту, с Shift — поворачивает',transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
-Object.assign(extraTranslations.en,{dragHint:'drag to pan, Shift+drag to turn',transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
+Object.assign(extraTranslations.ru,{turn:'Повернуть пространство',turnRest:'Вернуть пространство к исходному повороту',transition:'Переход',branch:'Ветвь',journey:'Маршрут',chooseBranch:'Выберите ветвь или маршрут',walkBranch:'Пройти ветвь',openSection:'Открыть раздел издания',sectionSource:'Открывается раздел издания, где стоит это место; точная фраза не размечена.',moveOne:'ход',moveFew:'хода',moveMany:'ходов'});
+Object.assign(extraTranslations.en,{turn:'Turn the space',turnRest:'Bring the space back to its resting turn',transition:'Link',branch:'Branch',journey:'Route',chooseBranch:'Choose a branch or a route',walkBranch:'Walk this branch',openSection:'Open the edition section',sectionSource:'Opens the edition section that contains this passage; the exact sentence is not marked.',moveOne:'move',moveFew:'moves',moveMany:'moves'});
 Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор исследований',dating_low:'опора — источник без ссылок на исследования',lifeLine:'Годы автора',journeys:'Маршруты чтения',researchActions:'Исследование',orientation:'Где вы в Древе',mapTools:'Управление картой',openColumn:'Панель',collapseColumn:'Свернуть панель',toOverview:'Ко всему пространству',backToRoute:'назад к маршруту',onMap:'На карте',selectedLink:'Выбрана связь',lensWord:'линза',statusTitle:'Статус',formSource:'Источник',formSourceHint:'Произведение, место, автор или традиция — то, на что опираются прочтения',formProposal:'Прочтение',formProposalHint:'Авторское прочтение, понятие, вопрос или ветвь — предложено для исследования, не канон',formPersonal:'Личное',formPersonalHint:'Ваша мысль или связь, сохранённая в этом браузере',
   ladderLabel:'Ступень толкования',ladderHint:'Древо различает источник, его прочтение и сопоставление прочтений; каждая ступень возвращается к источнику.',rung_source:'Источник',rung_reading:'Прочтение',rung_comparison:'Сопоставление',rungPersonal:'Личная запись',
   basisContains:'Структура: часть и целое.',basisGround:'Прочтение опирается на это место источника.',basisEditorial:'Редакторское сопоставление двух прочтений · предложено, не канон · не утверждает исторического влияния.',basisProposed:'Связь предложена для исследования · не канон · сходство не означает влияния.',basisPersonal:'Личная связь из вашего исследования.'});
@@ -222,7 +223,26 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     modeCancel.textContent=t('modeCancel');voiceCache.clear();paintLenses();paintRelations();if(searchValue)renderSearch();if(!compareBar.hidden)renderComparison();reflect();
   }
   const uiActions=[];
+  let turnGlobe=null,lastPose=null;
+  function globe(){
+    const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','-12 -12 24 24');svg.setAttribute('aria-hidden','true');
+    const shape=(tag,attrs)=>{const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,value);svg.append(node);return node;};
+    shape('circle',{r:'9',fill:'none',stroke:'currentColor','stroke-width':'1.2'});
+    turnGlobe={meridian:shape('ellipse',{rx:'3',ry:'9',fill:'none',stroke:'currentColor','stroke-width':'.9',opacity:'.75'}),equator:shape('ellipse',{rx:'9',ry:'2',fill:'none',stroke:'currentColor','stroke-width':'.9',opacity:'.75'}),front:shape('circle',{r:'1.9',fill:'currentColor'})};
+    paintTurn(lastPose);
+    return svg;
+  }
+  // The globe shows the space's turn: its meridian and equator open as the space turns, its dot is the space's front.
+  function paintTurn(pose){
+    lastPose=pose;if(!turnGlobe||!pose)return;
+    const yaw=pose.yaw,pitch=pose.pitch;
+    turnGlobe.meridian.setAttribute('rx',Math.max(.7,Math.abs(Math.sin(yaw))*9).toFixed(2));
+    turnGlobe.equator.setAttribute('ry',Math.max(.7,Math.abs(Math.sin(pitch))*9).toFixed(2));
+    turnGlobe.front.setAttribute('cx',(Math.sin(yaw)*7.6).toFixed(2));turnGlobe.front.setAttribute('cy',(-Math.sin(pitch)*7.6).toFixed(2));
+  }
   function paintTool({button:b,key,label}){
+    // The globe is named by what pressing it does; its title says how the space turns.
+    if(key==='turn'){b.replaceChildren(globe());b.title=`${t(key)} (← ↑ → ↓)`;b.setAttribute('aria-label',t('turnRest'));return;}
     b.replaceChildren(el('span','ps-tool-symbol',label));
     if(key==='routes'||key==='research')b.append(el('span','ps-tool-label',t(key)));
     // A tool names its key; the overview also says how the map is moved.
@@ -240,7 +260,21 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   addTool('new','＋',()=>openNewThought(),'icon');
   addTool('connect','↗',()=>beginConnect(),'icon');
   addTool('compare','⇄',()=>beginCompare(),'icon');
-  // Moving the map is its own small group at the map's corner.
+  // Moving the map is its own small group at the map's corner; the globe turns the space and brings it back to rest.
+  // The click that ends a drag of the globe belongs to the drag; a new press starts clean, and the keyboard always brings the space back.
+  let turnDragged=false;
+  const turnButton=addTool('turn','',event=>{if(event.detail!==0&&turnDragged){turnDragged=false;return;}sky?.turnToRest?.();},'icon ps-turn',mapTools);
+  {
+    let turning=null;
+    turnButton.addEventListener('pointerdown',event=>{turnDragged=false;if(event.button!==0)return;turning={id:event.pointerId,x:event.clientX,y:event.clientY,last:[event.clientX,event.clientY],moved:false};turnButton.setPointerCapture(event.pointerId);});
+    turnButton.addEventListener('pointermove',event=>{
+      if(!turning||event.pointerId!==turning.id)return;
+      if(!turning.moved&&Math.hypot(event.clientX-turning.x,event.clientY-turning.y)<3)return;
+      turning.moved=true;const [x,y]=turning.last;turning.last=[event.clientX,event.clientY];sky?.turnBy?.((event.clientX-x)*.008,(event.clientY-y)*.008);
+    });
+    const done=event=>{if(!turning||event.pointerId!==turning.id)return;turnDragged=turning.moved&&event.type==='pointerup';turning=null;};
+    turnButton.addEventListener('pointerup',done);turnButton.addEventListener('pointercancel',done);
+  }
   addTool('zoomOut','−',()=>sky?.zoomBy(1/1.25),'icon',mapTools);
   addTool('zoomIn','+',()=>sky?.zoomBy(1.25),'icon',mapTools);
   addTool('fit','⌖',()=>frameSky(),'icon',mapTools);
@@ -259,6 +293,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   search.addEventListener('input',()=>{searchValue=search.value.trim();renderSearch();});
   search.addEventListener('keydown',event=>{if(event.key==='Escape'){search.value='';searchValue='';searchResults.hidden=true;}if(event.key==='Enter')searchResults.querySelector('button')?.click();});
   document.addEventListener('keydown',keyboard);
+  // With nothing focused, arrows turn the space while the map is what was last pressed; after a press elsewhere they are the page's again.
+  let mapActive=true;
+  const notePress=event=>{mapActive=!!event.target?.closest?.('#tree canvas.tree-sky,#tree .tree-stars,#tree .edge-labels,#tree .tree-clusters,#tree .ps-map-tools');};
+  document.addEventListener('pointerdown',notePress,{capture:true});
 
   function savedStatus(){return model.persistenceError?.()||ownersPersistenceError||positionsPersistenceError?t('graphSaveError'):'';}
   function notify(message){statusLabel.textContent=message;clearTimeout(notify.timer);notify.timer=setTimeout(()=>{notify.timer=null;statusLabel.textContent=savedStatus();},3800);}
@@ -489,8 +527,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(lens==='time'&&timeline)applyTimeline(projected,routePath);
     else if(lens==='space'&&geography)applyPlane(projected);
     else if(lens==='proximity'&&proximityLens)applyProximity(projected);
+    else applyDepth(projected);
     if(selectedEdge)projected.selectedEdgeId=selectedEdge;
     return projected;
+  }
+  // A space that groups is read in depth as its bonsai declares, by the step of interpretation; see space-depth.mjs.
+  const depth=depthOf(profile);
+  function applyDepth(projected){
+    const laid=depthLayout(projected.nodes,{stepOf:node=>ladderRung({material:matForNode(node),node}),depth,locale:locale()});
+    projected.nodes=laid.nodes;projected.planes=laid.planes;
   }
   // Time is a view: stars take places the scale gives them, the saved graph keeps its own.
   function applyTimeline(projected,routePath){
@@ -612,6 +657,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(destroyed)return;state=model.getState();
     // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
     const kind=layoutKind();if(kind)shell.dataset.scale=kind;else delete shell.dataset.scale;
+    turnButton.hidden=measuredLens(lens);
     refreshSky();
     undoButton.disabled=!model.canUndo();redoButton.disabled=!model.canRedo();
     if(!notify.timer)statusLabel.textContent=savedStatus();
@@ -1273,7 +1319,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
       if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
       // Arrows walk the open branch or route a step at a time.
-      if(route&&(key==='arrowleft'||key==='arrowright')&&!event.target.closest('.ps-route-progress')){const next=routeIndex+(key==='arrowright'?1:-1),total=route.source==='atlas'?routes.find(item=>item.id===route.id)?.steps?.length??0:journeyList.find(item=>item.id===route.id)?.steps?.length??0;if(next>=0&&next<total){event.preventDefault();route.source==='atlas'?goRouteStep(next):goJourneyStep(next);}}
+      const arrow={arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1]}[key];
+      if(arrow&&!measuredLens(lens)&&(!route||event.shiftKey)&&(event.target===document.body?mapActive:event.target.closest('#tree .tree-stars,#tree canvas,#tree .ps-map-tools'))){event.preventDefault();sky?.turnBy?.(arrow[0]*.12,arrow[1]*.09);return;}
+      if(route&&!event.shiftKey&&(key==='arrowleft'||key==='arrowright')&&!event.target.closest('.ps-route-progress')){const next=routeIndex+(key==='arrowright'?1:-1),total=route.source==='atlas'?routes.find(item=>item.id===route.id)?.steps?.length??0:journeyList.find(item=>item.id===route.id)?.steps?.length??0;if(next>=0&&next<total){event.preventDefault();route.source==='atlas'?goRouteStep(next):goJourneyStep(next);}}
       // Escape climbs one level at a time: a pending pick, a comparison, an open panel, then the route.
       if(key==='escape'){if(!searchResults.hidden){searchResults.hidden=true;return;}if(interaction){cancelInteraction();return;}if(!compareBar.hidden){compareIds=[];compareBar.hidden=true;refreshSky();renderColumn();return;}if(!personal.hidden){closePersonal();return;}closeColumnLayer({collapse:false});}
     }
@@ -1327,7 +1375,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(scale&&bottom-top<120)top=below;
     return bottom-top>=120&&right-left>=120?{left,right,top,bottom}:null;
   }
-  sky=mountConstructorSky(shell,{rotate:false,dragNodes:()=>!measuredLens(lens),getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,position)=>{const node=graphState().nodes.find(item=>item.id===id);if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
+  // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
+  // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
+  sky=mountConstructorSky(shell,{rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens),getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge});
   // On the scale of time a row's name opens its branch.
   const openLane=event=>{const lane=event.target.closest?.('.tree-cluster[data-ref]');if(!lane||!(lens==='time'&&timeline))return;const item=routeItems().find(entry=>entry.source==='atlas'&&entry.id===lane.dataset.ref);if(!item)return;event.stopPropagation();startRoute(item);};
   shell.addEventListener('click',openLane);
@@ -1341,5 +1391,5 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   if(upgradeError)notify(copyLocale(locale)==='en'?localeText('The saved graph could not be upgraded. Its original copy is preserved.',locale):'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   return {root:shell,pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
+    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
 }

@@ -27,6 +27,15 @@ const BONSAI=Object.freeze({
 /** The bonsai a stand grows from, or null. */
 export const bonsaiFor=profile=>BONSAI[profile]??null;
 
+/**
+ * What depth means on the lenses that group: the steps it orders stars by, deep to near, with their names,
+ * and the pose the space rests in so that its depth shows; null where the bonsai declares none.
+ */
+export function depthOf(profile){
+  const declared=BONSAI[profile]?.manifest?.depth;
+  return Array.isArray(declared?.steps)&&declared.steps.length?declared:null;
+}
+
 /** How a lens's positions read: a measure (with what it measures) or a grouping (with what it groups by). */
 export function lensPositions(profile,lensId){
   const declared=BONSAI[profile]?.manifest?.lenses?.[lensId];

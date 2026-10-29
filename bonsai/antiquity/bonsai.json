@@ -289,5 +289,55 @@
         }
       ]
     }
+  },
+  "depth": {
+    "positions": "group",
+    "reads": "step-of-interpretation",
+    "short": {
+      "ru": "ступень толкования",
+      "en": "step of interpretation"
+    },
+    "groups": {
+      "ru": "в глубину — по ступени толкования: источник дальше всех, перед ним прочтение, затем сопоставление прочтений, ваше — ближе всех; на линзах, которые меряют, пространство плоское",
+      "en": "in depth, by the step of interpretation: a source lies deepest, a reading before it, then a comparison of readings, your own record nearest; on the lenses that measure, the space is flat"
+    },
+    "steps": [
+      {
+        "id": "source",
+        "z": -220,
+        "label": {
+          "ru": "Источник",
+          "en": "Source"
+        }
+      },
+      {
+        "id": "reading",
+        "z": 0,
+        "label": {
+          "ru": "Прочтение",
+          "en": "Reading"
+        }
+      },
+      {
+        "id": "comparison",
+        "z": 170,
+        "label": {
+          "ru": "Сопоставление",
+          "en": "Comparison"
+        }
+      },
+      {
+        "id": "personal",
+        "z": 280,
+        "label": {
+          "ru": "Личное",
+          "en": "Personal"
+        }
+      }
+    ],
+    "rest": {
+      "yaw": -0.36,
+      "pitch": -0.17
+    }
   }
 }

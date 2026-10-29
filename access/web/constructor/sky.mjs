@@ -4,8 +4,16 @@ import {validateSkyPose} from './sky-pose.mjs';
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
 // Options are opt-in so the constructor keeps its own behaviour: rotate:false
 // makes a plain drag pan and leaves turning to Shift+drag, and getViewport
-// supplies the actually free area.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true}) {
+// supplies the actually free area. For a space that is read in depth: rest is
+// the pose the view returns to and frames in; intro lets the space turn into
+// that pose once, so its volume shows; holdToMove (ms) picks a star up only
+// once it is held still, while a quick drag from a star turns the view with
+// turnFromStars; touch gives two fingers the pan and the pinch; secondaryPan
+// pans with the right or middle button; inertia lets a turn coast to rest;
+// depthCue dims what lies further back; planarMoves keeps a moved star in its
+// own depth; onPose hears every turn of the view. Such a space may lay its
+// stars on named planes of depth (state.planes), shown while it turns.
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null}) {
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -67,8 +75,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   const fogBack=cloudTexture([76,102,151],17),fogFront=cloudTexture([111,91,136],53);
 
-  let w=1,h=1,dpr=1,base=1,skyTime=0,yaw=0,pitch=-.055,zoom=1;
-  let tyaw=0,tpitch=-.055,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0,revealId=null,stretchY=1,tstretchY=1,measured=null;
+  const restYaw=Number.isFinite(rest?.yaw)?rest.yaw:0,restPitch=Number.isFinite(rest?.pitch)?rest.pitch:-.055;
+  const YAW=[-.9,.9],PITCH=[-.6,.6];
+  let w=1,h=1,dpr=1,base=1,skyTime=0,yaw=restYaw,pitch=restPitch,zoom=1;
+  let tyaw=restYaw,tpitch=restPitch,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0,revealId=null,stretchY=1,tstretchY=1,measured=null;
+  // A turn keeps its last speed when let go and coasts to rest; a pose heard last is not told again.
+  let velocity=null,lastTurn=null,introDone=false,introPending=false,introUntil=0,turnShownUntil=0,reveal=0,heardPose='',framedOnce=false;
   let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
   let frameCount=0,drawSum=0,frameSum=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -81,7 +93,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const underStars=new Set(['rule','thread','hrule','ring']),clipped=new Set(['hrule','ring']);
   const relationColors={contains:'#829dbb',supports:'#b7c991',interprets:'#bea7e1',questions:'#e5a18f',contrasts:'#e09591',echoes:'#8ecbc4',develops:'#e0c48c',compares:'#96b7e4',translates:'#8ebdc9',relates:'#a5b7cf'};
   const hex=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value??'')?value:/^#[a-f\d]{3}$/i.test(value??'')?'#'+[...value.slice(1)].map(c=>c+c).join(''):fallback;
-  let nodes=[],edges=[],clusters=[],backdrop=[],selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
+  let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true;
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
   function refresh(state,labels={}){
@@ -101,11 +113,62 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!n){
         const el=document.createElement('button');el.type='button';el.className='tree-star';el.dataset.node=item.id;
         const label=document.createElement('span');el.append(label);layer.append(el);n={id:item.id,el,label,screen:{x:0,y:0,s:1},p:[...item.position],target:[...item.position],dragging:false};
-        let nodeDrag=null,suppress=false;
-        el.addEventListener('click',()=>{if(suppress){suppress=false;return;}onSelect(item.id)});
-        el.addEventListener('pointerdown',e=>{if(e.button!==0||!(typeof dragNodes==='function'?dragNodes(item.id):dragNodes))return;suppress=false;n.dragging=true;nodeDrag={id:e.pointerId,x:e.clientX,y:e.clientY,p:[...n.p],moved:false};el.setPointerCapture(e.pointerId);e.stopPropagation()});
-        el.addEventListener('pointermove',e=>{if(!nodeDrag||e.pointerId!==nodeDrag.id)return;const dx=e.clientX-nodeDrag.x,dy=e.clientY-nodeDrag.y;if(Math.hypot(dx,dy)<5&&!nodeDrag.moved)return;nodeDrag.moved=true;const vx=dx/Math.max(.1,n.screen.sX??n.screen.s),vy=dy/Math.max(.1,n.screen.sY??n.screen.s),c=Math.cos(yaw),ss=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);n.p=[nodeDrag.p[0]+vx*c-vy*ss*sp,nodeDrag.p[1]+vy*cp,nodeDrag.p[2]-vx*ss-vy*c*sp];n.target=[...n.p];kick();});
-        const end=e=>{if(!nodeDrag||e.pointerId!==nodeDrag.id)return;const moved=nodeDrag.moved;nodeDrag=null;n.dragging=false;if(moved){suppress=true;onMove?.(item.id,[...n.p]);}kick();};
+        let nodeDrag=null,press=null,swallowed=false;
+        const movable=()=>typeof dragNodes==='function'?dragNodes(item.id):dragNodes;
+        const pickUp=(pointerId,x,y)=>{n.dragging=true;nodeDrag={id:pointerId,x,y,p:[...n.p],moved:false};};
+        // The click that ends a drag or a pinch belongs to it; a new press starts clean, and the keyboard (detail 0) always chooses.
+        const swallow=()=>{swallowed=true;};
+        el.addEventListener('click',e=>{if(e.detail!==0&&swallowed){swallowed=false;return;}onSelect(item.id)});
+        // A star held still is picked up and moves; a quick drag from it turns the view, as the sky around it does.
+        el.addEventListener('contextmenu',e=>{if(holdToMove||secondaryPan)e.preventDefault();});
+        // What a press began ends without a trace: on a pinch the view goes back and a picked-up star returns;
+        // a star that leaves the view lets its press go.
+        const settle=restore=>{
+          clearTimeout(press?.timer);
+          if(press?.view){if(restore){tyaw=press.view.yaw;tpitch=press.view.pitch;tpan={...press.view.pan};}canvas.classList.remove('dragging');}
+          n.turningView=false;
+          if(nodeDrag){if(restore){n.p=[...nodeDrag.p];n.target=[...n.p];}nodeDrag=null;n.dragging=false;delete el.dataset.held;}
+          press=null;presses.delete(cancel);kick();
+        };
+        const cancel=()=>{settle(true);swallow();};
+        n.abandon=()=>settle(false);
+        el.addEventListener('pointerdown',e=>{
+          if(pinching(e))return;
+          swallowed=false;
+          const panButton=secondaryPan&&(e.button===1||e.button===2);
+          if(e.button!==0&&!panButton)return;
+          // A press stops a turn that is still coasting.
+          velocity=null;lastTurn=null;
+          // The right or middle button moves the view from a star as from the sky.
+          if(panButton){e.preventDefault();revealId=null;press={id:e.pointerId,x:e.clientX,y:e.clientY,view:{yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:false,forcePan:true},timer:null,moved:false};presses.add(cancel);el.setPointerCapture(e.pointerId);e.stopPropagation();canvas.classList.add('dragging');return;}
+          if(!holdToMove){if(!movable())return;pickUp(e.pointerId,e.clientX,e.clientY);el.setPointerCapture(e.pointerId);e.stopPropagation();return;}
+          const can=movable();if(!can&&!turnFromStars)return;
+          press={id:e.pointerId,x:e.clientX,y:e.clientY,view:null,moved:false,timer:can?setTimeout(()=>{if(press&&!press.view){pickUp(press.id,press.x,press.y);el.dataset.held='true';kick();}},holdToMove):null};
+          presses.add(cancel);el.setPointerCapture(e.pointerId);e.stopPropagation();
+        });
+        el.addEventListener('pointermove',e=>{
+          if(pinching(e))return;
+          if(nodeDrag&&e.pointerId===nodeDrag.id){
+            const dx=e.clientX-nodeDrag.x,dy=e.clientY-nodeDrag.y;if(Math.hypot(dx,dy)<5&&!nodeDrag.moved)return;nodeDrag.moved=true;
+            const vx=dx/Math.max(.1,n.screen.sX??n.screen.s),vy=dy/Math.max(.1,n.screen.sY??n.screen.s),c=Math.cos(yaw),ss=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+            // In a space read in depth a star keeps its depth and moves in its own plane.
+            if(planarMoves){const ax=vx/Math.max(.2,c),ay=(vy+ax*ss*sp)/Math.max(.2,cp);n.p=[nodeDrag.p[0]+ax,nodeDrag.p[1]+ay,nodeDrag.p[2]];}
+            else n.p=[nodeDrag.p[0]+vx*c-vy*ss*sp,nodeDrag.p[1]+vy*cp,nodeDrag.p[2]-vx*ss-vy*c*sp];
+            n.target=[...n.p];kick();return;
+          }
+          if(!press||e.pointerId!==press.id)return;
+          const dx=e.clientX-press.x,dy=e.clientY-press.y;
+          if(!press.view){if(Math.hypot(dx,dy)<5)return;clearTimeout(press.timer);if(!turnFromStars){press=null;presses.delete(cancel);return;}revealId=null;velocity=null;lastTurn=null;press.view={yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,forcePan:false};n.turningView=!(rotate?e.shiftKey:!e.shiftKey);canvas.classList.add('dragging');}
+          if(Math.hypot(dx,dy)>=5)press.moved=true;
+          hoverEdge=null;dragBy(press.view,dx,dy);
+        });
+        const end=e=>{
+          if(nodeDrag&&e.pointerId===nodeDrag.id){const moved=nodeDrag.moved;nodeDrag=null;n.dragging=false;delete el.dataset.held;press=null;presses.delete(cancel);if(moved){swallow();onMove?.(item.id,[...n.p]);}kick();return;}
+          if(!press||e.pointerId!==press.id)return;
+          clearTimeout(press.timer);presses.delete(cancel);
+          if(press.view){if(press.moved||press.view.forcePan)swallow();n.turningView=false;canvas.classList.remove('dragging');letGo();}
+          press=null;kick();
+        };
         el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('lostpointercapture',end);
         el.addEventListener('pointerenter',()=>{hover=item.id;kick()});el.addEventListener('pointerleave',()=>{hover=null;kick()});
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
@@ -124,11 +187,18 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(item.hover)n.el.title=item.hover;else n.el.removeAttribute('title');
       if(item.ownerType)n.el.dataset.ownerType=item.ownerType;else delete n.el.dataset.ownerType;
       return n;
-    });old.forEach(n=>n.el.remove());
+    });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
     clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint)c.el.title=item.hint;else c.el.removeAttribute('title');c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>Array.isArray(line)&&line.length>1):[];
+    // A space read in depth may lay its stars on planes, each at its own depth and named at a corner.
+    const oldPlanes=new Map(planes.map(plane=>[plane.id,plane]));
+    planes=(Array.isArray(state.planes)?state.planes:[]).filter(item=>typeof item?.id==='string'&&Number.isFinite(item.z)&&[item.x,item.y].every(range=>Array.isArray(range)&&range.length===2&&range.every(Number.isFinite))).map(item=>{
+      let plane=oldPlanes.get(item.id);oldPlanes.delete(item.id);
+      if(!plane){const el=document.createElement('div');el.className='tree-plane';el.dataset.plane=item.id;el.hidden=true;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});ruleLayer.append(el);plane={id:item.id,el};}
+      plane.el.textContent=typeof item.label==='string'?item.label:'';plane.z=item.z;plane.x=[...item.x];plane.y=[...item.y];plane.color=hex(item.color,'#a9bdd6');plane.el.style.color=plane.color;return plane;
+    });oldPlanes.forEach(plane=>plane.el.remove());
     if(!nodes.some(n=>n.id===hover))hover=null;if(!edges.some(e=>e.id===hoverEdge))hoverEdge=null;
     measureLabels=true;resize();
   }
@@ -141,7 +211,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const plane=measured?.axes==='xy',stretchX=plane?1:clamp(((viewport.right-viewport.left)/Math.max(1,viewport.bottom-viewport.top))/(880/540),1,2.1),scale=base*fitScale*zoom*depth;
     // A scale zooms and pans along its axis only and its rows keep their height; a plane zooms and pans both ways.
     const scaleOnly=measured?.axes==='x',zoomY=scaleOnly?1:zoom;
-    return {x:(viewport.left+viewport.right)*.5+rx*base*zoom*depth*stretchX+pan.x,y:(viewport.top+viewport.bottom)*.5+ry*base*zoomY*depth*stretchY+(scaleOnly?0:pan.y),s:scale,sX:scale*stretchX,sY:base*fitScale*zoomY*depth*stretchY};
+    return {x:(viewport.left+viewport.right)*.5+rx*base*zoom*depth*stretchX+pan.x,y:(viewport.top+viewport.bottom)*.5+ry*base*zoomY*depth*stretchY+(scaleOnly?0:pan.y),s:scale,sX:scale*stretchX,sY:base*fitScale*zoomY*depth*stretchY,d:depth};
   }
   function resize(){
     const first=w===1;w=Math.max(1,root.clientWidth);h=Math.max(1,root.clientHeight);dpr=Math.min(devicePixelRatio||1,softwareRenderer?1:1.25);
@@ -347,6 +417,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
     }
     for(const e of edges)e.el.hidden=!visibleEdges.has(e.id);
+    return occupied;
   }
 
   function draw(now,still=false){
@@ -354,7 +425,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const frameInterval=softwareRenderer?1000/28:1000/36;if(!still&&lastFrame&&now-lastFrame<frameInterval){raf=requestAnimationFrame(draw);return;}lastFrame=now;
     const started=performance.now(),elapsed=last?(now-last)/1000:1/60,dt=Math.min(elapsed,.05),ease=(reduced.matches||still)?1:1-Math.exp(-dt*5);last=now;
     if(playing&&!still)skyTime+=dt*.60;
-    yaw+=(tyaw-yaw)*ease;pitch+=(tpitch-pitch)*ease;zoom+=(tzoom-zoom)*ease;pan.x+=(tpan.x-pan.x)*ease;pan.y+=(tpan.y-pan.y)*ease;
+    if(velocity&&!drag&&!still&&!nodes.some(n=>n.turningView)){
+      const nextYaw=clamp(tyaw+velocity.yaw*dt,...YAW),nextPitch=clamp(tpitch+velocity.pitch*dt,...PITCH),decay=Math.exp(-dt*3.6);
+      velocity.yaw=nextYaw===tyaw+velocity.yaw*dt?velocity.yaw*decay:0;velocity.pitch=nextPitch===tpitch+velocity.pitch*dt?velocity.pitch*decay:0;
+      tyaw=nextYaw;tpitch=nextPitch;if(Math.abs(velocity.yaw)+Math.abs(velocity.pitch)<.015)velocity=null;
+    }
+    // The first view of a space turns slowly into its rest, so that its depth is seen moving once.
+    if(introPending&&nodes.length&&!still){introPending=false;yaw=clamp(restYaw+(Math.sign(restYaw)||1)*.6,...YAW);pitch=clamp(restPitch-(Math.sign(restPitch)||1)*.2,...PITCH);introUntil=now+2200;}
+    const turnEase=now<introUntil&&!drag?1-Math.exp(-dt*1.5):ease;
+    yaw+=(tyaw-yaw)*turnEase;pitch+=(tpitch-pitch)*turnEase;zoom+=(tzoom-zoom)*ease;pan.x+=(tpan.x-pan.x)*ease;pan.y+=(tpan.y-pan.y)*ease;
     let layoutMoving=false;
     const approach=(current,target)=>{if(Math.abs(current-target)>.015)layoutMoving=true;return Math.abs(current-target)<.002?target:current+(target-current)*ease;};
     center=center.map((v,i)=>approach(v,targetCenter[i]));fitScale=approach(fitScale,targetFit);stretchY=approach(stretchY,tstretchY);
@@ -380,6 +459,20 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     for(const edge of [selectedEdge,hoveredEdge])if(edge){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
     for(const edge of edges)if(!edge.muted&&(edge.from===focusId||edge.to===focusId)){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
     const focused=near.size>0;edgeHits=[];
+    // The planes of depth show while the space turns, by a drag, a key, the globe or its first turn, and fade once it rests:
+    // the turn itself shows what depth means, and the space at rest keeps only its stars.
+    const turning=!measured&&!!((drag?.moved&&!(drag.forcePan||(rotate?drag.shift:!drag.shift)))||velocity||now<introUntil||now<turnShownUntil||nodes.some(n=>n.turningView));
+    if(planes.length){reveal+=((turning?1:0)-reveal)*(1-Math.exp(-dt*(turning?7:1.8)));if(reveal<.003)reveal=0;}else reveal=0;
+    for(const plane of planes){
+      const z=plane.z,[x0,x1]=plane.x,[y0,y1]=plane.y;plane.corners=[[x0,y0],[x1,y0],[x1,y1],[x0,y1]].map(([x,y])=>project([x,y,z]));
+      if(reveal<.02)continue;
+      ctx.strokeStyle=plane.color;ctx.lineWidth=.9;ctx.globalAlpha=.3*reveal;
+      for(let i=0;i<4;i++){const a=plane.corners[i],b=plane.corners[(i+1)%4];ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+      // Its parallels let the eye read the plane's slant.
+      ctx.globalAlpha=.09*reveal;ctx.lineWidth=.7;
+      for(const f of [.2,.4,.6,.8]){const a=project([x0,y0+(y1-y0)*f,z]),b=project([x1,y0+(y1-y0)*f,z]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+      ctx.globalAlpha=1;
+    }
     if(measured&&backdrop.length){
       ctx.strokeStyle='#8fa8c4';ctx.globalAlpha=.3;ctx.lineWidth=.9;ctx.beginPath();
       for(const line of backdrop){let previous=null;for(const [x,y] of line){const point=project([x,y,0]);if(previous){const cut=clipSegment(previous,point);if(cut){ctx.moveTo(cut[0].x,cut[0].y);ctx.lineTo(cut[1].x,cut[1].y);}}previous=point;}}
@@ -396,11 +489,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       edgeHits.push({id:edge.id,a,b});
     }
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover,color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:.5+.5*near01;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
       if(measured&&!inView(box(p.x-5,p.y-5,10,10))){n.el.hidden=true;return;}
-      ctx.globalAlpha=dim?.28:hot?1:.9;const glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
+      ctx.globalAlpha=(dim?.28:hot?1:.9)*fade;const glow=(hot?125:big?86:46)*Math.max(.65,Math.min(1.4,p.s));
       ctx.drawImage(sprite(color),p.x-glow/2,p.y-glow/2,glow,glow);
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
       if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.fillRect(p.x-1,p.y-1,2,2);}
@@ -408,16 +502,27 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const ray=hot?17:big?10:5;ctx.globalAlpha=dim?.12:hot?.9:.38;ctx.strokeStyle=color;ctx.lineWidth=.65;ctx.beginPath();ctx.moveTo(p.x-ray,p.y);ctx.lineTo(p.x+ray,p.y);ctx.moveTo(p.x,p.y-ray);ctx.lineTo(p.x,p.y+ray);ctx.stroke();
       if(n.id===selectedId||n.id===linkFrom){ctx.globalAlpha=.65;ctx.beginPath();for(const [sx,sy] of [[-1,-1],[-1,1],[1,-1],[1,1]]){ctx.moveTo(p.x+sx*22,p.y+sy*16);ctx.lineTo(p.x+sx*22,p.y+sy*22);ctx.lineTo(p.x+sx*16,p.y+sy*22);}ctx.stroke();}
       n.el.style.transform=`translate3d(${(p.x-22).toFixed(2)}px,${(p.y-22).toFixed(2)}px,0)`;
-      n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
+      n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
       n.el.hidden=!inView(box(p.x-5,p.y-5,10,10));
     });
-    labelsForScene(near,focusEdges);
+    const taken=labelsForScene(near,focusEdges);
+    // A plane's name keeps to one of its corners or edges where no other name stands.
+    for(const plane of planes){
+      if(reveal<.05||!plane.el.textContent||!plane.corners){plane.el.hidden=true;continue;}
+      if(plane.measuredText!==plane.el.textContent){ng.font='600 9px system-ui, sans-serif';plane.measuredText=plane.el.textContent;plane.textWidth=Math.ceil(ng.measureText(plane.measuredText.toLocaleUpperCase()).width+plane.measuredText.length*2+4);}
+      const [tl,tr,br,bl]=plane.corners,width=plane.textWidth,height=12;
+      const candidates=[[tl.x+6,tl.y-height-5],[bl.x+6,bl.y+5],[tr.x-width-6,tr.y-height-5],[br.x-width-6,br.y+5],[(tl.x+bl.x)/2+6,(tl.y+bl.y)/2-height/2],[(bl.x+br.x)/2-width/2,(bl.y+br.y)/2+5]];
+      let chosen=null;for(const [x,y] of candidates){const area=box(x,y,width,height);if(inView(area)&&!taken.some(o=>overlaps(area,o,3))){chosen=area;break;}}
+      plane.el.hidden=!chosen;
+      if(chosen){taken.push(chosen);plane.el.style.opacity=(.8*reveal).toFixed(3);plane.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;}
+    }
     paintStars(2,count);ctx.globalAlpha=1;ctx.endFrame?.();
     frameCount++;drawSum+=performance.now()-started;frameSum+=elapsed*1000;
     if(frameCount%90===0){root.dataset.drawMs=(drawSum/90).toFixed(2);root.dataset.frameMs=(frameSum/90).toFixed(2);root.dataset.frames=String(frameCount);drawSum=frameSum=0;}
     root.dataset.camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');
+    if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,restYaw,restPitch,measured:!!measured});}}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
-    if(!still&&(playing||unsettled||layoutMoving||drag))kick();else last=0;
+    if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0))kick();else last=0;
   }
   function kick(){if(disposed||document.hidden)return;if(!raf)raf=requestAnimationFrame(draw)}
   // The part of a segment inside the free area, and whether its end is the segment's own.
@@ -459,9 +564,78 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // The wheel zooms over the sky and over what lies on it: stars, link labels and a scale's names.
   for(const target of [canvas,layer,edgeLayer,clusterLayer])target.addEventListener('wheel',wheel,{passive:false});
   const pointer=e=>{const rect=canvas.getBoundingClientRect();return{x:e.clientX-rect.left,y:e.clientY-rect.top};};
-  canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;revealId=null;drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging')});
-  canvas.addEventListener('pointermove',e=>{if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;if(measured||(rotate?drag.shift:!drag.shift)){tpan={x:drag.pan.x+dx,y:measured?.axes==='x'?0:drag.pan.y+dy}}else{tyaw=clamp(drag.yaw+dx*.0025,-.9,.9);tpitch=clamp(drag.pitch+dy*.0025,-.6,.6)}kick()});
-  const release=e=>{if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved;drag=null;canvas.classList.remove('dragging');if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();};canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
+  // One drag from where it began: a measured layout and Shift (or the pan button) move the view, the rest turns it.
+  function dragBy(state,dx,dy){
+    introUntil=0;
+    if(measured||state.forcePan||(rotate?state.shift:!state.shift)){tpan={x:state.pan.x+dx,y:measured?.axes==='x'?0:state.pan.y+dy};kick();return;}
+    const nextYaw=clamp(state.yaw+dx*.0025,...YAW),nextPitch=clamp(state.pitch+dy*.0025,...PITCH);
+    if(inertia&&!reduced.matches){
+      const now=performance.now();
+      if(lastTurn&&now>lastTurn.t){const dt=(now-lastTurn.t)/1000,vy=(nextYaw-lastTurn.yaw)/dt,vp=(nextPitch-lastTurn.pitch)/dt,limit=v=>clamp(v,-3,3);velocity={yaw:limit(velocity?velocity.yaw*.35+vy*.65:vy),pitch:limit(velocity?velocity.pitch*.35+vp*.65:vp),t:now};}
+      lastTurn={t:now,yaw:nextYaw,pitch:nextPitch};
+    }
+    tyaw=nextYaw;tpitch=nextPitch;kick();
+  }
+  // A turn let go while still moving coasts; one that had already stopped stays.
+  function letGo(){if(!(inertia&&velocity&&performance.now()-velocity.t<90))velocity=null;lastTurn=null;}
+  // Two fingers move and pinch the view wherever they land, on the sky or on its stars; the turn belongs to one finger.
+  const touches=new Map(),presses=new Set();let gesture=null,touchHeld=false;
+  const touchPair=()=>{const [a,b]=[...touches.values()];return {distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),mid:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}};};
+  // While two fingers pinch, or the one left after a pinch is still down, no single-finger gesture starts or goes on.
+  const pinching=e=>e.pointerType==='touch'&&(!!gesture||touchHeld);
+  // Only fingers on the sky itself, its stars and its names pinch; a finger on a panel belongs to the panel.
+  const onSky=e=>e.target===canvas||layer.contains(e.target)||edgeLayer.contains(e.target)||clusterLayer.contains(e.target);
+  // A pinch keeps the point between the fingers under them: it zooms about it and follows it.
+  const startPinch=()=>{gesture={...touchPair(),zoom:tzoom,pan:{...tpan},rect:canvas.getBoundingClientRect()};};
+  const applyPinch=()=>{
+    const pair=touchPair(),before=gesture.zoom;zoomTo(before*pair.distance/gesture.distance);
+    const ratio=tzoom/before,r=gesture.rect,cx=(targetViewport.left+targetViewport.right)/2,cy=(targetViewport.top+targetViewport.bottom)/2;
+    const from={x:gesture.mid.x-r.left-cx,y:gesture.mid.y-r.top-cy},to={x:pair.mid.x-r.left-cx,y:pair.mid.y-r.top-cy};
+    tpan={x:to.x-(from.x-gesture.pan.x)*ratio,y:measured?.axes==='x'?0:to.y-(from.y-gesture.pan.y)*ratio};kick();
+  };
+  if(touch){
+    root.addEventListener('pointerdown',e=>{
+      if(e.pointerType!=='touch')return;
+      // A new touch forgets fingers whose lifting was never heard.
+      if(e.isPrimary){touches.clear();gesture=null;touchHeld=false;}
+      if(!onSky(e))return;
+      touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(touches.size<2)return;
+      if(!gesture){
+        // A pinch takes over from what one finger began: a turn goes back to where it started, a picked-up star stays put.
+        if(drag){tyaw=drag.yaw;tpitch=drag.pitch;tpan={...drag.pan};drag=null;canvas.classList.remove('dragging');}
+        for(const cancel of [...presses])cancel();
+        velocity=null;introUntil=0;touchHeld=true;
+      }
+      // A finger more starts the pinch again from where the fingers are, so nothing jumps.
+      startPinch();
+    },{capture:true});
+    root.addEventListener('pointermove',e=>{
+      if(e.pointerType!=='touch'||!touches.has(e.pointerId))return;
+      touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(gesture&&touches.size>=2)applyPinch();
+    },{capture:true});
+    const lift=e=>{if(e.pointerType==='touch'&&touches.delete(e.pointerId)){if(touches.size<2)gesture=null;else if(gesture)startPinch();if(!touches.size)touchHeld=false;}};
+    root.addEventListener('pointerup',lift,{capture:true});root.addEventListener('pointercancel',lift,{capture:true});
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    if(pinching(e))return;
+    const panButton=secondaryPan&&(e.button===1||e.button===2);
+    if(e.button!==0&&!panButton)return;
+    if(panButton)e.preventDefault();
+    revealId=null;velocity=null;lastTurn=null;
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY,yaw:tyaw,pitch:tpitch,pan:{...tpan},shift:e.shiftKey,forcePan:panButton,moved:false};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging');
+  });
+  if(secondaryPan)canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('pointermove',e=>{
+    if(pinching(e))return;
+    if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';kick();}return;}
+    if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;dragBy(drag,dx,dy);
+  });
+  const release=e=>{
+    if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved&&!drag.forcePan;drag=null;canvas.classList.remove('dragging');letGo();
+    if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);}kick();
+  };canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
   canvas.addEventListener('pointerleave',()=>{if(!drag){hoverEdge=null;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
   canvas.addEventListener('sophia-renderer-restored',kick);
@@ -494,12 +668,22 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
           targetFit=Math.min(1.6,.94*vw/(dx*b*sx));tstretchY=clamp(.86*vh/(dy*targetFit*b),.5,6);targetFit=Math.min(targetFit,.86*vh/(dy*b*tstretchY));measured={axes:'x',x:[min[0],max[0]]};
         }else targetFit=Math.min(1.6,810/Math.max(510,max[0]-min[0]),455/Math.max(285,max[1]-min[1]),900/Math.max(560,max[2]-min[2]));
       }
-      // A measured layout is seen straight on, so the view's tilt does not bend its measure.
-      tyaw=0;tpitch=measured?0:-.055;tzoom=1;tpan={x:0,y:0};resize()},
+      // A measured layout is seen straight on, so the view's tilt does not bend its measure; a space rests in its own pose.
+      velocity=null;tyaw=measured?0:restYaw;tpitch=measured?0:restPitch;tzoom=1;tpan={x:0,y:0};
+      const introNow=intro&&!measured&&!introDone&&!reduced.matches;
+      // The first framing is where the view begins, unless the space is to turn into it; later framings ease there.
+      if(!framedOnce){framedOnce=true;if(rest&&!introNow){yaw=tyaw;pitch=tpitch;}}
+      if(introNow){introDone=true;introPending=true;}
+      resize()},
+    /** Turn the view by a step, as a drag would; a measured layout does not turn. */
+    turnBy(dyaw=0,dpitch=0){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=clamp(tyaw+dyaw,...YAW);tpitch=clamp(tpitch+dpitch,...PITCH);kick();},
+    /** Bring the view back to its resting pose. */
+    turnToRest(){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=restYaw;tpitch=restPitch;kick();},
+    pose(){return {yaw,pitch,targetYaw:tyaw,targetPitch:tpitch,restYaw,restPitch,measured:!!measured};},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     reveal(id){revealId=id??null;kick();},
     refresh:resize,
     motion(value){playing=value;kick()},
-    dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());ctx.dispose?.()}
+    dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();document.removeEventListener('visibilitychange',visibility);for(const target of [canvas,layer,edgeLayer,clusterLayer])target.removeEventListener('wheel',wheel);canvas.removeEventListener('sophia-renderer-restored',kick);nodes.forEach(n=>n.el.remove());edges.forEach(e=>e.el.remove());clusters.forEach(c=>c.el.remove());planes.forEach(plane=>plane.el.remove());ctx.dispose?.()}
   };
 }

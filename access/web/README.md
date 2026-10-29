@@ -110,6 +110,23 @@ concepts or grounds, steps along links, years, chapters or kilometres — in
 rings that carry the scale; the direction groups by branch or circle, and the
 centre lists its nearest stars.
 
+On the lenses that group, the map is a space read in depth
+([`space-depth.mjs`](src/public-research/space-depth.mjs)) by the steps its
+bonsai declares: a source lies deepest, a reading before it, a comparison of
+readings before that, a personal record nearest. A drag turns the space and a
+turn let go while moving coasts to rest; any press stops it. Shift, the right
+button or two fingers move it, from the sky or from a star; the wheel or a pinch
+zooms, a pinch about the point between the fingers. Fingers on a panel belong
+to the panel. A quick drag from a star turns the space too, while a star held
+still is picked up and moves within its plane; depth is a view, so the graph
+keeps the star's own depth. Arrows turn the space while the map has focus or
+was pressed last, and otherwise scroll as usual (with Shift while a branch or
+route is open, whose steps the arrows walk); the globe among the map tools shows
+the turn, turns the space under a drag and, pressed, brings it back to rest.
+While it turns, the planes of the steps appear, named; at rest the space keeps
+only its stars, a little turned so that its depth shows. Time, Space and
+Proximity stay flat.
+
 A chosen star states when (◷) and where (⌖) its text was written, and on
 Proximity how near it stands (⊙); each fact opens to its statement and sources.
 Measure and completeness ([`space-measure.mjs`](src/public-research/space-measure.mjs))

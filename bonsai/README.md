@@ -40,6 +40,14 @@ it serves, its posture, its graft, its modules and its lenses.
   criterion) or only *groups* (by branch, by kind). The stand marks each lens
   accordingly. A proximity lens names its criteria here, so a stand can try
   another criterion by editing its bonsai.
+- **Depth.** On the lenses that group, the third dimension reads the step of
+  interpretation the stand already names: a source lies deepest, a reading
+  before it, a comparison of readings before that, a personal record nearest.
+  `depth` names the steps with their depth and words, and the pose the space
+  rests in so that its depth shows; the planes of the steps appear, named,
+  while the space turns. The lenses that measure keep the space flat, since a
+  turned scale would no longer measure. Depth orders and groups; it measures
+  nothing, and a stand can read it otherwise by editing its bonsai.
 
 ### Chronology (`tos.bonsai.chronology.v1`)
 
