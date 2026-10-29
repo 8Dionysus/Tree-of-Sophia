@@ -1,5 +1,6 @@
 import {readFileSync,readdirSync} from 'node:fs';
 import {expect,test} from 'vitest';
+import ts from 'typescript';
 import {PUBLIC_LOCALES,resolveLocale,localeText,localeValue} from './locale.mjs';
 import {formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
 import {localizePublicJourney} from './journey-i18n.mjs';
@@ -135,4 +136,38 @@ test('an era filter uses the same key in every display language',()=>{
   const period=Object.freeze({ru:'Классическая Греция',en:'Classical Greece'}),key=collectionPeriodKey(period);
   expect(key).toBe('Classical Greece');
   for(const language of PUBLIC_LOCALES){expect(localeValue(period,language)).toBeTruthy();expect(collectionPeriodKey(period)).toBe(key);}
+});
+
+
+test('every statically authored public UI message has a translation entry',()=>{
+  const forms=new Set(),seen=new Set(),pending=[new URL('./app.mjs',import.meta.url)];
+  const literal=node=>node&&(ts.isStringLiteral(node)||ts.isNoSubstitutionTemplateLiteral(node));
+  const strings=node=>{
+    if(!node)return;
+    if(literal(node)){if(node.text.trim()&&/\p{L}/u.test(node.text))forms.add(node.text);return;}
+    if(ts.isObjectLiteralExpression(node))for(const property of node.properties)if(ts.isPropertyAssignment(property))strings(property.initializer);
+  };
+  while(pending.length){
+    const file=pending.pop();if(seen.has(file.href)||!file.pathname.endsWith('.mjs')||file.pathname.includes('/generated/'))continue;
+    seen.add(file.href);
+    const source=ts.createSourceFile(file.pathname,readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true);
+    const visit=node=>{
+      if((ts.isImportDeclaration(node)||ts.isExportDeclaration(node))&&literal(node.moduleSpecifier)&&node.moduleSpecifier.text.startsWith('.'))pending.push(new URL(node.moduleSpecifier.text,file));
+      if(ts.isObjectLiteralExpression(node)){
+        const properties=new Map(node.properties.filter(ts.isPropertyAssignment).map(property=>[property.name?.text,property.initializer]));
+        if(properties.has('ru')&&properties.has('en'))strings(properties.get('en'));
+      }
+      if(ts.isCallExpression(node)){
+        const name=node.expression.getText(source);
+        if(name==='Object.assign'&&/\.en$/.test(node.arguments[0]?.getText(source)))strings(node.arguments[1]);
+        if(['localeText','bonsaiText'].includes(name)&&literal(node.arguments[0]))strings(node.arguments[0]);
+      }
+      ts.forEachChild(node,visit);
+    };
+    visit(source);
+  }
+  for(const language of added){
+    const missing=[...forms].filter(form=>!Object.hasOwn(catalogs[language].public,form)&&!Object.hasOwn(catalogs[language].bonsai,form));
+    expect(missing,`${language}: missing authored public messages`).toEqual([]);
+  }
 });
