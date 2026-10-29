@@ -198,6 +198,7 @@ jobs:
             /tests/fixtures/native-text-binding/
             /pytest.ini
             /.github/workflows/repo-validation.yml
+            /.github/workflows/cleanup-pr-caches.yml
             /.github/workflows/cloudflare-edge.yml
             # Literal Rust compile/test inputs; source bytes are not executed.
             /.agents/agent-surface.manifest.json
@@ -995,6 +996,7 @@ jobs:
             /tests/support/selected_metadata_authority.rs
             /tests/conformance/foundation-wave-v1/oracles/temporal-acceptance-vectors.json
             /.github/workflows/repo-validation.yml
+            /.github/workflows/cleanup-pr-caches.yml
             /.github/workflows/cloudflare-edge.yml
             /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json

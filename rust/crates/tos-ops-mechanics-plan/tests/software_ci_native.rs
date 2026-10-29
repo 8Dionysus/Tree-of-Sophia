@@ -1315,6 +1315,9 @@ fn sparse_checkout_excludes_whole_corpus_and_private_payloads() {
     let worker = sparse(jobs, "worker");
     assert!(rust.contains("!/ToS/source-witnesses/**/payload/"));
     let postgres = sparse(jobs, "postgres");
+    for checkout in [&rust, &software, &postgres] {
+        assert!(checkout.contains("/.github/workflows/cleanup-pr-caches.yml"));
+    }
     for checkout in [&rust, &software, &worker, &postgres] {
         for path in ["/ToS/source-witnesses/", "/ToS/", "/ToS/candidate-intake/"] {
             assert!(!checkout.contains(path));
