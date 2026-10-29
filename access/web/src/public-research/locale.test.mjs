@@ -158,6 +158,7 @@ test('every statically authored public UI message has a translation entry',()=>{
         const properties=new Map(node.properties.filter(ts.isPropertyAssignment).map(property=>[property.name?.text,property.initializer]));
         if(properties.has('ru')&&properties.has('en'))strings(properties.get('en'));
       }
+      if(ts.isBinaryExpression(node)&&node.operatorToken.kind===ts.SyntaxKind.EqualsToken&&/\.en(?:\.|\[)/.test(node.left.getText(source)))strings(node.right);
       if(ts.isCallExpression(node)){
         const name=node.expression.getText(source);
         if(name==='Object.assign'&&/\.en$/.test(node.arguments[0]?.getText(source)))strings(node.arguments[1]);
