@@ -67,6 +67,11 @@ describe('what a reader sees of a unit',()=>{
   it('splits sentences on their own ends, not at abbreviations or inside a sentence',()=>{
     const raw='Also sprach Zarathustra. Und er ging. „Wohin?“ fragte er.';
     expect(sentenceSpans(raw).map(([a,b])=>raw.slice(a,b))).toEqual(['Also sprach Zarathustra.','Und er ging.','„Wohin?“ fragte er.']);
+    // A numbered item's number opens its own sentence and is no part of the one before; a year ends a sentence.
+    const numbered='The blessed is not troubled. 2. Death is nothing to us. 3.';
+    expect(sentenceSpans(numbered).map(([a,b])=>numbered.slice(a,b))).toEqual(['The blessed is not troubled.','2. Death is nothing to us.']);
+    const year='He was born in 1844. Then he left.';
+    expect(sentenceSpans(year).map(([a,b])=>year.slice(a,b))).toEqual(['He was born in 1844.','Then he left.']);
   });
 });
 

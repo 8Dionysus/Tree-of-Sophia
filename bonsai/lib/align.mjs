@@ -265,6 +265,15 @@ export function sentenceSpans(raw,language=null){
   const tail=joined.trimEnd().length;
   if(tail>start)spans.push([start,tail]);
   if(!spans.length)spans.push([0,joined.trimEnd().length]);
+  // The number of a numbered item ("… pleasure. 12. It is …") opens the next sentence; at the end of a
+  // unit it belongs to the item the next unit holds, so no sentence carries it.
+  for(let index=0;index<spans.length&&ending===END;index++){
+    const number=/[.!?…][»«“”"‚‘’)\]]*(\s+)(\d{1,3}\.)$/u.exec(joined.slice(...spans[index]));
+    if(!number)continue;
+    const at=spans[index][1]-number[2].length;
+    spans[index][1]=at-number[1].length;
+    if(index+1<spans.length)spans[index+1][0]=at;
+  }
   if(text.length===joined.length)return spans;
   const point=index=>chars(joined.slice(0,index)).length;
   return spans.map(([a,b])=>[point(a),point(b)]);
