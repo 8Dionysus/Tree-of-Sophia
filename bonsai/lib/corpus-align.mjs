@@ -59,11 +59,13 @@ export function corpusReader(dir){
 export function counterparts(original,translation){
   // "Unit 59" numbers an edition's chunk of a long chapter, not a place of the work: it names nothing the other version shares.
   const textual=reference=>Boolean(reference)&&!/^Unit \d+$/.test(reference);
-  const byReference=new Map();
-  for(const unit of translation.units)if(textual(unit.reference))byReference.set(unit.reference,(byReference.get(unit.reference)??[]).concat(unit));
+  // The same reference names the same place; so do the same numbers under another label ("§1" and "Раздел 1").
+  const byReference=new Map(),byNumbers=new Map(),add=(map,key,unit)=>map.set(key,(map.get(key)??[]).concat(unit));
+  for(const unit of translation.units)if(textual(unit.reference)){add(byReference,unit.reference,unit);if(numbers(unit.reference).length)add(byNumbers,numbers(unit.reference).join('.'),unit);}
   const whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
-  const same=original.units.filter(unit=>textual(unit.reference)&&byReference.has(unit.reference)).length;
-  if(same>=original.units.length*.8)return {how:'reference',map:new Map(original.units.filter(unit=>textual(unit.reference)&&byReference.has(unit.reference)).map(unit=>[unit.id,byReference.get(unit.reference).map(whole)]))};
+  const match=unit=>!textual(unit.reference)?null:byReference.get(unit.reference)??(numbers(unit.reference).length?byNumbers.get(numbers(unit.reference).join('.')):null)??null;
+  const same=original.units.filter(unit=>match(unit)).length;
+  if(same>=original.units.length*.8)return {how:'reference',map:new Map(original.units.filter(unit=>match(unit)).map(unit=>[unit.id,match(unit).map(whole)]))};
   const finer=new Map();
   for(const unit of original.units){if(!textual(unit.reference))continue;const outer=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(numbers(item.reference),outer));if(list.length)finer.set(unit.id,list.map(whole));}
   if(finer.size>=original.units.length*.8)return {how:'reference (finer division)',map:finer};
@@ -106,17 +108,21 @@ export function alignVersion(original,translation,cited){
     // edition that splits a long chapter into numbered chunks) joins the run before it.
     // Units of the original that share their counterparts (the sections of one book a translation keeps whole) make one run.
     const key=targets=>targets.map(target=>target.id).join(' ');
+    const leading=[];
     for(const unit of original.units){
       const targets=map.get(unit.id);
       if(targets?.length&&!(groups.length&&groups.at(-1).key===key(targets)))groups.push({units:[unit],targets:[...targets],key:key(targets)});
       else if(groups.length)groups.at(-1).units.push(unit);
+      else leading.push(unit);
     }
+    // Units before the first that has counterparts open the first run.
+    if(groups.length)groups[0].units.unshift(...leading);
     // A unit of the translation no unit of the original names joins the run whose counterparts precede it.
     const used=new Set(groups.flatMap(group=>group.targets.map(target=>target.id)));
     const last=group=>Math.max(...group.targets.map(target=>position.get(target.id)));
     translation.units.forEach((unit,index)=>{
       if(used.has(unit.id))return;
-      const before=groups.filter(group=>last(group)<index).sort((a,b)=>last(b)-last(a))[0];
+      const before=groups.filter(group=>last(group)<index).sort((a,b)=>last(b)-last(a))[0]??groups[0];
       if(before){before.targets.push(whole(unit));used.add(unit.id);}
     });
     for(const group of groups)group.targets.sort((a,b)=>position.get(a.id)-position.get(b.id));
