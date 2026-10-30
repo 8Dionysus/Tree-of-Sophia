@@ -9,7 +9,7 @@ the Tree has moved since.
 
 | Bonsai | Stand | Holds |
 | --- | --- | --- |
-| [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the chronology of lives, phases and writings, places, the graft map |
+| [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map |
 | [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
 | [`shared/`](shared/coastlines.json) | both | Natural Earth coastlines under the map of places |
 
@@ -218,7 +218,20 @@ without one. The links between places of texts that the stand's words name —
 one place repeats, varies, develops, contrasts with or echoes another — have no
 relation in the registry yet and are kept as the stand's proposal with both
 places; the stand shows both places beside the words that link them. Theses,
-premises and the steps of an inference are not yet set apart in the stand.
+premises and the steps of an inference are not yet set apart in the Zarathustra
+stand.
+
+`antiquity/objects.json` does the same for the Antiquity collection, whose
+arguments already name the role of each step: a step is a thesis (a premise,
+claim, condition, definition, consequence, explanation, qualification, reply or
+conclusion — premise and conclusion being roles of a thesis within a step, as
+the Tree has it), an objection, a distinction, a problem or a question; where
+premises support a conclusion the argument has an inference step with those
+premises and that conclusion, and the argument is for its conclusions; an
+objection that tests, answers or qualifies a thesis objects to it. A question
+of the collection is a problem articulated by its question, with the positions
+that address it; a term is a lexeme and each of its uses an occurrence of it.
+The first branches repeat the collection's branches and are typed there.
 Nothing here is admitted to the Tree.
 
 ### Graft map (`tos.bonsai.identities.v1`)

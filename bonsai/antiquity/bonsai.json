@@ -143,6 +143,16 @@
       }
     },
     {
+      "id": "objects",
+      "path": "objects.json",
+      "format": "tos.bonsai.objects.v1",
+      "role": {
+        "ru": "Чем являются собственные слова стенда в типах объектов Древа: проблемы, вопросы и позиции, понятия, лексемы и их употребления, доводы с тезисами, шагами вывода и возражениями, различения, трактовки — с формой, где стоят слова, местами текста, на которые они опираются, и связями реестра Древа там, где их даёт устройство стенда; связи между местами текстов — как предложение стенда.",
+        "en": "What the stand’s own words are in the Tree’s object types: problems, questions and positions, concepts, lexemes and their occurrences, arguments with their theses, inference steps and objections, distinctions, conceptions — with the form that holds the words, the places of text they rest on, and relations of the Tree’s registry where the stand’s structure gives them; links between places of texts as the stand’s proposal."
+      },
+      "identities": "objects name the collection’s material IDs and the forms of its modules; saved graphs do not depend on this module"
+    },
+    {
       "id": "identities",
       "path": "identities.json",
       "role": {

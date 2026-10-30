@@ -38,6 +38,19 @@ late (the animals' speech, the departure in *The Sign*, words and tones as
 rainbows, the teacher of the eternal return, the longing for the laughter) now
 open the right place, and every route step shows its places.
 
+**Links and objects of thought.** A sentence that links two places of the text
+(one repeats, varies, develops, contrasts with or echoes the other) keeps its
+words, and both places are now shown beside them: 42 linked places were added
+to the forms that named them without showing them. The atlas's own words are
+typed in the Tree's object types in `bonsai/zarathustra/objects.json`: a
+tension is a problem articulated by its question, with the positions that
+address it; a concept has its aspects; a reading is a conception of the concept
+it interprets; an image presents the readings it supports; an inquiry has its
+argument and, in four cases, the objection to it. The 79 links between places
+of texts have no relation in the Tree's registry yet and stay the stand's
+proposal; the edges that compare, question or develop do not say which relation
+of the registry they mean and stay without one.
+
 **Left open for the owner.** Two own-word readings stay as authored although
 the text pulls against them: speaking tied to convalescence where the
 fragment ties singing to it (*Sprich nicht weiter … Singe*), and the cry read as

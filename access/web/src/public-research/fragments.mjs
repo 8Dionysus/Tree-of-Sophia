@@ -164,8 +164,17 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const editions=[];
     if(openAddress&&deUnit?.corpus?.[0])editions.push(['DE',{documentId:info.corpus.documentId,versionId:info.corpus.de.versionId,revision:info.corpus.de.revision,unitId:deUnit.corpus[0]}]);
     if(openAddress&&enUnit)editions.push(['EN',{documentId:info.corpus.documentId,versionId:info.corpus.en.versionId,revision:info.corpus.en.revision,unitId:enUnit.id}]);
-    for(const [code,address] of editions){const open=button(`↗ ${words('fragmentEdition')} · ${code}`,'text-button');open.addEventListener('click',()=>{view.dialog.close();void openAddress(address).catch(error=>onError?.(error));});view.foot.append(open);}
+    // One action, one button per edition: the footer stays one line even on a phone.
+    if(editions.length){
+      const group=el('span','ps-parallel-editions');group.append(el('span','ps-parallel-editions-label',`↗ ${words('fragmentEdition')}`));
+      for(const [code,address] of editions){const open=button(code,'text-button');open.setAttribute('aria-label',`${words('fragmentEdition')} · ${code}`);open.addEventListener('click',()=>{view.dialog.close();void openAddress(address).catch(error=>onError?.(error));});group.append(open);}
+      view.foot.append(group);
+    }
+    // The credits take one line and open in full on demand.
     const credit=el('p','ps-parallel-credit',shownColumns.map(language=>info.witnesses[language]?.attribution).filter(Boolean).join(' · '));
+    credit.tabIndex=0;credit.setAttribute('role','button');credit.setAttribute('aria-expanded','false');
+    const toggleCredit=()=>credit.setAttribute('aria-expanded',String(credit.classList.toggle('is-open')));
+    credit.addEventListener('click',toggleCredit);credit.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCredit();}});
     view.foot.append(credit);
     if(!view.dialog.open)view.dialog.showModal();
     (first??grid.firstElementChild)?.scrollIntoView({block:first?'center':'start'});
@@ -216,6 +225,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     if(!showing.length)showing=[work.original].filter(language=>available.includes(language));
     const paint=()=>{
       figure.replaceChildren();
+      // A protected work the stand may not quote is shown by its locator alone.
+      if(!showing.length){const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label)].filter(Boolean).join(' · ')));figure.append(caption);}
       for(const language of showing){
         const text=place.texts[language];
         const narrowed=language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text;

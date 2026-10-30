@@ -77,3 +77,27 @@ describe('the typed objects of the Zarathustra stand',()=>{
     }
   });
 });
+
+describe('the typed objects of the Antiquity stand',()=>{
+  const registry=semanticRegistry(root);
+  const objects=JSON.parse(readFileSync(join(root,'bonsai','antiquity','objects.json'),'utf8'));
+  const collection=JSON.parse(readFileSync(join(root,'bonsai','antiquity','collection.json'),'utf8'));
+  const at=path=>{let value={collection};for(const part of path.match(/[^.[\]]+/g))value=value?.[/^\d+$/.test(part)?Number(part):part];return value;};
+  it('use only the Tree\'s entity types and relations, each relation within its domain and range',()=>{
+    expect(objectsIssues(objects,registry)).toEqual([]);
+  });
+  it('name a form of the collection that holds each object\'s words',()=>{
+    for(const object of objects.objects)expect(at(object.form),object.form).toBeTruthy();
+    const typed=objects.objects.map(object=>object.form);
+    expect(new Set(typed).size).toBe(typed.length);
+  });
+  it('set out every argument with its theses, its inference steps from premises to conclusion and the objections to its theses',()=>{
+    const arguments_=collection.passages.filter(passage=>passage.argument);
+    expect(objects.objects.filter(object=>object.type==='tos.entity.argument')).toHaveLength(arguments_.length);
+    const theses=new Set(objects.objects.filter(object=>object.type==='tos.entity.thesis').map(object=>object.id));
+    for(const relation of objects.relations.filter(item=>item.type==='tos.relation.step-has-premise'||item.type==='tos.relation.step-has-conclusion'))expect(theses.has(relation.to),relation.to).toBe(true);
+    // A conclusion is what its argument is for.
+    for(const object of objects.objects.filter(item=>item.role==='conclusion'))expect(objects.relations.some(relation=>relation.type==='tos.relation.argument-for-thesis'&&relation.to===object.id),object.id).toBe(true);
+    for(const question of collection.questions)expect(objects.objects.some(object=>object.id===`an:${question.id}`&&object.type==='tos.entity.problem'),question.id).toBe(true);
+  });
+});
