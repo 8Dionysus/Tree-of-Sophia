@@ -18,6 +18,8 @@
 export const FRAGMENTS_SCHEMA='tos.bonsai.fragments.v1';
 export const CORPUS_ALIGNMENT_SCHEMA='tos.bonsai.corpus-alignment.v1';
 const BASES=['public-domain','public-domain+licence','short-quotation','locator-only'];
+// What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
+const OPENS=['work','quotation','book'];
 const bilingual=value=>typeof value?.ru==='string'&&value.ru.trim()&&typeof value?.en==='string'&&value.en.trim();
 
 /** Problems of a stand's places of other works. */
@@ -32,6 +34,7 @@ export function externalPlacesIssues(module){
       for(const field of ['edition','attribution'])if(!witness?.[field])problems.push(`work ${id} ${language} witness has no ${field}`);
       if(!BASES.includes(witness?.rights?.basis))problems.push(`work ${id} ${language} witness has no rights basis`);
       if(witness?.rights?.basis!=='locator-only'&&!/^https:\/\//.test(witness?.url??''))problems.push(`work ${id} ${language} witness has no source URL`);
+      if(witness?.opens!==undefined&&!OPENS.includes(witness.opens))problems.push(`work ${id} ${language} witness opens ${witness.opens}`);
     }
   }
   for(const [id,list] of Object.entries(places)){
@@ -42,6 +45,7 @@ export function externalPlacesIssues(module){
       // A place may link its own page in a witness, or a page for the place as a whole (where a cited-only work can be found).
       for(const [language,url] of Object.entries(place.links??{}))if(!work.witnesses?.[language]||!/^https:\/\//.test(url??''))problems.push(`${id} ${loc} links ${language} without a witness or a https URL`);
       if(place.url!==undefined&&!/^https:\/\//.test(place.url))problems.push(`${id} ${loc} has a URL that is not https`);
+      if(place.opens!==undefined&&!OPENS.includes(place.opens))problems.push(`${id} ${loc} opens ${place.opens}`);
       for(const [language,text] of Object.entries(place.texts??{})){
         if(text===null)continue;
         if(typeof text!=='string'||!text.trim())problems.push(`${id} ${loc} ${language} text is empty`);

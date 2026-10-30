@@ -247,8 +247,10 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         tools.append(swap);
       }
       // The source of the text shown: the place's own page in that witness, the place's page, or the witness.
-      const url=place.links?.[showing[0]]??place.url??work.witnesses?.[showing[0]]?.url;
-      if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words('fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
+      // A link says what it opens: the whole work, the page a quotation is taken from, or where the book can be found.
+      const witness=work.witnesses?.[showing[0]];
+      const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
+      if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
       figure.append(tools);
     };
     paint();
