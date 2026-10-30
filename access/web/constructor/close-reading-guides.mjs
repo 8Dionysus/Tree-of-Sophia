@@ -48,8 +48,8 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Различите помощь, собственное действие и уже достигнутое преображение: эти роли не совпадают.",
           "en": "Distinguish assistance, one’s own action and an accomplished transformation: these roles do not coincide.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"s":0,"e":96},
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"],"s":2}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"e":97},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
           ]
         },
         "paragraphs": {"ru":47,"en":48,"de":48}
@@ -63,7 +63,7 @@ export const CLOSE_READING_GUIDES = {
       "ru": "Текст не снабжает каждый образ единственным готовым соответствием.",
       "en": "The text does not assign each image a single ready meaning.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-47ecea77ae8a30862d06ed7c80ebdf1a","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-47ecea77ae8a30862d06ed7c80ebdf1a","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]}
       ]
     }
   },
@@ -72,7 +72,7 @@ export const CLOSE_READING_GUIDES = {
       "ru": "Сравнивайте способность произнести учение со способностью вынести то, что в нём возвращается.",
       "en": "Compare the ability to state a teaching with the ability to bear what returns in it.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-711dc06c5cfe15d63a5af8a9195a5638"],"s":54}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-711dc06c5cfe15d63a5af8a9195a5638"]}
       ]
     },
     "moves": [
@@ -82,7 +82,7 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Определите, что песня передаёт, а что сглаживает: различие может лежать в пережитом усилии, даже если слова о возвращении сходны.",
           "en": "Identify what the song conveys and what it smooths over: the difference may concern lived effort even where the words about recurrence are similar.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"],"s":45}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]}
           ]
         },
         "paragraphs": {"ru":24,"en":24,"de":24}
@@ -101,8 +101,8 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Сопоставьте молчание Заратустры с разговором с собственной душой, сохранив различие между воображаемым высказыванием и ответом.",
           "en": "Compare Zarathustra’s silence with his conversation with his soul, preserving the difference between an imagined utterance and a response.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"],"s":0},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":120,"e":168}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"e":169}
           ]
         },
         "paragraphs": {"ru":63,"en":63,"de":63}
@@ -120,7 +120,7 @@ export const CLOSE_READING_GUIDES = {
   "z-redemption": {
     "orientation": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-04ae7c3916e9390af927106df7b960ca","tos.text-unit.sid-f43f59a737f30ba85dd451b8e820cbce"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-04ae7c3916e9390af927106df7b960ca","tos.text-unit.sid-f43f59a737f30ba85dd451b8e820cbce"]},
         {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"],"s":72},
         {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-77d2134e63b47a686837068668c73b22","tos.text-unit.sid-225401ec25fcfee3ede1e91e2605ec08"],"s":25}
       ]
@@ -143,8 +143,8 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Проверьте, что действительно решено, а что пока только обещано.",
           "en": "Examine what has actually been resolved and what has only been promised.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"],"s":69},
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-339e330ca6a6a19079d4f5a3194cb1f7","tos.text-unit.sid-b074f36127c044db8c943822e45c643a"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"]},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-339e330ca6a6a19079d4f5a3194cb1f7","tos.text-unit.sid-b074f36127c044db8c943822e45c643a"]}
           ]
         },
         "paragraphs": {"ru":39,"en":39,"de":39}
@@ -185,8 +185,8 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Проследите, как речь переходит от получения солнечного избытка к желанию отдать собственную мудрость.",
           "en": "Trace how the address moves from receiving the sun’s abundance to wanting to give away his own wisdom.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-87ee03096d4da574543c6c6cdeab9b26","tos.text-unit.sid-87ee03096d4da574543c6c6cdeab9b26"],"s":21,"e":89},
-            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb"],"s":97,"e":139}
+            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-87ee03096d4da574543c6c6cdeab9b26","tos.text-unit.sid-87ee03096d4da574543c6c6cdeab9b26"],"s":21},
+            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb"],"s":7}
           ]
         },
         "paragraphs": {"ru":1,"en":1,"de":1}
@@ -197,8 +197,8 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Сопоставьте этот конец с началом раздела. Что связывает опустошение с переменой сердца?",
           "en": "Compare this ending with the section’s opening. What connects emptying with the change of heart?",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-778b42e35fce3f7979a96c19045ceb9c","tos.text-unit.sid-2784e2f54e2c96f665b5985a1285d127"],"s":0},
-            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46","tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46"],"s":116,"e":247}
+            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-778b42e35fce3f7979a96c19045ceb9c","tos.text-unit.sid-2784e2f54e2c96f665b5985a1285d127"]},
+            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46","tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46"],"s":116}
           ]
         },
         "paragraphs": {"ru":9,"en":9,"de":9}
@@ -221,9 +221,9 @@ export const CLOSE_READING_GUIDES = {
       "ru": "Читайте переходы через предел предыдущей способности: сила, необходимая на одном шаге, ещё не выполняет работу следующего.",
       "en": "Read each transition through the previous capacity’s limit: the strength required at one step does not yet perform the next step’s work.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-828cde9bb01454dcf343b639d4bc69a6","tos.text-unit.sid-4eb9cdd31d7dd3d70e40c2b087e579c7"],"s":36},
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-9089a1d79a3475324bf27fde5b1eb037","tos.text-unit.sid-ac6059bf23968ca1320ca593f57ccf72"],"s":94},
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"],"s":25}
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-828cde9bb01454dcf343b639d4bc69a6","tos.text-unit.sid-4eb9cdd31d7dd3d70e40c2b087e579c7"]},
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-9089a1d79a3475324bf27fde5b1eb037","tos.text-unit.sid-ac6059bf23968ca1320ca593f57ccf72"]},
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]}
       ]
     },
     "moves": [
@@ -233,7 +233,7 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Разведите устранение чужого приказа и появление собственного основания действовать.",
           "en": "Separate removal of another’s command from the emergence of one’s own grounds for acting.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"],"s":0,"e":58}
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"]}
           ]
         },
         "paragraphs": {"ru":18,"en":18,"de":18}
@@ -264,7 +264,7 @@ export const CLOSE_READING_GUIDES = {
       "ru": "Проверьте, как классификация должна изменить суждение, не подменяя описание внешнего события.",
       "en": "Examine how classification is meant to change judgment without replacing description of the external event.",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":0,"e":52},
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"e":52},
         {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1067,"e":1160}
       ]
     },
@@ -275,8 +275,8 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Какой смысл «вреда» позволяет связать столь сильное обещание с исходным перечислением?",
           "en": "What sense of “harm” connects such a strong promise with the opening list?",
           "cite": [
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":177},
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":549,"e":674}
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212},
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":721}
           ]
         },
         "paragraphs": {"ru":0,"en":0,"grc":0}
@@ -310,9 +310,8 @@ export const CLOSE_READING_GUIDES = {
       "ru": "Проследите, что сохраняется при смене этих предпосылок.",
       "en": "Trace what survives the change of premises.",
       "cite": [
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":35},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":260,"e":342},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":421,"e":455}
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":186},
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":260,"e":749}
       ]
     },
     "moves": [
@@ -322,8 +321,7 @@ export const CLOSE_READING_GUIDES = {
           "ru": "Поэтому отсутствие уверенности в частном промысле не заканчивается отказом действовать. Но откуда берётся нормативная сила разумной и общественной природы?",
           "en": "Lack of certainty about individual providence therefore does not end in refusal to act. But where does the normative force of rational and social nature come from?",
           "cite": [
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":666,"e":845},
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":846,"e":914}
+            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":421,"e":914}
           ]
         },
         "paragraphs": {"ru":0,"en":0,"grc":1}

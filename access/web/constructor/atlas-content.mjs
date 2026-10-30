@@ -13,10 +13,10 @@ export const NODE_CONTENT = {
       "cite": [
         {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"],"s":7},
         {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-33c03b2f98a883a84e6ccd4ab3c9d925","tos.text-unit.sid-a73640c046ba2cc28f67a524d3dfa819"]},
-        {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff","tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff"],"s":77,"e":111},
-        {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":78,"e":107},
+        {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff","tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff"],"e":112},
+        {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":78},
         {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-1d1bd60fc75dd18a304e393dda59d626","tos.text-unit.sid-97b6438f164da97e5869bc920380116c"]},
-        {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70","tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70"],"s":46,"e":67}
+        {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70","tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70"],"s":8}
       ]
     },
     "perspectives": [
@@ -25,7 +25,7 @@ export const NODE_CONTENT = {
         "body": {
           "cite": [
             {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-86b4f442b37cc5ac7c949915868d53dd"]},
-            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-ef7b6cee183cdd42c58f082bad5cca6a","tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-ef7b6cee183cdd42c58f082bad5cca6a","tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"]}
           ]
         }
       },
@@ -33,10 +33,10 @@ export const NODE_CONTENT = {
         "title": {"ru":"Созревание для дела","en":"Ripeness for work"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-1d1bd60fc75dd18a304e393dda59d626","tos.text-unit.sid-1d1bd60fc75dd18a304e393dda59d626"],"s":32,"e":65},
-            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff","tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff"],"s":8,"e":49},
-            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-947f5ac6e15b64c4a0445d01a338ce4c","tos.text-unit.sid-947f5ac6e15b64c4a0445d01a338ce4c"],"s":28,"e":39},
-            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70","tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70"],"s":46,"e":67}
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-1d1bd60fc75dd18a304e393dda59d626","tos.text-unit.sid-1d1bd60fc75dd18a304e393dda59d626"]},
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff","tos.text-unit.sid-f6f757db50a8c9d5fdce0e1d7c7f3fff"],"e":112},
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-947f5ac6e15b64c4a0445d01a338ce4c","tos.text-unit.sid-947f5ac6e15b64c4a0445d01a338ce4c"],"e":80},
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70","tos.text-unit.sid-3aed787db3bc681b14b7a606fac6fe70"],"s":8}
           ]
         }
       }
@@ -88,7 +88,7 @@ export const NODE_CONTENT = {
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d","tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d"]},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-55f238a2f371dd7f806cdad1f08bc576","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"s":30,"e":57}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"e":119}
       ]
     },
     "perspectives": [
@@ -121,8 +121,8 @@ export const NODE_CONTENT = {
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4cf0a6689b0b424eaee11980c7fd6789","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-524ba7995cb645de150e842f8518f37e"]},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-33bda0fcdf4170fb11f4dee205767dcd","tos.text-unit.sid-33bda0fcdf4170fb11f4dee205767dcd"],"s":31,"e":66},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da"],"s":2,"e":38},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-33bda0fcdf4170fb11f4dee205767dcd","tos.text-unit.sid-33bda0fcdf4170fb11f4dee205767dcd"],"e":67},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3cf5bcb02f23ef9ddd3bb07697eadc6d","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"]}
       ]
@@ -156,9 +156,8 @@ export const NODE_CONTENT = {
     "body": {
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-f6f69805abb8029bbedef25eeb121721"]},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7"],"s":1,"e":71},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":64,"e":104},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":108,"e":146}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":64}
       ]
     },
     "perspectives": [
@@ -200,8 +199,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Тождество подробностей","en":"Identity of details"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-ce045055585467cfc09217fef32bfa81","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":63,"e":96},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7"],"s":93,"e":160}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-ce045055585467cfc09217fef32bfa81","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7"]}
           ]
         }
       },
@@ -209,7 +208,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Слова, которые он сказал бы","en":"Words he would say"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239"],"s":0,"e":34},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239"]},
             {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"]}
           ]
         }
@@ -304,7 +303,7 @@ export const NODE_CONTENT = {
       "cite": [
         {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"]},
         {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-87ee03096d4da574543c6c6cdeab9b26","tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"]},
-        {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9","tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"],"s":50,"e":87}
+        {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9","tos.text-unit.sid-43df5a5a008e895ca4063ac931f2eae9"],"s":7}
       ]
     },
     "perspectives": [
@@ -378,7 +377,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Два направления","en":"Two directions"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-36a3c9915901a496c64276fe2da78079","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"],"s":0,"e":34},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-36a3c9915901a496c64276fe2da78079","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"],"e":137},
             {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d","tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d"]}
           ]
         }
@@ -448,7 +447,7 @@ export const NODE_CONTENT = {
           "ru": "Последующие вопросы делают содержание круга всё более определённым.",
           "en": "The later questions make the circle’s content increasingly specific.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6"],"s":20,"e":50}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6"],"e":51}
           ]
         }
       },
@@ -474,7 +473,7 @@ export const NODE_CONTENT = {
       "en": "One image connects motion with two different textual tasks.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39"]},
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"],"s":67,"e":114}
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"]}
       ]
     },
     "perspectives": [
@@ -492,7 +491,7 @@ export const NODE_CONTENT = {
           "ru": "Соседство колеса ребёнка с игрой и собственным хотением задаёт иной вопрос, чем длительность цикла.",
           "en": "The proximity of the child’s wheel to play and willing for oneself poses a different question from the duration of a cycle.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"],"s":37,"e":114}
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"]}
           ]
         }
       }
@@ -545,8 +544,8 @@ export const NODE_CONTENT = {
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1","tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f44f3910a461757623937a1e557a79e8","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7"],"s":1,"e":71},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3"],"s":39,"e":87}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3"]}
       ]
     },
     "perspectives": [
@@ -612,7 +611,7 @@ export const NODE_CONTENT = {
   "demo:bite": {
     "body": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"s":0,"e":50},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"e":97},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4f156d0bad165d016f941204caf55153","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
       ]
@@ -633,7 +632,7 @@ export const NODE_CONTENT = {
           "ru": "Спасение и выздоровление занимают в позднейшем рассказе разные моменты.",
           "en": "Salvation and recovery occupy different moments within the later account.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4f156d0bad165d016f941204caf55153","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"],"s":75,"e":116}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4f156d0bad165d016f941204caf55153","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"],"s":52}
           ]
         }
       }
@@ -684,7 +683,7 @@ export const NODE_CONTENT = {
       "ru": "Геометрический образ становится обращением и желанием.",
       "en": "A geometrical image becomes an address and a desire.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f6f69805abb8029bbedef25eeb121721","tos.text-unit.sid-f6f69805abb8029bbedef25eeb121721"],"s":122,"e":162},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f6f69805abb8029bbedef25eeb121721","tos.text-unit.sid-f6f69805abb8029bbedef25eeb121721"],"s":80},
         {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-5af9e1110a7579a7427c94403f629e85","tos.text-unit.sid-cc29f340979315938b54f43eb7db749e"]}
       ]
     },
@@ -718,9 +717,9 @@ export const NODE_CONTENT = {
       "ru": "Смена действующего раскрывает разные значения образа.",
       "en": "The changing subject reveals different meanings of the image.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c8e9e850b816f1db51f391e81ec26f51","tos.text-unit.sid-c8e9e850b816f1db51f391e81ec26f51"],"s":137,"e":175},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c"],"s":74,"e":98},
-        {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-187d71e13bc9881187035bebd261de0c","tos.text-unit.sid-187d71e13bc9881187035bebd261de0c"],"s":58,"e":75}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c8e9e850b816f1db51f391e81ec26f51","tos.text-unit.sid-c8e9e850b816f1db51f391e81ec26f51"],"s":93},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c"]},
+        {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-187d71e13bc9881187035bebd261de0c","tos.text-unit.sid-187d71e13bc9881187035bebd261de0c"],"e":137}
       ]
     },
     "perspectives": [
@@ -729,7 +728,7 @@ export const NODE_CONTENT = {
         "body": {
           "cite": [
             {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3d6666a4b970257643f5fff6371d76c4","tos.text-unit.sid-f2b187a52ad03363125158d78efd1c9b"]},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-711dc06c5cfe15d63a5af8a9195a5638","tos.text-unit.sid-711dc06c5cfe15d63a5af8a9195a5638"],"s":53,"e":104}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-711dc06c5cfe15d63a5af8a9195a5638","tos.text-unit.sid-711dc06c5cfe15d63a5af8a9195a5638"],"s":53,"e":105}
           ]
         }
       },
@@ -756,9 +755,9 @@ export const NODE_CONTENT = {
       "en": "The forms in which recurrence is presented invite inquiry into both the thought’s content and its effect on the speaker.",
       "cite": [
         {"w":"die-froehliche-wissenschaft","loc":"341"},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"],"s":1},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
       ]
     },
     "perspectives": [
@@ -776,11 +775,11 @@ export const NODE_CONTENT = {
           "ru": "Носитель формул возвращения тоже находится в становлении.",
           "en": "The bearer of the formulas of recurrence is also becoming.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"],"s":1},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
             {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":0},
-            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-5af9e1110a7579a7427c94403f629e85","tos.text-unit.sid-a71211ffc3b2ed2d7ebfc9f5b5285bf2"],"s":65},
-            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-2a8aada5d848098eed8b2b160fafa871","tos.text-unit.sid-2a8aada5d848098eed8b2b160fafa871"],"s":67,"e":127}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]},
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-5af9e1110a7579a7427c94403f629e85","tos.text-unit.sid-a71211ffc3b2ed2d7ebfc9f5b5285bf2"]},
+            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-2a8aada5d848098eed8b2b160fafa871","tos.text-unit.sid-2a8aada5d848098eed8b2b160fafa871"]}
           ]
         }
       }
@@ -795,7 +794,7 @@ export const NODE_CONTENT = {
       "ru": "Гераклитовский мерный огонь даёт другой способ связать длительность космоса с изменением. Их можно сопоставить по тому, что именно сохраняется.",
       "en": "Heraclitus’s measured fire offers another way to connect the cosmos’s endurance with change. They can be compared through what each preserves.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]},
         {"w":"heraclitus-book","loc":"B30"}
       ]
     },
@@ -804,8 +803,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Протекающий год","en":"The year running through"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47"],"s":103,"e":196},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":52,"e":85}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]}
           ]
         }
       },
@@ -826,8 +825,8 @@ export const NODE_CONTENT = {
   "demo:present": {
     "body": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7b662f8453b880f152323256b23c2409","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-55f238a2f371dd7f806cdad1f08bc576","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7b662f8453b880f152323256b23c2409","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-55f238a2f371dd7f806cdad1f08bc576","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
       ]
     },
     "perspectives": [
@@ -837,7 +836,7 @@ export const NODE_CONTENT = {
           "ru": "Ворота получают имя от места встречи дорог.",
           "en": "The gateway takes its name from the paths’ meeting place.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7b662f8453b880f152323256b23c2409","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7b662f8453b880f152323256b23c2409","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]}
           ]
         }
       },
@@ -859,8 +858,8 @@ export const NODE_CONTENT = {
       "ru": "Утверждение растёт от учения видеть к желанию возвращения жизни.",
       "en": "Affirmation grows from learning to see toward wanting life’s return.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"]},
+        {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495"]},
         {"w":"die-froehliche-wissenschaft","loc":"276"}
       ]
     },
@@ -877,9 +876,9 @@ export const NODE_CONTENT = {
         "title": {"ru":"Радость хочет всего","en":"Joy wants everything"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565"],"s":92,"e":138},
-            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"],"s":55},
-            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-df6a31a42b4c705ccca15085c11e12e6","tos.text-unit.sid-0ec434d19549d35b5e3777e05763e65e"],"s":2}
+            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565"],"s":92},
+            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"],"s":36},
+            {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-df6a31a42b4c705ccca15085c11e12e6","tos.text-unit.sid-0ec434d19549d35b5e3777e05763e65e"]}
           ]
         }
       }
@@ -894,7 +893,7 @@ export const NODE_CONTENT = {
       "ru": "Вопрос о тождестве требует уточнить, что сохраняется в каждом случае.",
       "en": "Identity requires asking what each account preserves.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]},
         {"w":"heraclitus-book","loc":"B12"}
       ]
     },
@@ -903,7 +902,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Причины снова создают","en":"Causes create again"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-9e959c02dfdc678408dd5d20287553c2","tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f"],"s":1}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-9e959c02dfdc678408dd5d20287553c2","tos.text-unit.sid-960b157d45a55690ed2c64a9b9259b1f"]}
           ]
         }
       },
@@ -927,7 +926,7 @@ export const NODE_CONTENT = {
       "en": "These uses of “fate” unfold through different tasks.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-8633a4e29cd08c654ad688a5aef20edc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"],"s":87}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]}
       ]
     },
     "perspectives": [
@@ -935,8 +934,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Хотеть рождения","en":"Willing birth"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443","tos.text-unit.sid-382b87ebc0855954b7fee4c0e54e61c9"],"s":110},
-            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"],"s":55,"e":135}
+            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443","tos.text-unit.sid-382b87ebc0855954b7fee4c0e54e61c9"],"s":80},
+            {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"],"s":55}
           ]
         }
       },
@@ -944,8 +943,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Судьба учителя","en":"The teacher’s fate"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"],"s":87},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"],"s":39,"e":116}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"]}
           ]
         }
       }
@@ -960,9 +959,9 @@ export const NODE_CONTENT = {
       "ru": "Сцена различает попытку одного, призыв к другому и поступок, который меняет самого действующего.",
       "en": "The scene distinguishes one person’s attempt, a call to another and an act that changes its agent.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"s":0,"e":50},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"e":97},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"],"s":98},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":2}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"]}
       ]
     },
     "perspectives": [
@@ -970,8 +969,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"От руки к крику","en":"From hand to cry"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"s":0,"e":50},
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"],"s":48,"e":159}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e"],"e":97},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"],"s":24,"e":160}
           ]
         }
       },
@@ -981,7 +980,7 @@ export const NODE_CONTENT = {
           "ru": "Рассказ удерживает различие между совершённым преображением и стремлением к нему.",
           "en": "The tale preserves the difference between accomplished transformation and longing for it.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"],"s":2}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
           ]
         }
       }
@@ -996,7 +995,7 @@ export const NODE_CONTENT = {
       "ru": "Эти тексты позволяют уточнить, какая именно необходимость обсуждается и к чему относится свобода.",
       "en": "These texts clarify which necessity is at issue and what freedom concerns.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":10},
+        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"]},
         {"w":"ethica","loc":"I.D7"}
       ]
     },
@@ -1005,8 +1004,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Нельзя хотеть назад","en":"Unable to will backwards"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3d1d58f8435846038b07514d30c5672a","tos.text-unit.sid-3d1d58f8435846038b07514d30c5672a"],"s":74,"e":119},
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-1857c18c3f1848a0473d8e41f2ae1356","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3d1d58f8435846038b07514d30c5672a","tos.text-unit.sid-3d1d58f8435846038b07514d30c5672a"]},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-1857c18c3f1848a0473d8e41f2ae1356","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"]}
           ]
         }
       },
@@ -1027,9 +1026,9 @@ export const NODE_CONTENT = {
   "demo:creation": {
     "body": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"],"s":0,"e":58},
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"]},
         {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-dc8655dfae1632e8941021cb8aac7253","tos.text-unit.sid-1ff6168fe5e0cefdab5c0553114aa8af"]},
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"],"s":25}
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]}
       ]
     },
     "perspectives": [
@@ -1037,8 +1036,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Свобода для созидания","en":"Freedom for creation"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-ac6059bf23968ca1320ca593f57ccf72","tos.text-unit.sid-ac6059bf23968ca1320ca593f57ccf72"],"s":0,"e":39},
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"],"s":60,"e":138}
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-ac6059bf23968ca1320ca593f57ccf72","tos.text-unit.sid-ac6059bf23968ca1320ca593f57ccf72"]},
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"]}
           ]
         }
       },
@@ -1046,15 +1045,15 @@ export const NODE_CONTENT = {
         "title": {"ru":"Игра утверждения","en":"Affirmative play"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"],"s":0,"e":35},
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"],"s":116}
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-78b5795aca827182f53ba266a3271646"]},
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-78b5795aca827182f53ba266a3271646","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]}
           ]
         }
       }
     ],
     "question": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9"],"s":86,"e":139}
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9"],"s":86}
       ]
     }
   },
@@ -1071,7 +1070,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Звук возвращает прошлое","en":"Sound brings back the past"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea"],"s":0,"e":63},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea"],"e":64},
             {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-5e6b25576edbed8b36254d7b586ea0cb"],"s":39}
           ]
         }
@@ -1195,8 +1194,8 @@ export const NODE_CONTENT = {
       "en": "A poetic reading examines what this sequence makes available to thought.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"],"s":53},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-9ac5e60b3a9f3e21946551e7043e6f31","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38407ce82a4703428377d06e4af5c240","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"],"s":17}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-9ac5e60b3a9f3e21946551e7043e6f31","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38407ce82a4703428377d06e4af5c240","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
       ]
     },
     "perspectives": [
@@ -1218,8 +1217,8 @@ export const NODE_CONTENT = {
       "ru": "Узел собирает два разных вопроса о времени: как связаны события и как воля может отнестись к необратимому прошлому.",
       "en": "The knot gathers two different questions about time: how events are connected and how the will can relate to an irreversible past.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"s":0,"e":57},
-        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":10}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"e":119},
+        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dc0a4af060b9be065759832a96bf8a51","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"]}
       ]
     },
     "perspectives": [
@@ -1229,7 +1228,7 @@ export const NODE_CONTENT = {
           "ru": "Нужно понять, что делает переход от «связано» к «должно вернуться» возможным.",
           "en": "What makes the passage from “connected” to “must return” possible needs understanding.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"s":0,"e":57}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"e":119}
           ]
         }
       },
@@ -1237,9 +1236,9 @@ export const NODE_CONTENT = {
         "title": {"ru":"Бывшее перед волей","en":"The past before the will"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-04ae7c3916e9390af927106df7b960ca","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":115},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-04ae7c3916e9390af927106df7b960ca","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":87},
             {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-5d7585f48e3c3ff7eef88bb204463cc3","tos.text-unit.sid-04ae7c3916e9390af927106df7b960ca"]},
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"],"s":69}
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"]}
           ]
         }
       }
@@ -1291,7 +1290,7 @@ export const NODE_CONTENT = {
       "en": "Both passages call for examining affirmation of a whole, one through the condition of unaltered recurrence and the other through a song of love for eternity.",
       "cite": [
         {"w":"die-froehliche-wissenschaft","loc":"341"},
-        {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-a296affd8de2364380938f345fdc44b6","tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-a296affd8de2364380938f345fdc44b6","tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d"]}
       ]
     },
     "perspectives": [
@@ -1308,7 +1307,7 @@ export const NODE_CONTENT = {
           "ru": "Вопрос направлен к основанию такой оценки и к тому, кто способен её произнести.",
           "en": "The question concerns the ground of this evaluation and who can utter it.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d","tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d"],"s":2,"e":96}
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d","tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d"]}
           ]
         }
       }
@@ -1331,8 +1330,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Что именно вызывает отвращение","en":"What exactly provokes disgust"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1"],"s":0},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f44f3910a461757623937a1e557a79e8","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f44f3910a461757623937a1e557a79e8","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
           ]
         }
       }
@@ -1381,8 +1380,8 @@ export const NODE_CONTENT = {
       "ru": "Задача раскрывается между потребностью одарить, названием учителя и состоянием того, кто должен учить.",
       "en": "The task unfolds between the need to bestow, the naming of a teacher and the condition of the one who must teach.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb"],"s":97,"e":139},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"],"s":87}
+        {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb"],"s":7},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]}
       ]
     },
     "perspectives": [
@@ -1391,8 +1390,8 @@ export const NODE_CONTENT = {
         "body": {
           "cite": [
             {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"],"s":7},
-            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb"],"s":97,"e":139},
-            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-ef7b6cee183cdd42c58f082bad5cca6a","tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"],"s":36}
+            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb"],"s":7},
+            {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-ef7b6cee183cdd42c58f082bad5cca6a","tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"]}
           ]
         }
       },
@@ -1402,8 +1401,8 @@ export const NODE_CONTENT = {
           "ru": "Их уверенность и его состояние образуют трудность самой задачи.",
           "en": "Their confidence and his condition constitute a difficulty within the task itself.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c"],"s":50,"e":78},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":120,"e":168}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"e":169}
           ]
         }
       }
@@ -1434,7 +1433,7 @@ export const NODE_CONTENT = {
       "en": "If an outcome is thought independently of every action, action loses its place in the explanation. Comparison clarifies what place each account of necessity leaves for what acts.",
       "cite": [
         {"w":"ethica","loc":"III.P6"},
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":0,"e":51}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"e":52}
       ]
     },
     "perspectives": [
@@ -1452,7 +1451,7 @@ export const NODE_CONTENT = {
           "ru": "Эта граница задаёт другой вопрос, чем неизбежность любого результата.",
           "en": "This boundary raises a different question from an outcome’s inevitability.",
           "cite": [
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":98}
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212}
           ]
         }
       }
@@ -1509,7 +1508,7 @@ export const NODE_CONTENT = {
       "en": "Comparison seeks freedom’s meaning through the source of determination and the boundary of one’s own.",
       "cite": [
         {"w":"ethica","loc":"I.D7"},
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":99,"e":128}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212}
       ]
     },
     "perspectives": [
@@ -1521,8 +1520,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Принадлежность действия","en":"What activity belongs to"},
         "body": {
           "cite": [
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":98},
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":549,"e":596}
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212},
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":721}
           ]
         }
       }
@@ -1533,8 +1532,8 @@ export const NODE_CONTENT = {
       "ru": "Отношение к боли здесь исследуется через меняющиеся оценки самого героя. Сопоставление «Выздоравливающего», «Семи печатей», «О сострадательных» и «Знамения» позволяет спросить, какое место страдание получает по отношению к утверждению и созиданию.",
       "en": "The relation to pain is examined through the protagonist’s changing evaluations. Comparing “The Convalescent”, “The Seven Seals”, “The Pitiful” and “The Sign” asks what place suffering acquires in relation to affirmation and creation.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"],"s":10,"e":41},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84"],"s":1,"e":35},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"],"s":6},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84"],"e":36},
         {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-554c18e1670e833686c158edc8c9a2ee","tos.text-unit.sid-04129b0a35e53ec20ae436790aa0dc1c"]},
         {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-550efec95e443c4bd2b7c2897f5a45c2","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":12}
       ]
@@ -1546,8 +1545,8 @@ export const NODE_CONTENT = {
           "ru": "Разница форм требует понять, что произошло с оценивающим.",
           "en": "The difference in forms requires asking what has happened to the evaluator.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f44f3910a461757623937a1e557a79e8","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":0},
-            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-a296affd8de2364380938f345fdc44b6","tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f44f3910a461757623937a1e557a79e8","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]},
+            {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-a296affd8de2364380938f345fdc44b6","tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d"]}
           ]
         }
       },
@@ -1557,7 +1556,7 @@ export const NODE_CONTENT = {
           "ru": "«Знамение» возвращает это различие к самому Заратустре, который оставляет сострадание к высшим людям ради своего дела.",
           "en": "“The Sign” brings this distinction back to Zarathustra himself as he leaves pity for the higher men behind for his work.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":29,"e":124},
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"]},
             {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-550efec95e443c4bd2b7c2897f5a45c2","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":12}
           ]
         }
@@ -1569,10 +1568,10 @@ export const NODE_CONTENT = {
       "ru": "Глава различает произнесённое учение и состояние того, кому предстоит быть его учителем. Выздоровление становится частью вопроса о том, как учение может быть перенесено в жизнь.",
       "en": "The chapter distinguishes an uttered teaching from the condition of the one who is to become its teacher. Convalescence becomes part of the question of how the teaching can be carried into life.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4cf0a6689b0b424eaee11980c7fd6789","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"],"s":54,"e":94},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"],"s":45},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4cf0a6689b0b424eaee11980c7fd6789","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"],"e":126},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
       ]
     },
     "perspectives": [
@@ -1582,7 +1581,7 @@ export const NODE_CONTENT = {
           "ru": "Болезнь требует понять встречу с тем, что было вызвано, и её действие на Заратустру.",
           "en": "Illness calls for understanding the encounter with what was summoned and its effect on Zarathustra.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4cf0a6689b0b424eaee11980c7fd6789","tos.text-unit.sid-0f8534033d9eb03f74ac4ffeb7d2bf6f"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-4cf0a6689b0b424eaee11980c7fd6789","tos.text-unit.sid-0f8534033d9eb03f74ac4ffeb7d2bf6f"]}
           ]
         }
       },
@@ -1592,7 +1591,7 @@ export const NODE_CONTENT = {
           "ru": "Заратустра в конце остаётся в разговоре с душой, и повествование сохраняет различие состояний зверей и его самого.",
           "en": "At the end, Zarathustra remains in conversation with his soul, and the narrative preserves the difference between the animals’ condition and his.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"]}
           ]
         }
       }
@@ -1607,7 +1606,7 @@ export const NODE_CONTENT = {
       "ru": "Во «Выздоравливающем» возвращение малого человека осложняет ожидание окончательного избавления от прежнего. Сопоставление спрашивает о форме преодоления, когда возвращающееся целое включает преодолённое.",
       "en": "In “The Convalescent”, the small human’s return complicates the expectation of a final release from what came before. Comparison asks about overcoming’s form when the returning whole includes what was overcome.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]}
       ]
     },
     "perspectives": [
@@ -1615,8 +1614,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Свобода для создания","en":"Freedom for creation"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"],"s":0,"e":105},
-            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-1444d006a038716b06a33646bf0b0439"]},
+            {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9"]}
           ]
         }
       },
@@ -1626,7 +1625,7 @@ export const NODE_CONTENT = {
           "ru": "Оценка Заратустры становится испытанием для мысли, которая должна охватить всё.",
           "en": "Zarathustra’s evaluation becomes an ordeal for a thought that is to encompass everything.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":0}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
           ]
         }
       }
@@ -1697,7 +1696,7 @@ export const NODE_CONTENT = {
       "ru": "Эти места сближают связанность событий и тождество полной последовательности, оставляя исследовать переход между ними.",
       "en": "These passages bring connected events beside an identical complete sequence, leaving the transition between them to inquiry.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"s":0,"e":57},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"e":119},
         {"w":"die-froehliche-wissenschaft","loc":"341"}
       ]
     },
@@ -1706,7 +1705,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Мгновение влечёт за собой","en":"The moment draws things after it"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"s":0,"e":57}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"],"e":119}
           ]
         }
       },
@@ -1766,8 +1765,8 @@ export const NODE_CONTENT = {
       "ru": "Одна линия ведёт к суждению и желанию, другая — к разумной и общественной природе. Эти входы позволяют рассмотреть действие через принадлежность и цель.",
       "en": "One line leads to judgment and desire, the other to rational and social nature. These entrances allow action to be considered through what it belongs to and what it is for.",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":0,"e":51},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":708,"e":748}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"e":52},
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":421,"e":749}
       ]
     },
     "perspectives": [
@@ -1775,8 +1774,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Собственное действие","en":"One’s own activity"},
         "body": {
           "cite": [
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":130,"e":177},
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":470,"e":506}
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212},
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":721}
           ]
         }
       },
@@ -1784,8 +1783,8 @@ export const NODE_CONTENT = {
         "title": {"ru":"Общественная природа","en":"Social nature"},
         "body": {
           "cite": [
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":915,"e":970},
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":750,"e":844}
+            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":915},
+            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":750,"e":845}
           ]
         }
       }
@@ -1794,9 +1793,8 @@ export const NODE_CONTENT = {
   "demo:providence": {
     "body": {
       "cite": [
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":35},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":708,"e":748},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":810,"e":844}
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":186},
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":421,"e":845}
       ]
     },
     "perspectives": [
@@ -1804,8 +1802,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Замысел о целом","en":"A design for the whole"},
         "body": {
           "cite": [
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":344,"e":419},
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":260,"e":342}
+            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":260,"e":420}
           ]
         }
       },
@@ -1813,8 +1810,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Собственное рассуждение","en":"One’s own reasoning"},
         "body": {
           "cite": [
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":457,"e":480},
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":666,"e":706}
+            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":421,"e":749}
           ]
         }
       }
@@ -1823,9 +1819,8 @@ export const NODE_CONTENT = {
   "demo:epictetus": {
     "body": {
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":130,"e":177},
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1016,"e":1065},
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1067,"e":1115}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212},
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":867,"e":1160}
       ]
     },
     "perspectives": [
@@ -1842,7 +1837,7 @@ export const NODE_CONTENT = {
           "ru": "Предупреждение о богатстве и власти проверяет, сохраняется ли исходная граница в том, чего человек действительно хочет.",
           "en": "The warning about wealth and power tests whether the opening boundary holds in what a person actually wants.",
           "cite": [
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1067,"e":1115}
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1067,"e":1160}
           ]
         }
       }
@@ -1930,7 +1925,7 @@ export const NODE_CONTENT = {
           "en": "Introducing an alternative changes the question the addressee is asked to answer.",
           "cite": [
             {"w":"die-froehliche-wissenschaft","loc":"341"},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7"],"s":93,"e":160}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7"]}
           ]
         }
       }
@@ -2048,8 +2043,8 @@ export const NODE_CONTENT = {
       "cite": [
         {"w":"difference-et-repetition","loc":"intro.corrections"},
         {"w":"difference-et-repetition","loc":"intro.propositions"},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"],"s":43,"e":71},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"],"s":2},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"],"e":72},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
         {"w":"difference-et-repetition","loc":"intro.selective"}
       ]
     },
@@ -2126,8 +2121,8 @@ export const NODE_CONTENT = {
       "ru": "Этот вход в вопрос ответственности сравнивает основания обвинения и пути освобождения от него.",
       "en": "This entrance to responsibility compares the grounds of accusation and paths of release from it.",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":347,"e":402},
-        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3d1d58f8435846038b07514d30c5672a","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"],"s":0},
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":721},
+        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3d1d58f8435846038b07514d30c5672a","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"]},
         {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-a72beb585203bf32c2396d8a5f40c90a","tos.text-unit.sid-4a143af767f17dd9d433e2a8df84cfc6"],"s":1}
       ]
     },
@@ -2136,8 +2131,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Своё и приписанное","en":"One’s own and what is claimed"},
         "body": {
           "cite": [
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":347,"e":468},
-            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":598,"e":634}
+            {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":721}
           ]
         }
       },
@@ -2145,10 +2139,10 @@ export const NODE_CONTENT = {
         "title": {"ru":"Месть времени","en":"Revenge against time"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"],"s":0,"e":34},
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"],"s":0},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"]},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"]},
             {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-a72beb585203bf32c2396d8a5f40c90a","tos.text-unit.sid-4a143af767f17dd9d433e2a8df84cfc6"],"s":1},
-            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dce9a2b4c0bcf930ec2bb013849825fe","tos.text-unit.sid-a602dadebebc6eb316a0caa49c4ca781"],"s":1}
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-dce9a2b4c0bcf930ec2bb013849825fe","tos.text-unit.sid-a602dadebebc6eb316a0caa49c4ca781"]}
           ]
         }
       }
@@ -2163,8 +2157,8 @@ export const NODE_CONTENT = {
       "ru": "Повтор формулы и пение выздоравливающего занимают разные места в движении главы. Ритм исследуется через то, как мысль произносится и какое состояние говорящего в ней звучит.",
       "en": "Repeating a formula and the convalescent’s singing occupy different places in the chapter’s movement. Rhythm is examined through how a thought is uttered and which condition of its speaker is heard in it.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"],"s":2},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"],"s":1}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"]}
       ]
     },
     "perspectives": [
@@ -2174,7 +2168,7 @@ export const NODE_CONTENT = {
           "ru": "Нужно понять, почему новизна песни становится существенной для той мысли, которую звери уже могут изложить.",
           "en": "Why a song’s novelty becomes significant to a thought the animals can already expound needs understanding.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"],"s":1}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"]}
           ]
         }
       }
@@ -2195,8 +2189,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Запах яблока","en":"The apple’s scent"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-524ba7995cb645de150e842f8518f37e","tos.text-unit.sid-524ba7995cb645de150e842f8518f37e"],"s":78,"e":155},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-524ba7995cb645de150e842f8518f37e","tos.text-unit.sid-524ba7995cb645de150e842f8518f37e"],"s":157,"e":224}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-524ba7995cb645de150e842f8518f37e","tos.text-unit.sid-524ba7995cb645de150e842f8518f37e"]}
           ]
         }
       },
@@ -2266,8 +2259,8 @@ export const NODE_CONTENT = {
       "ru": "Направление внимания меняет возможность встречи и ответа в каждой сцене.",
       "en": "The direction of attention changes the possibility of encounter and response in each scene.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86","tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86"],"s":692,"e":743},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":274,"e":320}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86","tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86"],"s":681},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":170,"e":321}
       ]
     },
     "perspectives": [
@@ -2277,7 +2270,7 @@ export const NODE_CONTENT = {
           "ru": "Собеседники Заратустры становятся условием рассказа о его одиночестве.",
           "en": "Zarathustra’s interlocutors become a condition for telling his solitude.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86","tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86"],"s":456,"e":528}
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86","tos.text-unit.sid-4979fb4ab5e7de21fc9d81049b413a86"],"s":364,"e":576}
           ]
         }
       },
@@ -2285,8 +2278,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Не услышать тишину","en":"Not hearing silence"},
         "body": {
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":274,"e":320},
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":401,"e":464}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":170}
           ]
         }
       }
@@ -2301,10 +2293,10 @@ export const NODE_CONTENT = {
       "ru": "Узел сопоставляет основания совместности, которые каждый текст делает существенными.",
       "en": "This node compares the grounds of life together that each text makes significant.",
       "cite": [
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":810,"e":844},
-        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-4dbb6b811ac6207e22bfb0f6a12c67a3","tos.text-unit.sid-85d7122851043c5befd3b26ec46e61fa"],"s":45},
-        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc","tos.text-unit.sid-09b9bca89edae4834da231d217a4db61"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":82,"e":124}
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":750,"e":845},
+        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-4dbb6b811ac6207e22bfb0f6a12c67a3","tos.text-unit.sid-85d7122851043c5befd3b26ec46e61fa"],"s":18},
+        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc","tos.text-unit.sid-09b9bca89edae4834da231d217a4db61"]},
+        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"]}
       ]
     },
     "perspectives": [
@@ -2312,8 +2304,7 @@ export const NODE_CONTENT = {
         "title": {"ru":"Два города","en":"Two cities"},
         "body": {
           "cite": [
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":846,"e":913},
-            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":915,"e":970}
+            {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":846}
           ]
         }
       },
@@ -2323,9 +2314,9 @@ export const NODE_CONTENT = {
           "ru": "Способ отношения меняет смысл помощи.",
           "en": "The manner of relation changes help’s meaning.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-bb657a18dea91c343e6156d5111bc7e4","tos.text-unit.sid-bb657a18dea91c343e6156d5111bc7e4"],"s":29,"e":80},
-            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc","tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc"],"s":111,"e":153},
-            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":82,"e":124}
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-bb657a18dea91c343e6156d5111bc7e4","tos.text-unit.sid-bb657a18dea91c343e6156d5111bc7e4"]},
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc","tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc"]},
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"]}
           ]
         }
       }

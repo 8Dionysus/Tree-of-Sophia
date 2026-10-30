@@ -24,9 +24,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "В первом разделе «Энхиридиона» граница проходит не между большим и малым влиянием, а между собственными суждениями, стремлениями и тем, что не принадлежит собственной деятельности. Обещанная свобода от принуждения поэтому связана с переменой того, что человек считает своим, а не с усилением власти над обстоятельствами.",
       "en": "In the Enchiridion’s first section, the boundary runs not between greater and lesser influence but between one’s own judgments and impulses and what does not belong to one’s own activity. The promised freedom from constraint is therefore connected with changing what one regards as one’s own rather than increasing power over circumstances.",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":130,"e":177},
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":867,"e":1066},
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1067,"e":1379}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212},
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":867}
       ]
     },
     "grounds": [
@@ -47,8 +46,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Здесь боль не выступает заранее установленной последней мерой ценности: требуется понять сам переход от отвращения к утверждению. Главы «О сострадательных» и «Знамение» уточняют эту трудность: создающая любовь ставится выше жалости, а сострадание к высшим людям оказывается последним грехом Заратустры перед возвращением к своему делу. Чтение этих мест спрашивает, каким образом меняется оценка страдания внутри движения книги.",
       "en": "Pain is not an already established final measure of value here: the transition from nausea to affirmation itself needs understanding. “The Pitiful” and “The Sign” sharpen this difficulty: creating love is placed above pity, while fellow-suffering with the higher men becomes Zarathustra’s last sin before returning to his work. Reading these passages asks how suffering’s evaluation changes within the book’s movement.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-8a03719e2423c8c51817085f23002bbf"],"s":109},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":1},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-8a03719e2423c8c51817085f23002bbf"],"s":60},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]},
         {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-a296affd8de2364380938f345fdc44b6","tos.text-unit.sid-c6fa872b1e91669e6786d92f635bed5d"]}
       ]
     },
@@ -56,8 +55,8 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-8a03719e2423c8c51817085f23002bbf"],"s":109},
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":1}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-8a03719e2423c8c51817085f23002bbf"],"s":60},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
         ]
       },
       {
@@ -69,14 +68,14 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-pitiful",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a","tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a"],"s":0,"e":153},
-          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":29,"e":124}
+          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a","tos.text-unit.sid-40f2feef59d2e64bb98d3eb59bf8f81a"]},
+          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"]}
         ]
       },
       {
         "ref": "z-sign",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-c0e3a3517b021107cee042466f68a20d","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":125}
+          {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-c0e3a3517b021107cee042466f68a20d","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":124}
         ]
       }
     ],
@@ -137,15 +136,15 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "После вопросов о времени сцена пастуха переносит мысль из разговора в телесное событие. Такое устройство удерживает загадку внутри действия: различие неудавшейся помощи и собственного укуса пастуха позволяет читать перемену как нечто большее, чем получение объяснения.",
       "en": "After the questions about time, the shepherd’s scene moves thought from conversation into a bodily event. This arrangement holds the riddle within the action: the difference between failed assistance and the shepherd’s own bite allows the change to be read as more than receiving an explanation.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":2}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-vision",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":0}
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"]}
         ]
       }
     ],
@@ -174,7 +173,7 @@ export const INQUIRY_READINGS_ECHOES = {
         "ref": "z-redemption",
         "cite": [
           {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-5d7585f48e3c3ff7eef88bb204463cc3","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"]},
-          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-992df47a90ea6b8344d342589d5f915b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"],"s":0}
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-992df47a90ea6b8344d342589d5f915b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"]}
         ]
       }
     ],
@@ -188,8 +187,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Первое лицо внутри предположения зверей поэтому имеет два уровня: говорящих зверей и предполагаемого говорящего Заратустру. Такое устройство позволяет различать изложение учения, присвоение голоса учителя и состояние самого учителя, не устраняя содержания сказанного.",
       "en": "The first person within the animals’ supposition therefore has two levels: the animals speaking and Zarathustra as the imagined speaker. This arrangement distinguishes an exposition of the teaching, an assumption of the teacher’s voice and the teacher’s own condition without removing what is said.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-9e959c02dfdc678408dd5d20287553c2"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":120,"e":320}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-9e959c02dfdc678408dd5d20287553c2"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"e":321}
       ]
     },
     "grounds": [
@@ -246,7 +245,7 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Повтор малого означает, что жизнь не завершится однажды миром, в котором преодолённое навсегда исчезло. Трудность касается поэтому масштаба утверждения: способна ли мысль включить возвращение того, на преодоление чего направлено стремление?",
       "en": "The small human’s repetition means life will not culminate in a world from which what was overcome has vanished forever. The difficulty therefore concerns affirmation’s scope: can the thought include the return of what the striving aims to overcome?",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1"],"s":109},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1"],"s":60},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f44f3910a461757623937a1e557a79e8","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
       ]
     },
@@ -254,8 +253,8 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1"],"s":109},
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":1}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-e5c2cd07214c95f19a1a4dcf30a074b1"],"s":60},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
         ]
       }
     ],
@@ -278,7 +277,7 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-vision",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-47ecea77ae8a30862d06ed7c80ebdf1a","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":0}
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-47ecea77ae8a30862d06ed7c80ebdf1a","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"]}
         ]
       },
       {
@@ -306,7 +305,7 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-vision",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-2f41253d3959f2b77e74490541d39586"],"s":1}
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-2f41253d3959f2b77e74490541d39586"]}
         ]
       }
     ],
@@ -321,7 +320,7 @@ export const INQUIRY_READINGS_ECHOES = {
       "en": "Between the wish to bestow and the designation as teacher emerges a task—not only to state a thought but to become someone whose work it determines. The animals can name that task, while Zarathustra’s silence leaves its fulfilment within the book’s continuing movement.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-775c1304b982084134991ec1bc6c84bb","tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"],"s":7},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c"],"s":80,"e":158}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c"]}
       ]
     },
     "grounds": [
@@ -334,7 +333,7 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"],"s":80},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]},
           {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"]}
         ]
       }
@@ -349,8 +348,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Упрёк зверям за шарманочный припев допускает разные вопросы: ошиблись ли они в содержании или сделали слишком лёгким способ его произнесения. Сопоставление прочтений становится содержательным, когда каждое объясняет эти места вместе. Тогда выбор зависит от того, как связаны формула, голос и переживание, а не от простого числа подтверждающих строк.",
       "en": "The rebuke to the animals for their barrel-organ refrain allows different questions: is their content mistaken, or have they made its utterance too easy? Comparing readings becomes substantive when each explains these passages together. Preference then depends on how formula, voice and experience are connected rather than on counting supporting lines.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
       ]
     },
     "grounds": [
@@ -358,7 +357,7 @@ export const INQUIRY_READINGS_ECHOES = {
         "ref": "z-convalescent",
         "cite": [
           {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":0},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]},
           {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"]}
         ]
       }
@@ -373,8 +372,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Значит, различие проходит не просто между повтором и новизной или между речью и музыкой. Исследовать ритм здесь — значит выяснять, как повторяемая форма связана с состоянием того, кто её произносит и слышит.",
       "en": "The distinction therefore does not fall simply between repetition and novelty or between speech and music. Investigating rhythm here means asking how a repeated form is connected with the condition of its speaker and listener.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"],"s":3},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"],"s":1}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-1fdb6b338b3ca379b3fc0d4b9a295d84","tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e"]}
       ]
     },
     "grounds": [
@@ -399,7 +398,7 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Повторное чтение позволяет проверить связь двух сцен на неизменившихся словах. Если после «Выздоравливающего» пастух начинает напоминать самого Заратустру, основанием служит позднейший рассказ об укусе чудовища. Практика возвращения поэтому сопоставляет приобретённое основание с тем, что оно ещё не объяснило.",
       "en": "Rereading allows the connection between two scenes to be examined against unchanged words. If the shepherd begins to resemble Zarathustra himself after “The Convalescent”, the ground is the later account of biting the monster. The practice of returning therefore compares a newly acquired ground with what it has not yet explained.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]}
       ]
@@ -434,8 +433,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Вопрос о бездействии требует различить зависимость поступка от причин и отсутствие у него действия на происходящее. В доказательстве conatus единичная вещь определённым образом выражает силу, посредством которой Бог существует и действует; зависимость её природы не превращает её в отсутствие силы. Эти два входа по-разному сохраняют действие внутри ограничения, не обещая независимости от всего остального.",
       "en": "The question of inaction requires distinguishing an action’s dependence on causes from its having no effect on what happens. In the conatus proof, an individual thing expresses in a determinate way the power whereby God exists and acts; the dependence of its nature does not turn it into an absence of power. These entries preserve action within limitation in different ways without promising independence from everything else.",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":130,"e":177},
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1067,"e":1379}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":53,"e":212},
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":1067}
       ]
     },
     "grounds": [
@@ -508,7 +507,7 @@ export const INQUIRY_READINGS_ECHOES = {
           "en": "Comparison of the two definitions begins here."
         },
         "cite": [
-          {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":0,"e":328}
+          {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"e":328}
         ]
       }
     ],
@@ -522,18 +521,18 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "После этого звери способны изложить возвращение легче, чем он способен о нём говорить. Разница между формулой и переживанием поэтому задана не обвинением учителя извне, а последовательностью самой главы. Название «выздоравливающий» удерживает понимание во времени: произнесённое учение ещё связано с преобразованием того, кто должен его нести.",
       "en": "Afterwards, the animals can expound recurrence more easily than he can speak of it. The difference between formula and experience is therefore given by the chapter’s own sequence rather than an external accusation against the teacher. The name “convalescent” keeps understanding within time: the stated teaching is still connected with the transformation of the one who must bear it.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-910e30f1208895e720462b0097068f7b","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"],"s":0,"e":289}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-910e30f1208895e720462b0097068f7b","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"],"e":402}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-910e30f1208895e720462b0097068f7b","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"],"s":0},
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"],"s":0,"e":289},
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":0},
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"],"s":0}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-910e30f1208895e720462b0097068f7b","tos.text-unit.sid-f95ccd37604cde247a392bebe2a9ea3e"]},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"],"e":402},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"]}
         ]
       }
     ],
@@ -562,7 +561,7 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"],"s":1}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
         ]
       }
     ],
@@ -576,7 +575,7 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Космологический довод можно реконструировать из вопросов у ворот, но такая реконструкция объясняет только часть движения главы. Поэтическая форма не отменяет вопроса о предпосылках: она добавляет вопрос о том, как мысль становится испытанием. Поэтому тезис и сцена могут исследоваться вместе без превращения каждого образа в отдельное доказательство.",
       "en": "A cosmological argument can be reconstructed from the gateway questions, but that reconstruction explains only part of the chapter’s movement. Poetic form does not remove the question of assumptions: it adds the question of how a thought becomes an ordeal. Thesis and scene can therefore be examined together without making each image a separate proof.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"],"s":1,"e":149},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"]},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":53}
       ]
     },
@@ -600,7 +599,7 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Поэтому позицию произведения нельзя восстановить одним изъятием торжественной формулы: сама смена речи становится предметом вопроса. Различение автора и персонажа здесь начинается с устроенного автором отношения голосов, а не с предположения, что ни один голос ничего не утверждает.",
       "en": "The work’s position therefore cannot be reconstructed simply by extracting a solemn formula: the change in speech itself becomes a question. Distinguishing author and character here begins with the author’s arrangement of voices, not the assumption that no voice asserts anything.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-b0d5af9e13780eeaefe97a07e4b10fc2","tos.text-unit.sid-eacfb2c146f965b9faf6bd963d67805e"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-b0d5af9e13780eeaefe97a07e4b10fc2","tos.text-unit.sid-eacfb2c146f965b9faf6bd963d67805e"]},
         {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-77d2134e63b47a686837068668c73b22","tos.text-unit.sid-225401ec25fcfee3ede1e91e2605ec08"],"s":25},
         {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-99c899ddf58551f0aed506e19f12fc69","tos.text-unit.sid-225401ec25fcfee3ede1e91e2605ec08"]}
       ]
@@ -609,7 +608,7 @@ export const INQUIRY_READINGS_ECHOES = {
       {
         "ref": "z-redemption",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-7c1ded9bb2862ae4e10daac0083b0c86","tos.text-unit.sid-b003bab9168e85ef8eea6629dabcd8ba"],"s":0},
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-7c1ded9bb2862ae4e10daac0083b0c86","tos.text-unit.sid-b003bab9168e85ef8eea6629dabcd8ba"]},
           {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-eacfb2c146f965b9faf6bd963d67805e","tos.text-unit.sid-eacfb2c146f965b9faf6bd963d67805e"]},
           {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-99c899ddf58551f0aed506e19f12fc69","tos.text-unit.sid-225401ec25fcfee3ede1e91e2605ec08"]}
         ]
@@ -703,22 +702,22 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Сопоставление исследует две причины обвиняющего отношения — ошибку в границе собственного и бессилие перед временем. Оно не даёт единой теории распределения вины, а позволяет точнее поставить вопрос, от какого отношения каждый текст ищет освобождения.",
       "en": "Comparison examines two sources of an accusatory relation—a mistake about the boundary of one’s own and powerlessness before time. It supplies no unified theory of allocating blame, but sharpens the question of which relation each text seeks release from.",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":468},
-        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-e1c8595b210fbd3da5aa409da133ad01"],"s":0}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":721},
+        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-e1c8595b210fbd3da5aa409da133ad01"]}
       ]
     },
     "grounds": [
       {
         "ref": "epictetus1",
         "cite": [
-          {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":634}
+          {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":329,"e":721}
         ]
       },
       {
         "ref": "z-redemption",
         "cite": [
           {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968","tos.text-unit.sid-3bc55c352acbd3db6c815b153b801968"]},
-          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-e1c8595b210fbd3da5aa409da133ad01"],"s":0}
+          {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-e1c8595b210fbd3da5aa409da133ad01"]}
         ]
       }
     ],
@@ -733,15 +732,15 @@ export const INQUIRY_READINGS_ECHOES = {
       "en": "These passages give different grounds for life with others: belonging to a whole and a particular way of bestowing and loving. Comparison asks what each ground makes significant in a relation to another while preserving the difference in their starting measures.",
       "cite": [
         {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":750,"e":914},
-        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-b66e16ad7e2a0418f629b219183c96b8","tos.text-unit.sid-09b9bca89edae4834da231d217a4db61"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":29,"e":124}
+        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-b66e16ad7e2a0418f629b219183c96b8","tos.text-unit.sid-09b9bca89edae4834da231d217a4db61"]},
+        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"]}
       ]
     },
     "grounds": [
       {
         "ref": "marcus6-44",
         "cite": [
-          {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":750,"e":971}
+          {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":750}
         ]
       },
       {
@@ -750,7 +749,7 @@ export const INQUIRY_READINGS_ECHOES = {
           {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-bb657a18dea91c343e6156d5111bc7e4","tos.text-unit.sid-bb657a18dea91c343e6156d5111bc7e4"]},
           {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc","tos.text-unit.sid-e265be83aa60fd32629dc350aa3c9ebc"]},
           {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-09b9bca89edae4834da231d217a4db61","tos.text-unit.sid-09b9bca89edae4834da231d217a4db61"]},
-          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":29,"e":124}
+          {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"]}
         ]
       }
     ],
@@ -786,9 +785,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Первый раздел Эпиктета и VI.44 Марка Аврелия отвечают на разные вопросы о действии. Вместе тексты дают две точки входа: границу собственного и основание того, ради чего оно действует.",
       "en": "Epictetus’s first section and Marcus Aurelius VI.44 address different questions about action. Together the texts provide two entrances: the boundary of one’s own and the ground of what it acts for.",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":0,"e":328},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":749},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":810,"e":914}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"e":328},
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":914}
       ]
     },
     "grounds": [
@@ -815,10 +813,9 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Ход фрагмента показывает не только веру в провидение, но и то, каким основанием действие располагает при переходе между предположениями.",
       "en": "The fragment’s movement shows both belief in providence and the ground available to action as the suppositions change.",
       "cite": [
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":455},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":78,"e":420},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":421,"e":845},
-        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":810,"e":971}
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":749},
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":2,"e":845},
+        {"w":"meditations","u":["tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da","tos.text-unit.sid-f4af3567827e484dbe8f6c7ee18fc1da"],"s":750}
       ]
     },
     "grounds": [
@@ -964,7 +961,7 @@ export const INQUIRY_READINGS_ECHOES = {
       "en": "Deleuze’s reading is a definite interpretation of the Nietzschean scenes: it connects the rebuke with the answer’s content and then unfolds recurrence as creation and destruction. The animals’ later speech about the same life creates a precise task for comparison: explaining how its content relates to the barrel-organ rebuke and Zarathustra’s continuing convalescence.",
       "cite": [
         {"w":"difference-et-repetition","loc":"intro.corrections"},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"],"s":1,"e":149},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c","tos.text-unit.sid-a22b43ad268d4ed093fabbdcb907f76c"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
         {"w":"difference-et-repetition","loc":"intro.selective"}
       ]
@@ -987,7 +984,7 @@ export const INQUIRY_READINGS_ECHOES = {
         "ref": "z-convalescent",
         "cite": [
           {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"],"s":0}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-e69966f87353b35045f29ba8af84c770"]}
         ]
       }
     ],

@@ -15,8 +15,8 @@ export const INQUIRY_FOUNDATION = {
     "ru": "Возвращение связывает две трудности: устройство времени и способность хотеть прожитую жизнь. Из первой не следует готовый ответ на вторую. Поэтому Древо возвращает каждое прочтение к тому месту, где оно возникло. Эти разные формы речи позволяют исследовать возвращение, не выдавая их за один уже доказанный тезис.",
     "en": "Recurrence joins two difficulties: the structure of time and the capacity to will the life one has lived. The first supplies no ready answer to the second. The tree therefore takes each reading back to the passage where it arose. These different forms of speech let us investigate recurrence without treating them as a single demonstrated thesis.",
     "cite": [
-      {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"],"s":0},
-      {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"],"s":19},
+      {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
+      {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]},
       {"w":"die-froehliche-wissenschaft","loc":"341"}
     ]
   },
@@ -61,15 +61,15 @@ export const INQUIRY_FOUNDATION = {
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"],"s":73},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3d3e4d77d940f820148e2c057cb3b3ea","tos.text-unit.sid-5e6b25576edbed8b36254d7b586ea0cb"],"s":39},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-644ff83c17e4f860c7137f40386012fa","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-644ff83c17e4f860c7137f40386012fa","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]}
       ]
     },
     {
       "ref": "z-convalescent",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":274,"e":320}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-37240c18b66cd0884b3095c69df63da3","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881","tos.text-unit.sid-2f2fad8321d98a2755d3ef424bbd1881"],"s":170,"e":321}
       ]
     },
     {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]},
@@ -77,7 +77,7 @@ export const INQUIRY_FOUNDATION = {
     {
       "ref": "epictetus1",
       "cite": [
-        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"s":0,"e":328}
+        {"w":"enchiridion","u":["tos.text-unit.sid-28426296ab784fd6babdd15990300f38","tos.text-unit.sid-28426296ab784fd6babdd15990300f38"],"e":328}
       ]
     }
   ]
@@ -93,8 +93,8 @@ export const LENS_INQUIRY = {
       "ru": "Начните со сцены. Проследите путь к понятию или другому автору и проверьте, какой вопрос сохраняется, а какой возникает только при этом переходе.",
       "en": "Begin with a scene. Follow a path to a concept or another author, examining which question survives and which arises only through that transition.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]},
         {"w":"die-froehliche-wissenschaft","loc":"341"}
       ]
     },
@@ -170,13 +170,13 @@ export const LENS_INQUIRY = {
           "en": "The gateway questions receive no separate answer formulated as a thesis."
         },
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"],"s":0}
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]}
         ]
       },
       {
         "ref": "z-prologue",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-87ee03096d4da574543c6c6cdeab9b26","tos.text-unit.sid-2784e2f54e2c96f665b5985a1285d127"],"s":1}
+          {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-87ee03096d4da574543c6c6cdeab9b26","tos.text-unit.sid-2784e2f54e2c96f665b5985a1285d127"]}
         ]
       }
     ]
