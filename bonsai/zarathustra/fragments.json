@@ -1,975 +1,1033 @@
 {
- "schema": "tos.bonsai.fragments.v1",
- "posture": {
-  "ru": "Точный текст мест других произведений, на которые опирается стенд, в оригинале и переводах; у каждого свидетеля — издание, источник, лицензия и основание показа. Охраняемое произведение показано короткой цитатой или только адресом места.",
-  "en": "The exact text of the places of other works the stand rests on, in the original and in translations; every witness with its edition, source, licence and basis for showing it. A protected work is shown by a short quotation or by the address of the place alone."
- },
- "provenance": {
-  "gathered": "2026-10-30",
-  "method": "Exact text read in the shell from the sources named per witness; where the digital copy and the printed page differ, the page image decides (each change listed in meta.corrections; texts transcribed wholly from page images are Leibniz fr/en/ru, Kierkegaard da and the Greek of Heraclitus, cross-checked word by word against OCR/XML in ext/work/crosscheck.txt). Whitespace and line-end hyphenation normalised; NFC Unicode; paragraph breaks inside a place as \\n\\n. Section/aphorism numbers are not part of the texts.",
-  "corrections": [
-   {
-    "lang": "la",
-    "from": "quae ex sola suae naturæ",
-    "to": "quæ ex sola suæ naturæ",
-    "evidence": "scan p. 23 (Commons djvu p. 27), crop p27_hi_left/right",
-    "place": "ethica I.D7"
-   },
-   {
-    "lang": "la",
-    "from": "Necessaria autem vel potius",
-    "to": "Necessaria autem, vel potius",
-    "evidence": "scan p. 23, crop p27_hi_right",
-    "place": "ethica I.D7"
-   },
-   {
-    "lang": "la",
-    "from": "eadem potentia, qua jam existit",
-    "to": "eâdem potentiâ, qua jam existit",
-    "evidence": "scan p. 272 (Commons djvu p. 276), crops acc_276a, L276_0",
-    "place": "ethica III.P8"
-   },
-   {
-    "lang": "en",
-    "from": "that is, (I. xxxiv.)",
-    "to": "that is (I. xxxiv.)",
-    "evidence": "1898 printing p. 136, crop elwes_p136_b",
-    "place": "ethica III.P6"
-   },
-   {
-    "lang": "en",
-    "from": "wherewith everything endeavours",
-    "to": "wherewith every thing endeavours",
-    "evidence": "1898 printing p. 136, crops elwes_p136_everything + gap measurement",
-    "place": "ethica III.P7"
-   },
-   {
-    "lang": "en",
-    "from": "to persist in its own being, involves",
-    "to": "to persist in its being, involves",
-    "evidence": "1898 printing p. 137, crop elwes_p137_a",
-    "place": "ethica III.P8"
-   }
-  ],
-  "unreachable": [
-   "deutschestextarchiv.de: the download paths answer scripts with a cookie challenge and robots.txt disallows them; not circumvented, so the 1887 issue of Die fröhliche Wissenschaft is used instead of the DTA text of the 1882 edition.",
-   "classiques.uqac.ca (Le Mythe de Sisyphe, public domain in Canada): not reachable; the Wayback copy failed too.",
-   "puf.com: not reachable, so no PUF page is given.",
-   "sks.dk (Søren Kierkegaards Skrifter): not reachable.",
-   "upload.wikimedia.org original files: rate-limited; the page renderings were read instead."
-  ]
- },
- "works": {
-  "die-froehliche-wissenschaft": {
-   "author": {
-    "ru": "Фридрих Ницше",
-    "en": "Friedrich Nietzsche"
-   },
-   "title": {
-    "ru": "Весёлая наука",
-    "en": "The Gay Science"
-   },
-   "original": "de",
-   "witnesses": {
-    "de": {
-     "edition": "Die fröhliche Wissenschaft (\"la gaya scienza\"). Leipzig: E. W. Fritzsch, 1887 (the Fritzsch issue that superseded the Chemnitz: Schmeitzner 1882 first edition; Books I–IV, which contain §§276 and 341, are reported by booksellers to be the unsold 1882 sheets reissued with a new title and added material — not verified here). Scan of the New York Public Library copy, digitized by Google.",
-     "year": 1887,
-     "url": "https://archive.org/details/bub_gb_uIQNAAAAYAAJ",
-     "scan": "https://archive.org/details/bub_gb_uIQNAAAAYAAJ (leaves n206 and n263 read against the text)",
-     "licence": "Public domain book; scan in the Internet Archive (Google Books id uIQNAAAAYAAJ). No licence attaches to the transcribed words.",
-     "attribution": "Friedrich Nietzsche, Die fröhliche Wissenschaft, Leipzig: E. W. Fritzsch, 1887; scan: New York Public Library copy digitized by Google, Internet Archive item bub_gb_uIQNAAAAYAAJ.",
-     "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Ницше умер в 1900 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1887 (before 1930).",
-      "eu": "Public domain: author died 1900, more than 70 years ago (Directive 2006/116/EC art. 1).",
-      "reasoning": "Nietzsche (1844–1900); no editor or translator. The brief asked for the DTA TEI of the 1882 first edition (CC BY-SA 4.0), but every DTA download URL answers a script with a JavaScript cookie challenge (\"verified=1\"), and the DTA robots.txt disallows /book/download_xml/ and /book/download_text/; we did not get around it. The text here is the 1887 issue, read from the Internet Archive OCR and checked word by word against the page images (no differences remained). To switch to the DTA witness, download nietzsche_wissenschaft_1882 from deutschestextarchiv.de in a browser and compare; if the 1887 Books I–IV are indeed the 1882 sheets, the wording must coincide."
-     },
-     "short": {
-      "ru": "изд. 1887 г.",
-      "en": "1887 issue"
-     }
-    },
-    "en": {
-     "edition": "The Joyful Wisdom (\"La Gaya Scienza\"), translated by Thomas Common, with poetry rendered by Paul V. Cohn and Maude D. Petre (The Complete Works of Friedrich Nietzsche, ed. Oscar Levy). Edinburgh & London: T. N. Foulis, 1910. Project Gutenberg eBook #52881.",
-     "translator": "Thomas Common",
-     "year": 1910,
-     "url": "https://www.gutenberg.org/ebooks/52881",
-     "licence": "Project Gutenberg License (public domain in the USA); the words of the 1910 translation are public domain.",
-     "attribution": "Friedrich Nietzsche, The Joyful Wisdom, tr. Thomas Common (Edinburgh & London: T. N. Foulis, 1910); text from Project Gutenberg eBook #52881 (produced by Thierry Alberto, readbueno and the Online Distributed Proofreading Team).",
-     "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: переводчик Т. Коммон умер в 1919 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1910.",
-      "eu": "Public domain: translator died 1919 (more than 70 years ago).",
-      "reasoning": "Nietzsche (d. 1900) and Thomas Common (1850–1919); the two places are prose by Common (the poetry translators Cohn and Petre are not involved). Page numbers taken from the page anchors of the Gutenberg HTML edition (pg52881-images.html). Gutenberg prints italics as _..._; the underscores were removed; straight quotation marks are Gutenberg's."
-     },
-     "short": {
-      "ru": "пер. Т. Коммона, 1910",
-      "en": "tr. Thomas Common, 1910"
-     }
-    }
-   },
-   "absent": [
-    {
-     "language": "ru",
-     "reason": "No public-domain Russian translation could be located. Russian Wikisource has none (author page lists the title without a text); the Commons/Internet Archive searches found none. What exists: К. А. Свасьян (in Ницше, Сочинения в 2 т., т. 1, 1990) — protected, translator living; М. Коренева (2023) — protected; editions of 2013 credited to «А. Николаев» — origin and translator's dates could not be established (a pre-1917 translation could not be confirmed). None was used."
-    }
-   ]
+  "schema": "tos.bonsai.fragments.v1",
+  "posture": {
+    "ru": "Точный текст мест других произведений, на которые опирается стенд, в оригинале и переводах; у каждого свидетеля — издание, источник, лицензия и основание показа. Охраняемое произведение показано короткой цитатой или только адресом места.",
+    "en": "The exact text of the places of other works the stand rests on, in the original and in translations; every witness with its edition, source, licence and basis for showing it. A protected work is shown by a short quotation or by the address of the place alone."
   },
-  "ethica": {
-   "author": {
-    "ru": "Бенедикт Спиноза",
-    "en": "Benedict de Spinoza"
-   },
-   "title": {
-    "ru": "Этика",
-    "en": "Ethics"
-   },
-   "original": "la",
-   "witnesses": {
-    "la": {
-     "edition": "Latin text as printed in: Spinoza, Éthique, texte latin et traduction française par Ch. Appuhn, Paris: Garnier Frères, 1913 (Latin at the foot of each page). Transcription of Latin Wikisource (pages marked \"Emendata\") corrected against the scan on Wikimedia Commons. Not the 1677 Opera posthuma itself.",
-     "year": 1913,
-     "url": "https://la.wikisource.org/wiki/Ethica/Pars_tertia_-_De_origine_et_natura_affectuum",
-     "scan": "https://commons.wikimedia.org/wiki/File:Spinoza_-_%C3%89thique,_trad._Appuhn,_1913.djvu (pages 27, 83, 104, 271–278 at 3840 px)",
-     "licence": "Public-domain text; the Wikisource transcription is under CC BY-SA 4.0 (our corrections are made to that transcription).",
-     "attribution": "Benedictus de Spinoza, Ethica, Latin text in Spinoza, Éthique, trad. Ch. Appuhn (Paris: Garnier, 1913); transcription by Latin Wikisource contributors (la.wikisource.org, CC BY-SA 4.0), corrected against the page images.",
-     "notes": "Readings restored from the page images where the Wikisource transcription had silently normalised them: circumflexed ablatives (eâdem potentiâ, indefinitâ, naturâ), ligatures quæ/suæ and a comma in I Def. 7. Misprints of this printing kept as printed: \"toltere\" (III P6 dem., for tollere — Wikisource marks it {{corr}}) and \"iilas\" (III P9 dem., for illas). This printing numbers I P34 \"PROPOSITIO XXXVI\" (misprint; heading not included in the text).",
-     "rights": {
-      "basis": "public-domain+licence",
-      "russia": "Общественное достояние: Спиноза умер в 1677 г.; латинский текст не является творением издателя (Аппюн ум. 1942 — его французский перевод не используется).",
-      "usa": "Public domain (published 1677; the 1913 printing reproduces it).",
-      "eu": "Public domain (Spinoza d. 1677); a faithful transcription of a public-domain text creates no new copyright, but the Wikisource transcription is offered under CC BY-SA 4.0, so we credit it and keep the licence.",
-      "reasoning": "Spinoza (1632–1677); Charles Appuhn (1862–1942) supplied only the facing French translation, which is not used. Basis public-domain+licence because the digital copy we corrected is a CC BY-SA 4.0 transcription."
-     },
-     "short": {
-      "ru": "лат. текст, изд. 1913 г.",
-      "en": "Latin text, 1913 printing"
-     }
-    },
-    "en": {
-     "edition": "The Chief Works of Benedict de Spinoza, translated from the Latin, with an introduction, by R. H. M. Elwes. Vol. II: De Intellectus Emendatione — Ethica — (Select Letters). Revised edition. London: George Bell and Sons, 1898 (Bohn's Philosophical Library; first edition 1883–84, second revised edition 1887, reprinted 1889, 1891, 1898).",
-     "translator": "R. H. M. Elwes",
-     "year": 1898,
-     "url": "https://archive.org/details/chiefworks02spinuoft",
-     "scan": "https://archive.org/details/chiefworks02spinuoft (leaves n71 = p. 46, n91 = p. 66, n99 = p. 74, n161 = p. 136, n162 = p. 137)",
-     "licence": "Public domain; Internet Archive marks the scan NOT_IN_COPYRIGHT; Project Gutenberg License for the base digital text.",
-     "attribution": "Spinoza, Ethics, tr. R. H. M. Elwes, in The Chief Works of Benedict de Spinoza, vol. II (London: George Bell and Sons, revised ed., 1898 printing); scan: University of Toronto copy, Internet Archive chiefworks02spinuoft; base text: Project Gutenberg eBook #3800.",
-     "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Элвс (р. 1853; ум. 1892 по данным Liberty Fund) — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии; опубликовано в 1883–1898 гг.",
-      "usa": "Public domain: published 1883–1898.",
-      "eu": "Public domain: translator died 1892 (Liberty Fund's author record; even on a much later death date the term would have run out).",
-      "reasoning": "R. H. M. Elwes (b. 1853). Project Gutenberg #3800 does not name its source printing and differs from the 1898 revised printing in three places inside our places; the text given here is the 1898 printing (corrections logged in meta.corrections, each read on the page image): \"that is (I. xxxiv.)\" (PG adds a comma), \"wherewith every thing endeavours\" (PG: everything), \"to persist in its being, involves\" (PG: its own being). PG's \"--\" rendered as the printed em dash."
-     },
-     "short": {
-      "ru": "пер. Р. Элвса, 1898",
-      "en": "tr. R. H. M. Elwes, 1898"
-     }
-    }
-   },
-   "absent": [
-    {
-     "language": "ru",
-     "reason": "Н. А. Иванцов's translation (Этика, доказанная в геометрическом порядке…, ed. В. П. Преображенский, М.: тип. А. Гатцука, 1892; 2nd ed. 1911; Труды Московского психологического общества, вып. 5; Ivantsov d. 1927 — public domain in Russia) and the earlier translation edited by В. И. Модестов (СПб., 1886; 2nd ed. 1892) are listed on the Russian Wikisource author page, but no text or scan of either was found on Russian Wikisource, Wikimedia Commons (also searched under transliterated titles) or the Internet Archive. Not placed."
-    }
-   ]
-  },
-  "monadologie": {
-   "author": {
-    "ru": "Готфрид Вильгельм Лейбниц",
-    "en": "Gottfried Wilhelm Leibniz"
-   },
-   "title": {
-    "ru": "Монадология",
-    "en": "Monadology"
-   },
-   "original": "fr",
-   "witnesses": {
-    "fr": {
-     "edition": "Die philosophischen Schriften von Gottfried Wilhelm Leibniz, hg. von C. J. Gerhardt, Bd. VI, Berlin: Weidmann, 1885, pp. 607–623 (Monadologie); §53 pp. 615–616, §§54–55 p. 616. Transcribed by us from the page images of two copies.",
-     "year": 1885,
-     "url": "https://archive.org/details/11172347bsb",
-     "scan": "Commons djvu pages 627–628 and BSB copy on the Internet Archive, both read",
-     "licence": "Public domain (1885 edition of a 1714 text).",
-     "attribution": "G. W. Leibniz, Monadologie, in Die philosophischen Schriften, ed. C. J. Gerhardt, vol. VI (Berlin, 1885), pp. 615–616.",
-     "notes": "Gerhardt adds footnotes to the three sections with Leibniz's references to the Théodicée: *) to §53 \"Théod. §. 8. §. 10. §. 44. §. 173. §. 196 seqq. §. 225. §. 414—416.\"; **) to §54 \"§. 74. §. 167. §. 350. §. 201. §. 130. 352. 345 seqq. 354.\" and the remark that the first copy revised by Leibniz adds here \"Ainsi il n'y a rien d'arbitraire entierement.\"; ***) to §55 \"Théod. §. 8. §. 78. §. 80. §. 84. §. 119. §. 204. 206. 208. Abregé object. 1. object 8.\" The footnote signs are not part of the place texts. In §54 \"convenance\" is letter-spaced (emphasis).",
-     "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Лейбниц ум. 1716, Герхардт ум. 1899.",
-      "usa": "Public domain.",
-      "eu": "Public domain.",
-      "reasoning": "Leibniz (1646–1716); editor C. I. Gerhardt (1816–1899). Do not use the fr.wikisource text of these pages: they are unproofread bot OCR (\"Page non corrigée\") in modernised spelling (d’univers, plutôt, connaître, prétendre…), which is not what Gerhardt prints (des Univers, plustôt, connoître, pretendre, capitalised Existence/Mondes/Meilleur, \"ou dans les degrés\")."
-     },
-     "short": {
-      "ru": "изд. К. И. Герхардта, 1885",
-      "en": "ed. C. I. Gerhardt, 1885"
-     }
-    },
-    "en": {
-     "edition": "Leibniz, The Monadology and Other Philosophical Writings, translated with introduction and notes by Robert Latta. Oxford: Clarendon Press, 1898, pp. 247–248.",
-     "translator": "Robert Latta",
-     "year": 1898,
-     "url": "https://archive.org/details/themonadology00leibuoft",
-     "scan": "https://archive.org/details/themonadology00leibuoft (pages 247–248)",
-     "licence": "Public domain; Internet Archive scan.",
-     "attribution": "Leibniz, The Monadology, tr. Robert Latta (Oxford: Clarendon Press, 1898), pp. 247–248.",
-     "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Латта ум. 1932 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1898.",
-      "eu": "Public domain: translator died 1932.",
-      "reasoning": "Robert Latta (1865–1932). Latta's note numbers (84–87) and Leibniz's bracketed Théodicée references at the end of each section, e.g. \"(Théod. 8, 10, 44, 173, 196 sqq., 225, 414–416.)\", are left out of the place texts, matching the French where Gerhardt prints them as footnotes; the wording otherwise agrees with en.wikisource (which, however, rewrites \"Théod.\" as \"Theodicy\")."
-     },
-     "short": {
-      "ru": "пер. Р. Латты, 1898",
-      "en": "tr. Robert Latta, 1898"
-     }
-    },
-    "ru": {
-     "edition": "Лейбниц Г. В. Избранные философские сочинения. Перевод членов Психологического общества, под ред. В. П. Преображенского. Москва, 1890 (Труды Московского психологического общества, вып. IV). «Монадология» (ст. XV), с. 338 сл.; §§53–55 — с. 351–352. Переводчик ст. XV по предисловию редактора (с. XIV): «Е. Н. Бобровъ».",
-     "translator": "Е. Н. Бобров (так в предисловии; вероятно, Евгений Александрович Бобров, 1867–1933 — не подтверждено)",
-     "year": 1890,
-     "url": "https://commons.wikimedia.org/wiki/File:Izbrannyye_filosofskiye_sochineniya.pdf?page=373",
-     "scan": "Commons PDF from the Nekrasov Central Universal Scientific Library (electro.nekrasovka.ru/book/1140), uploaded in the WMRU open-access programme",
-     "licence": "Public domain (Commons: PD-old, PD-RusEmpire, WMRU-OpenAccess).",
-     "attribution": "Лейбниц. Монадология, пер. Е. Боброва, в кн.: Лейбниц Г. В. Избранные философские сочинения, под ред. В. П. Преображенского (М., 1890; Труды Московского психологического общества, вып. IV), с. 351–352; скан: ЦГПБ им. Н. А. Некрасова через Wikimedia Commons.",
-     "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние. Перевод издан в 1890 г.; охраняться сегодня он мог бы, только если бы переводчик умер после 1955 г. (после 1951 г., если он участвовал в Великой Отечественной войне или трудился в её годы) — ГК РФ ст. 1281, срок 70 лет со дня смерти, с продлением на четыре года для участников войны. В предисловии переводчик назван «Е. Н. Бобровъ»; исследователь Лейбница Е. А. Бобров умер в 1933 г. Редактор В. П. Преображенский умер в 1900 г.",
-      "usa": "Public domain: published 1890.",
-      "eu": "Public domain: a translator who published in 1890 would have to have died after 1955 for the translation to be protected (70 years p.m.a.); the Leibniz scholar E. A. Bobrov died in 1933.",
-      "reasoning": "Leibniz (d. 1716); translation published 1890 (Moscow). The preface credits article XV to «Е. Н. Бобровъ»; the Leibniz scholar of that name is Evgeny Aleksandrovich Bobrov (1867–1933), who wrote on the Monadology (1896) — the different middle initial is a misprint or a different person, which could not be settled. Either way a translator active in 1890 would have to have lived past 1955 for the translation to be protected now. Commons tags the file PD-old and PD-RusEmpire. Text transcribed from the page images in the pre-reform spelling of the print."
-     },
-     "short": {
-      "ru": "пер. Е. Н. Боброва, 1890",
-      "en": "tr. E. N. Bobrov, 1890"
-     }
-    }
-   }
-  },
-  "gjentagelsen": {
-   "author": {
-    "ru": "Сёрен Кьеркегор (Константин Констанций)",
-    "en": "Søren Kierkegaard (Constantin Constantius)"
-   },
-   "title": {
-    "ru": "Повторение",
-    "en": "Repetition"
-   },
-   "original": "da",
-   "witnesses": {
-    "da": {
-     "edition": "Søren Kierkegaards Samlede Værker, udg. af A. B. Drachmann, J. L. Heiberg og H. O. Lange, III. Bind, Kjøbenhavn: Gyldendalske Boghandels Forlag (F. Hegel & Søn), 1901; Gjentagelsen, udg. af A. B. Drachmann (\"Til Grund for Texten er lagt Originaludgaven\", compared with the manuscript), pp. 173–174.",
-     "year": 1901,
-     "url": "https://archive.org/details/srenkierkegaard10kiergoog",
-     "scan": "https://archive.org/details/srenkierkegaard10kiergoog",
-     "licence": "Public domain; Internet Archive: NOT_IN_COPYRIGHT.",
-     "attribution": "Søren Kierkegaard, Gjentagelsen (1843), in Samlede Værker, vol. III, ed. A. B. Drachmann (Copenhagen: Gyldendal, 1901), pp. 173–174.",
-     "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Кьеркегор ум. 1855; редактор Драхман ум. 1935.",
-      "usa": "Public domain.",
-      "eu": "Public domain.",
-      "reasoning": "Kierkegaard (1813–1855); editors A. B. Drachmann (1860–1935), J. L. Heiberg (1854–1928), H. O. Lange (1863–1943). SV1 follows the 1843 first edition. Read from the page images (the OCR has \"neglede\", \"gj antages\", \"»Erindringt\", \"liste sig ad\"); the print has single guillemets ›Erindring‹; line-end hyphenations Betyd-ning, en-gang, Ah-nelse, For-udsætning joined. Runeberg hosts the 2nd edition (SV2, vol. III, 1921, pp. 193–194) as unproofread OCR only; SKS (sks.dk) did not answer."
-     },
-     "short": {
-      "ru": "Samlede Værker, т. III, 1901",
-      "en": "Samlede Værker, vol. III, 1901"
-     }
-    }
-   },
-   "absent": [
-    {
-     "language": "ru",
-     "reason": "No Russian translation of Gjentagelsen by П. Г. Ганзен (1846–1930) could be identified. His 1894 volume «Наслаждение и долг» (СПб., 1894) is a different book whose contents could not be checked here (catalogue records list no contents; no legitimate copy found). The Russian «Повторение» listed in Russian bibliographies is a 1997 Moscow edition — protected, and not consulted, so nothing was placed."
-    },
-    {
-     "language": "en",
-     "reason": "Walter Lowrie's translation (Princeton University Press, 1941) is on the Internet Archive only as an access-restricted lending copy; later translations (Hong and Hong, 1983, and others) are protected. No exact wording could be checked against an edition, so no English quotation is given."
-    }
-   ]
-  },
-  "heraclitus-book": {
-   "author": {
-    "ru": "Гераклит Эфесский",
-    "en": "Heraclitus of Ephesus"
-   },
-   "title": {
-    "ru": "Фрагменты",
-    "en": "Fragments"
-   },
-   "original": "grc",
-   "witnesses": {
-    "grc": {
-     "edition": "The source texts in which the fragments survive, each read on the page image of the printed edition: Eusebius, Praeparatio evangelica XV.20.2 (Arius Didymus) in Eusebii Caesariensis Opera, ed. W. Dindorf, vol. II, Leipzig: Teubner, 1867, p. 375; Clement of Alexandria, Stromata V.14.104.2 in Clemens Alexandrinus, Bd. II: Stromata I–VI, ed. O. Stählin (GCS 15), Leipzig: Hinrichs, 1906, p. 396; Plutarch, De E apud Delphos 18, 392b–c in Moralia, ed. G. N. Bernardakis, vol. III, Leipzig: Teubner, 1891, p. 21.",
-     "url": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/master/data/tlg2018/tlg001/tlg2018.tlg001.1st1K-grc1.xml",
-     "sources": [
-      "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/master/data/tlg2018/tlg001/tlg2018.tlg001.1st1K-grc1.xml",
-      "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/master/data/tlg0555/tlg004/tlg0555.tlg004.perseus-grc2.xml"
-     ],
-     "scan": "Dindorf: https://archive.org/details/eusebiicaesarie03dindgoog (p. 375); Stählin: https://archive.org/details/clemensalexandri02clem (p. 396); Bernardakis: https://archive.org/details/in.ernet.dli.2015.529381 (p. 21)",
-     "licence": "Digital editions: CC BY-SA 4.0 (First1KGreek; Perseus Digital Library, Tufts University). Underlying printed texts public domain.",
-     "attribution": "Greek texts from First Thousand Years of Greek (OpenGreekAndLatin, CC BY-SA 4.0) and the Perseus Digital Library canonical-greekLit (Tufts University, CC BY-SA 4.0), corrected against the printed editions of Dindorf (1867), Stählin (1906) and Bernardakis (1891).",
-     "rights": {
-      "basis": "public-domain+licence",
-      "russia": "Общественное достояние (античные тексты; издатели Диндорф ум. 1883, Бернардакис ум. 1925, Штелин ум. 1949 — установленный ими текст древнего автора не является их произведением).",
-      "usa": "Public domain (editions published 1867–1906).",
-      "eu": "Public domain; the German right in scientific editions (UrhG §70) lasts 25 years from publication and expired long ago for Stählin 1906.",
-      "reasoning": "Basis public-domain+licence because we started from CC BY-SA 4.0 digital editions and corrected them; credit both. Corrections against the prints: B12 \"τοῖσιν\" (First1K has τοῖσίν); B91 keeps Bernardakis's own quotation marks, the raised dot after ἕξιν and the printed accent \"καί ‘πρόσεισι\" (Perseus normalises to καὶ and moves the quotation boundaries). B30 in Clement lacks DK's \"τόνδε\" (Diels supplies it from Plutarch and Simplicius) and prints no comma after ἀείζωον — kept as Stählin prints it."
-     }
-    },
-    "en": {
-     "edition": "John Burnet, Early Greek Philosophy, 3rd edition, London: A. & C. Black, 1920, ch. III \"Herakleitos of Ephesos\", pp. 134 and 136 (Burnet numbers the fragments after Bywater).",
-     "translator": "John Burnet",
-     "year": 1920,
-     "url": "https://en.wikisource.org/wiki/Page:Early_Greek_philosophy_by_John_Burnet,_3rd_edition,_1920.djvu/148",
-     "licence": "Public domain text; Wikisource transcription CC BY-SA 4.0.",
-     "attribution": "John Burnet, Early Greek Philosophy, 3rd ed. (London: A. & C. Black, 1920); transcription by English Wikisource contributors (CC BY-SA 4.0).",
-     "rights": {
-      "basis": "public-domain+licence",
-      "russia": "Общественное достояние: Бёрнет ум. 1928 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1920 (before 1930).",
-      "eu": "Public domain: author died 1928.",
-      "reasoning": "John Burnet (1863–1928). Taken from the Wikisource page transcriptions marked proofread; we could not re-check them on the scan (the scan could not be opened). Burnet's footnotes and the \"R. P.\" references to Ritter–Preller are left out of the texts and given in refs."
-     },
-     "short": {
-      "ru": "пер. Дж. Бёрнета, 1920",
-      "en": "tr. John Burnet, 1920"
-     }
-    },
-    "ru": {
-     "edition": "Гераклит Ефесский. Фрагменты / Перевод Владимира Нилендера. М.: Мусагет, 1910 (перевод по Diels, Herakleitos von Ephesos, 2. Aufl., 1909; нумерация Дильса). Текст Русской Викитеки (импорт с az.lib.ru, в современной орфографии; качество 1 из 4).",
-     "translator": "В. О. Нилендер",
-     "year": 1910,
-     "url": "https://ru.wikisource.org/w/index.php?oldid=5738290",
-     "licence": "Russian Wikisource tags the text PD-RusEmpire; we do not rely on that tag (see rights) and quote it.",
-     "attribution": "Гераклит Ефесский. Фрагменты / Пер. В. Нилендера. М.: Мусагет, 1910, фр. 12, 30, 91 (текст по Русской Викитеке).",
-     "rights": {
-      "basis": "short-quotation",
-      "russia": "Нилендер (1883–1965) умер после 1942 г.: по общему правилу ГК РФ ст. 1281 перевод охраняется до 1 января 2036 г. Метка Викитеки PD-RusEmpire (изданное в Российской империи до 7.11.1917 считается неохраняемым) — толкование сообщества Викимедиа, не подтверждённое судебной практикой; поэтому только цитирование: ГК РФ ст. 1274 п. 1 пп. 1 (цитата в переводе в научных, полемических, информационных целях в оправданном целью объёме, с указанием автора и источника). Каждый фрагмент — несколько строк, приводится полностью как цитата с указанием переводчика и издания.",
-      "usa": "Public domain in the USA: published 1910.",
-      "eu": "Protected until the end of 2035 (translator died 1965); quotation under the national quotation exceptions (e.g. CPI L122-5 3° a), with attribution.",
-      "reasoning": "The fragments are a few lines each, so the whole translation of each fragment is a short quotation. The wording is the Wikisource/az.lib.ru transcription in modernised orthography; it could not be checked against the 1910 print (no scan found on Commons or elsewhere). Fr. 91 has \"состабляется\" (probably a transcription slip for \"составляется\") — kept as found; check before publishing. For fr. 12 only the quoted words of Heraclitus are given, without Arius Didymus' frame."
-     },
-     "short": {
-      "ru": "пер. В. О. Нилендера, 1910",
-      "en": "tr. V. O. Nilender, 1910"
-     }
-    }
-   }
-  },
-  "le-mythe-de-sisyphe": {
-   "author": {
-    "ru": "Альбер Камю",
-    "en": "Albert Camus"
-   },
-   "title": {
-    "ru": "Миф о Сизифе",
-    "en": "The Myth of Sisyphus"
-   },
-   "original": "fr",
-   "witnesses": {
-    "fr": {
-     "edition": "Le Mythe de Sisyphe (1942), chapter « Le mythe de Sisyphe »; the quoted words as French Wikiquote gives them (revision 451559, citing Gallimard, coll. Folio essais, pp. 166 and 168).",
-     "year": 1942,
-     "url": "https://fr.wikiquote.org/w/index.php?oldid=451559",
-     "opens": "quotation",
-     "licence": "Quotations; the Wikiquote page is CC BY-SA 4.0, the quoted words remain Camus's.",
-     "attribution": "Albert Camus, Le Mythe de Sisyphe (1942), « Le mythe de Sisyphe », Gallimard, Folio essais, p. 166 / p. 168.",
-     "notes": "The full text could be checked in the UQAC edition (public domain in Canada): http://classiques.uqac.ca/classiques/camus_albert/mythe_de_sisyphe/mythe_de_sisyphe.html — it could not be reached. Internet Archive uploads of the French text are unauthorised and were not used. Only the sentences French Wikiquote carries for this chapter are given; its other paragraphs are cited by their locators.",
-     "rights": {
-      "basis": "short-quotation",
-      "russia": "Камю ум. 1960: охраняется в России до 1 января 2031 г. (ГК РФ ст. 1281); допустима цитата — ст. 1274 п. 1 пп. 1, с указанием автора и источника.",
-      "usa": "Protected (first published 1942; URAA-restored, 95 years from publication, i.e. through 2037); fair use, 17 U.S.C. §107.",
-      "eu": "Protected until the end of 2030 (70 years p.m.a.); France: courte citation, CPI L122-5 3° a, with author and source named.",
-      "reasoning": "Albert Camus (1913–1960). Public domain only in countries with a 50-year term, e.g. Canada since 2011 (where UQAC \"Les classiques des sciences sociales\" publishes it). Only 1–3 sentences per paragraph are given. The quoted words are as French Wikiquote gives them; the same words are found in several independent quotations on the web (searched 30 October 2026); they could not be checked against a printed copy, and UQAC (where the text is public domain under Canadian law) was not reachable."
-     },
-     "short": {
-      "ru": "по французскому Викицитатнику",
-      "en": "as French Wikiquote gives it"
-     }
-    }
-   },
-   "absent": [
-    {
-     "language": "en",
-     "reason": "Justin O'Brien's translation (1955; protected) could not be checked against a reliable edition; nothing placed."
-    },
-    {
-     "language": "ru",
-     "reason": "The Russian translation in print (А. М. Руткевич) could not be checked against an edition; nothing placed."
-    }
-   ]
-  },
-  "nietzsche-et-la-philosophie": {
-   "author": {
-    "ru": "Жиль Делёз",
-    "en": "Gilles Deleuze"
-   },
-   "title": {
-    "ru": "Ницше и философия",
-    "en": "Nietzsche and Philosophy"
-   },
-   "original": "fr",
-   "witnesses": {
-    "fr": {
-     "edition": "Nietzsche et la philosophie. Paris: Presses Universitaires de France, 1962.",
-     "year": 1962,
-     "attribution": "Gilles Deleuze, Nietzsche et la philosophie (Paris: PUF, 1962).",
-     "rights": {
-      "basis": "locator-only",
-      "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
-      "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
-      "eu": "Protected until the end of 2065 (70 years p.m.a.).",
-      "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
-     }
-    },
-    "en": {
-     "edition": "Nietzsche and Philosophy, tr. Hugh Tomlinson. New York: Columbia University Press, 1983.",
-     "translator": "Hugh Tomlinson",
-     "year": 1983,
-     "publisher_page": "https://cup.columbia.edu/book/nietzsche-and-philosophy/9780231138772/",
-     "attribution": "Gilles Deleuze, Nietzsche and Philosophy, tr. Hugh Tomlinson (New York: Columbia University Press, 1983).",
-     "rights": {
-      "basis": "locator-only",
-      "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
-      "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
-      "eu": "Protected until the end of 2065 (70 years p.m.a.).",
-      "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
-     }
-    }
-   },
-   "absent": [
-    {
-     "language": "ru",
-     "reason": "A Russian translation exists (protected); not consulted."
-    }
-   ]
-  },
-  "difference-et-repetition": {
-   "author": {
-    "ru": "Жиль Делёз",
-    "en": "Gilles Deleuze"
-   },
-   "title": {
-    "ru": "Различие и повторение",
-    "en": "Difference and Repetition"
-   },
-   "original": "fr",
-   "witnesses": {
-    "fr": {
-     "edition": "Différence et répétition. Paris: Presses Universitaires de France, 1968.",
-     "year": 1968,
-     "attribution": "Gilles Deleuze, Différence et répétition (Paris: PUF, 1968).",
-     "rights": {
-      "basis": "locator-only",
-      "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
-      "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
-      "eu": "Protected until the end of 2065 (70 years p.m.a.).",
-      "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
-     }
-    },
-    "en": {
-     "edition": "Difference and Repetition, tr. Paul Patton. New York: Columbia University Press, 1994.",
-     "translator": "Paul Patton",
-     "year": 1994,
-     "publisher_page": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/",
-     "attribution": "Gilles Deleuze, Difference and Repetition, tr. Paul Patton (New York: Columbia University Press, 1994).",
-     "rights": {
-      "basis": "locator-only",
-      "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
-      "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
-      "eu": "Protected until the end of 2065 (70 years p.m.a.).",
-      "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
-     }
-    }
-   },
-   "absent": [
-    {
-     "language": "ru",
-     "reason": "A Russian translation exists (protected); not consulted."
-    }
-   ]
-  }
- },
- "places": {
-  "die-froehliche-wissenschaft": {
-   "276": {
-    "label": {
-     "ru": "§276",
-     "en": "§276"
-    },
-    "texts": {
-     "de": "Zum neuen Jahre. — Noch lebe ich, noch denke ich: ich muss noch leben, denn ich muss noch denken. Sum, ergo cogito: cogito, ergo sum. Heute erlaubt sich Jedermann seinen Wunsch und liebsten Gedanken auszusprechen: nun, so will auch ich sagen, was ich mir heute von mir selber wünschte und welcher Gedanke mir dieses Jahr zuerst über das Herz lief, — welcher Gedanke mir Grund, Bürgschaft und Süssigkeit alles weiteren Lebens sein soll! Ich will immer mehr lernen, das Nothwendige an den Dingen als das Schöne sehen: — so werde ich Einer von Denen sein, welche die Dinge schön machen. Amor fati: das sei von nun an meine Liebe! Ich will keinen Krieg gegen das Hässliche führen. Ich will nicht anklagen, ich will nicht einmal die Ankläger anklagen. Wegsehen sei meine einzige Verneinung! Und, Alles in Allem und Grossen: ich will irgendwann einmal nur noch ein Ja-sagender sein!",
-     "en": "For the New Year.—I still live, I still think; I must still live, for I must still think. Sum, ergo cogito: cogito, ergo sum. To-day everyone takes the liberty of expressing his wish and his favourite thought: well, I also mean to tell what I have wished for myself to-day, and what thought first crossed my mind this year,—a thought which ought to be the basis, the pledge and the sweetening of all my future life! I want more and more to perceive the necessary characters in things as the beautiful:—I shall thus be one of those who beautify things. Amor fati: let that henceforth be my love! I do not want to wage war with the ugly. I do not want to accuse, I do not want even to accuse the accusers. Looking aside, let that be my sole negation! And all in all, to sum up: I wish to be at any time hereafter only a yea-sayer!"
-    },
-    "refs": [
-     [
-      "de",
-      "Viertes Buch: Sanctus Januarius, §276, p. [197] (unnumbered first text page of Book IV; IA leaf n206)"
-     ],
-     [
-      "en",
-      "Book Fourth: Sanctus Januarius, §276, p. 213"
-     ]
+  "provenance": {
+    "gathered": "2026-10-30",
+    "method": "Exact text read in the shell from the sources named per witness; where the digital copy and the printed page differ, the page image decides (each change listed in meta.corrections; texts transcribed wholly from page images are Leibniz fr/en/ru, Kierkegaard da and the Greek of Heraclitus, cross-checked word by word against OCR/XML in ext/work/crosscheck.txt). Whitespace and line-end hyphenation normalised; NFC Unicode; paragraph breaks inside a place as \\n\\n. Section/aphorism numbers are not part of the texts.",
+    "corrections": [
+      {
+        "lang": "la",
+        "from": "quae ex sola suae naturæ",
+        "to": "quæ ex sola suæ naturæ",
+        "evidence": "scan p. 23 (Commons djvu p. 27), crop p27_hi_left/right",
+        "place": "ethica I.D7"
+      },
+      {
+        "lang": "la",
+        "from": "Necessaria autem vel potius",
+        "to": "Necessaria autem, vel potius",
+        "evidence": "scan p. 23, crop p27_hi_right",
+        "place": "ethica I.D7"
+      },
+      {
+        "lang": "la",
+        "from": "eadem potentia, qua jam existit",
+        "to": "eâdem potentiâ, qua jam existit",
+        "evidence": "scan p. 272 (Commons djvu p. 276), crops acc_276a, L276_0",
+        "place": "ethica III.P8"
+      },
+      {
+        "lang": "en",
+        "from": "that is, (I. xxxiv.)",
+        "to": "that is (I. xxxiv.)",
+        "evidence": "1898 printing p. 136, crop elwes_p136_b",
+        "place": "ethica III.P6"
+      },
+      {
+        "lang": "en",
+        "from": "wherewith everything endeavours",
+        "to": "wherewith every thing endeavours",
+        "evidence": "1898 printing p. 136, crops elwes_p136_everything + gap measurement",
+        "place": "ethica III.P7"
+      },
+      {
+        "lang": "en",
+        "from": "to persist in its own being, involves",
+        "to": "to persist in its being, involves",
+        "evidence": "1898 printing p. 137, crop elwes_p137_a",
+        "place": "ethica III.P8"
+      }
     ],
-    "note": "\"Zum neuen Jahre\" and \"Wegsehen\" are letter-spaced (emphasis) in the German; \"Amor fati\" etc. are italic in the English (Gutenberg underscores removed)."
-   },
-   "341": {
-    "label": {
-     "ru": "§341",
-     "en": "§341"
-    },
-    "texts": {
-     "de": "Das grösste Schwergewicht. — Wie, wenn dir eines Tages oder Nachts, ein Dämon in deine einsamste Einsamkeit nachschliche und dir sagte: „Dieses Leben, wie du es jetzt lebst und gelebt hast, wirst du noch einmal und noch unzählige Male leben müssen; und es wird nichts Neues daran sein, sondern jeder Schmerz und jede Lust und jeder Gedanke und Seufzer und alles unsäglich Kleine und Grosse deines Lebens muss dir wiederkommen, und Alles in der selben Reihe und Folge — und ebenso diese Spinne und dieses Mondlicht zwischen den Bäumen, und ebenso dieser Augenblick und ich selber. Die ewige Sanduhr des Daseins wird immer wieder umgedreht — und du mit ihr, Stäubchen vom Staube!“ — Würdest du dich nicht niederwerfen und mit den Zähnen knirschen und den Dämon verfluchen, der so redete? Oder hast du einmal einen ungeheuren Augenblick erlebt, wo du ihm antworten würdest: „du bist ein Gott und nie hörte ich Göttlicheres!“ Wenn jener Gedanke über dich Gewalt bekäme, er würde dich, wie du bist, verwandeln und vielleicht zermalmen; die Frage bei Allem und Jedem „willst du diess noch einmal und noch unzählige Male?“ würde als das grösste Schwergewicht auf deinem Handeln liegen! Oder wie müsstest du dir selber und dem Leben gut werden, um nach Nichts mehr zu verlangen, als nach dieser letzten ewigen Bestätigung und Besiegelung? —",
-     "en": "The Heaviest Burden.—What if a demon crept after thee into thy loneliest loneliness some day or night, and said to thee: \"This life, as thou livest it at present, and hast lived it, thou must live it once more, and also innumerable times; and there will be nothing new in it, but every pain and every joy and every thought and every sigh, and all the unspeakably small and great in thy life must come to thee again, and all in the same series and sequence—and similarly this spider and this moonlight among the trees, and similarly this moment, and I myself. The eternal sand-glass of existence will ever be turned once more, and thou with it, thou speck of dust!\"—Wouldst thou not throw thyself down and gnash thy teeth, and curse the demon that so spake? Or hast thou once experienced a tremendous moment in which thou wouldst answer him: \"Thou art a God, and never did I hear aught more divine!\" If that thought acquired power over thee, as thou art, it would transform thee, and perhaps crush thee; the question with regard to all and everything: \"Dost thou want this once more, and also for innumerable times?\" would lie as the heaviest burden upon thy activity! Or, how wouldst thou have to become favourably inclined to thyself and to life, so as to long for nothing more ardently than for this last eternal sanctioning and sealing?—"
-    },
-    "refs": [
-     [
-      "de",
-      "Viertes Buch, §341, p. 254"
-     ],
-     [
-      "en",
-      "Book Fourth, §341, pp. 270–271 (Common's title: \"The Heaviest Burden\")"
-     ]
-    ],
-    "note": "Title and \"mehr zu verlangen\" are letter-spaced in the German; \"to long for nothing more ardently\" is italic in the English."
-   }
-  },
-  "ethica": {
-   "I.D7": {
-    "label": {
-     "ru": "Часть I, определение 7",
-     "en": "Part I, Definition 7"
-    },
-    "texts": {
-     "la": "Ea res libera dicetur, quæ ex sola suæ naturæ necessitate existit, et a se sola ad agendum determinatur : Necessaria autem, vel potius coacta, quæ ab alio determinatur ad existendum et operandum certa ac determinata ratione.",
-     "en": "That thing is called free, which exists solely by the necessity of its own nature, and of which the action is determined by itself alone. On the other hand, that thing is necessary, or rather constrained, which is determined by something external to itself to a fixed and definite method of existence or action."
-    },
-    "links": {
-     "la": "https://la.wikisource.org/wiki/Ethica/Pars_prima_-_De_Deo"
-    },
-    "refs": [
-     [
-      "la",
-      "Pars I, Definitio VII, p. 23 (Appuhn 1913; printed page = Commons djvu page − 4)"
-     ],
-     [
-      "en",
-      "Part I, Def. VII, p. 46 (Elwes, vol. II, 1898 printing)"
-     ]
-    ],
-    "note": "Latin restored from the print: quæ, suæ, comma after autem."
-   },
-   "III.P4": {
-    "label": {
-     "ru": "Часть III, теорема 4",
-     "en": "Part III, Proposition 4"
-    },
-    "texts": {
-     "la": "Nulla res, nisi a causa externa, potest destrui.",
-     "en": "Nothing can be destroyed, except by a cause external to itself."
-    },
-    "refs": [
-     [
-      "la",
-      "Pars III, Prop. IV, p. 267 (Appuhn 1913; printed page = Commons djvu page − 4)"
-     ],
-     [
-      "en",
-      "Part III, Prop. IV, p. 136 (Elwes, vol. II, 1898 printing)"
-     ]
+    "unreachable": [
+      "deutschestextarchiv.de: the download paths answer scripts with a cookie challenge and robots.txt disallows them; not circumvented, so the 1887 issue of Die fröhliche Wissenschaft is used instead of the DTA text of the 1882 edition.",
+      "classiques.uqac.ca (Le Mythe de Sisyphe, public domain in Canada): not reachable; the Wayback copy failed too.",
+      "puf.com: not reachable, so no PUF page is given.",
+      "sks.dk (Søren Kierkegaards Skrifter): not reachable.",
+      "upload.wikimedia.org original files: rate-limited; the page renderings were read instead."
     ]
-   },
-   "III.P6": {
-    "label": {
-     "ru": "Часть III, теорема 6 и её доказательство",
-     "en": "Part III, Proposition 6 and its proof"
-    },
-    "texts": {
-     "la": "Unaquæque res, quantum in se est, in suo esse perseverare conatur.\n\nDEMONSTRATIO\n\nRes enim singulares modi sunt, quibus Dei attributa certo et determinato modo exprimuntur (per Coroll. Prop. 25 p. I) ; hoc est (per Prop. 34 p. I) res, quæ Dei potentiam, qua Deus est et agit, certo et determinato modo exprimunt ; neque ulla res aliquid in se habet, a quo possit destrui, sive quod ejus existentiam tollat (per Prop. 4 hujus) ; sed contra ei omni, quod ejusdem existentiam potest toltere, opponitur (per Prop. præced.) ; adeoque quantum potest, et in se est, in suo esse perseverare conatur. Q. E. D.",
-     "en": "Everything, in so far as it is in itself, endeavours to persist in its own being.\n\nProof.—Individual things are modes whereby the attributes of God are expressed in a given determinate manner (I. xxv. Coroll.); that is (I. xxxiv.), they are things which express in a given determinate manner the power of God, whereby God is and acts; now no thing contains in itself anything whereby it can be destroyed, or which can take away its existence (III. iv.); but contrariwise it is opposed to all that could take away its existence (III. v.). Therefore, in so far as it can, and in so far as it is in itself, it endeavours to persist in its own being. Q.E.D."
-    },
-    "refs": [
-     [
-      "la",
-      "Pars III, Prop. VI cum demonstratione, pp. 269–270 (Appuhn 1913; printed page = Commons djvu page − 4)"
-     ],
-     [
-      "en",
-      "Part III, Prop. VI with Proof, p. 136 (Elwes, vol. II, 1898 printing)"
-     ]
-    ],
-    "note": "Latin keeps the misprint \"toltere\" (read tollere)."
-   },
-   "III.P7": {
-    "label": {
-     "ru": "Часть III, теорема 7 и её доказательство",
-     "en": "Part III, Proposition 7 and its proof"
-    },
-    "texts": {
-     "la": "Conatus, quo unaquæque res in suo esse perseverare conatur, nihil est præter ipsius rei actualem essentiam.\n\nDEMONSTRATIO\n\nEx data cujuscunque rei essentia quædam necessario sequuntur (per Prop. 36 p. I), nec res aliud possunt, quam id, quod ex determinata earum natura necessario sequitur (per Prop. 29 p. I) ; quare cujuscunque rei potentia sive conatus, quo ipsa vel sola vel cum aliis quidquam agit vel agere conatur, hoc est (per Prop. 6 hujus) potentia sive conatus, quo in suo esse perseverare conatur, nihil est præter ipsius rei datam sive actualem essentiam. Q. E. D.",
-     "en": "The endeavour, wherewith every thing endeavours to persist in its own being, is nothing else but the actual essence of the thing in question.\n\nProof.—From the given essence of any thing certain consequences necessarily follow (I. xxxvi.), nor have things any power save such as necessarily follows from their nature as determined (I. xxix.); wherefore the power of any given thing, or the endeavour whereby, either alone or with other things, it acts, or endeavours to act, that is (III. vi.), the power or endeavour, wherewith it endeavours to persist in its own being, is nothing else but the given or actual essence of the thing in question. Q.E.D."
-    },
-    "refs": [
-     [
-      "la",
-      "Pars III, Prop. VII cum demonstratione, pp. 270–271 (Appuhn 1913; printed page = Commons djvu page − 4)"
-     ],
-     [
-      "en",
-      "Part III, Prop. VII with Proof, pp. 136–137 (Elwes, vol. II, 1898 printing)"
-     ]
-    ],
-    "note": "1898 printing reads \"every thing\" (two words) in the proposition; PG #3800 has \"everything\"."
-   },
-   "III.P8": {
-    "label": {
-     "ru": "Часть III, теорема 8 и её доказательство",
-     "en": "Part III, Proposition 8 and its proof"
-    },
-    "texts": {
-     "la": "Conatus, quo unaquæque res in suo esse perseverare conatur, nullum tempus finitum, sed indefinitum involvit.\n\nDEMONSTRATIO\n\nSi enim tempus limitatum involveret, quod rei durationem determinaret, tum ex sola ipsa potentia, qua res existit, sequeretur, quod res post limitatum illud tempus non posset existere, sed quod deberet destrui ; atqui hoc (per Prop. 4 hujus) est absurdum : ergo conatus, quo res existit, nullum tempus definitum involvit ; sed contra, quoniam (per eandem Prop. 4 hujus), si a nulla externa causa destruatur, eâdem potentiâ, qua jam existit, existere perget semper, ergo hic conatus tempus indefinitum involvit. Q. E. D.",
-     "en": "The endeavour, whereby a thing endeavours to persist in its being, involves no finite time, but an indefinite time.\n\nProof.—If it involved a limited time, which should determine the duration of the thing, it would then follow solely from that power whereby the thing exists, that the thing could not exist beyond the limits of that time, but that it must be destroyed; but this (III. iv.) is absurd. Wherefore the endeavour wherewith a thing exists involves no definite time; but, contrariwise, since (III. iv.) it will by the same power whereby it already exists always continue to exist, unless it be destroyed by some external cause, this endeavour involves an indefinite time."
-    },
-    "refs": [
-     [
-      "la",
-      "Pars III, Prop. VIII cum demonstratione, pp. 271–272 (Appuhn 1913; printed page = Commons djvu page − 4)"
-     ],
-     [
-      "en",
-      "Part III, Prop. VIII with Proof, p. 137 (Elwes, vol. II, 1898 printing)"
-     ]
-    ],
-    "note": "Latin \"eâdem potentiâ\" restored from the print; English \"persist in its being\" per the 1898 printing (PG #3800: \"its own being\"). Elwes prints no Q.E.D. here."
-   }
   },
-  "monadologie": {
-   "53": {
-    "label": {
-     "ru": "§53",
-     "en": "§53"
+  "works": {
+    "die-froehliche-wissenschaft": {
+      "author": {
+        "ru": "Фридрих Ницше",
+        "en": "Friedrich Nietzsche"
+      },
+      "title": {
+        "ru": "Весёлая наука",
+        "en": "The Gay Science"
+      },
+      "original": "de",
+      "witnesses": {
+        "de": {
+          "edition": "Die fröhliche Wissenschaft (\"la gaya scienza\"). Leipzig: E. W. Fritzsch, 1887 (the Fritzsch issue that superseded the Chemnitz: Schmeitzner 1882 first edition; Books I–IV, which contain §§276 and 341, are reported by booksellers to be the unsold 1882 sheets reissued with a new title and added material — not verified here). Scan of the New York Public Library copy, digitized by Google.",
+          "year": 1887,
+          "url": "https://archive.org/details/bub_gb_uIQNAAAAYAAJ",
+          "scan": "https://archive.org/details/bub_gb_uIQNAAAAYAAJ (leaves n206 and n263 read against the text)",
+          "licence": "Public domain book; scan in the Internet Archive (Google Books id uIQNAAAAYAAJ). No licence attaches to the transcribed words.",
+          "attribution": "Friedrich Nietzsche, Die fröhliche Wissenschaft, Leipzig: E. W. Fritzsch, 1887; scan: New York Public Library copy digitized by Google, Internet Archive item bub_gb_uIQNAAAAYAAJ.",
+          "rights": {
+            "basis": "public-domain",
+            "russia": "Общественное достояние: Ницше умер в 1900 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+            "usa": "Public domain: published 1887 (before 1930).",
+            "eu": "Public domain: author died 1900, more than 70 years ago (Directive 2006/116/EC art. 1).",
+            "reasoning": "Nietzsche (1844–1900); no editor or translator. The brief asked for the DTA TEI of the 1882 first edition (CC BY-SA 4.0), but every DTA download URL answers a script with a JavaScript cookie challenge (\"verified=1\"), and the DTA robots.txt disallows /book/download_xml/ and /book/download_text/; we did not get around it. The text here is the 1887 issue, read from the Internet Archive OCR and checked word by word against the page images (no differences remained). To switch to the DTA witness, download nietzsche_wissenschaft_1882 from deutschestextarchiv.de in a browser and compare; if the 1887 Books I–IV are indeed the 1882 sheets, the wording must coincide."
+          },
+          "short": {
+            "ru": "изд. 1887 г.",
+            "en": "1887 issue"
+          }
+        },
+        "en": {
+          "edition": "The Joyful Wisdom (\"La Gaya Scienza\"), translated by Thomas Common, with poetry rendered by Paul V. Cohn and Maude D. Petre (The Complete Works of Friedrich Nietzsche, ed. Oscar Levy). Edinburgh & London: T. N. Foulis, 1910. Project Gutenberg eBook #52881.",
+          "translator": "Thomas Common",
+          "year": 1910,
+          "url": "https://www.gutenberg.org/ebooks/52881",
+          "licence": "Project Gutenberg License (public domain in the USA); the words of the 1910 translation are public domain.",
+          "attribution": "Friedrich Nietzsche, The Joyful Wisdom, tr. Thomas Common (Edinburgh & London: T. N. Foulis, 1910); text from Project Gutenberg eBook #52881 (produced by Thierry Alberto, readbueno and the Online Distributed Proofreading Team).",
+          "rights": {
+            "basis": "public-domain",
+            "russia": "Общественное достояние: переводчик Т. Коммон умер в 1919 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+            "usa": "Public domain: published 1910.",
+            "eu": "Public domain: translator died 1919 (more than 70 years ago).",
+            "reasoning": "Nietzsche (d. 1900) and Thomas Common (1850–1919); the two places are prose by Common (the poetry translators Cohn and Petre are not involved). Page numbers taken from the page anchors of the Gutenberg HTML edition (pg52881-images.html). Gutenberg prints italics as _..._; the underscores were removed; straight quotation marks are Gutenberg's."
+          },
+          "short": {
+            "ru": "пер. Т. Коммона, 1910",
+            "en": "tr. Thomas Common, 1910"
+          }
+        }
+      },
+      "absent": [
+        {
+          "language": "ru",
+          "reason": "No public-domain Russian translation could be located. Russian Wikisource has none (author page lists the title without a text); the Commons/Internet Archive searches found none. What exists: К. А. Свасьян (in Ницше, Сочинения в 2 т., т. 1, 1990) — protected, translator living; М. Коренева (2023) — protected; editions of 2013 credited to «А. Николаев» — origin and translator's dates could not be established (a pre-1917 translation could not be confirmed). None was used."
+        }
+      ]
     },
-    "texts": {
-     "fr": "Or, comme il y a une infinité des Univers possibles dans les Idées de Dieu et qu’il n’en peut exister qu’un seul, il faut qu’il y ait une raison suffisante du choix de Dieu, qui le determine à l’un plustôt qu’à l’autre.",
-     "en": "Now, as in the Ideas of God there is an infinite number of possible universes, and as only one of them can be actual, there must be a sufficient reason for the choice of God, which leads Him to decide upon one rather than another.",
-     "ru": "А такъ какъ въ идеяхъ Бога есть безконечное множество міровъ, изъ которыхъ осуществиться можетъ лишь одинъ, то необходимо достаточное основаніе для выбора, которое опредѣляетъ Бога скорѣе къ одному, чѣмъ къ другому."
+    "ethica": {
+      "author": {
+        "ru": "Бенедикт Спиноза",
+        "en": "Benedict de Spinoza"
+      },
+      "title": {
+        "ru": "Этика",
+        "en": "Ethics"
+      },
+      "original": "la",
+      "witnesses": {
+        "la": {
+          "edition": "Latin text as printed in: Spinoza, Éthique, texte latin et traduction française par Ch. Appuhn, Paris: Garnier Frères, 1913 (Latin at the foot of each page). Transcription of Latin Wikisource (pages marked \"Emendata\") corrected against the scan on Wikimedia Commons. Not the 1677 Opera posthuma itself.",
+          "year": 1913,
+          "url": "https://la.wikisource.org/wiki/Ethica/Pars_tertia_-_De_origine_et_natura_affectuum",
+          "scan": "https://commons.wikimedia.org/wiki/File:Spinoza_-_%C3%89thique,_trad._Appuhn,_1913.djvu (pages 27, 83, 104, 271–278 at 3840 px)",
+          "licence": "Public-domain text; the Wikisource transcription is under CC BY-SA 4.0 (our corrections are made to that transcription).",
+          "attribution": "Benedictus de Spinoza, Ethica, Latin text in Spinoza, Éthique, trad. Ch. Appuhn (Paris: Garnier, 1913); transcription by Latin Wikisource contributors (la.wikisource.org, CC BY-SA 4.0), corrected against the page images.",
+          "notes": "Readings restored from the page images where the Wikisource transcription had silently normalised them: circumflexed ablatives (eâdem potentiâ, indefinitâ, naturâ), ligatures quæ/suæ and a comma in I Def. 7. Misprints of this printing kept as printed: \"toltere\" (III P6 dem., for tollere — Wikisource marks it {{corr}}) and \"iilas\" (III P9 dem., for illas). This printing numbers I P34 \"PROPOSITIO XXXVI\" (misprint; heading not included in the text).",
+          "rights": {
+            "basis": "public-domain+licence",
+            "russia": "Общественное достояние: Спиноза умер в 1677 г.; латинский текст не является творением издателя (Аппюн ум. 1942 — его французский перевод не используется).",
+            "usa": "Public domain (published 1677; the 1913 printing reproduces it).",
+            "eu": "Public domain (Spinoza d. 1677); a faithful transcription of a public-domain text creates no new copyright, but the Wikisource transcription is offered under CC BY-SA 4.0, so we credit it and keep the licence.",
+            "reasoning": "Spinoza (1632–1677); Charles Appuhn (1862–1942) supplied only the facing French translation, which is not used. Basis public-domain+licence because the digital copy we corrected is a CC BY-SA 4.0 transcription."
+          },
+          "short": {
+            "ru": "лат. текст, изд. 1913 г.",
+            "en": "Latin text, 1913 printing"
+          }
+        },
+        "en": {
+          "edition": "The Chief Works of Benedict de Spinoza, translated from the Latin, with an introduction, by R. H. M. Elwes. Vol. II: De Intellectus Emendatione — Ethica — (Select Letters). Revised edition. London: George Bell and Sons, 1898 (Bohn's Philosophical Library; first edition 1883–84, second revised edition 1887, reprinted 1889, 1891, 1898).",
+          "translator": "R. H. M. Elwes",
+          "year": 1898,
+          "url": "https://archive.org/details/chiefworks02spinuoft",
+          "scan": "https://archive.org/details/chiefworks02spinuoft (leaves n71 = p. 46, n91 = p. 66, n99 = p. 74, n161 = p. 136, n162 = p. 137)",
+          "licence": "Public domain; Internet Archive marks the scan NOT_IN_COPYRIGHT; Project Gutenberg License for the base digital text.",
+          "attribution": "Spinoza, Ethics, tr. R. H. M. Elwes, in The Chief Works of Benedict de Spinoza, vol. II (London: George Bell and Sons, revised ed., 1898 printing); scan: University of Toronto copy, Internet Archive chiefworks02spinuoft; base text: Project Gutenberg eBook #3800.",
+          "rights": {
+            "basis": "public-domain",
+            "russia": "Общественное достояние: Элвс (р. 1853; ум. 1892 по данным Liberty Fund) — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии; опубликовано в 1883–1898 гг.",
+            "usa": "Public domain: published 1883–1898.",
+            "eu": "Public domain: translator died 1892 (Liberty Fund's author record; even on a much later death date the term would have run out).",
+            "reasoning": "R. H. M. Elwes (b. 1853). Project Gutenberg #3800 does not name its source printing and differs from the 1898 revised printing in three places inside our places; the text given here is the 1898 printing (corrections logged in meta.corrections, each read on the page image): \"that is (I. xxxiv.)\" (PG adds a comma), \"wherewith every thing endeavours\" (PG: everything), \"to persist in its being, involves\" (PG: its own being). PG's \"--\" rendered as the printed em dash."
+          },
+          "short": {
+            "ru": "пер. Р. Элвса, 1898",
+            "en": "tr. R. H. M. Elwes, 1898"
+          }
+        },
+        "la-wikisource": {
+          "edition": "Latin Wikisource digital transcription, Ethica, Pars tertia, Proposition IX, Scholium, retrieved 2026-10-30. This added place was read from the transcription; no independent collation with the 1913 page image is claimed.",
+          "language": "la",
+          "url": "https://la.wikisource.org/wiki/Ethica/Pars_tertia_-_De_origine_et_natura_affectuum",
+          "licence": "Public-domain Latin work; Wikisource transcription, CC BY-SA 4.0.",
+          "attribution": "Benedictus de Spinoza, Ethica III.9 Scholium; Latin Wikisource contributors, CC BY-SA 4.0.",
+          "rights": {
+            "basis": "public-domain+licence"
+          },
+          "short": {
+            "ru": "лат. транскрипция Викитеки",
+            "en": "Latin Wikisource transcription"
+          }
+        },
+        "en-gutenberg": {
+          "edition": "Project Gutenberg eBook #3800, Ethics, translated by R. H. M. Elwes; digital text updated 2021-01-09, retrieved 2026-10-30. The source printing is not specified here; this place is not asserted to reproduce the separately collated 1898 printing.",
+          "language": "en",
+          "translator": "R. H. M. Elwes",
+          "url": "https://www.gutenberg.org/cache/epub/3800/pg3800-images.html",
+          "licence": "Public domain in the USA, as stated by Project Gutenberg #3800.",
+          "attribution": "Spinoza, Ethics, translated by R. H. M. Elwes; Project Gutenberg eBook #3800.",
+          "rights": {
+            "basis": "public-domain"
+          },
+          "short": {
+            "ru": "пер. Р. Элвса, Gutenberg #3800",
+            "en": "tr. R. H. M. Elwes, Gutenberg #3800"
+          }
+        }
+      },
+      "absent": [
+        {
+          "language": "ru",
+          "reason": "Н. А. Иванцов's translation (Этика, доказанная в геометрическом порядке…, ed. В. П. Преображенский, М.: тип. А. Гатцука, 1892; 2nd ed. 1911; Труды Московского психологического общества, вып. 5; Ivantsov d. 1927 — public domain in Russia) and the earlier translation edited by В. И. Модестов (СПб., 1886; 2nd ed. 1892) are listed on the Russian Wikisource author page, but no text or scan of either was found on Russian Wikisource, Wikimedia Commons (also searched under transliterated titles) or the Internet Archive. Not placed."
+        }
+      ]
     },
-    "refs": [
-     [
-      "fr",
-      "Monadologie §53, Gerhardt VI, pp. 615–616"
-     ],
-     [
-      "en",
-      "Monadology §53, Latta 1898, p. 247"
-     ],
-     [
-      "ru",
-      "Монадология §53, Избранные философские сочинения (1890), с. 351–352"
-     ]
-    ],
-    "note": "Section number omitted from the texts; see works.leibniz.witnesses.*.notes for Gerhardt's footnotes and Latta's Théodicée references."
-   },
-   "54": {
-    "label": {
-     "ru": "§54",
-     "en": "§54"
+    "monadologie": {
+      "author": {
+        "ru": "Готфрид Вильгельм Лейбниц",
+        "en": "Gottfried Wilhelm Leibniz"
+      },
+      "title": {
+        "ru": "Монадология",
+        "en": "Monadology"
+      },
+      "original": "fr",
+      "witnesses": {
+        "fr": {
+          "edition": "Die philosophischen Schriften von Gottfried Wilhelm Leibniz, hg. von C. J. Gerhardt, Bd. VI, Berlin: Weidmann, 1885, pp. 607–623 (Monadologie); §53 pp. 615–616, §§54–55 p. 616. Transcribed by us from the page images of two copies.",
+          "year": 1885,
+          "url": "https://archive.org/details/11172347bsb",
+          "scan": "Commons djvu pages 627–628 and BSB copy on the Internet Archive, both read",
+          "licence": "Public domain (1885 edition of a 1714 text).",
+          "attribution": "G. W. Leibniz, Monadologie, in Die philosophischen Schriften, ed. C. J. Gerhardt, vol. VI (Berlin, 1885), pp. 615–616.",
+          "notes": "Gerhardt adds footnotes to the three sections with Leibniz's references to the Théodicée: *) to §53 \"Théod. §. 8. §. 10. §. 44. §. 173. §. 196 seqq. §. 225. §. 414—416.\"; **) to §54 \"§. 74. §. 167. §. 350. §. 201. §. 130. 352. 345 seqq. 354.\" and the remark that the first copy revised by Leibniz adds here \"Ainsi il n'y a rien d'arbitraire entierement.\"; ***) to §55 \"Théod. §. 8. §. 78. §. 80. §. 84. §. 119. §. 204. 206. 208. Abregé object. 1. object 8.\" The footnote signs are not part of the place texts. In §54 \"convenance\" is letter-spaced (emphasis).",
+          "rights": {
+            "basis": "public-domain",
+            "russia": "Общественное достояние: Лейбниц ум. 1716, Герхардт ум. 1899.",
+            "usa": "Public domain.",
+            "eu": "Public domain.",
+            "reasoning": "Leibniz (1646–1716); editor C. I. Gerhardt (1816–1899). Do not use the fr.wikisource text of these pages: they are unproofread bot OCR (\"Page non corrigée\") in modernised spelling (d’univers, plutôt, connaître, prétendre…), which is not what Gerhardt prints (des Univers, plustôt, connoître, pretendre, capitalised Existence/Mondes/Meilleur, \"ou dans les degrés\")."
+          },
+          "short": {
+            "ru": "изд. К. И. Герхардта, 1885",
+            "en": "ed. C. I. Gerhardt, 1885"
+          }
+        },
+        "en": {
+          "edition": "Leibniz, The Monadology and Other Philosophical Writings, translated with introduction and notes by Robert Latta. Oxford: Clarendon Press, 1898, pp. 247–248.",
+          "translator": "Robert Latta",
+          "year": 1898,
+          "url": "https://archive.org/details/themonadology00leibuoft",
+          "scan": "https://archive.org/details/themonadology00leibuoft (pages 247–248)",
+          "licence": "Public domain; Internet Archive scan.",
+          "attribution": "Leibniz, The Monadology, tr. Robert Latta (Oxford: Clarendon Press, 1898), pp. 247–248.",
+          "rights": {
+            "basis": "public-domain",
+            "russia": "Общественное достояние: Латта ум. 1932 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+            "usa": "Public domain: published 1898.",
+            "eu": "Public domain: translator died 1932.",
+            "reasoning": "Robert Latta (1865–1932). Latta's note numbers (84–87) and Leibniz's bracketed Théodicée references at the end of each section, e.g. \"(Théod. 8, 10, 44, 173, 196 sqq., 225, 414–416.)\", are left out of the place texts, matching the French where Gerhardt prints them as footnotes; the wording otherwise agrees with en.wikisource (which, however, rewrites \"Théod.\" as \"Theodicy\")."
+          },
+          "short": {
+            "ru": "пер. Р. Латты, 1898",
+            "en": "tr. Robert Latta, 1898"
+          }
+        },
+        "ru": {
+          "edition": "Лейбниц Г. В. Избранные философские сочинения. Перевод членов Психологического общества, под ред. В. П. Преображенского. Москва, 1890 (Труды Московского психологического общества, вып. IV). «Монадология» (ст. XV), с. 338 сл.; §§53–55 — с. 351–352. Переводчик ст. XV по предисловию редактора (с. XIV): «Е. Н. Бобровъ».",
+          "translator": "Е. Н. Бобров (так в предисловии; вероятно, Евгений Александрович Бобров, 1867–1933 — не подтверждено)",
+          "year": 1890,
+          "url": "https://commons.wikimedia.org/wiki/File:Izbrannyye_filosofskiye_sochineniya.pdf?page=373",
+          "scan": "Commons PDF from the Nekrasov Central Universal Scientific Library (electro.nekrasovka.ru/book/1140), uploaded in the WMRU open-access programme",
+          "licence": "Public domain (Commons: PD-old, PD-RusEmpire, WMRU-OpenAccess).",
+          "attribution": "Лейбниц. Монадология, пер. Е. Боброва, в кн.: Лейбниц Г. В. Избранные философские сочинения, под ред. В. П. Преображенского (М., 1890; Труды Московского психологического общества, вып. IV), с. 351–352; скан: ЦГПБ им. Н. А. Некрасова через Wikimedia Commons.",
+          "rights": {
+            "basis": "public-domain",
+            "russia": "Общественное достояние. Перевод издан в 1890 г.; охраняться сегодня он мог бы, только если бы переводчик умер после 1955 г. (после 1951 г., если он участвовал в Великой Отечественной войне или трудился в её годы) — ГК РФ ст. 1281, срок 70 лет со дня смерти, с продлением на четыре года для участников войны. В предисловии переводчик назван «Е. Н. Бобровъ»; исследователь Лейбница Е. А. Бобров умер в 1933 г. Редактор В. П. Преображенский умер в 1900 г.",
+            "usa": "Public domain: published 1890.",
+            "eu": "Public domain: a translator who published in 1890 would have to have died after 1955 for the translation to be protected (70 years p.m.a.); the Leibniz scholar E. A. Bobrov died in 1933.",
+            "reasoning": "Leibniz (d. 1716); translation published 1890 (Moscow). The preface credits article XV to «Е. Н. Бобровъ»; the Leibniz scholar of that name is Evgeny Aleksandrovich Bobrov (1867–1933), who wrote on the Monadology (1896) — the different middle initial is a misprint or a different person, which could not be settled. Either way a translator active in 1890 would have to have lived past 1955 for the translation to be protected now. Commons tags the file PD-old and PD-RusEmpire. Text transcribed from the page images in the pre-reform spelling of the print."
+          },
+          "short": {
+            "ru": "пер. Е. Н. Боброва, 1890",
+            "en": "tr. E. N. Bobrov, 1890"
+          }
+        }
+      }
     },
-    "texts": {
-     "fr": "Et cette raison ne peut se trouver que dans la convenance, ou dans les degrés de perfection, que ces Mondes contiennent, chaque possible ayant droit de pretendre à l’Existence à mesure de la perfection, qu’il enveloppe.",
-     "en": "And this reason can be found only in the fitness [convenance], or in the degrees of perfection, that these worlds possess, since each possible thing has the right to aspire to existence in proportion to the amount of perfection it contains in germ.",
-     "ru": "Эта причина можетъ лежать только въ цѣлесообразности или въ степеняхъ совершенства, какое содержатъ въ себѣ эти міры, ибо каждый возможный міръ имѣетъ право требовать для себя существованія по мѣрѣ совершенства, которое онъ заключаетъ въ себѣ."
+    "gjentagelsen": {
+      "author": {
+        "ru": "Сёрен Кьеркегор (Константин Констанций)",
+        "en": "Søren Kierkegaard (Constantin Constantius)"
+      },
+      "title": {
+        "ru": "Повторение",
+        "en": "Repetition"
+      },
+      "original": "da",
+      "witnesses": {
+        "da": {
+          "edition": "Søren Kierkegaards Samlede Værker, udg. af A. B. Drachmann, J. L. Heiberg og H. O. Lange, III. Bind, Kjøbenhavn: Gyldendalske Boghandels Forlag (F. Hegel & Søn), 1901; Gjentagelsen, udg. af A. B. Drachmann (\"Til Grund for Texten er lagt Originaludgaven\", compared with the manuscript), pp. 173–174.",
+          "year": 1901,
+          "url": "https://archive.org/details/srenkierkegaard10kiergoog",
+          "scan": "https://archive.org/details/srenkierkegaard10kiergoog",
+          "licence": "Public domain; Internet Archive: NOT_IN_COPYRIGHT.",
+          "attribution": "Søren Kierkegaard, Gjentagelsen (1843), in Samlede Værker, vol. III, ed. A. B. Drachmann (Copenhagen: Gyldendal, 1901), pp. 173–174.",
+          "rights": {
+            "basis": "public-domain",
+            "russia": "Общественное достояние: Кьеркегор ум. 1855; редактор Драхман ум. 1935.",
+            "usa": "Public domain.",
+            "eu": "Public domain.",
+            "reasoning": "Kierkegaard (1813–1855); editors A. B. Drachmann (1860–1935), J. L. Heiberg (1854–1928), H. O. Lange (1863–1943). SV1 follows the 1843 first edition. Read from the page images (the OCR has \"neglede\", \"gj antages\", \"»Erindringt\", \"liste sig ad\"); the print has single guillemets ›Erindring‹; line-end hyphenations Betyd-ning, en-gang, Ah-nelse, For-udsætning joined. Runeberg hosts the 2nd edition (SV2, vol. III, 1921, pp. 193–194) as unproofread OCR only; SKS (sks.dk) did not answer."
+          },
+          "short": {
+            "ru": "Samlede Værker, т. III, 1901",
+            "en": "Samlede Værker, vol. III, 1901"
+          }
+        }
+      },
+      "absent": [
+        {
+          "language": "ru",
+          "reason": "No Russian translation of Gjentagelsen by П. Г. Ганзен (1846–1930) could be identified. His 1894 volume «Наслаждение и долг» (СПб., 1894) is a different book whose contents could not be checked here (catalogue records list no contents; no legitimate copy found). The Russian «Повторение» listed in Russian bibliographies is a 1997 Moscow edition — protected, and not consulted, so nothing was placed."
+        },
+        {
+          "language": "en",
+          "reason": "Walter Lowrie's translation (Princeton University Press, 1941) is on the Internet Archive only as an access-restricted lending copy; later translations (Hong and Hong, 1983, and others) are protected. No exact wording could be checked against an edition, so no English quotation is given."
+        }
+      ]
     },
-    "refs": [
-     [
-      "fr",
-      "Monadologie §54, Gerhardt VI, p. 616"
-     ],
-     [
-      "en",
-      "Monadology §54, Latta 1898, p. 247"
-     ],
-     [
-      "ru",
-      "Монадология §54, Избранные философские сочинения (1890), с. 352"
-     ]
-    ],
-    "note": "Section number omitted from the texts; see works.leibniz.witnesses.*.notes for Gerhardt's footnotes and Latta's Théodicée references."
-   },
-   "55": {
-    "label": {
-     "ru": "§55",
-     "en": "§55"
+    "heraclitus-book": {
+      "author": {
+        "ru": "Гераклит Эфесский",
+        "en": "Heraclitus of Ephesus"
+      },
+      "title": {
+        "ru": "Фрагменты",
+        "en": "Fragments"
+      },
+      "original": "grc",
+      "witnesses": {
+        "grc": {
+          "edition": "The source texts in which the fragments survive, each read on the page image of the printed edition: Eusebius, Praeparatio evangelica XV.20.2 (Arius Didymus) in Eusebii Caesariensis Opera, ed. W. Dindorf, vol. II, Leipzig: Teubner, 1867, p. 375; Clement of Alexandria, Stromata V.14.104.2 in Clemens Alexandrinus, Bd. II: Stromata I–VI, ed. O. Stählin (GCS 15), Leipzig: Hinrichs, 1906, p. 396; Plutarch, De E apud Delphos 18, 392b–c in Moralia, ed. G. N. Bernardakis, vol. III, Leipzig: Teubner, 1891, p. 21.",
+          "url": "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/master/data/tlg2018/tlg001/tlg2018.tlg001.1st1K-grc1.xml",
+          "sources": [
+            "https://raw.githubusercontent.com/OpenGreekAndLatin/First1KGreek/master/data/tlg2018/tlg001/tlg2018.tlg001.1st1K-grc1.xml",
+            "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/master/data/tlg0555/tlg004/tlg0555.tlg004.perseus-grc2.xml"
+          ],
+          "scan": "Dindorf: https://archive.org/details/eusebiicaesarie03dindgoog (p. 375); Stählin: https://archive.org/details/clemensalexandri02clem (p. 396); Bernardakis: https://archive.org/details/in.ernet.dli.2015.529381 (p. 21)",
+          "licence": "Digital editions: CC BY-SA 4.0 (First1KGreek; Perseus Digital Library, Tufts University). Underlying printed texts public domain.",
+          "attribution": "Greek texts from First Thousand Years of Greek (OpenGreekAndLatin, CC BY-SA 4.0) and the Perseus Digital Library canonical-greekLit (Tufts University, CC BY-SA 4.0), corrected against the printed editions of Dindorf (1867), Stählin (1906) and Bernardakis (1891).",
+          "rights": {
+            "basis": "public-domain+licence",
+            "russia": "Общественное достояние (античные тексты; издатели Диндорф ум. 1883, Бернардакис ум. 1925, Штелин ум. 1949 — установленный ими текст древнего автора не является их произведением).",
+            "usa": "Public domain (editions published 1867–1906).",
+            "eu": "Public domain; the German right in scientific editions (UrhG §70) lasts 25 years from publication and expired long ago for Stählin 1906.",
+            "reasoning": "Basis public-domain+licence because we started from CC BY-SA 4.0 digital editions and corrected them; credit both. Corrections against the prints: B12 \"τοῖσιν\" (First1K has τοῖσίν); B91 keeps Bernardakis's own quotation marks, the raised dot after ἕξιν and the printed accent \"καί ‘πρόσεισι\" (Perseus normalises to καὶ and moves the quotation boundaries). B30 in Clement lacks DK's \"τόνδε\" (Diels supplies it from Plutarch and Simplicius) and prints no comma after ἀείζωον — kept as Stählin prints it."
+          }
+        },
+        "en": {
+          "edition": "John Burnet, Early Greek Philosophy, 3rd edition, London: A. & C. Black, 1920, ch. III \"Herakleitos of Ephesos\", pp. 134 and 136 (Burnet numbers the fragments after Bywater).",
+          "translator": "John Burnet",
+          "year": 1920,
+          "url": "https://en.wikisource.org/wiki/Page:Early_Greek_philosophy_by_John_Burnet,_3rd_edition,_1920.djvu/148",
+          "licence": "Public domain text; Wikisource transcription CC BY-SA 4.0.",
+          "attribution": "John Burnet, Early Greek Philosophy, 3rd ed. (London: A. & C. Black, 1920); transcription by English Wikisource contributors (CC BY-SA 4.0).",
+          "rights": {
+            "basis": "public-domain+licence",
+            "russia": "Общественное достояние: Бёрнет ум. 1928 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
+            "usa": "Public domain: published 1920 (before 1930).",
+            "eu": "Public domain: author died 1928.",
+            "reasoning": "John Burnet (1863–1928). Taken from the Wikisource page transcriptions marked proofread; we could not re-check them on the scan (the scan could not be opened). Burnet's footnotes and the \"R. P.\" references to Ritter–Preller are left out of the texts and given in refs."
+          },
+          "short": {
+            "ru": "пер. Дж. Бёрнета, 1920",
+            "en": "tr. John Burnet, 1920"
+          }
+        },
+        "ru": {
+          "edition": "Гераклит Ефесский. Фрагменты / Перевод Владимира Нилендера. М.: Мусагет, 1910 (перевод по Diels, Herakleitos von Ephesos, 2. Aufl., 1909; нумерация Дильса). Текст Русской Викитеки (импорт с az.lib.ru, в современной орфографии; качество 1 из 4).",
+          "translator": "В. О. Нилендер",
+          "year": 1910,
+          "url": "https://ru.wikisource.org/w/index.php?oldid=5738290",
+          "licence": "Russian Wikisource tags the text PD-RusEmpire; we do not rely on that tag (see rights) and quote it.",
+          "attribution": "Гераклит Ефесский. Фрагменты / Пер. В. Нилендера. М.: Мусагет, 1910, фр. 12, 30, 91 (текст по Русской Викитеке).",
+          "rights": {
+            "basis": "short-quotation",
+            "russia": "Нилендер (1883–1965) умер после 1942 г.: по общему правилу ГК РФ ст. 1281 перевод охраняется до 1 января 2036 г. Метка Викитеки PD-RusEmpire (изданное в Российской империи до 7.11.1917 считается неохраняемым) — толкование сообщества Викимедиа, не подтверждённое судебной практикой; поэтому только цитирование: ГК РФ ст. 1274 п. 1 пп. 1 (цитата в переводе в научных, полемических, информационных целях в оправданном целью объёме, с указанием автора и источника). Каждый фрагмент — несколько строк, приводится полностью как цитата с указанием переводчика и издания.",
+            "usa": "Public domain in the USA: published 1910.",
+            "eu": "Protected until the end of 2035 (translator died 1965); quotation under the national quotation exceptions (e.g. CPI L122-5 3° a), with attribution.",
+            "reasoning": "The fragments are a few lines each, so the whole translation of each fragment is a short quotation. The wording is the Wikisource/az.lib.ru transcription in modernised orthography; it could not be checked against the 1910 print (no scan found on Commons or elsewhere). Fr. 91 has \"состабляется\" (probably a transcription slip for \"составляется\") — kept as found; check before publishing. For fr. 12 only the quoted words of Heraclitus are given, without Arius Didymus' frame."
+          },
+          "short": {
+            "ru": "пер. В. О. Нилендера, 1910",
+            "en": "tr. V. O. Nilender, 1910"
+          }
+        }
+      }
     },
-    "texts": {
-     "fr": "Et c’est ce qui est la cause de l’Existence du Meilleur, que la sagesse fait connoître à Dieu, que sa bonté le fait choisir, et que sa puissance le fait produire.",
-     "en": "Thus the actual existence of the best that wisdom makes known to God is due to this, that His goodness makes Him choose it, and His power makes Him produce it.",
-     "ru": "Въ этомъ и заключается причина существованія наилучшаго: мудрость въ Богѣ познаетъ его, благость избираетъ и могущество производитъ."
+    "le-mythe-de-sisyphe": {
+      "author": {
+        "ru": "Альбер Камю",
+        "en": "Albert Camus"
+      },
+      "title": {
+        "ru": "Миф о Сизифе",
+        "en": "The Myth of Sisyphus"
+      },
+      "original": "fr",
+      "witnesses": {
+        "fr": {
+          "edition": "Le Mythe de Sisyphe (1942), chapter « Le mythe de Sisyphe »; the quoted words as French Wikiquote gives them (revision 451559, citing Gallimard, coll. Folio essais, pp. 166 and 168).",
+          "year": 1942,
+          "url": "https://fr.wikiquote.org/w/index.php?oldid=451559",
+          "opens": "quotation",
+          "licence": "Quotations; the Wikiquote page is CC BY-SA 4.0, the quoted words remain Camus's.",
+          "attribution": "Albert Camus, Le Mythe de Sisyphe (1942), « Le mythe de Sisyphe », Gallimard, Folio essais, p. 166 / p. 168.",
+          "notes": "The full text could be checked in the UQAC edition (public domain in Canada): http://classiques.uqac.ca/classiques/camus_albert/mythe_de_sisyphe/mythe_de_sisyphe.html — it could not be reached. Internet Archive uploads of the French text are unauthorised and were not used. Only the sentences French Wikiquote carries for this chapter are given; its other paragraphs are cited by their locators.",
+          "rights": {
+            "basis": "short-quotation",
+            "russia": "Камю ум. 1960: охраняется в России до 1 января 2031 г. (ГК РФ ст. 1281); допустима цитата — ст. 1274 п. 1 пп. 1, с указанием автора и источника.",
+            "usa": "Protected (first published 1942; URAA-restored, 95 years from publication, i.e. through 2037); fair use, 17 U.S.C. §107.",
+            "eu": "Protected until the end of 2030 (70 years p.m.a.); France: courte citation, CPI L122-5 3° a, with author and source named.",
+            "reasoning": "Albert Camus (1913–1960). Public domain only in countries with a 50-year term, e.g. Canada since 2011 (where UQAC \"Les classiques des sciences sociales\" publishes it). Only 1–3 sentences per paragraph are given. The quoted words are as French Wikiquote gives them; the same words are found in several independent quotations on the web (searched 30 October 2026); they could not be checked against a printed copy, and UQAC (where the text is public domain under Canadian law) was not reachable."
+          },
+          "short": {
+            "ru": "по французскому Викицитатнику",
+            "en": "as French Wikiquote gives it"
+          }
+        }
+      },
+      "absent": [
+        {
+          "language": "en",
+          "reason": "Justin O'Brien's translation (1955; protected) could not be checked against a reliable edition; nothing placed."
+        },
+        {
+          "language": "ru",
+          "reason": "The Russian translation in print (А. М. Руткевич) could not be checked against an edition; nothing placed."
+        }
+      ]
     },
-    "refs": [
-     [
-      "fr",
-      "Monadologie §55, Gerhardt VI, p. 616"
-     ],
-     [
-      "en",
-      "Monadology §55, Latta 1898, p. 248"
-     ],
-     [
-      "ru",
-      "Монадология §55, Избранные философские сочинения (1890), с. 352"
-     ]
-    ],
-    "note": "Section number omitted from the texts; see works.leibniz.witnesses.*.notes for Gerhardt's footnotes and Latta's Théodicée references."
-   }
+    "nietzsche-et-la-philosophie": {
+      "author": {
+        "ru": "Жиль Делёз",
+        "en": "Gilles Deleuze"
+      },
+      "title": {
+        "ru": "Ницше и философия",
+        "en": "Nietzsche and Philosophy"
+      },
+      "original": "fr",
+      "witnesses": {
+        "fr": {
+          "edition": "Nietzsche et la philosophie. Paris: Presses Universitaires de France, 1962.",
+          "year": 1962,
+          "attribution": "Gilles Deleuze, Nietzsche et la philosophie (Paris: PUF, 1962).",
+          "rights": {
+            "basis": "locator-only",
+            "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
+            "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
+            "eu": "Protected until the end of 2065 (70 years p.m.a.).",
+            "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
+          }
+        },
+        "en": {
+          "edition": "Nietzsche and Philosophy, tr. Hugh Tomlinson. New York: Columbia University Press, 1983.",
+          "translator": "Hugh Tomlinson",
+          "year": 1983,
+          "publisher_page": "https://cup.columbia.edu/book/nietzsche-and-philosophy/9780231138772/",
+          "attribution": "Gilles Deleuze, Nietzsche and Philosophy, tr. Hugh Tomlinson (New York: Columbia University Press, 1983).",
+          "rights": {
+            "basis": "locator-only",
+            "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
+            "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
+            "eu": "Protected until the end of 2065 (70 years p.m.a.).",
+            "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
+          }
+        }
+      },
+      "absent": [
+        {
+          "language": "ru",
+          "reason": "A Russian translation exists (protected); not consulted."
+        }
+      ]
+    },
+    "difference-et-repetition": {
+      "author": {
+        "ru": "Жиль Делёз",
+        "en": "Gilles Deleuze"
+      },
+      "title": {
+        "ru": "Различие и повторение",
+        "en": "Difference and Repetition"
+      },
+      "original": "fr",
+      "witnesses": {
+        "fr": {
+          "edition": "Différence et répétition. Paris: Presses Universitaires de France, 1968.",
+          "year": 1968,
+          "attribution": "Gilles Deleuze, Différence et répétition (Paris: PUF, 1968).",
+          "rights": {
+            "basis": "locator-only",
+            "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
+            "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
+            "eu": "Protected until the end of 2065 (70 years p.m.a.).",
+            "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
+          }
+        },
+        "en": {
+          "edition": "Difference and Repetition, tr. Paul Patton. New York: Columbia University Press, 1994.",
+          "translator": "Paul Patton",
+          "year": 1994,
+          "publisher_page": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/",
+          "attribution": "Gilles Deleuze, Difference and Repetition, tr. Paul Patton (New York: Columbia University Press, 1994).",
+          "rights": {
+            "basis": "locator-only",
+            "russia": "Делёз ум. 1995: охраняется до 1 января 2066 г. (ГК РФ ст. 1281); цитата возможна (ст. 1274 п. 1 пп. 1) только после сверки с изданием.",
+            "usa": "Protected (French publication URAA-restored, 95 years from publication); English translation protected.",
+            "eu": "Protected until the end of 2065 (70 years p.m.a.).",
+            "reasoning": "Gilles Deleuze (1925–1995). No legitimate copy of the French or English text could be consulted (Internet Archive copies are lending-only or unauthorised uploads), so no wording is shown and the place is cited by its locator alone. Page numbers are left out because they could not be verified."
+          }
+        }
+      },
+      "absent": [
+        {
+          "language": "ru",
+          "reason": "A Russian translation exists (protected); not consulted."
+        }
+      ]
+    }
   },
-  "gjentagelsen": {
-   "opening": {
-    "label": {
-     "ru": "Первый абзац («Когда элеаты отрицали движение…»)",
-     "en": "Opening paragraph (“When the Eleatics denied motion…”)"
+  "places": {
+    "die-froehliche-wissenschaft": {
+      "276": {
+        "label": {
+          "ru": "§276",
+          "en": "§276"
+        },
+        "texts": {
+          "de": "Zum neuen Jahre. — Noch lebe ich, noch denke ich: ich muss noch leben, denn ich muss noch denken. Sum, ergo cogito: cogito, ergo sum. Heute erlaubt sich Jedermann seinen Wunsch und liebsten Gedanken auszusprechen: nun, so will auch ich sagen, was ich mir heute von mir selber wünschte und welcher Gedanke mir dieses Jahr zuerst über das Herz lief, — welcher Gedanke mir Grund, Bürgschaft und Süssigkeit alles weiteren Lebens sein soll! Ich will immer mehr lernen, das Nothwendige an den Dingen als das Schöne sehen: — so werde ich Einer von Denen sein, welche die Dinge schön machen. Amor fati: das sei von nun an meine Liebe! Ich will keinen Krieg gegen das Hässliche führen. Ich will nicht anklagen, ich will nicht einmal die Ankläger anklagen. Wegsehen sei meine einzige Verneinung! Und, Alles in Allem und Grossen: ich will irgendwann einmal nur noch ein Ja-sagender sein!",
+          "en": "For the New Year.—I still live, I still think; I must still live, for I must still think. Sum, ergo cogito: cogito, ergo sum. To-day everyone takes the liberty of expressing his wish and his favourite thought: well, I also mean to tell what I have wished for myself to-day, and what thought first crossed my mind this year,—a thought which ought to be the basis, the pledge and the sweetening of all my future life! I want more and more to perceive the necessary characters in things as the beautiful:—I shall thus be one of those who beautify things. Amor fati: let that henceforth be my love! I do not want to wage war with the ugly. I do not want to accuse, I do not want even to accuse the accusers. Looking aside, let that be my sole negation! And all in all, to sum up: I wish to be at any time hereafter only a yea-sayer!"
+        },
+        "refs": [
+          [
+            "de",
+            "Viertes Buch: Sanctus Januarius, §276, p. [197] (unnumbered first text page of Book IV; IA leaf n206)"
+          ],
+          [
+            "en",
+            "Book Fourth: Sanctus Januarius, §276, p. 213"
+          ]
+        ],
+        "note": "\"Zum neuen Jahre\" and \"Wegsehen\" are letter-spaced (emphasis) in the German; \"Amor fati\" etc. are italic in the English (Gutenberg underscores removed)."
+      },
+      "341": {
+        "label": {
+          "ru": "§341",
+          "en": "§341"
+        },
+        "texts": {
+          "de": "Das grösste Schwergewicht. — Wie, wenn dir eines Tages oder Nachts, ein Dämon in deine einsamste Einsamkeit nachschliche und dir sagte: „Dieses Leben, wie du es jetzt lebst und gelebt hast, wirst du noch einmal und noch unzählige Male leben müssen; und es wird nichts Neues daran sein, sondern jeder Schmerz und jede Lust und jeder Gedanke und Seufzer und alles unsäglich Kleine und Grosse deines Lebens muss dir wiederkommen, und Alles in der selben Reihe und Folge — und ebenso diese Spinne und dieses Mondlicht zwischen den Bäumen, und ebenso dieser Augenblick und ich selber. Die ewige Sanduhr des Daseins wird immer wieder umgedreht — und du mit ihr, Stäubchen vom Staube!“ — Würdest du dich nicht niederwerfen und mit den Zähnen knirschen und den Dämon verfluchen, der so redete? Oder hast du einmal einen ungeheuren Augenblick erlebt, wo du ihm antworten würdest: „du bist ein Gott und nie hörte ich Göttlicheres!“ Wenn jener Gedanke über dich Gewalt bekäme, er würde dich, wie du bist, verwandeln und vielleicht zermalmen; die Frage bei Allem und Jedem „willst du diess noch einmal und noch unzählige Male?“ würde als das grösste Schwergewicht auf deinem Handeln liegen! Oder wie müsstest du dir selber und dem Leben gut werden, um nach Nichts mehr zu verlangen, als nach dieser letzten ewigen Bestätigung und Besiegelung? —",
+          "en": "The Heaviest Burden.—What if a demon crept after thee into thy loneliest loneliness some day or night, and said to thee: \"This life, as thou livest it at present, and hast lived it, thou must live it once more, and also innumerable times; and there will be nothing new in it, but every pain and every joy and every thought and every sigh, and all the unspeakably small and great in thy life must come to thee again, and all in the same series and sequence—and similarly this spider and this moonlight among the trees, and similarly this moment, and I myself. The eternal sand-glass of existence will ever be turned once more, and thou with it, thou speck of dust!\"—Wouldst thou not throw thyself down and gnash thy teeth, and curse the demon that so spake? Or hast thou once experienced a tremendous moment in which thou wouldst answer him: \"Thou art a God, and never did I hear aught more divine!\" If that thought acquired power over thee, as thou art, it would transform thee, and perhaps crush thee; the question with regard to all and everything: \"Dost thou want this once more, and also for innumerable times?\" would lie as the heaviest burden upon thy activity! Or, how wouldst thou have to become favourably inclined to thyself and to life, so as to long for nothing more ardently than for this last eternal sanctioning and sealing?—"
+        },
+        "refs": [
+          [
+            "de",
+            "Viertes Buch, §341, p. 254"
+          ],
+          [
+            "en",
+            "Book Fourth, §341, pp. 270–271 (Common's title: \"The Heaviest Burden\")"
+          ]
+        ],
+        "note": "Title and \"mehr zu verlangen\" are letter-spaced in the German; \"to long for nothing more ardently\" is italic in the English."
+      }
     },
-    "texts": {
-     "da": "Da Eleaterne negtede Bevægelsen, optraadte, hvad Enhver veed, Diogenes som Opponent; han optraadte virkelig; thi han sagde ikke et Ord; men gik blot nogle Gange frem og tilbage, hvorved han meente tilstrækkeligen at have modbeviist hine. Da jeg i længere Tid havde beskæftiget mig, leilighedsviis idetmindste, med det Problem, om en Gjentagelse er mulig og hvilken Betydning den har, om en Ting vinder eller taber ved at gjentages, faldt det mig pludselig ind: Du kan jo reise til Berlin, der har Du engang før været, og nu overbevise Dig om en Gjentagelse er mulig og hvad den har at betyde. I mit Hjem var jeg næsten gaaet istaae over dette Problem. Man sige hvad man vil derom, det vil komme til at spille en saare vigtig Rolle i den nyere Philosophi; thi Gjentagelse er et afgjørende Udtryk for hvad ›Erindring‹ var hos Grækerne. Som da disse lærte, at al Erkjenden er en Erindren, saaledes vil den nye Philosophi lære, at hele Livet er en Gjentagelse. Den eneste nyere Philosoph, der har havt en Ahnelse herom, er Leibnitz. Gjentagelse og Erindring er den samme Bevægelse, kun i modsat Retning; thi hvad der erindres, har været, gjentages baglænds; hvorimod den egentlige Gjentagelse erindres forlænds. Derfor gjør Gjentagelsen, hvis den er mulig, et Menneske lykkeligt, medens Erindringen gjør ham ulykkeligt, under den Forudsætning nemlig, at han giver sig Tid til at leve, og ikke strax i sin Fødselsstund seer at finde paa et Paaskud til at liste sig ud igjen af Livet, f. Ex. at han har glemt Noget."
+    "ethica": {
+      "I.D7": {
+        "label": {
+          "ru": "Часть I, определение 7",
+          "en": "Part I, Definition 7"
+        },
+        "texts": {
+          "la": "Ea res libera dicetur, quæ ex sola suæ naturæ necessitate existit, et a se sola ad agendum determinatur : Necessaria autem, vel potius coacta, quæ ab alio determinatur ad existendum et operandum certa ac determinata ratione.",
+          "en": "That thing is called free, which exists solely by the necessity of its own nature, and of which the action is determined by itself alone. On the other hand, that thing is necessary, or rather constrained, which is determined by something external to itself to a fixed and definite method of existence or action."
+        },
+        "links": {
+          "la": "https://la.wikisource.org/wiki/Ethica/Pars_prima_-_De_Deo"
+        },
+        "refs": [
+          [
+            "la",
+            "Pars I, Definitio VII, p. 23 (Appuhn 1913; printed page = Commons djvu page − 4)"
+          ],
+          [
+            "en",
+            "Part I, Def. VII, p. 46 (Elwes, vol. II, 1898 printing)"
+          ]
+        ],
+        "note": "Latin restored from the print: quæ, suæ, comma after autem."
+      },
+      "III.P4": {
+        "label": {
+          "ru": "Часть III, теорема 4",
+          "en": "Part III, Proposition 4"
+        },
+        "texts": {
+          "la": "Nulla res, nisi a causa externa, potest destrui.",
+          "en": "Nothing can be destroyed, except by a cause external to itself."
+        },
+        "refs": [
+          [
+            "la",
+            "Pars III, Prop. IV, p. 267 (Appuhn 1913; printed page = Commons djvu page − 4)"
+          ],
+          [
+            "en",
+            "Part III, Prop. IV, p. 136 (Elwes, vol. II, 1898 printing)"
+          ]
+        ]
+      },
+      "III.P6": {
+        "label": {
+          "ru": "Часть III, теорема 6 и её доказательство",
+          "en": "Part III, Proposition 6 and its proof"
+        },
+        "texts": {
+          "la": "Unaquæque res, quantum in se est, in suo esse perseverare conatur.\n\nDEMONSTRATIO\n\nRes enim singulares modi sunt, quibus Dei attributa certo et determinato modo exprimuntur (per Coroll. Prop. 25 p. I) ; hoc est (per Prop. 34 p. I) res, quæ Dei potentiam, qua Deus est et agit, certo et determinato modo exprimunt ; neque ulla res aliquid in se habet, a quo possit destrui, sive quod ejus existentiam tollat (per Prop. 4 hujus) ; sed contra ei omni, quod ejusdem existentiam potest toltere, opponitur (per Prop. præced.) ; adeoque quantum potest, et in se est, in suo esse perseverare conatur. Q. E. D.",
+          "en": "Everything, in so far as it is in itself, endeavours to persist in its own being.\n\nProof.—Individual things are modes whereby the attributes of God are expressed in a given determinate manner (I. xxv. Coroll.); that is (I. xxxiv.), they are things which express in a given determinate manner the power of God, whereby God is and acts; now no thing contains in itself anything whereby it can be destroyed, or which can take away its existence (III. iv.); but contrariwise it is opposed to all that could take away its existence (III. v.). Therefore, in so far as it can, and in so far as it is in itself, it endeavours to persist in its own being. Q.E.D."
+        },
+        "refs": [
+          [
+            "la",
+            "Pars III, Prop. VI cum demonstratione, pp. 269–270 (Appuhn 1913; printed page = Commons djvu page − 4)"
+          ],
+          [
+            "en",
+            "Part III, Prop. VI with Proof, p. 136 (Elwes, vol. II, 1898 printing)"
+          ]
+        ],
+        "note": "Latin keeps the misprint \"toltere\" (read tollere)."
+      },
+      "III.P7": {
+        "label": {
+          "ru": "Часть III, теорема 7 и её доказательство",
+          "en": "Part III, Proposition 7 and its proof"
+        },
+        "texts": {
+          "la": "Conatus, quo unaquæque res in suo esse perseverare conatur, nihil est præter ipsius rei actualem essentiam.\n\nDEMONSTRATIO\n\nEx data cujuscunque rei essentia quædam necessario sequuntur (per Prop. 36 p. I), nec res aliud possunt, quam id, quod ex determinata earum natura necessario sequitur (per Prop. 29 p. I) ; quare cujuscunque rei potentia sive conatus, quo ipsa vel sola vel cum aliis quidquam agit vel agere conatur, hoc est (per Prop. 6 hujus) potentia sive conatus, quo in suo esse perseverare conatur, nihil est præter ipsius rei datam sive actualem essentiam. Q. E. D.",
+          "en": "The endeavour, wherewith every thing endeavours to persist in its own being, is nothing else but the actual essence of the thing in question.\n\nProof.—From the given essence of any thing certain consequences necessarily follow (I. xxxvi.), nor have things any power save such as necessarily follows from their nature as determined (I. xxix.); wherefore the power of any given thing, or the endeavour whereby, either alone or with other things, it acts, or endeavours to act, that is (III. vi.), the power or endeavour, wherewith it endeavours to persist in its own being, is nothing else but the given or actual essence of the thing in question. Q.E.D."
+        },
+        "refs": [
+          [
+            "la",
+            "Pars III, Prop. VII cum demonstratione, pp. 270–271 (Appuhn 1913; printed page = Commons djvu page − 4)"
+          ],
+          [
+            "en",
+            "Part III, Prop. VII with Proof, pp. 136–137 (Elwes, vol. II, 1898 printing)"
+          ]
+        ],
+        "note": "1898 printing reads \"every thing\" (two words) in the proposition; PG #3800 has \"everything\"."
+      },
+      "III.P8": {
+        "label": {
+          "ru": "Часть III, теорема 8 и её доказательство",
+          "en": "Part III, Proposition 8 and its proof"
+        },
+        "texts": {
+          "la": "Conatus, quo unaquæque res in suo esse perseverare conatur, nullum tempus finitum, sed indefinitum involvit.\n\nDEMONSTRATIO\n\nSi enim tempus limitatum involveret, quod rei durationem determinaret, tum ex sola ipsa potentia, qua res existit, sequeretur, quod res post limitatum illud tempus non posset existere, sed quod deberet destrui ; atqui hoc (per Prop. 4 hujus) est absurdum : ergo conatus, quo res existit, nullum tempus definitum involvit ; sed contra, quoniam (per eandem Prop. 4 hujus), si a nulla externa causa destruatur, eâdem potentiâ, qua jam existit, existere perget semper, ergo hic conatus tempus indefinitum involvit. Q. E. D.",
+          "en": "The endeavour, whereby a thing endeavours to persist in its being, involves no finite time, but an indefinite time.\n\nProof.—If it involved a limited time, which should determine the duration of the thing, it would then follow solely from that power whereby the thing exists, that the thing could not exist beyond the limits of that time, but that it must be destroyed; but this (III. iv.) is absurd. Wherefore the endeavour wherewith a thing exists involves no definite time; but, contrariwise, since (III. iv.) it will by the same power whereby it already exists always continue to exist, unless it be destroyed by some external cause, this endeavour involves an indefinite time."
+        },
+        "refs": [
+          [
+            "la",
+            "Pars III, Prop. VIII cum demonstratione, pp. 271–272 (Appuhn 1913; printed page = Commons djvu page − 4)"
+          ],
+          [
+            "en",
+            "Part III, Prop. VIII with Proof, p. 137 (Elwes, vol. II, 1898 printing)"
+          ]
+        ],
+        "note": "Latin \"eâdem potentiâ\" restored from the print; English \"persist in its being\" per the 1898 printing (PG #3800: \"its own being\"). Elwes prints no Q.E.D. here."
+      },
+      "III.P9.S": {
+        "label": {
+          "ru": "Часть III, схолия к теореме 9",
+          "en": "Part III, Scholium to Proposition 9"
+        },
+        "texts": {
+          "la": "Hic conatus, cum ad Mentem solam refertur, Voluntas appellatur, sed cum ad Mentem et Corpus simul refertur, vocatur Appetitus ; qui proinde nihil aliud est quam ipsa hominis essentia, ex cujus natura ea, quæ ipsius conservationi inserviunt, necessario sequuntur ; atque adeo homo ad eadem agendum determinatus est.\n\nDeinde inter Appetitum et Cupiditatem nulla est differentia, nisi quod cupiditas ad homines plerumque referatur, quatenus sui appetitus sunt conscii, et propterea sic definiri potest, nempe Cupiditas est appetitus cum ejusdem conscientia. Constat itaque ex his omnibus, nihil nos conari, velle, appetere, neque cupere, quia id bonum esse judicamus ; sed contra, nos propterea aliquid bonum esse judicare, quia id conamur, volumus, appetimus, atque cupimus.",
+          "en": "This endeavour, when referred solely to the mind, is called will, when referred to the mind and body in conjunction it is called appetite; it is, in fact, nothing else but man's essence, from the nature of which necessarily follow all those results which tend to its preservation; and which man has thus been determined to perform.\n\nFurther, between appetite and desire there is no difference, except that the term desire is generally applied to men, in so far as they are conscious of their appetite, and may accordingly be thus defined: Desire is appetite with consciousness thereof.\n\nIt is thus plain from what has been said, that in no case do we strive for, wish for, long for, or desire anything, because we deem it to be good, but on the other hand we deem a thing to be good, because we strive for it, wish for it, long for it, or desire it."
+        },
+        "witness": {
+          "la": "la-wikisource",
+          "en": "en-gutenberg"
+        },
+        "links": {
+          "la": "https://la.wikisource.org/wiki/Ethica/Pars_tertia_-_De_origine_et_natura_affectuum",
+          "en": "https://www.gutenberg.org/cache/epub/3800/pg3800-images.html"
+        },
+        "refs": [
+          [
+            "la",
+            "Pars III, Propositio IX, Scholium"
+          ],
+          [
+            "en",
+            "Part III, Proposition IX, Note"
+          ]
+        ],
+        "note": "The complete canonical scholium in two explicitly identified digital witnesses, read on 2026-10-30. These are kept separate from the scan-collated witnesses used by the earlier places; their wording has not been silently substituted into those places."
+      }
     },
-    "refs": [
-     [
-      "da",
-      "Gjentagelsen, first paragraph of the text proper (after the motto), SV1 vol. III, pp. 173–174"
-     ]
-    ],
-    "note": "In SV1 \"Gjentagelse\" (first occurrence in \"thi Gjentagelse er…\") and \"Erindring\" are letter-spaced. The drop-capital D opens the paragraph."
-   }
-  },
-  "heraclitus-book": {
-   "B12": {
-    "label": {
-     "ru": "DK 22 B12 (у Бёрнета — фр. 41–42)",
-     "en": "DK 22 B12 (Burnet’s fr. 41–42)"
+    "monadologie": {
+      "53": {
+        "label": {
+          "ru": "§53",
+          "en": "§53"
+        },
+        "texts": {
+          "fr": "Or, comme il y a une infinité des Univers possibles dans les Idées de Dieu et qu’il n’en peut exister qu’un seul, il faut qu’il y ait une raison suffisante du choix de Dieu, qui le determine à l’un plustôt qu’à l’autre.",
+          "en": "Now, as in the Ideas of God there is an infinite number of possible universes, and as only one of them can be actual, there must be a sufficient reason for the choice of God, which leads Him to decide upon one rather than another.",
+          "ru": "А такъ какъ въ идеяхъ Бога есть безконечное множество міровъ, изъ которыхъ осуществиться можетъ лишь одинъ, то необходимо достаточное основаніе для выбора, которое опредѣляетъ Бога скорѣе къ одному, чѣмъ къ другому."
+        },
+        "refs": [
+          [
+            "fr",
+            "Monadologie §53, Gerhardt VI, pp. 615–616"
+          ],
+          [
+            "en",
+            "Monadology §53, Latta 1898, p. 247"
+          ],
+          [
+            "ru",
+            "Монадология §53, Избранные философские сочинения (1890), с. 351–352"
+          ]
+        ],
+        "note": "Section number omitted from the texts; see works.leibniz.witnesses.*.notes for Gerhardt's footnotes and Latta's Théodicée references."
+      },
+      "54": {
+        "label": {
+          "ru": "§54",
+          "en": "§54"
+        },
+        "texts": {
+          "fr": "Et cette raison ne peut se trouver que dans la convenance, ou dans les degrés de perfection, que ces Mondes contiennent, chaque possible ayant droit de pretendre à l’Existence à mesure de la perfection, qu’il enveloppe.",
+          "en": "And this reason can be found only in the fitness [convenance], or in the degrees of perfection, that these worlds possess, since each possible thing has the right to aspire to existence in proportion to the amount of perfection it contains in germ.",
+          "ru": "Эта причина можетъ лежать только въ цѣлесообразности или въ степеняхъ совершенства, какое содержатъ въ себѣ эти міры, ибо каждый возможный міръ имѣетъ право требовать для себя существованія по мѣрѣ совершенства, которое онъ заключаетъ въ себѣ."
+        },
+        "refs": [
+          [
+            "fr",
+            "Monadologie §54, Gerhardt VI, p. 616"
+          ],
+          [
+            "en",
+            "Monadology §54, Latta 1898, p. 247"
+          ],
+          [
+            "ru",
+            "Монадология §54, Избранные философские сочинения (1890), с. 352"
+          ]
+        ],
+        "note": "Section number omitted from the texts; see works.leibniz.witnesses.*.notes for Gerhardt's footnotes and Latta's Théodicée references."
+      },
+      "55": {
+        "label": {
+          "ru": "§55",
+          "en": "§55"
+        },
+        "texts": {
+          "fr": "Et c’est ce qui est la cause de l’Existence du Meilleur, que la sagesse fait connoître à Dieu, que sa bonté le fait choisir, et que sa puissance le fait produire.",
+          "en": "Thus the actual existence of the best that wisdom makes known to God is due to this, that His goodness makes Him choose it, and His power makes Him produce it.",
+          "ru": "Въ этомъ и заключается причина существованія наилучшаго: мудрость въ Богѣ познаетъ его, благость избираетъ и могущество производитъ."
+        },
+        "refs": [
+          [
+            "fr",
+            "Monadologie §55, Gerhardt VI, p. 616"
+          ],
+          [
+            "en",
+            "Monadology §55, Latta 1898, p. 248"
+          ],
+          [
+            "ru",
+            "Монадология §55, Избранные философские сочинения (1890), с. 352"
+          ]
+        ],
+        "note": "Section number omitted from the texts; see works.leibniz.witnesses.*.notes for Gerhardt's footnotes and Latta's Théodicée references."
+      }
     },
-    "texts": {
-     "grc": "ποταμοῖσι τοῖσιν αὐτοῖσιν ἐμβαίνουσιν ἕτερα καὶ ἕτερα ὕδατα ἐπιρρεῖ· καὶ ψυχαὶ δὲ ἀπὸ τῶν ὑγρῶν ἀναθυμιῶνται.",
-     "en": "You cannot step twice into the same rivers; for fresh waters are ever flowing in upon you.",
-     "ru": "«к вступающим в те же самые потоки — иные и иные воды притекают. И также души из влаги воскуряются»."
+    "gjentagelsen": {
+      "opening": {
+        "label": {
+          "ru": "Первый абзац («Когда элеаты отрицали движение…»)",
+          "en": "Opening paragraph (“When the Eleatics denied motion…”)"
+        },
+        "texts": {
+          "da": "Da Eleaterne negtede Bevægelsen, optraadte, hvad Enhver veed, Diogenes som Opponent; han optraadte virkelig; thi han sagde ikke et Ord; men gik blot nogle Gange frem og tilbage, hvorved han meente tilstrækkeligen at have modbeviist hine. Da jeg i længere Tid havde beskæftiget mig, leilighedsviis idetmindste, med det Problem, om en Gjentagelse er mulig og hvilken Betydning den har, om en Ting vinder eller taber ved at gjentages, faldt det mig pludselig ind: Du kan jo reise til Berlin, der har Du engang før været, og nu overbevise Dig om en Gjentagelse er mulig og hvad den har at betyde. I mit Hjem var jeg næsten gaaet istaae over dette Problem. Man sige hvad man vil derom, det vil komme til at spille en saare vigtig Rolle i den nyere Philosophi; thi Gjentagelse er et afgjørende Udtryk for hvad ›Erindring‹ var hos Grækerne. Som da disse lærte, at al Erkjenden er en Erindren, saaledes vil den nye Philosophi lære, at hele Livet er en Gjentagelse. Den eneste nyere Philosoph, der har havt en Ahnelse herom, er Leibnitz. Gjentagelse og Erindring er den samme Bevægelse, kun i modsat Retning; thi hvad der erindres, har været, gjentages baglænds; hvorimod den egentlige Gjentagelse erindres forlænds. Derfor gjør Gjentagelsen, hvis den er mulig, et Menneske lykkeligt, medens Erindringen gjør ham ulykkeligt, under den Forudsætning nemlig, at han giver sig Tid til at leve, og ikke strax i sin Fødselsstund seer at finde paa et Paaskud til at liste sig ud igjen af Livet, f. Ex. at han har glemt Noget."
+        },
+        "refs": [
+          [
+            "da",
+            "Gjentagelsen, first paragraph of the text proper (after the motto), SV1 vol. III, pp. 173–174"
+          ]
+        ],
+        "note": "In SV1 \"Gjentagelse\" (first occurrence in \"thi Gjentagelse er…\") and \"Erindring\" are letter-spaced. The drop-capital D opens the paragraph."
+      }
     },
-    "links": {
-     "grc": "https://archive.org/details/eusebiicaesarie03dindgoog",
-     "en": "https://en.wikisource.org/wiki/Page:Early_Greek_philosophy_by_John_Burnet,_3rd_edition,_1920.djvu/150"
+    "heraclitus-book": {
+      "B12": {
+        "label": {
+          "ru": "DK 22 B12 (у Бёрнета — фр. 41–42)",
+          "en": "DK 22 B12 (Burnet’s fr. 41–42)"
+        },
+        "texts": {
+          "grc": "ποταμοῖσι τοῖσιν αὐτοῖσιν ἐμβαίνουσιν ἕτερα καὶ ἕτερα ὕδατα ἐπιρρεῖ· καὶ ψυχαὶ δὲ ἀπὸ τῶν ὑγρῶν ἀναθυμιῶνται.",
+          "en": "You cannot step twice into the same rivers; for fresh waters are ever flowing in upon you.",
+          "ru": "«к вступающим в те же самые потоки — иные и иные воды притекают. И также души из влаги воскуряются»."
+        },
+        "links": {
+          "grc": "https://archive.org/details/eusebiicaesarie03dindgoog",
+          "en": "https://en.wikisource.org/wiki/Page:Early_Greek_philosophy_by_John_Burnet,_3rd_edition,_1920.djvu/150"
+        },
+        "refs": [
+          [
+            "grc",
+            "Euseb. Praep. ev. XV.20.2 (Arius Didymus): Dindorf vol. II, p. 375, ll. 17–19"
+          ],
+          [
+            "en",
+            "Burnet fr. (41, 42), p. 136; Burnet adds \"R. P. 33.\""
+          ],
+          [
+            "ru",
+            "Нилендер, фр. 12 (Арий Дидим), только слова Гераклита в кавычках"
+          ]
+        ],
+        "note": "Burnet's fr. 41–42 joins the \"twice into the same river\" saying (cf. B91) with the B12 sentence and leaves out B12's second clause on souls."
+      },
+      "B30": {
+        "label": {
+          "ru": "DK 22 B30 (у Бёрнета — фр. 20)",
+          "en": "DK 22 B30 (Burnet’s fr. 20)"
+        },
+        "texts": {
+          "grc": "κόσμον τὸν αὐτὸν ἁπάντων οὔτε τις θεῶν οὔτε ἀνθρώπων ἐποίησεν, ἀλλ’ ἦν ἀεὶ καὶ ἔστιν καὶ ἔσται πῦρ ἀείζωον ἁπτόμενον μέτρα καὶ ἀποσβεννύμενον μέτρα.",
+          "en": "This world, which is the same for all, no one of gods or men has made; but it was ever, is now, and ever shall be an ever-living Fire, with measures of it kindling, and measures going out.",
+          "ru": "«космос этот, тот же самый для всех, никто из богов или людей не сотворил; но был он вечно и есть и будет огнем вечно живым — мерно зажигающимся и мерно потухающим»."
+        },
+        "links": {
+          "grc": "https://archive.org/details/clemensalexandri02clem"
+        },
+        "refs": [
+          [
+            "grc",
+            "Clem. Strom. V.14.104.2: Stählin vol. II (GCS 15), p. 396, ll. 10–13"
+          ],
+          [
+            "en",
+            "Burnet fr. (20), p. 134; Burnet adds \"R. P. 35.\""
+          ],
+          [
+            "ru",
+            "Нилендер, фр. 30"
+          ]
+        ],
+        "note": "Clement's text has no τόνδε (DK adds it from Plutarch/Simplicius); Nilender translates DK's text (\"космос этот\")."
+      }
     },
-    "refs": [
-     [
-      "grc",
-      "Euseb. Praep. ev. XV.20.2 (Arius Didymus): Dindorf vol. II, p. 375, ll. 17–19"
-     ],
-     [
-      "en",
-      "Burnet fr. (41, 42), p. 136; Burnet adds \"R. P. 33.\""
-     ],
-     [
-      "ru",
-      "Нилендер, фр. 12 (Арий Дидим), только слова Гераклита в кавычках"
-     ]
-    ],
-    "note": "Burnet's fr. 41–42 joins the \"twice into the same river\" saying (cf. B91) with the B12 sentence and leaves out B12's second clause on souls."
-   },
-   "B30": {
-    "label": {
-     "ru": "DK 22 B30 (у Бёрнета — фр. 20)",
-     "en": "DK 22 B30 (Burnet’s fr. 20)"
+    "le-mythe-de-sisyphe": {
+      "return": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»: возвращение к подножию",
+          "en": "Chapter “The Myth of Sisyphus”: the return down"
+        },
+        "texts": {}
+      },
+      "tragic": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»: конец абзаца о сознании героя",
+          "en": "Chapter “The Myth of Sisyphus”: end of the paragraph on the hero’s consciousness"
+        },
+        "texts": {
+          "fr": "Il n'est pas de destin qui ne se surmonte par le mépris."
+        },
+        "refs": [
+          [
+            "fr",
+            "final chapter « Le mythe de Sisyphe », last sentence of the paragraph beginning \"Si ce mythe est tragique, c'est que son héros est conscient\", Folio essais p. 166 (per fr.wikiquote)"
+          ]
+        ],
+        "note": "Wording from fr.wikiquote, not verified against an edition. The paragraph's opening sentence (as given in the brief) could not be verified and is not included."
+      },
+      "descent": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»: спуск в скорби и в радости",
+          "en": "Chapter “The Myth of Sisyphus”: the descent in sorrow and in joy"
+        },
+        "texts": {}
+      },
+      "joy": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»: безмолвная радость Сизифа",
+          "en": "Chapter “The Myth of Sisyphus”: Sisyphus’s silent joy"
+        },
+        "texts": {}
+      },
+      "subtle": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»: миг, когда человек оглядывается на свою жизнь",
+          "en": "Chapter “The Myth of Sisyphus”: the moment a man looks back on his life"
+        },
+        "texts": {}
+      },
+      "ascent": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»: камень скатывается с вершины",
+          "en": "Chapter “The Myth of Sisyphus”: the stone rolls down from the summit"
+        },
+        "texts": {}
+      },
+      "last": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»: последний абзац, начало и конец",
+          "en": "Chapter “The Myth of Sisyphus”: last paragraph, opening and close"
+        },
+        "texts": {
+          "fr": "Je laisse Sisyphe au bas de la montagne ! On retrouve toujours son fardeau. […] La lutte elle-même vers les sommets suffit à remplir un cœur d'homme. Il faut imaginer Sisyphe heureux."
+        },
+        "refs": [
+          [
+            "fr",
+            "final chapter « Le mythe de Sisyphe », first two sentences of the last paragraph, Folio essais p. 168 (per fr.wikiquote)"
+          ],
+          [
+            "fr",
+            "final chapter « Le mythe de Sisyphe », last two sentences of the essay, Folio essais p. 168 (per fr.wikiquote)"
+          ]
+        ],
+        "note": "Wording from fr.wikiquote (which gives the whole last paragraph), not verified against an edition. The space before \"!\" is the French typographic space as given there. Wording from fr.wikiquote, not verified against an edition."
+      },
+      "whole": {
+        "label": {
+          "ru": "Глава «Миф о Сизифе»",
+          "en": "Chapter “The Myth of Sisyphus”"
+        },
+        "texts": {}
+      }
     },
-    "texts": {
-     "grc": "κόσμον τὸν αὐτὸν ἁπάντων οὔτε τις θεῶν οὔτε ἀνθρώπων ἐποίησεν, ἀλλ’ ἦν ἀεὶ καὶ ἔστιν καὶ ἔσται πῦρ ἀείζωον ἁπτόμενον μέτρα καὶ ἀποσβεννύμενον μέτρα.",
-     "en": "This world, which is the same for all, no one of gods or men has made; but it was ever, is now, and ever shall be an ever-living Fire, with measures of it kindling, and measures going out.",
-     "ru": "«космос этот, тот же самый для всех, никто из богов или людей не сотворил; но был он вечно и есть и будет огнем вечно живым — мерно зажигающимся и мерно потухающим»."
+    "nietzsche-et-la-philosophie": {
+      "II.5": {
+        "label": {
+          "ru": "Гл. II, конец §5",
+          "en": "Ch. II, end of §5"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/nietzsche-and-philosophy/9780231138772/"
+      },
+      "II.6": {
+        "label": {
+          "ru": "Гл. II, §6",
+          "en": "Ch. II, §6"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/nietzsche-and-philosophy/9780231138772/"
+      }
     },
-    "links": {
-     "grc": "https://archive.org/details/clemensalexandri02clem"
-    },
-    "refs": [
-     [
-      "grc",
-      "Clem. Strom. V.14.104.2: Stählin vol. II (GCS 15), p. 396, ll. 10–13"
-     ],
-     [
-      "en",
-      "Burnet fr. (20), p. 134; Burnet adds \"R. P. 35.\""
-     ],
-     [
-      "ru",
-      "Нилендер, фр. 30"
-     ]
-    ],
-    "note": "Clement's text has no τόνδε (DK adds it from Plutarch/Simplicius); Nilender translates DK's text (\"космос этот\")."
-   }
-  },
-  "le-mythe-de-sisyphe": {
-   "return": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»: возвращение к подножию",
-     "en": "Chapter “The Myth of Sisyphus”: the return down"
-    },
-    "texts": {}
-   },
-   "tragic": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»: конец абзаца о сознании героя",
-     "en": "Chapter “The Myth of Sisyphus”: end of the paragraph on the hero’s consciousness"
-    },
-    "texts": {
-     "fr": "Il n'est pas de destin qui ne se surmonte par le mépris."
-    },
-    "refs": [
-     [
-      "fr",
-      "final chapter « Le mythe de Sisyphe », last sentence of the paragraph beginning \"Si ce mythe est tragique, c'est que son héros est conscient\", Folio essais p. 166 (per fr.wikiquote)"
-     ]
-    ],
-    "note": "Wording from fr.wikiquote, not verified against an edition. The paragraph's opening sentence (as given in the brief) could not be verified and is not included."
-   },
-   "descent": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»: спуск в скорби и в радости",
-     "en": "Chapter “The Myth of Sisyphus”: the descent in sorrow and in joy"
-    },
-    "texts": {}
-   },
-   "joy": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»: безмолвная радость Сизифа",
-     "en": "Chapter “The Myth of Sisyphus”: Sisyphus’s silent joy"
-    },
-    "texts": {}
-   },
-   "subtle": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»: миг, когда человек оглядывается на свою жизнь",
-     "en": "Chapter “The Myth of Sisyphus”: the moment a man looks back on his life"
-    },
-    "texts": {}
-   },
-   "ascent": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»: камень скатывается с вершины",
-     "en": "Chapter “The Myth of Sisyphus”: the stone rolls down from the summit"
-    },
-    "texts": {}
-   },
-   "last": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»: последний абзац, начало и конец",
-     "en": "Chapter “The Myth of Sisyphus”: last paragraph, opening and close"
-    },
-    "texts": {
-     "fr": "Je laisse Sisyphe au bas de la montagne ! On retrouve toujours son fardeau. […] La lutte elle-même vers les sommets suffit à remplir un cœur d'homme. Il faut imaginer Sisyphe heureux."
-    },
-    "refs": [
-     [
-      "fr",
-      "final chapter « Le mythe de Sisyphe », first two sentences of the last paragraph, Folio essais p. 168 (per fr.wikiquote)"
-     ],
-     [
-      "fr",
-      "final chapter « Le mythe de Sisyphe », last two sentences of the essay, Folio essais p. 168 (per fr.wikiquote)"
-     ]
-    ],
-    "note": "Wording from fr.wikiquote (which gives the whole last paragraph), not verified against an edition. The space before \"!\" is the French typographic space as given there. Wording from fr.wikiquote, not verified against an edition."
-   },
-   "whole": {
-    "label": {
-     "ru": "Глава «Миф о Сизифе»",
-     "en": "Chapter “The Myth of Sisyphus”"
-    },
-    "texts": {}
-   }
-  },
-  "nietzsche-et-la-philosophie": {
-   "II.5": {
-    "label": {
-     "ru": "Гл. II, конец §5",
-     "en": "Ch. II, end of §5"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/nietzsche-and-philosophy/9780231138772/"
-   },
-   "II.6": {
-    "label": {
-     "ru": "Гл. II, §6",
-     "en": "Ch. II, §6"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/nietzsche-and-philosophy/9780231138772/"
-   }
-  },
-  "difference-et-repetition": {
-   "intro": {
-    "label": {
-     "ru": "Введение",
-     "en": "Introduction"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   },
-   "intro.generality": {
-    "label": {
-     "ru": "Введение: повторение — не всеобщность",
-     "en": "Introduction: repetition is not generality"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   },
-   "intro.programme": {
-    "label": {
-     "ru": "Введение: первое из четырёх положений",
-     "en": "Introduction: the first of the four propositions"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   },
-   "intro.corrections": {
-    "label": {
-     "ru": "Введение: второе из четырёх положений — поправки Заратустры карлику и зверям",
-     "en": "Introduction: the second of the four propositions — Zarathustra’s corrections of the dwarf and of the animals"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   },
-   "intro.propositions": {
-    "label": {
-     "ru": "Введение: четыре положения, общие Кьеркегору и Ницше",
-     "en": "Introduction: the four propositions Kierkegaard and Nietzsche share"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   },
-   "intro.insurmountable": {
-    "label": {
-     "ru": "Введение: непреодолимое различие Кьеркегора и Ницше",
-     "en": "Introduction: the insurmountable difference between Kierkegaard and Nietzsche"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   },
-   "intro.movement": {
-    "label": {
-     "ru": "Введение: метафизика, приведённая в движение",
-     "en": "Introduction: metaphysics set in motion"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   },
-   "intro.selective": {
-    "label": {
-     "ru": "Введение: вечное возвращение как отбор",
-     "en": "Introduction: the eternal return as selection"
-    },
-    "texts": {},
-    "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
-   }
+    "difference-et-repetition": {
+      "intro": {
+        "label": {
+          "ru": "Введение",
+          "en": "Introduction"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      },
+      "intro.generality": {
+        "label": {
+          "ru": "Введение: повторение — не всеобщность",
+          "en": "Introduction: repetition is not generality"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      },
+      "intro.programme": {
+        "label": {
+          "ru": "Введение: первое из четырёх положений",
+          "en": "Introduction: the first of the four propositions"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      },
+      "intro.corrections": {
+        "label": {
+          "ru": "Введение: второе из четырёх положений — поправки Заратустры карлику и зверям",
+          "en": "Introduction: the second of the four propositions — Zarathustra’s corrections of the dwarf and of the animals"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      },
+      "intro.propositions": {
+        "label": {
+          "ru": "Введение: четыре положения, общие Кьеркегору и Ницше",
+          "en": "Introduction: the four propositions Kierkegaard and Nietzsche share"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      },
+      "intro.insurmountable": {
+        "label": {
+          "ru": "Введение: непреодолимое различие Кьеркегора и Ницше",
+          "en": "Introduction: the insurmountable difference between Kierkegaard and Nietzsche"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      },
+      "intro.movement": {
+        "label": {
+          "ru": "Введение: метафизика, приведённая в движение",
+          "en": "Introduction: metaphysics set in motion"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      },
+      "intro.selective": {
+        "label": {
+          "ru": "Введение: вечное возвращение как отбор",
+          "en": "Introduction: the eternal return as selection"
+        },
+        "texts": {},
+        "url": "https://cup.columbia.edu/book/difference-and-repetition/9780231081597/"
+      }
+    }
   }
- }
 }

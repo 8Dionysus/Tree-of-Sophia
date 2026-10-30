@@ -10,6 +10,7 @@
 
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
+import {createLatestFragmentRequest} from './fragment-request.mjs';
 import {copyLocale,localeValue,resolveLocale} from './locale.mjs';
 
 const ZARATHUSTRA='also-sprach-zarathustra';
@@ -106,6 +107,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
 
   // ── The parallel reading: a chapter, original beside translation, row by row. ──
   let reader=null;
+  const chapterRequests=createLatestFragmentRequest();
   function parallel(){
     if(reader)return reader;
     const dialog=el('dialog','ps-dialog ps-parallel');
@@ -115,14 +117,16 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const body=el('div','ps-parallel-body'),foot=el('div','ps-parallel-foot');
     dialog.append(head,body,foot);
     close.addEventListener('click',()=>dialog.close());
+    dialog.addEventListener('close',()=>chapterRequests.cancel());
     (host()??document.body).append(dialog);
     reader={dialog,titles,body,foot,previous,next,close,current:null};
-    previous.addEventListener('click',()=>{const at=CHAPTER_KEYS.indexOf(reader.current?.key);if(at>0)void showChapter(CHAPTER_KEYS[at-1]);});
-    next.addEventListener('click',()=>{const at=CHAPTER_KEYS.indexOf(reader.current?.key);if(at>=0&&at<CHAPTER_KEYS.length-1)void showChapter(CHAPTER_KEYS[at+1]);});
+    previous.addEventListener('click',()=>{const at=CHAPTER_KEYS.indexOf(reader.current?.key);if(at>0)void showChapter(CHAPTER_KEYS[at-1]).catch(error=>onError?.(error));});
+    next.addEventListener('click',()=>{const at=CHAPTER_KEYS.indexOf(reader.current?.key);if(at>=0&&at<CHAPTER_KEYS.length-1)void showChapter(CHAPTER_KEYS[at+1]).catch(error=>onError?.(error));});
     return reader;
   }
   async function showChapter(key,cite=null){
-    const view=parallel(),[data,info]=await Promise.all([chapter(key),witnesses()]);
+    const view=parallel(),current=chapterRequests.begin(),[data,info]=await Promise.all([chapter(key),witnesses()]);
+    if(!current()||reader!==view)return;
     view.current={key,cite};
     const {primary,alternate}=readingLanguages(locale());
     const columns=[...new Set(['de',...primary.filter(language=>language!=='de'),...(alternate&&alternate!=='de'?[alternate]:[])])].filter(language=>info.witnesses[language]);
@@ -366,7 +370,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     parent.append(box);
     return box;
   }
-  return {render,fragment,showChapter,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){reader?.dialog.remove();reader=null;}};
+  return {render,fragment,showChapter,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }
 
 export {CHAPTER_KEYS,copyLocale};
