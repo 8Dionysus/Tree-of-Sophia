@@ -386,7 +386,11 @@ export const RELATION_INQUIRY = {
   "atlas:dossier:develops:open-reading": {
     "warrant": {
       "ru": "Один мотив проходит через вопрос к карлику, видение пастуха и песню зверей. Сравнение даёт основания различить космологическую формулу, испытание говорящего и работу образа, не распределяя их заранее по отдельным книгам.",
-      "en": "One motif passes through questions to the dwarf, the shepherd’s vision and the animals’ song. Comparison grounds a distinction among cosmological formulation, the speaker’s ordeal and the work of imagery within the same book."
+      "en": "One motif passes through questions to the dwarf, the shepherd’s vision and the animals’ song. Comparison grounds a distinction among cosmological formulation, the speaker’s ordeal and the work of imagery within the same book.",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]}
+      ]
     },
     "grounds": [
       {
@@ -863,7 +867,8 @@ export const RELATION_INQUIRY = {
       "ru": "Космологическое чтение удерживает именно этот объём и прослеживает, как вопросы о связанности вещей у ворот переходят в описание повторяющегося порядка.",
       "en": "Cosmological reading retains that scope and follows how the gateway’s questions about connected things become a description of a recurring order.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-10678cf0654441cbca37527da1dd9ece","tos.text-unit.sid-aa80ebe6fb9de20b613cb4f53ed7e855"]}
       ]
     },
     "grounds": [
@@ -885,7 +890,10 @@ export const RELATION_INQUIRY = {
     "warrant": {
       "ru": "Сопоставление с формулой зверей позволяет читать тождество жизни как содержание личного испытания, а не только описание последовательности.",
       "en": "Beside the animals’ formula, life’s identity becomes the content of a personal trial as well as a description of sequence.",
-      "cite": [{"w":"die-froehliche-wissenschaft","loc":"341"}]
+      "cite": [
+        {"w":"die-froehliche-wissenschaft","loc":"341"},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-9e959c02dfdc678408dd5d20287553c2","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
+      ]
     },
     "grounds": [
       {"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]},
@@ -1107,7 +1115,11 @@ export const RELATION_INQUIRY = {
   "atlas:open-reading:develops:cosmos-evidence": {
     "warrant": {
       "ru": "Вопросы о связанности мира у ворот и вопрос демона о действии имеют разный адрес. Сравнение прочтений начинается с этой разницы: что именно текст просит мыслить как устройство мира и что предлагает испытать на собственном ответе.",
-      "en": "The gateway’s questions about the world’s connections and the demon’s question about action address different objects. Comparing readings begins here: what does the text ask us to think as the world’s arrangement, and what to test in our own response?"
+      "en": "The gateway’s questions about the world’s connections and the demon’s question about action address different objects. Comparing readings begins here: what does the text ask us to think as the world’s arrangement, and what to test in our own response?",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-10678cf0654441cbca37527da1dd9ece","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]},
+        {"w":"die-froehliche-wissenschaft","loc":"341"}
+      ]
     },
     "grounds": [
       {
@@ -2124,7 +2136,8 @@ export const RELATION_INQUIRY = {
       "en": "Repeated movement’s resemblance reveals Camus’s addition: returning to the beginning includes awareness of one’s lot during the descent’s pause.",
       "cite": [
         {"w":"le-mythe-de-sisyphe","loc":"ascent"},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39"],"s":32,"e":60}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39"],"s":32,"e":60},
+        {"w":"le-mythe-de-sisyphe","loc":"return"}
       ]
     },
     "grounds": [
@@ -2170,7 +2183,10 @@ export const RELATION_INQUIRY = {
     "warrant": {
       "ru": "Рядом с учительством Заратустры сознание Сизифа во время спуска делает различимым переход от произносимого знания к способу жить с ним: глава о выздоровлении тоже помещает речь после испытания.",
       "en": "Beside Zarathustra’s teaching, Sisyphus’s consciousness during the descent distinguishes articulated knowledge from a way of living with it: the convalescence chapter likewise places speech after an ordeal.",
-      "cite": [{"w":"le-mythe-de-sisyphe","loc":"tragic"}]
+      "cite": [
+        {"w":"le-mythe-de-sisyphe","loc":"tragic"},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]}
+      ]
     },
     "grounds": [
       {"ref":"camus-sisyphus","cite":[{"w":"le-mythe-de-sisyphe","loc":"return"}]},
@@ -2497,7 +2513,11 @@ export const RELATION_INQUIRY = {
         "focus": {
           "ru": "Припев после §1 и после §§6–7: те же слова в другом образном окружении.",
           "en": "The refrain after §1 and after §§6–7: the same words in another setting of images."
-        }
+        },
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-5af9e1110a7579a7427c94403f629e85","tos.text-unit.sid-cc29f340979315938b54f43eb7db749e"],"s":60},
+          {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-745a62dbd7262ad9b8c0aa47c1262130","tos.text-unit.sid-04129b0a35e53ec20ae436790aa0dc1c"]}
+        ]
       }
     ],
     "question": {

@@ -243,9 +243,10 @@ export function estimate(sourceChapters,targetChapters){
 // Sentence ends inside a unit's exact text; whitespace between sentences belongs to none.
 const END=/[.!?…]+[»«“”"‚‘’)\]]*(?=\s)/gu;
 const NEXT=/\s+(?=[«„»“"‚(\[—–-]|\p{L}(?<=[A-ZÄÖÜА-ЯЁ]))/uy;
-// Greek ends a question with ";" and a clause with "·", and its editions seldom capitalise a new
-// sentence; Latin editions do not always either. Their sentences end on the mark alone.
-const END_ANCIENT={grc:/[.;\u037e\u0387\u00b7]+[»”’)\]]*(?=\s)/gu,la:/[.!?]+[»”’)\]]*(?=\s)/gu};
+// Greek ends a sentence with "." and a question with ";"; its raised dot "·" joins clauses inside a
+// sentence (a translation renders it as a colon or semicolon), so it ends none. Greek editions seldom
+// capitalise a new sentence, Latin ones not always either: their sentences end on the mark alone.
+const END_ANCIENT={grc:/[.;\u037e]+[»”’)\]]*(?=\s)/gu,la:/[.!?]+[»”’)\]]*(?=\s)/gu};
 const NEXT_ANY=/\s+(?=\S)/uy;
 /** [start, end) of each sentence of a unit, in code points of its exact text. */
 export function sentenceSpans(raw,language=null){
@@ -270,7 +271,7 @@ export function sentenceSpans(raw,language=null){
 }
 
 /** Sentences of one side of a group, carrying [unit index, start, end]. */
-function sentencesOf(units,language){
+export function sentencesOf(units,language){
   const items=[];
   for(const unit of units){
     const text=chars(unit.raw);

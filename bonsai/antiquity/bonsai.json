@@ -125,6 +125,24 @@
       "format": "tos.bonsai.basemap.v1"
     },
     {
+      "id": "fragments",
+      "path": "fragments.json",
+      "format": "tos.bonsai.fragments.v1",
+      "role": {
+        "ru": "Точный текст цитируемых мест произведений, которых нет в открытом корпусе, с изданием, источником, лицензией и основанием показа.",
+        "en": "The exact text of the cited places of works outside the public corpus, with edition, source, licence and the basis for showing it."
+      }
+    },
+    {
+      "id": "alignment",
+      "path": "alignment.json",
+      "format": "tos.bonsai.corpus-alignment.v1",
+      "role": {
+        "ru": "Для каждого цитируемого места оригинала в открытом корпусе — его места в переводах корпуса и пары предложений, найденные механизмом выравнивания бонсая; только идентификаторы и смещения, без текста.",
+        "en": "For each cited place of an original in the public corpus, its places in the corpus translations and the sentence pairs found by the bonsai’s alignment mechanism; identifiers and offsets only, no text."
+      }
+    },
+    {
       "id": "identities",
       "path": "identities.json",
       "role": {

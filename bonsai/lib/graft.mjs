@@ -14,7 +14,9 @@ import {chronologyIssues} from './chronology.mjs';
 import {contractOf,exportBonsai} from './export.mjs';
 import {placesIssues} from './places.mjs';
 import {createValidator} from './schema.mjs';
-import {witnessesIssues} from './witnesses.mjs';
+import {corpusAlignmentIssues,externalPlacesIssues} from './fragments.mjs';
+import {objectsIssues,semanticRegistry} from './objects.mjs';
+import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -55,13 +57,10 @@ export function treeContracts(root){
  * fall within its domain and range (through the entity registry's parents).
  */
 export function treeRelations(root){
-  const dir=join(root,'ToS','doctrine','semantic-interchange');
-  const relations=json(join(dir,'relation-types.v1.json')).relations??[],types=json(join(dir,'entity-types.v1.json')).types??[];
-  const parents=new Map(types.map(type=>[type.type_id,type.parent_type_ids??[]])),kinds=new Map(),byPredicate=new Map();
-  for(const type of types)for(const mapping of type.source_mappings??[])if(mapping.source_graph==='source-claims')kinds.set(mapping.source_kind_id,type.type_id);
-  for(const relation of relations)for(const mapping of relation.source_mappings??[])if(mapping.source_graph==='source-claims'&&mapping.scope==='claim-predicate')byPredicate.set(mapping.source_predicate_id,relation);
-  const lineage=typeId=>{const seen=new Set(),stack=[typeId];while(stack.length){const id=stack.pop();if(id&&!seen.has(id)){seen.add(id);stack.push(...(parents.get(id)??[]));}}return seen;};
-  const within=(kind,allowed)=>{const typeId=kinds.get(kind);if(!typeId)return false;const line=lineage(typeId);return (allowed??[]).some(id=>line.has(id));};
+  const registry=semanticRegistry(root),kinds=new Map(),byPredicate=new Map();
+  for(const type of registry.types)for(const mapping of type.source_mappings??[])if(mapping.source_graph==='source-claims')kinds.set(mapping.source_kind_id,type.type_id);
+  for(const relation of registry.relations)for(const mapping of relation.source_mappings??[])if(mapping.source_graph==='source-claims'&&mapping.scope==='claim-predicate')byPredicate.set(mapping.source_predicate_id,relation);
+  const within=(kind,allowed)=>{const typeId=kinds.get(kind);return !!typeId&&registry.within(typeId,allowed);};
   return {
     /** Where a claim departs from the registry; `kindOf` gives the kind of an identity the export lists. */
     issues(claim,kindOf){
@@ -95,6 +94,20 @@ export function treeIdentities(root){
   return ids;
 }
 
+/**
+ * A check of a place a bonsai cites: a place in its witnesses against the chapter it names, a place of another work
+ * against the places the bonsai keeps for it. A place in a public corpus work is checked by the stand that reads it.
+ */
+export function placeChecker(chapters,fragments){
+  const read=new Map(),chapterOf=key=>{if(!read.has(key))read.set(key,chapters[key]?readChapter(chapters[key]):null);return read.get(key);};
+  return cite=>{
+    if(!cite||typeof cite!=='object'||!cite.w)return ['not a citation'];
+    if(cite.c){const chapter=chapterOf(cite.c);return chapter?citeIssues(cite,chapter):[`no chapter ${cite.c} in the witnesses`];}
+    if(cite.loc)return fragments?.places?.[cite.w]?.[cite.loc]?[]:[`no place ${cite.w} ${cite.loc} among the places of other works`];
+    return Array.isArray(cite.u)&&cite.u.length===2?[]:['a corpus place names no units'];
+  };
+}
+
 /** Problems that make a bonsai or its export unfit for the Tree, and what has moved since the graft. */
 export function checkBonsai(root,id,{validator=treeContracts(root),relations,identities=treeIdentities(root)}={}){
   const {home,manifest,modules}=loadBonsai(root,id),problems=[],drift=[];
@@ -104,7 +117,14 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(manifest.id!==id)problems.push('manifest id');
   if(modules.chronology)problems.push(...chronologyIssues(modules.chronology).map(issue=>`chronology: ${issue}`));
   if(modules.places)problems.push(...placesIssues(modules.places,modules.chronology??null).map(issue=>`places: ${issue}`));
-  if(modules.witnesses)problems.push(...witnessesIssues(modules.witnesses,loadWitnessChapters(home,manifest)).map(issue=>`witnesses: ${issue}`));
+  const chapters=modules.witnesses?loadWitnessChapters(home,manifest):{};
+  if(modules.witnesses)problems.push(...witnessesIssues(modules.witnesses,chapters).map(issue=>`witnesses: ${issue}`));
+  if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
+  if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
+  if(modules.objects){
+    let registry=null;try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}
+    if(registry)problems.push(...objectsIssues(modules.objects,registry,placeChecker(chapters,modules.fragments??null)).map(issue=>`objects: ${issue}`));
+  }
   for(const module of manifest.modules??[])if(module.borrowed){for(const path of [].concat(module.borrowed))if(!existsSync(join(root,path)))problems.push(`borrowed module ${module.id}: ${path} is missing`);}
   let packet=null;
   if(modules.chronology){

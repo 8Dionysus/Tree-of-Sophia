@@ -50,7 +50,8 @@ export const INQUIRY_SOURCES_CONCEPTS = {
       "cite": [
         {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1ff6168fe5e0cefdab5c0553114aa8af","tos.text-unit.sid-1ff6168fe5e0cefdab5c0553114aa8af"],"s":1,"e":123},
         {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-1444d006a038716b06a33646bf0b0439","tos.text-unit.sid-a25836b92a53f9f127019fa8fa725a25"]},
-        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]}
+        {"w":"also-sprach-zarathustra","c":"I.02","u":["tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9","tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"]},
+        {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-2e70c0417788cd9ae6a9d2d112a7670a"],"s":82}
       ]
     },
     "grounds": [
@@ -278,7 +279,10 @@ export const INQUIRY_SOURCES_CONCEPTS = {
       "text": {
         "ru": "В §341 «Весёлой науки» та же строгость повтора предъявляется иначе: демон обращается прямо к «тебе», обещая прежние боли, радости, мысли и вздохи в том же порядке. Эта форма позволяет читать точное повторение как обращённое к человеку испытание, тогда как речь зверей включена в драму выздоровления.",
         "en": "In The Gay Science §341, the same strictness of repetition is presented differently: a demon addresses “you” directly and announces the same pains, joys, thoughts and sighs in the same order. This form allows exact repetition to be read as a trial addressed to a person, whereas the animals’ speech belongs within the drama of recovery.",
-        "cite": [{"w":"die-froehliche-wissenschaft","loc":"341"}]
+        "cite": [
+          {"w":"die-froehliche-wissenschaft","loc":"341"},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"]}
+        ]
       },
       "grounds": [{"ref":"gs341","cite":[{"w":"die-froehliche-wissenschaft","loc":"341"}]}]
     },
@@ -625,7 +629,9 @@ export const INQUIRY_SOURCES_CONCEPTS = {
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-644ff83c17e4f860c7137f40386012fa","tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"]},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c","tos.text-unit.sid-731a9e34e7c14198ab956f27436becc4"]},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-47ecea77ae8a30862d06ed7c80ebdf1a","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":0,"e":34}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"],"s":0,"e":34},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]}
       ]
     },
     "grounds": [
@@ -639,7 +645,8 @@ export const INQUIRY_SOURCES_CONCEPTS = {
         "ref": "z-convalescent",
         "focus": {"ru":"Это точная внутренняя перекличка действия.","en":"This is the precise internal echo of the act."},
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]},
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]}
         ]
       }
     ],
@@ -654,7 +661,8 @@ export const INQUIRY_SOURCES_CONCEPTS = {
       "en": "In The Convalescent, Zarathustra repeats the bite in the first person but adds a remainder absent from the vision’s triumphant ending: he is still exhausted and sick with his salvation. Together the passages give the bite temporal depth. The decisive act interrupts choking; the account of recovery shows that its consequences still have to be borne.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-7a283fb2da9d76328d331e581c823e09"]},
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"]}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
       ]
     },
     "grounds": [
@@ -913,7 +921,11 @@ export const INQUIRY_SOURCES_CONCEPTS = {
     "counterReading": {
       "text": {
         "ru": "В «Выздоравливающем» сам Заратустра описывает трудность этого расширения: возвращается также малый человек, которого он не может вынести. Это внутреннее сопротивление мысли остаётся частью пути к утверждению; из него нельзя сразу вывести ни окончательный отказ, ни уже достигнутое «да».",
-        "en": "In The Convalescent, Zarathustra himself describes the difficulty of this expansion: the small human whom he cannot bear also returns. This internal resistance remains part of the path toward affirmation; it does not immediately establish either a final refusal or an already accomplished Yes."
+        "en": "In The Convalescent, Zarathustra himself describes the difficulty of this expansion: the small human whom he cannot bear also returns. This internal resistance remains part of the path toward affirmation; it does not immediately establish either a final refusal or an already accomplished Yes.",
+        "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]},
+          {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495"]}
+        ]
       },
       "grounds": [
         {
@@ -962,7 +974,8 @@ export const INQUIRY_SOURCES_CONCEPTS = {
       "en": "In The Convalescent, fate acquires another, vocational meaning: the animals call being the first teacher of recurrence Zarathustra’s fate, and this task becomes his danger and illness. In both chapters fate connects with what creation or proclamation demands; its meaning must be read with the speaker’s particular task.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443","tos.text-unit.sid-8633a4e29cd08c654ad688a5aef20edc"]},
-        {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-8633a4e29cd08c654ad688a5aef20edc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
+        {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-8633a4e29cd08c654ad688a5aef20edc","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]}
       ]
     },
     "grounds": [

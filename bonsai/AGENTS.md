@@ -27,6 +27,14 @@ holds the shared readers, the Tree-contract check and the export. Stands under
 - The Tree grows independently. The manifest records the Tree revision and
   contract digests of the graft; drift is reported, and the export is checked
   against the contracts in the current checkout.
+- A stand shows a work's own text, never a retelling of it: an authored form
+  cites the place in the original, and the place in a translation follows
+  from the alignment made by `lib/align.mjs` and `lib/corpus-align.mjs`, never
+  from a hand-picked paragraph. A witness's text is kept exactly as its source
+  gives it, with its edition, licence, attribution and rights basis.
+- Objects of thought take their types and relations from the Tree's
+  registries only; a relation the stand's structure does not give is not
+  invented, and a kind of link the registry lacks stays the stand's proposal.
 - A module that saved personal graphs depend on keeps its material IDs when it
   moves or changes, or its stand declares how the earlier graph upgrades.
 

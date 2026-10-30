@@ -270,7 +270,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "en": "The later passage permits a return to the earlier one, connecting the vision with the ordeal of its narrator. Yet this movement of understanding does not require treating every detail of the first scene as definitively decoded.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]},
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]}
       ]
     },
     "grounds": [
@@ -398,7 +399,9 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "Повторное чтение позволяет проверить связь двух сцен на неизменившихся словах. Если после «Выздоравливающего» пастух начинает напоминать самого Заратустру, основанием служит позднейший рассказ об укусе чудовища. Практика возвращения поэтому сопоставляет приобретённое основание с тем, что оно ещё не объяснило.",
       "en": "Rereading allows the connection between two scenes to be examined against unchanged words. If the shepherd begins to resemble Zarathustra himself after “The Convalescent”, the ground is the later account of biting the monster. The practice of returning therefore compares a newly acquired ground with what it has not yet explained.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f2eedab19687488999cbf7581dc2b74e","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"],"s":0},
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]}
       ]
     },
     "grounds": [
@@ -643,7 +646,8 @@ export const INQUIRY_READINGS_ECHOES = {
       "ru": "В §341 та же полнота выражается через перечисление малого и великого в прежнем порядке. Сопоставление различает два довода о целом: связанность событий и условие тождества всей последовательности. Изменение одной подробности нарушает второе условие, но само по себе ещё не показывает, какие именно причинные связи нарушены в первом.",
       "en": "In §341, the same completeness is expressed by enumerating the small and great in their former order. Comparison distinguishes two arguments about a whole: events’ connectedness and the condition of an entire sequence’s identity. Changing one detail violates the second condition without yet showing which causal connections are broken in the first.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"]}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"]},
+        {"w":"die-froehliche-wissenschaft","loc":"341"}
       ]
     },
     "grounds": [

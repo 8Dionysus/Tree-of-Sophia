@@ -137,6 +137,35 @@
       "identities": "citations name pivot units by their Tree technical-markup IDs; saved graphs do not depend on this module"
     },
     {
+      "id": "fragments",
+      "path": "fragments.json",
+      "format": "tos.bonsai.fragments.v1",
+      "role": {
+        "ru": "Точный текст мест других произведений, на которые опирается карта (§§276 и 341 «Весёлой науки», Спиноза, Лейбниц, Кьеркегор, Гераклит, Эпиктет, Марк Аврелий), в оригинале и переводах, с изданием, источником, лицензией и основанием показа; охраняемые произведения — короткими цитатами или только адресом.",
+        "en": "The exact text of the places in other works the map rests on (Gay Science §§276 and 341, Spinoza, Leibniz, Kierkegaard, Heraclitus, Epictetus, Marcus Aurelius), in the original and translations, with edition, source, licence and the basis for showing it; protected works by short quotation or by address only."
+      }
+    },
+    {
+      "id": "alignment",
+      "path": "alignment.json",
+      "format": "tos.bonsai.corpus-alignment.v1",
+      "role": {
+        "ru": "Выравнивание произведений публичного корпуса, на которые ссылается карта («Энхиридион» и «Размышления»): для каждого цитируемого места оригинала — его соответствия в переводах корпуса и пары предложений внутри них; только идентификаторы и смещения, без текста.",
+        "en": "The alignment of the public corpus works the map cites (the Enchiridion and the Meditations): for every cited place of the original, its counterparts in the corpus translations and the sentence pairs inside them; ids and offsets only, never text."
+      },
+      "mechanism": "bonsai/lib/corpus-align.mjs"
+    },
+    {
+      "id": "objects",
+      "path": "objects.json",
+      "format": "tos.bonsai.objects.v1",
+      "role": {
+        "ru": "Чем являются собственные слова стенда в типах объектов Древа: проблемы и вопросы, понятия, трактовки и их аспекты, позиции, доводы и возражения, различения, методы и образы мысли, мысленные эксперименты — с формой, где стоят слова, местами текста, на которые они опираются, и связями реестра Древа там, где их даёт устройство стенда; связи между местами текстов — как предложение стенда.",
+        "en": "What the stand’s own words are in the Tree’s object types: problems and questions, concepts, conceptions and their aspects, positions, arguments and objections, distinctions, methods and images of thought, thought experiments — with the form that holds the words, the places of text they rest on, and relations of the Tree’s registry where the stand’s structure gives them; links between places of texts as the stand’s proposal."
+      },
+      "identities": "objects name the atlas’s material IDs and the forms of its modules; saved graphs do not depend on this module"
+    },
+    {
       "id": "identities",
       "path": "identities.json",
       "role": {

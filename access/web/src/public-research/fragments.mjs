@@ -20,6 +20,7 @@ const PLACES={
   antiquity:()=>import('../../../../bonsai/antiquity/fragments.json',{with:{type:'json'}}).then(module=>module.default),
 };
 const ALIGNMENTS={
+  zarathustra:()=>import('../../../../bonsai/zarathustra/alignment.json',{with:{type:'json'}}).then(module=>module.default),
   antiquity:()=>import('../../../../bonsai/antiquity/alignment.json',{with:{type:'json'}}).then(module=>module.default),
 };
 const CHAPTER_KEYS=Object.keys(chapterFiles).map(path=>path.split('/').pop().replace(/\.json$/,'')).sort((a,b)=>{const [pa,ca]=a.split('.'),[pb,cb]=b.split('.'),order=['I','II','III','IV'];return order.indexOf(pa)-order.indexOf(pb)||Number(ca)-Number(cb);});

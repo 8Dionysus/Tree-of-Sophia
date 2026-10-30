@@ -254,7 +254,11 @@ export const RESEARCH_ROUTES = [
     ],
     "conclusion": {
       "ru": "Создание судьбы получает несколько точных смыслов: поступки совершаются, память соединяет их, воля спрашивает о своём отношении к уже бывшему. Камю и «Об избавлении» по-разному связывают эти движения с продолжающейся жизнью. Следующее чтение можно строить вокруг оставшегося вопроса: как творящее отношение к прошлому связано с хотением будущего?",
-      "en": "Making fate acquires several precise meanings: actions are performed, memory joins them, and willing questions its relation to what has been. Camus and “Redemption” connect these movements with continuing life differently. A further reading can follow the remaining question: how does a creative relation to the past connect with willing the future?"
+      "en": "Making fate acquires several precise meanings: actions are performed, memory joins them, and willing questions its relation to what has been. Camus and “Redemption” connect these movements with continuing life differently. A further reading can follow the remaining question: how does a creative relation to the past connect with willing the future?",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-cad70ec5a95e4aa4ebec565f3f3a9d3b","tos.text-unit.sid-ff240a868709abef0da385e34299d2c3"],"s":106},
+        {"w":"le-mythe-de-sisyphe","loc":"subtle"}
+      ]
     },
     "investigation": {
       "startingPoint": {
@@ -865,7 +869,8 @@ export const RESEARCH_ROUTES = [
           "ru": "Это заставляет исследовать сам способ отвечать другому. Затем в «Об избавлении» месть получает другое основание — бессилие воли перед временем; сопоставление уточняет, откуда возникает требование ответа.",
           "en": "This directs inquiry toward the manner of answering another. In “Redemption,” revenge receives another ground—willing’s powerlessness before time; comparison specifies where a demand for response arises.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-6d5d64df7654526f06be7538126618e8","tos.text-unit.sid-6d5d64df7654526f06be7538126618e8"],"s":0,"e":66}
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-6d5d64df7654526f06be7538126618e8","tos.text-unit.sid-6d5d64df7654526f06be7538126618e8"],"s":0,"e":66},
+            {"w":"also-sprach-zarathustra","c":"II.20","u":["tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b","tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"]}
           ]
         },
         "question": {
@@ -1442,7 +1447,11 @@ export const RESEARCH_ROUTES = [
         "title": {"ru":"Хотеть снова услышанного","en":"Wanting what was heard again"},
         "body": {
           "ru": "Желание смеха можно поставить рядом с огромным мгновением §341, после которого слушающий ответил бы демону как богу. В обоих местах один опыт меняет вопрос об отношении к жизни. Сравнение требует уточнить, чего именно хотят вновь: услышанного смеха или всей жизни в прежнем порядке.",
-          "en": "The desire for laughter can stand beside §341’s immense moment, after which the hearer might address the demon as a god. In both passages, one experience changes the relation to life. Comparison asks what is wanted again: the laughter heard or the entire life in its previous order."
+          "en": "The desire for laughter can stand beside §341’s immense moment, after which the hearer might address the demon as a god. In both passages, one experience changes the relation to life. Comparison asks what is wanted again: the laughter heard or the entire life in its previous order.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]},
+            {"w":"die-froehliche-wissenschaft","loc":"341"}
+          ]
         },
         "question": {
           "ru": "Как от желания одного переживания перейти к желанию возвращения жизни?",
@@ -1631,7 +1640,11 @@ export const RESEARCH_ROUTES = [
     ],
     "conclusion": {
       "ru": "Видение связало помощь, собственный укус и желание рассказчика; песнь дала желанию возвращающуюся форму. Сравнение смеха и припева уточнило, как образ способен продолжать мысль через изменение слуха и ожидания. Дальнейшее чтение можно начать с этой связи: что значит желать вновь того, что однажды преобразило желание?",
-      "en": "The vision connected help, the shepherd’s own bite and the narrator’s longing; the song gave desire a returning form. Comparing laughter with refrain sharpened how an image can carry thought through changed hearing and expectation. Further reading can begin here: what does it mean to want again what once transformed desire?"
+      "en": "The vision connected help, the shepherd’s own bite and the narrator’s longing; the song gave desire a returning form. Comparing laughter with refrain sharpened how an image can carry thought through changed hearing and expectation. Further reading can begin here: what does it mean to want again what once transformed desire?",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38407ce82a4703428377d06e4af5c240","tos.text-unit.sid-f7a488c0d098ab2f7052f4287a60e1d1"]},
+        {"w":"also-sprach-zarathustra","c":"III.16","u":["tos.text-unit.sid-5af9e1110a7579a7427c94403f629e85","tos.text-unit.sid-cc29f340979315938b54f43eb7db749e"]}
+      ]
     },
     "investigation": {
       "startingPoint": {
@@ -1681,7 +1694,11 @@ export const RESEARCH_ROUTES = [
         "body": {
           "ru": "В «О видении и загадке» память входит иначе: нынешний вой собаки вызывает детскую сцену. Сравните обозрение пути с одним узнаванием, которое ещё поведёт рассказ дальше.",
           "en": "In “The Vision and the Enigma,” memory enters differently: the present howl recalls a childhood scene. Compare surveying a path with one recognition that will carry the narrative onward.",
-          "cite": [{"w":"le-mythe-de-sisyphe","loc":"subtle"},{"w":"le-mythe-de-sisyphe","loc":"joy"}]
+          "cite": [
+            {"w":"le-mythe-de-sisyphe","loc":"subtle"},
+            {"w":"le-mythe-de-sisyphe","loc":"joy"},
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-2f41253d3959f2b77e74490541d39586","tos.text-unit.sid-7288d1aabe7691c1bc8d3619c3e8ef24"],"s":106}
+          ]
         },
         "question": {"ru":"Что соединяется памятью в каждом из двух мест?","en":"What does memory connect in each passage?"},
         "grounds": [
@@ -1888,7 +1905,11 @@ export const RESEARCH_ROUTES = [
     ],
     "conclusion": {
       "ru": "Память у Камю соединяет поступки в судьбу; в видении Заратустры узнавание открывает новый предмет внимания. Сцена пастуха и спутники воображаемой жизни показывают, как целое образуется через отношения. Вопрос §341 продолжает это чтение: что значит желать весь ход жизни, когда узнавание дало лишь отдельный вход в него?",
-      "en": "Memory in Camus joins actions into fate; in Zarathustra’s vision, recognition opens a new object of attention. The shepherd’s scene and the imagined life’s companions show a whole formed through relations. Section 341 continues the reading: what does wanting a life’s entire course mean when recognition supplied only one entrance into it?"
+      "en": "Memory in Camus joins actions into fate; in Zarathustra’s vision, recognition opens a new object of attention. The shepherd’s scene and the imagined life’s companions show a whole formed through relations. Section 341 continues the reading: what does wanting a life’s entire course mean when recognition supplied only one entrance into it?",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-2f41253d3959f2b77e74490541d39586","tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"]},
+        {"w":"le-mythe-de-sisyphe","loc":"subtle"}
+      ]
     },
     "investigation": {
       "startingPoint": {

@@ -435,7 +435,11 @@ export const NODE_CONTENT = {
   "demo:circle": {
     "body": {
       "ru": "Круг сначала звучит в ответе карлика, затем возвращается в речи зверей через колесо, кольцо и великий год. В обоих случаях рядом стоит трудность Заратустры: мысль должна вместить конкретную жизнь и быть вынесена говорящим.",
-      "en": "The circle first appears in the dwarf’s reply, then returns through the animals’ wheel, ring and great year. In both scenes Zarathustra’s difficulty stands beside it: the thought must include a particular life and be borne by its speaker."
+      "en": "The circle first appears in the dwarf’s reply, then returns through the animals’ wheel, ring and great year. In both scenes Zarathustra’s difficulty stands beside it: the thought must include a particular life and be borne by its speaker.",
+      "cite": [
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6","tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]}
+      ]
     },
     "perspectives": [
       {
@@ -574,7 +578,8 @@ export const NODE_CONTENT = {
       "ru": "Вопрос о том, кто должен прийти, остаётся частью сцены.",
       "en": "The question of who must come remains part of the scene.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-47ecea77ae8a30862d06ed7c80ebdf1a","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-47ecea77ae8a30862d06ed7c80ebdf1a","tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554"]},
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]}
       ]
     },
     "perspectives": [
@@ -591,7 +596,11 @@ export const NODE_CONTENT = {
         "title": {"ru":"Перекличка укуса","en":"The echo of the bite"},
         "body": {
           "ru": "В позднейшей главе тот же ход — глотка, чудовище, укус — становится рассказом от первого лица. Именно он даёт основание сопоставить фигуры.",
-          "en": "In the later chapter the same movement—throat, monster, bite—becomes a first-person account. That sequence grounds the comparison of the figures."
+          "en": "In the later chapter the same movement—throat, monster, bite—becomes a first-person account. That sequence grounds the comparison of the figures.",
+          "cite": [
+            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-731a9e34e7c14198ab956f27436becc4","tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193"],"s":90},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c1a61ec1014026941c54254a0978115d","tos.text-unit.sid-c1a61ec1014026941c54254a0978115d"]}
+          ]
         }
       }
     ],
@@ -730,7 +739,8 @@ export const NODE_CONTENT = {
           "ru": "Этот ответ развивает образ своим голосом.",
           "en": "Their reply develops the image in its own voice.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c"]}
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c"]},
+            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c8e9e850b816f1db51f391e81ec26f51","tos.text-unit.sid-711dc06c5cfe15d63a5af8a9195a5638"]}
           ]
         }
       }
@@ -785,7 +795,8 @@ export const NODE_CONTENT = {
       "ru": "Гераклитовский мерный огонь даёт другой способ связать длительность космоса с изменением. Их можно сопоставить по тому, что именно сохраняется.",
       "en": "Heraclitus’s measured fire offers another way to connect the cosmos’s endurance with change. They can be compared through what each preserves.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-12097ae74434d5e6f369736855a4ad47","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"],"s":0},
+        {"w":"heraclitus-book","loc":"B30"}
       ]
     },
     "perspectives": [
@@ -849,7 +860,8 @@ export const NODE_CONTENT = {
       "en": "Affirmation grows from learning to see toward wanting life’s return.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"],"s":0},
-        {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495"],"s":0}
+        {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495"],"s":0},
+        {"w":"die-froehliche-wissenschaft","loc":"276"}
       ]
     },
     "perspectives": [
@@ -1545,7 +1557,8 @@ export const NODE_CONTENT = {
           "ru": "«Знамение» возвращает это различие к самому Заратустре, который оставляет сострадание к высшим людям ради своего дела.",
           "en": "“The Sign” brings this distinction back to Zarathustra himself as he leaves pity for the higher men behind for his work.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":29,"e":124}
+            {"w":"also-sprach-zarathustra","c":"II.03","u":["tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c","tos.text-unit.sid-fe959c0f966ea242335efe53f13d134c"],"s":29,"e":124},
+            {"w":"also-sprach-zarathustra","c":"IV.20","u":["tos.text-unit.sid-550efec95e443c4bd2b7c2897f5a45c2","tos.text-unit.sid-d6a1000390b206c389275e22a2d379ae"],"s":12}
           ]
         }
       }
