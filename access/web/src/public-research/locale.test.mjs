@@ -40,7 +40,8 @@ test('every authored Bonsai display form has a translation entry',()=>{
     if(Array.isArray(value)){value.forEach(walk);return;}
     if(!value||typeof value!=='object')return;
     if(typeof value.ru==='string'&&typeof value.en==='string'&&value.en.trim()&&/\p{L}/u.test(value.en))forms.add(value.en);
-    Object.values(value).forEach(walk);
+    // A place's texts are a work's own words in its witnesses, not forms of the stand.
+    for(const [key,item] of Object.entries(value))if(key!=='texts')walk(item);
   };
   for(const stand of ['antiquity','zarathustra']){
     const home=new URL(`../../../../bonsai/${stand}/`,import.meta.url);

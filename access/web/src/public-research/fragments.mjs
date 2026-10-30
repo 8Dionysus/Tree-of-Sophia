@@ -246,7 +246,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         swap.addEventListener('click',()=>{showing=other;paint();figure.querySelector('.ps-fragment-swap')?.focus({preventScroll:true});});
         tools.append(swap);
       }
-      const url=place.url??work.witnesses?.[showing[0]]?.url;
+      // The source of the text shown: the place's own page in that witness, the place's page, or the witness.
+      const url=place.links?.[showing[0]]??place.url??work.witnesses?.[showing[0]]?.url;
       if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words('fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
       figure.append(tools);
     };

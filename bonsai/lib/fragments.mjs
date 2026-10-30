@@ -39,6 +39,9 @@ export function externalPlacesIssues(module){
     if(!work){problems.push(`places of unknown work ${id}`);continue;}
     for(const [loc,place] of Object.entries(list)){
       if(!bilingual(place.label))problems.push(`${id} ${loc} has no label in both languages`);
+      // A place may link its own page in a witness, or a page for the place as a whole (where a cited-only work can be found).
+      for(const [language,url] of Object.entries(place.links??{}))if(!work.witnesses?.[language]||!/^https:\/\//.test(url??''))problems.push(`${id} ${loc} links ${language} without a witness or a https URL`);
+      if(place.url!==undefined&&!/^https:\/\//.test(place.url))problems.push(`${id} ${loc} has a URL that is not https`);
       for(const [language,text] of Object.entries(place.texts??{})){
         if(text===null)continue;
         if(typeof text!=='string'||!text.trim())problems.push(`${id} ${loc} ${language} text is empty`);

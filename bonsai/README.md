@@ -170,7 +170,12 @@ translations, each witness with its edition, the URL its text was taken from,
 licence, attribution and rights basis: public domain, public domain with a
 licence of the digital copy, a short quotation of a protected work under the
 quotation right, or the locator alone where no exact text can be shown
-lawfully.
+lawfully. The rights record names the law of each jurisdiction (`russia`,
+`usa`, `eu`) and the reasoning. A place may link its own page in a witness
+(`links`, by language) or a page where a work cited by locator alone can be
+found (`url`); a work names the languages it has no witness in and why
+(`absent`), and the module keeps how the texts were gathered and corrected
+(`provenance`).
 
 `alignment.json` gives, for each cited unit of a corpus original, its
 counterparts in the corpus translations and the sentence pairs inside them:
