@@ -1,5 +1,12 @@
 //! Native software command roles shared by the build receipt and installed archive readers.
 //! This describes delivery only; execution, source selection and owner grants stay separate.
+/// Exact ToS schemas included in native software runtime data, not the whole
+/// source-contract catalog. CI budgeting and archive assembly share this list.
+pub const RUNTIME_TOS_SCHEMAS: [&str; 3] = [
+    "semantic-entity-type-registry.schema.json",
+    "semantic-relation-type-registry.schema.json",
+    "epistemic-evidence-projection.schema.json",
+];
 pub const COMMANDS: [&str; 18] = [
     "tos-native-owner-command",
     "tos-schema-worker",

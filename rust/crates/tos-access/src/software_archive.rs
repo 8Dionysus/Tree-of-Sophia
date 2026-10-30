@@ -33,7 +33,7 @@ use tos_foundation::{
 
 const PROGRAM: &str = "access/src/tos_access/tos-access";
 const COMMAND_SCHEMA: &str = "tos_native_software_command_build_v1";
-use tos_foundation::native_software_roles::{self, COMMANDS};
+use tos_foundation::native_software_roles::{self, COMMANDS, RUNTIME_TOS_SCHEMAS as TOS_SCHEMAS};
 fn command_member(name: &str) -> String {
     format!("native/bin/{name}")
 }
@@ -49,11 +49,6 @@ const NATIVE_SCHEMA_V2: &str = "tos_native_access_build_v2";
 const SCHEMA: &str = "tos_software_bundle_manifest_v1";
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 const SOURCE_FILES: [&str; 1] = ["access/README.md"];
-const TOS_SCHEMAS: [&str; 3] = [
-    "semantic-entity-type-registry.schema.json",
-    "semantic-relation-type-registry.schema.json",
-    "epistemic-evidence-projection.schema.json",
-];
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; invoke its absolute path explicitly.\nAn optional verified command cohort installs selected verified PREFIX/bin command links.\nOwner command execution still requires a protected explicit invocation and grants.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nPython callers use the source-importable SDK bridge and must select this native\nproduct explicitly. No Python wheel, runtime fallback or corpus data is installed.\n";
 type Result<T> = std::result::Result<T, String>;

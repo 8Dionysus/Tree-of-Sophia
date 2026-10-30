@@ -17,7 +17,7 @@ const EXECUTORS: [&str; 3] = [
     "tos-software-ci",
 ];
 use tos_foundation::native_software_roles::{
-    self, COMMANDS, NO_DEFAULT_FEATURES as SOFTWARE_NO_DEFAULT_FEATURES,
+    self, COMMANDS, NO_DEFAULT_FEATURES as SOFTWARE_NO_DEFAULT_FEATURES, RUNTIME_TOS_SCHEMAS,
 };
 pub(crate) const TARGET: &str = "x86_64-unknown-linux-gnu";
 pub(crate) const TOOLCHAIN: &str = "1.98.1";
@@ -848,7 +848,11 @@ fn package_limits(root: &Path, images: &Path, b: &Budget<'_>) -> io::Result<Stri
     for n in ["access/README.md", "Cargo.lock", "rust-toolchain.toml"] {
         files.push(root.join(n));
     }
-    walk(0, &root.join("ToS/contracts"), true, &mut files, b)?;
+    // Budget exactly the schemas the archive includes. Unrelated source contracts
+    // and historical examples are not software members.
+    for schema in RUNTIME_TOS_SCHEMAS {
+        files.push(root.join("ToS/contracts").join(schema));
+    }
     if files.len() + 2 > 1024 {
         return Err(bad("software input envelope exceeds member cap"));
     }
@@ -1130,6 +1134,49 @@ mod tests {
         let path = root.join("rust/crates").join(package).join("Cargo.toml");
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, source).unwrap();
+    }
+    #[test]
+    fn package_budget_selects_only_shipped_schemas_and_keeps_member_cap() {
+        let root = fixture();
+        let images = root.join("images");
+        for dir in [
+            "images",
+            "access/web/dist",
+            "access/contracts",
+            "access/profiles",
+            "ToS/contracts/history",
+        ] {
+            fs::create_dir_all(root.join(dir)).unwrap();
+        }
+        fs::write(images.join("tos-access"), b"image").unwrap();
+        for name in COMMANDS {
+            fs::write(images.join(name), b"image").unwrap();
+        }
+        for name in ["access/README.md", "Cargo.lock", "rust-toolchain.toml"] {
+            fs::write(root.join(name), b"source").unwrap();
+        }
+        for schema in RUNTIME_TOS_SCHEMAS {
+            fs::write(root.join("ToS/contracts").join(schema), b"{}").unwrap();
+        }
+        for i in 0..700 {
+            fs::write(root.join(format!("access/web/dist/{i}.js")), b"web").unwrap();
+        }
+        let cancel = AtomicI32::new(0);
+        let b = Budget::new(&cancel, Duration::from_secs(30));
+        let expected = package_limits(&root, &images, &b).unwrap();
+        for i in 0..400 {
+            fs::write(root.join(format!("ToS/contracts/history/{i}.json")), b"{}").unwrap();
+        }
+        assert_eq!(package_limits(&root, &images, &b).unwrap(), expected);
+        let selected = root.join("ToS/contracts").join(RUNTIME_TOS_SCHEMAS[0]);
+        fs::remove_file(&selected).unwrap();
+        assert!(package_limits(&root, &images, &b).is_err());
+        fs::write(&selected, b"{}").unwrap();
+        for i in 700..1006 {
+            fs::write(root.join(format!("access/web/dist/{i}.js")), b"web").unwrap();
+        }
+        assert!(package_limits(&root, &images, &b).is_err());
+        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn reused_executors_require_bound_manifest_and_exact_copied_bytes() {

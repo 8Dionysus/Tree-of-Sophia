@@ -9,6 +9,7 @@
 // chapter, original beside translation, and from there in the corpus reader.
 
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
+import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {copyLocale,localeValue,resolveLocale} from './locale.mjs';
 
 const ZARATHUSTRA='also-sprach-zarathustra';
@@ -258,15 +259,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     paint();
   }
   // ── A place of a corpus work: the original's units from the corpus, the translation through the stand's alignment. ──
-  const unitsFrom=async(work,versionId,first,last=first)=>{
-    const found=[];let cursor=null;
-    for(let round=0;round<4&&!found.some(unit=>unit.id===last);round++){
-      const page=await provider.window(cursor?{documentId:work.documentId,versionId,cursor,limit:8}:{documentId:work.documentId,versionId,unitId:first,limit:8});
-      for(const unit of page.units){if(unit.kind==='section'&&!unit.text)continue;found.push(unit);if(unit.id===last)break;}
-      cursor=page.nextCursor;if(!cursor)break;
-    }
-    return found;
-  };
+  const unitsFrom=(work,version,first,last=first)=>readCorpusFragmentRange(provider,work,version,first,last);
   const overlaps=(a,b,s,e)=>a<e&&b>s;
   // The corpus names a place in Russian ("Книга 6 · 509", "Глава 52", "Строки от 146"); a caption names it in
   // the reader's language. An edition's chunk number ("Unit 59") names no place and is left out.
@@ -283,7 +276,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const data=await corpusAlignment(),work=data.works?.[cite.w];
     if(!work)throw new Error(`No alignment for ${cite.w}`);
     const [first,last]=cite.u;
-    const originals=await unitsFrom(work,work.original.versionId,first,last);
+    const originals=await unitsFrom(work,work.original,first,last);
     if(!originals.length)throw new Error(`No units for ${cite.w}`);
     const span=(unit,index)=>{const length=Array.from(unit.text).length;return [index===0&&Number.isInteger(cite.s)?cite.s:0,index===originals.length-1&&Number.isInteger(cite.e)?cite.e:length];};
     // A translation shows the place only where its sentence pairs meet the cited span (an entry aligned by
@@ -314,7 +307,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       });
       const value=[];
       for(const [id,range] of wanted){
-        const [unit]=await unitsFrom(work,version.versionId,id);if(!unit)continue;
+        const [unit]=await unitsFrom(work,version,id);if(!unit)continue;
         const chars=Array.from(unit.text);value.push({id,reference:unit.reference,text:(range?chars.slice(range[0],range[1]):chars).join('').trim()});
       }
       texts.set(language,value);return value;
@@ -346,7 +339,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       }
       if(openAddress){
         const shown=versionFor(showing[0])??work.original,unitId=shown===work.original?first:(texts.get(showing[0])??[])[0]?.id;
-        if(unitId){const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');whole.addEventListener('click',()=>void openAddress({documentId:work.documentId,versionId:shown.versionId,unitId}).catch(error=>onError?.(error)));tools.append(whole);}
+        if(unitId){const whole=button(`↗ ${words('fragmentWhole')}`,'text-button ps-fragment-whole');whole.addEventListener('click',()=>void openAddress({documentId:work.documentId,versionId:shown.versionId,revision:shown.revision,unitId}).catch(error=>onError?.(error)));tools.append(whole);}
       }
       figure.append(tools);
     };
