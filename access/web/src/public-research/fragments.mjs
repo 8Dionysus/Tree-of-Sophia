@@ -219,6 +219,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
   async function fillPlace(figure,cite){
     const data=await externalPlaces(),work=data.works?.[cite.w],place=data.places?.[cite.w]?.[cite.loc];
     if(!work||!place)throw new Error(`No place ${cite.w} ${cite.loc}`);
+    // A place may give a language from another witness of it (the translation of a book the usual one lacks).
+    const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
     const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]);
     const {primary,alternate}=readingLanguages(locale(),work.original,available);
     let showing=primary.filter(language=>available.includes(language));
@@ -233,7 +235,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const quote=el('blockquote','ps-fragment-text');quote.lang=language==='zh-Hans'?'zh':language;
         const {nodes}=clip(narrowed.split(/\n{2,}/).map(part=>el('p','ps-fragment-line',part.trim())).filter(node=>node.textContent));
         quote.append(...nodes);
-        const witness=work.witnesses?.[language];
+        const witness=witnessOf(language);
         const caption=el('figcaption','ps-fragment-cite');
         caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short)].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
@@ -248,7 +250,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       }
       // The source of the text shown: the place's own page in that witness, the place's page, or the witness.
       // A link says what it opens: the whole work, the page a quotation is taken from, or where the book can be found.
-      const witness=work.witnesses?.[showing[0]];
+      const witness=witnessOf(showing[0]);
       const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
       if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
       figure.append(tools);
@@ -266,6 +268,16 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     return found;
   };
   const overlaps=(a,b,s,e)=>a<e&&b>s;
+  // The corpus names a place in Russian ("Книга 6 · 509", "Глава 52", "Строки от 146"); a caption names it in
+  // the reader's language. An edition's chunk number ("Unit 59") names no place and is left out.
+  const PLACE_WORDS=[['Книга','refBook'],['Глава','refChapter'],['Раздел','refSection'],['Фрагмент','refFragment'],['Строки от','refLines']];
+  const placeName=reference=>{
+    if(!reference||/^Unit \d+$/.test(reference))return '';
+    if(resolveLocale(locale())==='ru')return reference;
+    let value=reference.replace(/Предисловие Арриана/gu,words('refArrian'));
+    for(const [word,key] of PLACE_WORDS)value=value.replace(new RegExp(`${word}\\s+([^\\s·]+)`,'gu'),(_,n)=>words(key).replace('{n}',n));
+    return value;
+  };
   async function fillCorpus(figure,cite){
     if(!provider)throw new Error('No corpus provider');
     const data=await corpusAlignment(),work=data.works?.[cite.w];
@@ -274,9 +286,13 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const originals=await unitsFrom(work,work.original.versionId,first,last);
     if(!originals.length)throw new Error(`No units for ${cite.w}`);
     const span=(unit,index)=>{const length=Array.from(unit.text).length;return [index===0&&Number.isInteger(cite.s)?cite.s:0,index===originals.length-1&&Number.isInteger(cite.e)?cite.e:length];};
-    const available=[work.original.language,...work.translations.map(item=>item.language)];
+    // A translation shows the place only where its sentence pairs meet the cited span (an entry aligned by
+    // units alone gives its whole counterpart units); otherwise the reader gets the languages that do.
+    const meets=(unit,index,entry)=>{const [a,b]=span(unit,index);return (entry.pairs??[]).some(([source])=>source.some(([s,e])=>overlaps(s,e,a,b)));};
+    const covers=item=>originals.some((unit,index)=>{const entry=data.units?.[unit.id]?.t?.[item.versionId];return !!entry&&(!(entry.pairs??[]).length||meets(unit,index,entry));});
+    const available=[work.original.language,...work.translations.filter(covers).map(item=>item.language)];
     const {primary,alternate}=readingLanguages(locale(),work.original.language,available);
-    const versionFor=language=>language===work.original.language?work.original:work.translations.find(item=>item.language===language&&originals.some(unit=>data.units?.[unit.id]?.t?.[item.versionId]));
+    const versionFor=language=>language===work.original.language?work.original:work.translations.find(item=>item.language===language&&covers(item));
     let showing=primary.filter(language=>versionFor(language));
     if(!showing.length)showing=[work.original.language];
     const texts=new Map();
@@ -294,7 +310,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
           if(!source.some(([s,e])=>overlaps(s,e,a,b)))continue;found=true;
           for(const [i,s,e] of target){const id=entry.u[i],old=wanted.get(id);wanted.set(id,old?[Math.min(old[0],s),Math.max(old[1],e)]:[s,e]);}
         }
-        if(!found)for(const id of entry.u)if(!wanted.has(id))wanted.set(id,null);
+        if(!found&&!(entry.pairs??[]).length)for(const id of entry.u)if(!wanted.has(id))wanted.set(id,null);
       });
       const value=[];
       for(const [id,range] of wanted){
@@ -312,7 +328,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const quote=el('blockquote','ps-fragment-text');quote.lang=language==='grc'?'grc':language==='la'?'la':language;
         const {nodes}=clip(value.flatMap(item=>item.text.split(/\n{2,}/)).map(part=>el('p','ps-fragment-line',part.replace(/\s*\n\s*/g,' ').trim())).filter(node=>node.textContent));
         quote.append(...nodes);
-        const references=[...new Set(value.map(item=>item.reference).filter(Boolean))];
+        const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];
         const caption=el('figcaption','ps-fragment-cite');
         caption.append(el('span','ps-fragment-source',[version?.label,references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);

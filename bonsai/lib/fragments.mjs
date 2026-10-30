@@ -43,13 +43,16 @@ export function externalPlacesIssues(module){
     for(const [loc,place] of Object.entries(list)){
       if(!bilingual(place.label))problems.push(`${id} ${loc} has no label in both languages`);
       // A place may link its own page in a witness, or a page for the place as a whole (where a cited-only work can be found).
-      for(const [language,url] of Object.entries(place.links??{}))if(!work.witnesses?.[language]||!/^https:\/\//.test(url??''))problems.push(`${id} ${loc} links ${language} without a witness or a https URL`);
+      // A place may give a language from another witness of the work: place.witness maps the language to it.
+      const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
+      for(const [language,name] of Object.entries(place.witness??{}))if(!work.witnesses?.[name])problems.push(`${id} ${loc} names an unknown ${language} witness ${name}`);
+      for(const [language,url] of Object.entries(place.links??{}))if(!witnessOf(language)||!/^https:\/\//.test(url??''))problems.push(`${id} ${loc} links ${language} without a witness or a https URL`);
       if(place.url!==undefined&&!/^https:\/\//.test(place.url))problems.push(`${id} ${loc} has a URL that is not https`);
       if(place.opens!==undefined&&!OPENS.includes(place.opens))problems.push(`${id} ${loc} opens ${place.opens}`);
       for(const [language,text] of Object.entries(place.texts??{})){
         if(text===null)continue;
         if(typeof text!=='string'||!text.trim())problems.push(`${id} ${loc} ${language} text is empty`);
-        const basis=work.witnesses?.[language]?.rights?.basis;
+        const basis=witnessOf(language)?.rights?.basis;
         if(!basis)problems.push(`${id} ${loc} has ${language} text without a witness`);
         if(basis==='locator-only')problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
         if(basis==='short-quotation'&&text.length>900)problems.push(`${id} ${loc} ${language} quotation is longer than a short quotation`);

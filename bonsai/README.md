@@ -174,7 +174,9 @@ lawfully. The rights record names the law of each jurisdiction (`russia`,
 `usa`, `eu`) and the reasoning. A place may link its own page in a witness
 (`links`, by language) or a page where a work cited by locator alone can be
 found (`url`), and a link says what it opens (`opens`: the whole work, the
-page a quotation is taken from, or where the book can be found); a work names the languages it has no witness in and why
+page a quotation is taken from, or where the book can be found). A place may
+take a language from another witness of the work (`witness`, by language), as
+where the usual translation lacks the book the place is in; a work names the languages it has no witness in and why
 (`absent`), and the module keeps how the texts were gathered and corrected
 (`provenance`).
 
