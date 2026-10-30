@@ -492,14 +492,29 @@ mod tests {
     fn a_cited_ground_needs_no_retold_focus() {
         let cite = r#"{"operation":"grounds","label":"stop","grounds":[{"ref":"one","cite":[{"w":"za","c":"III.02","u":["a","b"],"s":0,"e":12}]}],"references":{"one":{"passageId":"exact"}}}"#;
         assert!(constructor_reading_v1(cite.as_bytes()).is_ok());
-        let external = cite.replace(r#""c":"III.02","u":["a","b"],"s":0,"e":12"#, r#""loc":"341""#);
+        let external = cite.replace(
+            r#""c":"III.02","u":["a","b"],"s":0,"e":12"#,
+            r#""loc":"341""#,
+        );
         assert!(constructor_reading_v1(external.as_bytes()).is_ok());
         let broken = cite.replace(r#""u":["a","b"]"#, r#""u":["a"]"#);
-        assert!(constructor_reading_v1(broken.as_bytes()).unwrap_err().contains("Invalid citation"));
+        assert!(
+            constructor_reading_v1(broken.as_bytes())
+                .unwrap_err()
+                .contains("Invalid citation")
+        );
         let neither = r#"{"operation":"grounds","label":"stop","grounds":[{"ref":"one"}],"references":{"one":{"passageId":"exact"}}}"#;
-        assert!(constructor_reading_v1(neither.as_bytes()).unwrap_err().contains("Missing ru inquiry"));
+        assert!(
+            constructor_reading_v1(neither.as_bytes())
+                .unwrap_err()
+                .contains("Missing ru inquiry")
+        );
         let half = cite.replace(r#""cite""#, r#""focus":{"ru":"Своё"},"cite""#);
-        assert!(constructor_reading_v1(half.as_bytes()).unwrap_err().contains("Missing en inquiry"));
+        assert!(
+            constructor_reading_v1(half.as_bytes())
+                .unwrap_err()
+                .contains("Missing en inquiry")
+        );
         let units = r#"{"operation":"grounds","label":"stop","grounds":[{"ref":"one","cite":[{"w":"apology","u":["a","b"]}]}],"references":{"one":{"passageId":"exact"}}}"#;
         assert!(constructor_reading_v1(units.as_bytes()).is_ok());
     }
@@ -517,12 +532,23 @@ mod tests {
             r#"{"cite":[{"w":"za","c":"III.02","u":["a","b"]}]}"#,
             r#"{"ru":"Своё","en":"Own","cite":[{"w":"za","u":["a","b"]}]}"#,
         ] {
-            assert!(constructor_reading_v1(catalog(argument).as_bytes()).is_ok(), "{argument}");
+            assert!(
+                constructor_reading_v1(catalog(argument).as_bytes()).is_ok(),
+                "{argument}"
+            );
         }
         let broken = catalog(r#"{"cite":[{"w":"za","u":["a"]}]}"#);
-        assert!(constructor_reading_v1(broken.as_bytes()).unwrap_err().contains("Invalid citation"));
+        assert!(
+            constructor_reading_v1(broken.as_bytes())
+                .unwrap_err()
+                .contains("Invalid citation")
+        );
         let half = catalog(r#"{"ru":"Своё","cite":[{"w":"za","u":["a","b"]}]}"#);
-        assert!(constructor_reading_v1(half.as_bytes()).unwrap_err().contains("Missing en inquiry"));
+        assert!(
+            constructor_reading_v1(half.as_bytes())
+                .unwrap_err()
+                .contains("Missing en inquiry")
+        );
     }
     #[test]
     fn source_reference_must_be_authored_and_bilingual() {

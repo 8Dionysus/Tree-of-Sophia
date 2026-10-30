@@ -282,7 +282,8 @@ impl ConstructorMachine {
                     let value = get(m, field).unwrap_or(&JsonValue::Null);
                     // A body may consist only of the places it cites: the work's own text stands for it.
                     let cited = field == "body"
-                        && get(value, "cite").is_some_and(|c| c.as_array().is_some_and(|a| !a.is_empty()));
+                        && get(value, "cite")
+                            .is_some_and(|c| c.as_array().is_some_and(|a| !a.is_empty()));
                     if cited && get(value, "ru").is_none() && get(value, "en").is_none() {
                         continue;
                     }
