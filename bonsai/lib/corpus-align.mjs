@@ -57,13 +57,15 @@ export function corpusReader(dir){
 
 /** How a translation's units stand to the original's: the same references, finer sections inside them, or neither. */
 export function counterparts(original,translation){
+  // "Unit 59" numbers an edition's chunk of a long chapter, not a place of the work: it names nothing the other version shares.
+  const textual=reference=>Boolean(reference)&&!/^Unit \d+$/.test(reference);
   const byReference=new Map();
-  for(const unit of translation.units)if(unit.reference)byReference.set(unit.reference,(byReference.get(unit.reference)??[]).concat(unit));
+  for(const unit of translation.units)if(textual(unit.reference))byReference.set(unit.reference,(byReference.get(unit.reference)??[]).concat(unit));
   const whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
-  const same=original.units.filter(unit=>unit.reference&&byReference.has(unit.reference)).length;
-  if(same>=original.units.length*.8)return {how:'reference',map:new Map(original.units.filter(unit=>byReference.has(unit.reference)).map(unit=>[unit.id,byReference.get(unit.reference).map(whole)]))};
+  const same=original.units.filter(unit=>textual(unit.reference)&&byReference.has(unit.reference)).length;
+  if(same>=original.units.length*.8)return {how:'reference',map:new Map(original.units.filter(unit=>textual(unit.reference)&&byReference.has(unit.reference)).map(unit=>[unit.id,byReference.get(unit.reference).map(whole)]))};
   const finer=new Map();
-  for(const unit of original.units){const outer=numbers(unit.reference),list=translation.units.filter(item=>inside(numbers(item.reference),outer));if(list.length)finer.set(unit.id,list.map(whole));}
+  for(const unit of original.units){if(!textual(unit.reference))continue;const outer=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(numbers(item.reference),outer));if(list.length)finer.set(unit.id,list.map(whole));}
   if(finer.size>=original.units.length*.8)return {how:'reference (finer division)',map:finer};
   return {how:'sentences of the whole work',map:null};
 }
@@ -88,50 +90,54 @@ function pairsOf(S,T,groups,model){
  */
 export function alignVersion(original,translation,cited){
   const {how,map}=counterparts(original,translation),textOf=new Map(translation.units.map(unit=>[unit.id,unit.text]));
-  const runs=[];
+  const position=new Map(translation.units.map((unit,index)=>[unit.id,index])),whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
+  let groups=[];
   if(map){
-    // One run per unit of the original: its sentences against those of its counterparts.
+    // A unit of the original with counterparts begins a run; a unit the translation does not divide (an
+    // edition that splits a long chapter into numbered chunks) joins the run before it.
     for(const unit of original.units){
-      const targets=map.get(unit.id);if(!targets?.length)continue;
-      const S=sentencesOf([{index:0,raw:chars(unit.text).slice(0,textEnd(unit.text)).join('')}],original.language);
-      const T=sentencesOf(targets.map((target,index)=>({index,raw:chars(textOf.get(target.id)).slice(target.s,Math.min(target.e,textEnd(textOf.get(target.id)))).join('')})),translation.language);
-      const ratio=T.reduce((n,item)=>n+item.len,0)/Math.max(1,S.reduce((n,item)=>n+item.len,0));
-      runs.push({units:[unit.id],targets,S,T,ratio,variance:VARIANCE*ALIGNMENT.sentenceVariance,band:ALIGNMENT.band});
+      const targets=map.get(unit.id);
+      if(targets?.length)groups.push({units:[unit],targets:[...targets]});
+      else if(groups.length)groups.at(-1).units.push(unit);
     }
-  }else{
-    // One run for the whole work: every sentence of the original against every sentence of the translation.
-    const body=unit=>chars(unit.text).slice(0,textEnd(unit.text)).join('');
-    const S=sentencesOf(original.units.map((unit,index)=>({index,raw:body(unit)})),original.language);
-    const T=sentencesOf(translation.units.map((unit,index)=>({index,raw:body(unit)})),translation.language);
+    // A unit of the translation no unit of the original names joins the run whose counterparts precede it.
+    const used=new Set(groups.flatMap(group=>group.targets.map(target=>target.id)));
+    const last=group=>Math.max(...group.targets.map(target=>position.get(target.id)));
+    translation.units.forEach((unit,index)=>{
+      if(used.has(unit.id))return;
+      const before=groups.filter(group=>last(group)<index).sort((a,b)=>last(b)-last(a))[0];
+      if(before){before.targets.push(whole(unit));used.add(unit.id);}
+    });
+    for(const group of groups)group.targets.sort((a,b)=>position.get(a.id)-position.get(b.id));
+  }else groups=[{units:original.units,targets:translation.units.map(whole),whole:true}];
+  // Every run: the sentences of its units of the original against those of its counterparts, an edition's notes left out.
+  const runs=groups.map(group=>{
+    const S=sentencesOf(group.units.map((unit,index)=>({index,raw:chars(unit.text).slice(0,textEnd(unit.text)).join('')})),original.language);
+    const T=sentencesOf(group.targets.map((target,index)=>({index,raw:chars(textOf.get(target.id)).slice(target.s,Math.min(target.e,textEnd(textOf.get(target.id)))).join('')})),translation.language);
     const ratio=T.reduce((n,item)=>n+item.len,0)/Math.max(1,S.reduce((n,item)=>n+item.len,0));
-    runs.push({units:original.units.map(unit=>unit.id),targets:translation.units.map(unit=>({id:unit.id,s:0,e:chars(unit.text).length})),S,T,ratio,variance:VARIANCE,band:60,whole:true});
-  }
+    const one=group.units.length===1&&!group.whole;
+    return {...group,S,T,ratio,variance:one?VARIANCE*ALIGNMENT.sentenceVariance:VARIANCE,band:one?ALIGNMENT.band:60};
+  });
   const align=(run,model)=>run.S.length===1&&run.T.length===1?[{s:[run.S[0].id],t:[run.T[0].id],shape:'1:1',cost:0}]:alignRun(run.S,run.T,run.ratio,run.variance,{model,band:run.band});
   // First pass by length; the confident one-to-one pairs teach the model the words of the two languages.
   const training=runs.flatMap(run=>pairsOf(run.S,run.T,align(run,null),null).training);
   const model=new LexicalModel(training);
   const entries={},shapes={};let words=0,uncovered=0;
   for(const run of runs){
-    const groups=align(run,model),result=pairsOf(run.S,run.T,groups,model);
+    const aligned=align(run,model),result=pairsOf(run.S,run.T,aligned,model);
     words+=result.words;uncovered+=result.uncovered;
-    for(const group of groups)shapes[group.shape]=(shapes[group.shape]??0)+1;
-    if(!run.whole){
-      const [unit]=run.units;if(!cited.has(unit))continue;
-      const target=run.targets,partial=target.some(item=>item.s>0||item.e<chars(textOf.get(item.id)).length);
-      entries[unit]={u:target.map(item=>item.id),...(partial?{spans:target.map(item=>[item.id,item.s,item.e])}:{}),
-        pairs:result.pairs.map(([s,t])=>[s.map(([,a,b])=>[a,b]),t.map(([i,a,b])=>[i,target[i].s+a,target[i].s+b])])};
-      continue;
-    }
-    // The whole work: each cited unit takes the sentences its own sentences were joined with.
-    const unitOf=index=>original.units[index].id;
+    for(const group of aligned)shapes[group.shape]=(shapes[group.shape]??0)+1;
+    // Each cited unit takes the sentences its own sentences were joined with, unit by unit of the translation.
     for(const [s,t] of result.pairs){
-      for(const unit of new Set(s.map(([index])=>unitOf(index)))){
-        if(!cited.has(unit))continue;
+      for(const index of new Set(s.map(([unit])=>unit))){
+        const unit=run.units[index].id;if(!cited.has(unit))continue;
         const entry=entries[unit]??={u:[],pairs:[]};
         const at=id=>{let i=entry.u.indexOf(id);if(i<0){entry.u.push(id);i=entry.u.length-1;}return i;};
-        entry.pairs.push([s.filter(([index])=>unitOf(index)===unit).map(([,a,b])=>[a,b]),t.map(([index,a,b])=>[at(translation.units[index].id),a,b])]);
+        entry.pairs.push([s.filter(([unitIndex])=>unitIndex===index).map(([,a,b])=>[a,b]),t.map(([j,a,b])=>[at(run.targets[j].id),run.targets[j].s+a,run.targets[j].s+b])]);
       }
     }
+    // A unit alone in its run keeps its counterparts even where no sentence of it found a partner.
+    if(run.units.length===1&&!run.whole&&cited.has(run.units[0].id)&&!entries[run.units[0].id])entries[run.units[0].id]={u:run.targets.map(target=>target.id),pairs:[]};
   }
   const coverage=words?Math.round((1-uncovered/words)*1000)/1000:null;
   return {entries,receipt:{how,sentences:[runs.reduce((n,run)=>n+run.S.length,0),runs.reduce((n,run)=>n+run.T.length,0)],shapes,trained:training.length,coverage}};
