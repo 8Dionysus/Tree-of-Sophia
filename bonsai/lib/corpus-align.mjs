@@ -67,6 +67,10 @@ export function counterparts(original,translation){
   const finer=new Map();
   for(const unit of original.units){if(!textual(unit.reference))continue;const outer=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(numbers(item.reference),outer));if(list.length)finer.set(unit.id,list.map(whole));}
   if(finer.size>=original.units.length*.8)return {how:'reference (finer division)',map:finer};
+  // Divided more coarsely: the book of the translation that holds the original's section.
+  const coarser=new Map();
+  for(const unit of original.units){if(!textual(unit.reference))continue;const inner=numbers(unit.reference),list=translation.units.filter(item=>textual(item.reference)&&inside(inner,numbers(item.reference)));if(list.length)coarser.set(unit.id,list.map(whole));}
+  if(coarser.size>=original.units.length*.8)return {how:'reference (coarser division)',map:coarser};
   return {how:'sentences of the whole work',map:null};
 }
 
@@ -88,16 +92,23 @@ function pairsOf(S,T,groups,model){
  * Align one translation to the original: for each cited unit of the original, its counterparts in the
  * translation and the sentence pairs inside them. `cited` is a set of unit ids of the original.
  */
+// A Greek or Latin period, which ends only on its full stop or question mark, often becomes up to six
+// sentences of a modern translation, as a verse line can.
+const PERIODS=new Set(['grc','la']),LONG_PERIOD=[[1,4],[1,5],[1,6]];
+
 export function alignVersion(original,translation,cited){
+  const beads=PERIODS.has(original.language)?LONG_PERIOD:[];
   const {how,map}=counterparts(original,translation),textOf=new Map(translation.units.map(unit=>[unit.id,unit.text]));
   const position=new Map(translation.units.map((unit,index)=>[unit.id,index])),whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
   let groups=[];
   if(map){
     // A unit of the original with counterparts begins a run; a unit the translation does not divide (an
     // edition that splits a long chapter into numbered chunks) joins the run before it.
+    // Units of the original that share their counterparts (the sections of one book a translation keeps whole) make one run.
+    const key=targets=>targets.map(target=>target.id).join(' ');
     for(const unit of original.units){
       const targets=map.get(unit.id);
-      if(targets?.length)groups.push({units:[unit],targets:[...targets]});
+      if(targets?.length&&!(groups.length&&groups.at(-1).key===key(targets)))groups.push({units:[unit],targets:[...targets],key:key(targets)});
       else if(groups.length)groups.at(-1).units.push(unit);
     }
     // A unit of the translation no unit of the original names joins the run whose counterparts precede it.
@@ -118,7 +129,7 @@ export function alignVersion(original,translation,cited){
     const one=group.units.length===1&&!group.whole;
     return {...group,S,T,ratio,variance:one?VARIANCE*ALIGNMENT.sentenceVariance:VARIANCE,band:one?ALIGNMENT.band:60};
   });
-  const align=(run,model)=>run.S.length===1&&run.T.length===1?[{s:[run.S[0].id],t:[run.T[0].id],shape:'1:1',cost:0}]:alignRun(run.S,run.T,run.ratio,run.variance,{model,band:run.band});
+  const align=(run,model)=>run.S.length===1&&run.T.length===1?[{s:[run.S[0].id],t:[run.T[0].id],shape:'1:1',cost:0}]:alignRun(run.S,run.T,run.ratio,run.variance,{model,band:run.band,beads});
   // First pass by length; the confident one-to-one pairs teach the model the words of the two languages.
   const training=runs.flatMap(run=>pairsOf(run.S,run.T,align(run,null),null).training);
   const model=new LexicalModel(training);

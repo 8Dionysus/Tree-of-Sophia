@@ -166,7 +166,7 @@ export class LexicalModel{
 }
 
 /** The cheapest sequence of groups joining two runs of units, searched in a band around the diagonal. */
-export function alignRun(source,target,ratio,variance,{model=null,beta=ALIGNMENT.model.beta,band=ALIGNMENT.band}={}){
+export function alignRun(source,target,ratio,variance,{model=null,beta=ALIGNMENT.model.beta,band=ALIGNMENT.band,beads=[]}={}){
   const n=source.length,m=target.length;
   // Three states per cell: after a group with both sides, after a unit the target leaves out, after
   // one the target adds. A run of left-out source units opens once and then extends more cheaply, so a
@@ -182,7 +182,7 @@ export function alignRun(source,target,ratio,variance,{model=null,beta=ALIGNMENT
       for(let state=0;state<3;state++){
         const base=cost.get(key(i,j,state));
         if(base===undefined)continue;
-        const moves=ALIGNMENT.beads.map(([a,b])=>[a,b]);
+        const moves=ALIGNMENT.beads.map(([a,b])=>[a,b]).concat(beads);
         if(i<n&&source[i].cue[4])moves.push(...ALIGNMENT.verse);
         if(j<m&&target[j].cue[4])moves.push(...ALIGNMENT.verse.map(([a,b])=>[b,a]));
         for(const [di,dj] of moves){
@@ -201,7 +201,7 @@ export function alignRun(source,target,ratio,variance,{model=null,beta=ALIGNMENT
     }
   }
   const end=[0,1,2].map(state=>[state,cost.get(key(n,m,state))]).filter(([,value])=>value!==undefined).sort((a,b)=>a[1]-b[1]||a[0]-b[0])[0];
-  if(!end)return alignRun(source,target,ratio,variance,{model,beta,band:Math.max(n,m)+1});
+  if(!end)return alignRun(source,target,ratio,variance,{model,beta,band:Math.max(n,m)+1,beads});
   const groups=[];
   for(let i=n,j=m,state=end[0];i||j;){
     const [pi,pj,ps,k]=back.get(key(i,j,state));

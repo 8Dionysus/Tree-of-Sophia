@@ -178,13 +178,15 @@ identifiers and offsets only, since the texts stay in the corpus. It is made
 by `lib/corpus-align.mjs` from the units the stand's content cites (its own
 modules and the modules it borrows). A translation divided like its original
 pairs by the shared reference, one divided more finely by the sections inside
-the original's section, one that is a single long text by aligning the
-sentences of the whole work. A unit that names no place of the work — an
+the original's section, one divided more coarsely by the book that holds the
+original's sections (they are aligned together against it), one that is a
+single long text by aligning the sentences of the whole work. A unit that names no place of the work — an
 edition's numbered chunk of a long chapter ("Unit 59") — is aligned with the
 unit before it, on whichever side it stands, so a chapter one edition cuts
 into pieces still meets its whole counterpart. Inside each run the sentences
 are paired by `align.mjs` in two passes, by length and then by the words a
-model trained on the confident pairs can account for. An edition's notes, which the corpus
+model trained on the confident pairs can account for. A Greek or Latin period
+may meet up to six sentences of a modern translation, as a verse line may. An edition's notes, which the corpus
 keeps at the end of a unit with their numbers in 〔 〕, are not its text and
 take no part in the pairing. In each language a version whose notes run into
 its sentences ("artsA less well attested reading…") comes after one whose notes
