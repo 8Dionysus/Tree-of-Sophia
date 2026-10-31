@@ -15,15 +15,17 @@ import {copyLocale,localeValue,resolveLocale} from './locale.mjs';
 
 const ZARATHUSTRA='also-sprach-zarathustra';
 const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.json',{import:'default'});
-const loadManifest=()=>import('../../../../bonsai/zarathustra/witnesses.json',{with:{type:'json'}}).then(module=>module.default);
+// Vite serves JSON imports as JavaScript modules in development and bundles them.
+// Do not request native JSON MIME semantics for these transformed modules.
+const loadManifest=()=>import('../../../../bonsai/zarathustra/witnesses.json').then(module=>module.default);
 // Each stand brings its own places of other works and its own alignment of the corpus works it cites.
 const PLACES={
-  zarathustra:()=>import('../../../../bonsai/zarathustra/fragments.json',{with:{type:'json'}}).then(module=>module.default),
-  antiquity:()=>import('../../../../bonsai/antiquity/fragments.json',{with:{type:'json'}}).then(module=>module.default),
+  zarathustra:()=>import('../../../../bonsai/zarathustra/fragments.json').then(module=>module.default),
+  antiquity:()=>import('../../../../bonsai/antiquity/fragments.json').then(module=>module.default),
 };
 const ALIGNMENTS={
-  zarathustra:()=>import('../../../../bonsai/zarathustra/alignment.json',{with:{type:'json'}}).then(module=>module.default),
-  antiquity:()=>import('../../../../bonsai/antiquity/alignment.json',{with:{type:'json'}}).then(module=>module.default),
+  zarathustra:()=>import('../../../../bonsai/zarathustra/alignment.json').then(module=>module.default),
+  antiquity:()=>import('../../../../bonsai/antiquity/alignment.json').then(module=>module.default),
 };
 const CHAPTER_KEYS=Object.keys(chapterFiles).map(path=>path.split('/').pop().replace(/\.json$/,'')).sort((a,b)=>{const [pa,ca]=a.split('.'),[pb,cb]=b.split('.'),order=['I','II','III','IV'];return order.indexOf(pa)-order.indexOf(pb)||Number(ca)-Number(cb);});
 

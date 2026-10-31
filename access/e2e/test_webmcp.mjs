@@ -307,9 +307,13 @@ test('test_reader_positions_survive_pagehide_before_debounce',async()=>withVite(
 // 20. Real chapter imports cannot reopen a closed reader or replace newer navigation.
 test('test_fragment_reader_close_navigation_and_disposal', {timeout:90000}, async()=>withVite(async base=>{
   const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.TOS_E2E_CHROMIUM?{executablePath:process.env.TOS_E2E_CHROMIUM}:{})});
-  const releases=[];
+  const releases=[],diagnostics=[];
+  const record=value=>{if(diagnostics.length<20)diagnostics.push(String(value).slice(0,1000));};
   try{
     const page=await browser.newPage({locale:'en-US'});
+    page.on('pageerror',error=>record(error.message));
+    page.on('console',message=>{if(message.type()==='error')record(message.text());});
+    page.on('response',response=>{if(response.status()>=400)record(`${response.status()} ${new URL(response.url()).pathname}`);});
     await page.route('**/fragment-reader-check',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/src/public-research/public-space.css"></head><body></body></html>'}));
     await page.goto(base+'/fragment-reader-check',{waitUntil:'domcontentloaded'});
     await page.evaluate(async()=>{
@@ -348,7 +352,8 @@ test('test_fragment_reader_close_navigation_and_disposal', {timeout:90000}, asyn
     });
     await page.locator('#source-question .ps-fragment:not([aria-busy]) .ps-fragment-text').waitFor({state:'visible'});
     assert.ok((await page.locator('#source-question .ps-fragment-text').innerText()).trim());
-  }finally{for(const release of releases)release();await browser.close();}
+  }catch(error){error.message+=`\nFragment browser diagnostics: ${JSON.stringify(diagnostics)}`;throw error;}
+  finally{for(const release of releases)release();await browser.close();}
 }));
 
 });
