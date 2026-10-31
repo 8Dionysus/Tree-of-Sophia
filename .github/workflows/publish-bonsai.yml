@@ -60,16 +60,16 @@ jobs:
             echo 'deploy=false' >> "$GITHUB_OUTPUT"
           fi
 
-      # CLOUDFLARE_API_TOKEN is an Actions secret; CLOUDFLARE_ACCOUNT_ID is
-      # an Actions variable. Provisioning them is a separate operator action.
+      # CLOUDFLARE_API_TOKEN is an Actions secret; CLOUDFLARE_ACCOUNT_ID may
+      # be an Actions variable or secret. Provisioning access is separate.
       - name: Check Cloudflare configuration
         if: steps.current.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo '::error::Configure the CLOUDFLARE_API_TOKEN Actions secret and CLOUDFLARE_ACCOUNT_ID Actions variable.'
+            echo '::error::Configure CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in Actions.'
             exit 1
           fi
 
@@ -131,7 +131,7 @@ jobs:
         working-directory: access/deploy/cloudflare-worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           npx --no-install wrangler deploy --config wrangler.public-research.jsonc --keep-vars \
