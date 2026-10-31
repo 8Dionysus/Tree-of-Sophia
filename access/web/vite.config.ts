@@ -34,6 +34,12 @@ export default defineConfig(({ mode }) => {
       output: {
         entryFileNames: chunk=>chunk.name==='index'?'assets/tos-graph.js':chunk.name==='research'?'assets/tos-research.js':`assets/${chunk.name.replaceAll('/','-')}.js`,
         chunkFileNames: "assets/[name]-[hash].js",
+        // Zarathustra's witnesses load a part of the book at a time, so the software archive keeps
+        // four members for them rather than one per chapter.
+        manualChunks: id=>{
+          const witness=/bonsai\/zarathustra\/witnesses\/(I|II|III|IV)\.\d+\.json$/.exec(id.replaceAll('\\','/'));
+          return witness?`zarathustra-witnesses-${witness[1]}`:undefined;
+        },
         assetFileNames: "assets/[name]-[hash][extname]",
       },
     },

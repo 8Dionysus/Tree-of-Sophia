@@ -1,3 +1,67 @@
+# Fragments instead of retellings — 2026-10-29
+
+The atlas no longer retells *Thus Spoke Zarathustra* or the works it is read
+with. Every authored sentence was read against the German first editions and
+the other originals and classed: a retelling (what the work itself says,
+narrates or has a speaker say, summaries included), navigation, an
+interpretation, a link between two places, a question, a method, context, a
+term. Of 1,444 forms, 504 only retold or pointed and became the cited places
+themselves; in 432 the retelling was cut and the own words kept; 508 had no
+retelling. A citation always names the place in the original (the Deutsches
+Textarchiv transcription of the first editions for Zarathustra, the canonical
+locator for the other works); the reader sees it in their own language through
+the bonsai's alignment of the witnesses and opens the whole chapter beside the
+original (see `bonsai/README.md`). The reading rules accept a ground that cites
+its place without retelling it, and own words that give way to the cited text.
+
+**Authoring rule.** Write own words only for what a quotation cannot give: a
+reading, a reconstructed argument or premise, a distinction, a connection
+between two places, a question, a method, historical or editorial context.
+What the work says is cited (`cite`), never paraphrased; a translation's place
+is never chosen by hand.
+
+**What the close reading corrected.** Twenty factual errors and four
+misattributions were found. Most lived in retold sentences and disappear with
+them, since the reader now sees the text: the "ripeness" misplaced into the
+address to the sun (it is *Zarathustra ward reif*, at the departure, now cited
+with the perspective it names), the animals' *sich selber gleich* rendered as
+"resemble", the wheel paired with the wrong refrain, the "hard bed" offered to a
+suffering friend, the question "what the dog saw" (the text has Zarathustra's
+own questions and the dog's cry; the step is now "Follow the dog's call"), the
+dwarf's *mache dir es nicht zu leicht!* quoted as «не притворяйся», the
+hunchback's *zu uns* made "the people", Kierkegaard's chiasm flattened.
+Corrected in own words: pity as Zarathustra's *letzte Sünde* (not a "last
+temptation"); *Wer lehrte ihn auch noch das Zurückwollen?* asked in the past
+tense; in *Ethics* III P6 Dem. *qua Deus est et agit* qualifies God's power that
+a thing expresses. The route targets that opened a paragraph too early or too
+late (the animals' speech, the departure in *The Sign*, words and tones as
+rainbows, the teacher of the eternal return, the longing for the laughter) now
+open the right place, and every route step shows its places.
+
+**Links and objects of thought.** A sentence that links two places of the text
+(one repeats, varies, develops, contrasts with or echoes the other) keeps its
+words, and both places are now shown beside them: 42 linked places were added
+to the forms that named them without showing them. The atlas's own words are
+typed in the Tree's object types in `bonsai/zarathustra/objects.json`: a
+tension is a problem articulated by its question, with the positions that
+address it; a concept has its aspects; a reading is a conception of the concept
+it interprets; an image presents the readings it supports; an inquiry has its
+argument and, in four cases, the objection to it. The 79 links between places
+of texts have no relation in the Tree's registry yet and stay the stand's
+proposal; the edges that compare, question or develop do not say which relation
+of the registry they mean and stay without one.
+
+**Left open for the owner.** Two own-word readings stay as authored although
+the text pulls against them: speaking tied to convalescence where the
+fragment ties singing to it (*Sprich nicht weiter … Singe*), and the cry read as
+Zarathustra's own act where the text says *es schrie aus mir*. The laughter
+node's body and a perspective of agency say nearly the same.
+
+**Delivery boundary.** The classification and the editing were done outside
+the repository; the repository keeps their result: the rewritten modules, the
+witnesses and their alignment, the receipts in `bonsai/zarathustra/witnesses.json`.
+Nothing here is admitted to the Tree.
+
 # Grounded reading review — 2026-09-12
 
 Subject: the local demonstration revision based on

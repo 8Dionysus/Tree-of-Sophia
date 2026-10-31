@@ -279,11 +279,18 @@ impl ConstructorMachine {
             }
             if demo == Some(&JsonValue::Bool(true)) {
                 for field in ["title", "body"] {
+                    let value = get(m, field).unwrap_or(&JsonValue::Null);
+                    // A body may consist only of the places it cites: the work's own text stands for it.
+                    let cited = field == "body"
+                        && get(value, "cite")
+                            .is_some_and(|c| c.as_array().is_some_and(|a| !a.is_empty()));
+                    if cited && get(value, "ru").is_none() && get(value, "en").is_none() {
+                        continue;
+                    }
                     for lang in ["ru", "en"] {
                         let max = if field == "title" { 512 } else { 4_000 };
                         text(
-                            get(get(m, field).unwrap_or(&JsonValue::Null), lang)
-                                .unwrap_or(&JsonValue::Null),
+                            get(value, lang).unwrap_or(&JsonValue::Null),
                             &format!("mockup {field}.{lang}"),
                             max,
                             field == "body",

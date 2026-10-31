@@ -1,0 +1,137 @@
+{
+  "schema": "tos.bonsai.corpus-alignment.v1",
+  "mechanism": "bonsai/lib/corpus-align.mjs",
+  "review": "unreviewed",
+  "works": {
+    "enchiridion": {
+      "documentId": "tos.work.retained-antiquity.enchiridion",
+      "original": {
+        "versionId": "retained-enchiridion-grc2-8142571a22ea",
+        "language": "grc",
+        "revision": "b06f8d1933f11a0125ff59670da3c56baa924a1a61369e27016b716a323049fc",
+        "label": "Epicteti dissertationes ab Arriano digestae, editio maior · 1916 · Heinrich Schenkl",
+        "license": {
+          "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+          "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+        },
+        "attribution": "Perseus Digital Library · Tufts University"
+      },
+      "translations": [
+        {
+          "versionId": "retained-enchiridion-eng3-1b9fb44a1488",
+          "language": "en",
+          "revision": "ed6a8d731df5f90447652ede5950f9e5cb524d925c618416cca53037996467ba",
+          "label": "The Discourses of Epictetus, with the Encheridion and Fragments · 1890 · George Long",
+          "license": {
+            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          },
+          "attribution": "Perseus Digital Library · Tufts University",
+          "coverage": 0.804
+        },
+        {
+          "versionId": "retained-enchiridion-eng4-3b4d896e1334",
+          "language": "en",
+          "revision": "255a6e8c8d85debb837b2bd6f2622179f3db20039c5457f80aa52b52d4de4f05",
+          "label": "The Works of Epictetus, His Discourses, in Four Books, the Enchiridion, and Fragments. · 1890 · Thomas Wentworth Higginson",
+          "license": {
+            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          },
+          "attribution": "Perseus Digital Library · Tufts University",
+          "coverage": 0.774
+        },
+        {
+          "versionId": "retained-enchiridion-es-brum1888",
+          "language": "es",
+          "revision": "14e6c9afd9025e8f00e72b8e13f946474fad1e62fffc5def89bb58bdcbf97ead",
+          "label": "Obras de los moralistas griegos: Marco Aurelio-Teofrasto-Epicteto-Cebes · 1888 · Печатная атрибуция: Antonio Brum (as credited on the 1888 section title page)",
+          "license": {
+            "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          },
+          "attribution": "Wikisource contributors; Antonio Brum (the section title page transcription credits “Versión del crieco al castellano”; spelling is preserved as captured); cite the pinned page revisions in the source manifest.\nComplete transclusion range only; all 39 pages have ProofreadPage quality level 1, the index is marked Por corregir, and scan images were not collated.",
+          "coverage": 0.545
+        }
+      ]
+    },
+    "meditations": {
+      "documentId": "tos.work.retained-antiquity.meditations",
+      "original": {
+        "versionId": "retained-meditations-grc2-9752103971db",
+        "language": "grc",
+        "revision": "7898064d41ae582ddbca7bf97cb787e32e9de78fb13d64c93a45e5e6cb87cc0b",
+        "label": "M. Antoninus Imperator Ad Se Ipsum · 1908 · Jan Hendrik Leopold",
+        "license": {
+          "label": "Creative Commons Attribution-ShareAlike 4.0 International",
+          "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+        },
+        "attribution": "Perseus Digital Library · Tufts University"
+      },
+      "translations": []
+    }
+  },
+  "units": {
+    "tos.text-unit.sid-28426296ab784fd6babdd15990300f38": {"w":"enchiridion","t":{"retained-enchiridion-eng3-1b9fb44a1488":{"u":["tos.text-unit.sid-c7866adb8f4f4b85921b2c17cd8b92f4"],"pairs":[[[[0,52]],[[0,0,52]]],[[[53,212]],[[0,53,343]]],[[[213,328]],[[0,344,528]]],[[[329,721]],[[0,529,1152]]],[[[722,866]],[[0,1153,1361]]],[[[867,1066]],[[0,1362,1679]]],[[[1067,1160]],[[0,1680,1802]]],[[[1161,1379]],[[0,1803,2083]]]]},"retained-enchiridion-eng4-3b4d896e1334":{"u":["tos.text-unit.sid-74a24ab54ce7489b852e5c42df08ac30"],"pairs":[[[[0,52]],[[0,0,93]]],[[[53,212]],[[0,94,194],[0,195,312]]],[[[213,328]],[[0,313,458]]],[[[329,721]],[[0,459,687],[0,688,1035]]],[[[722,866]],[[0,1036,1272]]],[[[867,1066]],[[0,1273,1474]]],[[[1067,1160]],[[0,1475,1604]]],[[[1161,1379]],[[0,1605,1866]]]]},"retained-enchiridion-es-brum1888":{"u":["tos.text-unit.sid-90af1fbc9f9e4ad18df88db40eb8835e"],"pairs":[[[[0,52],[53,212]],[[0,3,156],[0,157,309]]],[[[213,328]],[[0,310,313],[0,314,516]]],[[[329,721]],[[0,517,521],[0,522,800],[0,801,1215],[0,1216,1219]]],[[[722,866]],[[0,1220,1401]]],[[[867,1066]],[[0,1402,1682]]],[[[1067,1160]],[[0,1683,1685],[0,1686,1808]]],[[[1161,1379]],[[0,1809,1904],[0,1905,1988],[0,1989,1992],[0,1993,2113]]]]}}}
+  },
+  "receipt": {
+    "enchiridion:retained-enchiridion-eng3-1b9fb44a1488": {
+      "how": "reference",
+      "sentences": [
+        298,
+        308
+      ],
+      "shapes": {
+        "1:1": 192,
+        "1:2": 30,
+        "3:1": 5,
+        "2:2": 8,
+        "2:1": 17,
+        "1:3": 6,
+        "1:0": 5
+      },
+      "trained": 191,
+      "coverage": 0.804
+    },
+    "enchiridion:retained-enchiridion-eng4-3b4d896e1334": {
+      "how": "reference",
+      "sentences": [
+        298,
+        307
+      ],
+      "shapes": {
+        "1:1": 181,
+        "1:2": 38,
+        "2:1": 14,
+        "1:3": 5,
+        "3:1": 5,
+        "2:2": 4,
+        "1:0": 21,
+        "1:4": 2
+      },
+      "trained": 178,
+      "coverage": 0.774
+    },
+    "enchiridion:retained-enchiridion-es-brum1888": {
+      "how": "sentences of the whole work",
+      "sentences": [
+        298,
+        389
+      ],
+      "shapes": {
+        "0:1": 9,
+        "2:2": 23,
+        "1:2": 34,
+        "1:4": 14,
+        "1:1": 93,
+        "1:3": 17,
+        "2:1": 17,
+        "1:5": 7,
+        "1:0": 11,
+        "3:1": 14
+      },
+      "trained": 81,
+      "coverage": 0.545
+    }
+  }
+}

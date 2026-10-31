@@ -3,16 +3,25 @@
 //
 //   node bonsai/lib/cli.mjs check [<bonsai>...]
 //   node bonsai/lib/cli.mjs export <bonsai> [--out <file>]
+//   node bonsai/lib/cli.mjs align <bonsai> [--write]
+//   node bonsai/lib/cli.mjs align-corpus <bonsai> [--write] [--corpus <dir>]
 //
 // `check` exits non-zero when a module breaks its contract or the export does
 // not satisfy the Tree's contracts in this checkout; drift since the graft is
 // reported, not failed. `export` writes the packet as JSON (stdout by default);
-// it never writes into the Tree.
+// it never writes into the Tree. `align` aligns the bonsai's witnesses again
+// from their stored texts with the mechanism in align.mjs and reports where the
+// stored rows differ; `--write` stores the new rows and receipt instead.
+// `align-corpus` aligns, with corpus-align.mjs, the public corpus works the
+// stand's content cites (its own modules and the modules it borrows) and
+// reports whether the stored alignment module still matches; `--write` stores it.
 
-import {writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
-import {fileURLToPath} from 'node:url';
-import {bonsaiIds,checkBonsai} from './graft.mjs';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
+import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
+import {realignWitnesses} from './realign.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -35,7 +44,35 @@ if(command==='check'){
   if(result.problems.length){for(const problem of result.problems)console.error(`problem: ${problem}`);process.exit(1);}
   const text=`${JSON.stringify(result.packet,null,2)}\n`,out=option('--out');
   if(out)writeFileSync(out,text);else process.stdout.write(text);
+}else if(command==='align'&&names.length===1){
+  const {home,manifest,modules}=loadBonsai(root,names[0]);
+  if(!modules.witnesses){console.error(`${names[0]} has no witnesses module`);process.exit(2);}
+  const chapters=loadWitnessChapters(home,manifest),result=realignWitnesses(modules.witnesses,chapters);
+  console.log(JSON.stringify(result.receipt));
+  console.log(`${result.changed.length} chapters whose rows differ from the stored alignment${result.changed.length?`: ${result.changed.join(' ')}`:''}`);
+  if(rest.includes('--write')){
+    const module=manifest.modules.find(item=>item.id==='witnesses'),dir=join(home,dirname(module.chapters));
+    for(const [key,file] of Object.entries(result.chapters))writeFileSync(join(dir,`${key}.json`),`${JSON.stringify(file)}\n`);
+    writeFileSync(join(home,module.path),`${JSON.stringify({...modules.witnesses,alignment:{...modules.witnesses.alignment,...result.alignment}},null,2)}\n`);
+    console.log('stored');
+  }else if(result.changed.length)process.exit(1);
+}else if(command==='align-corpus'&&names.length===1){
+  const {home,manifest,modules}=loadBonsai(root,names[0]),module=(manifest.modules??[]).find(item=>item.id==='alignment');
+  if(!module){console.error(`${names[0]} has no alignment module`);process.exit(2);}
+  // What the stand cites: its own modules and the exports of the modules it borrows.
+  const content=[];
+  for(const item of manifest.modules??[]){
+    if(item.borrowed){for(const path of [].concat(item.borrowed))if(path.endsWith('.mjs'))content.push(Object.values(await import(pathToFileURL(join(root,path)).href)));}
+    else if(item.id!=='alignment'&&modules[item.id])content.push(modules[item.id]);
+  }
+  const works=Object.fromEntries(Object.entries(modules.identities?.works??{}).map(([key,value])=>[key,value.tree]));
+  const read=corpusReader(join(root,option('--corpus')??'access/web/public/public-corpus'));
+  const text=formatAlignment(alignCorpus(citedUnits(content,works,read),works,read)),path=join(home,module.path);
+  const same=readFileSync(path,'utf8')===text;
+  console.log(`${names[0]}: the stored corpus alignment ${same?'matches':'differs from'} the one the mechanism gives`);
+  if(rest.includes('--write')){writeFileSync(path,text);console.log('stored');}
+  else if(!same)process.exit(1);
 }else{
-  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>]');
+  console.error('usage: node bonsai/lib/cli.mjs check [<bonsai>...] | export <bonsai> [--out <file>] | align <bonsai> [--write] | align-corpus <bonsai> [--write] [--corpus <dir>]');
   process.exit(2);
 }

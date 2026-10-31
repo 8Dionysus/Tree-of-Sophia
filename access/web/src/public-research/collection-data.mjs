@@ -82,7 +82,8 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     const shelf=[...own];library.space.collection=shelf;
     let pending=null;
     library.space.loadCollection=()=>pending??=antiquityEntries(context).then(items=>{shelf.push(...items.filter(item=>!shelf.some(held=>(held.materialId??held.id)===item.materialId)));return items;}).catch(error=>{pending=null;throw error;});
-    prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)}];
+    // The atlas before its retellings gave way to the work's own text: the same materials, other words.
+    prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'c2a23454c06995f9912a95216bdf4428e8ab444b6029f48a4817a58edcfd83c4',materialIds:library.nodes.map(node=>node.id)}];
     return prepared;
   }
   const items=await antiquityEntries(context),byId=new Map(library.nodes.map(node=>[node.id,node]));
@@ -142,6 +143,8 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
   // Keep the prior released Antiquity namespace upgradeable after source-link
   // and reading-copy corrections. Existing material IDs and source anchors are
   // retained, so saved work is validated against the current library in place.
-  prepared.graphPredecessors=[{fingerprint:'f5f06c5544d47fdd4660837789c27f6c00bc9899a0ef6f75426b942901e27bc4',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'0c6b2341c0825bcd1c871dc3efb77cb06697c9dc90b17ff3b7b22ab1d20d8446',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'5674759af32d0c1ad4a79dc0b8da4202040b75407da8434a291a0aac8df186f6',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'cc89b903fad44969370ad6a8414817f2f54dcbb977a5544efe28a70ec10f5d85',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
+  // The same holds for the namespace before the stand showed the works' own
+  // fragments instead of retelling them (ed91986c…).
+  prepared.graphPredecessors=[{fingerprint:'f5f06c5544d47fdd4660837789c27f6c00bc9899a0ef6f75426b942901e27bc4',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'0c6b2341c0825bcd1c871dc3efb77cb06697c9dc90b17ff3b7b22ab1d20d8446',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'5674759af32d0c1ad4a79dc0b8da4202040b75407da8434a291a0aac8df186f6',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'0c16ec248e1142a0cf475f1b7f9d4b5b8129c9185449fa11fda53ac0b9ecb352',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'fa44cfb83977ee2990adba9725ab3bf93b5801d3dc19379aa123d10a31ac062b',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'cc89b903fad44969370ad6a8414817f2f54dcbb977a5544efe28a70ec10f5d85',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'ed91986cdac2dd20e97a08697d9879decc35be962f5a1e251f8eb471aa82ac94',materialIds:library.nodes.map(node=>node.id)},{fingerprint:predecessor,materialIds:compatibleMaterialIds}];
   return prepared;
 }

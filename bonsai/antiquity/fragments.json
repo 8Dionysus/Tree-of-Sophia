@@ -1,0 +1,1586 @@
+{
+ "schema": "tos.bonsai.fragments.v1",
+ "posture": {
+  "ru": "Точный текст мест других произведений, на которые опирается стенд, в оригинале и переводах; у каждого свидетеля — издание, источник, лицензия и основание показа. Охраняемое произведение показано короткой цитатой или только адресом места.",
+  "en": "The exact text of the places of other works the stand rests on, in the original and in translations; every witness with its edition, source, licence and basis for showing it. A protected work is shown by a short quotation or by the address of the place alone."
+ },
+ "provenance": {
+  "gathered": "2026-10-30",
+  "method": "Exact text read in the shell from the digital copies named per witness and checked against the page images of the printed editions; where they differ, the print decides and the place notes the change. Greek line ranges follow Bekker’s Berlin edition (a word broken across lines counts to the line where it begins); a translation gives the smallest run of whole sentences that renders the place. A place named by Bekker lines shows the whole sentences those lines stand in; the words around the checked lines come from the same transcription."
+ },
+ "works": {
+  "de-anima": {
+   "author": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "title": {
+    "ru": "О душе",
+    "en": "On the Soul"
+   },
+   "original": "grc",
+   "witnesses": {
+    "grc": {
+     "edition": "Aristotelis Opera ex recensione Immanuelis Bekkeri, vol. 3, Oxonii: e Typographeo Academico, 1837, pp. 158–242 (Oxford reprint of Bekker's text in Aristotelis Opera, ed. Academia Regia Borussica, vol. 1, Berolini: G. Reimer, 1831, pp. 402–435). Text as transcribed in the First1KGreek TEI; Bekker line division read from the Berlin 1831 printing (Internet Archive aristotelisopera01arisuoft); every passage checked against the Oxford page images (Internet Archive aristotelisoper03arisuoft).",
+     "year": 1837,
+     "url": "https://archive.org/details/aristotelisoper03arisuoft",
+     "sources": [
+      "https://github.com/OpenGreekAndLatin/First1KGreek/blob/master/data/tlg0086/tlg002/tlg0086.tlg002.1st1K-grc1.xml",
+      "https://archive.org/details/aristotelisopera01arisuoft"
+     ],
+     "licence": "Digital transcription: Creative Commons Attribution-ShareAlike 4.0 International (as stated in the TEI header). The edition itself is in the public domain.",
+     "attribution": "The TEI asks for no fixed wording. Its header credits: A Digital Corpus for Graeco-Arabic Studies, funded by the Andrew W. Mellon Foundation (Mark Schiefsky, Gregory R. Crane, Uwe Vagelpohl); keyboarding Digital Divide Data; published by the University of Leipzig (First1KGreek / Open Greek and Latin), 2016. Suggested: \"Aristotle, De anima, ed. I. Bekker (Oxford 1837); TEI tlg0086.tlg002.1st1K-grc1, First1KGreek (Open Greek and Latin, University of Leipzig), CC BY-SA 4.0.\"",
+     "rights": {
+      "basis": "public-domain+licence",
+      "russia": "Public domain: Aristotle's text; Bekker (1785–1871) published it in 1831 (Oxford reprint 1837); any term under the Civil Code (art. 1281) ended long ago. The CC BY-SA licence of the transcription is respected by attribution and share-alike.",
+      "usa": "Public domain (published 1831/1837). CC BY-SA 4.0 for the TEI transcription.",
+      "eu": "Public domain; the optional related right for critical/scientific editions (Term Directive 2006/116/EC art. 5, at most 30 years) expired long ago. CC BY-SA 4.0 for the transcription.",
+      "reasoning": "Editor Immanuel Bekker died 1871; edition 1831, reprint 1837; nothing of the editor's is protected anywhere. The only licence is the First1KGreek one on the digital transcription (CC BY-SA 4.0): name the source and keep the licence. The W. D. Ross 1956 transcription (1st1K-grc2) was not used: Ross died 1971 and the transcription has OCR-type errors."
+     },
+     "short": {
+      "ru": "текст Беккера, Оксфорд, 1837",
+      "en": "Bekker’s text, Oxford, 1837"
+     }
+    },
+    "en": {
+     "edition": "Aristotle, De Anima, with translation, introduction and notes by R. D. Hicks, Cambridge: at the University Press, 1907.",
+     "translator": "Robert Drew Hicks (1850–1929)",
+     "year": 1907,
+     "url": "https://archive.org/details/aristotledeanima0000rdhi",
+     "licence": "Public domain. The Internet Archive scan and its OCR (https://archive.org/download/aristotledeanima0000rdhi/aristotledeanima0000rdhi_djvu.txt) carry no licence of their own.",
+     "attribution": "Aristotle, De Anima, tr. R. D. Hicks (Cambridge University Press, 1907); scan: Internet Archive (aristotledeanima0000rdhi).",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Public domain: Hicks died in 1929, so the 70-year term (Civil Code art. 1281) ended on 31 Dec 1999; the UK term (country of origin) ended at the same date.",
+      "usa": "Public domain (published 1907).",
+      "eu": "Public domain (author died 1929; life + 70 ended 31 Dec 1999).",
+      "reasoning": "Translator died 1929 (The Times obituary, 1929, on Wikisource); published 1907. The English was taken from the OCR text and checked line by line against the page images; Hicks's marginal side-notes and section numerals, which the OCR mixes into the text, were removed. J. A. Smith (1931) was not used: Wikisource marks it as under US copyright until the end of 2026."
+     },
+     "short": {
+      "ru": "пер. Р. Д. Хикса, 1907",
+      "en": "tr. R. D. Hicks, 1907"
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "П. С. Попов's translation (1937) is protected until 2034 (2038 with the wartime extension) and no legitimate copy to check a short quotation against was found. В. А. Снегирёв's nineteenth-century translation (Снегирёв died 1889) is in the public domain, but no copy of it was found."
+    }
+   ]
+  },
+  "letters": {
+   "author": {
+    "ru": "Сенека",
+    "en": "Seneca"
+   },
+   "title": {
+    "ru": "Нравственные письма к Луцилию",
+    "en": "Moral Letters to Lucilius"
+   },
+   "original": "la",
+   "witnesses": {
+    "la": {
+     "edition": "L. Annaeus Seneca, Ad Lucilium Epistulae Morales, with an English translation by Richard M. Gummere, vol. 1 (Loeb Classical Library), London: William Heinemann; New York: G. P. Putnam's Sons, 1917. The Latin is O. Hense's Teubner text (2nd ed., Leipzig 1914), from which Gummere departs only by dropping some of Hense's brackets (Introduction, p. xiii). Text as transcribed by Perseus, checked against the Loeb page images (Internet Archive adluciliumepistu01sene).",
+     "year": 1917,
+     "url": "https://archive.org/details/adluciliumepistu01sene",
+     "sources": [
+      "https://github.com/PerseusDL/canonical-latinLit/blob/master/data/phi1017/phi015/phi1017.phi015.perseus-lat2.xml"
+     ],
+     "licence": "Digital transcription: Creative Commons Attribution-ShareAlike 4.0 International (TEI header). The Latin text is in the public domain.",
+     "attribution": "The TEI asks for no fixed wording. Its header credits the Perseus Project, Tufts University (principal Gregory Crane; funder Tufts University; publisher Trustees of Tufts University). Suggested: \"Seneca, Epistulae morales, Latin text of the Loeb edition (Gummere 1917, after Hense 1914); Perseus Digital Library, phi1017.phi015.perseus-lat2, CC BY-SA 4.0.\"",
+     "rights": {
+      "basis": "public-domain+licence",
+      "russia": "Public domain: Seneca's text; the critical text is Hense's (Otto Hense died 1931); Gummere's reprint of it with a few brackets dropped is not a separate work. CC BY-SA for the transcription.",
+      "usa": "Public domain (published 1917, before 1931).",
+      "eu": "Public domain; Hense died 1931; any related right in a critical edition (max. 30 years) expired long ago.",
+      "reasoning": "Hense 1914 is the named public-domain edition behind the Loeb Latin. One transcription slip in the Perseus TEI was corrected from the page image (28.1 admirans → admiraris); Loeb footnotes are omitted; quotation marks are given as the Loeb prints them."
+     },
+     "short": {
+      "ru": "лат. текст изд. Лёба, 1917",
+      "en": "Latin of the Loeb edition, 1917"
+     }
+    },
+    "en": {
+     "edition": "Seneca, Ad Lucilium Epistulae Morales, tr. Richard M. Gummere, vol. 1 (Loeb Classical Library), London: William Heinemann; New York: G. P. Putnam's Sons, 1917. Text from the Wikisource transcription (proofread pages of the 1917 scan), checked against the Loeb page images (Internet Archive adluciliumepistu01sene).",
+     "translator": "Richard Mott Gummere (1883–1969)",
+     "year": 1917,
+     "url": "https://en.wikisource.org/wiki/Moral_letters_to_Lucilius",
+     "sources": [
+      "https://archive.org/details/adluciliumepistu01sene"
+     ],
+     "licence": "Wikisource marks the work {{PD/US|1969}}: public domain in the USA; the author died in 1969.",
+     "attribution": "Seneca, Moral Letters to Lucilius, tr. Richard M. Gummere (Loeb Classical Library, 1917); transcription: Wikisource.",
+     "rights": {
+      "basis": "short-quotation",
+      "russia": "Unsettled, so used only as short quotations (Civil Code art. 1274 p. 1 sub. 1). The book appeared at the same time in London and New York (1917). If the USA counts as the country of origin, the term has expired there, and Russia gives no longer term than the country of origin (art. 1256); if the UK counts, the term runs to 31 Dec 2039 (Gummere died 1969).",
+      "usa": "Public domain (published 1917, before 1931).",
+      "eu": "Unsettled in the same way. If the US is the country of origin, the rule of the shorter term (Directive 2006/116/EC art. 7, Gummere being a US national) makes it public domain; if the UK, life + 70 runs to 31 Dec 2039. Used as short quotations (InfoSoc art. 5(3)(d)).",
+      "reasoning": "Berne art. 5(4): for simultaneous publication, the Union country with the shortest term is the country of origin (USA, if one applies today's membership), but in 1917 only the UK was a Berne member (art. 5(4)(b) would make the UK the country of origin). Because this cannot be settled here, each section is placed as one short quotation with attribution. In 9.19 the Wikisource text repeats 'all' across a page break; the print has it once, and this is corrected."
+     },
+     "short": {
+      "ru": "пер. Р. М. Гаммери, 1917",
+      "en": "tr. Richard M. Gummere, 1917"
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "Луций Анней Сенека. Нравственные письма к Луцилию / пер. С. А. Ошерова. М.: Наука, 1977 (Литературные памятники). — Translator's dates checked (14 Feb 1931 – 28 Apr 1983, FantLab). Texts are null: no copy whose legitimacy could be established was reachable here, so the wording could not be verified."
+    }
+   ]
+  },
+  "memorabilia": {
+   "author": {
+    "ru": "Ксенофонт",
+    "en": "Xenophon"
+   },
+   "title": {
+    "ru": "Воспоминания о Сократе",
+    "en": "Memorabilia"
+   },
+   "original": "grc",
+   "witnesses": {
+    "grc": {
+     "edition": "Xenophontis Opera omnia, recognovit brevique adnotatione critica instruxit E. C. Marchant, vol. 2, Oxford: Clarendon Press (Scriptorum Classicorum Bibliotheca Oxoniensis), editio altera 1921 (reprinted 1971), as transcribed by Perseus. Each passage checked against the first printing (1901) of the same volume (Internet Archive operaomniarecogn02xenouoft); the wording agrees, and the capitals printed at the start of speeches, which the TEI lower-cases, are restored.",
+     "year": 1921,
+     "url": "https://archive.org/details/operaomniarecogn02xenouoft",
+     "sources": [
+      "https://github.com/PerseusDL/canonical-greekLit/blob/master/data/tlg0032/tlg002/tlg0032.tlg002.perseus-grc2.xml"
+     ],
+     "licence": "Digital transcription: Creative Commons Attribution-ShareAlike 4.0 International (TEI header).",
+     "attribution": "The TEI asks for no fixed wording. Its header credits the Perseus Project, Tufts University (principal Gregory Crane; funder The Annenberg CPB/Project; publisher Trustees of Tufts University). Suggested: \"Xenophon, Memorabilia, ed. E. C. Marchant (OCT, 1921); Perseus Digital Library, tlg0032.tlg002.perseus-grc2, CC BY-SA 4.0.\"",
+     "rights": {
+      "basis": "public-domain+licence",
+      "russia": "Public domain: the wording is Xenophon's. Russian law gives the editor no copyright in a reconstructed ancient text, and the passages carry no apparatus or notes. CC BY-SA for the transcription.",
+      "usa": "Public domain (published 1901 and 1921, both before 1931).",
+      "eu": "Public domain: no copyright in the ancient wording; the optional related right for critical editions (max. 30 years) has expired. Only residual risk: in the UK a critical text might be argued to be an original work of Marchant (died 1960), which would run to 31 Dec 2030.",
+      "reasoning": "Marchant (1864–1960) is the editor; this follows the brief's choice of 'Marchant's OCT text as in Perseus'. The places are plain Greek text with no apparatus."
+     },
+     "short": {
+      "ru": "текст Э. К. Маршана, Оксфорд",
+      "en": "Marchant’s Oxford text"
+     }
+    },
+    "en": {
+     "edition": "The Works of Xenophon, translated by H. G. Dakyns, vol. III, part 1 (The Memorabilia and Apology, the Economist, the Symposium, and Hiero), London and New York: Macmillan, 1897. Text from Project Gutenberg eBook #1177, checked against the 1897 page images (Internet Archive WorksOfXenophonV.3Pt.1 and worksxenophonvo00dakygoog).",
+     "translator": "Henry Graham Dakyns (1838–1911)",
+     "year": 1897,
+     "url": "https://www.gutenberg.org/ebooks/1177",
+     "sources": [
+      "https://www.gutenberg.org/cache/epub/1177/pg1177.txt",
+      "https://archive.org/details/WorksOfXenophonV.3Pt.1"
+     ],
+     "licence": "Public domain. Project Gutenberg's licence governs only redistribution of its eBook files under its trademark; quoting the public-domain text needs no licence.",
+     "attribution": "Xenophon, The Memorabilia, tr. H. G. Dakyns (Macmillan, 1897); etext: Project Gutenberg #1177 (produced by John Bickers).",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Public domain (Dakyns died 1911).",
+      "usa": "Public domain (published 1897).",
+      "eu": "Public domain (life + 70 ended 31 Dec 1981).",
+      "reasoning": "Chosen over Marchant's Loeb translation (1923), which is public domain in the USA but protected in the UK/EU until 31 Dec 2030 (Marchant died 1960). The Gutenberg text was corrected where the 1897 print differs (1.6.14, 3.8.5); footnote cues removed; quotation marks and dashes as printed; chapter numerals ('I.—', 'V.—', 'VII.—') omitted."
+     },
+     "short": {
+      "ru": "пер. Г. Г. Дейкинса, 1897",
+      "en": "tr. H. G. Dakyns, 1897"
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "Ксенофонт. Воспоминания о Сократе / пер. С. И. Соболевского. М.; Л.: Academia, 1935. — Translator's dates checked (1864–1963). Texts are null: no copy whose legitimacy could be established was reachable here, so the wording could not be verified."
+    }
+   ]
+  },
+  "outlines": {
+   "author": {
+    "ru": "Секст Эмпирик",
+    "en": "Sextus Empiricus"
+   },
+   "title": {
+    "ru": "Пирроновы положения",
+    "en": "Outlines of Pyrrhonism"
+   },
+   "original": "grc",
+   "witnesses": {
+    "grc": {
+     "edition": "Sexti Empirici Opera, recensuit Hermannus Mutschmann, vol. 1 (Πυρρωνείων ὑποτυπώσεων libri tres), Lipsiae: in aedibus B. G. Teubneri, 1912. Text as transcribed in the First1KGreek TEI, corrected against the page images (Internet Archive rsoperarecensuit01sextuoft).",
+     "year": 1912,
+     "url": "https://archive.org/details/rsoperarecensuit01sextuoft",
+     "sources": [
+      "https://github.com/OpenGreekAndLatin/First1KGreek/blob/master/data/tlg0544/tlg001/tlg0544.tlg001.1st1K-grc1.xml"
+     ],
+     "licence": "Digital transcription: Creative Commons Attribution-ShareAlike 4.0 International (TEI header).",
+     "attribution": "The TEI asks for no fixed wording. Its header credits the University of Leipzig (sponsor and publisher), funder European Social Fund Saxony, principals Gregory Crane and Monica Berti; correction and encoding by Digital Divide Data. Suggested: \"Sextus Empiricus, Pyrrhoniae hypotyposes, ed. H. Mutschmann (Teubner 1912); TEI tlg0544.tlg001.1st1K-grc1, First1KGreek (University of Leipzig), CC BY-SA 4.0.\"",
+     "rights": {
+      "basis": "public-domain+licence",
+      "russia": "Public domain (Mutschmann died 1918; edition 1912). CC BY-SA for the transcription.",
+      "usa": "Public domain (published 1912).",
+      "eu": "Public domain (life + 70 ended 31 Dec 1988; any edition right expired).",
+      "reasoning": "This transcription has many OCR-type slips; every place was read against the printed page and corrected (listed in each place's note)."
+     },
+     "short": {
+      "ru": "изд. Г. Мучмана, 1912",
+      "en": "ed. H. Mutschmann, 1912"
+     }
+    },
+    "en": {
+     "edition": "Mary Mills Patrick, Sextus Empiricus and Greek Scepticism, Cambridge: Deighton Bell & Co.; London: George Bell & Sons, 1899 (with a translation of Book I of the Pyrrhonic Sketches). Text from Project Gutenberg eBook #17556, checked against the 1899 page images (Internet Archive cu31924029002561).",
+     "translator": "Mary Mills Patrick (1850–1940)",
+     "year": 1899,
+     "url": "https://www.gutenberg.org/ebooks/17556",
+     "sources": [
+      "https://www.gutenberg.org/cache/epub/17556/pg17556.txt",
+      "https://archive.org/details/cu31924029002561"
+     ],
+     "licence": "Public domain; Project Gutenberg licence applies only to redistribution of its eBook files.",
+     "attribution": "Sextus Empiricus, Pyrrhonic Sketches I, tr. Mary Mills Patrick, in her Sextus Empiricus and Greek Scepticism (Cambridge 1899); etext: Project Gutenberg #17556 (Turgut Dincer, Ted Garvin and the Online Distributed Proofreading Team).",
+     "rights": {
+      "basis": "public-domain",
+      "russia": "Public domain (Patrick died 1940; life + 70 ended 31 Dec 2010).",
+      "usa": "Public domain (published 1899).",
+      "eu": "Public domain (life + 70 ended 31 Dec 2010).",
+      "reasoning": "Patrick translated only Book I, from Bekker's text (Berlin 1842); her section numerals follow Fabricius/Bekker. The Gutenberg transliterations '[Greek: …]' are replaced by the Greek words as printed in 1899."
+     },
+     "short": {
+      "ru": "пер. М. М. Патрик, 1899",
+      "en": "tr. Mary Mills Patrick, 1899"
+     }
+    },
+    "en-bury": {
+     "edition": "Sextus Empiricus, vol. 1: Outlines of Pyrrhonism, with an English translation by R. G. Bury (Loeb Classical Library), London: William Heinemann; New York: G. P. Putnam's Sons, 1933. Used only for II.13 (Patrick covers Book I only). Text from the First1KGreek TEI, checked against the page image (Internet Archive in.ernet.dli.2015.183761, p. 159).",
+     "translator": "Robert Gregg Bury (1869–1951)",
+     "year": 1933,
+     "url": "https://github.com/OpenGreekAndLatin/First1KGreek/blob/master/data/tlg0544/tlg001/tlg0544.tlg001.1st1K-eng1.xml",
+     "licence": "Digital transcription: Creative Commons Attribution-ShareAlike 4.0 International (TEI header).",
+     "attribution": "Sextus Empiricus, Outlines of Pyrrhonism, tr. R. G. Bury (Loeb Classical Library, 1933); TEI tlg0544.tlg001.1st1K-eng1, Open Greek and Latin / Perseus Digital Library (funder Tisch Library, Tufts University; digital conversion William Roush, editor Lisa Cerrato), CC BY-SA 4.0.",
+     "rights": {
+      "basis": "public-domain+licence",
+      "russia": "Public domain: Bury died 11 Feb 1951, so the 70-year term ended 31 Dec 2021, as did the UK term (country of origin).",
+      "usa": "Very probably public domain. It was published in 1933 with a New York co-publisher, so it needed renewal in 1960–61; no renewal appears in the Catalog of Copyright Entries renewal registrations for Jan 1960 – Dec 1961 (OCR search: no 'Sextus', no Harvard/Loeb renewals). URAA restoration is excluded because the book was published simultaneously in the US. Even if a renewal were missed, one section is a short fair-use quotation.",
+      "eu": "Public domain (life + 70 ended 31 Dec 2021).",
+      "reasoning": "Dates from Wikipedia (22 Mar 1869 – 11 Feb 1951). The Stanford renewal database is behind a bot check and was not used. Footnote cues b, c are omitted."
+     },
+     "short": {
+      "ru": "пер. Р. Г. Бери, 1933",
+      "en": "tr. R. G. Bury, 1933"
+     }
+    }
+   },
+   "absent": [
+    {
+     "language": "ru",
+     "reason": "Секст Эмпирик. Три книги Пирроновых положений, пер. Н. В. Брюлловой-Шаскольской (СПб., 1913). Not obtained: the Russian State Library holds it in print only, and no other legitimate digital copy was found. Its status must be settled before it is placed: the translator (1889–1937) was shot in 1937 and rehabilitated in the 1950s; one reading holds the term expired under Soviet law before 1993 (Federal Law 231-FZ, art. 6), another counts 70 years from rehabilitation (Civil Code art. 1281), which would protect it until about 2026–2029."
+    }
+   ]
+  }
+ },
+ "places": {
+  "de-anima": {
+   "I.1 402a6-7": {
+    "label": {
+     "ru": "I.1, 402a6–7",
+     "en": "I.1, 402a6–7"
+    },
+    "texts": {
+     "grc": "Δοκεῖ δὲ καὶ πρὸς ἀλήθειαν ἅπασαν ἡ γνῶσις αὐτῆς μεγάλα συμβάλλεσθαι, μάλιστα δὲ πρὸς τὴν φύσιν· ἔστι γὰρ οἷον ἀρχὴ τῶν ζῴων. Ἐπιζητοῦμεν δὲ θεωρῆσαι καὶ γνῶναι τήν τε φύσιν αὐτῆς καὶ τὴν οὐσίαν, εἶθ’ ὅσα συμβέβηκε περὶ αὐτήν· ὧν τὰ μὲν ἴδια πάθη τῆς ψυχῆς εἶναι δοκεῖ, τὰ δὲ δι’ ἐκείνην καὶ τοῖς ζῴοις ὑπάρχειν.",
+     "en": "It would seem, too, that an acquaintance with the subject contributes greatly to the whole domain of truth and, more particularly, to the study of nature, the soul being virtually the principle of all animal life.\n\nOur aim is to discover and ascertain the nature and essence of soul and, in the next place, all the accidents belonging to it; of which some are thought to be attributes peculiar to the soul itself, while others, it is held, belong to the animal also, but owe their existence to the soul."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 158; Bekker line division: Berlin 1831 vol. 1 p. 402 col. a ll. 6–7"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 3"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 402a6-7 as divided in the Berlin edition (p. 402 col. a ll. 6–7); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412a19-21": {
+    "label": {
+     "ru": "II.1, 412a19–21",
+     "en": "II.1, 412a19–21"
+    },
+    "texts": {
+     "grc": "Ἐπεὶ δ’ ἐστὶ σῶμα τοιόνδε, ζωὴν γὰρ ἔχον, οὐκ ἂν εἴη τὸ σῶμα ψυχή· οὐ γάρ ἐστι τῶν καθ’ ὑποκειμένου τὸ σῶμα, μᾶλλον δ’ ὡς ὑποκείμενον καὶ ὕλη. Ἀναγκαῖον ἄρα τὴν ψυχὴν οὐσίαν εἶναι ὡς εἶδος σώματος φυσικοῦ δυνάμει ζωὴν ἔχοντος. Ἡ δ’ οὐσία ἐντελέχεια. Τοιούτου ἄρα σώματος ἐντελέχεια.",
+     "en": "And since in fact we have here body with a certain attribute, namely, the possession of life, the body will not be the soul: for the body is not an attribute of a subject, it stands rather for a subject of attributes, that is, matter. It must follow, then, that soul is substance in the sense that it is the form of a natural body having in it the capacity of life. Such substance is actuality. The soul, therefore, is the actuality of the body above described."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 184; Bekker line division: Berlin 1831 vol. 1 p. 412 col. a ll. 19–21"
+     ],
+     [
+      "en",
+      "Hicks 1907 pp. 49–51"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412a19-21 as divided in the Berlin edition (p. 412 col. a ll. 19–21); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412a22-23": {
+    "label": {
+     "ru": "II.1, 412a22–23",
+     "en": "II.1, 412a22–23"
+    },
+    "texts": {
+     "grc": "Αὕτη δὲ λέγεται διχῶς, ἡ μὲν ὡς ἐπιστήμη, ἡ δ’ ὡς τὸ θεωρεῖν. Φανερὸν οὖν ὅτι ὡς ἐπιστήμη· ἐν γὰρ τῷ ὑπάρχειν τὴν ψυχὴν καὶ ὕπνος καὶ ἐγρήγορσίς ἐστιν, ἀνάλογον δ’ ἡ μὲν ἐγρήγορσις τῷ θεωρεῖν, ὁ δ’ ὕπνος τῷ ἔχειν καὶ μὴ ἐνεργεῖν.",
+     "en": "But the term ‘actuality’ is used in two senses; in the one it answers to knowledge, in the other to the exercise of knowledge. Clearly in this case it is analogous to knowledge: for sleep, as well as waking, implies the presence of soul; and, whilst waking is analogous to the exercise of knowledge, sleep is analogous to the possession of knowledge without its exercise; and in the same individual the possession of knowledge comes in order of time before its exercise."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 184; Bekker line division: Berlin 1831 vol. 1 p. 412 col. a ll. 22–23"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 51"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412a22-23 as divided in the Berlin edition (p. 412 col. a ll. 22–23); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412a23-26": {
+    "label": {
+     "ru": "II.1, 412a23–26",
+     "en": "II.1, 412a23–26"
+    },
+    "texts": {
+     "grc": "Αὕτη δὲ λέγεται διχῶς, ἡ μὲν ὡς ἐπιστήμη, ἡ δ’ ὡς τὸ θεωρεῖν. Φανερὸν οὖν ὅτι ὡς ἐπιστήμη· ἐν γὰρ τῷ ὑπάρχειν τὴν ψυχὴν καὶ ὕπνος καὶ ἐγρήγορσίς ἐστιν, ἀνάλογον δ’ ἡ μὲν ἐγρήγορσις τῷ θεωρεῖν, ὁ δ’ ὕπνος τῷ ἔχειν καὶ μὴ ἐνεργεῖν. Προτέρα δὲ τῇ γενέσει ἐπὶ τοῦ αὐτοῦ ἡ ἐπιστήμη.",
+     "en": "But the term ‘actuality’ is used in two senses; in the one it answers to knowledge, in the other to the exercise of knowledge. Clearly in this case it is analogous to knowledge: for sleep, as well as waking, implies the presence of soul; and, whilst waking is analogous to the exercise of knowledge, sleep is analogous to the possession of knowledge without its exercise; and in the same individual the possession of knowledge comes in order of time before its exercise."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 184; Bekker line division: Berlin 1831 vol. 1 p. 412 col. a ll. 23–26"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 51"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412a23-26 as divided in the Berlin edition (p. 412 col. a ll. 23–26); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412a27-b1": {
+    "label": {
+     "ru": "II.1, 412a27–b1",
+     "en": "II.1, 412a27–b1"
+    },
+    "texts": {
+     "grc": "Προτέρα δὲ τῇ γενέσει ἐπὶ τοῦ αὐτοῦ ἡ ἐπιστήμη. Διὸ ψυχή ἐστιν ἐντελέχεια ἡ πρώτη σώματος φυσικοῦ δυνάμει ζωὴν ἔχοντος. Τοιοῦτο δέ, ὃ ἂν ᾖ ὀργανικόν. Ὄργανα δὲ καὶ τὰ τῶν φυτῶν μέρη, ἀλλὰ παντελῶς ἁπλᾶ, οἷον τὸ φύλλον περικαρπίου σκέπασμα, τὸ δὲ περικάρπιον καρποῦ.",
+     "en": "Clearly in this case it is analogous to knowledge: for sleep, as well as waking, implies the presence of soul; and, whilst waking is analogous to the exercise of knowledge, sleep is analogous to the possession of knowledge without its exercise; and in the same individual the possession of knowledge comes in order of time before its exercise. Hence soul is the first actuality of a natural body having in it the capacity of life. And a body which is possessed of organs answers to this description.—We may note that the parts of plants, as well as those of animals, are organs, though of a very simple sort: for instance, a leaf is the sheath of the pod and the pod of the fruit."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 184; Bekker line division: Berlin 1831 vol. 1 p. 412 col. a ll. 27–28, col. b l. 1"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 51"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412a27-b1 as divided in the Berlin edition (p. 412 col. a ll. 27–28, col. b l. 1); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines. Hicks prints \"—\" between his sentences here (\".—\")."
+   },
+   "II.1 412b4-6": {
+    "label": {
+     "ru": "II.1, 412b4–6",
+     "en": "II.1, 412b4–6"
+    },
+    "texts": {
+     "grc": "Αἱ δὲ ῥίζαι τῷ στόματι ἀνάλογον· ἄμφω γὰρ ἕλκει τὴν τροφήν. Εἰ δή τι κοινὸν ἐπὶ πάσης ψυχῆς δεῖ λέγειν, εἴη ἂν ἐντελέχεια ἡ πρώτη σώματος φυσικοῦ ὀργανικοῦ. Διὸ καὶ οὐ δεῖ ζητεῖν εἰ ἓν ἡ ψυχὴ καὶ τὸ σῶμα, ὥσπερ οὐδὲ τὸν κηρὸν καὶ τὸ σχῆμα, οὐδ’ ὅλως τὴν ἑκάστου ὕλην καὶ τὸ οὗ ὕλη· τὸ γὰρ ἓν καὶ τὸ εἶναι ἐπεὶ πλεοναχῶς λέγεται, τὸ κυρίως ἡ ἐντελέχειά ἐστιν.",
+     "en": "The roots, again, are analogous to the mouths of animals, both serving to take in nourishment.—If, then, we have to make a general statement touching soul in all its forms, the soul will be the first actuality of a natural body furnished with organs. Hence there is no need to enquire whether soul and body are one, any more than whether the wax and the imprint are one; or, in general, whether the matter of a thing is the same with that of which it is the matter."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 184; Bekker line division: Berlin 1831 vol. 1 p. 412 col. b ll. 4–6"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 51"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412b4-6 as divided in the Berlin edition (p. 412 col. b ll. 4–6); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines. Hicks prints \"—\" between his sentences here (\".—\")."
+   },
+   "II.1 412b17": {
+    "label": {
+     "ru": "II.1, 412b17",
+     "en": "II.1, 412b17"
+    },
+    "texts": {
+     "grc": "Νῦν δ’ ἐστὶ πέλεκυς· οὐ γὰρ τοιούτου σώματος τὸ τί ἦν εἶναι καὶ ὁ λόγος ἡ ψυχή, ἀλλὰ φυσικοῦ τοιουδὶ ἔχοντος ἀρχὴν κινήσεως καὶ στάσεως ἐν ἑαυτῷ. Θεωρεῖν δὲ καὶ ἐπὶ τῶν μερῶν δεῖ τὸ λεχθέν.",
+     "en": "For it is not of a body of this kind that the soul is the quiddity, that is, the notion or form, but of a natural body of a particular sort, having in itself the origination of motion and rest.\n\nFurther, we must view our statement in the light of the parts of the body."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 pp. 184–185; Bekker line division: Berlin 1831 vol. 1 p. 412 col. b l. 17"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 51"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412b17 as divided in the Berlin edition (p. 412 col. b l. 17); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412b18-20": {
+    "label": {
+     "ru": "II.1, 412b18–20",
+     "en": "II.1, 412b18–20"
+    },
+    "texts": {
+     "grc": "Θεωρεῖν δὲ καὶ ἐπὶ τῶν μερῶν δεῖ τὸ λεχθέν. Εἰ γὰρ ἦν ὁ ὀφθαλμὸς ζῷον, ψυχὴ ἂν ἦν αὐτοῦ ἡ ὄψις· αὕτη γὰρ οὐσία ὀφθαλμοῦ ἡ κατὰ τὸν λόγον. Ὁ δ’ ὀφθαλμὸς ὕλη ὄψεως, ἧς ἀπολειπούσης οὐκ ἔστιν ὀφθαλμός, πλὴν ὁμωνύμως, καθάπερ ὁ λίθινος καὶ ὁ γεγραμμένος.",
+     "en": "Further, we must view our statement in the light of the parts of the body. For, if the eye were an animal, eyesight would be its soul, this being the substance as notion or form of the eye. The eye is the matter of eyesight, and in default of eyesight it is no longer an eye, except equivocally, like an eye in stone or in a picture."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 185; Bekker line division: Berlin 1831 vol. 1 p. 412 col. b ll. 18–20"
+     ],
+     [
+      "en",
+      "Hicks 1907 pp. 51–53"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412b18-20 as divided in the Berlin edition (p. 412 col. b ll. 18–20); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412b18-22": {
+    "label": {
+     "ru": "II.1, 412b18–22",
+     "en": "II.1, 412b18–22"
+    },
+    "texts": {
+     "grc": "Θεωρεῖν δὲ καὶ ἐπὶ τῶν μερῶν δεῖ τὸ λεχθέν. Εἰ γὰρ ἦν ὁ ὀφθαλμὸς ζῷον, ψυχὴ ἂν ἦν αὐτοῦ ἡ ὄψις· αὕτη γὰρ οὐσία ὀφθαλμοῦ ἡ κατὰ τὸν λόγον. Ὁ δ’ ὀφθαλμὸς ὕλη ὄψεως, ἧς ἀπολειπούσης οὐκ ἔστιν ὀφθαλμός, πλὴν ὁμωνύμως, καθάπερ ὁ λίθινος καὶ ὁ γεγραμμένος. Δεῖ δὴ λαβεῖν τὸ ἐπὶ μέρους ἐφ’ ὅλου τοῦ ζῶντος σώματος· ἀνάλογον γὰρ ἔχει ὡς τὸ μέρος πρὸς τὸ μέρος, οὕτως ἡ ὅλη αἴσθησις πρὸς τὸ ὅλον σῶμα τὸ αἰσθητικόν, ᾗ τοιοῦτο.",
+     "en": "Further, we must view our statement in the light of the parts of the body. For, if the eye were an animal, eyesight would be its soul, this being the substance as notion or form of the eye. The eye is the matter of eyesight, and in default of eyesight it is no longer an eye, except equivocally, like an eye in stone or in a picture. What has been said of the part must be understood to apply to the whole living body; for, as the sensation of a part of the body is to that part, so is sensation as a whole to the whole sentient body as such."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 185; Bekker line division: Berlin 1831 vol. 1 p. 412 col. b ll. 18–22"
+     ],
+     [
+      "en",
+      "Hicks 1907 pp. 51–53"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412b18-22 as divided in the Berlin edition (p. 412 col. b ll. 18–22); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412b20-22": {
+    "label": {
+     "ru": "II.1, 412b20–22",
+     "en": "II.1, 412b20–22"
+    },
+    "texts": {
+     "grc": "Εἰ γὰρ ἦν ὁ ὀφθαλμὸς ζῷον, ψυχὴ ἂν ἦν αὐτοῦ ἡ ὄψις· αὕτη γὰρ οὐσία ὀφθαλμοῦ ἡ κατὰ τὸν λόγον. Ὁ δ’ ὀφθαλμὸς ὕλη ὄψεως, ἧς ἀπολειπούσης οὐκ ἔστιν ὀφθαλμός, πλὴν ὁμωνύμως, καθάπερ ὁ λίθινος καὶ ὁ γεγραμμένος. Δεῖ δὴ λαβεῖν τὸ ἐπὶ μέρους ἐφ’ ὅλου τοῦ ζῶντος σώματος· ἀνάλογον γὰρ ἔχει ὡς τὸ μέρος πρὸς τὸ μέρος, οὕτως ἡ ὅλη αἴσθησις πρὸς τὸ ὅλον σῶμα τὸ αἰσθητικόν, ᾗ τοιοῦτο.",
+     "en": "For, if the eye were an animal, eyesight would be its soul, this being the substance as notion or form of the eye. The eye is the matter of eyesight, and in default of eyesight it is no longer an eye, except equivocally, like an eye in stone or in a picture. What has been said of the part must be understood to apply to the whole living body; for, as the sensation of a part of the body is to that part, so is sensation as a whole to the whole sentient body as such."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 185; Bekker line division: Berlin 1831 vol. 1 p. 412 col. b ll. 20–22"
+     ],
+     [
+      "en",
+      "Hicks 1907 pp. 51–53"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412b20-22 as divided in the Berlin edition (p. 412 col. b ll. 20–22); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412b22-25": {
+    "label": {
+     "ru": "II.1, 412b22–25",
+     "en": "II.1, 412b22–25"
+    },
+    "texts": {
+     "grc": "Ὁ δ’ ὀφθαλμὸς ὕλη ὄψεως, ἧς ἀπολειπούσης οὐκ ἔστιν ὀφθαλμός, πλὴν ὁμωνύμως, καθάπερ ὁ λίθινος καὶ ὁ γεγραμμένος. Δεῖ δὴ λαβεῖν τὸ ἐπὶ μέρους ἐφ’ ὅλου τοῦ ζῶντος σώματος· ἀνάλογον γὰρ ἔχει ὡς τὸ μέρος πρὸς τὸ μέρος, οὕτως ἡ ὅλη αἴσθησις πρὸς τὸ ὅλον σῶμα τὸ αἰσθητικόν, ᾗ τοιοῦτο. Ἔστι δὲ οὐ τὸ ἀποβεβληκὸς τὴν ψυχὴν τὸ δυνάμει ὂν ὥστε ζῆν, ἀλλὰ τὸ ἔχον.",
+     "en": "The eye is the matter of eyesight, and in default of eyesight it is no longer an eye, except equivocally, like an eye in stone or in a picture. What has been said of the part must be understood to apply to the whole living body; for, as the sensation of a part of the body is to that part, so is sensation as a whole to the whole sentient body as such. By that which has in it the capacity of life is meant not the body which has lost its soul, but that which possesses it."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 185; Bekker line division: Berlin 1831 vol. 1 p. 412 col. b ll. 22–25"
+     ],
+     [
+      "en",
+      "Hicks 1907 pp. 51–53"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412b22-25 as divided in the Berlin edition (p. 412 col. b ll. 22–25); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 412b27-413a1": {
+    "label": {
+     "ru": "II.1, 412b27–413a1",
+     "en": "II.1, 412b27–413a1"
+    },
+    "texts": {
+     "grc": "Τὸ δὲ σπέρμα καὶ ὁ καρπὸς τὸ δυνάμει τοιονδὶ σῶμα. Ὡς μὲν οὖν ἡ τμῆσις καὶ ἡ ὅρασις, οὕτω καὶ ἡ ἐγρήγορσις ἐντελέχεια, ὡς δ’ ἡ ὄψις καὶ ἡ δύναμις τοῦ ὀργάνου, ἡ ψυχή· τὸ δὲ σῶμα τὸ δυνάμει ὄν· ἀλλ’ ὥσπερ ὁ ὀφθαλμὸς ἡ κόρη καὶ ἡ ὄψις, κἀκεῖ ἡ ψυχὴ καὶ τὸ σῶμα τὸ ζῷον.",
+     "en": "Now the seed in animals, like the fruit in plants, is that which is potentially such and such a body. As, then, the cutting of the axe or the seeing of the eye is full actuality, so, too, is the waking state; while the soul is actuality in the same sense as eyesight and the capacity of the instrument."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 185; Bekker line division: Berlin 1831 vol. 1 p. 412 col. b ll. 27–28, p. 413 col. a l. 1"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 53"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 412b27-413a1 as divided in the Berlin edition (p. 412 col. b ll. 27–28, p. 413 col. a l. 1); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 413a2-3": {
+    "label": {
+     "ru": "II.1, 413a2–3",
+     "en": "II.1, 413a2–3"
+    },
+    "texts": {
+     "grc": "Ὡς μὲν οὖν ἡ τμῆσις καὶ ἡ ὅρασις, οὕτω καὶ ἡ ἐγρήγορσις ἐντελέχεια, ὡς δ’ ἡ ὄψις καὶ ἡ δύναμις τοῦ ὀργάνου, ἡ ψυχή· τὸ δὲ σῶμα τὸ δυνάμει ὄν· ἀλλ’ ὥσπερ ὁ ὀφθαλμὸς ἡ κόρη καὶ ἡ ὄψις, κἀκεῖ ἡ ψυχὴ καὶ τὸ σῶμα τὸ ζῷον.",
+     "en": "The body, on the other hand, is simply that which is potentially existent. But, just as in the one case the eye means the pupil in conjunction with the eyesight, so in the other soul and body together constitute the animal."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 185; Bekker line division: Berlin 1831 vol. 1 p. 413 col. a ll. 2–3"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 53"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 413a2-3 as divided in the Berlin edition (p. 413 col. a ll. 2–3); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.1 413a3-7": {
+    "label": {
+     "ru": "II.1, 413a3–7",
+     "en": "II.1, 413a3–7"
+    },
+    "texts": {
+     "grc": "Ὡς μὲν οὖν ἡ τμῆσις καὶ ἡ ὅρασις, οὕτω καὶ ἡ ἐγρήγορσις ἐντελέχεια, ὡς δ’ ἡ ὄψις καὶ ἡ δύναμις τοῦ ὀργάνου, ἡ ψυχή· τὸ δὲ σῶμα τὸ δυνάμει ὄν· ἀλλ’ ὥσπερ ὁ ὀφθαλμὸς ἡ κόρη καὶ ἡ ὄψις, κἀκεῖ ἡ ψυχὴ καὶ τὸ σῶμα τὸ ζῷον. Ὅτι μὲν οὖν οὐκ ἔστιν ἡ ψυχὴ χωριστὴ τοῦ σώματος, ἢ μέρη τινὰ αὐτῆς, εἰ μεριστὴ πέφυκεν, οὐκ ἄδηλον· ἐνίων γὰρ ἡ ἐντελέχεια τῶν μερῶν ἐστὶν αὐτῶν. Οὐ μὴν ἀλλ’ ἔνιά γε οὐθὲν κωλύει, διὰ τὸ μηθενὸς εἶναι σώματος ἐντελεχείας.",
+     "en": "But, just as in the one case the eye means the pupil in conjunction with the eyesight, so in the other soul and body together constitute the animal.\n\nNow it needs no proof that the soul—or if it is divisible into parts, certain of its parts—cannot be separated from the body, for there are cases where the actuality belongs to the parts themselves. There is, however, no reason why some parts should not be separated, if they are not the actualities of any body whatever."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 185; Bekker line division: Berlin 1831 vol. 1 p. 413 col. a ll. 3–7"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 53"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 413a3-7 as divided in the Berlin edition (p. 413 col. a ll. 3–7); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.2 413b11-13": {
+    "label": {
+     "ru": "II.2, 413b11–13",
+     "en": "II.2, 413b11–13"
+    },
+    "texts": {
+     "grc": "Νῦν δ’ ἐπὶ τοσοῦτον εἰρήσθω μόνον, ὅτι ἐστὶν ἡ ψυχὴ τῶν εἰρημένων τούτων ἀρχὴ καὶ τούτοις ὥρισται, θρεπτικῷ, αἰσθητικῷ, διανοητικῷ, κινήσει. Πότερον δὲ τούτων ἕκαστόν ἐστι ψυχὴ ἢ μόριον ψυχῆς, καὶ εἰ μόριον, πότερον οὕτως ὥστ’ εἶναι χωριστὸν λόγῳ μόνον ἢ καὶ τόπῳ, περὶ μὲν τινῶν τούτων οὐ χαλεπὸν ἰδεῖν, ἔνια δὲ ἀπορίαν ἔχει.",
+     "en": "For the present it may suffice to say that the soul is the origin of the functions above enumerated and is determined by them, namely, by capacities of nutrition, sensation, thought, and by motion. But whether each one of these is a soul or part of a soul and, if a part, whether it is only logically distinct or separable in space also is a question, the answer to which is in some cases not hard to see: other cases present difficulties."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 187; Bekker line division: Berlin 1831 vol. 1 p. 413 col. b ll. 11–13"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 55"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 413b11-13 as divided in the Berlin edition (p. 413 col. b ll. 11–13); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "II.3 414a29-31": {
+    "label": {
+     "ru": "II.3, 414a29–31",
+     "en": "II.3, 414a29–31"
+    },
+    "texts": {
+     "grc": "Τῶν δὲ δυνάμεων τῆς ψυχῆς αἱ λεχθεῖσαι τοῖς μὲν ὑπάρχουσι πᾶσαι, καθάπερ εἴπομεν, τοῖς δὲ τινὲς αὐτῶν, ἐνίοις δὲ μία μόνη. Δυνάμεις δ’ εἴπομεν θρεπτικόν, ὀρεκτικόν, αἰσθητικόν, κινητικὸν κατὰ τόπον, διανοητικόν.",
+     "en": "Of the powers of soul above mentioned, namely, those of nutrition, appetency, sensation, locomotion and understanding, some living things, as we remarked, possess all, others some, others again only one."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 189; Bekker line division: Berlin 1831 vol. 1 p. 414 col. a ll. 29–31"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 59"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 414a29-31 as divided in the Berlin edition (p. 414 col. a ll. 29–31); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "III.4 429a10-13": {
+    "label": {
+     "ru": "III.4, 429a10–13",
+     "en": "III.4, 429a10–13"
+    },
+    "texts": {
+     "grc": "Περὶ δὲ τοῦ μορίου τοῦ τῆς ψυχῆς ᾧ γινώσκει τε ἡ ψυχὴ καὶ φρονεῖ, εἴτε χωριστοῦ ὄντος εἴτε καὶ μὴ χωριστοῦ κατὰ μέγεθος ἀλλὰ κατὰ λόγον, σκεπτέον τίν’ ἔχει διαφοράν, καὶ πῶς ποτὲ γίνεται τὸ νοεῖν. Εἰ δή ἐστι τὸ νοεῖν ὥσπερ τὸ αἰσθάνεσθαι, ἢ πάσχειν τι ἂν εἴη ὑπὸ τοῦ νοητοῦ ἤ τι τοιοῦτον ἕτερον.",
+     "en": "As to the part of the soul with which it knows and understands, whether such part be separable spatially, or not separable spatially, but only in thought, we have to consider what is its distinctive character and how thinking comes about. Now, if thinking is analogous to perceiving, it will consist in being acted upon by the object of thought or in something else of this kind."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 226; Bekker line division: Berlin 1831 vol. 1 p. 429 col. a ll. 10–13"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 131"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 429a10-13 as divided in the Berlin edition (p. 429 col. a ll. 10–13); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines. In the scanned Oxford 1837 copy (p. 226) the letters εἴ of εἴτε did not print (blank space; the TEI reads \"ε τε\"); εἴτε is supplied from Bekker's Berlin 1831 printing, which the Oxford edition reprints."
+   },
+   "III.4 429a13-15": {
+    "label": {
+     "ru": "III.4, 429a13–15",
+     "en": "III.4, 429a13–15"
+    },
+    "texts": {
+     "grc": "Περὶ δὲ τοῦ μορίου τοῦ τῆς ψυχῆς ᾧ γινώσκει τε ἡ ψυχὴ καὶ φρονεῖ, ε τε χωριστοῦ ὄντος εἴτε καὶ μὴ χωριστοῦ κατὰ μέγεθος ἀλλὰ κατὰ λόγον, σκεπτέον τίν’ ἔχει διαφοράν, καὶ πῶς ποτὲ γίνεται τὸ νοεῖν. Εἰ δή ἐστι τὸ νοεῖν ὥσπερ τὸ αἰσθάνεσθαι, ἢ πάσχειν τι ἂν εἴη ὑπὸ τοῦ νοητοῦ ἤ τι τοιοῦτον ἕτερον. Ἀπαθὲς ἄρα δεῖ εἶναι, δεκτικὸν δὲ τοῦ εἴδους καὶ δυνάμει τοιοῦτον ἀλλὰ μὴ τοῦτο, καὶ ὁμοίως ἔχειν, ὥσπερ τὸ αἰσθητικὸν πρὸς τὰ αἰσθητά, οὕτω τὸν νοῦν πρὸς τὰ νοητά.",
+     "en": "As to the part of the soul with which it knows and understands, whether such part be separable spatially, or not separable spatially, but only in thought, we have to consider what is its distinctive character and how thinking comes about. Now, if thinking is analogous to perceiving, it will consist in being acted upon by the object of thought or in something else of this kind. This part of the soul, then, must be impassive, but receptive of the form and potentially like this form, though not identical with it: and, as the faculty of sense is to sensible objects, so must intellect be related to intelligible objects."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 226; Bekker line division: Berlin 1831 vol. 1 p. 429 col. a ll. 13–15"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 131"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 429a13-15 as divided in the Berlin edition (p. 429 col. a ll. 13–15); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines. The Oxford print accents ἤ τι (Berlin: ἢ at line end, τι on the next line)."
+   },
+   "III.4 429a15-18": {
+    "label": {
+     "ru": "III.4, 429a15–18",
+     "en": "III.4, 429a15–18"
+    },
+    "texts": {
+     "grc": "Εἰ δή ἐστι τὸ νοεῖν ὥσπερ τὸ αἰσθάνεσθαι, ἢ πάσχειν τι ἂν εἴη ὑπὸ τοῦ νοητοῦ ἤ τι τοιοῦτον ἕτερον. Ἀπαθὲς ἄρα δεῖ εἶναι, δεκτικὸν δὲ τοῦ εἴδους καὶ δυνάμει τοιοῦτον ἀλλὰ μὴ τοῦτο, καὶ ὁμοίως ἔχειν, ὥσπερ τὸ αἰσθητικὸν πρὸς τὰ αἰσθητά, οὕτω τὸν νοῦν πρὸς τὰ νοητά. Ἀνάγκη ἄρα, ἐπεὶ πάντα νοεῖ, ἀμιγῆ εἶναι, ὥσπερ φησὶν Ἀναξαγόρας, ἵνα κρατῇ, τοῦτο δ’ ἐστὶν ἵνα γνωρίζῃ· παρεμφαινόμενον γὰρ κωλύει τὸ ἀλλότριον καὶ ἀντιφράττει, ὥστε μηδ’ αὐτοῦ εἶναι φύσιν μηδεμίαν ἀλλ’ ἢ ταύτην, ὅτι δυνατόν.",
+     "en": "Now, if thinking is analogous to perceiving, it will consist in being acted upon by the object of thought or in something else of this kind. This part of the soul, then, must be impassive, but receptive of the form and potentially like this form, though not identical with it: and, as the faculty of sense is to sensible objects, so must intellect be related to intelligible objects. The mind, then, since it thinks all things, must needs, in the words of Anaxagoras, be unmixed with any, if it is to rule, that is, to know."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 226; Bekker line division: Berlin 1831 vol. 1 p. 429 col. a ll. 15–18"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 131"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 429a15-18 as divided in the Berlin edition (p. 429 col. a ll. 15–18); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "III.4 429a18-20": {
+    "label": {
+     "ru": "III.4, 429a18–20",
+     "en": "III.4, 429a18–20"
+    },
+    "texts": {
+     "grc": "Ἀπαθὲς ἄρα δεῖ εἶναι, δεκτικὸν δὲ τοῦ εἴδους καὶ δυνάμει τοιοῦτον ἀλλὰ μὴ τοῦτο, καὶ ὁμοίως ἔχειν, ὥσπερ τὸ αἰσθητικὸν πρὸς τὰ αἰσθητά, οὕτω τὸν νοῦν πρὸς τὰ νοητά. Ἀνάγκη ἄρα, ἐπεὶ πάντα νοεῖ, ἀμιγῆ εἶναι, ὥσπερ φησὶν Ἀναξαγόρας, ἵνα κρατῇ, τοῦτο δ’ ἐστὶν ἵνα γνωρίζῃ· παρεμφαινόμενον γὰρ κωλύει τὸ ἀλλότριον καὶ ἀντιφράττει, ὥστε μηδ’ αὐτοῦ εἶναι φύσιν μηδεμίαν ἀλλ’ ἢ ταύτην, ὅτι δυνατόν.",
+     "en": "This part of the soul, then, must be impassive, but receptive of the form and potentially like this form, though not identical with it: and, as the faculty of sense is to sensible objects, so must intellect be related to intelligible objects. The mind, then, since it thinks all things, must needs, in the words of Anaxagoras, be unmixed with any, if it is to rule, that is, to know. For by intruding its own form it hinders and obstructs that which is alien to it; hence it has no other nature than this, that it is a capacity."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 226; Bekker line division: Berlin 1831 vol. 1 p. 429 col. a ll. 18–20"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 131"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 429a18-20 as divided in the Berlin edition (p. 429 col. a ll. 18–20); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   },
+   "III.4 429a20-22": {
+    "label": {
+     "ru": "III.4, 429a20–22",
+     "en": "III.4, 429a20–22"
+    },
+    "texts": {
+     "grc": "Ἀνάγκη ἄρα, ἐπεὶ πάντα νοεῖ, ἀμιγῆ εἶναι, ὥσπερ φησὶν Ἀναξαγόρας, ἵνα κρατῇ, τοῦτο δ’ ἐστὶν ἵνα γνωρίζῃ· παρεμφαινόμενον γὰρ κωλύει τὸ ἀλλότριον καὶ ἀντιφράττει, ὥστε μηδ’ αὐτοῦ εἶναι φύσιν μηδεμίαν ἀλλ’ ἢ ταύτην, ὅτι δυνατόν. Ὁ ἄρα καλούμενος τῆς ψυχῆς νοῦς (λέγω δὲ νοῦν ᾧ διανοεῖται καὶ ὑπολαμβάνει ἡ ψυχή) οὐθέν ἐστιν ἐνεργείᾳ τῶν ὄντων πρὶν νοεῖν.",
+     "en": "For by intruding its own form it hinders and obstructs that which is alien to it; hence it has no other nature than this, that it is a capacity. Thus, then, the part of the soul which we call intellect (and by intellect I mean that whereby the soul thinks and conceives) is nothing at all actually before it thinks."
+    },
+    "refs": [
+     [
+      "grc",
+      "Oxford 1837 vol. 3 p. 226; Bekker line division: Berlin 1831 vol. 1 p. 429 col. a ll. 20–22"
+     ],
+     [
+      "en",
+      "Hicks 1907 p. 131"
+     ]
+    ],
+    "note": "Greek: the words of Bekker lines 429a20-22 as divided in the Berlin edition (p. 429 col. a ll. 20–22); a word broken across lines is counted to the line on which it begins. English: the smallest run of whole sentences in Hicks that renders those lines."
+   }
+  },
+  "letters": {
+   "1.1": {
+    "label": {
+     "ru": "Письмо 1, § 1",
+     "en": "Letter 1, § 1"
+    },
+    "texts": {
+     "la": "Ita fac, mi Lucili; vindica te tibi, et tempus, quod adhuc aut auferebatur aut subripiebatur aut excidebat, collige et serva. Persuade tibi hoc sic esse, ut scribo: quaedam tempora eripiuntur nobis, quaedam subducuntur, quaedam effluunt. Turpissima tamen est iactura, quae per neglegentiam fit. Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus.",
+     "en": "Continue to act thus, my dear Lucilius—set yourself free for your own sake; gather and save your time, which till lately has been forced from you, or filched away, or has merely slipped from your hands. Make yourself believe the truth of my words,—that certain moments are torn from us, that some are gently removed, and that others glide beyond our reach. The most disgraceful kind of loss, however, is that due to carelessness. Furthermore, if you will pay close heed to the problem, you will find that the largest portion of our life passes while we are doing ill, a goodly share while we are doing nothing, and the whole while we are doing that which is not to the purpose."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/27"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 2–3 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.1.1"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 2–3 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/27"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "1.2": {
+    "label": {
+     "ru": "Письмо 1, § 2",
+     "en": "Letter 1, § 2"
+    },
+    "texts": {
+     "la": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori? In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit. Quicquid aetatis retro est, mors tenet.\n\nFac ergo, mi Lucili, quod facere te scribis, omnes horas conplectere. Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris. Dum differtur, vita transcurrit.",
+     "en": "What man can you show me who places any value on his time, who reckons the worth of each day, who understands that he is dying daily? For we are mistaken when we look forward to death; the major portion of death has already passed. Whatever years lie behind us are in death’s hands.\n\nTherefore, Lucilius, do as you write me that you are doing: hold every hour in your grasp. Lay hold of to-day’s task, and you will not need to depend so much upon to-morrow’s. While we are postponing, life speeds by."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/27"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 2–5 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.1.2"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 2–5 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/27,29"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "1.3": {
+    "label": {
+     "ru": "Письмо 1, § 3",
+     "en": "Letter 1, § 3"
+    },
+    "texts": {
+     "la": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est. In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult. Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere.",
+     "en": "Nothing, Lucilius, is ours, except time. We were entrusted by nature with the ownership of this single thing, so fleeting and slippery that anyone who will can oust us from possession. What fools these mortals be! They allow the cheapest and most useless things, which can easily be replaced, to be charged in the reckoning, after they have acquired them; but they never regard themselves as in debt when they have received some of that precious commodity,—time! And yet time is the one loan which even a grateful recipient cannot repay."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/29"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 4–5 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.1.3"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 4–5 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/29"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "9.1": {
+    "label": {
+     "ru": "Письмо 9, § 1",
+     "en": "Letter 9, § 1"
+    },
+    "texts": {
+     "la": "An merito reprehendat in quadam epistula Epicurus eos, qui dicunt sapientem se ipso esse contentum et propter hoc amico non indigere, desideras scire. Hoc obicitur Stilboni ab Epicuro et iis quibus summum bonum visum est animus inpatiens.",
+     "en": "You desire to know whether Epicurus is right when, in one of his letters, he rebukes those who hold that the wise man is self-sufficient and for that reason does not stand in need of friendships. This is the objection raised by Epicurus against Stilbo and those who believe that the Supreme Good is a soul which is insensible to feeling."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/67"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 42–43 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.9.1"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 42–43 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/67"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "9.8": {
+    "label": {
+     "ru": "Письмо 9, § 8",
+     "en": "Letter 9, § 8"
+    },
+    "texts": {
+     "la": "Nunc ad propositum revertamur. Sapiens, etiam si contentus est se, tamen habere amicum vult, si nihil aliud, ut exerceat amicitiam, ne tam magna virtus iaceat, non ad hoc, quod dicebat Epicurus in hac ipsa epistula, “ut habeat, qui sibi aegro adsideat, succurrat in vincula coniecto vel inopi,” sed ut habeat aliquem, cui ipse aegro adsideat, quem ipse circumventum hostili custodia liberet. Qui se spectat et propter hoc ad amicitiam venit, male cogitat. Quemadmodum coepit, sic desinet: paravit amicum adversum vincla laturum opem; cum primum crepuerit catena, discedet.",
+     "en": "Let us now return to the question. The wise man, I say, self-sufficient though he be, nevertheless desires friends if only for the purpose of practising friendship, in order that his noble qualities may not lie dormant. Not, however, for the purpose mentioned by Epicurus in the letter quoted above: “That there may be someone to sit by him when he is ill, to help him when he is in prison or in want;” but that he may have someone by whose sick-bed he himself may sit, someone a prisoner in hostile hands whom he himself may set free. He who regards himself only, and enters upon friendships for this reason, reckons wrongly. The end will be like the beginning: he has made friends with one who might assist him out of bondage; at the first rattle of the chain such a friend will desert him."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/71"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 46–49 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.9.8"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 46–49 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/71,73"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "9.10": {
+    "label": {
+     "ru": "Письмо 9, § 10",
+     "en": "Letter 9, § 10"
+    },
+    "texts": {
+     "la": "In quid amicum paro? Ut habeam pro quo mori possim, ut habeam quem in exilium sequar, cuius me morti opponam et inpendam. Ista, quam tu describis, negotiatio est, non amicitia, quae ad commodum accedit, quae quid consecutura sit spectat.",
+     "en": "For what purpose, then, do I make a man my friend? In order to have someone for whom I may die, whom I may follow into exile, against whose death I may stake my own life, and pay the pledge, too. The friendship which you portray is a bargain and not a friendship; it regards convenience only, and looks to the results."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/73"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 48–49 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.9.10"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 48–49 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/73"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "9.13": {
+    "label": {
+     "ru": "Письмо 9, § 13",
+     "en": "Letter 9, § 13"
+    },
+    "texts": {
+     "la": "Se contentus est sapiens. Hoc, mi Lucili, plerique perperam interpretantur; sapientem undique submovent et intra cutem suam cogunt. Distinguendum autem est, quid et quatenus vox ista promittat; se contentus est sapiens ad beate vivendum, non ad vivendum. Ad hoc enim multis illi rebus opus est, ad illud tantum animo sano et erecto et despiciente fortunam.",
+     "en": "“The wise man is self-sufficient.” This phrase, my dear Lucilius, is incorrectly explained by many; for they withdraw the wise man from the world, and force him to dwell within his own skin. But we must mark with care what this sentence signifies and how far it applies; the wise man is sufficient unto himself for a happy existence, but not for mere existence. For he needs many helps towards mere existence; but for a happy existence he needs only a sound and upright soul, one that despises Fortune."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/75"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 50–51 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.9.13"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 50–51 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/75"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "9.19": {
+    "label": {
+     "ru": "Письмо 9, § 19",
+     "en": "Letter 9, § 19"
+    },
+    "texts": {
+     "la": "Ecce vir fortis ac strenuus! Ipsam hostis sui victoriam vicit. “Nihil,” inquit, “perdidi”; dubitare illum coegit, an vicisset. “Omnia mea mecum sunt;” hoc ipsum est nihil bonum putare, quod eripi possit.\n\nMiramur animalia quaedam, quae per medios ignes sine noxa corporum transeant; quanto hic mirabilior vir, qui per ferrum et ruinas et ignes inlaesus et indemnis evasit! Vides, quanto facilius sit totam gentem quam unum virum vincere? Haec vox illi communis est cum Stoico. Aeque et hic intacta bona per concrematas urbes fert. Se enim ipso contentus est. Hoc felicitatem suam fine designat.",
+     "en": "There is a brave and stout-hearted man for you! The enemy conquered, but Stilbo conquered his conqueror. “I have lost nothing!” Aye, he forced Demetrius to wonder whether he himself had conquered after all. “My goods are all with me!” In other words, he deemed nothing that might be taken from him to be a good.\n\nWe marvel at certain animals because they can pass through fire and suffer no bodily harm; but how much more marvellous is a man who has marched forth unhurt and unscathed through fire and sword and devastation! Do you understand now how much easier it is to conquer a whole tribe than to conquer one man? This saying of Stilbo makes common ground with Stoicism; the Stoic also can carry his goods unimpaired through cities that have been burned to ashes; for he is self-sufficient. Such are the bounds which he sets to his own happiness."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/77"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 52–55 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:1.9.19"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 52–55 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/77,79"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections). English: the Wikisource transcription repeats \"all\" across a page break (\"are all / all with me\"); the print has it once."
+   },
+   "17.1": {
+    "label": {
+     "ru": "Письмо 17, § 1",
+     "en": "Letter 17, § 1"
+    },
+    "texts": {
+     "la": "Proice omnia ista, si sapis, immo ut sapias, et ad bonam mentem magno cursu ac totis viribus tende. Si quid est, quo teneris, aut expedi aut incide. “Moratur,” inquis, “me res familiaris; sic illam disponere volo, ut sufficere nihil agenti possit, ne aut paupertas mihi oneri sit aut ego alicui.”",
+     "en": "Cast away everything of that sort, if you are wise; nay, rather that you may be wise; strive toward a sound mind at top speed and with your whole strength. If any bond holds you back, untie it, or sever it. “But,” you say, “my estate delays me; I wish to make such disposition of it that it may suffice for me when I have nothing to do, lest either poverty be a burden to me, or I myself a burden to others.”"
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/133"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 108–109 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:2.17.1"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 108–109 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/133"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   },
+   "28.1": {
+    "label": {
+     "ru": "Письмо 28, § 1",
+     "en": "Letter 28, § 1"
+    },
+    "texts": {
+     "la": "Hoc tibi soli putas accidisse et admiraris quasi rem novam, quod peregrinatione tam longa et tot locorum varietatibus non discussisti tristitiam gravitatemque mentis? Animum debes mutare, non caelum. Licet vastum traieceris mare, licet, ut ait Vergilius noster,\nTerraeque urbesque recedant,\nsequentur te, quocumque perveneris, vitia.",
+     "en": "Do you suppose that you alone have had this experience? Are you surprised, as if it were a novelty, that after such long travel and so many changes of scene you have not been able to shake off the gloom and heaviness of your mind? You need a change of soul rather than a change of climate. Though you may cross vast spaces of sea, and though, as our Vergil remarks,\nLands and cities are left astern,\nyour faults will follow you whithersoever you travel."
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/223"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 198–199 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:3.28.1"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 198–199 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/223"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections). Latin: the Loeb prints \"admiraris\" (Perseus TEI: \"admirans\", a transcription slip, corrected from the page image). The verse line is set off in both languages."
+   },
+   "54.1": {
+    "label": {
+     "ru": "Письмо 54, § 1",
+     "en": "Letter 54, § 1"
+    },
+    "texts": {
+     "la": "Longum mihi commeatum dederat mala valitudo; repente me invasit. “Quo genere?” inquis. Prorsus merito interrogas; adeo nullum mihi ignotum est. Uni tamen morbo quasi adsignatus sum, quem quare Graeco nomine appellem nescio; satis enim apte dici suspirium potest. Brevis autem valde et procellae similis est impetus; intra horam fere desinit. Quis enim diu exspirat?",
+     "en": "My ill-health had allowed me a long furlough, when suddenly it resumed the attack. “What kind of ill-health?” you say. And you surely have a right to ask; for it is true that no kind is unknown to me. But I have been consigned, so to speak, to one special ailment. I do not know why I should call it by its Greek name; for it is well enough described as “shortness of breath.” Its attack is of very brief duration, like that of a squall at sea; it usually ends within an hour. Who indeed could breathe his last for long?"
+    },
+    "links": {
+     "en": "https://en.wikisource.org/wiki/Page:Ad_Lucilium_epistulae_morales,_volume_1.djvu/385"
+    },
+    "refs": [
+     [
+      "la",
+      "Loeb vol. 1 (1917) pp. 360–361 (Latin on the even pages); Perseus urn:cts:latinLit:phi1017.phi015.perseus-lat2:6.54.1"
+     ],
+     [
+      "en",
+      "Loeb vol. 1 (1917) pp. 360–361 (English on the odd pages); Wikisource Page:Ad Lucilium epistulae morales, volume 1.djvu/385"
+     ]
+    ],
+    "note": "Latin and English sections coincide in the Loeb (Gummere numbers his English by the Latin sections)."
+   }
+  },
+  "memorabilia": {
+   "1.1.1": {
+    "label": {
+     "ru": "1.1.1",
+     "en": "1.1.1"
+    },
+    "texts": {
+     "grc": "Πολλάκις ἐθαύμασα τίσι ποτὲ λόγοις Ἀθηναίους ἔπεισαν οἱ γραψάμενοι Σωκράτην ὡς ἄξιος εἴη θανάτου τῇ πόλει. ἡ μὲν γὰρ γραφὴ κατʼ αὐτοῦ τοιάδε τις ἦν· ἀδικεῖ Σωκράτης οὓς μὲν ἡ πόλις νομίζει θεοὺς οὐ νομίζων, ἕτερα δὲ καινὰ δαιμόνια εἰσφέρων· ἀδικεῖ δὲ καὶ τοὺς νέους διαφθείρων.",
+     "en": "I have often wondered by what arguments those who indicted Socrates could have persuaded the Athenians that his life was justly forfeit to the state. The indictment was to this effect: “Socrates is guilty of crime in refusing to recognise the gods acknowledged by the state, and importing strange divinities of his own; he is further guilty of corrupting the young.”"
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:1.1.1; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 1"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 1; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "1.3.1": {
+    "label": {
+     "ru": "1.3.1",
+     "en": "1.3.1"
+    },
+    "texts": {
+     "grc": "Ὡς δὲ δὴ καὶ ὠφελεῖν ἐδόκει μοι τοὺς συνόντας τὰ μὲν ἔργῳ δεικνύων ἑαυτὸν οἷος ἦν, τὰ δὲ καὶ διαλεγόμενος, τούτων δὴ γράψω ὁπόσα ἂν διαμνημονεύσω. τὰ μὲν τοίνυν πρὸς τοὺς θεοὺς φανερὸς ἦν καὶ ποιῶν καὶ λέγων ᾗπερ ἡ Πυθία ἀποκρίνεται τοῖς ἐρωτῶσι πῶς δεῖ ποιεῖν ἢ περὶ θυσίας ἢ περὶ προγόνων θεραπείας ἢ περὶ ἄλλου τινὸς τῶν τοιούτων· ἥ τε γὰρ Πυθία νόμῳ πόλεως ἀναιρεῖ ποιοῦντας εὐσεβῶς ἂν ποιεῖν, Σωκράτης τε οὕτω καὶ αὐτὸς ἐποίει καὶ τοῖς ἄλλοις παρῄνει, τοὺς δὲ ἄλλως πως ποιοῦντας περιέργους καὶ ματαίους ἐνόμιζεν εἶναι.",
+     "en": "It may serve to illustrate the assertion that he benefited his associates partly by the display of his own virtue and partly by verbal discourse and argument, if I set down my various recollections on these heads. And first with regard to religion and the concerns of heaven. In conduct and language his behaviour conformed to the rule laid down by the Pythia in reply to the question, “How shall we act?” as touching a sacrifice or the worship of ancestors, or any similar point. Her answer is: “Act according to the law and custom of your state, and you will act piously.” After this pattern Socrates behaved himself, and so he exhorted others to behave, holding them to be but busybodies and vain fellows who acted on any different principle."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:1.3.1; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 18"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 21; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "1.3.5": {
+    "label": {
+     "ru": "1.3.5",
+     "en": "1.3.5"
+    },
+    "texts": {
+     "grc": "Διαίτῃ δὲ τήν τε ψυχὴν ἐπαίδευσε καὶ τὸ σῶμα ᾗ χρώμενος ἄν τις, εἰ μή τι δαιμόνιον εἴη, θαρραλέως καὶ ἀσφαλῶς διάγοι καὶ οὐκ ἂν ἀπορήσειε τοσαύτης δαπάνης. οὕτω γὰρ εὐτελὴς ἦν, ὥστʼ οὐκ οἶδʼ εἴ τις οὕτως ἂν ὀλίγα ἐργάζοιτο ὥστε μὴ λαμβάνειν τὰ Σωκράτει ἀρκοῦντα. σίτῳ μὲν γὰρ τοσούτῳ ἐχρῆτο, ὅσον ἡδέως ἤσθιε, καὶ ἐπὶ τοῦτο οὕτω παρεσκευασμένος ᾔει ὥστε τὴν ἐπιθυμίαν τοῦ σίτου ὄψον αὐτῷ εἶναι· ποτὸν δὲ πᾶν ἡδὺ ἦν αὐτῷ διὰ τὸ μὴ πίνειν, εἰ μὴ διψῴη.",
+     "en": "The habit and style of living to which he subjected his soul and body was one which under ordinary circumstances would enable any one adopting it to look existence cheerily in the face and to pass his days serenely: it would certainly entail no difficulties as regards expense. So frugal was it that a man must work little indeed who could not earn the quantum which contented Socrates. Of food he took just enough to make eating a pleasure—the appetite he brought to it was sauce sufficient; while as to drinks, seeing that he only drank when thirsty, any draught refreshed."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:1.3.5; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 19"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 22; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "1.6.14": {
+    "label": {
+     "ru": "1.6.14",
+     "en": "1.6.14"
+    },
+    "texts": {
+     "grc": "ἐγὼ δʼ οὖν καὶ αὐτός, ὦ Ἀντιφῶν, ὥσπερ ἄλλος τις ἢ ἵππῳ ἀγαθῷ ἢ κυνὶ ἢ ὄρνιθι ἥδεται, οὕτω καὶ ἔτι μᾶλλον ἥδομαι φίλοις ἀγαθοῖς, καὶ ἐάν τι ἔχω ἀγαθόν, διδάσκω, καὶ ἄλλοις συνίστημι παρʼ ὧν ἂν ἡγῶμαι ὠφελήσεσθαί τι αὐτοὺς εἰς ἀρετήν· καὶ τοὺς θησαυροὺς τῶν πάλαι σοφῶν ἀνδρῶν, οὓς ἐκεῖνοι κατέλιπον ἐν βιβλίοις γράψαντες, ἀνελίττων κοινῇ σὺν τοῖς φίλοις διέρχομαι, καὶ ἄν τι ὁρῶμεν ἀγαθὸν ἐκλεγόμεθα· καὶ μέγα νομίζομεν κέρδος, ἐὰν ἀλλήλοις φίλοι γιγνώμεθα. ἐμοὶ μὲν δὴ ταῦτα ἀκούοντι ἐδόκει αὐτός τε μακάριος εἶναι καὶ τοὺς ἀκούοντας ἐπὶ καλοκἀγαθίαν ἄγειν.",
+     "en": "In accordance with this theory, I too, Antiphon, having my tastes, even as another finds pleasure in his horse and his hounds, and another in his fighting cocks, so I too take my pleasure in good friends; and if I have any good thing myself I teach it them, or I commend them to others by whom I think they will be helped forwards in the path of virtue. The treasures also of the wise of old, written and bequeathed in their books, I unfold and peruse in common with my friends. If our eye light upon any good thing we cull it eagerly, and regard it as great gain if we may but grow in friendship with one another.\n\nAs I listened to this talk I could not but reflect that he, the master, was a person to be envied, and that we, his hearers, were being led by him to beauty and nobility of soul."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:1.6.14; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 30"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) pp. 34–35; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them). English corrected from the 1897 print where the Gutenberg text differs: \"helped forwards on the path of virtue\" → \"helped forwards in the path of virtue\"."
+   },
+   "3.8.4": {
+    "label": {
+     "ru": "3.8.4",
+     "en": "3.8.4"
+    },
+    "texts": {
+     "grc": "Πάλιν δὲ τοῦ Ἀριστίππου ἐρωτῶντος αὐτὸν εἴ τι εἰδείη καλόν, Καὶ πολλά, ἔφη. Ἆρʼ οὖν, ἔφη, πάντα ὅμοια ἀλλήλοις; Ὡς οἷόν τε μὲν οὖν, ἔφη, ἀνομοιότατα ἔνια. Πῶς οὖν, ἔφη, τὸ τῷ καλῷ ἀνόμοιον καλὸν ἂν εἴη; Ὅτι νὴ Δίʼ, ἔφη, ἔστι μὲν τῷ καλῷ πρὸς δρόμον ἀνθρώπῳ ἄλλος ἀνόμοιος καλὸς πρὸς πάλην, ἔστι δὲ ἀσπὶς καλὴ πρὸς τὸ προβάλλεσθαι ὡς ἔνι ἀνομοιοτάτη τῷ ἀκοντίῳ, καλῷ πρὸς τὸ σφόδρα τε καὶ ταχὺ φέρεσθαι.",
+     "en": "And when Aristippus, returning to the charge, asked him “if he knew of any thing beautiful.”\n\nHe answered: Yes, many things.\n\nAristip. Are they all like each other?\n\nSoc. On the contrary, they are often as unlike as possible.\n\nHow then (he asked) can that be beautiful which is unlike the beautiful?\n\nSoc. Bless me! for the simple reason that it is possible for a man who is a beautiful runner to be quite unlike another man who is a beautiful boxer, or for a shield, which is a beautiful weapon for the purpose of defence, to be absolutely unlike a javelin, which is a beautiful weapon of swift and sure discharge."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:3.8.4; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 88"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 106; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "3.8.5": {
+    "label": {
+     "ru": "3.8.5",
+     "en": "3.8.5"
+    },
+    "texts": {
+     "grc": "Οὐδὲν διαφερόντως, ἔφη, ἀποκρίνῃ μοι ἢ ὅτε σε ἠρώτησα εἴ τι ἀγαθὸν εἰδείης. Σὺ δʼ οἴει, ἔφη, ἄλλο μὲν ἀγαθόν, ἄλλο δὲ καλὸν εἶναι; οὐκ οἶσθʼ ὅτι πρὸς ταὐτὰ πάντα καλά τε κἀγαθά ἐστι; πρῶτον μὲν γὰρ ἡ ἀρετὴ οὐ πρὸς ἄλλα μὲν ἀγαθόν, πρὸς ἄλλα δὲ καλόν ἐστιν, ἔπειτα οἱ ἄνθρωποι τὸ αὐτό τε καὶ πρὸς τὰ αὐτὰ καλοί τε κἀγαθοὶ λέγονται, πρὸς τὰ αὐτὰ δὲ καὶ τὰ σώματα τῶν ἀνθρώπων καλά τε κἀγαθὰ φαίνεται, πρὸς ταὐτὰ δὲ καὶ τἆλλα πάντα οἷς ἄνθρωποι χρῶνται καλά τε κἀγαθὰ νομίζεται, πρὸς ἅπερ ἂν εὔχρηστα ᾖ.",
+     "en": "Aristip. Your answers are no better now than when I asked you whether you knew any good thing. They are both of a pattern.\n\nSoc. And so they should be. Do you imagine that one thing is good and another beautiful? Do not you know that relatively to the same standard all things are at once beautiful and good? In the first place, virtue is not a good thing relatively to one standard and a beautiful thing relatively to another standard; and in the next place, human beings, on the same principle and relatively to the same standard, are called “beautiful and good”; and so the bodily frames of men relatively to the same standards are seen to be “beautiful and good,” and in general all things capable of being used by man are regarded as at once beautiful and good relatively to the same standard—the standard being in each case what the things happen to be useful for."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:3.8.5; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 88"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) pp. 106–107; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them). English corrected from the 1897 print where the Gutenberg text differs: \"the standing being in each case what the thing happens to be useful for\" → \"the standard being in each case what the things happen to be useful for\"."
+   },
+   "3.8.6": {
+    "label": {
+     "ru": "3.8.6",
+     "en": "3.8.6"
+    },
+    "texts": {
+     "grc": "Ἆρʼ οὖν, ἔφη, καὶ κόφινος κοπροφόρος καλόν ἐστι; Νὴ Δίʼ, ἔφη, καὶ χρυσῆ γε ἀσπὶς αἰσχρόν, ἐὰν πρὸς τὰ ἑαυτῶν ἔργα ὁ μὲν καλῶς πεποιημένος ᾖ, ἡ δὲ κακῶς. Λέγεις σύ, ἔφη, καλά τε καὶ αἰσχρὰ τὰ αὐτὰ εἶναι;",
+     "en": "Aristip. Then I presume even a basket for carrying dung is a beautiful thing?\n\nSoc. To be sure, and a spear of gold an ugly thing, if for their respective uses—the former is well and the latter ill adapted.\n\nAristip. Do you mean to assert that the same things may be beautiful and ugly?"
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:3.8.6; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) pp. 88–89"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 107; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "3.8.7": {
+    "label": {
+     "ru": "3.8.7",
+     "en": "3.8.7"
+    },
+    "texts": {
+     "grc": "Καὶ νὴ Δίʼ ἔγωγʼ, ἔφη, ἀγαθά τε καὶ κακά· πολλάκις γὰρ τό γε λιμοῦ ἀγαθὸν πυρετοῦ κακόν ἐστι καὶ τὸ πυρετοῦ ἀγαθὸν λιμοῦ κακόν ἐστι· πολλάκις δὲ τὸ μὲν πρὸς δρόμον καλὸν πρὸς πάλην αἰσχρόν, τὸ δὲ πρὸς πάλην καλὸν πρὸς δρόμον αἰσχρόν· πάντα γὰρ ἀγαθὰ μὲν καὶ καλά ἐστι πρὸς ἃ ἂν εὖ ἔχῃ, κακὰ δὲ καὶ αἰσχρὰ πρὸς ἃ ἂν κακῶς.",
+     "en": "Soc. Yes, to be sure; and by the same showing things may be good and bad: as, for instance, what is good for hunger may be bad for fever, and what is good for fever bad for hunger; or again, what is beautiful for wrestling is often ugly for running; and in general everything is good and beautiful when well adapted for the end in view, bad and ugly when ill adapted for the same."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:3.8.7; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 89"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 107; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "3.8.8": {
+    "label": {
+     "ru": "3.8.8",
+     "en": "3.8.8"
+    },
+    "texts": {
+     "grc": "Καὶ οἰκίας δὲ λέγων τὰς αὐτὰς καλάς τε εἶναι καὶ χρησίμους παιδεύειν ἔμοιγʼ ἐδόκει, οἵας χρή, οἰκοδομεῖσθαι. ἐπεσκόπει δὲ ὧδε· Ἆρά γε τὸν μέλλοντα οἰκίαν, οἵαν χρή, ἔχειν τοῦτο δεῖ μηχανᾶσθαι, ὅπως ἡδίστη τε ἐνδιαιτᾶσθαι καὶ χρησιμωτάτη ἔσται;",
+     "en": "Similarly when he spoke about houses, and argued that “the same house must be at once beautiful and useful”—I could not help feeling that he was giving a good lesson on the problem: “how a house ought to be built.” He investigated the matter thus:\n\nSoc. “Do you admit that any one purposing to build a perfect house will plan to make it at once as pleasant and as useful to live in as possible?” and that point being admitted, the next question would be:"
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:3.8.8; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 89"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) pp. 107–108; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them). English: Dakyns's last sentence also renders the first words of § 9 (τούτου δὲ ὁμολογουμένου)."
+   },
+   "4.5.1": {
+    "label": {
+     "ru": "4.5.1",
+     "en": "4.5.1"
+    },
+    "texts": {
+     "grc": "Ὡς δὲ καὶ πρακτικωτέρους ἐποίει τοὺς συνόντας ἑαυτῷ, νῦν αὖ τοῦτο λέξω. νομίζων γὰρ ἐγκράτειαν ὑπάρχειν ἀγαθὸν εἶναι τῷ μέλλοντι καλόν τι πράξειν, πρῶτον μὲν αὐτὸς φανερὸς ἦν τοῖς συνοῦσιν ἠσκηκὼς αὑτὸν μάλιστα πάντων ἀνθρώπων, ἔπειτα διαλεγόμενος προετρέπετο πάντων μάλιστα τοὺς συνόντας πρὸς ἐγκράτειαν.",
+     "en": "And now I propose to show in what way he made those who were with him more vigorous in action. In the first place, as befitted one whose creed was that a basis of self-command is indispensable to any noble performance, he manifested himself to his companions as one who had pre-eminently disciplined himself; and in the next place by conversation and discussion he encouraged them to a like self-restraint beyond all others."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:4.5.1; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 128"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 162; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "4.5.2": {
+    "label": {
+     "ru": "4.5.2",
+     "en": "4.5.2"
+    },
+    "texts": {
+     "grc": "ἀεὶ μὲν οὖν περὶ τῶν πρὸς ἀρετὴν χρησίμων αὐτός τε διετέλει μεμνημένος καὶ τοὺς συνόντας πάντας ὑπομιμνῄσκων· οἶδα δέ ποτε αὐτὸν καὶ πρὸς Εὐθύδημον περὶ ἐγκρατείας τοιάδε διαλεχθέντα· Εἰπέ μοι, ἔφη, ὦ Εὐθύδημε, ἆρα καλὸν καὶ μεγαλεῖον νομίζεις εἶναι καὶ ἀνδρὶ καὶ πόλει κτῆμα ἐλευθερίαν; Ὡς οἷόν τέ γε μάλιστα, ἔφη.",
+     "en": "Thus it was that he continued ever mindful himself, and was continually reminding all whom he encountered, of matters conducive to virtue; as the following discussion with Euthydemus, which has come to my knowledge, will serve to illustrate—the topic of the discussion being self-command.\n\nTell me, Euthydemus (he began), do you believe freedom to be a noble and magnificent acquisition, whether for a man or for a state?\n\nI cannot conceive a nobler or more magnificent (he answered)."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:4.5.2; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 128"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) p. 162; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "4.5.3": {
+    "label": {
+     "ru": "4.5.3",
+     "en": "4.5.3"
+    },
+    "texts": {
+     "grc": "Ὅστις οὖν ἄρχεται ὑπὸ τῶν διὰ τοῦ σώματος ἡδονῶν καὶ διὰ ταύτας μὴ δύναται πράττειν τὰ βέλτιστα, νομίζεις τοῦτον ἐλεύθερον εἶναι; Ἥκιστα, ἔφη. Ἴσως γὰρ ἐλευθέριον φαίνεταί σοι τὸ πράττειν τὰ βέλτιστα, εἶτα τὸ ἔχειν τοὺς κωλύσοντας τὰ τοιαῦτα ποιεῖν ἀνελεύθερον νομίζεις;",
+     "en": "Soc. Then do you believe him to be a free man who is ruled by the pleasures of the body, and thereby cannot perform what is best?\n\nCertainly not (he answered).\n\nSoc. No! for possibly to perform what is best appears to you to savour of freedom? And, again, to have some one over you who will prevent you doing the like seems a loss of freedom?"
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:4.5.3; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 128"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) pp. 162–163; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   },
+   "4.7.1": {
+    "label": {
+     "ru": "4.7.1",
+     "en": "4.7.1"
+    },
+    "texts": {
+     "grc": "Ὅτι μὲν οὖν ἁπλῶς τὴν ἑαυτοῦ γνώμην ἀπεφαίνετο Σωκράτης πρὸς τοὺς ὁμιλοῦντας αὐτῷ, δοκεῖ μοι δῆλον ἐκ τῶν εἰρημένων εἶναι· ὅτι δὲ καὶ αὐτάρκεις ἐν ταῖς προσηκούσαις πράξεσιν αὐτοὺς εἶναι ἐπεμελεῖτο, νῦν τοῦτο λέξω. πάντων μὲν γὰρ ὧν ἐγὼ οἶδα μάλιστα ἔμελεν αὐτῷ εἰδέναι ὅτου τις ἐπιστήμων εἴη τῶν συνόντων αὐτῷ· ὧν δὲ προσήκει ἀνδρὶ καλῷ κἀγαθῷ εἰδέναι, ὅ τι μὲν αὐτὸς εἰδείη, πάντων προθυμότατα ἐδίδασκεν· ὅτου δὲ αὐτὸς ἀπειρότερος εἴη, πρὸς τοὺς ἐπισταμένους ἦγεν αὐτούς.",
+     "en": "The frankness and simplicity with which Socrates endeavoured to declare his own opinions, in dealing with those who conversed with him, is, I think, conclusively proved by the above instances; at the same time, as I hope now to show, he was no less eager to cultivate a spirit of independence in others, which would enable them to stand alone in all transactions suited to their powers.\n\nOf all the men I have ever known, he was most anxious to ascertain in what any of those about him was really versed; and within the range of his own knowledge he showed the greatest zeal in teaching everything which it befits the true gentleman to know; or where he was deficient in knowledge himself, he would introduce his friends to those who knew."
+    },
+    "refs": [
+     [
+      "grc",
+      "Perseus urn:cts:greekLit:tlg0032.tlg002.perseus-grc2:4.7.1; checked against the OCT vol. 2 (1901 printing, Internet Archive operaomniarecogn02xenouoft) p. 135"
+     ],
+     [
+      "en",
+      "Dakyns, Works of Xenophon vol. III pt. 1 (1897) pp. 175–176; Project Gutenberg eBook #1177"
+     ]
+    ],
+    "note": "Greek: Perseus transcription of Marchant's OCT; capitals at the beginnings of speeches/paragraphs restored as printed in the OCT (the TEI lower-cases them)."
+   }
+  },
+  "outlines": {
+   "I.1": {
+    "label": {
+     "ru": "I.1",
+     "en": "I.1"
+    },
+    "texts": {
+     "grc": "Τοῖς ζητοῦσί τι πρᾶγμα ἢ εὕρεσιν ἐπακολουθεῖν εἰκὸς ἢ ἄρνησιν εὑρέσεως καὶ ἀκαταληψίας ὁμολογίαν ἢ ἐπιμονὴν ζητήσεως.",
+     "en": "It is probable that those who seek after anything whatever, will either find it as they continue the search, will deny that it can be found and confess it to be out of reach, or will go on seeking it."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 4; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.1"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 103; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages."
+   },
+   "I.2": {
+    "label": {
+     "ru": "I.2",
+     "en": "I.2"
+    },
+    "texts": {
+     "grc": "διόπερ ἴσως καὶ ἐπὶ τῶν κατὰ φιλοσοφίαν ζητουμένων οἱ μὲν εὑρηκέναι τὸ ἀληθὲς ἔφασαν, οἱ δ᾿ ἀπεφήναντο μὴ δυνατὸν εἶναι τοῦτο καταληφθῆναι, οἱ δὲ ἔτι ζητοῦσιν.",
+     "en": "Some have said, accordingly, in regard to the things sought in philosophy, that they have found the truth, while others have declared it impossible to find, and still others continue to seek it."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 4; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.2"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 103; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages."
+   },
+   "I.3": {
+    "label": {
+     "ru": "I.3",
+     "en": "I.3"
+    },
+    "texts": {
+     "grc": "καὶ εὑρηκέναι μὲν δοκοῦσιν οἱ ἰδίως καλούμενοι δογματικοί, οἷον οἱ περὶ Ἀριστοτέλην καὶ Ἐπίκουρον καὶ τοὺς Στωικοὺς καὶ ἄλλοι τινές, ὡς δὲ περὶ ἀκαταλήπτων ἀπεφήναντο οἱ περὶ Κλειτόμαχον καὶ Καρνεάδην καὶ ἄλλοι Ἀκαδημαϊκοί, ζητοῦσι δὲ οἱ σκεπτικοί.",
+     "en": "Those who think that they have found it are those who are especially called Dogmatics, as for example, the Schools of Aristotle and Epicurus, the Stoics and some others. Those who have declared it impossible to find are Clitomachus, Carneades, with their respective followers, and other Academicians. Those who still seek it are the Sceptics."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 4; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.3"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 103; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"οἶον οἱ περὶ\" → \"οἷον οἱ περὶ\"; \"καὶ ἂλλοι Ἀκαδημαïκοί\" → \"καὶ ἄλλοι Ἀκαδημαϊκοί\"."
+   },
+   "I.4": {
+    "label": {
+     "ru": "I.4",
+     "en": "I.4"
+    },
+    "texts": {
+     "grc": "ὅθεν εὐλόγως δοκοῦσιν αἱ ἀνωτάτω φιλοσοφίαι τρεῖς εἶναι, δογματικὴ Ἀκαδημαϊκὴ σκεπτική. περὶ μὲν οὖν τῶν ἄλλων ἑτέροις ἁρμόσει λέγειν, περὶ δὲ τῆς σκεπτικῆς ἀγωγῆς ὑποτυπωτικῶς ἐπὶ τοῦ παρόντος ἡμεῖς ἐροῦμεν, ἐκεῖνο προειπόντες, ὅτι περὶ οὐδενὸς τῶν λεχθησομένων διαβεβαιούμεθα ὡς οὕτως ἔχοντος πάντως καθάπερ λέγομεν, ἀλλὰ κατὰ τὸ νῦν φαινόμενον ἡμῖν ἱστορικῶς ἀπαγγέλλομεν περὶ ἑκάστου.",
+     "en": "It appears therefore, reasonable to conclude that the three principal kinds of philosophy are the Dogmatic, the Academic, and the Sceptic. Others may suitably treat of the other Schools, but as for the Sceptical School, we shall now give an outline of it, remarking in advance that in respect to nothing that will be said do we speak positively, that it must be absolutely so, but we shall state each thing historically as it now appears to us."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 4; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.4"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 103; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"Ἀκαδημαïκὴ\" → \"Ἀκαδημαϊκὴ\"."
+   },
+   "I.6": {
+    "label": {
+     "ru": "I.6",
+     "en": "I.6"
+    },
+    "texts": {
+     "grc": "εἰδικὸς δὲ ἐν ᾧ πρὸς ἕκαστον μέρος τῆς καλουμένης φιλοσοφίας ἀντιλέγομεν. περὶ τοῦ καθόλου δὴ πρῶτον διαλάβωμεν λόγου, ἀρξάμενοι τῆς ὑφηγήσεως ἀπὸ τῶν τῆς σκεπτικῆς ἀγωγῆς ὀνομάτων.",
+     "en": "The special method, on the contrary, is that by which we speak against each part of so-called philosophy. Let us then treat Scepticism at first in the general way, beginning our delineation with the nomenclature of the Sceptical School."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 5; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.6"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 104; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"ἐν ᾡ πρὸς\" → \"ἐν ᾧ πρὸς\"."
+   },
+   "I.7": {
+    "label": {
+     "ru": "I.7",
+     "en": "I.7"
+    },
+    "texts": {
+     "grc": "Ἡ σκεπτικὴ τοίνυν ἀγωγὴ καλεῖται μὲν καὶ ζητητικὴ ἀπὸ ἐνεργείας τῆς κατὰ τὸ ζητεῖν καὶ σκέπτεσθαι, καὶ ἐφεκτικὴ ἀπὸ τοῦ μετὰ τὴν ζήτησιν περὶ τὸν σκεπτόμενον γινομένου πάθους, καὶ ἀπορητικὴ ἤτοι ἀπὸ τοῦ περὶ παντὸς ἀπορεῖν καὶ ζητεῖν, ὡς ἔνιοί φασιν, ἢ ἀπὸ τοῦ ἀμηχανεῖν πρὸς συγκατάθεσιν ἢ ἄρνησιν, καὶ Πυρρώνειος ἀπὸ τοῦ φαίνεσθαι ἡμῖν τὸν Πύρρωνα σωματικώτερον καὶ ἐπιφανέστερον τῶν πρὸ αὐτοῦ προσεληλυθέναι τῇ σκέψει.",
+     "en": "The Sceptical School is also called the “Seeking School,” from its spirit of research and examination; the “Suspending School,” from the condition of mind in which one is left after the search, in regard to the things that he has examined; and the “Doubting School,” either because, as some say, the Sceptics doubt and are seeking in regard to everything, or because they never know whether to deny or affirm. It is also called the Pyrrhonean School, because Pyrrho appears to us the best representative of Scepticism, and is more prominent than all who before him occupied themselves with it."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 5; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.7"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 104; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages."
+   },
+   "I.8": {
+    "label": {
+     "ru": "I.8",
+     "en": "I.8"
+    },
+    "texts": {
+     "grc": "Ἔστι δὲ ἡ σκεπτικὴ δύναμις ἀντιθετικὴ φαινομένων τε καὶ νοουμένων καθ’ οἱονδήποτε τρόπον, ἀφ’ ἧς ἐρχόμεθα διὰ τὴν ἐν τοῖς ἀντικειμένοις πράγμασι καὶ λόγοις ἰσοσθένειαν τὸ μὲν πρῶτον εἰς ἐποχήν, τὸ δὲ μετὰ τοῦτο εἰς ἀταραξίαν.",
+     "en": "The δύναμις of the Sceptical School is to place the phenomenal in opposition to the intellectual “in any way whatever,” and thus through the equilibrium of the reasons and things (ἰσοσθένεια τῶν λόγων) opposed to each other, to reach, first the state of suspension of judgment, ἐποχή, and afterwards that of imperturbability, ἀταραξία."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 5; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.8"
+     ],
+     [
+      "en",
+      "Patrick 1899 pp. 104–105; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"Ἒστι δὲ\" → \"Ἔστι δὲ\"; \"πρῶατον\" → \"πρῶτον\"."
+   },
+   "I.10": {
+    "label": {
+     "ru": "I.10",
+     "en": "I.10"
+    },
+    "texts": {
+     "grc": "‘ἀντικειμένους’ δὲ λόγους παραλαμβάνομεν οὐχὶ πάντως ἀπόφασιν καὶ κατάφασιν, ἀλλ’ ἁπλῶς ἀντὶ τοῦ μαχομένους. ‘ἰσοσθένειαν’ δὲ λέγομεν τὴν κατὰ πίστιν καὶ ἀπιστίαν ἰσότητα, ὡς μηδένα μηδενὸς προκεῖσθαι τῶν μαχομένων λόγων ὡς πιστότερον. ‘ἐποχὴ’ δέ ἐστι στάσις διανοίας δι’ ἣν οὔτε αἴρομέν τι οὔτε τίθεμεν. ‘ἀταραξία’ δέ ἐστι ψυχῆς ἀοχλησία καὶ γαληνότης. πῶς δὲ τῇ ἐποχῇ συνεισέρχεται ἡ ἀταραξία, ἐν τοῖς περὶ τέλους (§ 25—30) ὑπομνήσομεν.",
+     "en": "By “reasons opposed to each other,” we do not by any means understand that they deny or affirm anything, but simply that they offset each other. By equilibrium, we mean equality in regard to trustworthiness and untrustworthiness, so that of the reasons that are placed in opposition to each other, one should not excel another in trustworthiness. ἐποχή is a holding back of the opinion, in consequence of which we neither deny nor affirm anything. ἀταραξία is repose and tranquillity of soul. We shall explain how ἀταραξία accompanies ἐποχή when we speak of the aim."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 6; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.10"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 105; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"ἀλλ’ ἀπλῶς\" → \"ἀλλ’ ἁπλῶς\"; \"μαχινένους\" → \"μαχομένους\"; \"‘ἰσοσθενειαν’\" → \"‘ἰσοσθένειαν’\"; \"‘ἐποχὴ δέ\" → \"‘ἐποχὴ’ δέ\"; \"‘ἀταρακία’\" → \"‘ἀταραξία’\"; \"(§ 25 — 30)\" → \"(§ 25—30)\". The parenthesis is Mutschmann's cross-reference, printed in his text."
+   },
+   "I.11": {
+    "label": {
+     "ru": "I.11",
+     "en": "I.11"
+    },
+    "texts": {
+     "grc": "Καὶ ὁ Πυρρώνειος δὲ φιλόσοφος δυνάμει τῇ τῆς σκεπτικῆς ἀγωγῆς ἐννοίᾳ συναποδέδοται· ἔστι γὰρ ὁ μετέχων ταύτης τῆς δυνάμεως.",
+     "en": "What is meant by a Pyrrhonean philosopher can be understood from the idea of the Sceptical School. He is a Pyrrhonean, namely, who identifies himself with this system."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 6; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.11"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 105; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages."
+   },
+   "I.21": {
+    "label": {
+     "ru": "I.21",
+     "en": "I.21"
+    },
+    "texts": {
+     "grc": "Ὅτι δὲ τοῖς φαινομένοις προσέχομεν, δῆλον ἀπὸ τῶν λεγομένων ἡμῖν περὶ τοῦ κριτηρίου τῆς σκεπτικῆς ἀγωγῆς. κριτήριον δὲ λέγεται διχῶς, τό τε εἰς πίστιν ὑπάρξεως ἢ ἀνυπαρξίας λαμβανόμενον, περὶ οὗ ἐν τῷ ἀντιρρητικῷ λέξομεν λόγῳ (= II 14 sqq.), τό τε τοῦ πράσσειν, ᾧ προσέχοντες κατὰ τὸν βίον τὰ μὲν πράσσομεν τὰ δ’ οὔ, περὶ οὗ νῦν λέγομεν.",
+     "en": "It is evident that we pay careful attention to phenomena from what we say about the criterion of the Sceptical School. The word criterion is used in two ways. First, it is understood as a proof of existence or non-existence, in regard to which we shall speak in the opposing argument. Secondly, when it refers to action, meaning the criterion to which we give heed in life, in doing some things and refraining from doing others, and it is about this that we shall now speak."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 9; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.21"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 109; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"ὅτι δὲ τοῖς\" → \"Ὅτι δὲ τοῖς\"; \"ἀνυπαρξέας\" → \"ἀνυπαρξίας\"; \"(= ΙΙ 14 sqq.)\" → \"(= II 14 sqq.)\"; \"περὶ οὖ νῦν\" → \"περὶ οὗ νῦν\". The parenthesis is Mutschmann's cross-reference, printed in his text."
+   },
+   "I.23": {
+    "label": {
+     "ru": "I.23",
+     "en": "I.23"
+    },
+    "texts": {
+     "grc": "τοῖς φαινομένοις οὖν προσέχοντες κατὰ τὴν βιωτικὴν τήρησιν ἀδοξάστως βιοῦμεν, ἐπεὶ μὴ δυνάμεθα ἀνενέργητοι παντάπασιν εἶναι. ἔοικε δὲ αὕτη ἡ βιωτικὴ τήρησις τετραμερὴς εἶναι καὶ τὸ μέν τι ἔχειν ἐν ὑφηγήσει φύσεως, τὸ δὲ ἐν ἀνάγκῃ παθῶν, τὸ δὲ ἐν παραδόσει νόμων τε καὶ ἐθῶν, τὸ δὲ ἐν διδασκαλίᾳ τεχνῶν,",
+     "en": "Therefore, as we cannot be entirely inactive as regards the observances of daily life, we live by giving heed to phenomena, and in an unprejudiced way. But this observance of what pertains to the daily life, appears to be of four different kinds. Sometimes it is directed by the guidance of nature, sometimes by the necessity of the feelings, sometimes by the tradition of laws and of customs, and sometimes by the teaching of the arts."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 10; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.23"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 109; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"ὑφηγήσει μὲν φυσικῇ\" removed (belongs to § 24, as printed). English: Patrick (following Bekker 1842) puts the numeral 23 one sentence later; the run begins with the sentence that renders τοῖς φαινομένοις οὖν προσέχοντες…."
+   },
+   "I.24": {
+    "label": {
+     "ru": "I.24",
+     "en": "I.24"
+    },
+    "texts": {
+     "grc": "ὑφηγήσει μὲν φυσικῇ καθ᾿ ἣν φυσικῶς αἰσθητικοὶ καὶ νοητικοί ἐσμεν, παθῶν δὲ ἀνάγκῃ καθ᾿ ἣν λιμὸς μὲν ἐπὶ τροφὴν ἡμᾶς ὁδηγεῖ, δίψος δ᾿ ἐπὶ πόμα, ἐθῶν δὲ καὶ νόμων παραδόσει καθ’ ἣν τὸ μὲν εὐσεβεῖν παραλαμβάνομεν βιωτικῶς ὡς ἀγαθὸν τὸ δὲ ἀσεβεῖν ὡς φαῦλον, τεχνῶν δὲ διδασκαλίᾳ καθ᾿ ἣν οὐκ ἀνενέργητοί ἐσμεν ἐν αἷς παραλαμβάνομεν τέχναις. ταῦτα δὲ πάντα φαμὲν ἀδοξάστως.",
+     "en": "It is directed by the guidance of nature, for by nature we are capable of sensation and thought; by the necessity of the feelings, for hunger leads us to food, and thirst to drink; by the traditions of laws and customs, for according to them we consider piety a good in daily life, and impiety an evil; by the teaching of the arts, for we are not inactive in the arts we undertake. We say all these things, however, without expressing a decided opinion."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 10; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.24"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 109; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. § 24 begins with ὑφηγήσει μὲν φυσικῇ, which the TEI attaches to § 23."
+   },
+   "I.29": {
+    "label": {
+     "ru": "I.29",
+     "en": "I.29"
+    },
+    "texts": {
+     "grc": "καὶ οἱ σκεπτικοὶ οὖν ἤλπιζον μὲν τὴν ἀταραξίαν ἀναλήψεσθαι διὰ τοῦ τὴν ἀνωμαλίαν τῶν φαινομένων τε καὶ νοουμένων ἐπικρῖναι, μὴ δυνηθέντες δὲ ποιῆσαι τοῦτο ἐπέσχον· ἐπισχοῦσι δὲ αὐτοῖς οἷον τυχικῶς ἡ ἀταραξία παρηκολούθησεν ὡς σκιὰ σώματι. οὐ μὴν ἀόχλητον πάντῃ τὸν σκεπτικὸν εἶναι νομίζομεν, ἀλλ’ ὀχλεῖσθαί φαμεν ὑπὸ τῶν κατηναγκασμένων· καὶ γὰρ ῥιγοῦν ποτε ὁμολογοῦμεν καὶ διψῆν καὶ τοιουτότροπά τινα πάσχειν.",
+     "en": "The Sceptics likewise hoped to gain ἀταραξία by forming judgments in regard to the anomaly between phenomena and the things of thought, but they were unable to do this, and so they suspended their judgment; and while their judgment was in suspension ἀταραξία followed, as if by chance, as the shadow follows a body. Nevertheless, we do not consider the Sceptic wholly undisturbed, but he is disturbed by some things that are inevitable. We confess that sometimes he is cold and thirsty, and that he suffers in such ways."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 11; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.29"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 111; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. Corrected: \"ὧς σκιὰ\" → \"ὡς σκιὰ\"."
+   },
+   "I.164": {
+    "label": {
+     "ru": "I.164",
+     "en": "I.164"
+    },
+    "texts": {
+     "grc": "οἱ δὲ νεώτεροι σκεπτικοὶ παραδιδόασι τρόπους τῆς ἐποχῆς πέντε τούσδε, πρῶτον τὸν ἀπὸ τῆς διαφωνίας, δεύτερον τὸν εἰς ἄπειρον ἐκβάλλοντα, τρίτον τὸν ἀπὸ τοῦ πρός τι, τέταρτον τὸν ὑποθετικόν, πέμπτον τὸν διάλληλον.",
+     "en": "The later Sceptics, however, teach the following five Tropes of ἐποχή: first, the one based upon contradiction; second, the regressus in infinitum; third, relation; fourth, the hypothetical; fifth, the circulus in probando."
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 41; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:1.164"
+     ],
+     [
+      "en",
+      "Patrick 1899 p. 141; Project Gutenberg eBook #17556"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages."
+   },
+   "II.13": {
+    "label": {
+     "ru": "II.13",
+     "en": "II.13"
+    },
+    "texts": {
+     "grc": "Οἱ Στωικοὶ τοίνυν καὶ ἄλλοι τινὲς τρία μέρη τῆς φιλοσοφίας εἶναι λέγουσι, λογικὸν φυσικὸν ἠθικόν· καὶ ἄρχονταί γε τῆς διδασκαλίας ἀπὸ τοῦ λογικοῦ, καίτοι πολλῆς καὶ περὶ τοῦ πόθεν ἄρχεσθαι δεῖ στάσεως γεγενημένης. οἷς ἀκολουθήσαντες ἀδοξάστως, ἐπεὶ τὰ ἐν τοῖς τρισὶ μέρεσι λεγόμενα κρίσεως χρῄζει καὶ κριτηρίου, ὁ δὲ περὶ κριτηρίου λόγος ἐμπεριέχεσθαι δοκεῖ τῷ λογικῷ μέρει, ἀρξώμεθα ἀπὸ τοῦ περὶ κριτηρίου λόγου καὶ τοῦ λογικοῦ μέρους,",
+     "en": "The Stoics, then, and several others, say that there are three divisions of philosophy, namely, Logic, Physics, and Ethics; and they begin their teaching with Logic, although the question of the right starting-point is also a matter of much controversy. So we shall follow them in an undogmatic way; and since the subject matter of all three divisions requires testing and a criterion, and the doctrine of the criterion seems to be included in the division of Logic, we shall begin with the doctrine of the criterion and the division of Logic."
+    },
+    "witness": {
+     "en": "en-bury"
+    },
+    "refs": [
+     [
+      "grc",
+      "Mutschmann 1912 p. 67; urn:cts:greekLit:tlg0544.tlg001.1st1K-grc1:2.13"
+     ],
+     [
+      "en",
+      "Bury, Loeb Sextus Empiricus vol. 1 (1933) p. 159; urn:cts:greekLit:tlg0544.tlg001.1st1K-eng1:2.13 (witness \"en-bury\")"
+     ]
+    ],
+    "note": "Greek: First1KGreek transcription of Mutschmann (1912), corrected against the printed pages. TEI \"τῆς φίλος εἰναι εἶναι\" corrected to the printed \"τῆς φιλοσοφίας εἶναι\" (p. 67). The section ends inside a sentence that runs on into § 14. English: Patrick translated only Book I, so the English is Bury's (Loeb 1933)."
+   }
+  }
+ }
+}

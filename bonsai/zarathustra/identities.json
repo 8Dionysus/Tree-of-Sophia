@@ -115,5 +115,41 @@
       "status": "to-mint"
     }
   },
-  "situations": {}
+  "situations": {},
+  "expressions": {
+    "za-de-1883-part-1": {
+      "tree": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1",
+      "status": "resolved"
+    },
+    "za-de-1883-part-2": {
+      "tree": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2",
+      "status": "resolved"
+    },
+    "za-de-1884-part-3": {
+      "tree": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3",
+      "status": "resolved"
+    },
+    "za-de-1891-part-4": {
+      "tree": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4",
+      "status": "resolved"
+    },
+    "za-en-common": {
+      "tree": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.gutenberg-1998-common-en",
+      "status": "resolved"
+    },
+    "za-ru-antonovsky-1913": {
+      "tree": "tos.expression.friedrich-nietzsche.also-sprach-zarathustra.ru-antonovsky-1913",
+      "status": "resolved"
+    }
+  },
+  "witness_units": {
+    "ru1913": {
+      "tree": null,
+      "status": "to-mint",
+      "note": {
+        "ru": "Блоки транскрипции Викитеки (Антоновский, 1913) не имеют единиц в Древе; их ID — собственные ID бонсая.",
+        "en": "The blocks of the Wikisource transcription (Antonovsky, 1913) have no units in the Tree; their IDs are the bonsai’s own."
+      }
+    }
+  }
 }

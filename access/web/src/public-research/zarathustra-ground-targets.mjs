@@ -212,20 +212,21 @@ const ROUTE_PASSAGES = {
   obligation: passage('z-pitiful', 'tos.text-unit.sid-6056ccb5ce9d4d66badd94d136215dbf', 'tos.text-unit.sid-1528f69faeed417cae3e6e03f31cab88'), // DE 979, EN 1140
   qualifiedSong: passage('z-convalescent', 'tos.text-unit.sid-1220519740844f1f819b813d977fac54', 'tos.text-unit.sid-77e17877c73f4836888ccdae41468ef5'), // DE 2610, EN 2809
   apple: passage('z-convalescent', 'tos.text-unit.sid-313c312a17cd496891913e04b07f0f52', 'tos.text-unit.sid-2830327623174b5ebd7a4fd70286c141'), // DE 2598, EN 2797
-  danceOfSpeech: passage('z-convalescent', 'tos.text-unit.sid-c47e5f66de4f4aa0a4b79cffb2036f0a', 'tos.text-unit.sid-8f8e8e3bd7aa4afd9aefbd3c243fc123'), // DE 2603, EN 2802
+  danceOfSpeech: passage('z-convalescent', 'tos.text-unit.sid-6b28ba945a874f95aa1361d83bffc7a2', 'tos.text-unit.sid-8fffa7998e0a4238886a7eebea8df0f0'), // DE 2604, EN 2803: words and tones as rainbows (2604–2609)
   replyToSong: passage('z-convalescent', 'tos.text-unit.sid-582dceac41464f55bf487b87d53c81e0', 'tos.text-unit.sid-137ef525a7b0420e920df2929e8965e2'), // DE 2614, EN 2813
   interrupted: passage('z-convalescent', 'tos.text-unit.sid-3fdfec5bbfae4b6b81922f4e04751742', 'tos.text-unit.sid-6da7e7cc992448e897d8f591a3d4b28d'), // DE 2635, EN 2834
-  imaginedSpeech: passage('z-convalescent', 'tos.text-unit.sid-4b1380d94d65487eb4d189b64cfddf2a', 'tos.text-unit.sid-34398ee7749348ff98dd3483713c3a5d'), // DE 2643, EN 2842
-  teacher: passage('z-convalescent', 'tos.text-unit.sid-e936534cf75f46caa321ebc5a0da1f66', 'tos.text-unit.sid-fd596cf581824d05a41526d2fb85e58c'), // DE 2641, EN 2840
-  signDeparture: passage('z-sign', 'tos.text-unit.sid-1e5afcf46ca04fe7a4a20135223365bf', 'tos.text-unit.sid-91e301b459ee47bca18ce2f66767c9ad'), // DE 3687, EN 3931
+  imaginedSpeech: passage('z-convalescent', 'tos.text-unit.sid-8fc0ed8e1c49495aa6210857f2dadd02', 'tos.text-unit.sid-1698a2c3d23147d5853d88fa4eaa1d09'), // DE 2644, EN 2843: the animals' speech, to the end of the imagined one (2644–2658)
+  teacher: passage('z-convalescent', 'tos.text-unit.sid-8fc0ed8e1c49495aa6210857f2dadd02', 'tos.text-unit.sid-1698a2c3d23147d5853d88fa4eaa1d09'), // DE 2644, EN 2843: “du bist der Lehrer der ewigen Wiederkunft”
+  signDeparture: passage('z-sign', 'tos.text-unit.sid-fcc048d29c8246108026cb751a465105', 'tos.text-unit.sid-9547ae305af547b6ab89883be8549017'), // DE 3691, EN 3935: Zarathustra leaves his cave
   shepherd: passage('z-vision', 'tos.text-unit.sid-3bfa9f07f9614a4aa567c250edb713cd', 'tos.text-unit.sid-87fbf783426f4567a6a7f21c07326e45'), // DE 1868, EN 2057
   bite: passage('z-vision', 'tos.text-unit.sid-ae92a7183e344bb0998780e8dca0be10', 'tos.text-unit.sid-717a4cfe1b8e4c1ba3b01a44983b1caa'), // DE 1870, EN 2059
   laughter: passage('z-vision', 'tos.text-unit.sid-b1d488d8c2e24f32808e4e8912ed1102', 'tos.text-unit.sid-5902be75eed04d8f95862c2a862a88ab'), // DE 1877, EN 2066
+  longing: passage('z-vision', 'tos.text-unit.sid-bde5ffa861c548bc8c559e9aa48f0d2a', 'tos.text-unit.sid-9ff13e0972844aff892ca9238481a049'), // DE 1878, EN 2067: the longing for that laughter (1878–1879)
   firstSeal: passage('z-seven-seals', 'tos.text-unit.sid-8edd0e4d04e94fbbaf17a0cffe8a08a5', 'tos.text-unit.sid-e64d9dbca7a0445ba87b72e0511523fa'), // DE 2740, EN 2965
   dance: passage('z-seven-seals', 'tos.text-unit.sid-3c72a017ec7f4c589d63aa4c7cfc5e3f', 'tos.text-unit.sid-276c6c80c0074727a341a082f7eacd5f'), // DE 2780, EN 3005
   refrain: passage('z-seven-seals', 'tos.text-unit.sid-f6cba59ce2844156a85aca65898a3e18', 'tos.text-unit.sid-bc6b5237009941b88eeda06e2061a992'), // DE 2784, EN 3009
   dogMemory: passage('z-vision', 'tos.text-unit.sid-bbb23084527c45a99e326e7fd2915506', 'tos.text-unit.sid-819184eac81b4e22900b57fced2de04b'), // DE 1862, EN 2051
-  dogQuestion: passage('z-vision', 'tos.text-unit.sid-4bd873d518394ddd88421cf67e632091', 'tos.text-unit.sid-6a0116e5cd3447ab9a234b82ec87e851'), // DE 1865, EN 2054
+  dogQuestion: passage('z-vision', 'tos.text-unit.sid-918be20dcbf1446685aa1835813d6db3', 'tos.text-unit.sid-fe94297eaf994690a02a39d34889448d'), // DE 1866, EN 2055: Zarathustra's own questions before the dog leads him to the shepherd (the dog asks nothing)
   dogShepherd: passage('z-vision', 'tos.text-unit.sid-05b76ddd13b04db38f039da3a25b23d4', 'tos.text-unit.sid-a0b7dff3f51d457c8be880181feaa436'), // DE 1867, EN 2056
   companions: passage('z-convalescent', 'tos.text-unit.sid-6e1f4ec1f777414089432b62fa692e94', 'tos.text-unit.sid-e6a14205a3064198846e29ac7a1d7dd6'), // DE 2653, EN 2852
 };
@@ -239,7 +240,7 @@ export const ZARATHUSTRA_ROUTE_GROUNDS = {
   'repetition-difference': [ROUTE_PASSAGES.imaginedCondition, external('gs341'), external('deleuze-nietzsche-return'), external('deleuze-nietzsche-return', '#page=12'), external('deleuze-repetition'), ROUTE_PASSAGES.child],
   'affirmation-pain-action': [external('gs276'), ROUTE_PASSAGES.joy, ROUTE_PASSAGES.woe, ROUTE_PASSAGES.help, ROUTE_PASSAGES.obligation, ROUTE_PASSAGES.redemptionLimit, external('gs341')],
   'reading-voices': [ROUTE_PASSAGES.qualifiedSong, ROUTE_PASSAGES.apple, ROUTE_PASSAGES.danceOfSpeech, ROUTE_PASSAGES.replyToSong, ROUTE_PASSAGES.interrupted, ROUTE_PASSAGES.imaginedSpeech, ROUTE_PASSAGES.teacher, ROUTE_PASSAGES.signDeparture],
-  'image-experience': [ROUTE_PASSAGES.shepherd, ROUTE_PASSAGES.bite, ROUTE_PASSAGES.laughter, ROUTE_PASSAGES.laughter, ROUTE_PASSAGES.firstSeal, ROUTE_PASSAGES.dance, ROUTE_PASSAGES.refrain, ROUTE_PASSAGES.dance],
+  'image-experience': [ROUTE_PASSAGES.shepherd, ROUTE_PASSAGES.bite, ROUTE_PASSAGES.laughter, ROUTE_PASSAGES.longing, ROUTE_PASSAGES.firstSeal, ROUTE_PASSAGES.dance, ROUTE_PASSAGES.refrain, ROUTE_PASSAGES.dance],
   'memory-others': [ROUTE_PASSAGES.dogMemory, ROUTE_PASSAGES.dogMemory, ROUTE_PASSAGES.dogQuestion, ROUTE_PASSAGES.dogShepherd, ROUTE_PASSAGES.companions, ROUTE_PASSAGES.imaginedCondition, external('gs341')],
   'thinkers-necessity': [external('epictetus1'), ROUTE_PASSAGES.imaginedCondition, ROUTE_PASSAGES.happyFate, ROUTE_PASSAGES.happyFate, external('spinoza1d7'), external('spinoza3p6'), external('leibniz53-55'), external('leibniz53-55')],
 };

@@ -18,19 +18,20 @@ labels.ru.passages='Фрагменты и места';labels.en.passages='Fragme
 const roleNames={premise:['Основание','Premise'],conclusion:['Вывод','Conclusion'],objection:['Возражение','Objection'],reply:['Ответ','Reply'],distinction:['Различение','Distinction'],example:['Пример','Example'],question:['Вопрос','Question'],inference:['Переход','Inference'],claim:['Тезис','Claim'],condition:['Условие','Condition'],definition:['Определение','Definition'],problem:['Затруднение','Problem'],explanation:['Объяснение','Explanation'],consequence:['Следствие','Consequence'],qualification:['Уточнение','Qualification'],test:['Проверка','Test']};
 
 /** Read-only browsing; graph mutation and reader access are explicit owner callbacks. */
-export function mountCollectionView({root,entries,locale,onOpenSource,onReadCatalog,onOpenMaterial,hasMaterial,materialInGraph}={}){
+export function mountCollectionView({root,entries,locale,onOpenSource,onReadCatalog,onOpenMaterial,hasMaterial,materialInGraph,renderAuthored=null}={}){
   const items=Array.isArray(entries)?entries:[];
   let group='overview',kind='',period='',query='',page=0,selected=null;
   const lang=()=>(copyLocale(locale?.()??'ru')==='en')?'en':'ru';
   const txt=value=>localized(value,locale);
   const named=value=>typeof value==='string'?value:txt(value?.title??value?.name??value?.label??value);
   const matchEntry=value=>items.find(item=>item.id===value||item.legacyId===value||item.materialId===value)||items.find(item=>txt(item.title)===named(value));
-  const addText=(parent,value,cls='')=>{const text=txt(value);if(text)parent.append(el('p',cls,text));};
+  // A form that cites the work shows the cited places and then its own words.
+  const addText=(parent,value,cls='')=>{if(renderAuthored&&Array.isArray(value?.cite)&&value.cite.length){renderAuthored(parent,value,{className:cls});return;}const text=txt(value);if(text)parent.append(el('p',cls,text));};
   function renderStructured(parent,value){
     const values=Array.isArray(value)?value:[value];
     for(const item of values){
       if(!item)continue;
-      if(typeof item==='string'||item.ru||item.en){addText(parent,item);continue;}
+      if(typeof item==='string'||item.ru||item.en||Array.isArray(item.cite)){addText(parent,item);continue;}
       if(typeof item!=='object')continue;
       const section=el('section','ps-collection-structured');
       if(item.role)section.append(el('small','',localeText(roleNames[item.role]?.[lang()==='en'?1:0]??item.role,locale)));

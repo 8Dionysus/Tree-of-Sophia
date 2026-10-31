@@ -74,8 +74,8 @@
       "id": "collection",
       "path": "collection.json",
       "role": {
-        "ru": "Авторская навигация прежнего Древа Античности: авторы, произведения, места, ветви, вопросы, эпохи, словарь. Без текста источников и якорей цитат.",
-        "en": "Authored navigation of the earlier Antiquity tree: authors, works, passages, branches, questions, eras, terms. No source text or quotation anchors."
+        "ru": "Авторская навигация Древа Античности: авторы, произведения, места, ветви, вопросы, эпохи, словарь — собственные слова стенда и места произведений, на которые они опираются, ссылками на оригинал в публичном корпусе или на места из fragments.json. Текст источников сюда не копируется.",
+        "en": "Authored navigation of the Antiquity tree: authors, works, passages, branches, questions, eras, terms — the stand’s own words and the places of the works they rest on, as citations of the original in the public corpus or of places kept in fragments.json. No source text is copied here."
       },
       "format": "collection, sourceRevision 99e81af653c82765b587c870db3c0f605d794fae",
       "identities": "material IDs antiquity:reading:*, antiquity:catalog:* stay stable for saved graphs"
@@ -123,6 +123,34 @@
         "en": "Natural Earth 1:50m coastlines, clipped to Europe and the Mediterranean and simplified; the backdrop of the map of places, shared by the stands."
       },
       "format": "tos.bonsai.basemap.v1"
+    },
+    {
+      "id": "fragments",
+      "path": "fragments.json",
+      "format": "tos.bonsai.fragments.v1",
+      "role": {
+        "ru": "Точный текст цитируемых мест произведений, которых нет в открытом корпусе, с изданием, источником, лицензией и основанием показа.",
+        "en": "The exact text of the cited places of works outside the public corpus, with edition, source, licence and the basis for showing it."
+      }
+    },
+    {
+      "id": "alignment",
+      "path": "alignment.json",
+      "format": "tos.bonsai.corpus-alignment.v1",
+      "role": {
+        "ru": "Для каждого цитируемого места оригинала в открытом корпусе — его места в переводах корпуса и пары предложений, найденные механизмом выравнивания бонсая; только идентификаторы и смещения, без текста.",
+        "en": "For each cited place of an original in the public corpus, its places in the corpus translations and the sentence pairs found by the bonsai’s alignment mechanism; identifiers and offsets only, no text."
+      }
+    },
+    {
+      "id": "objects",
+      "path": "objects.json",
+      "format": "tos.bonsai.objects.v1",
+      "role": {
+        "ru": "Чем являются собственные слова стенда в типах объектов Древа: проблемы, вопросы и позиции, понятия, лексемы и их употребления, доводы с тезисами, шагами вывода и возражениями, различения, трактовки — с формой, где стоят слова, местами текста, на которые они опираются, и связями реестра Древа там, где их даёт устройство стенда; связи между местами текстов — как предложение стенда.",
+        "en": "What the stand’s own words are in the Tree’s object types: problems, questions and positions, concepts, lexemes and their occurrences, arguments with their theses, inference steps and objections, distinctions, conceptions — with the form that holds the words, the places of text they rest on, and relations of the Tree’s registry where the stand’s structure gives them; links between places of texts as the stand’s proposal."
+      },
+      "identities": "objects name the collection’s material IDs and the forms of its modules; saved graphs do not depend on this module"
     },
     {
       "id": "identities",
