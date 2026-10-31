@@ -2,7 +2,7 @@
 
 `test_webmcp.mjs` runs the installed native access site through the production
 Rust HTTP handler, with a disposable Rust fixture executor, against a real
-Chromium browser. The five static reader cases use the checked-in Vite host.
+Chromium browser. The six static reader cases use the checked-in Vite host.
 It covers the WebMCP registration seam with a deterministic
 `document.modelContext` test double because WebMCP remains an experimental
 browser feature and is not enabled in every Chromium build. The rest of the
@@ -22,7 +22,7 @@ owner-selected source authority.
 
 The installed native cases run with at most two concurrent scenarios. Each
 case owns a fresh fixture process, ephemeral listener and Chromium process/context;
-actions and reloads within each case remain sequential. The five Vite reader
+actions and reloads within each case remain sequential. The six Vite reader
 cases run serially after that suite to keep their shared dependency cache out
 of concurrent startup. The same lane still runs every case and assertion.
 

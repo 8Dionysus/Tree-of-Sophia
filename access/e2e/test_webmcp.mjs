@@ -304,4 +304,51 @@ test('test_reader_positions_survive_pagehide_before_debounce',async()=>withVite(
   }finally{await browser.close();}
 }));
 
+// 20. Real chapter imports cannot reopen a closed reader or replace newer navigation.
+test('test_fragment_reader_close_navigation_and_disposal', {timeout:90000}, async()=>withVite(async base=>{
+  const browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.TOS_E2E_CHROMIUM?{executablePath:process.env.TOS_E2E_CHROMIUM}:{})});
+  const releases=[];
+  try{
+    const page=await browser.newPage({locale:'en-US'});
+    await page.route('**/fragment-reader-check',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><html lang="en"><head><link rel="stylesheet" href="/static/src/public-research/public-space.css"></head><body></body></html>'}));
+    await page.goto(base+'/fragment-reader-check',{waitUntil:'domcontentloaded'});
+    await page.evaluate(async()=>{
+      const {createFragments}=await import('/static/src/public-research/fragments.mjs');
+      window.fragmentReader=createFragments({locale:()=> 'en',t:key=>key});
+      await window.fragmentReader.showChapter('I.01');
+    });
+    const dialog=page.locator('.ps-parallel');await dialog.waitFor({state:'visible'});
+    await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
+    assert.equal(await dialog.evaluate(node=>getComputedStyle(node).display),'none');
+    await page.evaluate(()=>window.fragmentReader.showChapter('I.01'));
+    const hold=async key=>{
+      let release;const gate=new Promise(resolve=>{release=resolve;});releases.push(release);
+      const pattern=new RegExp('/witnesses/'+key.replaceAll('.','\\.')+'\\.json(?:\\?|$)');
+      await page.route(pattern,async route=>{await gate;await route.continue();});
+      const requested=page.waitForRequest(pattern);
+      await page.evaluate(value=>{window.fragmentPending=window.fragmentReader.showChapter(value);},key);
+      await requested;return release;
+    };
+    const releaseClosed=await hold('I.02');
+    await dialog.getByRole('button',{name:'close',exact:true}).click();await dialog.waitFor({state:'hidden'});
+    releaseClosed();await page.evaluate(()=>window.fragmentPending);
+    assert.equal(await dialog.isVisible(),false);assert.equal(await dialog.evaluate(node=>node.open),false);
+    const releaseOld=await hold('I.03');
+    await page.evaluate(()=>window.fragmentReader.showChapter('I.04'));await dialog.waitFor({state:'visible'});
+    releaseOld();await page.evaluate(()=>window.fragmentPending);
+    assert.equal(await page.evaluate(()=>window.fragmentReader.reader.current.key),'I.04');
+    const releaseDisposed=await hold('I.05');
+    await page.evaluate(()=>window.fragmentReader.dispose());releaseDisposed();await page.evaluate(()=>window.fragmentPending);
+    assert.equal(await page.locator('.ps-parallel').count(),0);
+    await page.evaluate(async()=>{
+      const {createFragments}=await import('/static/src/public-research/fragments.mjs');
+      const {NODE_CONTENT}=await import('/static/constructor/atlas-content.mjs');
+      const host=document.createElement('section');host.id='source-question';document.body.append(host);
+      createFragments({locale:()=> 'en',t:key=>key}).render(host,NODE_CONTENT['demo:creation'].question);
+    });
+    await page.locator('#source-question .ps-fragment:not([aria-busy]) .ps-fragment-text').waitFor({state:'visible'});
+    assert.ok((await page.locator('#source-question .ps-fragment-text').innerText()).trim());
+  }finally{for(const release of releases)release();await browser.close();}
+}));
+
 });

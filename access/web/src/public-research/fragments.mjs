@@ -316,8 +316,11 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       }
       texts.set(language,value);return value;
     }
+    const paints=createLatestFragmentRequest();
     const paint=async()=>{
+      const current=paints.begin();
       const parts=await Promise.all(showing.map(async language=>[language,await textOf(language)]));
+      if(!current())return;
       figure.replaceChildren();
       for(const [language,value] of parts){
         if(!value.length)continue;

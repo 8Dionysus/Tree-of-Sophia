@@ -12,6 +12,13 @@ describe('pending chapter reads',()=>{
     guard.cancel();assert.equal(pending(),false);
     assert.equal(guard.begin()(),true);
   });
+  it('keeps the newer paint when responses complete in reverse order',async()=>{
+    const guard=createLatestFragmentRequest();let releaseOld,releaseNew,visible=null;
+    const oldWait=new Promise(resolve=>{releaseOld=resolve;}),newWait=new Promise(resolve=>{releaseNew=resolve;});
+    const paint=async(label,wait)=>{const current=guard.begin();await wait;if(current())visible=label;};
+    const old=paint('old',oldWait),latest=paint('new',newWait);
+    releaseNew();await latest;releaseOld();await old;assert.equal(visible,'new');
+  });
   it('invalidates all pending requests on disposal',()=>{
     const guard=createLatestFragmentRequest(),first=guard.begin(),second=guard.begin();
     guard.cancel();guard.cancel();assert.equal(first(),false);assert.equal(second(),false);

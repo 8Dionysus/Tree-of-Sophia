@@ -135,7 +135,7 @@ owner surfaces.
    fixed DEFLATE level 3: compressed bytes can differ from earlier builders,
    while repeat builds must still match exactly and retain all member, digest,
    custody and byte-budget checks. Installed browser scenarios run in a bounded
-   pair of isolated hosts/browsers; the five Vite cases remain serial, and every
+   pair of isolated hosts/browsers; the six Vite cases remain serial, and every
    scenario keeps its original actions, assertions and timeout.
    `software_package`
    uploads the archive and sidecar as a provisional candidate with their digests.

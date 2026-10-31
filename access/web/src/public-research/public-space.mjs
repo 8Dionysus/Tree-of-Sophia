@@ -375,7 +375,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function appendSourcePointers(parent,material){return appendGrounds(parent,material?.inquiry?.grounds,material?.id);}
   function inquiryDetail(parent,title,value,open=false){if(!value||!fragments.hasAuthored(value))return null;const detail=el('details','inquiry-detail');detail.open=open;detail.append(el('summary','',title));fragments.render(detail,value,{className:''});parent.append(detail);return detail;}
-  function inquiryQuestion(parent,value){if(!value)return;const card=el('section','ps-question-card');card.append(el('span','eyebrow',t('readingQuestion')),el('p','',tr(value,locale())));parent.append(card);}
+  function inquiryQuestion(parent,value){
+    if(!value||!fragments.hasAuthored(value))return;
+    const card=el('section','ps-question-card'),own=tr(value,locale()).trim();
+    // A question asked by the work is a quotation, not our own research prompt.
+    if(own)card.append(el('span','eyebrow',t('readingQuestion')),el('p','',own));
+    for(const cite of citesOf(value))card.append(fragments.fragment(cite));
+    parent.append(card);
+  }
   function showInquiry(){
     const current=route?.source==='atlas'?routes.find(item=>item.id===route.id):null;
     const journey=route?.source==='manifest'?localizePublicJourney(journeyList.find(item=>item.id===route.id),locale()):null;
