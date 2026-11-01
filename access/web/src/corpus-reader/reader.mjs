@@ -1041,15 +1041,17 @@ export function mountCorpusReader({
       : null;
     const intervals = philologyMarkIntervals(codePoints,matches,selectedSpan,Boolean(searchQuery));
     const editorial=editorialRanges(version,unit);
-    // Russian printed before 1918 is shown in today's spelling, piece by piece; the row keeps the way back to the source.
-    const respelled=(version?.language??unit.language)==='ru'&&isPreReform(unit.text),toSource=respelled?[]:null;
+    // Respell complete words before splitting highlights; each boundary still
+    // names the source's code points, and the row keeps the reverse mapping.
+    const spelling=(version?.language??unit.language)==='ru'&&isPreReform(unit.text)?respell(unit.text):null;
+    const offsets=spelling?[0]:null;
+    if(offsets)for(const character of unit.text)offsets.push(offsets.at(-1)+character.length);
     const boundaries=[...new Set([0,codePoints,...intervals.flatMap(value=>[value.start,value.end]),...editorial.flatMap(value=>[value.start,value.end])])].sort((a,b)=>a-b);
     for(let index=0;index<boundaries.length-1;index++){
       const start=boundaries[index],end=boundaries[index+1];if(end<=start)continue;
       const selectedMark=intervals.find(value=>value.start<=start&&value.end>=end);
       const annotation=editorial.find(value=>value.start<=start&&value.end>=end);
-      let shownText=codePointSlice(unit.text,start,end);
-      if(toSource){const offset=codePointSlice(unit.text,0,start).length,shown=respell(shownText);for(let at=0;at<shown.text.length;at++)toSource.push(offset+shown.toSource[at]);shownText=shown.text;}
+      const shownText=spelling?spelling.text.slice(spelling.toDisplay[offsets[start]],spelling.toDisplay[offsets[end]]):codePointSlice(unit.text,start,end);
       let piece=document.createTextNode(shownText);
       if(selectedMark){const mark=element('mark',selectedMark.selected?'cr-selected-occurrence':'');
         if(selectedMark.selected)mark.dataset.selectedOccurrence='true';mark.append(piece);piece=mark;}
@@ -1059,7 +1061,7 @@ export function mountCorpusReader({
         span.append(piece);piece=span;}
       content.append(piece);
     }
-    if(toSource){toSource.push(unit.text.length);row.__toSource=toSource;}
+    if(spelling)row.__toSource=spelling.toSource;
     row.append(marker, content);
     const kinds=[...new Set(editorial.map(value=>value.kind))];
     const wholeLayer=sourceLayerKind(version,unit);

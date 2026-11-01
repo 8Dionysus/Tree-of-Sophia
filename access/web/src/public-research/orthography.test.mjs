@@ -7,6 +7,7 @@ describe('Russian printed before 1918 in today\'s spelling',()=>{
     expect(isPreReform('впечатлѣніе')).toBe(true);
     expect(isPreReform('Что так рано пришел ты, Критон?')).toBe(false);
     expect(isPreReform('объём и подъезд')).toBe(false);
+    expect(isPreReform('СЪ НИМЪ')).toBe(true);
   });
   it('changes the letters and drops a closing hard sign, never an inner one',()=>{
     expect(modernRussian('Не знаю, Аѳиняне, какое впечатлѣніе сдѣлали на васъ мои обвинители')).toBe('Не знаю, Афиняне, какое впечатление сделали на вас мои обвинители');
@@ -39,6 +40,7 @@ describe('Russian printed before 1918 in today\'s spelling',()=>{
   it('respells the reform\'s own words and keeps capitals',()=>{
     expect(modernRussian('Онѣ пришли, ея слова, безъ нея')).toBe('Они пришли, её слова, без неё');
     expect(modernWord('СЪ')).toBe('С');
+    expect(modernRussian('СЪ НИМЪ')).toBe('С НИМ');
   });
   it('maps a place in the shown text back to the source',()=>{
     const source='Сокр. Что такъ рано пришелъ ты, Критонъ?';
@@ -49,5 +51,17 @@ describe('Russian printed before 1918 in today\'s spelling',()=>{
     expect(source.slice(shown.toSource[at],shown.toSource[at+4])).toBe('рано');
     expect(shown.toSource.at(-1)).toBe(source.length);
     expect(respell('без перемен').text).toBe('без перемен');
+  });
+  it('keeps whole-word spelling and source offsets when highlights split words',()=>{
+    const source='😀 подъѣздъ. Что такъ?',shown=respell(source);
+    expect(shown.text).toBe('😀 подъезд. Что так?');
+    // The boundary after the inner hard sign must not turn it into a word-final sign.
+    const boundaries=[0,source.indexOf('ѣ'),source.indexOf('так')+3,source.length];
+    const parts=boundaries.slice(1).map((end,index)=>shown.text.slice(shown.toDisplay[boundaries[index]],shown.toDisplay[end]));
+    expect(parts.join('')).toBe(shown.text);
+    expect(parts[0]).toBe('😀 подъ');
+    const word=shown.text.indexOf('так');
+    expect(source.slice(shown.toSource[word],shown.toSource[word+3])).toBe('такъ');
+    expect(shown.toDisplay[source.indexOf('ъ',source.indexOf('так'))]).toBe(word+3);
   });
 });

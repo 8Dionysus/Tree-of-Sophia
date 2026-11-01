@@ -16,7 +16,7 @@ const LETTER=/\p{L}/u;
 /** Whether a Russian text is in the spelling before 1918. */
 export function isPreReform(text){
   if(typeof text!=='string'||!text)return false;
-  return OLD_LETTERS.test(text)||/[бвгджзклмнпрстфхцчшщ]ъ(?![\p{L}])/u.test(text);
+  return OLD_LETTERS.test(text)||/[бвгджзклмнпрстфхцчшщ]ъ(?![\p{L}])/iu.test(text);
 }
 
 // Whole words the endings' rules would get wrong, or that the reform respelled outright.
@@ -84,11 +84,20 @@ export function modernRussian(text){
 /**
  * A text in today's spelling with the way back: `toSource[i]` is the offset in the source text (in UTF-16 units) of
  * the shown text's offset `i`, so that a selection made in the shown text names the source's own characters.
- * Inside a respelled word an offset keeps its place from the word's start, up to the source word's end.
+ * `toDisplay[i]` maps a source UTF-16 boundary into the shown text. Inside a respelled word an offset keeps its
+ * place from the word's start, up to the source word's end.
  */
 export function respell(text){
   const toSource=[];
-  if(!isPreReform(text)){for(let index=0;index<=text.length;index++)toSource.push(index);return {text,toSource};}
+  const result=shown=>{
+    const toDisplay=[];let at=0;
+    for(let index=0;index<=text.length;index++){
+      while(at<toSource.length-1&&toSource[at]<index)at++;
+      toDisplay.push(at);
+    }
+    return {text:shown,toSource,toDisplay};
+  };
+  if(!isPreReform(text)){for(let index=0;index<=text.length;index++)toSource.push(index);return result(text);}
   let out='',word='',wordStart=0,at=0;
   const flush=()=>{
     if(!word)return;
@@ -102,5 +111,5 @@ export function respell(text){
     at+=character.length;
   }
   flush();toSource.push(text.length);
-  return {text:out,toSource};
+  return result(out);
 }
