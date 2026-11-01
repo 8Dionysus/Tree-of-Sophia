@@ -8733,6 +8733,7 @@ fn find_record(ctx: &CommandContext, id: &str) -> SourceCommandResult<(JsonValue
     for f in &ctx.files {
         if !f.path.as_str().starts_with("ToS/source-witnesses/")
             || f.path.as_str().contains("/.record-revisions/")
+            || f.path.as_str().contains("/.metadata-transactions/")
         {
             continue;
         }
@@ -8756,7 +8757,11 @@ fn find_record(ctx: &CommandContext, id: &str) -> SourceCommandResult<(JsonValue
                     "artifact_id"
                 }
                 Some("tos_scholarly_composite_witness_v1") => "composite_id",
-                _ => "record_id",
+                _ if record
+                    .object_get("record_type")
+                    .and_then(JsonValue::as_str)
+                    .is_some() => "record_id",
+                _ => continue,
             };
             if record.object_get(id_field).and_then(JsonValue::as_str) == Some(id) {
                 if found.is_some() {
@@ -10971,6 +10976,40 @@ fn identifier_tail(value: &str, prefix: &str) -> bool {
 #[cfg(test)]
 mod mixed_inventory_boundary_tests {
     use super::*;
+
+    #[test]
+    fn claim_endpoint_ignores_revision_ledgers_and_transaction_blobs() {
+        let id = "tos.thesis.example";
+        let record = br#"{"schema_version":"tos_thought_description_record_v1","record_id":"tos.thesis.example","record_type":"thesis","record_version":2}"#;
+        let history = br#"{"schema_version":"tos_source_revision_history_v1","record_id":"tos.thesis.example","receipts":[]}"#;
+        let item = |name: &str, raw: &[u8]| SourceFile {
+            path: RelativePath::parse(name).unwrap(),
+            raw: raw.to_vec(),
+        };
+        let mut context = CommandContext {
+            base_revision: tos_foundation::SourceRevision(Digest256::of_bytes(b"fixture")),
+            configuration_raw: Vec::new(),
+            request_raw: Vec::new(),
+            recorded_at: String::new(),
+            effective_uid: 0,
+            files: vec![
+                item("ToS/source-witnesses/semantic-descriptions/example/thesis.json", record),
+                item("ToS/source-witnesses/semantic-descriptions/example/source-revision-history.json", history),
+                item("ToS/source-witnesses/.metadata-transactions/transaction/old.blob", record),
+                item("ToS/source-witnesses/.record-revisions/archive/old.blob", record),
+            ],
+        };
+        let (_, path) = find_record(&context, id).unwrap();
+        assert!(path.ends_with("/thesis.json"));
+        context.files.push(item(
+            "ToS/source-witnesses/semantic-descriptions/other/thesis.json",
+            record,
+        ));
+        assert!(matches!(
+            find_record(&context, id),
+            Err(SourceCommandError::Conflict(_))
+        ));
+    }
 
     #[test]
     fn bootstrap_contract_native_profile_epoch_preserves_metadata_bounds_and_fixity() {

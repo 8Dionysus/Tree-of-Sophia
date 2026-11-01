@@ -14,7 +14,7 @@ witnesses' wording, translation excerpts and rows are left behind. A claim keeps
 and the reviewer's verdict; a revision is admitted in the reviewer's wording with the maker's kept
 beside it. A claim without a verdict is held.
 """
-import argparse, json, os, pathlib, re
+import argparse, hashlib, json, os, pathlib, re
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--work', required=True)
@@ -30,11 +30,12 @@ OUT = pathlib.Path(args.tos) / 'bonsai/zarathustra/core'
 load = lambda p: json.load(open(p))
 
 # The text's units in order, chapter by chapter, and the rows they belong to.
-rows, chapter_units = {}, {}
+rows, chapter_units, unit_text = {}, {}, {}
 for line in open(pathlib.Path(args.corpus) / 'rows.jsonl'):
     r = json.loads(line)
     ids = [u['id'] for u in r['de']]
     rows[(r['chapter'], r['row'])] = ids
+    unit_text.update({u['id']: u['text'] for u in r['de']})
 for (chapter, row) in sorted(rows, key=lambda k: k[1]):
     chapter_units.setdefault(chapter, []).extend(rows[(chapter, row)])
 pos = {u: (c, i) for c, ids in chapter_units.items() for i, u in enumerate(ids)}
@@ -69,6 +70,7 @@ def unit_at(chapter, row, last):
     return None
 
 speakers = load(W / 'speakers.json')
+figure_scopes = load(W / 'figure-scopes.json') if (W / 'figure-scopes.json').exists() else {'figures': {}}
 voices = {}
 for chapter, segments in speakers.items():
     out = []
@@ -80,6 +82,41 @@ for chapter, segments in speakers.items():
         for k in ('speaker', 'addressee', 'mode', 'layer', 'via', 'actors'):
             if s.get(k) is not None:
                 seg[k] = s[k]
+        # Attribution is source-qualified and candidate-only. The occurrence
+        # ID is a proposal for the first unit, not evidence of a native record.
+        scope = figure_scopes['figures'].get(seg.get('speaker'))
+        if scope:
+            unit = seg['u'][0]
+            seg['attribution'] = {'relation_type': 'tos.relation.work-voice-attributed-to',
+                                  'speaker_ref': scope['figure_ref'], 'work_ref': scope['work_ref'],
+                                  'anchor_unit': unit, 'role': 'speaker',
+                                  'layer': seg.get('layer'), 'mode': seg.get('mode'),
+                                  'carrier': seg.get('via'), 'addressee': seg.get('addressee'),
+                                  'occurrence_candidate': 'tos.occurrence.bonsai.za.' + unit.rsplit('.', 1)[-1],
+                                  'scope': 'first-unit-of-segment', 'status': 'stand-proposal'}
+        else:
+            seg['attribution'] = {'speaker_designation': seg.get('speaker'),
+                                  'work_ref': figure_scopes.get('work_ref'),
+                                  'layer': seg.get('layer'), 'mode': seg.get('mode'),
+                                  'carrier': seg.get('via'), 'addressee': seg.get('addressee'),
+                                  'status': 'speaker-identity-unresolved'}
+        # A descriptor identifies this bounded voice segment, not a person.
+        # The 208 primary narrations share a work-scoped narrator role; neither
+        # this role nor a repeated speaker label establishes a historical agent.
+        anchor = json.dumps([chapter, seg['u'], seg.get('speaker'), seg.get('layer'), seg.get('mode'), seg.get('via'), seg.get('addressee')], ensure_ascii=False, separators=(',', ':'))
+        descriptor_id = hashlib.sha256(anchor.encode()).hexdigest()[:24]
+        is_narrator = seg.get('speaker') == 'narrator' and seg.get('layer') == 'primary' and seg.get('mode') == 'narration'
+        seg['voice_descriptor'] = {'id': 'tos.bonsai.voice-segment.' + descriptor_id,
+                                   'work_ref': figure_scopes.get('work_ref'),
+                                   'cite': {'w': 'also-sprach-zarathustra', 'c': chapter, 'u': seg['u']},
+                                   'speaker_designation': seg.get('speaker'),
+                                   'layer': seg.get('layer'), 'mode': seg.get('mode'), 'via': seg.get('via'), 'addressee': seg.get('addressee'),
+                                   'identity_status': 'narrator-role-only' if is_narrator else 'figure-candidate' if scope else 'unresolved'}
+        if is_narrator:
+            seg['voice_descriptor']['role'] = 'work-narrator'
+            seg['voice_descriptor']['role_ref'] = 'tos.bonsai.voice-role.also-sprach-zarathustra.narrator'
+        elif scope:
+            seg['voice_descriptor']['figure_ref'] = scope['figure_ref']
         out.append(seg)
     voices[chapter] = out
 
@@ -201,13 +238,87 @@ node_type = {}
 for path in sorted((W / 'concepts').glob('*.json')):
     node_type[path.stem] = 'tos.entity.thought-image' if path.stem in IMAGES else 'tos.entity.conception'
 for path in sorted((W / 'characters').glob('*.json')):
-    node_type[path.stem] = 'tos.entity.thought-image'
+    node_type[path.stem] = 'tos.entity.work-figure' if path.stem in figure_scopes['figures'] else 'tos.entity.thought-image'
 def relation_fits(rel, a, b):
     r = registry.get(rel)
     if not r or r.get('abstract') or a not in node_type or b not in node_type:
         return False
     within = lambda t, allowed: bool(lineage(t) & set(allowed or []))
     return within(node_type[a], r.get('domain_type_ids')) and within(node_type[b], r.get('range_type_ids'))
+
+# A deliberately bounded exact-form inventory; grouping is authored, never
+# inferred from voice mode or the matching form. One candidate is one form in
+# one TextUnit, possibly more than one token and never a materialized binding.
+semantic_input_path = W / 'semantic-uses.json'
+semantic_uses = None
+semantic_lookup = {}
+if semantic_input_path.exists():
+    source_uses = load(semantic_input_path)
+    if source_uses.get('schema') != 'tos.bonsai.semantic-use-input.v1':
+        raise ValueError('unsupported semantic-use input')
+    readings = {}
+    for reading in source_uses['readings']:
+        unit = reading['cite']['u'][0]
+        if reading['cite']['u'] != [unit, unit] or pos.get(unit, (None,))[0] != reading['cite']['c']:
+            raise ValueError(f"semantic reading has no single source unit: {unit}")
+        term, form = reading['term'], reading['form'].casefold()
+        group = source_uses['groups'].get(reading['group_id'])
+        if not group or group['term'] != term or term not in source_uses['terms']:
+            raise ValueError(f"semantic reading has invalid group: {term} {unit}")
+        key = (term, unit, form)
+        if key in readings:
+            raise ValueError(f"semantic reading is ambiguous: {key}")
+        readings[key] = reading
+    found = set()
+    terms = []
+    for term, spec in source_uses['terms'].items():
+        form_set = {form.casefold() for form in spec['forms']}
+        groups = [{**group, 'id': id, 'members': []} for id, group in source_uses['groups'].items() if group['term'] == term]
+        by_group = {g['id']: g for g in groups}
+        uses = []
+        for chapter, units in chapter_units.items():
+            for unit in units:
+                text = unit_text[unit]
+                matched = {}
+                for token in re.findall(r"[^\W\d_]+(?:[-‐‑][^\W\d_]+)*", text, re.UNICODE):
+                    form = token.casefold()
+                    if form in form_set:
+                        matched.setdefault(form, []).append(token)
+                for form, tokens in matched.items():
+                    key = (term, unit, form)
+                    reading = readings.get(key)
+                    use_digest = hashlib.sha256(json.dumps([term, unit, form], ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()[:16]
+                    occurrence_id = 'tos.bonsai.lexical-use.' + term + '.' + use_digest
+                    native_id = 'tos.occurrence.bonsai.za.' + unit.rsplit('.', 1)[-1] + '.' + term + '.' + use_digest
+                    loc = {'w': source_uses['work'], 'c': chapter, 'u': [unit, unit], 'q': tokens[0]}
+                    if reading:
+                        if reading['cite']['q'] not in text:
+                            raise ValueError(f"semantic reading wording absent: {key}")
+                        found.add(key)
+                        group = source_uses['groups'][reading['group_id']]
+                        semantic = {'group_id': reading['group_id'], 'label': group['label'], 'meaning': group['meaning'],
+                                    'grounds': [cite(c) for c in group['grounds']], 'review_status': 'stand-proposal', 'scope': group['scope'],
+                                    'independent_review': group['independent_review']}
+                        if group.get('proposed'):
+                            semantic['proposed'] = group['proposed']
+                        if len(group['grounds']) > 1:
+                            semantic['grounding_revision_history'] = [{'grounds': [cite(reading['cite'])],
+                                'note': 'Earlier unit-only grounding retained; the group reading uses all listed places.'}]
+                        by_group[reading['group_id']]['members'].append(occurrence_id)
+                    else:
+                        semantic = {'group_id': None, 'label': None, 'meaning': None, 'grounds': [], 'review_status': 'unknown',
+                                    'scope': {'ru': 'Контекстное значение ещё не разобрано.', 'en': 'The contextual meaning has not yet been assessed.'}}
+                    item = {'id': occurrence_id, 'term': term, 'form': tokens[0], 'cite': loc, 'matching_tokens_in_unit': len(tokens),
+                            'granularity': 'form-in-text-unit', 'voice': voice_at(loc), 'semantic_use': semantic,
+                            'native_candidate': {'record_id': native_id, 'status': 'not-materialized',
+                                                 'binding': 'requires-native-text-unit-binding'}}
+                    uses.append(item)
+                    semantic_lookup[key] = item
+        terms.append({'id': term, 'lemma': spec['lemma'], 'forms': spec['forms'], 'scope': spec['scope'], 'groups': groups, 'occurrences': uses})
+    if found != set(readings):
+        raise ValueError(f"authored semantic readings not found in witness: {sorted(set(readings)-found)}")
+    semantic_uses = {'schema': 'tos.bonsai.semantic-uses.v1', 'work': source_uses['work'], 'witness': source_uses['witness'],
+                     'posture': source_uses['posture'], 'terms': terms, 'source_connections': source_uses.get('source_connections', [])}
 
 links, chains, concepts, figures = [], [], [], []
 counts = {'links': {}, 'chains': {}, 'formulas': {}}
@@ -268,6 +379,14 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
                         'neighbours': o.get('neighbours') or []}
                 if o.get('line_kind') == 'authored-reading' and o.get('line'):
                     item['line'] = o['line']
+                # The old fields stay intact; voice_group makes their historical
+                # role explicit without treating speech mode as lexical sense.
+                semantic_matches = [use for (term, unit, form), use in semantic_lookup.items()
+                                    if unit == o['cite']['u'][0] and form == (o.get('form') or '').casefold()]
+                if semantic_matches:
+                    item['voice_group'] = {k: item[k] for k in ('mode', 'use', 'group') if k in item and item[k] is not None}
+                    item['semantic_use'] = semantic_matches[0]['semantic_use']
+                    item['lexical_use_ref'] = semantic_matches[0]['id']
                 out.append({k: x for k, x in item.items() if x not in (None, [])})
             (OUT / 'occurrences' / f'{nid}.json').write_text(json.dumps({'concept': nid, 'groups': groups, 'occurrences': out}, ensure_ascii=False, separators=(',', ':')) + '\n')
             concepts.append({
@@ -288,6 +407,7 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
         else:
             figures.append({
                 'id': nid, 'type': node_type[nid], 'title': node['title'], 'existence': 'work-world',
+                **({'work_scope': figure_scopes['figures'][nid], 'previous_type': 'tos.entity.thought-image'} if nid in figure_scopes['figures'] else {}),
                 'names': {lang: clean(forms) for lang, forms in (node.get('names') or {}).items()
                           if lang in ('de', 'ru', 'en') and isinstance(forms, list)},
                 'appearances': clean(node.get('appearances', [])),
@@ -304,11 +424,119 @@ def write(name, value):
     text = ('[\n' + lines + '\n]\n') if lines is not None else json.dumps(value, ensure_ascii=False, separators=(',', ':')) + '\n'
     (OUT / name).write_text(text)
 
+# Independent source review may revise a sense. Preserve the previous sense and
+# assessment verbatim; the maker's own proposed fields remain independently kept.
+sense_revisions_path = W / 'link-sense-revisions.json'
+if sense_revisions_path.exists():
+    revision_doc = load(sense_revisions_path)
+    revisions = revision_doc['revisions']
+    by_id = {link['id']: link for link in links}
+    if not set(revisions) <= set(by_id):
+        raise ValueError('sense revision names an unknown link')
+    for link_id, revision in revisions.items():
+        link = by_id[link_id]
+        old_sense = link['sense']
+        raw_sense = json.dumps(old_sense, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        if revision['prior_sense_sha256'] != hashlib.sha256(raw_sense.encode()).hexdigest():
+            raise ValueError(f"prior sense changed; review revision: {link_id}")
+        old_assessment = link['assessment']
+        previous_verdict = old_assessment['verdict']
+        if previous_verdict != 'revise':
+            counts['links'][previous_verdict] -= 1
+            counts['links']['revise'] = counts['links'].get('revise', 0) + 1
+        prior = {'sense': old_sense, 'assessment': old_assessment}
+        if 'answer' in revision:
+            old_answer = link.get('answer')
+            raw_answer = json.dumps(old_answer, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+            if revision.get('prior_answer_sha256') != hashlib.sha256(raw_answer.encode()).hexdigest():
+                raise ValueError(f"prior answer changed; review revision: {link_id}")
+            prior['answer'] = old_answer
+            link['answer'] = {**old_answer, **revision['answer']}
+        link['sense_revision_history'] = [prior]
+        link['sense'] = revision['sense']
+        link['sense_revision'] = {'reviewer': revision_doc['reviewer'], 'reason': revision['reason']}
+        link['assessment'] = {**old_assessment, 'verdict': 'revise', 'reason': revision['reason']['ru'],
+                              'reviewer': revision_doc['reviewer']['id'],
+                              'review_scope': revision_doc['reviewer']['scope']}
+        link['admission'] = 'map'
+# A source-owned family assignment never rewrites the source predicate or verb.
+# The explicit unmapped family preserves the limits of current registry matching.
+family_path = W / 'link-families.json'
+if family_path.exists():
+    family_doc = load(family_path)
+    families = family_doc['links']
+    if set(families) != {link['id'] for link in links}:
+        raise ValueError('link family assignment must cover the exact set of link IDs')
+    for link in links:
+        family = families[link['id']]
+        if family['relation_type'] not in registry:
+            raise ValueError(f"unknown link family: {link['id']}")
+        if family.get('source_relation') != (link.get('relation') or None):
+            raise ValueError(f"source predicate changed; review link family: {link['id']}")
+        if family.get('family') not in family_doc['families']:
+            raise ValueError(f"missing subject-model family: {link['id']}")
+        definition = family_doc['families'][family['family']]
+        raw_sense = json.dumps(link['sense'], ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        if family.get('source_sense_sha256') != hashlib.sha256(raw_sense.encode()).hexdigest():
+            raise ValueError(f"source sense changed; review link family: {link['id']}")
+        reasons = family.get('family_reason', {})
+        if any(not isinstance(reasons.get(lang), str) or '\n' in reasons[lang] or not reasons[lang].strip() for lang in ('ru', 'en')):
+            raise ValueError(f"missing one-line family rationale: {link['id']}")
+        link['relation_family'] = {**family, 'family_label': {lang: definition[lang] for lang in ('ru', 'en')}}
+# Stable statement identities are authored separately from the preserved research
+# inputs. Collection fingerprints bind identities to members, never to their order.
+identity_path = W / 'statement-identities.json'
+if identity_path.exists():
+    identities = load(identity_path)
+    def fingerprint(value):
+        raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        return hashlib.sha256(raw.encode()).hexdigest()
+    def at_path(value, path):
+        for part in path.split('.'):
+            value = value[part]
+        return value
+    for record in concepts + figures + links:
+        entry = identities['records'].get(record['id'])
+        if not entry:
+            continue
+        record['statement_ids'] = entry['fields']
+        for path, members in entry['collections'].items():
+            found = set()
+            for member in at_path(record, path):
+                digest = fingerprint(member)
+                if digest not in members:
+                    continue
+                identity = members[digest]
+                if digest in found:
+                    raise ValueError(f"ambiguous statement member: {record['id']} {path}")
+                found.add(digest)
+                if not member.get('id'):
+                    member['statement_anchor'] = identity['anchor']
+                member['statement_ids'] = identity['statement_ids']
+            if found != set(members):
+                raise ValueError(f"statement identities need source review: {record['id']} {path}")
+    for chain in chains:
+        members = identities['chain_steps'][chain['id']]
+        found = set()
+        for step in chain['steps']:
+            digest = fingerprint(step)
+            if digest not in members or digest in found:
+                raise ValueError(f"chain step identities need source review: {chain['id']}")
+            found.add(digest)
+            step.update(members[digest])
+        if found != set(members):
+            raise ValueError(f"chain step identities need source review: {chain['id']}")
 write('voices.json', voices)
 write('concepts.json', concepts)
 write('figures.json', figures)
 write('links.json', links)
 write('chains.json', chains)
+if semantic_uses:
+    write('semantic-uses.json', semantic_uses)
+# Exact-place comparisons and voice attribution remain authored stand proposals.
+place_relations_path = W / 'place-relations.json'
+if place_relations_path.exists():
+    write('place-relations.json', clean(load(place_relations_path)))
 # Objects the grown nodes propose and the links already name: kept with the node that proposes them.
 proposed = {}
 for node in concepts + figures:
@@ -318,6 +546,15 @@ for node in concepts + figures:
 named = {l['to'] for l in links} | {p.get('id') for l in links for p in (l.get('path') or []) if isinstance(p, dict) and p.get('id')}
 for x in sorted(named - set(node_type) - set(proposed)):
     proposed[x] = {'id': x, 'title': None, 'proposed_by': sorted({l['from'] for l in links if l['to'] == x or any(isinstance(p, dict) and p.get('id') == x for p in (l.get('path') or []))})}
+# Source-visible stand readings add evidence without changing the original proposals,
+# their IDs, or the independent-review/canon boundary.
+readings_path = W / 'proposal-readings.json'
+if readings_path.exists():
+    readings = load(readings_path)
+    for reading in readings['readings']:
+        if reading['id'] not in proposed:
+            raise ValueError(f"reading has no proposed object: {reading['id']}")
+        proposed[reading['id']]['reading'] = {k: clean(v) for k, v in reading.items() if k != 'id'}
 write('proposed.json', sorted(proposed.values(), key=lambda x: x['id']))
 admitted = lambda items: {s: sum(1 for x in items if x.get('admission') == s) for s in ('map', 'held', 'rejected')}
 core = {
@@ -337,6 +574,14 @@ core = {
                'links': len(links), 'chains': len(chains), 'proposed': len(proposed), 'occurrences': sum(1 for p in (OUT / 'occurrences').glob('*.json') for _ in load(p)['occurrences']),
                'verdicts': counts, 'admission': {'links': admitted(links), 'chains': admitted(chains)}},
 }
+if semantic_uses:
+    core['files'].append('semantic-uses.json')
+    core['counts']['semantic_use_terms'] = len(semantic_uses['terms'])
+    core['counts']['semantic_uses_assessed'] = sum(1 for term in semantic_uses['terms'] for use in term['occurrences'] if use['semantic_use']['review_status'] == 'stand-proposal')
+    core['counts']['semantic_uses_unknown'] = sum(1 for term in semantic_uses['terms'] for use in term['occurrences'] if use['semantic_use']['review_status'] == 'unknown')
+if place_relations_path.exists():
+    core['files'].append('place-relations.json')
+    core['counts']['place_relations'] = len(load(place_relations_path)['relations'])
 (W / 'english-input.json').write_text(json.dumps(wanted, ensure_ascii=False, indent=1) + '\n')
 core['counts']['english_missing'] = len(wanted)
 (OUT / 'core.json').write_text(json.dumps(core, ensure_ascii=False, indent=1) + '\n')

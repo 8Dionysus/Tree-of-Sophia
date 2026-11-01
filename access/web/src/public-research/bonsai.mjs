@@ -40,7 +40,10 @@ const LOADERS=Object.freeze({
       import('../../../../bonsai/zarathustra/core/links.json'),
       import('../../../../bonsai/zarathustra/core/chains.json'),
       import('../../../../bonsai/zarathustra/core/proposed.json'),
-    ]).then(([manifest,concepts,figures,links,chains,proposed])=>({manifest:json(manifest),concepts:json(concepts),figures:json(figures),links:json(links),chains:json(chains),proposed:json(proposed)})),
+      import('../../../../bonsai/zarathustra/core/voices.json'),
+      import('../../../../bonsai/zarathustra/core/place-relations.json'),
+      import('../../../../bonsai/zarathustra/core/semantic-uses.json'),
+    ]).then(([manifest,concepts,figures,links,chains,proposed,voices,placeRelations,semanticUses])=>({manifest:json(manifest),concepts:json(concepts),figures:json(figures),links:json(links),chains:json(chains),proposed:json(proposed),voices:json(voices),placeRelations:json(placeRelations),semanticUses:json(semanticUses)})),
   ]).then(([chronology,places,identities,basemap,core])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core})),
 });
 const BONSAI={

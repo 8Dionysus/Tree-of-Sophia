@@ -109,8 +109,10 @@ fn read_ref(
 }
 fn public_rights(rights: &Value, packet: &Value, v: &Value) -> Result<(), String> {
     let rv = &packet["rights_and_visibility"];
-    if packet["schema_version"] != "tos_source_text_unit_packet_v1"
-        || packet["source_layer"]["visibility"] != "public"
+    if !matches!(
+        packet["schema_version"].as_str(),
+        Some("tos_source_text_unit_packet_v1" | "tos_bonsai_public_text_packet_v1")
+    ) || packet["source_layer"]["visibility"] != "public"
         || packet["source_layer"]["publication_authorized"] != true
         || rv["source_visibility"] != "public"
         || rv["packet_visibility"] != "public"
@@ -1282,6 +1284,21 @@ fn flush_page(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn bonsai_carrier_keeps_the_same_public_rights_gate() {
+        let sha = "a".repeat(64);
+        let file = format!("tos.file.sha256.{sha}");
+        let mut packet = json!({"schema_version":"tos_bonsai_public_text_packet_v1",
+            "source_layer":{"visibility":"public","publication_authorized":true},
+            "rights_and_visibility":{"source_visibility":"public","packet_visibility":"public","effective_visibility":"public","private_source_used":false,"publication_authorized":true,"rights_record_refs":["rights.json"]},
+            "source_scope":{"item_ref":"item","file_ref":file,"file_sha256":sha}});
+        let rights = json!({"visibility":"public_payload","redistribution_posture":"authorized_with_conditions","assessment_status":"licensed","license_uri":"https://example.test/license","jurisdictions_reviewed":["US"],"scope_refs":["item",file],"permissions":["Attribution: Test"]});
+        let version = json!({"rightsRef":"rights.json","license":{"url":"https://example.test/license"},"attribution":"Test"});
+        assert!(public_rights(&rights, &packet, &version).is_ok());
+        packet["rights_and_visibility"]["private_source_used"] = json!(true);
+        assert!(public_rights(&rights, &packet, &version).is_err());
+    }
 
     fn fixture(root: &Path, public: bool) -> (PathBuf, PathBuf) {
         let text = b"Alpha beta";

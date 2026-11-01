@@ -90,3 +90,25 @@ test('link paths show their actual endpoints, verbs and cited places for both re
     }
   }finally{vi.unstubAllGlobals();}
 });
+
+test('relation actions and reference view retain the precise record and source',()=>{
+  class Element{
+    constructor(tag){this.tag=tag;this.children=[];this.listeners={};this.className='';this.textContent='';}
+    append(...children){this.children.push(...children);}
+    addEventListener(type,handler){this.listeners[type]=handler;}
+    setAttribute(){}
+  }
+  vi.stubGlobal('document',{createElement:tag=>new Element(tag)});
+  try{
+    const projection=make().space.core,onAction=vi.fn(),fragments={fragment:cite=>Object.assign(new Element('cite'),{cite}),render:vi.fn()};
+    const view=createCoreView({core:projection,locale:()=> 'en',fragments,onAction});
+    const record=projection.links.find(item=>item.id==='affirmation:link:01:child'),root=new Element('root');
+    expect(view.renderReference(root,{kind:'relation',id:record.id})).toBe(true);
+    const link=root.children[0].children[0],actions=link.children.find(child=>child.className==='ps-kernel-actions');
+    actions.children[0].listeners.click();
+    expect(onAction).toHaveBeenCalledWith({action:'read',recordId:record.id,kind:'relation',record,cite:record.cite??record.grounds[0]});
+    expect(view.renderReference(new Element('root'),{kind:'relation',id:'missing'})).toBe(false);
+    const chain=projection.chains.find(item=>item.steps.length),stepRoot=new Element('root');
+    expect(view.renderReference(stepRoot,{kind:'relation',id:`core-chain:${chain.id}:0`})).toBe(true);
+  }finally{vi.unstubAllGlobals();}
+});

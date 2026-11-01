@@ -21,7 +21,7 @@ function fixture({corrupt=false,author='Author',text='🌳 Kreis und Kreis.',ter
  member('manifest.json',{schema_version:'tos_public_corpus_snapshot_v1',revision:'c'.repeat(64),profiles:{zarathustra:{documentIds:['work'],initialDocumentId:'work'},antiquity:{documentIds:['work'],initialDocumentId:'work'}},documents:[{id:'work',title:'Work',author,manifest:descriptor}]});
  if(corrupt)files.set('/static/public-corpus/pages/text.json',Buffer.from(JSON.stringify({documentId:'work',units:[{text:'changed'}]})+'\n'));
  const fetch=async path=>{calls.push(path);const body=files.get(path);return new Response(body??'{}',{status:body?200:404,headers:{'Content-Type':'application/json'}});};
- return {provider:createPublicCorpusProvider({fetch}),source,document,version,calls};
+ return {provider:createPublicCorpusProvider({fetch}),source,document,version,calls,files,fetch};
 }
 function pagedFixture(){
  const files=new Map();
@@ -48,7 +48,7 @@ function mappingFixture({targetStale=false,analysis=false}={}){
  const targetSource={workId:'work',expressionId:'expression',editionId:'en-edition',itemId:'en-item',fileId:'en-file',fileSha256:'c'.repeat(64),textLayerRef:'en.txt',textLayerSha256:'d'.repeat(64)};
  const sourcePage=member('pages/de.json',{documentId:'work',versionId:'de',revision:source.textLayerSha256,units:[{id:'de-unit',ordinal:1,text:'Gold',kind:'paragraph'}]});
  const targetPage=member('pages/en.json',{documentId:'work',versionId:'en',revision:targetSource.textLayerSha256,units:[{id:'en-unit',ordinal:1,text:'Virtue',kind:'paragraph'}]});
- const analysisDescriptor=analysis?member('analyses/de.json',{schema_version:'tos_public_morphology_candidates_v1',textLayerSha256:source.textLayerSha256,language:'de',analysisVersion:'fixture',source:{id:'fixture'},forms:{Gold:{candidates:[{lemma:'Gold',morphology:'noun'}]}}}):null;
+ const analysisDescriptor=analysis?member('analyses/de.json',{schema_version:'tos_public_morphology_candidates_v1',textLayerSha256:source.textLayerSha256,language:'de',analysisVersion:'fixture',source:{id:'fixture'},forms:{Gold:{candidates:[{lemma:'Gold',morphology:'noun'}]},Goldes:{candidates:[{lemma:'Gold',morphology:'noun'}]},anderes:{candidates:[{lemma:'andere',morphology:'noun'}]}}}):null;
  const sourceVersion={id:'de',label:'German',language:'de',revision:source.textLayerSha256,source,unitCount:1,pages:[{...sourcePage,firstOrdinal:1,count:1}],units:[{id:'de-unit',ordinal:1,page:0}],structure:[],...(analysis?{analysis:analysisDescriptor}:{})};
  const targetVersion={id:'en',label:'English',language:'en',revision:targetSource.textLayerSha256,source:targetSource,unitCount:1,pages:[{...targetPage,firstOrdinal:1,count:1}],units:[{id:'en-unit',ordinal:1,page:0}],structure:[]};
  const sourceReference=createReference({source,versionId:'de',unitId:'de-unit',start:0,end:4});
@@ -62,6 +62,16 @@ function mappingFixture({targetStale=false,analysis=false}={}){
  return {provider:createPublicCorpusProvider({fetch}),sourceReference,targetReference};
 }
 describe('immutable public corpus delivery',()=>{
+ it('opens a retained manifest by path only after verifying its bytes',async()=>{
+  const {files,fetch}=fixture();
+  const body=files.get('/static/public-corpus/manifest.json');
+  files.set('/static/public-corpus/revisions/old.json',body);
+  const provider=createPublicCorpusProvider({fetch,manifestPath:'revisions/old.json',expectedManifestSha256:hash(body)});
+  expect((await provider.describe()).schema_version).toBe('tos_public_corpus_snapshot_v1');
+  files.set('/static/public-corpus/revisions/bad.json',Buffer.from('{'));
+  const bad=createPublicCorpusProvider({fetch,manifestPath:'revisions/bad.json',expectedManifestSha256:hash(body)});
+  await expect(bad.describe()).rejects.toMatchObject({code:'invalid_response'});
+ });
  it('finds a work by a localized author alias without changing its source metadata',async()=>{
   const {provider}=fixture({author:'Diogenes Laertius'});
   expect((await provider.catalog({query:'Диоген',limit:24})).items).toMatchObject([{id:'work',author:'Diogenes Laertius'}]);
@@ -132,5 +142,6 @@ describe('immutable public corpus delivery',()=>{
   expect(result.dictionaryLinks[0].url).toBe('https://www.dwds.de/wb/Gold');
   expect(result.dictionaryLinks[0].label.en).toMatch(/form/i);
   expect(result.candidates[0].dictionaryUrl).toBe('https://www.dwds.de/wb/Gold');
+  expect(result.relatedForms).toEqual(['Goldes']);
  });
 });

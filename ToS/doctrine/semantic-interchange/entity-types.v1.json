@@ -1,7 +1,7 @@
 {
   "schema_version": "tos_semantic_entity_type_registry_v1",
   "registry_id": "tos.semantic.entity-types",
-  "registry_version": 40,
+  "registry_version": 41,
   "context_presentation": {
     "schema_version": "tos_context_presentation_v1",
     "presentation_id": "tos.context-presentation.governing",
@@ -10295,6 +10295,54 @@
           }
         ]
       }
+    },
+    {
+      "type_id": "tos.entity.work-figure",
+      "parent_type_ids": [
+        "tos.entity.thought-image"
+      ],
+      "abstract": false,
+      "object_role": "semantic",
+      "labels": {
+        "default": "Work-world figure",
+        "ru": "Фигура произведения",
+        "en": "Work-world figure"
+      },
+      "definition": "A source-qualified figure within a particular work and its narrated, performed or imagined world. The figure, a historical bearer of the same name, and the work’s author are distinct referents. Attributed voices and roles are separate source-grounded claims.",
+      "lifecycle": "stable",
+      "owner_ref": "ToS/contracts/work-figure-description-record.schema.json",
+      "source_mappings": [
+        {
+          "source_graph": "source-navigation",
+          "source_kind_id": "work-figure"
+        },
+        {
+          "source_graph": "source-claims",
+          "source_kind_id": "work-figure"
+        }
+      ],
+      "source_record_profile": {
+        "profile_version": 2,
+        "reader": "semantic-metadata-v1",
+        "identity_proposal_adapter": "exact-semantic-metadata-v1",
+        "record_type": "work-figure",
+        "id_prefix": "tos.work-figure.",
+        "source_basename": "work-figure.json",
+        "catalog_filename": "work-figures.jsonl",
+        "graph_layer": "source-profile",
+        "schemas": [
+          {
+            "schema_version": "tos_work_figure_description_record_v1",
+            "schema_ref": "ToS/contracts/work-figure-description-record.schema.json",
+            "schema_dependencies": [
+              "ToS/contracts/corpus-record.schema.json",
+              "ToS/contracts/source-metadata-record.schema.json",
+              "ToS/contracts/semantic-description-record.schema.json"
+            ]
+          }
+        ]
+      },
+      "supersedes_type_id": null
     }
   ]
 }

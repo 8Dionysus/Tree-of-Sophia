@@ -10,7 +10,6 @@ license.workspace = true
 # Explicit owner-opened native models; the shared rules do not need this stack.
 native-models = [
     "dep:rusqlite", "dep:tos-compiler", "dep:tos-fd-open", "dep:tos-source-store",
-    "dep:serde_json",
 ]
 # Local source/analysis files additionally need their exact schema and Unicode profiles.
 reading-source = [
@@ -22,6 +21,7 @@ test-fixture = ["reading-source", "tos-compiler/test-fixture", "tos-source-store
 [dependencies]
 tos-foundation = { path = "../tos-foundation" }
 regex = "1.13.1"
+serde_json = { version = "1", features = ["arbitrary_precision"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rusqlite = { version = "0.37", features = ["bundled", "hooks"], optional = true }
@@ -29,7 +29,6 @@ tos-compiler = { path = "../tos-compiler", optional = true }
 tos-fd-open = { path = "../tos-fd-open", optional = true }
 tos-source-store = { path = "../tos-source-store", optional = true }
 tos-validation = { path = "../tos-validation", optional = true }
-serde_json = { version = "1", features = ["arbitrary_precision"], optional = true }
 unicode-normalization = { version = "=0.1.24", optional = true }
 unicode-general-category = { version = "=1.1.0", optional = true }
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"], optional = true }

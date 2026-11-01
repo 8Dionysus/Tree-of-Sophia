@@ -33,3 +33,15 @@ describe('measure and completeness',()=>{
     expect(returnsIn([1,2,3])).toBe(0);expect(returnsIn([3,1,2,0])).toBe(2);expect(returnsIn([1,NaN,0])).toBe(1);
   });
 });
+
+it('research operations preserve direction, selected scope and unknown measurements', async()=>{
+  const {runResearchOperation}=await import('./research-operations.mjs');
+  const request=(operation,input)=>({operation,scope:'selected',versions:{projection:'v1'},input});
+  const edges=[{from:'a',to:'b',type:'supports',ref:'source:1'},{from:'b',to:'c',type:'supports',ref:'source:2'}];
+  const path=runResearchOperation(request('directed_path',{from:'a',to:'c',allowed_types:['supports'],edges}));
+  expect(path.result.transitions).toBe(2);expect(path.result.edges[0].ref).toBe('source:1');
+  expect(runResearchOperation(request('directed_path',{from:'c',to:'a',allowed_types:['supports'],edges})).result.found).toBe(false);
+  expect(runResearchOperation(request('common_grounds',{left:[],right:['r']})).result.jaccard_distance).toBeNull();
+  const time=runResearchOperation(request('time_place',{left:{span:null,point:[120,30]},right:{span:null,point:[121,30]}}));
+  expect(time.result.time_midpoint_distance_years).toBeNull();expect(time.result.place_distance_km).toBeGreaterThan(0);
+});

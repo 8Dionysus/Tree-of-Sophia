@@ -21,6 +21,7 @@ mod controlled_query_adapter;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub mod corpus_read;
 pub mod exploration_plan;
+pub mod research_operations;
 mod inspect_plan;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod knowledge_binding;

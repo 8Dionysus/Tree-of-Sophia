@@ -4,6 +4,9 @@ import {mountCorpusEntry} from '../corpus-reader/host.mjs';
 import {createCorpusNotebook} from '../corpus-reader/notebook.mjs';
 import {createPublicCorpusProvider} from '../corpus-reader/public-provider.mjs';
 import {decodeReadingRoute, encodeReadingRoute} from '../corpus-reader/route.mjs';
+import {mountResearchExperience} from './experience-view.mjs';
+import {mountCognitiveSession} from './cognitive-session.mjs';
+import {connectResearchPage} from './page-agent.mjs';
 import {mountPublicAgentBridge} from './agent-bridge.mjs';
 import {createPublicResearchOwners, mountPublicWorkspaceView} from './workspace-view.mjs';
 import {initializePublicReaderRules} from './bootstrap.mjs';
@@ -106,6 +109,9 @@ let agentBridge;
 let workspaceView;
 let publicOwners;
 let spaceView;
+let experience;
+let cognitive;
+let pageAgent;
 let appDisposed=false;
 let saveTimer = null;
 let questionTouched = false;
@@ -331,7 +337,7 @@ function setLanguage(value,{updateUrl=true}={}){
   if(updateUrl){const url=new URL(location.href);url.searchParams.set('lang',locale);history.replaceState(history.state,'',url);}
   setUiLanguage(locale);
   document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;
-  spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
+  experience?.refreshLocale();cognitive?.refreshLocale();spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
 }
 
 function mountJourneys(items, documentIds) {
@@ -455,7 +461,7 @@ async function start() {
   if(appDisposed)return;
   spaceView = mountPublicResearchSpace({host:readerRoot,header,profile,locale:()=>locale,library:publicSpace.library,
     bindings:publicSpace.bindings,documentBindings:publicSpace.documentBindings,groundTargets:publicSpace.groundTargets,routeGroundTargets:publicSpace.routeGroundTargets,graphPredecessors:publicSpace.graphPredecessors,api:window.tosPublicResearch,
-    workspace:publicOwners.workspace,shelf:publicOwners.shelf,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[]});
+    workspace:publicOwners.workspace,shelf:publicOwners.shelf,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[],index:publicSpace.index});
   saveState.after(resolveQuestionConflict, questionHistory);
   header.addEventListener('public-space-locale',onPublicSpaceLocale);
   agentBridge = mountPublicAgentBridge({root:spaceView.agentRoot, api:window.tosPublicResearch, notebook:entry.notebook,
@@ -464,6 +470,10 @@ async function start() {
     workspace:publicOwners.workspace, shelf:publicOwners.shelf, locale:()=>locale,
     graphSpaceContext:{profile,libraryFingerprint:publicSpace.library.fingerprint,pristineGraphs:spaceView.pristineGraphs,reload:()=>window.location.reload()}});
   workspaceView.connectAgentBridge(agentBridge);
+  experience=mountResearchExperience({root:readerRoot,header,profile,locale:()=>locale,index:publicSpace.index,space:spaceView,api:window.tosPublicResearch,notebook:entry.notebook,
+    onCognitive:detail=>{if(cognitive)void cognitive.record(detail.action,detail).catch(error=>console.error('Research event',error));}});
+  cognitive=mountCognitiveSession({root:experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,getSelection:()=>experience.getState().id,isActive:()=>experience.getState().mode==='cognitive',onOpen:id=>experience.open(id)});
+  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && profileInfo) {
@@ -488,6 +498,9 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  pageAgent?.destroy();
+  cognitive?.destroy();
+  experience?.destroy();
   agentBridge?.destroy();
   workspaceView?.destroy();
   spaceView?.destroy();

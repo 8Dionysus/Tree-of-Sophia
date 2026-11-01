@@ -205,6 +205,7 @@ export function mountCorpusReader({
   let paneSaveWork = Promise.resolve();
   let selected = null;
   let philology = {busy:false,result:null,concordance:null,error:null};
+  let concordanceSequence = 0;
   let philologyController = null;
   let noteEditor = null;
   let noteDirty = false;
@@ -505,9 +506,10 @@ export function mountCorpusReader({
     const reference = selected?.reference;
     const versionId = selected?.versionId;
     if (!reference || !form || !model.searchCapabilities().version) return;
+    const request=++concordanceSequence;
     try {
       const page = await model.search({documentId:reference.target.workId,versionId,query:form,scope:'version',cursor});
-      if (selected?.reference !== reference || !page) return;
+      if (selected?.reference !== reference || request!==concordanceSequence || !page) return;
       const exactItems = [];
       let inexactCount = 0;
       for (const item of page.items || []) {
@@ -520,10 +522,21 @@ export function mountCorpusReader({
         }
         exactItems.push({...item,reference:hit});
       }
-      philology = {...philology,concordance:{...page,items:exactItems,inexactCount},error:null};
+      const contexts=await Promise.all(exactItems.map(async item=>{
+        const hit=item.reference;
+        try {
+          const window=await provider.window({documentId:hit.target.workId,versionId,reference:hit,revision:hit.target.textLayerSha256,limit:1});
+          const unit=window.units?.find(value=>(value.id||value.unitId)===hit.unitId);
+          return typeof unit?.text==='string' && hit.selector.end<=Array.from(unit.text).length?unit:null;
+        } catch { return null; /* retain the exact hit and its bounded search excerpt */ }
+      }));
+      if(selected?.reference!==reference||request!==concordanceSequence)return;
+      contexts.forEach((context,index)=>{if(context)Object.assign(exactItems[index],{snippet:context.text,label:context.reference||exactItems[index].label});});
+      const previous=cursor&&philology.concordance?.query===form?philology.concordance:null;
+      philology = {...philology,concordance:{...page,query:form,items:[...(previous?.items??[]),...exactItems],inexactCount:(previous?.inexactCount??0)+inexactCount},error:null};
       renderInspector();
     } catch (error) {
-      if (selected?.reference !== reference) return;
+      if (selected?.reference !== reference || request!==concordanceSequence) return;
       philology = {...philology,concordance:{items:[],nextCursor:null,total:null},error};
       announce(friendlyError(error));
       renderInspector();
@@ -1325,7 +1338,15 @@ export function mountCorpusReader({
       const section = element('section', 'cr-source'); section.append(element('h3', '', [editionRepresentationLabel(version),versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
       const sourceUrl = safeExternalUrl(attr(version.sourceUrl || version.source_url || version.source?.url || version.source?.href));
       if (version.attribution) section.append(element('p', '', localized(version.attribution, uiLocale())));
+      if (version.witnessNote) section.append(element('p', '', localized(version.witnessNote, uiLocale())));
+      if (version.transcriptionNote) section.append(element('p', '', localized(version.transcriptionNote, uiLocale())));
       if (sourceUrl) { const link = element('a', '', sourceLinkLabel(sourceUrl, uiLocale())); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
+      for (const witness of version.witnessSources ?? []) {
+        const url = safeExternalUrl(witness?.url);
+        if (!url || url === sourceUrl) continue;
+        const link = element('a', '', `${sourceLinkLabel(url, uiLocale())}${witness.part ? ` · ${witness.part}` : ''}`);
+        link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link);
+      }
       const licenseUrl = safeExternalUrl(attr(version.license?.url));
       if (licenseUrl) {
         const notice = element('p', '', copyLocale(uiLocale)==='en' ? localeText('Source text projection · ',locale) : 'Текстовая проекция источника · ');
@@ -1358,7 +1379,7 @@ export function mountCorpusReader({
         result:philology.result,busy:philology.busy,concordance:philology.concordance,
         searchAvailable:model.searchCapabilities().version,
         onConcordance:value=>void findPhilologyConcordance(value),
-        onMore:()=>void findPhilologyConcordance(form,philology.concordance?.nextCursor),
+        onMore:()=>void findPhilologyConcordance(philology.concordance?.query||form,philology.concordance?.nextCursor),
         onOccurrence:hit=>void openPhilologyOccurrence(hit),
         onMappingTarget:mapping=>void openPhilologyTarget(mapping),
       });

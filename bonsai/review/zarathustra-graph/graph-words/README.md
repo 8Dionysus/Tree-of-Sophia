@@ -32,3 +32,49 @@ The assembler writes its outputs under the output directory and records any
 missing English revisions in the working copy. On the preserved originals and
 the compact inputs, it produced identical core files. `control.json` is an
 authored control file and is not emitted by this assembler.
+
+
+## Source-visible additions and stable addresses
+
+`assembly-inputs/proposal-readings.json` preserves a source-grounded stand reading
+of each of the 28 proposed objects. Each states a related existing object, the
+places read, a reading and its limits. These are agent assessments, with
+independent review still pending; retaining a proposal does not admit it to Tree
+canon. `place-relations.json` keeps seven exact-place comparisons and their voice
+attributions in the same proposal posture. The assembled copies are
+`core/proposed.json` and `core/place-relations.json`.
+
+`statement-identities.json` is the authored identity register for the existing
+core's addressable statement fields and chain steps. A record's `statement_ids`
+uses field paths; collection members carry their own `statement_ids` and retain
+an existing `id` or receive a `statement_anchor`. `$` identifies the member
+itself. Chain steps receive an `id` and the former zero-based
+`core-chain:<chain-id>:<index>` address in `aliases`. IDs identify the claim
+across language variants and do not depend on the position of a collection
+member. The register initially binds members to a fingerprint of the assembled
+content. If a member changes, the assembler fails rather than silently assigning
+its old identity elsewhere: review the change and explicitly update the
+fingerprint while retaining the ID if the claim is the same, or assign a new
+ID when it is a new claim. This maintenance is separate from accepting a claim.
+
+`figure-scopes.json` binds each existing figure proposal to a work-scoped
+figure candidate and source-described appearance roles. Voice attribution
+candidates cover the first exact unit of a segment only; unmapped voices
+retain their original speaker labels and are not silently made into figures.
+`link-families.json` records one broad subject-model family with its
+source-grounded rationale for every link, separate from the exact registry
+relation (which remains `tos.relation.unmapped` where no warranted fit is
+established). The family is a stand reading, not a registry predicate. Each
+voice segment also has an exact-scoped `voice_descriptor`. The primary narrator
+segments share a work-local narrator role without asserting a person's identity;
+other unbound voices keep their source designation and uncertainty. Neither a
+figure candidate, an Occurrence candidate ID nor a family assignment creates
+a native source record or accepts a semantic claim.
+
+`link-sense-revisions.json` records the later source-visible correction of three
+link senses. The assembler binds each revision to the digest of the previous
+sense and retains that sense and its assessment in `sense_revision_history`;
+previous maker `proposed` fields and all places remain intact. The current
+revision names the independent reviewer and gives its reason in both languages.
+The family register similarly retains `family_proposed` and `family_review`
+where an independent reading changed its initial classification.

@@ -171,10 +171,11 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     // The editions themselves, in the reader of the corpus, where a place of this chapter stands there too.
     view.foot.replaceChildren();
     const firstRow=first?data.rows[[...grid.children].indexOf(first)]:data.rows[0];
-    const deUnit=data.units.de[firstRow?.de?.[0]??0],enUnit=data.units.en?.[firstRow?.en?.[0]??0];
+    const deUnit=data.units.de?.[firstRow?.de?.[0]],enUnit=data.units.en?.[firstRow?.en?.[0]],ruUnit=data.units.ru?.[firstRow?.ru?.[0]];
     const editions=[];
-    if(openAddress&&deUnit?.corpus?.[0])editions.push(['DE',{documentId:info.corpus.documentId,versionId:info.corpus.de.versionId,revision:info.corpus.de.revision,unitId:deUnit.corpus[0]}]);
+    if(openAddress&&deUnit&&info.corpus.dta)editions.push(['DE',{documentId:info.corpus.documentId,versionId:info.corpus.dta.versionId,revision:info.corpus.dta.revision,unitId:deUnit.id}]);
     if(openAddress&&enUnit)editions.push(['EN',{documentId:info.corpus.documentId,versionId:info.corpus.en.versionId,revision:info.corpus.en.revision,unitId:enUnit.id}]);
+    if(openAddress&&ruUnit&&info.corpus.ru)editions.push(['RU',{documentId:info.corpus.documentId,versionId:info.corpus.ru.versionId,revision:info.corpus.ru.revision,unitId:ruUnit.id}]);
     // One action, one button per edition: the footer stays one line even on a phone.
     if(editions.length){
       const group=el('span','ps-parallel-editions');group.append(el('span','ps-parallel-editions-label',`↗ ${words('fragmentEdition')}`));

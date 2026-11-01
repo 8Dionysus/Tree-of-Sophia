@@ -1,0 +1,914 @@
+{
+  "schema": "tos.bonsai.proposal-readings.v1",
+  "work": "also-sprach-zarathustra",
+  "method": "Source-visible reading of the listed German witness places; the earlier proposals and their review remain intact. This is a stand candidate, not independent review or canon.",
+  "assessor": {
+    "id": "kernel-content-20261101",
+    "kind": "agent",
+    "date": "2026-11-01"
+  },
+  "readings": [
+    {
+      "id": "adder",
+      "related_existing": "zarathustra",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.20",
+          "u": [
+            "tos.text-unit.sid-7d5819693a40f5731fbc1f75435ce157",
+            "tos.text-unit.sid-7d5819693a40f5731fbc1f75435ce157"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Гадюка будит спящего укусом; в ответ на слова Заратустры о даре она слизывает яд с раны. Сцена связывает ранение с необычным принятием и возвращением дара.",
+        "en": "The adder wakes the sleeping Zarathustra with a bite; in response to his words about the gift, she licks the venom from the wound. The scene connects injury with an unusual acceptance and return of a gift."
+      },
+      "limit": {
+        "ru": "Гадюка говорит в сцене, но одно её появление не даёт ей учения о даре.",
+        "en": "The adder speaks in the scene, but this single appearance does not give her a doctrine of the gift."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "body-self",
+      "related_existing": "agency",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.05",
+          "u": [
+            "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd",
+            "tos.text-unit.sid-13e7af8a5fba9b3952c7257a555f9ebd"
+          ],
+          "q": "Aber das Grössere ist, woran du nicht glauben willst, — dein Leib und seine grosse Vernunft: die sagt nicht Ich, aber thut Ich."
+        }
+      ],
+      "reading": {
+        "ru": "Тело названо большой разумностью: оно не говорит «я», но делает «я». Это меняет обычное направление зависимости между телом и сознательным субъектом.",
+        "en": "The body is called a great reason: it does not say “I”, but performs “I”. This reverses the usual direction of dependence between body and conscious subject."
+      },
+      "limit": {
+        "ru": "Одного места недостаточно для полного отождествления тела и самости во всей книге.",
+        "en": "This place alone does not establish a complete identity of body and self throughout the book."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "camel",
+      "related_existing": "child",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.02",
+          "u": [
+            "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e",
+            "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e"
+          ]
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.02",
+          "u": [
+            "tos.text-unit.sid-32d5ea17befccc04193b32cd8b0c1ed4",
+            "tos.text-unit.sid-32d5ea17befccc04193b32cd8b0c1ed4"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Верблюд — первая фигура превращения духа; его готовность нести тяжёлое предшествует льву и дитяти.",
+        "en": "The camel is the first figure in the spirit’s metamorphosis; its readiness to bear what is heavy precedes the lion and the child."
+      },
+      "limit": {
+        "ru": "Последовательность относится к духу и не доказывает, что каждый человек проходит её как биографические стадии.",
+        "en": "The sequence concerns the spirit and does not prove that everyone passes through it as biographical stages."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "cows",
+      "related_existing": "beggar",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.08",
+          "u": [
+            "tos.text-unit.sid-8b21d9f589f735b9d386791990417b19",
+            "tos.text-unit.sid-8b21d9f589f735b9d386791990417b19"
+          ]
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.08",
+          "u": [
+            "tos.text-unit.sid-558d3af70491ab04ba39187df621fdef",
+            "tos.text-unit.sid-558d3af70491ab04ba39187df621fdef"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Добровольный нищий предлагает учиться у коров пережёвыванию; позже называет также их покой на солнце и отказ от тяжёлых мыслей.",
+        "en": "The voluntary beggar proposes learning rumination from the cows; later he also names their rest in the sun and avoidance of heavy thoughts."
+      },
+      "limit": {
+        "ru": "Это речь нищего и образ его практики; её нельзя без остатка выдать за программу Заратустры.",
+        "en": "This is the beggar’s speech and an image of his practice; it cannot simply be presented as Zarathustra’s programme."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "death-of-god",
+      "related_existing": "overman",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.13",
+          "u": [
+            "tos.text-unit.sid-f585907d3c7a54afb3c54d7ec02c99f6",
+            "tos.text-unit.sid-f585907d3c7a54afb3c54d7ec02c99f6"
+          ],
+          "q": "Wohlan! Wohlauf! Ihr höheren Menschen! Nun erst kreisst der Berg der Menschen-Zukunft. Gott starb: nun wollen wir, — dass der Übermensch lebe."
+        }
+      ],
+      "reading": {
+        "ru": "Смерть Бога связывается с призывом высшим людям пожелать жизни сверхчеловека.",
+        "en": "The death of God is joined to a call for the higher men to will that the overman live."
+      },
+      "limit": {
+        "ru": "Текст здесь ставит два утверждения рядом; ссылка сама не доказывает полную причинную теорию смерти Бога.",
+        "en": "This passage places the two claims together; the link alone does not prove a complete causal theory of the death of God."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "dudu",
+      "related_existing": "daughters",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.16",
+          "u": [
+            "tos.text-unit.sid-560c8e1bc5e590cf6443e36f4cc8d830",
+            "tos.text-unit.sid-560c8e1bc5e590cf6443e36f4cc8d830"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "В песне певец называет Дуду среди девушек и обращается к ней, прося не плакать.",
+        "en": "In the song the singer names Dudu among the girls and addresses her, asking her not to weep."
+      },
+      "limit": {
+        "ru": "Песня изображает её через обращение певца; отдельных слов Дуду и самостоятельной биографии здесь нет.",
+        "en": "The song depicts her through the singer’s address; it gives no words of her own or independent biography here."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "earth",
+      "related_existing": "overman",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.01",
+          "u": [
+            "tos.text-unit.sid-ed69e3c67d9d7ed5f4c8bcaa584c0356",
+            "tos.text-unit.sid-ed69e3c67d9d7ed5f4c8bcaa584c0356"
+          ],
+          "q": "Der Übermensch ist der Sinn der Erde. Euer Wille sage: der Übermensch sei der Sinn der Erde!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.23",
+          "u": [
+            "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb",
+            "tos.text-unit.sid-6ef116aacecef01c18f461c20ba52cdb"
+          ],
+          "q": "Eure schenkende Liebe und eure Erkenntniss diene dem Sinn der Erde!"
+        }
+      ],
+      "reading": {
+        "ru": "Сверхчеловек назван смыслом земли; дарящая любовь и познание призваны служить этому смыслу.",
+        "en": "The overman is called the meaning of the earth; bestowing love and knowledge are called to serve that meaning."
+      },
+      "limit": {
+        "ru": "«Земля» здесь одновременно предмет верности и горизонт смысла; её нельзя без дальнейшего чтения свести к физической планете.",
+        "en": "Here “earth” is both an object of fidelity and a horizon of meaning; further reading is needed before reducing it to the physical planet."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "eternity",
+      "related_existing": "circle",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.13",
+          "u": [
+            "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249",
+            "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"
+          ],
+          "q": "Krumm ist der Pfad der Ewigkeit.“ —"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.19",
+          "u": [
+            "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866",
+            "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866"
+          ],
+          "q": "— die Stunde naht: oh Mensch, du höherer Mensch, gieb Acht!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.19",
+          "u": [
+            "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+            "tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"
+          ],
+          "q": "Denn alle Lust will — Ewigkeit!"
+        }
+      ],
+      "reading": {
+        "ru": "Звери называют путь вечности кривым; в полуночной песне прозвучит желание вечности всякой радостью.",
+        "en": "The animals call eternity’s path crooked; in the midnight song all joy will want eternity."
+      },
+      "limit": {
+        "ru": "Это разные голоса и контексты: сходное слово не превращает обе речи в одно тождественное определение вечности.",
+        "en": "These are different voices and contexts: the shared word does not make the two speeches identical definitions of eternity."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "going-under",
+      "related_existing": "great-noon",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.23",
+          "u": [
+            "tos.text-unit.sid-141fcbf511cfb1dfc36bb084891e48b0",
+            "tos.text-unit.sid-3a6801215ba78a0dc2f5b55cfb86379c"
+          ],
+          "q": "Und das ist der grosse Mittag, da der Mensch auf der Mitte seiner Bahn steht zwischen Thier und Übermensch und seinen Weg zum Abende als seine höchste Hoffnung feiert: denn es ist der Weg zu einem neuen Morgen."
+        }
+      ],
+      "reading": {
+        "ru": "Великий полдень связывает путь человека к вечеру с надеждой на новое утро; заход становится образом перехода.",
+        "en": "The great noon joins humanity’s path toward evening to the hope of a new morning; going under becomes an image of crossing over."
+      },
+      "limit": {
+        "ru": "Это истолкование данного места не устраняет возможный смысл гибели и риска в других сценах.",
+        "en": "This reading of the passage does not remove possible meanings of destruction and risk in other scenes."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "golden-fire-dog",
+      "related_existing": "fire-dog",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.18",
+          "u": [
+            "tos.text-unit.sid-f0a18b2fccdd55c06d86e241cdebe2e7",
+            "tos.text-unit.sid-4f33ae880d1595948cd20c810420aaec"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Заратустра противопоставляет огненному псу другого, связанного с золотым сердцем земли и смехом.",
+        "en": "Zarathustra opposes another fire dog, associated with the earth’s golden heart and laughter, to the fire dog he addresses."
+      },
+      "limit": {
+        "ru": "Второй пёс введён внутри речи Заратустры: не следует автоматически считать его отдельным действующим существом сцены.",
+        "en": "The other dog is introduced within Zarathustra’s speech; it should not automatically be counted as an independent being in the scene."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "great-ear",
+      "related_existing": "hunchback",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.20",
+          "u": [
+            "tos.text-unit.sid-b003bab9168e85ef8eea6629dabcd8ba",
+            "tos.text-unit.sid-b003bab9168e85ef8eea6629dabcd8ba"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "На просьбу горбуна Заратустра отвечает образом человека, почти исчезнувшего под огромным ухом; народ называет его гением, Заратустра — обратным калекой.",
+        "en": "In response to the hunchback, Zarathustra describes a person almost disappearing beneath an enormous ear; the people call him a genius, Zarathustra an inverse cripple."
+      },
+      "limit": {
+        "ru": "Их оценки различаются; образ не доказывает, что горбун и большой слух — одна фигура.",
+        "en": "Their assessments differ; the image does not establish that the hunchback and the great ear are the same figure."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "innocence-play",
+      "related_existing": "child",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.02",
+          "u": [
+            "tos.text-unit.sid-78b5795aca827182f53ba266a3271646",
+            "tos.text-unit.sid-78b5795aca827182f53ba266a3271646"
+          ],
+          "q": "Unschuld ist das Kind und Vergessen, ein Neubeginnen, ein Spiel, ein aus sich rollendes Rad, eine erste Bewegung, ein heiliges Ja-sagen."
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.02",
+          "u": [
+            "tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea",
+            "tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"
+          ],
+          "q": "Ja, zum Spiele des Schaffens, meine Brüder, bedarf es eines heiligen Ja-sagens: seinen Willen will nun der Geist, seine Welt gewinnt sich der Weltverlorene."
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.04",
+          "u": [
+            "tos.text-unit.sid-f5bfc91bb67aca2f0758c4e4166ac242",
+            "tos.text-unit.sid-f5bfc91bb67aca2f0758c4e4166ac242"
+          ],
+          "q": "Wahrlich, ein Segnen ist es und kein Lästern, wenn ich lehre: „über allen Dingen steht der Himmel Zufall, der Himmel Unschuld, der Himmel Ohngefähr, der Himmel Übermuth.“"
+        }
+      ],
+      "reading": {
+        "ru": "Дитя названо невинностью и игрой; в благословении вещей невинность названа небом над ними.",
+        "en": "The child is called innocence and play; in the blessing of things innocence is named as a sky above them."
+      },
+      "limit": {
+        "ru": "Это родственные употребления с разными предметами: дитя не тождественно небу над вещами.",
+        "en": "These are related uses with different subjects: the child is not identical to the sky above things."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "joy-lust",
+      "related_existing": "ring",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.19",
+          "u": [
+            "tos.text-unit.sid-4c6965df3cda4fac17ddff4d6b911a29",
+            "tos.text-unit.sid-4c6965df3cda4fac17ddff4d6b911a29"
+          ],
+          "q": "— was will nicht Lust!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.19",
+          "u": [
+            "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866",
+            "tos.text-unit.sid-5922abd141cc99f676a660eaaef80866"
+          ],
+          "q": "— die Stunde naht: oh Mensch, du höherer Mensch, gieb Acht!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.19",
+          "u": [
+            "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+            "tos.text-unit.sid-6f8647f0f000b169fcbceb7899b30c59"
+          ],
+          "q": "Denn alle Lust will — Ewigkeit!"
+        }
+      ],
+      "reading": {
+        "ru": "В полуночной песне радость задаётся через желание и желание вечности.",
+        "en": "In the midnight song joy is presented through desire and the desire for eternity."
+      },
+      "limit": {
+        "ru": "Немецкое Lust допускает несколько русских оттенков; решение о едином переводе не принимается этим сопоставлением.",
+        "en": "German Lust permits several shades of meaning; this comparison does not settle one uniform translation."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "last-man",
+      "related_existing": "overman",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.01",
+          "u": [
+            "tos.text-unit.sid-1854da398df3ee2655605c8612f6d608",
+            "tos.text-unit.sid-1854da398df3ee2655605c8612f6d608"
+          ],
+          "q": "Und hier endete die erste Rede Zarathustra's, welche man auch „die Vorrede“ heisst: denn an dieser Stelle unterbrach ihn das Geschrei und die Lust der Menge. „Gieb uns diesen letzten Menschen, oh Zarathustra, — so riefen sie — mache uns zu diesen letzten Menschen! So schenken wir dir den Übermenschen!“ Und alles Volk jubelte und schnalzte mit der Zunge. Zarathustra aber wurde traurig und sagte zu seinem Herzen:"
+        }
+      ],
+      "reading": {
+        "ru": "Толпа желает последнего человека и отдаёт Заратустре сверхчеловека; он печалится.",
+        "en": "The crowd wants the last man and gives Zarathustra the overman; he becomes sad."
+      },
+      "limit": {
+        "ru": "Речь толпы и реакция Заратустры не описывают все свойства последнего человека; нужен полный контекст предшествующего изображения.",
+        "en": "The crowd’s speech and Zarathustra’s response do not describe all the last man’s features; the preceding portrayal needs its full context."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "loneliness",
+      "related_existing": "bestowing-virtue",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.09",
+          "u": [
+            "tos.text-unit.sid-f49bbb4996c1e7aa11c07b808b428b9f",
+            "tos.text-unit.sid-600e6ab99f37af138840458f18fb74b8"
+          ],
+          "q": "Oh Einsamkeit aller Schenkenden!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.09",
+          "u": [
+            "tos.text-unit.sid-0ed3ad3a2d6c7a77170d446c9ede339f",
+            "tos.text-unit.sid-fc5f59456f0902a531221ee3ca04d63b"
+          ],
+          "q": "Oh Einsamkeit!"
+        }
+      ],
+      "reading": {
+        "ru": "Ночная песнь называет одиночество всех дарящих; в другом месте Заратустра обращается к одиночеству.",
+        "en": "The Night Song names the solitude of all who give; elsewhere Zarathustra addresses solitude."
+      },
+      "limit": {
+        "ru": "Одиночество дарящего нельзя автоматически отождествить с каждым позднейшим обращением к одиночеству.",
+        "en": "The giver’s solitude cannot automatically be identified with every later address to solitude."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "love-of-the-farthest",
+      "related_existing": "overman",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.17",
+          "u": [
+            "tos.text-unit.sid-22ec1714a02b773fb8cdaf3e052261e2",
+            "tos.text-unit.sid-22ec1714a02b773fb8cdaf3e052261e2"
+          ],
+          "q": "Die Zukunft und das Fernste sei dir die Ursache deines Heute: in deinem Freunde sollst du den Übermenschen als deine Ursache lieben."
+        }
+      ],
+      "reading": {
+        "ru": "Будущее и дальнее предлагаются как причина сегодняшнего дела; в друге предлагается любить сверхчеловека.",
+        "en": "The future and the farthest are proposed as the cause of today’s action; one is urged to love the overman in one’s friend."
+      },
+      "limit": {
+        "ru": "Дальний не заменяется буквальным отсутствующим человеком: это направление заботы, сформулированное в обращении к другу.",
+        "en": "The farthest is not simply a literally absent person: it names a direction of concern formulated in an address about the friend."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "quietest-hour",
+      "related_existing": "zarathustra",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.22",
+          "u": [
+            "tos.text-unit.sid-fe1ef56823d8ed0e1b58e40b9660f7a8",
+            "tos.text-unit.sid-fe1ef56823d8ed0e1b58e40b9660f7a8"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Заратустра рассказывает, что его тишайший час говорил с ним, и называет его страшной госпожой.",
+        "en": "Zarathustra recounts that his stillest hour spoke to him and calls it his terrible mistress."
+      },
+      "limit": {
+        "ru": "Персонифицированный голос дан через рассказ Заратустры; его независимое существование в мире произведения не установлено.",
+        "en": "The personified voice is given through Zarathustra’s account; its independent existence in the work-world is not established."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "redemption",
+      "related_existing": "bite",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.13",
+          "u": [
+            "tos.text-unit.sid-c1a61ec1014026941c54254a0978115d",
+            "tos.text-unit.sid-4f156d0bad165d016f941204caf55153"
+          ],
+          "q": "Nun aber liege ich da, müde noch von diesem Beissen und Wegspein, krank noch von der eigenen Erlösung."
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.12",
+          "u": [
+            "tos.text-unit.sid-84372be8e00752c845bc3a1987f79499",
+            "tos.text-unit.sid-84372be8e00752c845bc3a1987f79499"
+          ],
+          "q": "Eurer Kinder Land sollt ihr lieben: diese Liebe sei euer neuer Adel, — das unentdeckte, im fernsten Meere! Nach ihm heisse ich eure Segel suchen und suchen!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.12",
+          "u": [
+            "tos.text-unit.sid-a99544808fde51500062340690366a76",
+            "tos.text-unit.sid-a99544808fde51500062340690366a76"
+          ],
+          "q": "An euren Kindern sollt ihr gut machen, dass ihr eurer Väter Kinder seid: alles Vergangene sollt ihr so erlösen! Diese neue Tafel stelle ich über euch!"
+        }
+      ],
+      "reading": {
+        "ru": "После укуса Заратустра говорит о болезни собственного искупления; в речи о детях прошлое предлагается искупить через них.",
+        "en": "After the bite Zarathustra speaks of being sick from his own redemption; in the speech about children he proposes redeeming the past through them."
+      },
+      "limit": {
+        "ru": "Общее слово не делает укус и заботу о детях одним событием или завершённой теорией искупления.",
+        "en": "The shared word does not make the bite and concern for children the same event or a complete theory of redemption."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "revenge",
+      "related_existing": "counterfactual",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.20",
+          "u": [
+            "tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b",
+            "tos.text-unit.sid-bc8111269b7adf1e6f1a2c297ae8b00b"
+          ],
+          "q": "Also wurde der Wille, der Befreier, ein Wehethäter: und an Allem, was leiden kann, nimmt er Rache dafür, dass er nicht zurück kann."
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.20",
+          "u": [
+            "tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be",
+            "tos.text-unit.sid-d0da4f88d01d03d4f85805f9f62a77be"
+          ],
+          "q": "Diess, ja diess allein ist Rache selber: des Willens Widerwille gegen die Zeit und ihr „Es war.“"
+        }
+      ],
+      "reading": {
+        "ru": "Месть прямо определяется как сопротивление воли времени и его «было»; невозможность вернуться назад сопряжена со страданием.",
+        "en": "Revenge is explicitly defined as the will’s resistance to time and its “it was”; inability to turn back is bound up with suffering."
+      },
+      "limit": {
+        "ru": "Определение высказано Заратустрой в конкретной речи и не исчерпывает всех сцен возмездия в книге.",
+        "en": "The definition is spoken by Zarathustra in a particular speech and does not exhaust every scene of retribution in the book."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "rope-bridge",
+      "related_existing": "overman",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.01",
+          "u": [
+            "tos.text-unit.sid-992a7291ae2c1aafcd976cb8ffc2ff7e",
+            "tos.text-unit.sid-992a7291ae2c1aafcd976cb8ffc2ff7e"
+          ],
+          "q": "Der Mensch ist ein Seil, geknüpft zwischen Thier und Übermensch, — ein Seil über einem Abgrunde."
+        }
+      ],
+      "reading": {
+        "ru": "Человек назван канатом над бездной между животным и сверхчеловеком: переход сам оказывается опасным.",
+        "en": "The human being is called a rope over an abyss between animal and overman: the crossing itself is dangerous."
+      },
+      "limit": {
+        "ru": "Канат изображает человека, а не отождествляет животное, человека и сверхчеловека.",
+        "en": "The rope depicts the human being; it does not identify animal, human and overman with one another."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "self-overcoming",
+      "related_existing": "will-to-power",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.12",
+          "u": [
+            "tos.text-unit.sid-9285a033c0768930b770b3806e9fe210",
+            "tos.text-unit.sid-9285a033c0768930b770b3806e9fe210"
+          ]
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "II.12",
+          "u": [
+            "tos.text-unit.sid-9285a033c0768930b770b3806e9fe210",
+            "tos.text-unit.sid-9db3d3aedd872649b179a80267c19257"
+          ],
+          "q": "doch aus dem Schätzen selber heraus redet — der Wille zur Macht!“ —"
+        }
+      ],
+      "reading": {
+        "ru": "Жизнь в пересказанной Заратустрой речи называет себя тем, что должно всегда себя преодолевать; далее в той же речи названа воля к власти.",
+        "en": "Life, in speech recounted by Zarathustra, calls itself that which must always overcome itself; will to power is named later in the same speech."
+      },
+      "limit": {
+        "ru": "Связь требует удерживать вложенный голос жизни и развёртывание речи; простое равенство двух понятий не установлено.",
+        "en": "The connection must retain life’s embedded voice and the unfolding speech; a simple identity between the two concepts is not established."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "sleep-sage",
+      "related_existing": "zarathustra",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.03",
+          "u": [
+            "tos.text-unit.sid-bee3550cc1061ac463629cffeb1b3a10",
+            "tos.text-unit.sid-bee3550cc1061ac463629cffeb1b3a10"
+          ]
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.03",
+          "u": [
+            "tos.text-unit.sid-70d0938f663e9e0b6d26710a98fa2cb9",
+            "tos.text-unit.sid-70d0938f663e9e0b6d26710a98fa2cb9"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Мудрец учит юношей и связывает обладание добродетелями с хорошим сном; Заратустра слушает его.",
+        "en": "The sage teaches young people and connects having virtues with sleeping well; Zarathustra listens to him."
+      },
+      "limit": {
+        "ru": "Слова мудреца принадлежат ему, а не автоматически Заратустре или произведению.",
+        "en": "The sage’s words belong to him and are not automatically Zarathustra’s or the work’s."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "spirit-of-gravity",
+      "related_existing": "laughter",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.08",
+          "u": [
+            "tos.text-unit.sid-c515e160e9084b0952538c15223fc388",
+            "tos.text-unit.sid-f46bf51f26dfc0eec605081de85b019c"
+          ],
+          "q": "Auf, lasst uns den Geist der Schwere tödten!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.08",
+          "u": [
+            "tos.text-unit.sid-f46bf51f26dfc0eec605081de85b019c",
+            "tos.text-unit.sid-f46bf51f26dfc0eec605081de85b019c"
+          ],
+          "q": "Nicht durch Zorn, sondern durch Lachen tödtet man. Auf, lasst uns den Geist der Schwere tödten!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.08",
+          "u": [
+            "tos.text-unit.sid-7a171175ea446da3734da0fa4a82b03a",
+            "tos.text-unit.sid-7a171175ea446da3734da0fa4a82b03a"
+          ],
+          "q": "Jetzt bin ich leicht, jetzt fliege ich, jetzt sehe ich mich unter mir, jetzt tanzt ein Gott durch mich."
+        }
+      ],
+      "reading": {
+        "ru": "Призыв убить дух тяжести смехом соседствует с образом лёгкости и танцующего бога.",
+        "en": "The call to kill the spirit of gravity with laughter stands near the image of lightness and a dancing god."
+      },
+      "limit": {
+        "ru": "Образ врага и способ противодействия не раскрывают без других мест всех значений тяжести.",
+        "en": "The image of an enemy and the way of resisting it do not, without other places, disclose every meaning of gravity."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "suleika",
+      "related_existing": "daughters",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.16",
+          "u": [
+            "tos.text-unit.sid-560c8e1bc5e590cf6443e36f4cc8d830",
+            "tos.text-unit.sid-560c8e1bc5e590cf6443e36f4cc8d830"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Зулейка названа среди девушек и получает от певца призыв к мужеству.",
+        "en": "Suleika is named among the girls and receives the singer’s call to courage."
+      },
+      "limit": {
+        "ru": "Это обращение внутри песни; оно не устанавливает самостоятельную речь Зулейки.",
+        "en": "This address is inside a song; it establishes no independent speech by Suleika."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "tablets-values",
+      "related_existing": "creation",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.16",
+          "u": [
+            "tos.text-unit.sid-5fe203a2311a7f5a2ecdf09140b704e3",
+            "tos.text-unit.sid-172817236250da89e8e05187cbd15fd6"
+          ],
+          "q": "Wandel der Werthe, — das ist Wandel der Schaffenden."
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.16",
+          "u": [
+            "tos.text-unit.sid-a8dd02ecabbd6c697be69da99e8604ec",
+            "tos.text-unit.sid-6de0df5144142c3078578d035f066f5a"
+          ],
+          "q": "Siehe, es ist seiner Überwindungen Tafel;"
+        }
+      ],
+      "reading": {
+        "ru": "Перемена ценностей связана с переменой созидающих; скрижаль показывает преодоления народа.",
+        "en": "The change of values is connected with a change of creators; a people’s tablet displays its acts of overcoming."
+      },
+      "limit": {
+        "ru": "Смена оценок и конкретная скрижаль народа связаны, но не являются одним и тем же объектом.",
+        "en": "A change in valuation and a particular people’s tablet are connected, but are not the same object."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "three-metamorphoses",
+      "related_existing": "child",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.02",
+          "u": [
+            "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e",
+            "tos.text-unit.sid-32dbfb5bbf74851f8e864356790d227e"
+          ]
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.02",
+          "u": [
+            "tos.text-unit.sid-78b5795aca827182f53ba266a3271646",
+            "tos.text-unit.sid-78b5795aca827182f53ba266a3271646"
+          ],
+          "q": "Unschuld ist das Kind und Vergessen, ein Neubeginnen, ein Spiel, ein aus sich rollendes Rad, eine erste Bewegung, ein heiliges Ja-sagen."
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "I.02",
+          "u": [
+            "tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea",
+            "tos.text-unit.sid-1823f88f8c05b9d921dda6868c4b3bea"
+          ],
+          "q": "Ja, zum Spiele des Schaffens, meine Brüder, bedarf es eines heiligen Ja-sagens: seinen Willen will nun der Geist, seine Welt gewinnt sich der Weltverlorene."
+        }
+      ],
+      "reading": {
+        "ru": "Заратустра называет три превращения духа: верблюд, лев, дитя; дитя получает имена игры и священного да.",
+        "en": "Zarathustra names three metamorphoses of the spirit: camel, lion and child; the child receives the names of play and the sacred yes."
+      },
+      "limit": {
+        "ru": "Не следует пропускать предварительную работу льва, создающего свободу для нового созидания.",
+        "en": "The lion’s prior work of creating freedom for new creation must not be skipped."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "unknown-god",
+      "related_existing": "magician",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "IV.05",
+          "u": [
+            "tos.text-unit.sid-f09690e3c3134ca9c0a486d47941c0f4",
+            "tos.text-unit.sid-f09690e3c3134ca9c0a486d47941c0f4"
+          ]
+        }
+      ],
+      "reading": {
+        "ru": "Лирическое «я» чародея обращается к неведомому Богу как к мучителю, врагу и последнему счастью.",
+        "en": "The magician’s lyrical “I” addresses the unknown God as tormentor, enemy and last happiness."
+      },
+      "limit": {
+        "ru": "Обращение принадлежит разыгрываемой песне; тождество адресата историческому Богу и принятие его Заратустрой не установлены.",
+        "en": "The address belongs to a performed song; neither the addressee’s identity with a historical God nor Zarathustra’s acceptance is established."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    },
+    {
+      "id": "zarathustra-soul",
+      "related_existing": "zarathustra",
+      "grounds": [
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.14",
+          "u": [
+            "tos.text-unit.sid-6d591bed8717069d8de37a902e7980c7",
+            "tos.text-unit.sid-6d591bed8717069d8de37a902e7980c7"
+          ],
+          "q": "so wirst du singen müssen, oh meine Seele!"
+        },
+        {
+          "w": "also-sprach-zarathustra",
+          "c": "III.14",
+          "u": [
+            "tos.text-unit.sid-63e2b2591cdfbe98985342c59da65d3d",
+            "tos.text-unit.sid-63e2b2591cdfbe98985342c59da65d3d"
+          ],
+          "q": "Oh meine Seele, nun gab ich dir Alles und auch mein Letztes, und alle meine Hände"
+        }
+      ],
+      "reading": {
+        "ru": "Заратустра обращается к своей душе и приглашает её петь после того, как отдал ей всё.",
+        "en": "Zarathustra addresses his soul and invites it to sing after he has given it everything."
+      },
+      "limit": {
+        "ru": "Обращение не устанавливает душу отдельным историческим лицом или независимым телом.",
+        "en": "The address does not establish the soul as a separate historical person or an independent body."
+      },
+      "source_status": "interpretation-grounded-in-cited-places",
+      "decision": "retain-as-stand-proposal",
+      "review_status": "source-visible-agent-reading-independent-review-pending"
+    }
+  ]
+}

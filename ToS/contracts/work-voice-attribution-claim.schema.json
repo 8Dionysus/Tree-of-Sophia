@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree-of-sophia.local/ToS/contracts/work-voice-attribution-claim.schema.json",
+  "title": "Source-qualified attribution of a work-world voice",
+  "description": "A source-bound Occurrence is attributed to a figure within its work. The primary or embedded layer and carrier stay explicit. The Claim does not adopt the attributed words as the author’s or work’s thesis.",
+  "allOf": [
+    {
+      "$ref": "https://tree-of-sophia.local/ToS/contracts/semantic-relation-claim.schema.json"
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "tos_semantic_relation_claim_v1"
+        },
+        "predicate": {
+          "const": "work_voice_attributed_to"
+        },
+        "object": {
+          "type": "string",
+          "pattern": "^tos\\.work-figure\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+        },
+        "qualifiers": {
+          "required": [
+            "work_ref",
+            "voice_layer",
+            "voice_mode",
+            "carrier",
+            "addressee"
+          ],
+          "properties": {
+            "work_ref": {
+              "type": "string",
+              "pattern": "^tos\\.work\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+            },
+            "voice_layer": {
+              "enum": [
+                "primary",
+                "embedded"
+              ]
+            },
+            "voice_mode": {
+              "enum": [
+                "speech",
+                "song",
+                "narration",
+                "dream",
+                "quoted"
+              ]
+            },
+            "carrier": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 1
+            },
+            "addressee": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "voice_layer": {
+                    "const": "embedded"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "carrier": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "voice_layer": {
+                    "const": "primary"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "carrier": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

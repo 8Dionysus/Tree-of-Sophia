@@ -3,6 +3,7 @@ import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from
 import {extendPublicCollection} from './collection-data.mjs';
 import {loadBonsai} from './bonsai.mjs';
 import {attachCore} from './core-projection.mjs';
+import {canonicalJSON,createResearchIndex} from './research-index.mjs';
 
 const PUBLIC_PROFILE_IDS = Object.freeze({
   zarathustra: 'tos.work.friedrich-nietzsche.also-sprach-zarathustra',
@@ -279,8 +280,10 @@ export async function createPublicSpace({profile, provider} = {}) {
     // graphs retain their stable material IDs and their original backup.
     prepared.graphPredecessors??=[];
     prepared.graphPredecessors.unshift({fingerprint:prepared.library.fingerprint,materialIds:prepared.library.nodes.map(node=>node.id)});
-    attachCore(prepared.library,(await loadBonsai(profile)).core);
+    const rawCore=(await loadBonsai(profile)).core;
+    prepared.library.space.researchRevision=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonicalJSON(rawCore)))),byte=>byte.toString(16).padStart(2,'0')).join('');
+    attachCore(prepared.library,rawCore);
     prepared.library.fingerprint=await digest({...prepared.library,fingerprint:undefined});
   }
-  return {...prepared, profile, provider, sourceRevision: sources.manifest.revision};
+  return {...prepared, index:createResearchIndex(prepared.library), profile, provider, sourceRevision: sources.manifest.revision};
 }

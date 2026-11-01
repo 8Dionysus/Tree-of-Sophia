@@ -1,0 +1,122 @@
+{
+  "schema_version": "tos-bonsai-research-case@1",
+  "id": "jgb21-qualified-inversion-and-readings",
+  "status": "proposed_manual_research_not_canon",
+  "scope": "JGB 21, Zimmern English rendering; research comparison of the two critical targets within the passage",
+  "source": {
+    "locator": "https://www.gutenberg.org/files/4363/4363-h/4363-h.htm#chap01",
+    "section": "I.21",
+    "source_reading": "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md",
+    "claim_record": "ToS/source-witnesses/relations/jgb21-conception-inversion/source-claims.jsonl",
+    "limitation": "The cited note read the English translation; it is neither a new collation nor acceptance of a German edition.",
+    "reading_check": {
+      "date": "2026-11-01",
+      "scope": "Gutenberg Zimmern §21, complete paragraph sequence",
+      "finding": "The passage criticizes causa sui and rejects mechanical non-free will as the contrary; it does not endorse that contrary. These checks support the bounded p/q distinction, not automatic acceptance of the profiles or a historical replacement claim."
+    }
+  },
+  "profile_provenance": {
+    "version": "jgb21-reading-features@0.1-proposed",
+    "source": "https://chatgpt.com/space/page_60deadafaf7881919ab03e6682369765",
+    "source_file_sha256": "74fbbeaa32ec014f38a484a9d9b5a7d30f6163162abee3f22093b0c7676ebeac",
+    "status": "proposed manual annotations, not source-accepted facts"
+  },
+  "axes": [
+    {
+      "id": "f1",
+      "label": "Critique of causa sui"
+    },
+    {
+      "id": "f2",
+      "label": "Recognition of critique of unfree will"
+    },
+    {
+      "id": "f3",
+      "label": "Attribution of a positive doctrine of unfreedom to Nietzsche"
+    },
+    {
+      "id": "f4",
+      "label": "Historical replacement of one doctrine by another"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "critical-both",
+      "version": "1",
+      "axes_version": "jgb21-reading-features@0.1-proposed",
+      "values": [
+        1,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "positive-unfreedom",
+      "version": "1",
+      "axes_version": "jgb21-reading-features@0.1-proposed",
+      "values": [
+        1,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "id": "narrow-critique",
+      "version": "1",
+      "axes_version": "jgb21-reading-features@0.1-proposed",
+      "values": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "unannotated-example",
+      "version": "1",
+      "axes_version": "jgb21-reading-features@0.1-proposed",
+      "values": [
+        1,
+        null,
+        0,
+        0
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "id": "tos.claim.jgb21-conception-inversion",
+      "version": 2,
+      "scope": "JGB 21, Zimmern English rendering; research comparison of the two critical targets within the passage",
+      "statement": "Mechanically unfree will inverts the criticized account of ultimate self-origination as a qualified comparison of two targets; the passage criticizes both.",
+      "evidence": [
+        {
+          "claim_id": "tos.claim.jgb21-conception-inversion",
+          "claim_version": 2,
+          "scope": "JGB 21, Zimmern English rendering; research comparison of the two critical targets within the passage",
+          "ref": "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md",
+          "sign": "positive",
+          "source_role": "evidence_refs"
+        }
+      ]
+    },
+    {
+      "id": "jgb21-stronger-endorsement-q",
+      "version": 1,
+      "scope": "JGB 21, Zimmern English rendering; research comparison of the two critical targets within the passage",
+      "statement": "Nietzsche positively endorses mechanical unfreedom.",
+      "evidence": [
+        {
+          "claim_id": "jgb21-stronger-endorsement-q",
+          "claim_version": 1,
+          "scope": "JGB 21, Zimmern English rendering; research comparison of the two critical targets within the passage",
+          "ref": "ToS/review-ledger/2026-09-09-jgb21-inversion-source-reading.md",
+          "sign": "negative",
+          "source_role": "counterevidence_refs; classified against q by the source reading"
+        }
+      ]
+    }
+  ]
+}

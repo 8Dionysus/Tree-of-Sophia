@@ -135,3 +135,22 @@ reference services; no dictionary entry or license to redistribute its contents
 is implied. The bounded review
 and known quality limitations are recorded in
 [`MORPHOLOGY-REVIEW.md`](../../ToS/research-packets/public-prototypes-20261026/MORPHOLOGY-REVIEW.md).
+
+## Bonsai witness delivery
+
+`prepare_bonsai_witnesses.py` projects the retained DTA and Antonovsky units
+from `bonsai/zarathustra/witnesses/*.json` without changing their text or IDs.
+Its `tos_bonsai_public_text_packet_v1` and
+`tos_bonsai_public_rights_projection_v1` are bounded delivery inputs to
+`public-corpus-build`, **not** ToS source-text-unit packets or rights-owner
+records. This distinction matters because the Antonovsky units retain their
+stand-local `ru1913.*` IDs. The builder still checks the selected packet and
+rights digests, public conditions, every Unicode-code-point anchor and its
+exact text hash. The concatenated text is a delivery layer; it is not an
+assertion that the four DTA first editions are one historical edition.
+Their original identities, source links, attribution, rights and transcription
+limits remain in `bonsai/zarathustra/witnesses.json`. The existing Gutenberg
+versions and IDs are retained separately. DWDSmor candidates are reused only
+for exactly equal forms, unranked and without a contextual correctness claim.
+The bonsai's automatic sentence alignment is displayed as unreviewed and
+only after target text agrees exactly with the selected reader version.

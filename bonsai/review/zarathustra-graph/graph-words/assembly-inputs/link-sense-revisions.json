@@ -1,0 +1,51 @@
+{
+  "schema": "tos.bonsai.link-sense-revisions.v1",
+  "reviewer": {
+    "id": "p4-independent-review",
+    "model": "gpt-6.1-terra",
+    "effort": "xhigh",
+    "date": "2026-11-01",
+    "scope": "source-visible reading of the cited places, no canon or native admission",
+    "revised_wording": "independently re-read and confirmed against the cited German places"
+  },
+  "revisions": {
+    "dwarf--recurrence--4": {
+      "prior_sense_sha256": "329cc8f9085ef32e8f9f9341a743092a3aa4563f2e25c73f2dbb970b2a9b2ae6",
+      "sense": {
+        "ru": "В споре о двух путях Заратустра возражает, что карлик слишком облегчает вопрос, и спрашивает, не возвращается ли само мгновение со всеми связанными вещами.",
+        "en": "In the dispute over the two paths, Zarathustra objects that the dwarf makes the question too easy and asks whether the moment itself returns with all the things connected to it."
+      },
+      "reason": {
+        "ru": "III.02 возражает против лёгкости ответа; место не утверждает, что Заратустра отвергает формулу целиком.",
+        "en": "III.02 objects to the ease of the answer; the passage does not state that Zarathustra rejects the formula altogether."
+      }
+    },
+    "circle:link:04:nausea": {
+      "prior_sense_sha256": "e212cd5e97a74dc508cf8257701e385e3b1b64cdc77b1af3b2b1eb64c786cd4c",
+      "sense": {
+        "ru": "После вызова глубокой мысли Заратустра кричит об отвращении и падает как мёртвый.",
+        "en": "After summoning the deep thought, Zarathustra cries out about nausea and falls as though dead."
+      },
+      "reason": {
+        "ru": "III.13 устанавливает последовательность вызова мысли, крика и падения; дополнительная причинность не добавляется.",
+        "en": "III.13 establishes the sequence of the summoned thought, the cry and the fall; no additional causation is asserted."
+      },
+      "prior_answer_sha256": "e65782d787166494cb224a9773264a62ff809fe0248c6b6eb39c18cfa75977b5",
+      "answer": {
+        "ru": "После вызова глубокой мысли Заратустра кричит об отвращении и падает как мёртвый.",
+        "en": "After summoning the deep thought, Zarathustra cries out about nausea and falls as though dead."
+      }
+    },
+    "shepherd--zarathustra--6": {
+      "prior_sense_sha256": "d4753ffd374a0aeacc958c5dde1b77098737b995d4abf57bb46f12b64de9f5c2",
+      "sense": {
+        "ru": "Повторение укуса и отплёвывания допускает прочтение пастуха как образа Заратустры, но не устанавливает тождество фигур или окончательное преображение учителя.",
+        "en": "The repeated biting and spitting out permits a reading of the shepherd as an image of Zarathustra, but does not establish the figures’ identity or the teacher’s final transformation."
+      },
+      "reason": {
+        "ru": "III.02 и III.13 допускают сравнение сцен, но слова об узнавании могли быть поняты как тождество персонажей.",
+        "en": "III.02 and III.13 permit a comparison of scenes, but the earlier wording could be read as identifying the figures."
+      }
+    }
+  }
+}

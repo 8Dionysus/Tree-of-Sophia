@@ -1,5 +1,6 @@
 // Display-only projection. The bonsai owns every reading and admission;
 // existing atlas identities and the saved graph are never rewritten here.
+import {citedPlaces} from './research-index.mjs';
 export function attachCore(library,core){
   const materials=new Map(library.nodes.map(node=>[node.id,node]));
   const materialIds={},records={},edges=[],routes=[];
@@ -17,7 +18,7 @@ export function attachCore(library,core){
         sourceAccess:'proposed-interpretation',sourcePosture:'bonsai reading; no Tree canon admission'};
       library.nodes.push(material);materials.set(id,material);
     }
-    material.coreId=record.id;
+    material.coreId=record.id;material.coreCitations=citedPlaces(record);
   }
   const edge=(record,id)=>({id,from:materialIds[record.from],to:materialIds[record.to],kind:'relates',label:record.verb,coreRecord:record,
     body:{...record.sense,cite:[...new Map([...(record.cite?[record.cite]:[]),...(record.grounds??[])].map(cite=>[JSON.stringify(cite),cite])).values()]}});

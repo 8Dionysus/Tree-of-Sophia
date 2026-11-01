@@ -44,7 +44,9 @@
   "chains.json",
   "proposed.json",
   "occurrences/<concept>.json",
-  "control.json"
+  "control.json",
+  "semantic-uses.json",
+  "place-relations.json"
  ],
  "counts": {
   "voices": 775,
@@ -57,8 +59,8 @@
   "occurrences": 3100,
   "verdicts": {
    "links": {
-    "revise": 123,
-    "confirmed": 227,
+    "revise": 124,
+    "confirmed": 226,
     "reconstruction": 47,
     "rejected": 3
    },
@@ -84,6 +86,10 @@
     "rejected": 0
    }
   },
+  "semantic_use_terms": 6,
+  "semantic_uses_assessed": 26,
+  "semantic_uses_unknown": 214,
+  "place_relations": 7,
   "english_missing": 0
  }
 }

@@ -28,7 +28,7 @@ import type { PageCommandId, PageCommandRegistry, PageContext } from "./page-com
 
 type JsonSchema = Record<string, unknown>;
 
-type WebMCPTool = {
+export type WebMCPTool = {
   name: string;
   title?: string;
   description: string;
@@ -688,6 +688,7 @@ export function createWebMCPAdapter(
   registry: PageCommandRegistry,
   targetDocument: WebMCPDocument,
   allowedCommands?: ReadonlySet<PageCommandId>,
+  extensions: WebMCPTool[] = [],
 ) {
   const available = (tool: WebMCPTool): boolean => !allowedCommands || allowedCommands.has(toolCommands.get(tool)!);
   let stableController: AbortController | null = null;
@@ -785,7 +786,7 @@ export function createWebMCPAdapter(
     const controller = new AbortController();
     stableController = controller;
     try {
-      const tools = stableTools(registry).filter(available);
+      const tools = [...stableTools(registry).filter(available),...extensions];
       await registerAll(tools, controller);
       if (stopped || generation !== lifecycleGeneration || stableController !== controller || controller.signal.aborted) return;
       stableToolCount = tools.length;
