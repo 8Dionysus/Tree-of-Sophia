@@ -8,8 +8,8 @@
 export const INQUIRY_READINGS_ECHOES = {
   "demo:paths-opposition": {
     "argument": {
-      "ru": "Заратустра спрашивает, будут ли дороги вечно противоречить друг другу; карлик отвечает кругом. Заратустра возражает и переводит вопрос к вечности позади, воротам и самому мгновению.",
-      "en": "Zarathustra asks whether the paths will contradict each other forever; the dwarf answers with a circle. Zarathustra objects and turns the question toward the eternity behind them, the gateway and the moment itself.",
+      "ru": "Заратустра спрашивает карлика, будут ли две дороги вечно противоречить друг другу; карлик отвечает, что само время — круг, и Заратустра гневно велит ему не облегчать себе ответ.",
+      "en": "Zarathustra asks the dwarf whether the two paths will contradict each other forever; the dwarf answers that time itself is a circle, and Zarathustra angrily tells him not to make the answer too easy for himself.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d","tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d"]}
       ]
@@ -29,8 +29,8 @@ export const INQUIRY_READINGS_ECHOES = {
   },
   "demo:moment-returns": {
     "argument": {
-      "ru": "Заратустра связывает вопрос о воротах с вопросом о возвращении паука, лунного света и обоих собеседников. Его речь становится тише, раздаётся вой собаки, и вскоре он оказывается среди скал перед пастухом.",
-      "en": "Zarathustra connects the question about the gateway with the return of the spider, moonlight and both speakers. His voice grows quieter, a dog howls, and soon he finds himself among rocks before the shepherd.",
+      "ru": "Заратустра связывает мгновение со всем грядущим и спрашивает, должны ли он, карлик и всё вокруг вновь пройти тот же путь.",
+      "en": "Zarathustra connects the moment with everything to come and asks whether he, the dwarf, and everything around them must travel the same path again.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-e060da93a6971669a066b72b51ff92bf","tos.text-unit.sid-2f41253d3959f2b77e74490541d39586"]},
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-644ff83c17e4f860c7137f40386012fa","tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c"]}
@@ -52,8 +52,8 @@ export const INQUIRY_READINGS_ECHOES = {
   },
   "demo:shepherd-riddle": {
     "argument": {
-      "ru": "Заратустра просит слушателей разгадать видение: кто пастух и кто человек, которому в горло заползёт всё самое тяжёлое? Затем он рассказывает, как пастух откусывает голову змее и смеётся преображённым.",
-      "en": "Zarathustra asks his listeners to solve the vision: who is the shepherd, and who is the human being into whose throat everything heaviest will crawl? He then tells how the shepherd bites off the serpent’s head and laughs transformed.",
+      "ru": "Пастух откусывает голову змее, выплёвывает её и вскакивает; Заратустра видит преображённого, который смеётся.",
+      "en": "The shepherd bites off the serpent’s head, spits it out, and leaps up; Zarathustra sees a transformed figure laughing.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-c9379c7d2c3ff474692d6edefdb7db0c","tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"]}
       ]
@@ -115,8 +115,8 @@ export const INQUIRY_READINGS_ECHOES = {
   },
   "demo:circle-change": {
     "argument": {
-      "ru": "В песне зверей всё умирает и вновь расцветает, распадается и снова соединяется; вместе с этим вечно движется год бытия. Позднее звери говорят об одинаковых великих годах становления, открывая вопрос о том, как соотносятся повтор и перемена.",
-      "en": "In the animals’ song all things die and blossom again, break apart and are joined anew; with this the year of being runs eternally. Later the animals speak of alike great years of becoming, opening the question of how recurrence and change relate.",
+      "ru": "В песне зверей вещи умирают и вновь расцветают; затем звери говорят, что великий год становления возвращается и каждый такой год равен себе в большом и малом.",
+      "en": "In the animals’ song, things die and blossom again; the animals then say that the great year of becoming returns and that each such year is equal to itself in great and small things.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]},
         {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]}
@@ -138,8 +138,8 @@ export const INQUIRY_READINGS_ECHOES = {
   },
   "demo:whole-part": {
     "argument": {
-      "ru": "Заратустра связывает «да» одной радости со всем горем: все вещи сцеплены, переплетены и влюблены друг в друга. Желание пережить миг дважды становится желанием возвращения всего. Этот переход открывает вопрос: как связь вещей соединяет отдельное мгновение и целый мир?",
-      "en": "Zarathustra joins a yes to one joy to all sorrow: all things are chained, entwined and in love with one another. The wish to experience a moment twice becomes the wish for everything to return. This transition opens a question: how does the linkage of things join a single moment to the whole world?",
+      "ru": "Заратустра говорит, что все вещи сцеплены и переплетены: желая пережить одно радостное мгновение ещё раз, человек желает возвращения всего, в том числе горя.",
+      "en": "Zarathustra says that all things are linked and entwined: in wanting to live one joyful moment again, a person wants the return of everything, including sorrow.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"]}
       ]
@@ -159,8 +159,8 @@ export const INQUIRY_READINGS_ECHOES = {
   },
   "demo:will-fate": {
     "argument": {
-      "ru": "Вспомнив множество прощаний и последние часы, Заратустра называет свою творящую волю и судьбу, затем уточняет: его воля хочет именно такой судьбы. Поправка ставит вопрос об отношении воли к собственному пути и пережитым прощаниям.",
-      "en": "After recalling many farewells and final hours, Zarathustra names his creative will and fate, then makes his meaning more precise: his will wants precisely such a fate. The correction raises the question of the will’s relation to its own path and the farewells it has lived through.",
+      "ru": "Вспоминая прощания, Заратустра уточняет: его творящая воля хочет именно такой судьбы.",
+      "en": "Recalling his farewells, Zarathustra clarifies that his creative will wills precisely this fate.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-382b87ebc0855954b7fee4c0e54e61c9","tos.text-unit.sid-104dd6450268fddea57462ac8c13cb9a"]}
       ]

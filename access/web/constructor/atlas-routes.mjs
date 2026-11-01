@@ -109,37 +109,63 @@ export const RESEARCH_ROUTES = [
     },
     "steps": [
       {
-        "nodeId": "moment",
-        "title": {"ru":"Имя места встречи","en":"Naming the meeting place"},
+        "nodeId": "demo:dwarf",
+        "title": {
+          "ru": "Карлик спрыгивает",
+          "en": "The dwarf jumps down"
+        },
         "body": {
-          "ru": "В рассказе Заратустры ворота получают имя «Мгновение». От этого места он обращает внимание спутника на дороги.",
-          "en": "In Zarathustra’s account the gateway is named “Moment.” From this place he directs his companion’s attention to the paths.",
+          "ru": "Карлик спрыгивает с плеча Заратустры и садится на камень у ворот.",
+          "en": "The dwarf jumps from Zarathustra’s shoulder and sits on a stone by the gateway.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]}
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.02",
+              "u": [
+                "tos.text-unit.sid-dff926efa83f3da3ee1d67d9a3e0538b",
+                "tos.text-unit.sid-dff926efa83f3da3ee1d67d9a3e0538b"
+              ]
+            }
           ]
         },
         "question": {
-          "ru": "Что имя ворот добавляет к картине двух дорог?",
-          "en": "What does the gateway’s name add to the picture of the two paths?"
+          "ru": "Что облегчает Заратустру перед воротами?",
+          "en": "What makes Zarathustra lighter before the gateway?"
         },
         "grounds": [
           {
             "ref": "z-vision",
             "cite": [
-              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]}
+              {
+                "w": "also-sprach-zarathustra",
+                "c": "III.02",
+                "u": [
+                  "tos.text-unit.sid-dff926efa83f3da3ee1d67d9a3e0538b",
+                  "tos.text-unit.sid-dff926efa83f3da3ee1d67d9a3e0538b"
+                ]
+              }
             ]
           }
         ]
       },
       {
         "nodeId": "demo:gateway",
-        "title": {"ru":"Ворота и спутник","en":"The gateway and the companion"},
+        "title": {
+          "ru": "Ворота и их имя",
+          "en": "The gateway and its name"
+        },
         "body": {
-          "ru": "Карлик спрыгивает с плеча Заратустры и садится у ворот. Теперь Заратустра может показать ему место встречи дорог.",
-          "en": "The dwarf jumps from Zarathustra’s shoulder and sits beside the gateway. Zarathustra can now show him where the paths meet.",
+          "ru": "Заратустра показывает карлику ворота, где сходятся две дороги, и читает их имя: «Мгновенье».",
+          "en": "Zarathustra shows the dwarf the gateway where two paths meet and reads its name: “Moment.”",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]},
-            {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-dff926efa83f3da3ee1d67d9a3e0538b","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]}
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.02",
+              "u": [
+                "tos.text-unit.sid-38b6718fc95c36a467127712c215fff0",
+                "tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"
+              ]
+            }
           ]
         },
         "question": {
@@ -150,8 +176,14 @@ export const RESEARCH_ROUTES = [
           {
             "ref": "z-vision",
             "cite": [
-              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-38b6718fc95c36a467127712c215fff0","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]},
-              {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-dff926efa83f3da3ee1d67d9a3e0538b","tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"]}
+              {
+                "w": "also-sprach-zarathustra",
+                "c": "III.02",
+                "u": [
+                  "tos.text-unit.sid-38b6718fc95c36a467127712c215fff0",
+                  "tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"
+                ]
+              }
             ]
           }
         ]
@@ -211,12 +243,12 @@ export const RESEARCH_ROUTES = [
     ],
     "transitions": [
       {
-        "from": "moment",
+        "from": "demo:dwarf",
         "to": "demo:gateway",
-        "edgeId": "atlas:moment:supports:gateway",
+        "edgeId": "atlas:dwarf:supports:gateway",
         "body": {
-          "ru": "Имя ворот делает место встречи дорог «Мгновением».",
-          "en": "The gateway’s name makes the meeting place “Moment.”"
+          "ru": "После прыжка карлика Заратустра показывает ему ворота.",
+          "en": "After the dwarf jumps down, Zarathustra shows him the gateway."
         }
       },
       {
@@ -502,33 +534,71 @@ export const RESEARCH_ROUTES = [
     },
     "steps": [
       {
-        "nodeId": "all-things",
-        "title": {"ru":"Песня вещей","en":"The song of things"},
+        "nodeId": "chapter-p3.r13",
+        "title": {
+          "ru": "Болезнь и забота зверей",
+          "en": "Illness and the animals’ care"
+        },
         "body": {
-          "ru": "Звери начинают песню об уходе и возвращении вещей. Заратустра улыбается и отвечает вопросом о шарманочной песне, вспоминая своё испытание.",
-          "en": "The animals begin a song about things departing and returning. Zarathustra smiles and answers with a question about a barrel-organ song, recalling his ordeal.",
+          "ru": "После падения Заратустры звери остаются с ним семь дней; орёл улетает за пищей.",
+          "en": "After Zarathustra falls, the animals stay with him for seven days; the eagle flies out for food.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.13",
+              "u": [
+                "tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca",
+                "tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"
+              ]
+            }
           ]
         },
-        "question": {"ru":"Как его ответ меняет звучание их песни?","en":"How does his reply change the way their song sounds?"},
+        "question": {
+          "ru": "Что возвращает выздоравливающего к миру?",
+          "en": "What brings the convalescent back to the world?"
+        },
         "grounds": [
           {
             "ref": "z-convalescent",
             "cite": [
-              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+              {
+                "w": "also-sprach-zarathustra",
+                "c": "III.13",
+                "u": [
+                  "tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca",
+                  "tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"
+                ]
+              }
             ]
           }
         ]
       },
       {
         "nodeId": "demo:animals",
-        "title": {"ru":"Звери и больной","en":"The animals and the convalescent"},
+        "title": {
+          "ru": "Песня и ответ",
+          "en": "Song and reply"
+        },
         "body": {
-          "ru": "Звери заботятся о Заратустре и говорят с ним после болезни. Их песня получает ответ человека, который ещё устал от собственного избавления.",
-          "en": "The animals care for Zarathustra and speak to him after his illness. Their song receives an answer from someone still exhausted by his own deliverance.",
+          "ru": "Когда Заратустра начинает говорить со зверями, они поют о возвращении вещей; он улыбается и спрашивает об их шарманочной песне.",
+          "en": "When Zarathustra begins to speak with the animals, they sing of the return of things; he smiles and asks about their barrel-organ song.",
           "cite": [
-            {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.13",
+              "u": [
+                "tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39",
+                "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"
+              ]
+            },
+            {
+              "w": "also-sprach-zarathustra",
+              "c": "III.13",
+              "u": [
+                "tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da",
+                "tos.text-unit.sid-4f156d0bad165d016f941204caf55153"
+              ]
+            }
           ]
         },
         "question": {
@@ -539,7 +609,22 @@ export const RESEARCH_ROUTES = [
           {
             "ref": "z-convalescent",
             "cite": [
-              {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+              {
+                "w": "also-sprach-zarathustra",
+                "c": "III.13",
+                "u": [
+                  "tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39",
+                  "tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"
+                ]
+              },
+              {
+                "w": "also-sprach-zarathustra",
+                "c": "III.13",
+                "u": [
+                  "tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da",
+                  "tos.text-unit.sid-4f156d0bad165d016f941204caf55153"
+                ]
+              }
             ]
           }
         ]
@@ -613,12 +698,12 @@ export const RESEARCH_ROUTES = [
     ],
     "transitions": [
       {
-        "from": "all-things",
+        "from": "chapter-p3.r13",
         "to": "demo:animals",
-        "edgeId": "atlas:all-things:supports:animals",
+        "edgeId": "atlas:chapter-p3.r13:supports:animals",
         "body": {
-          "ru": "Песню зверей сопровождает ответ Заратустры, ещё больного после своего избавления.",
-          "en": "The animals’ song meets Zarathustra’s reply while he is still ill from his deliverance."
+          "ru": "Звери остаются с больным Заратустрой, а позднее поют ему.",
+          "en": "The animals stay with the sick Zarathustra and later sing to him."
         }
       },
       {
@@ -671,6 +756,7 @@ export const RESEARCH_ROUTES = [
       {
         "ref": "z-convalescent",
         "cite": [
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca","tos.text-unit.sid-62eff042a4f2ea561edfff502e5f37ca"]},
           {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]},
           {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3cf5bcb02f23ef9ddd3bb07697eadc6d","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]}
         ]

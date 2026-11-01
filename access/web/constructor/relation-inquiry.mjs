@@ -150,14 +150,14 @@ export const RELATION_INQUIRY = {
   "atlas:gateway:supports:recurrence": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-vision",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
         ]
       }
     ]
@@ -195,14 +195,14 @@ export const RELATION_INQUIRY = {
   "atlas:present:supports:recurrence": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-vision",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
         ]
       }
     ]
@@ -225,14 +225,14 @@ export const RELATION_INQUIRY = {
   "atlas:gateway:questions:moment-returns": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+        {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-vision",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-b8cef20c095784beb2dd363f1a0e98cb","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
+          {"w":"also-sprach-zarathustra","c":"III.02","u":["tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d","tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"]}
         ]
       }
     ]
@@ -304,14 +304,14 @@ export const RELATION_INQUIRY = {
   "atlas:same-life:supports:identity": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
         ]
       }
     ]
@@ -319,14 +319,16 @@ export const RELATION_INQUIRY = {
   "atlas:all-things:supports:animals": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39","tos.text-unit.sid-aa15ff6b6ae52c43bb05fe7316272249"]},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-79b07d24f16ccdda8f3382d61c9946da","tos.text-unit.sid-4f156d0bad165d016f941204caf55153"]}
         ]
       }
     ]
@@ -349,14 +351,14 @@ export const RELATION_INQUIRY = {
   "atlas:nausea:supports:small-human": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
         ]
       }
     ]
@@ -413,14 +415,16 @@ export const RELATION_INQUIRY = {
   "atlas:animals:supports:recurrence": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3cf5bcb02f23ef9ddd3bb07697eadc6d","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-3cf5bcb02f23ef9ddd3bb07697eadc6d","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c","tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"]},
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e","tos.text-unit.sid-f65d9dd3e43902a424a1cb7fbe515ed4"]}
         ]
       }
     ]
@@ -458,14 +462,14 @@ export const RELATION_INQUIRY = {
   "atlas:nausea:supports:recurrence": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
         ]
       }
     ]
@@ -473,14 +477,14 @@ export const RELATION_INQUIRY = {
   "atlas:recurrence:supports:identity": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
         ]
       }
     ]
@@ -518,14 +522,14 @@ export const RELATION_INQUIRY = {
   "atlas:nausea:questions:nausea-return": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-7174d0582726c8e4639d0814b0bb0327","tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70","tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7"]}
         ]
       }
     ]
@@ -533,14 +537,14 @@ export const RELATION_INQUIRY = {
   "atlas:same-life:questions:same-life-return": {
     "warrant": {
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+        {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-convalescent",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
+          {"w":"also-sprach-zarathustra","c":"III.13","u":["tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7","tos.text-unit.sid-03419225d5cdf6f8a5e19876524d7a31"]}
         ]
       }
     ]
@@ -565,14 +569,14 @@ export const RELATION_INQUIRY = {
       "ru": "Подобно солнцу, отдающему свой избыток, Заратустра хочет раздать мудрость и для этого нисходит к людям.",
       "en": "Like the sun giving its abundance, Zarathustra wants to share his wisdom and descends to people for that purpose.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46","tos.text-unit.sid-2784e2f54e2c96f665b5985a1285d127"]}
+        {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb","tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-prologue",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-5614742e39f2ce0fb4a3cc9789837f46","tos.text-unit.sid-2784e2f54e2c96f665b5985a1285d127"]}
+          {"w":"also-sprach-zarathustra","c":"I.01","u":["tos.text-unit.sid-9b5926e8bcd6a467c72aaa8b8d51bcfb","tos.text-unit.sid-497b8b73e66daea4df60db1300f77372"]}
         ]
       }
     ]
@@ -599,14 +603,14 @@ export const RELATION_INQUIRY = {
       "ru": "Вспомнив свои прощания, Заратустра уточняет: его творящая воля хочет именно такой судьбы.",
       "en": "Recalling his farewells, Zarathustra makes his meaning more precise: his creative will wants precisely such a fate.",
       "cite": [
-        {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-d9b7662287eb462c792ecb8350732485","tos.text-unit.sid-104dd6450268fddea57462ac8c13cb9a"]}
+        {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-382b87ebc0855954b7fee4c0e54e61c9","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
       ]
     },
     "grounds": [
       {
         "ref": "z-happy-isles",
         "cite": [
-          {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-d9b7662287eb462c792ecb8350732485","tos.text-unit.sid-104dd6450268fddea57462ac8c13cb9a"]}
+          {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-382b87ebc0855954b7fee4c0e54e61c9","tos.text-unit.sid-689b101d0eb2f848e7aaeddf6afe12fc"]}
         ]
       }
     ]
@@ -681,8 +685,8 @@ export const RELATION_INQUIRY = {
   },
   "atlas:joy-pain:questions:whole-part": {
     "warrant": {
-      "ru": "Песня связывает одну радость со всем горем и возвращением всего: как связанность вещей соединяет мгновение с целым?",
-      "en": "The song joins one joy to all sorrow and the return of everything: how does the linkage of things join the moment to the whole?",
+      "ru": "Заратустра связывает желание повторить одну радость с возвращением всех переплетённых вещей.",
+      "en": "Zarathustra connects the wish to repeat one joy with the return of all entwined things.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"IV.19","u":["tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565","tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"]}
       ]
@@ -698,8 +702,8 @@ export const RELATION_INQUIRY = {
   },
   "atlas:creation:questions:will-fate": {
     "warrant": {
-      "ru": "Вспомнив прощания, Заратустра говорит, что его воля хочет именно такой судьбы; как воля относится к пережитому пути?",
-      "en": "After recalling his farewells, Zarathustra says his will wants precisely such a fate; how does the will relate to the path he has lived?",
+      "ru": "Заратустра связывает прощания своего пути с судьбой, которой хочет его творящая воля.",
+      "en": "Zarathustra connects the farewells along his path with the fate his creative will wills.",
       "cite": [
         {"w":"also-sprach-zarathustra","c":"II.02","u":["tos.text-unit.sid-382b87ebc0855954b7fee4c0e54e61c9","tos.text-unit.sid-104dd6450268fddea57462ac8c13cb9a"]}
       ]
