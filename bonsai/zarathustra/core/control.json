@@ -1,0 +1,114 @@
+{
+ "schema": "tos.bonsai.core.control.v1",
+ "note": {
+  "ru": "Случаи, которые ядро обязано держать: место по главе и точным словам, ожидаемое и запретное. Проверка ядра проходит каждый случай.",
+  "en": "Cases the core must keep: a place by chapter and exact words, what is expected and what is forbidden. The check of the core runs every case."
+ },
+ "cases": [
+  {
+   "id": "dwarf-circle",
+   "case": {
+    "ru": "Круг времени произносит карлик; Заратустра гневно отвечает ему и продолжает спрашивать о мгновении.",
+    "en": "The circle of time is spoken by the dwarf; Zarathustra answers him in anger and goes on asking about the moment."
+   },
+   "places": {
+    "circle": {"c": "III.02", "q": "die Zeit selber ist ein Kreis"},
+    "rebuke": {"c": "III.02", "q": "mache dir es nicht zu leicht"}
+   },
+   "expect": [
+    {"voice": "circle", "speaker": "dwarf"},
+    {"voice": "rebuke", "speaker": "zarathustra"},
+    {"counter_voice": "recurrence", "speaker": "dwarf"}
+   ],
+   "forbid": [
+    {"formula_at": "circle", "node": "recurrence"}
+   ]
+  },
+  {
+   "id": "animals-wheel",
+   "case": {
+    "ru": "Колесо бытия поют звери; Заратустра называет их песню шарманкой.",
+    "en": "The wheel of being is sung by the animals; Zarathustra calls their song a barrel-organ."
+   },
+   "places": {
+    "wheel": {"c": "III.13", "q": "ewig rollt das Rad des Seins"},
+    "reply": {"c": "III.13", "q": "Oh ihr Schalks-Narren und Drehorgeln"}
+   },
+   "expect": [
+    {"voice": "wheel", "speaker": "animals"},
+    {"voice": "reply", "speaker": "zarathustra"}
+   ],
+   "forbid": [
+    {"formula_at": "wheel", "kind": "concept"}
+   ]
+  },
+  {
+   "id": "shepherd-bite",
+   "case": {
+    "ru": "Одна сцена, два исхода: пастух откусывает голову змее и смеётся преображённым; Заратустра рассказывает, как откусил голову чудовищу, и лежит, усталый от укуса и ещё больной собственным избавлением.",
+    "en": "One scene, two outcomes: the shepherd bites off the serpent's head and laughs transformed; Zarathustra tells how he bit off the monster's head, and lies weary from the biting, still sick from his own redemption."
+   },
+   "places": {
+    "shepherd": {"c": "III.02", "q": "Der Hirt aber biss"},
+    "self": {"c": "III.13", "q": "biss ihm den Kopf ab"},
+    "laughter": {"c": "III.02", "q": "ein Verwandelter, ein Umleuchteter, welcher lachte"},
+    "weary": {"c": "III.13", "q": "krank noch von der eigenen Erlösung"}
+   },
+   "expect": [
+    {"joined": ["shepherd", "self"]}
+   ],
+   "forbid": [
+    {"link": ["shepherd", "zarathustra"], "verb": "тот же|тождеств|является Заратустрой|is the same|identical|is Zarathustra"}
+   ]
+  },
+  {
+   "id": "lion-child",
+   "case": {
+    "ru": "Священное Нет льва добывает свободу для нового созидания; священное Да дитяти начинает его.",
+    "en": "The lion's sacred No wins freedom for new creating; the child's sacred Yes begins it."
+   },
+   "places": {
+    "no": {"c": "I.02", "q": "heiliges Nein"},
+    "yes": {"c": "I.02", "q": "heiliges Ja-sagen"}
+   },
+   "expect": [
+    {"voice": "no", "speaker": "zarathustra"},
+    {"link": ["lion", "child"]}
+   ],
+   "forbid": []
+  },
+  {
+   "id": "soothsayer-emptiness",
+   "case": {
+    "ru": "«Всё пусто, всё равно, всё было» — позиция прорицателя против утверждения жизни.",
+    "en": "\"All is empty, all is the same, all has been\" is the soothsayer's position against the affirmation of life."
+   },
+   "places": {
+    "empty": {"c": "II.19", "q": "Alles ist leer, Alles ist gleich, Alles war"}
+   },
+   "expect": [
+    {"voice": "empty", "speaker": "soothsayer"},
+    {"counter_voice": "affirmation", "speaker": "soothsayer"}
+   ],
+   "forbid": [
+    {"formula_at": "empty", "kind": "concept"}
+   ]
+  },
+  {
+   "id": "two-returns",
+   "case": {
+    "ru": "Заратустра хочет снова стать человеком и спускается к людям; вечное возвращение — другое возвращение, и их сравнивают, удерживая различие.",
+    "en": "Zarathustra wants to become human again and goes down to people; the eternal recurrence is another return, and the two are compared with their difference kept."
+   },
+   "places": {
+    "human": {"c": "I.01", "q": "Zarathustra will wieder Mensch werden"}
+   },
+   "expect": [
+    {"voice": "human", "speaker": "zarathustra"}
+   ],
+   "forbid": [
+    {"claim_at": "human", "node": "recurrence", "verb": "тот же|то же самое|тождеств|is the same|identical"}
+   ]
+  }
+ ]
+}

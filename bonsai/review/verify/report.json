@@ -1,0 +1,110 @@
+[
+ {
+  "where": "inquiry-sources-concepts INQUIRY_SOURCES_CONCEPTS.demo:difference.argument cite 2 (III.13 de[65] s=99 e=160); same span also in relation-inquiry atlas:same-life:supports:identity.warrant, atlas:identity:compares:difference.warrant and .grounds[0], atlas:same-new:questions:difference.warrant and .grounds[0]",
+  "kind": "wrong-text",
+  "what": "Serious. The place starts one word too late and drops the negation: the German shown is 'zu einem neuen Leben oder besseren Leben oder ähnlichen Leben' ('to a new life or a better life or a similar life'), which reverses the sentence. The en/ru translations show the whole sentence with NOT / 'ни к…', so original and translation now contradict each other. 6 cites use s=99 (1 in the sample, 5 found by checking the same unit).",
+  "evidence": "III.13.json de unit 65 raw[85:165] = 'lange — nicht\\nzu einem neuen Leben oder besseren Leben oder\\nähnlichen Leben:'; offset 99 is the 'z' of 'zu', so 'nicht' falls outside the place. fragmentOf(...,'de') gives '…mit dieser Schlange — nicht ⟦zu einem neuen Leben oder besseren Leben oder ähnlichen Leben⟧:'. Fix: s=93."
+ },
+ {
+  "where": "inquiry-sources-concepts INQUIRY_SOURCES_CONCEPTS.demo:difference.argument (own words)",
+  "kind": "retelling",
+  "what": "The own words retell a place that the form does not show: 'В первой песне зверей все вещи расходятся и снова встречаются, умирают и цветут вновь' / 'In the animals’ first song, all things separate and meet again, die and blossom anew' paraphrases III.13 de[24–25]. The form cites only de[60], de[65] (s=99–160) and Heraclitus B12.",
+  "evidence": "Form cites: III.13 u=[sid-f65d9dd3…] (= de[60], 'so dass alle diese Jahre sich selber gleich sind…'), III.13 u=[sid-53a3c22e…] s=99 e=160, {w:'heraclitus-book',loc:'B12'}. de[24]: 'Alles stirbt, Alles blüht wieder auf…'; de[25]: 'Alles scheidet, Alles grüsst sich wieder…'. Fix: cite de[24–25] or drop the paraphrase."
+ },
+ {
+  "where": "III.13 de[66] (row 64 = de[66,67] ↔ ru[64]); sampled: atlas-content NODE_CONTENT.same-life.perspectives[0].body cite 1, relation-inquiry atlas:same-life:develops:whole-part.grounds[0], atlas-routes RESEARCH_ROUTES[2].steps[0].body cite 1, inquiry-sources-concepts INQUIRY_SOURCES_CONCEPTS.same-life.argument cite 2; 30 cites in all end at de[66]",
+  "kind": "wrong-translation",
+  "what": "The Russian ends with the next sentence. The Russian translator merged de[66] and de[67] into one sentence, so every place that ends at de[66] also shows the content of uncited de[67] (great noon, Übermensch) in Russian. The German and English stop at de[66].",
+  "evidence": "Row 64 sentence pairs ru: [[[66,0,152],[67,0,128]],[[64,0,224]]]. Russian shown: '— я буду вечно возвращаться к той же самой жизни, в большом и малом, чтоб снова учить о вечном возвращении всех вещей, — — чтоб повторить слово о великом полдне земли и человека, чтоб опять возвестить людям о сверх человеке.' de[67] = '— dass ich wieder das Wort spreche vom grossen Erden- und Menschen-Mittage, dass ich wieder den Menschen den Übermenschen künde.' Either extend those places to de[67] or mark the Russian as wider than the place."
+ },
+ {
+  "where": "collection $.passages[89].readingSteps[1].body (metaphysics Γ.1 1003a, unit sid ord 19, s=474 e=597)",
+  "kind": "wrong-text",
+  "what": "The place drops the condition and turns a conditional into a flat claim. The Greek shown starts at the apodosis 'ἀνάγκη καὶ τὰ στοιχεῖα τοῦ ὄντος εἶναι μὴ κατὰ συμβεβηκὸς ἀλλʼ ᾗ ὄν· …'. The English shown keeps the condition: 'Hence if these principles were investigated by those also who…'.",
+  "evidence": "Just before s=474 the corpus unit has 'εἰ οὖν καὶ οἱ τὰ στοιχεῖα τῶν ὄντων ζητοῦντες ταύτας τὰς ἀρχὰς ἐζήτουν, ⟦ἀνάγκη …⟧'. Fix: start the place at 'εἰ οὖν'."
+ },
+ {
+  "where": "collection $.passages[204].body cite 4 (parmenides 135c–d, unit sid-6df5d515…, s=1328 e=1399)",
+  "kind": "wrong-place",
+  "what": "The place is the sentence after the one that makes the point. It shows the aside 'ἐνενόησα γὰρ καὶ πρῴην σου ἀκούων διαλεγομένου ἐνθάδε Ἀριστοτέλει τῷδε.' ('You see I noticed it when I heard you talking yesterday with Aristoteles here'), whose 'it' refers to the uncited sentence before it.",
+  "evidence": "Unit text [1199:1327] = 'πρῲ γάρ, εἰπεῖν, πρὶν γυμνασθῆναι, ὦ Σώκρατες, ὁρίζεσθαι ἐπιχειρεῖς καλόν τέ τι καὶ δίκαιον καὶ ἀγαθὸν καὶ ἓν ἕκαστον τῶν εἰδῶν.' The same passage’s readingSteps 'exercise' cites exactly 1199–1327 for this point. Fix: s=1199 e=1327 (or 1199–1399)."
+ },
+ {
+  "where": "collection $.passages[102].body cites 2 and 3 (lives X.148, KD 28, s=24780–24865 and 24867–24948)",
+  "kind": "wrong-translation",
+  "what": "One sentence is split into two cites, so the translation is shown twice. In the same form, both cites display the identical English KD 28 ('28. The same conviction which inspires confidence … nothing enhances our security so much as friendship.').",
+  "evidence": "alignment.json units[sid-13020b05…].t[retained-lives-eng2-102e405ff1f2]: both spans map to target sid-61221bb7… [49094, 49329]. Fix: one cite 24780–24948."
+ },
+ {
+  "where": "collection $.questions[25].body cite 5 (sophist 264b, s=558 e=613)",
+  "kind": "wrong-text",
+  "what": "Minor. The place ends in the middle of a comparison: 'κατανοεῖς οὖν ὅτι πρότερον ηὑρέθη ψευδὴς δόξα καὶ λόγος'. It cuts 'ἢ κατὰ τὴν προσδοκίαν…' ('sooner than we expected'), so 'πρότερον' reads as 'earlier' and the question loses its end. The English shows the whole sentence.",
+  "evidence": "Next words in the unit: 'ἢ κατὰ τὴν προσδοκίαν ἣν ἐφοβήθημεν ἄρτι, μὴ παντάπασιν ἀνήνυτον ἔργον ἐπιβαλλοίμεθα ζητοῦντες αὐτό;'"
+ },
+ {
+  "where": "collection $.branches[8].summary cite 2 (phaedo 64c, s=1422 e=1493)",
+  "kind": "wrong-translation",
+  "what": "Minor. The Greek is only the second limb 'χωρὶς δὲ τὴν ψυχὴν … αὐτὴν καθ’ αὑτὴν εἶναι;' Its subject ('καὶ εἶναι τοῦτο τὸ τεθνάναι, χωρὶς μὲν …') is cut. The English also starts with the preceding Greek question, because Fowler merged the two: 'We believe, do we not, that death is the separation of the soul from the body, and that…'.",
+  "evidence": "Greek before the place: 'ἆρα μὴ ἄλλο τι ἢ τὴν τῆς ψυχῆς ἀπὸ τοῦ σώματος ἀπαλλαγήν; καὶ εἶναι τοῦτο τὸ τεθνάναι, χωρὶς μὲν ἀπὸ τῆς ψυχῆς ἀπαλλαγὲν αὐτὸ καθ’ αὑτὸ τὸ σῶμα γεγονέναι,'"
+ },
+ {
+  "where": "collection $.entities[63].workMap.stages[3].body cite 6 (phaedo 81b, s=402 e=516)",
+  "kind": "wrong-text",
+  "what": "Minor. The Greek is a bare 'if'-clause with no main clause: 'ἐὰν δέ γε οἶμαι μεμιασμένη καὶ ἀκάθαρτος τοῦ σώματος ἀπαλλάττηται, ἅτε τῷ σώματι ἀεὶ συνοῦσα καὶ τοῦτο θεραπεύουσα'. The English shows the whole period, about four times as long, ending with '…do you think a soul in this condition will depart pure and uncontaminated?'",
+  "evidence": "Unit continues 'καὶ ἐρῶσα καὶ γοητευομένη ὑπ’ αὐτοῦ …' up to the question."
+ },
+ {
+  "where": "collection $.branches[14].edges[12].body cite 1 (phaedrus 249d, s=1649 e=1767)",
+  "kind": "wrong-text",
+  "what": "Minor. The place starts with a relative pronoun ('ἣν ὅταν…') whose antecedent 'τῆς τετάρτης μανίας' is cut. It ends before the turn 'ἀδυνατῶν δέ' ('but unable'), so the Greek suggests a flight that the text denies.",
+  "evidence": "Unit: '…περὶ τῆς τετάρτης μανίας—⟦ἣν ὅταν … προθυμούμενος ἀναπτέσθαι⟧, ἀδυνατῶν δέ, ὄρνιθος δίκην βλέπων ἄνω…'"
+ },
+ {
+  "where": "collection $.branches[8].edges[5].body cite 2 (lives X.124, s=11012 e=11049)",
+  "kind": "wrong-translation",
+  "what": "The English ends with the next Greek sentence. Hicks joins 'στέρησις δέ ἐστιν αἰσθήσεως ὁ θάνατος.' and 'ὅθεν γνῶσις ὀρθὴ …' with a semicolon, so the reader gets '…therefore a right understanding that death is nothing to us makes the mortality of life enjoyable…'.",
+  "evidence": "Greek: '⟦στέρησις δέ ἐστιν αἰσθήσεως ὁ θάνατος⟧. ὅθεν γνῶσις ὀρθὴ …'. English shown runs from 'Accustom thyself…' to '…the yearning after immortality.'"
+ },
+ {
+  "where": "collection $.entities[76].workMap.stages[1].body cite 4 (enchiridion 4, s=380 e=584)",
+  "kind": "wrong-translation",
+  "what": "Both translations start with the preceding Greek sentence 'καὶ ὡσαύτως ἐφʼ ἑκάστου ἔργου.' The English (Long) shows 'And so you will do in every act: for thus…'. The Spanish (Brum) shows 'Sigue esta máxima en todo lo que emprendes; …' and also begins with a stray closing guillemet '»' left over from the previous sentence.",
+  "evidence": "Spanish range starts at '»\\nSigue esta máxima…' (target span in alignment.json for retained-enchiridion-es-brum1888)."
+ },
+ {
+  "where": "collection $.entities[28].body cite 4 (de-stoicorum-repugnantiis 1035c, s=1493 e=1678)",
+  "kind": "wrong-translation",
+  "what": "The English starts with the neighbouring quotation from the third book On the Gods: 'Hear what he says of this in his Third Book of the Gods: For there is not to be found any other beginning … good and evil. And again, in his Natural Positions he says: …'. The Greek place is only the Physical Theses quotation.",
+  "evidence": "The Greek edition has no stop before the place ('…περὶ ἀγαθῶν καὶ κακῶν πάλιν ἐν ταῖς Φυσικαῖς Θέσεσιν ⟦οὐ γὰρ ἔστιν ἄλλως …⟧'), so the English sentence group spans both quotations."
+ },
+ {
+  "where": "collection $.terms[28].uses[1].body cite 2 (ethics II.9 1109a, s=448 e=519)",
+  "kind": "wrong-translation",
+  "what": "The English starts two sentences early: 'This is why it is a hard task to be good, for it is hard to find the middle point…'. The Greek place is only 'τὸ δʼ ᾧ καὶ ὅσον καὶ ὅτε καὶ οὗ ἕνεκα καὶ ὥς, οὐκέτι παντὸς οὐδὲ ῥᾴδιον'.",
+  "evidence": "Greek has 'διὸ καὶ ἔργον ἐστὶ σπουδαῖον εἶναι.' as its own sentence before 'ἐν ἑκάστῳ γὰρ …'; Rackham joins them."
+ },
+ {
+  "where": "antiquity fragments.json de-anima II.1 412b17 and II.1 412b20-22 (sampled); same method in every de-anima place (e.g. I.1 402a6-7, II.1 412a22-23, III.4 429a20-22)",
+  "kind": "wrong-text",
+  "what": "The Greek places are cut at Bekker line ends, not at sense boundaries. They start and end inside sentences, while the English gives whole sentences, so the two do not cover the same place. 412b17 shows only 'ἀρχὴν κινήσεως καὶ στάσεως ἐν ἑαυτῷ. Θεωρεῖν δὲ καὶ'. 412b20-22 starts with 'κατὰ τὸν λόγον.' and ends with 'Δεῖ δὴ λαβεῖν τὸ ἐπὶ μέρους ἐφ’', but its English adds the whole sentence before ('For, if the eye were an animal…') and the whole sentence after ('What has been said of the part must be understood to apply to the whole living body…'). 413a2-3 is fine. The forms cite these places without s/e, so the ragged Greek is what readers see.",
+  "evidence": "The words match the First1KGreek TEI (tlg0086.tlg002.1st1K-grc1) and the Hicks 1907 OCR (IA aristotledeanima0000rdhi). TEI context: '…ἀλλὰ φυσικοῦ τοιουδὶ ἔχοντος ⟦ἀρχὴν κινήσεως καὶ στάσεως ἐν ἑαυτῷ. Θεωρεῖν δὲ καὶ⟧ ἐπὶ τῶν μερῶν δεῖ τὸ λεχθέν.' Other places end 'ἐν γὰρ', 'Ὁ ἄρα καλούμενος τῆς ψυχῆς νοῦς', 'τήν τε φύσιν'. Suggest: keep the Bekker labels, but give the Greek as whole sentences (or the clause the line range names) and narrow the English to match."
+ },
+ {
+  "where": "antiquity fragments.json works.outlines.absent[ru] (Брюллова-Шаскольская 1913)",
+  "kind": "rights",
+  "what": "'Allowed but not obtained' overlooks ГК РФ ст. 1281 п. 4. For an author who was repressed and posthumously rehabilitated, the 70 years run from 1 January of the year after rehabilitation. She was shot in 1937 and rehabilitated 'in the 1950s', year not given. If that was 1956 or later, the translation is protected in Russia until the end of rehabilitation year + 70 (i.e. 2026–2029). Nothing is placed now, but the note's advice that an RSL scan 'would make all Book I places fillable' is not safe as written. Find the rehabilitation year first; until then, use short quotation only.",
+  "evidence": "ГК РФ ст. 1281 п. 4 ('Если автор произведения был репрессирован и посмертно реабилитирован…'; zakonrf.info/gk/1281). SPbU religious-studies dictionary: shot 9 Oct 1937, 'rehabilitated in 1950-s' (relstud-hist.spbu.ru/en/articles/en-brullova-saskolskaa-nadezda-vladimirovna). Transitional rule 231-ФЗ ст. 6: a 50-year term running from 1957 had not expired by 1993."
+ },
+ {
+  "where": "antiquity fragments.json works.de-anima.absent[ru]",
+  "kind": "rights",
+  "what": "Possibly too cautious: the note considers only П. С. Попов (1937, protected). It does not mention the first Russian translation, by В. А. Снегирёв (1841–1889), which is public domain everywhere and could be placed if a legitimate copy can be found. No copy turned up in an Internet Archive search; the note should say it was looked for.",
+  "evidence": "aristotle.rhga.ru PDF 'Русские переводы трактата Аристотеля о душе (В. А. Снегирев и П. С. Попов)'; azbyka.ru 'Русское богословие: очерки и портреты' (essay on Вениамин Алексеевич Снегирев, 1841–1889, who translated «О душе», the first Russian rendering). IA advancedsearch for the title or translator: no hits."
+ },
+ {
+  "where": "zarathustra fragments.json works.heraclitus-book.witnesses.ru (Nilender)",
+  "kind": "other",
+  "what": "Not in the place sample; noticed while reading the rights records. The record itself says the wording was never checked against the 1910 print and that fr. 91 has 'состабляется' ('probably a transcription slip… check before publishing'), yet the text is published. The rights reasoning (short quotation, translator died 1965) is sound.",
+  "evidence": "rights.reasoning of the ru witness."
+ }
+]

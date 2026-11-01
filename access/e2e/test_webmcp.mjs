@@ -346,9 +346,11 @@ test('test_fragment_reader_close_navigation_and_disposal', {timeout:90000}, asyn
     assert.equal(await page.locator('.ps-parallel').count(),0);
     await page.evaluate(async()=>{
       const {createFragments}=await import('/static/src/public-research/fragments.mjs');
-      const {NODE_CONTENT}=await import('/static/constructor/atlas-content.mjs');
       const host=document.createElement('section');host.id='source-question';document.body.append(host);
-      createFragments({locale:()=> 'en',t:key=>key}).render(host,NODE_CONTENT['demo:creation'].question);
+      // Keep the citation-only question case even when the stand's authored
+      // question changes: this is the original witness location used here.
+      const question={cite:[{w:'also-sprach-zarathustra',c:'I.02',u:['tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9','tos.text-unit.sid-f9c4ff1773a49108cc92e6a5d92d12e9'],s:86}]};
+      createFragments({locale:()=> 'en',t:key=>key}).render(host,question);
     });
     await page.locator('#source-question .ps-fragment:not([aria-busy]) .ps-fragment-text').waitFor({state:'visible'});
     assert.ok((await page.locator('#source-question .ps-fragment-text').innerText()).trim());

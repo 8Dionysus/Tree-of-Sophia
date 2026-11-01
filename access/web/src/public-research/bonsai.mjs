@@ -10,29 +10,38 @@ import zarathustraManifest from '../../../../bonsai/zarathustra/bonsai.json' wit
 
 // A stand loads its own bonsai when it opens, and nothing of another's: the
 // manifests are small and always here, the modules come with their stand.
+// Vite transforms dynamic JSON imports into JavaScript modules in development.
 const json=module=>module.default;
 // The Antiquity collection also serves the shared library of another stand, which needs nothing else of Antiquity's.
 let collectionLoad=null;
 /** The Antiquity collection alone, loaded once. */
 export function loadAntiquityCollection(){
-  collectionLoad??=import('../../../../bonsai/antiquity/collection.json',{with:{type:'json'}}).then(json).catch(error=>{collectionLoad=null;throw error;});
+  collectionLoad??=import('../../../../bonsai/antiquity/collection.json').then(json).catch(error=>{collectionLoad=null;throw error;});
   return collectionLoad;
 }
 const LOADERS=Object.freeze({
   antiquity:()=>Promise.all([
     loadAntiquityCollection().then(collection=>({default:collection})),
-    import('../../../../bonsai/antiquity/first-branches.json',{with:{type:'json'}}),
-    import('../../../../bonsai/antiquity/chronology.json',{with:{type:'json'}}),
-    import('../../../../bonsai/antiquity/places.json',{with:{type:'json'}}),
-    import('../../../../bonsai/antiquity/identities.json',{with:{type:'json'}}),
-    import('../../../../bonsai/shared/coastlines.json',{with:{type:'json'}}),
+    import('../../../../bonsai/antiquity/first-branches.json'),
+    import('../../../../bonsai/antiquity/chronology.json'),
+    import('../../../../bonsai/antiquity/places.json'),
+    import('../../../../bonsai/antiquity/identities.json'),
+    import('../../../../bonsai/shared/coastlines.json'),
   ]).then(([collection,firstBranches,chronology,places,identities,basemap])=>({collection:json(collection),firstBranches:json(firstBranches),chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap)})),
   zarathustra:()=>Promise.all([
-    import('../../../../bonsai/zarathustra/chronology.json',{with:{type:'json'}}),
-    import('../../../../bonsai/zarathustra/places.json',{with:{type:'json'}}),
-    import('../../../../bonsai/zarathustra/identities.json',{with:{type:'json'}}),
-    import('../../../../bonsai/shared/coastlines.json',{with:{type:'json'}}),
-  ]).then(([chronology,places,identities,basemap])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap)})),
+    import('../../../../bonsai/zarathustra/chronology.json'),
+    import('../../../../bonsai/zarathustra/places.json'),
+    import('../../../../bonsai/zarathustra/identities.json'),
+    import('../../../../bonsai/shared/coastlines.json'),
+    Promise.all([
+      import('../../../../bonsai/zarathustra/core/core.json'),
+      import('../../../../bonsai/zarathustra/core/concepts.json'),
+      import('../../../../bonsai/zarathustra/core/figures.json'),
+      import('../../../../bonsai/zarathustra/core/links.json'),
+      import('../../../../bonsai/zarathustra/core/chains.json'),
+      import('../../../../bonsai/zarathustra/core/proposed.json'),
+    ]).then(([manifest,concepts,figures,links,chains,proposed])=>({manifest:json(manifest),concepts:json(concepts),figures:json(figures),links:json(links),chains:json(chains),proposed:json(proposed)})),
+  ]).then(([chronology,places,identities,basemap,core])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core})),
 });
 const BONSAI={
   antiquity:Object.freeze({manifest:antiquityManifest}),

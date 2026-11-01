@@ -12,6 +12,12 @@ export const RELATIONS={
  questions:{ru:'Ставит вопрос',en:'Questions',color:'#e5a18f'},contrasts:{ru:'Противостоит',en:'Contrasts',color:'#e09591'},echoes:{ru:'Перекликается',en:'Echoes',color:'#8ecbc4'},
  develops:{ru:'Развивает',en:'Develops',color:'#e0c48c'},compares:{ru:'Сопоставляет',en:'Compares',color:'#96b7e4'},translates:{ru:'Переводит',en:'Translates',color:'#8ebdc9'},relates:{ru:'Связано с',en:'Relates to',color:'#a5b7cf'}
 };
+const FOCUS_KINDS={meaning:['concept','interpretation','question','dossier'],sources:['work','part','chapter','fragment','dossier'],tensions:['question','interpretation'],images:['symbol'],history:['figure','tradition']};
+/** Whether a lens has stars of its own in the library: a lens with none is not offered. */
+export function lensHasStars(library,lens){
+ if(lens==='tree'||!FOCUS_KINDS[lens])return true;
+ return (library?.nodes??[]).some(node=>FOCUS_KINDS[lens].includes(node.kind)&&(lens!=='history'||node.cluster==='echoes'));
+}
 export function makeLensView(state,library,{lens='tree',assembly=null,enabled=null,neighborhood=null,path=null}={}){
  const materials=new Map(library.nodes.map(n=>[n.id,n])),byId=new Map(state.nodes.map(n=>[n.id,n]));
  let ids=new Set(state.nodes.map(n=>n.id));

@@ -10,7 +10,7 @@ the Tree has moved since.
 | Bonsai | Stand | Holds |
 | --- | --- | --- |
 | [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map |
-| [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
+| [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
 | [`shared/`](shared/coastlines.json) | both | Natural Earth coastlines under the map of places |
 
 The stands under [`access/web/src/public-research/`](../access/web/src/public-research/)
@@ -114,7 +114,9 @@ names a place in the **original**:
 
 The place in a translation is never chosen by hand: the stand finds it through
 the alignment of the witnesses, so a new translation needs an alignment, not
-another round of hand-picked paragraphs.
+another round of hand-picked paragraphs. A cited span runs over whole sentences
+of the original. The pass that took both stands from retelling to citation
+keeps its briefs, records and tools in [review/](review/README.md).
 
 ### Witnesses (`tos.bonsai.witnesses.v1`)
 
@@ -246,6 +248,30 @@ of the collection is a problem articulated by its question, with the positions
 that address it; a term is a lexeme and each of its uses an occurrence of it.
 The first branches repeat the collection's branches and are typed there.
 Nothing here is admitted to the Tree.
+
+### Philosophical core (`tos.bonsai.core.v1`)
+
+`zarathustra/core/` holds the thought of the book as [CORE.md](CORE.md)
+describes it. `voices.json` says who speaks, sings, narrates or dreams in every
+paragraph and to whom, embedded speech with the voice that carries it.
+`figures.json` holds the figures of the book's world with their names,
+appearances, formula and position; `concepts.json` each concept with the Tree's
+question, the book's formula in the voice that says it, the thesis, the book's
+answer, dimensions, development and the voices against it; `occurrences/` the
+places of each concept's words. `links.json` and `chains.json` hold the claims
+between them, named by the book's verbs, each with its places, the maker's
+status, the independent reviewer's verdict and the stand's admission (`map`,
+`held`, `rejected`); a revision keeps the maker's wording beside it.
+`proposed.json` lists the nodes the grown nodes propose. `control.json` holds
+the cases the core must keep: a figure's sentence stays in its voice, embedded
+speech stays with its speaker, a repeated scene keeps both outcomes.
+
+The core is assembled by
+[`review/zarathustra-graph/graph-words/assemble.py`](review/zarathustra-graph/graph-words/assemble.py)
+from the grown nodes and the verdicts. The check reads every place against the
+witnesses, every claim against its statuses, every registry relation against its
+domain and range, and runs the control cases. Nothing here is admitted to the
+Tree.
 
 ### Graft map (`tos.bonsai.identities.v1`)
 

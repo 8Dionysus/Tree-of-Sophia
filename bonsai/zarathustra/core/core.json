@@ -1,0 +1,89 @@
+{
+ "schema": "tos.bonsai.core.v1",
+ "work": "also-sprach-zarathustra",
+ "spec": "bonsai/CORE.md",
+ "posture": {
+  "ru": "Предложение стенда: читается стендом, экспортируется кандидатами, в ToS не записывается.",
+  "en": "The stand's proposal: read by the stand, exported as candidates, never written into ToS."
+ },
+ "makers": [
+  {
+   "id": "sol-run2",
+   "model": "gpt-6.1-sol",
+   "effort": "max",
+   "date": "2026-10-31",
+   "briefs": [
+    "bonsai/review/zarathustra-graph/graph-words/brief-concepts.md",
+    "bonsai/review/zarathustra-graph/graph-words/brief-characters.md"
+   ],
+   "made": [
+    "voices",
+    "concepts",
+    "figures",
+    "links",
+    "chains",
+    "occurrences"
+   ]
+  }
+ ],
+ "reviewers": [
+  {
+   "id": "terra-verify",
+   "model": "gpt-6.1-terra",
+   "effort": "xhigh",
+   "date": "2026-11-01",
+   "method": "bonsai/review/zarathustra-graph/graph-words/verify-batch.py",
+   "reads": "the cards and the places of the book, without the maker's reasoning"
+  }
+ ],
+ "files": [
+  "voices.json",
+  "concepts.json",
+  "figures.json",
+  "links.json",
+  "chains.json",
+  "proposed.json",
+  "occurrences/<concept>.json",
+  "control.json"
+ ],
+ "counts": {
+  "voices": 775,
+  "chapters": 81,
+  "concepts": 30,
+  "figures": 33,
+  "links": 400,
+  "chains": 97,
+  "proposed": 28,
+  "occurrences": 3100,
+  "verdicts": {
+   "links": {
+    "revise": 123,
+    "confirmed": 227,
+    "reconstruction": 47,
+    "rejected": 3
+   },
+   "chains": {
+    "revise": 63,
+    "reconstruction": 27,
+    "confirmed": 7
+   },
+   "formulas": {
+    "keep": 34,
+    "better": 29
+   }
+  },
+  "admission": {
+   "links": {
+    "map": 397,
+    "held": 0,
+    "rejected": 3
+   },
+   "chains": {
+    "map": 97,
+    "held": 0,
+    "rejected": 0
+   }
+  },
+  "english_missing": 0
+ }
+}

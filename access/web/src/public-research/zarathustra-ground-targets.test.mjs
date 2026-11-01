@@ -55,16 +55,17 @@ describe('public Zarathustra route-step grounds',()=>{
       });
     }
   });
-  it('keeps the inscription before the dwarf and preserves an external author',()=>{
+  it('opens the place each step cites, in the order the steps read the scene',()=>{
     const ordinal=(route,index,lang)=>{
       const address=resolve(route,index,lang).address;
       return published.versions.find(item=>item.id===address.versionId).units.find(unit=>unit.id===address.unitId).ordinal;
     };
+    // The inscription of the gateway comes before the contradiction of its two paths.
     expect([ordinal('moment-time',0,'ru'),ordinal('moment-time',0,'en')]).toEqual([1848,2037]);
-    expect([ordinal('affirmation-pain-action',2,'ru'),ordinal('affirmation-pain-action',2,'en')]).toEqual([3642,3885]);
-    expect(resolve('repetition-difference',2,'en')).toEqual({kind:'external',ref:'deleuze-nietzsche-return'});
-    expect(resolve('repetition-difference',3,'en')).toEqual({kind:'external',ref:'deleuze-nietzsche-return',fragment:'#page=12'});
-    expect(resolve('thinkers-necessity',4,'ru')).toEqual({kind:'external',ref:'spinoza1d7'});
+    expect([ordinal('moment-time',2,'ru'),ordinal('moment-time',2,'en')]).toEqual([1850,2039]);
+    // The shepherd's struggle comes before the riddle of who he is.
+    expect(ordinal('image-experience',0,'ru')).toBeLessThan(ordinal('image-experience',2,'ru'));
+    expect([ordinal('affirmation-pain-action',0,'ru'),ordinal('affirmation-pain-action',0,'en')]).toEqual([3650,3893]);
   });
   it('does not claim an exact address against a changed edition revision',()=>{
     const stale=structuredClone(published);stale.versions.find(version=>version.language==='de').revision='f'.repeat(64);

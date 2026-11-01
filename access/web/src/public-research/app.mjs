@@ -507,6 +507,7 @@ questionHistory.addEventListener('toggle', () => { if(questionHistory.open)void 
 if(import.meta.hot)import.meta.hot.dispose(disposeApp);
 
 void start().catch(error => {
+  console.error('Public reader startup failed',error);
   const message = h('p', 'pr-error', english ? localeText('The reader could not start. Reload the page to try again.',locale) : 'Не удалось запустить читатель. Перезагрузите страницу.');
   readerRoot.append(message);
 });

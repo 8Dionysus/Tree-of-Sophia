@@ -81,6 +81,7 @@ export function planeOfPlaces({stars=[],placeOf=()=>null,places={},width=1000,sp
   return {
     kind:'plane',positions,toXY,bounds:{x:[xMin,outside.length?outsideX+48:xMax],y:[yMin,yMax]},map:{x:[xMin,xMax],y:[yMin,yMax]},rows:{axis:22},strip:26,
     placeOf:id=>at.get(id)??null,isOutside:id=>outside.includes(id),counts,used,
+    members:place=>[...at].filter(([,entry])=>entry.place===place).map(([id])=>id),
     labels(locale){
       const en=copyLocale(locale)==='en',out=[];
       // The graticule: meridians named on the strip above the map, parallels at its left.
@@ -96,7 +97,7 @@ export function planeOfPlaces({stars=[],placeOf=()=>null,places={},width=1000,sp
       // The place with more stars names itself first; a place known only as where the author lived speaks more quietly.
       for(const id of [...used].sort((a,b)=>counts.get(b)-counts.get(a))){
         const [x,y]=toXY(places[id].point),activity=[...at.values()].every(item=>item.place!==id||item.basis==='activity');
-        out.push({id:`space:place:${id}`,variant:'place',title:`${pick(places[id].label,locale)} · ${counts.get(id)}`,subtitle:'',center:[x,y,0],...(activity?{tone:'quiet',hint:en?localeText('Where the author lived',locale):'Здесь жил автор'}:{})});
+        out.push({id:`space:place:${id}`,ref:id,variant:'place',title:`${pick(places[id].label,locale)} · ${counts.get(id)}`,subtitle:'',center:[x,y,0],...(activity?{tone:'quiet',hint:en?localeText('Where the author lived',locale):'Здесь жил автор'}:{})});
       }
       if(outside.length){
         out.push({id:'space:rule:outside',variant:'rule',tone:'strong',title:'',subtitle:'',center:[(xMax+outsideX)/2,0,0]});

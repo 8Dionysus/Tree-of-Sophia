@@ -5,7 +5,7 @@ import {NODE_CONTENT} from './atlas-content.mjs';
 import {createConstructorModel} from './model.mjs';
 import {bindResearchRoutes,routeGraphInput} from './journey-state.mjs';
 const bi=text=>({ru:text,en:text});
-const ids=['work','chapter-p3.r2','moment','chapter-p3.r13','all-things','same-life','dossier'];
+const ids=['work','chapter-p3.r2','moment','chapter-p3.r13','all-things','same-life'];
 function sourceLibrary(){
  return {schema:'tos_constructor_library_v1',rootId:'work',fingerprint:'a'.repeat(64),nodes:[...ids,'unlisted-source'].map(id=>({id,kind:id==='work'?'work':'fragment',parentId:id==='work'?null:'work',title:bi(id),body:bi('Original source body'),quote:bi('Bound source quote'),exact:{de:'Exact German bytes',ru:'Exact Russian bytes'},sourceRefs:[{label:'Source address',ref:'source:'+id}],speaker:bi('Source speaker')}))};
 }

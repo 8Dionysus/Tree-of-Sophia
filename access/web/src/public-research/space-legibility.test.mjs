@@ -125,7 +125,9 @@ describe('the ladder of interpretation and the forms of stars',()=>{
 describe('the voices of a branch or route',()=>{
   it('names the authors a Zarathustra route passes through, in order of appearance',()=>{
     const route=RESEARCH_ROUTES.find(item=>item.id==='fate-given-created');
-    expect(routeVoices(route,{references:PRIMARY_SOURCES,locale:'ru'})).toEqual(['Фридрих Ницше','Альбер Камю']);
+    expect(routeVoices(route,{references:PRIMARY_SOURCES,locale:'ru'})).toEqual(['Фридрих Ницше']);
+    // A route that reads another book names its author after the first, in the order the steps read them.
+    expect(routeVoices({steps:[{grounds:[{ref:'z-happy-isles'}]},{grounds:[{ref:'camus-sisyphus'},{ref:'z-redemption'}]}]},{references:PRIMARY_SOURCES,locale:'ru'})).toEqual(['Фридрих Ницше','Альбер Камю']);
     for(const item of RESEARCH_ROUTES)expect(routeVoices(item,{references:PRIMARY_SOURCES,locale:'en'}).length,item.id).toBeGreaterThan(0);
   });
   it('names the authors of every Antiquity branch from the passages its moves read',()=>{

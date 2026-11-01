@@ -76,9 +76,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const fogBack=cloudTexture([76,102,151],17),fogFront=cloudTexture([111,91,136],53);
 
   const restYaw=Number.isFinite(rest?.yaw)?rest.yaw:0,restPitch=Number.isFinite(rest?.pitch)?rest.pitch:-.055;
-  const YAW=[-.9,.9],PITCH=[-.6,.6];
+  // The view turns all the way round and over the top and the bottom, stopping short of the poles,
+  // where up would flip. A return to a pose takes the shorter way round.
+  const PITCH=[-1.45,1.45],TURN=Math.PI*2;
+  const nearestTurn=(target,from)=>target+TURN*Math.round((from-target)/TURN);
   let w=1,h=1,dpr=1,base=1,skyTime=0,yaw=restYaw,pitch=restPitch,zoom=1;
   let tyaw=restYaw,tpitch=restPitch,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0,revealId=null,stretchY=1,tstretchY=1,measured=null;
+  // The fit the framing chose for the space seen from the front, and the pose and layout the turned fit was last worked out for.
+  let frontFit=0,fittedFor='',layoutVersion=0,neighbourhoodPending=null;
   // A turn keeps its last speed when let go and coasts to rest; a pose heard last is not told again.
   let velocity=null,lastTurn=null,introDone=false,introPending=false,introUntil=0,turnShownUntil=0,reveal=0,heardPose='',framedOnce=false;
   let skyCos=1,skySin=0,skyPitchCos=1,skyPitchSin=0,last=0,lastFrame=0,raf=0,hover=null,playing=!reduced.matches&&!softwareRenderer,drag=null,disposed=false;
@@ -153,10 +158,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
           if(pinching(e))return;
           if(nodeDrag&&e.pointerId===nodeDrag.id){
             const dx=e.clientX-nodeDrag.x,dy=e.clientY-nodeDrag.y;if(Math.hypot(dx,dy)<5&&!nodeDrag.moved)return;nodeDrag.moved=true;
-            const vx=dx/Math.max(.1,n.screen.sX??n.screen.s),vy=dy/Math.max(.1,n.screen.sY??n.screen.s),c=Math.cos(yaw),ss=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
-            // In a space read in depth a star keeps its depth and moves in its own plane.
-            if(planarMoves){const ax=vx/Math.max(.2,c),ay=(vy+ax*ss*sp)/Math.max(.2,cp);n.p=[nodeDrag.p[0]+ax,nodeDrag.p[1]+ay,nodeDrag.p[2]];}
-            else n.p=[nodeDrag.p[0]+vx*c-vy*ss*sp,nodeDrag.p[1]+vy*cp,nodeDrag.p[2]-vx*ss-vy*c*sp];
+            // The pointer's move in the turned view, in the space's own units before it was widened.
+            const u=dx/Math.max(.01,(n.screen.k??base*zoom)*fitScale),v=dy/Math.max(.01,(n.screen.kY??base*zoom)*fitScale),sx=n.screen.stretchX??1,sy=stretchY||1;
+            const c=Math.cos(yaw),ss=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch),edge=value=>Math.sign(value||1)*Math.max(.2,Math.abs(value));
+            // In a space read in depth a star keeps its depth and moves in its own plane, also when that plane is seen from behind.
+            if(planarMoves){const ax=u/(sx*edge(c)),ay=(v+sx*ax*ss*sp)/(sy*Math.max(.2,cp));n.p=[nodeDrag.p[0]+ax,nodeDrag.p[1]+ay,nodeDrag.p[2]];}
+            else n.p=[nodeDrag.p[0]+(u*c-v*ss*sp)/sx,nodeDrag.p[1]+v*cp/sy,nodeDrag.p[2]-u*ss-v*c*sp];
             n.target=[...n.p];kick();return;
           }
           if(!press||e.pointerId!==press.id)return;
@@ -180,6 +187,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       n.titleText=labels[item.id]??item.title??item.id;n.subtitle=typeof item.subtitle==='string'?item.subtitle:'';
       n.labelMaxWidth=Number.isFinite(item.labelMaxWidth)?Math.max(80,Math.min(320,item.labelMaxWidth)):null;n.labelLines=item.labelLines===2?2:1;
       const clampStyle={whiteSpace:n.labelLines>1?'normal':'',display:n.labelLines>1?'-webkit-box':'',webkitBoxOrient:n.labelLines>1?'vertical':'',webkitLineClamp:n.labelLines>1?String(n.labelLines):''};
+      // How the name is clamped when it is not shown whole.
+      n.clampStyle=clampStyle;n.fullShown=false;
       if(n.subtitle){
         // A second line names the source; the name keeps its own clamp.
         if(!n.titleEl){n.titleEl=document.createElement('b');n.titleEl.className='star-title';n.subEl=document.createElement('small');n.subEl.className='star-sub';}
@@ -192,7 +201,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return n;
     });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
-    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     backdrop=Array.isArray(state.backdrop)?state.backdrop.filter(line=>Array.isArray(line)&&line.length>1):[];
     // A space read in depth may lay its stars on planes, each at its own depth and named at a corner.
@@ -204,7 +213,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     });oldPlanes.forEach(plane=>plane.el.remove());
     updateThreads();
     if(!nodes.some(n=>n.id===hover))hover=null;if(!edges.some(e=>e.id===hoverEdge))hoverEdge=null;
-    measureLabels=true;resize();
+    layoutVersion++;measureLabels=true;resize();
   }
   // Threads lead from the chosen star into the dark, toward stars the space does not show; each ends in a small door.
   // The page says which threads a star has; they follow the chosen star wherever it is chosen from.
@@ -219,22 +228,48 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // A thread's door comes right after its star in the keyboard's order.
     let after=nodes.find(n=>n.id===selectedId)?.el;for(const thread of threads)if(after?.isConnected){if(after.nextSibling!==thread.el)after.after(thread.el);after=thread.el;}
   }
+  // How much wider than the atlas's own proportion the free area is. A plane measures both axes in one unit,
+  // so it is never widened; other layouts fill a wide viewport.
+  const widen=(area=viewport)=>measured?.axes==='xy'?1:clamp(((area.right-area.left)/Math.max(1,area.bottom-area.top))/(880/540),1,2.1);
   function project([x,y,z]) {
-    const c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
-    x=(x-center[0])*fitScale;y=(y-center[1])*fitScale;z=(z-center[2])*fitScale;
-    const rx=x*c-z*s,rz=x*s+z*c,ry=y*cp-rz*sp,zz=y*sp+rz*cp,depth=FOCAL/Math.max(130,FOCAL-zz);
-    // Fill a wide viewport with the atlas while stars and atmosphere keep their shape.
-    // A plane measures both axes in one unit, so it is never stretched; other layouts fill a wide viewport.
-    const plane=measured?.axes==='xy',stretchX=plane?1:clamp(((viewport.right-viewport.left)/Math.max(1,viewport.bottom-viewport.top))/(880/540),1,2.1),scale=base*fitScale*zoom*depth;
+    const c=Math.cos(yaw),s=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch),stretchX=widen();
+    // The space is widened in its own coordinates, before it turns, so that a turn moves it as one rigid body
+    // and never stretches what comes round from the depth.
+    x=(x-center[0])*fitScale*stretchX;y=(y-center[1])*fitScale*stretchY;z=(z-center[2])*fitScale;
+    const rx=x*c-z*s,rz=x*s+z*c,ry=y*cp-rz*sp,zz=y*sp+rz*cp,depth=FOCAL/Math.max(130,FOCAL-zz),scale=base*fitScale*zoom*depth;
     // A scale zooms and pans along its axis only and its rows keep their height; a plane zooms and pans both ways.
     const scaleOnly=measured?.axes==='x',zoomY=scaleOnly?1:zoom;
-    return {x:(viewport.left+viewport.right)*.5+rx*base*zoom*depth*stretchX+pan.x,y:(viewport.top+viewport.bottom)*.5+ry*base*zoomY*depth*stretchY+(scaleOnly?0:pan.y),s:scale,sX:scale*stretchX,sY:base*fitScale*zoomY*depth*stretchY,d:depth};
+    return {x:(viewport.left+viewport.right)*.5+rx*base*zoom*depth+pan.x,y:(viewport.top+viewport.bottom)*.5+ry*base*zoomY*depth+(scaleOnly?0:pan.y),s:scale,sX:scale*stretchX,sY:base*fitScale*zoomY*depth*stretchY,k:base*zoom*depth,kY:base*zoomY*depth,stretchX,d:depth};
+  }
+  // The fit that keeps the whole space in the free area as it is turned: the front framing's fit, made smaller
+  // where the turned space is wider, taller or deeper than the front one. The space never grows past the front fit,
+  // so a flat layout seen edge-on keeps its scale.
+  function turnFit(){
+    if(measured||!frontFit||!nodes.length)return;
+    const key=`${tyaw.toFixed(3)},${tpitch.toFixed(3)},${layoutVersion},${frontFit},${targetCenter.join(',')},${Object.values(targetViewport).map(v=>v.toFixed(0)).join(',')}`;
+    if(key===fittedFor)return;fittedFor=key;
+    const c=Math.cos(tyaw),s=Math.sin(tyaw),cp=Math.cos(tpitch),sp=Math.sin(tpitch),sx=widen(targetViewport);
+    const low=[Infinity,Infinity,Infinity],high=[-Infinity,-Infinity,-Infinity],points=[];
+    for(const n of nodes){
+      const x=(n.target[0]-targetCenter[0])*sx,y=n.target[1]-targetCenter[1],z=n.target[2]-targetCenter[2];
+      const rx=x*c-z*s,rz=x*s+z*c,turned=[rx,y*cp-rz*sp,y*sp+rz*cp];points.push(turned);
+      for(let i=0;i<3;i++){low[i]=Math.min(low[i],turned[i]);high[i]=Math.max(high[i],turned[i]);}
+    }
+    const [dx,dy,dz]=[0,1,2].map(i=>high[i]-low[i]);
+    let fit=Math.min(frontFit,810*sx/Math.max(510*sx,dx),455/Math.max(285,dy),900/Math.max(560,dz));
+    // What comes nearer is drawn larger: the fit narrows until the nearer side fits as well.
+    for(let pass=0;pass<2;pass++){
+      let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+      for(const [rx,ry,zz] of points){const d=FOCAL/Math.max(130,FOCAL-zz*fit);x0=Math.min(x0,rx*fit*d);x1=Math.max(x1,rx*fit*d);y0=Math.min(y0,ry*fit*d);y1=Math.max(y1,ry*fit*d);}
+      fit*=Math.min(1,810*sx/Math.max(1,x1-x0),455/Math.max(1,y1-y0));
+    }
+    targetFit=fit;
   }
   function resize(){
     const first=w===1;w=Math.max(1,root.clientWidth);h=Math.max(1,root.clientHeight);dpr=Math.min(devicePixelRatio||1,softwareRenderer?1:1.25);
     const cw=Math.round(w*dpr),ch=Math.round(h*dpr);if(canvas.width!==cw)canvas.width=cw;if(canvas.height!==ch)canvas.height=ch;
     const desktop=w>760,cinema=root.dataset.cinema==='true',reading=!cinema&&root.dataset.reading==='true',deck=!cinema&&root.dataset.deck==='true',journey=!cinema&&root.dataset.journey==='true';
-    targetViewport={left:desktop?166:24,right:w-(desktop?(reading?350:30):24),top:desktop?185:145,bottom:h-(desktop?(journey?260:deck?225:90):(reading?Math.max(180,h*.48):deck?150:65))};
+    targetViewport={left:desktop?166:24,right:w-(desktop?(reading?350:30):24),top:desktop?185:145,bottom:h-(desktop?(journey?260:deck?225:90):(reading?Math.max(180,Math.min(h*.44,420)+112):deck?150:65))};
     targetViewport.right=Math.max(targetViewport.left+120,targetViewport.right);targetViewport.bottom=Math.max(targetViewport.top+130,targetViewport.bottom);
     const bounds=root.getBoundingClientRect();uiObstacles=[];
     for(const el of root.querySelectorAll('.view-heading,.header,.lens-rail,.collection-deck,.relation-bar,.footer,.reading,.journey-dock,.ps-map-tools,.ps-column-tab,.ps-search-results')){const style=getComputedStyle(el),rect=el.getBoundingClientRect();if(el.hidden||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0||!rect.width||!rect.height)continue;uiObstacles.push({left:rect.left-bounds.left,top:rect.top-bounds.top,right:rect.right-bounds.left,bottom:rect.bottom-bounds.top});}
@@ -245,8 +280,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   function paintFog(texture,phase,alpha){
     ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=alpha;
-    ctx.translate(w*.5+Math.sin(skyTime*.025+phase)*w*.026+eye.x*16-yaw*27,h*.51+Math.cos(skyTime*.019+phase)*h*.024+eye.y*12);
-    ctx.rotate(Math.sin(skyTime*.013+phase)*.055-yaw*.035);
+    // The fog leans with the turn and comes back round with it.
+    ctx.translate(w*.5+Math.sin(skyTime*.025+phase)*w*.026+eye.x*16-Math.sin(yaw)*27,h*.51+Math.cos(skyTime*.019+phase)*h*.024+eye.y*12);
+    ctx.rotate(Math.sin(skyTime*.013+phase)*.055-Math.sin(yaw)*.035);
     ctx.drawImage(texture,-w*.72,-h*.68,w*1.44,h*1.36);ctx.restore();
   }
   function paintStars(layer,count){
@@ -277,6 +313,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const overlaps=(a,b,gap=5)=>a.left<b.right+gap&&a.right>b.left-gap&&a.top<b.bottom+gap&&a.bottom>b.top-gap;
   const inView=box=>box.left>=targetViewport.left&&box.right<=targetViewport.right&&box.top>=targetViewport.top&&box.bottom<=targetViewport.bottom;
   const box=(x,y,width,height)=>({left:x,top:y,right:x+width,bottom:y+height});
+  // How many lines a text wraps to at a width, in the type last set on the measuring canvas: words wrap at spaces,
+  // and a word wider than the line (a CJK phrase, a long compound) wraps between its graphemes, as CSS does.
+  function lineCount(text,limit){
+    let lines=1,line='';
+    for(const word of String(text).split(/\s+/).filter(Boolean)){
+      if(ng.measureText(word).width>limit){
+        if(line){lines++;line='';}
+        const characters=typeof Intl.Segmenter==='function'?Array.from(new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(word),part=>part.segment):Array.from(word);
+        for(const character of characters){const next=line+character;if(line&&ng.measureText(next).width>limit){lines++;line=character;}else line=next;}
+      }else{const next=line?line+' '+word:word;if(line&&ng.measureText(next).width>limit){lines++;line=word;}else line=next;}
+    }
+    return lines;
+  }
   function measure(){
     if(!measureLabels)return;measureLabels=false;
     for(const n of nodes){
@@ -296,6 +345,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         }else{const next=line?line+' '+word:word;if(line&&ng.measureText(next).width>limit){lines++;line=word;}else line=next;}
       }
       n.titleHeight=Math.max(16,parseFloat(style.lineHeight)||18)*Math.min(lines,n.labelLines)+(n.labelLines>1?2:0);n.labelHeight=n.titleHeight+subHeight;
+      // A name that must be read is shown whole: as wide as it needs up to 260 px, over as many as three lines.
+      n.fullWidth=Math.min(260,Math.max(n.labelWidth,Math.max(ng.measureText(text).width,subWidth)+8));
+      n.fullTitleHeight=Math.max(16,parseFloat(style.lineHeight)||18)*Math.min(3,lineCount(text,n.fullWidth-8))+2;n.fullHeight=n.fullTitleHeight+subHeight;
     }
     // A scale's labels are measured in their own type, so a name never loses its end to a guess.
     for(const c of clusters)if(c.variant&&!underStars.has(c.variant)){ng.font=getComputedStyle(c.title).font||'12px sans-serif';c.textWidth=ng.measureText(c.title.textContent).width;}
@@ -345,7 +397,19 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     for(const edge of edgeHits){const {a,b}=edge,dx=b.x-a.x,dy=b.y-a.y,d=dx*dx+dy*dy;if(d<1)continue;const t=clamp(((x-a.x)*dx+(y-a.y)*dy)/d,0,1);if(t<.07||t>.93)continue;const distance=Math.hypot(x-a.x-dx*t,y-a.y-dy*t);if(distance<best){closest=edge.id;best=distance;}}
     return closest;
   }
-  function labelsForScene(near,focusEdges){
+  const overlapArea=(a,b)=>Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+  // A box moved the least way into the free area.
+  const intoView=r=>{const width=r.right-r.left,height=r.bottom-r.top,v=targetViewport;return box(clamp(r.left,v.left,Math.max(v.left,v.right-width)),clamp(r.top,v.top,Math.max(v.top,v.bottom-height)),width,height);};
+  // Of the given places, the first clear one; else the one that covers the least of what is already named, never a panel.
+  function placeAlways(possibilities,occupied,stars,ownId=null,guarded=[]){
+    const within=possibilities.map(intoView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!stars.some(o=>o.id!==ownId&&overlaps(rect,o,2)));
+    if(clear)return {area:clear,clear:true};
+    let best=null,cost=Infinity;
+    // The chosen star's own name is guarded: covering it costs as much as covering a panel.
+    for(const rect of within){const covered=occupied.reduce((sum,o)=>sum+overlapArea(rect,o),0)+uiObstacles.reduce((sum,o)=>sum+overlapArea(rect,o)*20,0)+guarded.reduce((sum,o)=>sum+overlapArea(rect,o)*20,0)+stars.reduce((sum,o)=>sum+(o.id===ownId?0:overlapArea(rect,o)*.3),0);if(covered<cost){best=rect;cost=covered;}}
+    return best?{area:best,clear:false}:null;
+  }
+  function labelsForScene(near,focusEdges,kept=new Set(),keptEdges=new Set()){
     measure();const occupied=[...uiObstacles];
     // Cluster names orient the atlas before the smaller labels compete for room.
     // A scale stays readable at any zoom: its eras, ticks and the chosen move's span keep to rows of a strip
@@ -424,23 +488,62 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       c.el.hidden=!area;
       if(area){c.el.style.width=width+'px';c.el.style.transform=`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`;occupied.push(area);}
     }
-    const priority=n=>n.id===selectedId?100:n.id===hover?90:n.prominent?80:near.has(n.id)?70:n.major?50:10;
-    for(const n of [...nodes].sort((a,b)=>priority(b)-priority(a))){
-      const {x,y}=n.screen,width=n.labelWidth,hot=n.id===selectedId||n.id===hover;
+    // The chosen star, the stars it links to and the links between them are always named. They take their places
+    // first, their links' names next, and only then do the other names look for the room that is left.
+    const priority=n=>n.id===selectedId?100:kept.has(n.id)?95:n.id===hover?90:n.prominent?80:near.has(n.id)?70:n.major?50:10;
+    const showLabel=(n,chosen,short,full=false)=>{
+      const {x,y}=n.screen;n.el.dataset.short=String(short);const visible=!!chosen&&!n.el.hidden;
+      // A whole name wraps over up to three lines; another keeps its own clamp.
+      if(full!==n.fullShown){n.fullShown=full;const target=n.subtitle&&n.titleEl?n.titleEl:n.label;Object.assign(target.style,full?{whiteSpace:'normal',display:'-webkit-box',webkitBoxOrient:'vertical',webkitLineClamp:'3',overflow:'hidden'}:{...n.clampStyle,overflow:'',...(n.subtitle&&n.titleEl?{display:n.labelLines>1?'-webkit-box':'block',overflow:'hidden'}:{})});}
+      n.labelBox=visible?chosen:null;n.el.dataset.quiet=String(!visible);n.label.style.opacity=visible?'1':'0';n.label.style.pointerEvents=visible?'auto':'none';
+      if(chosen){const fit=chosen.right-chosen.left;Object.assign(n.label.style,{left:(chosen.left-x+22)+'px',top:(chosen.top-y+22)+'px',bottom:'auto',transform:'none',width:fit+'px',maxWidth:fit+'px',minWidth:'0'});if(visible)occupied.push(chosen);}
+    };
+    // Below, above, right and left of the star, and further out for a name that must be shown.
+    const around=(n,height,gap=19,width=n.labelWidth)=>{
+      const {x,y}=n.screen,narrow=Math.max(90,width-28);
+      return [box(x-width/2,y+gap,width,height),box(x-width/2,y-height-gap,width,height),box(x+gap,y-height/2,width,height),box(x-width-gap,y-height/2,width,height),...(narrow<width?[box(x+gap,y-height/2,narrow,height),box(x-narrow-gap,y-height/2,narrow,height)]:[])];
+    };
+    const visibleEdges=new Set();
+    const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);};
+    const ordered=[...nodes].sort((a,b)=>priority(b)-priority(a));
+    for(const n of ordered){
+      if(!kept.has(n.id)||n.el.hidden)continue;
+      // A kept name keeps its source line where there is free room for it, else its name alone where that is free;
+      // with no free room at all it takes the place that covers least.
+      const width=n.fullWidth??n.labelWidth,height=n.fullHeight??n.labelHeight,titleHeight=n.fullTitleHeight??n.titleHeight;
+      const whole=placeAlways([...around(n,height,19,width),...around(n,height,40,width)],occupied,nodeObstacles,n.id);
+      let chosen=whole?.area??null,short=false;
+      if(whole&&!whole.clear&&n.subtitle&&titleHeight){const brief=placeAlways([...around(n,titleHeight,19,width),...around(n,titleHeight,40,width)],occupied,nodeObstacles,n.id);if(brief?.clear){chosen=brief.area;short=true;}}
+      showLabel(n,chosen,short,true);
+    }
+    for(const e of edges){
+      if(!keptEdges.has(e.id)||e.muted)continue;const hit=edgeHits.find(item=>item.id===e.id);if(!hit)continue;
+      // The part of the link inside the free area carries its whole name, however short the link is.
+      const cut=clipSegment(hit.a,hit.b);if(!cut)continue;
+      const [a,b]=cut,dx=b.x-a.x,dy=b.y-a.y,length=Math.max(1,Math.hypot(dx,dy)),hot=e.id===selectedEdgeId||e.id===hoverEdge,spots=[];
+      const along=(width,height)=>{const list=[];for(const offset of [0,16,-16,32,-32,48,-48,64,-64])for(const t of [.5,.38,.62,.26,.74,.15,.85]){const cx=a.x+dx*t-dy/length*offset,cy=a.y+dy*t+dx/length*offset;list.push(box(cx-width/2,cy-height/2,width,height));}return list;};
+      // Where links crowd round the chosen star and no free place is left for a whole name, a free place for the link's
+      // kind is better than names laid over one another; the whole name stays in its title.
+      const guarded=[nodes.find(n=>n.id===selectedId)?.labelBox].filter(Boolean);
+      let spot=placeAlways(along(e.labelWidth,e.labelHeight),occupied,nodeObstacles,null,guarded),compact=false;
+      // With no free place for either, the smaller kind-only label covers the least.
+      if(spot&&!spot.clear&&e.tag&&e.compactWidth){const brief=placeAlways(along(e.compactWidth,e.compactHeight),occupied,nodeObstacles,null,guarded);if(brief){spot=brief;compact=true;}}
+      if(spot)showEdge(e,spot.area,compact,hot);
+    }
+    for(const n of ordered){
+      if(kept.has(n.id)&&!n.el.hidden)continue;
+      const hot=n.id===selectedId||n.id===hover;
       const place=height=>{
-        const narrow=Math.max(90,width-28),possibilities=[box(x-width/2,y+19,width,height),box(x-width/2,y-height-19,width,height),box(x+19,y-height/2,width,height),box(x-width-19,y-height/2,width,height),...(narrow<width?[box(x+19,y-height/2,narrow,height),box(x-narrow-19,y-height/2,narrow,height)]:[])];
-        const within=possibilities.filter(inView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
+        const within=around(n,height).filter(inView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!nodeObstacles.some(o=>o.id!==n.id&&overlaps(rect,o,2)));
         return clear||(hot?within[0]:n.prominent?within.find(rect=>!occupied.some(o=>overlaps(rect,o))):null);
       };
       // Without room for its source line, a star keeps its name rather than losing both.
       let chosen=place(n.labelHeight),short=false;
       if(!chosen&&n.subtitle&&n.titleHeight){chosen=place(n.titleHeight);short=!!chosen;}
-      n.el.dataset.short=String(short);const visible=!!chosen&&!n.el.hidden;
-      n.labelBox=visible?chosen:null;n.el.dataset.quiet=String(!visible);n.label.style.opacity=visible?'1':'0';n.label.style.pointerEvents=visible?'auto':'none';
-      if(chosen){const fit=chosen.right-chosen.left;Object.assign(n.label.style,{left:(chosen.left-x+22)+'px',top:(chosen.top-y+22)+'px',bottom:'auto',transform:'none',width:fit+'px',maxWidth:fit+'px',minWidth:'0'});if(visible)occupied.push(chosen);}
+      showLabel(n,chosen,short);
     }
-    const candidates=edges.filter(e=>!e.muted&&(e.id===selectedEdgeId||e.id===hoverEdge||((hover||selectedId)&&focusEdges.has(e.id)))).sort((a,b)=>(b.id===hoverEdge?100:b.id===selectedEdgeId?90:b.highlight?70:0)-(a.id===hoverEdge?100:a.id===selectedEdgeId?90:a.highlight?70:0));
-    const visibleEdges=new Set();let shown=0;
+    const candidates=edges.filter(e=>!e.muted&&!visibleEdges.has(e.id)&&(e.id===selectedEdgeId||e.id===hoverEdge||((hover||selectedId)&&focusEdges.has(e.id)))).sort((a,b)=>(b.id===hoverEdge?100:b.id===selectedEdgeId?90:b.highlight?70:0)-(a.id===hoverEdge?100:a.id===selectedEdgeId?90:a.highlight?70:0));
+    let shown=0;
     for(const e of candidates){
       if(shown>=6)break;const hit=edgeHits.find(hit=>hit.id===e.id);if(!hit)continue;
       const {a,b}=hit,dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),hot=e.id===hoverEdge||e.id===selectedEdgeId;if(length<70&&!hot)continue;
@@ -452,8 +555,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A hovered or chosen link always names its kind, even where the stars leave no free gap.
       if(!chosen&&hot&&e.tag&&e.compactWidth){const area=box((a.x+b.x)/2-e.compactWidth/2,(a.y+b.y)/2-e.compactHeight/2,e.compactWidth,e.compactHeight);if(inView(area)&&!uiObstacles.some(o=>overlaps(area,o)))[chosen,compact]=[area,true];}
       if(!chosen)continue;
-      if(hot)for(const n of nodes)if(n.labelBox&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
-      visibleEdges.add(e.id);e.el.dataset.active=String(hot);e.el.dataset.kind=e.kind;e.el.dataset.compact=String(compact);e.el.style.setProperty('--edge-color',e.color);e.el.style.color=e.color;e.el.style.width=(compact?e.compactWidth:e.labelWidth)+'px';e.el.style.transform=`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`;if(nativeTitles)e.el.title=e.el.getAttribute('aria-label');occupied.push(chosen);shown++;
+      // A hovered link's name may cover another name, never a kept one.
+      if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;n.el.dataset.quiet='true';n.label.style.opacity='0';n.label.style.pointerEvents='none';}
+      showEdge(e,chosen,compact,hot);shown++;
     }
     for(const e of edges)e.el.hidden=!visibleEdges.has(e.id);
     return occupied;
@@ -465,12 +569,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const started=performance.now(),elapsed=last?(now-last)/1000:1/60,dt=Math.min(elapsed,.05),ease=(reduced.matches||still)?1:1-Math.exp(-dt*5);last=now;
     if(playing&&!still)skyTime+=dt*.60;
     if(velocity&&!drag&&!still&&!nodes.some(n=>n.turningView)){
-      const nextYaw=clamp(tyaw+velocity.yaw*dt,...YAW),nextPitch=clamp(tpitch+velocity.pitch*dt,...PITCH),decay=Math.exp(-dt*3.6);
+      const nextYaw=tyaw+velocity.yaw*dt,nextPitch=clamp(tpitch+velocity.pitch*dt,...PITCH),decay=Math.exp(-dt*3.6);
       velocity.yaw=nextYaw===tyaw+velocity.yaw*dt?velocity.yaw*decay:0;velocity.pitch=nextPitch===tpitch+velocity.pitch*dt?velocity.pitch*decay:0;
       tyaw=nextYaw;tpitch=nextPitch;if(Math.abs(velocity.yaw)+Math.abs(velocity.pitch)<.015)velocity=null;
     }
     // The first view of a space turns slowly into its rest, so that its depth is seen moving once.
-    if(introPending&&nodes.length&&!still){introPending=false;yaw=clamp(restYaw+(Math.sign(restYaw)||1)*.6,...YAW);pitch=clamp(restPitch-(Math.sign(restPitch)||1)*.2,...PITCH);introUntil=now+2200;}
+    if(introPending&&nodes.length&&!still){introPending=false;yaw=restYaw+(Math.sign(restYaw)||1)*.6;pitch=clamp(restPitch-(Math.sign(restPitch)||1)*.2,...PITCH);introUntil=now+2200;}
+    // As the space turns, its fit follows, so that what comes round from the depth stays inside the free area.
+    turnFit();
     const turnEase=now<introUntil&&!drag?1-Math.exp(-dt*1.5):ease;
     yaw+=(tyaw-yaw)*turnEase;pitch+=(tpitch-pitch)*turnEase;zoom+=(tzoom-zoom)*ease;pan.x+=(tpan.x-pan.x)*ease;pan.y+=(tpan.y-pan.y)*ease;
     let layoutMoving=false;
@@ -493,10 +599,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const count=Math.round(dust.length*design.density);paintStars(0,count);paintFog(fogBack,.2,.85);paintStars(1,count);paintFog(fogFront,2.4,.46);
     nodes.forEach(n=>n.screen=project(n.p));
     if(revealId&&!drag)revealPending();
+    if(neighbourhoodPending&&!drag)revealNeighbourhood();
     const byId=new Map(nodes.map(n=>[n.id,n]));
-    const selectedEdge=edges.find(e=>e.id===selectedEdgeId),hoveredEdge=edges.find(e=>e.id===hoverEdge),focusId=hover??selectedId,near=new Set(focusId?[focusId]:[]),focusEdges=new Set();
+    const selectedEdge=edges.find(e=>e.id===selectedEdgeId),hoveredEdge=edges.find(e=>e.id===hoverEdge),focusId=hover??selectedId,near=new Set(focusId&&byId.has(focusId)?[focusId]:[]),focusEdges=new Set();
+    // A chosen star that this view does not show dims nothing: the space stays as it is until a star of it is chosen.
     for(const edge of [selectedEdge,hoveredEdge])if(edge){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
     for(const edge of edges)if(!edge.muted&&(edge.from===focusId||edge.to===focusId)){near.add(edge.from);near.add(edge.to);focusEdges.add(edge.id);}
+    // The chosen star and the chosen link keep their neighbourhood lit and named while the pointer is elsewhere.
+    const kept=new Set(),keptEdges=new Set();
+    if(selectedId&&byId.has(selectedId)){kept.add(selectedId);for(const edge of edges)if(!edge.muted&&(edge.from===selectedId||edge.to===selectedId)&&byId.has(edge.from)&&byId.has(edge.to)){kept.add(edge.from);kept.add(edge.to);keptEdges.add(edge.id);}}
+    if(selectedEdge&&!selectedEdge.muted&&byId.has(selectedEdge.from)&&byId.has(selectedEdge.to)){kept.add(selectedEdge.from);kept.add(selectedEdge.to);keptEdges.add(selectedEdge.id);}
     const focused=near.size>0;edgeHits=[];
     // The planes of depth show while the space turns, by a drag, a key, the globe or its first turn, and fade once it rests:
     // the turn itself shows what depth means, and the space at rest keeps only its stars.
@@ -521,7 +633,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       let a=byId.get(edge.from)?.screen,b=byId.get(edge.to)?.screen,whole=true;if(!a||!b)continue;
       if(measured){const cut=clipSegment(a,b);if(!cut)continue;[a,b,whole]=cut;}
       if(edge.muted){ctx.strokeStyle=edge.color;ctx.globalAlpha=.05;ctx.lineWidth=.6;strokeSegment(a,b,edge.dash);continue;}
-      const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id),rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
+      const hot=edge.id===hoverEdge||edge.id===selectedEdgeId||edge.highlight,neighbor=focusEdges.has(edge.id)||keptEdges.has(edge.id),rest=Number.isFinite(edge.baseAlpha)?edge.baseAlpha:.24,weight=Number.isFinite(edge.weight)?edge.weight:1;
       ctx.strokeStyle=edge.color;ctx.globalAlpha=hot?.85:neighbor?.57:focused?rest*.23:rest;ctx.lineWidth=(hot?1.55:neighbor?1.1:.65)*weight;
       strokeSegment(a,b,edge.dash??(edge.kind==='questions'||edge.kind==='contrasts'?'dashed':'solid'));
       if((hot||neighbor)&&whole)arrow(a,b);
@@ -549,7 +661,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(thread.grown<.995)layoutMoving=true;
     }
     nodes.forEach(n=>{
-      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
+      const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),color=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=(hot?5.2:big?4.3:2.8)*Math.max(.70,Math.min(1.5,p.s));
       const near01=depthCue&&!measured?clamp((p.d-.86)/.3,0,1):1,fade=hot?1:.5+.5*near01;
       // A measured layout draws only the stars inside its free area; every star still keeps its type, so its label is measured right.
       if(n.el.dataset.major!==String(!!big)){n.el.dataset.major=String(!!big);measureLabels=true;}
@@ -565,7 +677,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       n.el.dataset.active=String(n.id===selectedId);n.el.dataset.prominent=String(n.prominent);n.el.dataset.dim=String(dim);n.el.style.opacity=dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1';n.el.setAttribute('aria-pressed',String(n.id===selectedId));n.el.style.setProperty('--star-color',color);
       n.el.hidden=!inView(box(p.x-5,p.y-5,10,10));
     });
-    const taken=labelsForScene(near,focusEdges);
+    const taken=labelsForScene(near,focusEdges,kept,keptEdges);
     // A plane's name keeps to one of its corners or edges where no other name stands.
     for(const plane of planes){
       if(reveal<.05||!plane.el.textContent||!plane.corners){plane.el.hidden=true;continue;}
@@ -615,7 +727,36 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const dx=p.x<area.left+mx?area.left+mx-p.x:p.x>area.right-mx?area.right-mx-p.x:0,dy=p.y<area.top+my?area.top+my-p.y:p.y>area.bottom-my?area.bottom-my-p.y:0;
     if(dx||dy){tpan={x:tpan.x+dx,y:tpan.y+dy};kick();}
   }
-  const zoomTo=value=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.65,2.2);kick();};
+  // A chosen star's neighbours are brought into the free area with it, so that every name of its neighbourhood can show:
+  // the camera pans the shortest way and never turns; it draws back when the neighbourhood is wider than the area and
+  // closer when its names would crowd.
+  function revealNeighbourhood(){
+    const id=neighbourhoodPending;neighbourhoodPending=null;if(measured||!id)return;
+    const ids=new Set([id]);for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
+    const points=nodes.filter(n=>ids.has(n.id)).map(n=>projectSettled(n.target));if(points.length<2)return;
+    const area=targetViewport,mx=Math.min(110,(area.right-area.left)*.16),my=Math.min(80,(area.bottom-area.top)*.16);
+    const cx=(area.left+area.right)/2,cy=(area.top+area.bottom)/2;
+    const extent=list=>({left:Math.min(...list.map(p=>p.x)),right:Math.max(...list.map(p=>p.x)),top:Math.min(...list.map(p=>p.y)),bottom:Math.max(...list.map(p=>p.y))});
+    let span=extent(points);
+    const roomX=Math.max(40,area.right-area.left-2*mx),roomY=Math.max(40,area.bottom-area.top-2*my);
+    const back=Math.min(1,roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top));
+    // A crowded neighbourhood is drawn closer, so that its names have room to stand apart: the room its names need is
+    // set against the room around its stars, never past what the free area holds or twice the present zoom.
+    const near=edges.filter(e=>!e.muted&&(e.from===id||e.to===id));
+    const demand=nodes.filter(n=>ids.has(n.id)).reduce((sum,n)=>sum+(n.fullWidth??n.labelWidth??120)*(n.fullHeight??n.labelHeight??18),0)+near.reduce((sum,e)=>sum+(e.labelWidth??120)*(e.labelHeight??30),0);
+    const around=(span.right-span.left+120)*(span.bottom-span.top+120);
+    const grow=back<1?1:Math.min(Math.sqrt(demand*2.4/Math.max(1,around)),roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top),2);
+    const factor=back<1?back:grow>1.15?grow:1;
+    if(factor!==1){
+      const before=tzoom;zoomTo(tzoom*factor);const ratio=tzoom/before;
+      span=extent(points.map(p=>({x:cx+(p.x-cx-tpan.x)*ratio+tpan.x,y:cy+(p.y-cy-tpan.y)*ratio+tpan.y})));
+    }
+    const shift=(low,high,from,to)=>high-low>to-from?(from+to)/2-(low+high)/2:low<from?from-low:high>to?to-high:0;
+    const dx=shift(span.left,span.right,area.left+mx,area.right-mx),dy=shift(span.top,span.bottom,area.top+my,area.bottom-my);
+    if(dx||dy){tpan={x:tpan.x+dx,y:tpan.y+dy};kick();}
+  }
+  // A turning space can be drawn close enough to open a crowded part, or far enough to see it whole.
+  const zoomTo=value=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,4);kick();};
   const wheel=e=>{
     e.preventDefault();const before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012));
     // On a measured scale the moment under the pointer stays under it.
@@ -628,7 +769,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   function dragBy(state,dx,dy){
     introUntil=0;
     if(measured||state.forcePan||(rotate?state.shift:!state.shift)){tpan={x:state.pan.x+dx,y:measured?.axes==='x'?0:state.pan.y+dy};kick();return;}
-    const nextYaw=clamp(state.yaw+dx*.0025,...YAW),nextPitch=clamp(state.pitch+dy*.0025,...PITCH);
+    const nextYaw=state.yaw+dx*.0025,nextPitch=clamp(state.pitch+dy*.0025,...PITCH);
     if(inertia&&!reduced.matches){
       const now=performance.now();
       if(lastTurn&&now>lastTurn.t){const dt=(now-lastTurn.t)/1000,vy=(nextYaw-lastTurn.yaw)/dt,vp=(nextPitch-lastTurn.pitch)/dt,limit=v=>clamp(v,-3,3);velocity={yaw:limit(velocity?velocity.yaw*.35+vy*.65:vy),pitch:limit(velocity?velocity.pitch*.35+vp*.65:vp),t:now};}
@@ -706,8 +847,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     update:refresh,
     capturePose(){return validateSkyPose({v:1,yaw:tyaw,pitch:tpitch,zoom:tzoom,pan:[tpan.x,tpan.y],center:[...targetCenter],fit:targetFit});},
     restorePose(value){const pose=validateSkyPose(value);yaw=tyaw=pose.yaw;pitch=tpitch=pose.pitch;zoom=tzoom=pose.zoom;
-      pan={x:pose.pan[0],y:pose.pan[1]};tpan={...pan};center=[...pose.center];targetCenter=[...pose.center];fitScale=targetFit=pose.fit;kick();},
-    select(id){selectedId=id;updateThreads();kick()},
+      pan={x:pose.pan[0],y:pose.pan[1]};tpan={...pan};center=[...pose.center];targetCenter=[...pose.center];fitScale=targetFit=pose.fit;
+      // A pose restored before any framing turns about its own fit.
+      if(!frontFit)frontFit=pose.fit;fittedFor='';kick();},
+    select(id){const changed=id!==selectedId;selectedId=id;updateThreads();if(changed&&id)neighbourhoodPending=id;kick()},
     selectEdge(id){selectedEdgeId=id;kick()},
     link(id){linkFrom=id;kick()},
     zoomBy(factor){if(Number.isFinite(factor)&&factor>0)zoomTo(tzoom*factor);},
@@ -727,18 +870,20 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
           // A scale fills its free area: the width holds the scale, its rows share the height.
           targetFit=Math.min(1.6,.94*vw/(dx*b*sx));tstretchY=clamp(.86*vh/(dy*targetFit*b),.5,6);targetFit=Math.min(targetFit,.86*vh/(dy*b*tstretchY));measured={axes:'x',x:[min[0],max[0]]};
         }else targetFit=Math.min(1.6,810/Math.max(510,max[0]-min[0]),455/Math.max(285,max[1]-min[1]),900/Math.max(560,max[2]-min[2]));
+        // A space that turns keeps this as its front fit and is fitted again for each pose it is turned to.
+        frontFit=measured?0:targetFit;fittedFor='';
       }
       // A measured layout is seen straight on, so the view's tilt does not bend its measure; a space rests in its own pose.
-      velocity=null;tyaw=measured?0:restYaw;tpitch=measured?0:restPitch;tzoom=1;tpan={x:0,y:0};
+      velocity=null;tyaw=nearestTurn(measured?0:restYaw,tyaw);tpitch=measured?0:restPitch;tzoom=1;tpan={x:0,y:0};
       const introNow=intro&&!measured&&!introDone&&!reduced.matches;
       // The first framing is where the view begins, unless the space is to turn into it; later framings ease there.
       if(!framedOnce){framedOnce=true;if(rest&&!introNow){yaw=tyaw;pitch=tpitch;}}
       if(introNow){introDone=true;introPending=true;}
       resize()},
     /** Turn the view by a step, as a drag would; a measured layout does not turn. */
-    turnBy(dyaw=0,dpitch=0){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=clamp(tyaw+dyaw,...YAW);tpitch=clamp(tpitch+dpitch,...PITCH);kick();},
-    /** Bring the view back to its resting pose. */
-    turnToRest(){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=restYaw;tpitch=restPitch;kick();},
+    turnBy(dyaw=0,dpitch=0){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw+=dyaw;tpitch=clamp(tpitch+dpitch,...PITCH);kick();},
+    /** Bring the view back to its resting pose, the shorter way round. */
+    turnToRest(){if(measured)return;velocity=null;introUntil=0;turnShownUntil=performance.now()+900;tyaw=nearestTurn(restYaw,tyaw);tpitch=restPitch;kick();},
     pose(){return {yaw,pitch,targetYaw:tyaw,targetPitch:tpitch,restYaw,restPitch,measured:!!measured};},
     focus(id){const n=nodes.find(n=>n.id===id);if(!n)return;targetCenter=[...n.target];tzoom=1.3;tpan={x:0,y:0};kick();},
     reveal(id){revealId=id??null;kick();},

@@ -1,0 +1,352 @@
+{
+  "schema": "tos.bonsai.assembly-inputs.v1",
+  "posture": "Review cards, verdicts, voices and English revisions are exact. Concept and character inputs are compact derivatives: the keys de, translations, sentence, sentence_neighbours, context, rows and row were recursively omitted, except for lexicon.de and names.de. The originals are preserved separately.",
+  "original_archive_sha256": "fd94d6eb5640127ba7367c2882a75aed73ea5ba9a958bf59bf58534d86d6ac9b",
+  "files": [
+    {
+      "file": "characters/animals.json",
+      "original_sha256": "775ea714b8820bf287c83134c78e14eb29a3ad9c4fa944023cc5b40b2c03409c",
+      "published_sha256": "f782009367fba4ce9d4b652e005a8d918cf99102f261ab44b2853021c3d926be"
+    },
+    {
+      "file": "characters/ass.json",
+      "original_sha256": "29ce1ab3ff2e4a3c01ac534ba7199f1ecd0218b6573ad43976f1b5af78f6607e",
+      "published_sha256": "dee945e1de1330486a6864297616a3aac306d9fd4f2c42073711b9a01c01b96c"
+    },
+    {
+      "file": "characters/beggar.json",
+      "original_sha256": "6d37367fa8e0c613c1fd45c92d38d885c9b6cbd040a0cb7ef2cf8727099cc31c",
+      "published_sha256": "07616e57e7f2fad6841163ba4df1ba79fdad14c8ff02867db77485f26bc6dc1a"
+    },
+    {
+      "file": "characters/child-mirror.json",
+      "original_sha256": "aed8c5875d04d6ab6b5595939a27aed24f4d4b0e5d50feff41d337865945e2fd",
+      "published_sha256": "474052e65a6f7bd7915f8c0fdcb1bf36a6ccb3ca9bdb96b5ffc0b83ab138fd92"
+    },
+    {
+      "file": "characters/conscientious.json",
+      "original_sha256": "19adfeb149002bcc593bdba35d5acb5d95247878451b76885f61a1a67bb6444e",
+      "published_sha256": "d730d952a403c6c5e3d5881dd462a31c85c06165036339605ff871a423af45f8"
+    },
+    {
+      "file": "characters/daughters.json",
+      "original_sha256": "44d926086ad2ca27b078ca162f23624b148b614c7a6ddd3c39befbc669589ddd",
+      "published_sha256": "f7588109578c6140550964b45a864d66c39876fe0838264e2f4f438ede0d1df9"
+    },
+    {
+      "file": "characters/disciples.json",
+      "original_sha256": "774b1c42403d4c21cd719e46239771f498e2904140c14c1b97f843d0f24a81d6",
+      "published_sha256": "9a110aa426aa265acebe982c2dd931ce5f8f9b893bd6d4c45af98cb87de4f495"
+    },
+    {
+      "file": "characters/dwarf.json",
+      "original_sha256": "ff7a254e9abfae502fb073616f4023b8141e21c3a8fc87e23da445b06cd9a630",
+      "published_sha256": "b283adf6444501c4b3c243fd3362b03f14bcc7d64a3221cb1517ec97b7470674"
+    },
+    {
+      "file": "characters/fire-dog.json",
+      "original_sha256": "eba31a9b667c7cd63169b17b6aad180b031392da5c797d1dec06ba74464d0327",
+      "published_sha256": "027c27763ac554979d3f2a3a5594db1278701242bdc02c80f24e763407c70fe9"
+    },
+    {
+      "file": "characters/fool.json",
+      "original_sha256": "74566cc3b692fc1fea5b053c43b719645e6e02f51248fd42756c13c0ec8ce088",
+      "published_sha256": "82201c31dc79c78b94d66a69edb608feecb5a09a901e3d150e10b0a14508990e"
+    },
+    {
+      "file": "characters/god.json",
+      "original_sha256": "40745cc207db2b1d46e8336f16e832243016dac00669b42e86a3368116db9ceb",
+      "published_sha256": "b3dcd44616b5b4bbc8b9e8135b391babdf7910da8c1177bee2613401a28bc947"
+    },
+    {
+      "file": "characters/higher-men.json",
+      "original_sha256": "8464cd8c5d39fe538ff05da9d7b20c8918cd3c13491782288fbf1dc6a01b5e66",
+      "published_sha256": "c8f5d3da1c7ec3d7a49160d086446af6d4becf936cc5300850ee75ec4c994203"
+    },
+    {
+      "file": "characters/hunchback.json",
+      "original_sha256": "d80060b3185e4d1cbc0eeeaa5eba34e64fd6cd8ff5512e5b70605db04f68ffd1",
+      "published_sha256": "5a224049b7a08f04328964e026e5094899f4c54d945c9c9e4931c7e8864a3300"
+    },
+    {
+      "file": "characters/jester.json",
+      "original_sha256": "c313da5c64dbade2507f748226f6580e66c33636d9811189a5108dca970cb63a",
+      "published_sha256": "eca7f7d257e7501ee3137875efd40b212b055e1bf5cd5ba4d99d7e09dbb761ad"
+    },
+    {
+      "file": "characters/kings.json",
+      "original_sha256": "2980f82436cb6ea0c44857bfdaea0c27700282c8eee4c2207e35a8aedd247bce",
+      "published_sha256": "e49cb0f6ebf0d5fab97ffec13b1dc1ed87a79bcc828c1ce331c8a4c07d69d4ca"
+    },
+    {
+      "file": "characters/last-pope.json",
+      "original_sha256": "4489c3fd9c750c2c0d6770f98a6cf05a4219a44e0d91331265fbe0b5019d9d31",
+      "published_sha256": "dd576c21cd7b2b94ebe1331b423127c0687566ce640de340f3fa49c12a8d1fba"
+    },
+    {
+      "file": "characters/laughing-lion.json",
+      "original_sha256": "f0cc43a11066af95bfa3b64797bf12bbbca93fc32314c7a7ead9dc9f8efce4bd",
+      "published_sha256": "5a5bb6cb14ebfd21721d50ad1624cc84ac1884c7ce9007fe0b3498ee425d7134"
+    },
+    {
+      "file": "characters/life.json",
+      "original_sha256": "a8d15ab2d00822dbd7262fd2b481fbf3f84b9d2dfe94470150abaddd30182e0b",
+      "published_sha256": "6de8f0de826783b5eebc90a0f27c3c1895e4a41badadd2df88d9a30f3ed1c081"
+    },
+    {
+      "file": "characters/magician.json",
+      "original_sha256": "400315691c4a8eb234b255629f34db0cbe85295520b45783f80cb0335198137f",
+      "published_sha256": "5b6677cabf35f75eaea4e9c46262384eb5f1a9fbc9bab3a766730e893d3cc83d"
+    },
+    {
+      "file": "characters/old-woman.json",
+      "original_sha256": "38b362d1cbc803d211e9e3e0aa0f0cde99b5dbb62f259aaad1704627524ab4f1",
+      "published_sha256": "3e2eebdd158ea9992257bb7c34d77ca45d1a480d9f4d6021c8548ac9c77bbabc"
+    },
+    {
+      "file": "characters/pale-criminal.json",
+      "original_sha256": "0080ffc2be5db8b945d8e359e3dff1637e016101b02ee8004209f8ff962579c2",
+      "published_sha256": "fb2bfbd3853ade36757fb59e85bf5af5665b5262033df6c3f5f83979e5eaa158"
+    },
+    {
+      "file": "characters/people.json",
+      "original_sha256": "17f70a3ba4adec35e83cb3f2b650a8ea0b9069539e921351cfc7f6716cbf43b2",
+      "published_sha256": "95709df6e15372805405692167855319987394e0eb35d3a83d66397182b17dbd"
+    },
+    {
+      "file": "characters/sailors.json",
+      "original_sha256": "8642cbb42c2f79f1686029decbfa897c0c941db4f9494e3ec7e88342682460f8",
+      "published_sha256": "57e1719ed64e3d9c22ec3fb1bcef92ca395776989ec38068871976776fba2098"
+    },
+    {
+      "file": "characters/saint.json",
+      "original_sha256": "ccda57c86f35d66ff2d58f0d208e469433097a2f91e564c5ea5bf52383f61a7f",
+      "published_sha256": "083cad0b2d6075b4bdc40b774e4e55b662d6c2c737e08a4e25120782389a4567"
+    },
+    {
+      "file": "characters/shadow.json",
+      "original_sha256": "97b58d249452b7aad4c7675f7b6c35cf962c113d14857dc64eb6f8697d1f42ed",
+      "published_sha256": "e7971824495ac44f23ac55bfb5482afb2fabd2007e0467899279d36fd5d2b58c"
+    },
+    {
+      "file": "characters/shepherd.json",
+      "original_sha256": "267c59b43dc27569461fc5ff1b3fc52ba11466670f271815cd8b5caacc91a10f",
+      "published_sha256": "7361bf8d90f2ffb45d1497a90d7756b109267e4c0ebcbc863ec32caec773228f"
+    },
+    {
+      "file": "characters/soothsayer.json",
+      "original_sha256": "91f015801fc095bef4c37b7e0a4dd8a6a0aa296697f779eef60cf2d9bf261d71",
+      "published_sha256": "f3cc9eb07f65fb817bd77d22359949d86d33a31347db8079db8e52572cb9c17b"
+    },
+    {
+      "file": "characters/tarantulas.json",
+      "original_sha256": "d17f6fcd6ba3a536b0b6f7ad17961407322b64330fda2165eeaf16ce320f6478",
+      "published_sha256": "f5843b262aa08bd8a78e3006458a85c3f0b9f780bd3cdb13eacbc927955a19cf"
+    },
+    {
+      "file": "characters/tightrope-walker.json",
+      "original_sha256": "ef6a0723ad1138784076857052d52b6fac92db6d400e6c40618b20888eaa6636",
+      "published_sha256": "cdf15a90da44f314edb0c9398b527f46ad49bd9ab9c099a68273580cd30bdb09"
+    },
+    {
+      "file": "characters/ugliest-man.json",
+      "original_sha256": "23dd42e1194c5b830f76428a12430d4daf8f572ecd31d2210ffeafce308d61df",
+      "published_sha256": "7f969dc0a255b90647352eb12c01df26cfee7edab19ad3c0462a02ecaa3b20ea"
+    },
+    {
+      "file": "characters/wisdom.json",
+      "original_sha256": "53825d132b0d79548eecbb5f8d32bdf595aa37c6db076e7b3bbbc745af1c2e27",
+      "published_sha256": "6787446680d6c5f2bcf1714fa18de83b3a15b09d965b461d01123f00d2eda238"
+    },
+    {
+      "file": "characters/youth.json",
+      "original_sha256": "bee94a40637b9526032dc774aeb4c993022e30ab196284ca77a01aa7cf2b27a2",
+      "published_sha256": "3b1ae90c82a37942d09261fff0b568dd4c0fad965429779e9c491f182b7adca6"
+    },
+    {
+      "file": "characters/zarathustra.json",
+      "original_sha256": "b1a7e9ce6cf4e6d295627ba4f5fec808019e939bd6422ed7f63554bdb4ccdcb3",
+      "published_sha256": "5e0c2d315a6c3a044b483c05206876748b8096adbf0683dfa94c37028646fa7b"
+    },
+    {
+      "file": "concepts/affirmation.json",
+      "original_sha256": "76cfe1a2996239b0a173e50b231de5cd769f520a88e8c03b962b997bb099b662",
+      "published_sha256": "4d1bd9f575f570f64452c09834d2f9e2b7c7c70f5579d0554a081852017f0140"
+    },
+    {
+      "file": "concepts/agency.json",
+      "original_sha256": "c874da95fc5582f25f89ba6ccd6e59735a1cbe57ffa23902e2bd07851bebf8eb",
+      "published_sha256": "c61f38a849589ab8d08a0d2adf6b2e45cdb68594e2a2fd949b789cf75aefb1e8"
+    },
+    {
+      "file": "concepts/attention.json",
+      "original_sha256": "a145955b56e2fc732e3991befe1798de97e1487d30b35823ef10c38e687bc4db",
+      "published_sha256": "5ef270771ecab6a445f562e94371efcddd8bcdd24b48d881fb179130dacdb3d7"
+    },
+    {
+      "file": "concepts/becoming.json",
+      "original_sha256": "473bcc67c1f8c64639563beaf27050928307097c1b03b268ce1f3e7ec90db535",
+      "published_sha256": "a6532b1c77b944836f48fbc31e185a1995e8e510b451243414b28614cb4b7388"
+    },
+    {
+      "file": "concepts/bestowing-virtue.json",
+      "original_sha256": "ea27284f66eb61aac3d0a3503ff78f405219855ec5e7cbd44b49c2a95ad15216",
+      "published_sha256": "8756c8d3f62497ad5e44c66c5e5e38d9eae2697d5833db6ce82f165299162dda"
+    },
+    {
+      "file": "concepts/bite.json",
+      "original_sha256": "d7633553661634daff067001f4035fded902cb675115e3f117ba38de85335e86",
+      "published_sha256": "763f965865d2eae73205207a77829e3e9ee2f54ff57331785cb9ad042b29b8b2"
+    },
+    {
+      "file": "concepts/child.json",
+      "original_sha256": "43171d709ff7fe8557aeec60f0da92fb315cc4d6ba3f896ff81059bdc7f5f4a0",
+      "published_sha256": "033ee3a5a8eaf03af8e96ac6d54f0cd19a625eb755ccf98780c228502003936f"
+    },
+    {
+      "file": "concepts/circle.json",
+      "original_sha256": "11e73a5a86bfe7848cf632cd374237b22578e2d542ad9b2911ca76eec4132ab8",
+      "published_sha256": "e76447cb33579a93ae5019be8f4ef011a4386d38a5d3665d6a59dcf55dea5f4d"
+    },
+    {
+      "file": "concepts/counterfactual.json",
+      "original_sha256": "1a2d82224ec3c352052e6c917853c537e066e3c391bf2799a420f36aeca4489e",
+      "published_sha256": "aa7eb7e7286c157709948912afaec6329af8b7e570d4c314c63097c797726d32"
+    },
+    {
+      "file": "concepts/courage.json",
+      "original_sha256": "89aa3f7c6627ca83450272031aeecf1b79d3abe0c024f10344075f67116adece",
+      "published_sha256": "44da258978ba3f7d3ba178382956808f1159c8147448db0f9bd812fb9ea9ad1a"
+    },
+    {
+      "file": "concepts/creation.json",
+      "original_sha256": "d51ec3322799877bba04248dc48e0bfcfe739414796378ebe6ebef73b2f6823c",
+      "published_sha256": "ab02ff10f6e708dfd6ee15b716847cec3b3d97ccc12a81153c6641aa1ca7a798"
+    },
+    {
+      "file": "concepts/dance.json",
+      "original_sha256": "b6ebd7b98969cc79cedeec530a464fe6f45c8ea00ba5a67f237ab38dec0839b2",
+      "published_sha256": "709dc56d04512f7ef66a5750a6d0b6b40ab443291c8dd13b6b19f59e073feda9"
+    },
+    {
+      "file": "concepts/difference.json",
+      "original_sha256": "ba537871ba9d0adb63d2973cfa7d520bb5c7d7176459e0f4c740cb31414e9f4b",
+      "published_sha256": "9a27d7d3a511e4f42d75f4adf6376a74fdd8466c2546011b6df3449377152962"
+    },
+    {
+      "file": "concepts/fate.json",
+      "original_sha256": "45b33fa1c2d783d04dcc1d351fe18abf2e4be2b9ac5554403969447f570d49d3",
+      "published_sha256": "5e59eafde2b800059378ee5e97041755be1e6ef8e31f563f56748ff54194064a"
+    },
+    {
+      "file": "concepts/gateway.json",
+      "original_sha256": "810ec1a07b74321bdff5930c3c44315118b13056af116be98b566e401fcef6e4",
+      "published_sha256": "8d12d3c17f7f5997c3d3cf09ce210fdc1503de65518130407d92d18de7aab917"
+    },
+    {
+      "file": "concepts/great-noon.json",
+      "original_sha256": "bb69f064da3ebe7bc9263935c2e9575259d24e2e16c81743e13c5478695e1ab1",
+      "published_sha256": "1c41c1678f4916eda2353986aa203d30c344e6c4144be9df32c123c7891fa6ef"
+    },
+    {
+      "file": "concepts/identity.json",
+      "original_sha256": "b3b877be528fdb8833a0767ebf78426677d4fa2a6e6e34326421c8c6cccb289d",
+      "published_sha256": "725c84ceb7dc65dd96631a3d4d412437f4c7fb1c7acd2d8422b5ae698156fb94"
+    },
+    {
+      "file": "concepts/laughter.json",
+      "original_sha256": "1fcca6a42c854ee00fbe2d91202905a9c8767c1e93c991e252110cb82e928cd6",
+      "published_sha256": "8c79ea5a26c91658075ee8f7dfaa88f88f2e216e38d1d97d5a05eb9ef4299aa8"
+    },
+    {
+      "file": "concepts/lion.json",
+      "original_sha256": "5d6832a22f2be4fe5490d00619a2a4e0260d719a6b955f9e174a985272dd8985",
+      "published_sha256": "01cb3a0510606f21f9d673a943f48afba7f505ed9e2cb44c25bb780330fe8f12"
+    },
+    {
+      "file": "concepts/memory.json",
+      "original_sha256": "497f0ae407cc8952e770919e036d1df8d19e7d8e4e1f658020fd6b434e3d372f",
+      "published_sha256": "11b344b609cf0764652eafeaab570c252f83f0834e97fccb890b73610c100574"
+    },
+    {
+      "file": "concepts/nausea.json",
+      "original_sha256": "a472b8a3ad68d1b76717346fe19f64578c5a81b8bad83fd0b8dcc7394476dbc9",
+      "published_sha256": "6e10ecec7d825ba53bb6ce74b0d1b5eb8702a7a12da311ec9234daf58d9b5548"
+    },
+    {
+      "file": "concepts/necessity.json",
+      "original_sha256": "977e0a35109bf02487d2f79a1476ce66698b204e048153917071466e51d31c9a",
+      "published_sha256": "80d903e99f298c041024cb0086d25cdad4549bad619693d72e766b62966aa7c5"
+    },
+    {
+      "file": "concepts/overman.json",
+      "original_sha256": "9df536faceb4cf1dc72bf501aa8f912fbc514ecb8adbc0959f67920bcb13b3f7",
+      "published_sha256": "94af396dcc923316d1e0ece3afb815f3db4a6f99a8f8b7a84495a786b1047065"
+    },
+    {
+      "file": "concepts/present.json",
+      "original_sha256": "78f58c0676c81d60d9382e2d0dc926caf0c8fbf7251e1a7a0025d35ca9e5141f",
+      "published_sha256": "6dd340fe79ae482ccf5352826b54ad9580b685e2aa2bec871326eea3078ee20f"
+    },
+    {
+      "file": "concepts/recurrence.json",
+      "original_sha256": "cdc52d165a08137ad55d807d1565bda2eaf3b74766552dd01dc81cb273ab1c50",
+      "published_sha256": "7782d4a5f45c2af009dfa58af4000777569a45d72efcee9bbe7948464f3eb65e"
+    },
+    {
+      "file": "concepts/ring.json",
+      "original_sha256": "3ea48f29e9ebc22eeb77693e65719fcb6049ec62dc058bc5e7e5a0ced722665a",
+      "published_sha256": "c7b773bc1490bf2fc14eaeb224b3cd06bc65902af922a5b3a701891e2dacdfdc"
+    },
+    {
+      "file": "concepts/two-paths.json",
+      "original_sha256": "3407b4ae1d858fd51e322a67e96b903c6417b875d172aef4120c6c2b393b1380",
+      "published_sha256": "c8cb81edb3152380f3b9a64a1915b6244c83b9f1d72e4a316a0d8ecdb32081d3"
+    },
+    {
+      "file": "concepts/wheel.json",
+      "original_sha256": "d28e373819ce7572a7f204e1161db5602d204d92ebcdc199831c1a8c79691d0a",
+      "published_sha256": "f261ce42148a97b6e06d5b6e032f7a3f77001b3e119eb059da26ba96c7fba619"
+    },
+    {
+      "file": "concepts/will-to-power.json",
+      "original_sha256": "b923c24469f3f3ab7a7e3e9595f511416c44793f5a84e1cded2a62e9e7db599b",
+      "published_sha256": "a8b8ebf1dd7caadbc04cf810b7fbc8e1652116a35aebb042d4aae6847fdaabd5"
+    },
+    {
+      "file": "concepts/will.json",
+      "original_sha256": "c8e72cca3e12142a5d3e771d5cc469ad8458c7a10c9fe51e37e666ca005d83d4",
+      "published_sha256": "90c087f5780d945a987164e6399ee7e57448c653872b3ea68f423cf51f1566f7"
+    },
+    {
+      "file": "english.json",
+      "original_sha256": "99b951ddeaef8378cbc3922693bacf8c8cba45f3c1522c38720b74b203874709",
+      "published_sha256": "99b951ddeaef8378cbc3922693bacf8c8cba45f3c1522c38720b74b203874709"
+    },
+    {
+      "file": "speakers.json",
+      "original_sha256": "0cd53c942782cfe483334e76610e73f7d2f284f8eb7003154fd362cb45f9c82d",
+      "published_sha256": "0cd53c942782cfe483334e76610e73f7d2f284f8eb7003154fd362cb45f9c82d"
+    },
+    {
+      "file": "verify-characters.json",
+      "original_sha256": "3a287eb361a328feb53f65684f972077472eea5a41cfc9921f77dbc97d435fbc",
+      "published_sha256": "3a287eb361a328feb53f65684f972077472eea5a41cfc9921f77dbc97d435fbc"
+    },
+    {
+      "file": "verify-concepts.json",
+      "original_sha256": "e5bd9a5dd52c349f215104e8bc9e7b7fea7eacf413191a3f2ca338e691878d78",
+      "published_sha256": "e5bd9a5dd52c349f215104e8bc9e7b7fea7eacf413191a3f2ca338e691878d78"
+    },
+    {
+      "file": "verify-input-characters.json",
+      "original_sha256": "b8211c7fdaa9f0eb6ac72c75d6b58c295398cf31e0cf00bb1a6fa2f4ebb36b23",
+      "published_sha256": "b8211c7fdaa9f0eb6ac72c75d6b58c295398cf31e0cf00bb1a6fa2f4ebb36b23"
+    },
+    {
+      "file": "verify-input-concepts.json",
+      "original_sha256": "5144b7f5cd85cb78349c053cc69f29da6d2a79962aa3a179821ad4c67a7535f3",
+      "published_sha256": "5144b7f5cd85cb78349c053cc69f29da6d2a79962aa3a179821ad4c67a7535f3"
+    }
+  ]
+}
