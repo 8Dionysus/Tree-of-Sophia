@@ -274,6 +274,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     turnGlobe.meridian.setAttribute('rx',Math.max(.7,Math.abs(Math.sin(yaw))*9).toFixed(2));
     turnGlobe.equator.setAttribute('ry',Math.max(.7,Math.abs(Math.sin(pitch))*9).toFixed(2));
     turnGlobe.front.setAttribute('cx',(Math.sin(yaw)*7.6).toFixed(2));turnGlobe.front.setAttribute('cy',(-Math.sin(pitch)*7.6).toFixed(2));
+    // The space turns all the way round: a front turned away is drawn hollow, on the far side of the globe.
+    const behind=Math.cos(yaw)<0;turnGlobe.front.setAttribute('fill',behind?'none':'currentColor');turnGlobe.front.setAttribute('stroke',behind?'currentColor':'none');turnGlobe.front.setAttribute('stroke-width',behind?'.9':'0');
   }
   function paintTool({button:b,key,label}){
     // The globe is named by what pressing it does; its title says how the space turns.
@@ -856,6 +858,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       b.addEventListener('click',event=>{lens=item.id;const refocus=event.detail===0||lensList.contains(document.activeElement);
       // An open branch reads on the tree, on the scale of time and on the map of places; other lenses look at the whole space.
       if(route&&!['tree','time','space'].includes(lens)){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();frameSky();
+      // A chosen star the new lens does not show is let go, so its card does not speak of a star that is gone;
+      // one it shows is brought into the free area.
+      if(selected&&!shownView?.nodes?.some(node=>node.id===selected))closePanel();else if(selected)sky?.reveal(selected);
       // The lenses are drawn again; the keyboard stays on the one it chose.
       if(refocus)lensList.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});});lensList.append(b);}
     // On a phone the lenses scroll in one row; the chosen one stays in sight, also when a link opened it.
@@ -957,7 +962,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function appendProximityControls(parent){
     const item=nearCriterion(),box=el('section','ps-near');box.append(el('h2','minor-title',t('nearTitle')));
     const chips=el('div','ps-chip-row');chips.setAttribute('role','radiogroup');chips.setAttribute('aria-label',t('nearTitle'));
-    for(const value of criteria){const chip=button(tr(value.label,locale()),'ps-near-chip');chip.setAttribute('role','radio');chip.setAttribute('aria-checked',String(value.id===item?.id));chip.setAttribute('aria-pressed',String(value.id===item?.id));setHint(chip,tr(value.measure,locale()));chip.addEventListener('click',()=>{criterion=value.id;persistView();reflect();});chips.append(chip);}
+    for(const value of criteria){const chip=button(tr(value.label,locale()),'ps-near-chip');chip.setAttribute('role','radio');chip.setAttribute('aria-checked',String(value.id===item?.id));chip.setAttribute('aria-pressed',String(value.id===item?.id));setHint(chip,tr(value.measure,locale()));chip.addEventListener('click',()=>{criterion=value.id;persistView();reflect();
+      // Another criterion lays the stars out anew, so the map is framed again around what it now shows.
+      frameSky();if(selected)sky?.reveal(selected);});chips.append(chip);}
     box.append(chips);parent.append(box);
   }
   function ladderLine(rung){
@@ -1150,7 +1157,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function previewMaterial(materialId){measureOpen=false;const id=graphIdForMaterial(materialId);selected=id;selectedEdge=null;browsingRoutes=false;searchValue='';search.value='';searchResults.hidden=true;search.blur();personal.hidden=true;columnOpen=true;sky?.selectEdge(null);if(graphState().nodes.some(item=>item.id===id)){sky?.select(id);sky?.reveal(id);}reflect();sky?.refresh();}
   // Choosing a star on the map leaves the map where it is. Choosing it from a list,
   // a link or a step brings it into view only if it would otherwise stay hidden.
-  function selectActual(id,{reveal=false}={}){measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(id);sky?.selectEdge(null);renderColumn();renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
+  function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(id);sky?.selectEdge(null);renderColumn();
+    // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
+    if(changed){reading.scrollTop=0;panelContent.scrollTop=0;}
+    renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
   function selectEdge(id){measureOpen=false;selectedEdge=id;selected=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(null);sky?.selectEdge(id);renderColumn();renderOrientation();sky?.refresh();}
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
   function closePanel(){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!desktop())columnOpen=false;reflect();sky?.refresh();}
