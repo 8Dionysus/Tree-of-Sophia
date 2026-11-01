@@ -4,7 +4,7 @@ const words={
   essence:['Суть','Essence','Esencia','Wesen','本质'],development:['Развитие','Development','Desarrollo','Entwicklung','发展'],dimensions:['Измерения','Dimensions','Dimensiones','Dimensionen','维度'],links:['Связи','Links','Vínculos','Verbindungen','联系'],witnesses:['Свидетельства','Witnesses','Testimonios','Zeugnisse','文本见证'],
   thesis:['Тезис','Thesis','Tesis','These','论点'],question:['Вопрос','Question','Pregunta','Frage','问题'],answer:['Ответ','Answer','Respuesta','Antwort','回答'],grounds:['Основания','Grounds','Fundamentos','Grundlagen','依据'],consequences:['Следствия','Consequences','Consecuencias','Folgen','后果'],function:['Роль в книге','Role in the book','Papel en el libro','Rolle im Buch','在书中的作用'],
   emergence:['Возникновение','Emergence','Aparición','Entstehung','出现'],movement:['Движение','Movement','Movimiento','Bewegung','演变'],transformation:['Преображение','Transformation','Transformación','Verwandlung','转变'],
-  counter:['Другой голос','Another voice','Otra voz','Eine andere Stimme','另一种声音'],reply:['Ответ этому голосу','Reply to this voice','Respuesta a esta voz','Antwort auf diese Stimme','回应'],review:['Проверка и происхождение','Review and provenance','Revisión y procedencia','Prüfung und Herkunft','审核与来源'],original:['Первоначальное предложение','Original proposal','Propuesta original','Ursprünglicher Vorschlag','原始提议'],
+  counter:['Другой голос','Another voice','Otra voz','Eine andere Stimme','另一种声音'],reply:['Ответ этому голосу','Reply to this voice','Respuesta a esta voz','Antwort auf diese Stimme','回应'],path:['Путь связи','Path of the link','Camino del vínculo','Weg der Verbindung','联系路径'],review:['Проверка и происхождение','Review and provenance','Revisión y procedencia','Prüfung und Herkunft','审核与来源'],original:['Первоначальное предложение','Original proposal','Propuesta original','Ursprünglicher Vorschlag','原始提议'],
   reconstruction:['Реконструкция','Reconstruction','Reconstrucción','Rekonstruktion','重构'],text:['По тексту','Textual grounding','Fundamento textual','Textgrundlage','文本依据'],rejected:['Отвергнуто','Rejected','Rechazado','Verworfen','已否决'],held:['Ожидает проверки','Awaiting review','Pendiente de revisión','Prüfung ausstehend','待审核'],confirmed:['Подтверждено','Confirmed','Confirmado','Bestätigt','已确认'],revise:['Исправлено по проверке','Revised after review','Corregido tras revisión','Nach Prüfung überarbeitet','审核后修订'],keep:['Формула сохранена','Formula retained','Fórmula conservada','Formel beibehalten','保留原句'],better:['Формула уточнена','Formula refined','Fórmula precisada','Formel präzisiert','原句已调整'],
   who:['Кто говорит и действует','Who speaks and acts','Quién habla y actúa','Wer spricht und handelt','谁在言说与行动'],position:['Позиция','Position','Posición','Position','立场'],deed:['Поступок','Deed','Acción','Tat','行动'],
   names:['Слова и имена','Words and names','Palabras y nombres','Wörter und Namen','词语与名称'],uses:['Употребления','Uses','Usos','Verwendungen','用法'],beyond:['Другие произведения: ориентиры для дальнейшего исследования','Other works: leads for further research','Otras obras: pistas para investigar','Andere Werke: Hinweise für weitere Forschung','其他作品：后续研究线索'],hypothesis:['Гипотеза','Hypothesis','Hipótesis','Hypothese','假设'],occurrences:['Места в книге','Places in the book','Pasajes del libro','Stellen im Buch','书中段落'],more:['Показать ещё','Show more','Mostrar más','Mehr anzeigen','显示更多'],empty:['Этот раздел ещё не разработан.','This section is not developed yet.','Esta sección aún no está desarrollada.','Dieser Abschnitt ist noch nicht ausgearbeitet.','此部分尚未展开。'],unavailable:['Не удалось загрузить. Повторить','Could not load. Retry','No se pudo cargar. Reintentar','Laden fehlgeschlagen. Erneut versuchen','无法加载。重试'],
@@ -70,7 +70,18 @@ export function createCoreView({core,locale,fragments,onNode,onRoute}){
     box.append(ends);status(box,record.admission==='rejected'?'rejected':record.status);
     form(box,{...record.sense,cite:[...new Map([...(record.cite?[record.cite]:[]),...(record.grounds??[])].map(cite=>[JSON.stringify(cite),cite])).values()]});
     section(box,'question',record.question);section(box,'answer',record.answer);
-    if(record.path?.length){const path=el('p','ps-core-path');for(const id of record.path)path.append(button(name(id),()=>onNode(core.materialIds[id])));box.append(path);}
+    if(record.path?.length){
+      const path=el('section','ps-core-path');path.append(el('h3','minor-title',t('path')));
+      const endpoint=id=>core.materialIds[id]?button(name(id),()=>onNode(core.materialIds[id])):el('span','',name(id));
+      for(const step of record.path){
+        const row=el('div','ps-core-path-step');
+        if(step.id)row.append(endpoint(step.id));
+        else if(step.from&&step.to)row.append(endpoint(step.from),el('span','',tr(step.verb)),endpoint(step.to));
+        for(const cite of step.cite?(Array.isArray(step.cite)?step.cite:[step.cite]):[])row.append(fragments.fragment(cite));
+        status(row,step.status);path.append(row);
+      }
+      box.append(path);
+    }
     review(box,record);parent.append(box);
   }
   function witnesses(parent,record){

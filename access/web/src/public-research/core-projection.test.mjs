@@ -1,6 +1,7 @@
 import {readFileSync} from 'node:fs';
-import {expect,test} from 'vitest';
+import {expect,test,vi} from 'vitest';
 import {attachCore,coreContext} from './core-projection.mjs';
+import {createCoreView} from './core-view.mjs';
 import {pathThrough} from './space-play.mjs';
 import {planeOfPlaces} from './space-geography.mjs';
 import '../observatory/human-forms-wasm-test-runtime.mjs';
@@ -60,4 +61,32 @@ test('a place label exposes exactly the materials counted there',()=>{
   const map=planeOfPlaces({stars:['a','b','unknown'],placeOf:id=>id==='unknown'?null:{place:'athens'},places:{athens:{point:[23.72,37.98],label:{en:'Athens',ru:'Афины'}}}});
   expect(map.members('athens')).toEqual(['a','b']);expect(map.members('missing')).toEqual([]);
   expect(map.labels('en').find(label=>label.ref==='athens').title).toBe('Athens · 2');
+});
+
+test('link paths show their actual endpoints, verbs and cited places for both recorded shapes',()=>{
+  class Element{
+    constructor(tag){this.tag=tag;this.children=[];this.listeners={};this.className='';this.textContent='';}
+    append(...children){this.children.push(...children);}
+    addEventListener(type,handler){this.listeners[type]=handler;}
+  }
+  vi.stubGlobal('document',{createElement:tag=>new Element(tag)});
+  try{
+    const projection=make().space.core,onNode=vi.fn(),fragment=vi.fn(cite=>Object.assign(new Element('cite'),{cite}));
+    const view=createCoreView({core:projection,locale:()=> 'en',fragments:{fragment,render:vi.fn()},onNode,onRoute:vi.fn()});
+    for(const id of ['attention:link:02:gateway','animals--zarathustra--1']){
+      const record=core.links.find(link=>link.id===id),root=new Element('root');view.link(root,record);
+      const path=root.children[0].children.find(child=>child.className==='ps-core-path');
+      const rows=path.children.slice(1);
+      expect(rows).toHaveLength(record.path.length);
+      expect(rows.flatMap(row=>row.children).some(child=>child.textContent==='[object Object]')).toBe(false);
+      rows.forEach((row,index)=>{
+        const step=record.path[index],ids=step.id?[step.id]:[step.from,step.to];
+        const buttons=row.children.filter(child=>child.tag==='button');
+        expect(buttons).toHaveLength(ids.length);
+        buttons.forEach((item,i)=>{item.listeners.click();expect(onNode).toHaveBeenLastCalledWith(projection.materialIds[ids[i]]);});
+        if(step.verb)expect(row.children.some(child=>child.textContent===step.verb.en)).toBe(true);
+        for(const cite of Array.isArray(step.cite)?step.cite:[step.cite])expect(fragment).toHaveBeenCalledWith(cite);
+      });
+    }
+  }finally{vi.unstubAllGlobals();}
 });
