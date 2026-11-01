@@ -1,0 +1,82 @@
+# The fragments pass: records and tools
+
+The stands stopped retelling the works they read (PR #303). This folder keeps
+what that pass rests on: the agents' briefs, their records, and the tools that
+turned the records into the stands' modules. These are review events, not
+derived data. The modules they produced live in `bonsai/zarathustra/`,
+`bonsai/antiquity/` and `access/web/constructor/`.
+
+## Records
+
+| Folder | What it holds |
+| --- | --- |
+| `frag/` | Zarathustra. Every authored sentence classed against the German first editions and the other originals: retelling, navigation, interpretation, link, question, method, context, term. Each sentence names the places it rests on (`out/*.jsonl`); `BRIEF.md` is the instruction. |
+| `align/` | The Zarathustra anchors converted to DTA witness units (`anchors.dta.json`) by `convert_anchors.py`. |
+| `rewrite/` | Zarathustra. The mechanical rewrite and merge, the edit pass on the own words that remained (`edit-out/`, `EDIT-BRIEF.md`) and the links between places (`links.json`). `original.json` is the content before the pass. |
+| `anti/` | Antiquity. Classification (`out/`, `BRIEF.md`), the pre-pass source snapshot (`original.json`), the rewrite and edit pass (`edit-out/`, `EDIT-BRIEF.md`), and links (`rewrite/links.json`). |
+| `ext/`, `ext2/` | The places of other works, as gathered and read against the page images (`external-fragments.json`, `antiquity-fragments.json`). The builders turn them into each stand's `fragments.json`. |
+| `verify/` | An independent check of a seeded sample (`report.json`). It led to citing whole sentences of the original (`snap_cites.mjs`). |
+| `catalogs/` | The Spanish, German and Chinese translations of the new wording, by round (`translated/`, `translated2/`). |
+
+A record's paths name places in the stands' modules (`collection.passages[12].body`,
+`NODE_CONTENT.demo:gateway.body`) as they stood when the record was made.
+
+The original Antiquity classifier slices were not retained. The rewrite
+reconstructs only their `also` aliases from `anti/original.json`, using exact
+Russian and English text equality in `body`, `reading`, and `summary` forms;
+near-duplicate flags do not determine aliases. Replay emits the full path map
+to `anti/rewrite/also.json` and reports the applied-form coverage. The
+`original.json` file records the immutable pre-pass commit and source-file
+digests. The current records reproduce the intermediate rewrite and merge, but
+equivalence to the landed Antiquity modules is not established: compared with
+the PR base `main` at `32033d8`, a scratch merge differed from the collection in
+5,199 structural locations (4,276 values, 409 key-presence, 514 list-length)
+and from first-branches in 336 (286 values, 23 key-presence, 27 list-length).
+Most differences were citation unit ranges; their cause has not been
+determined. Treat replay as an auditable intermediate result, not proof that
+the final modules can be reproduced exactly. The Zarathustra object
+builder also needs `frag/context/nodes.json` and `edges.json`; those exact
+context inputs are absent from this record set, so `rewrite/objects.py` fails
+closed until they are restored. It must not synthesize them.
+
+The original alignment helper (`witnesses.py`) and its
+`alignment.de-deg.json` input were not archived. `align/convert_anchors.py`
+now derives the same mapping from the tracked DTA witness records in
+`bonsai/zarathustra/witnesses/*.json`: `units.de[*][2]` holds the raw text and
+`units.de[*][4]` the aligned Gutenberg unit IDs. In this checkout, rebuilding
+`anchors.dta.json` produced the same 3,246 records byte for byte.
+
+The Antiquity edit context is generated rather than stored. The retained
+`alignx/cited.mjs` reads the checked-in public corpus (manifest revision
+`5519804c4505022b9083de8b43aa53db0fdae45482884810472fb0fa82f0c8dd`) and the
+classification anchors. First run `node bonsai/review/anti/alignx/cited.mjs`,
+then generate the edit slices: `ae1` from `a1,a2`; `ae2` from `a3,a4`; and
+`ae3`–`ae6` from `a5`–`a8` respectively. Check each generated slice with
+`python3 -B bonsai/review/anti/context.py <ae-name> <a-slice>...`, then
+`python3 -B bonsai/review/anti/check_edits.py <ae-name>`. The historical
+`alignment.current.json` is not retained for exact comparison. A local
+regeneration attempt did not finish within seven minutes, so the generated
+alignment and Antiquity edit checks remain unverified here.
+Zarathustra `rewrite/edit-slices/*.json` are also absent, and no exact
+generator for those edit inputs is archived. `rewrite/check_edits.py` therefore
+fails closed when one is missing; the recorded `edit-out/*.jsonl` remain
+available, but their original context cannot be independently rechecked.
+
+## Tools and their order
+
+Each tool finds this folder and the repository root by itself; `TOS_REVIEW` and
+`TOS_REPO` override them. The steps for each stand are:
+
+1. **Classify** (agents with the brief).
+2. **Rewrite**: `rewrite.py`, `rewrite_antiquity.py`. A retold sentence gives way to the places it retold, and the own words stay as they were written.
+3. **Edit** (agents, checked by `check_edits.py`). The own words are made to read right after their fragments.
+4. **Merge**: `merge.py`, `merge_antiquity.py`, then `write_modules.mjs` for Zarathustra.
+5. **Type the objects**: `objects.py`, `objects_antiquity.py`.
+6. **Gather places of other works and build them**: `zarathustra_fragments.py`, `antiquity_fragments.py`, `whole_sentences.py`.
+7. **Cite whole sentences**: `snap_cites.mjs`, then `--objects`.
+8. **Align**: `node bonsai/lib/cli.mjs align-corpus <stand> --write`.
+9. **Catalogs**: `catalogs.py plan2|apply2`.
+
+`frag/zc.py` reads the public corpus for the agents. The downloads the gatherers
+read (scans, OCR, TEI files) are not kept here. Their URLs are in each witness of
+`fragments.json`, and a tool that needs one names the folder it expects.

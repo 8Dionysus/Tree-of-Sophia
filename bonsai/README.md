@@ -114,7 +114,9 @@ names a place in the **original**:
 
 The place in a translation is never chosen by hand: the stand finds it through
 the alignment of the witnesses, so a new translation needs an alignment, not
-another round of hand-picked paragraphs.
+another round of hand-picked paragraphs. A cited span runs over whole sentences
+of the original. The pass that took both stands from retelling to citation
+keeps its briefs, records and tools in [review/](review/README.md).
 
 ### Witnesses (`tos.bonsai.witnesses.v1`)
 
