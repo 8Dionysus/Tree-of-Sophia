@@ -4,10 +4,9 @@ formatting. Material IDs and the shape of every module stay as they were; only f
 import os as _os
 # The review folder (bonsai/review) and the repository root; TOS_REVIEW and TOS_REPO override them.
 REVIEW = _os.environ.get('TOS_REVIEW') or _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-REPO_ROOT = _os.environ.get('TOS_REPO') or _os.path.dirname(_os.path.dirname(REVIEW))
-import json, glob, re, subprocess, collections, sys, os
+import json, glob, re, collections, sys, os
 S = REVIEW + '/anti'
-REPO = REPO_ROOT
+original = json.load(open(f'{S}/original.json'))
 data = {'collection': json.load(open(f'{S}/rewrite/new-collection.json')), 'first-branches': json.load(open(f'{S}/rewrite/new-first-branches.json'))}
 edits = json.load(open(f'{S}/rewrite/edits.json'))
 outs = {}
@@ -168,7 +167,6 @@ for module, path, before, after in LOCATORS:
 data['collection']['posture'] = ('Authored research navigation: the stand’s own words, and the places of the works they rest on as '
                                  'citations of the original in the public corpus or of places kept in fragments.json; no source text '
                                  'or translation is copied into this module.')
-head = lambda path: json.loads(subprocess.check_output(['git', '-C', REPO, 'show', f'HEAD:{path}']))
 def with_cites_inline(value):
     """The collection's own indentation, with each citation of a place on one line."""
     inline = {}
@@ -181,7 +179,7 @@ def with_cites_inline(value):
     return re.sub(r'"(@@cite\d+@@)"', lambda m: inline[m.group(1)], json.dumps(mark(value), ensure_ascii=False, indent=2)) + '\n'
 for name, path, dump in [('collection', 'bonsai/antiquity/collection.json', with_cites_inline),
                          ('first-branches', 'bonsai/antiquity/first-branches.json', lambda v: json.dumps(v, ensure_ascii=False, separators=(',', ':')) + '\n')]:
-    before = head(path)
+    before = original[name]
     # The IDs of every material stay: same keys and ids in the same places.
     ids = lambda v: [x for x in re.findall(r'"id":\s*"([^"]+)"', json.dumps(v, ensure_ascii=False))]
     assert ids(before) == ids(data[name]), f'{name}: material ids changed'

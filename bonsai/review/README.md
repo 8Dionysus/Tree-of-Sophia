@@ -13,13 +13,24 @@ derived data. The modules they produced live in `bonsai/zarathustra/`,
 | `frag/` | Zarathustra. Every authored sentence classed against the German first editions and the other originals: retelling, navigation, interpretation, link, question, method, context, term. Each sentence names the places it rests on (`out/*.jsonl`); `BRIEF.md` is the instruction. |
 | `align/` | The Zarathustra anchors converted to DTA witness units (`anchors.dta.json`). |
 | `rewrite/` | Zarathustra. The mechanical rewrite and merge, the edit pass on the own words that remained (`edit-out/`, `EDIT-BRIEF.md`) and the links between places (`links.json`). `original.json` is the content before the pass. |
-| `anti/` | Antiquity. The same steps: classification (`out/`, `BRIEF.md`), edit pass (`edit-out/`, `EDIT-BRIEF.md`) and links (`rewrite/links.json`). |
+| `anti/` | Antiquity. Classification (`out/`, `BRIEF.md`), the pre-pass source snapshot (`original.json`), the rewrite and edit pass (`edit-out/`, `EDIT-BRIEF.md`), and links (`rewrite/links.json`). |
 | `ext/`, `ext2/` | The places of other works, as gathered and read against the page images (`external-fragments.json`, `antiquity-fragments.json`). The builders turn them into each stand's `fragments.json`. |
 | `verify/` | An independent check of a seeded sample (`report.json`). It led to citing whole sentences of the original (`snap_cites.mjs`). |
 | `catalogs/` | The Spanish, German and Chinese translations of the new wording, by round (`translated/`, `translated2/`). |
 
 A record's paths name places in the stands' modules (`collection.passages[12].body`,
 `NODE_CONTENT.demo:gateway.body`) as they stood when the record was made.
+
+The original Antiquity classifier slices were not retained. The rewrite
+reconstructs only their `also` aliases from `anti/original.json`, using exact
+Russian and English text equality in `body`, `reading`, and `summary` forms;
+near-duplicate flags do not determine aliases. Replay emits the full path map
+to `anti/rewrite/also.json` and reports the applied-form coverage. The
+`original.json` file records the immutable pre-pass commit and source-file
+digests. The Zarathustra object
+builder also needs `frag/context/nodes.json` and `edges.json`; those exact
+context inputs are absent from this record set, so `rewrite/objects.py` fails
+closed until they are restored. It must not synthesize them.
 
 ## Tools and their order
 

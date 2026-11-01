@@ -16,6 +16,13 @@ REPO_ROOT = _os.environ.get('TOS_REPO') or _os.path.dirname(_os.path.dirname(REV
 import json, collections
 D = REVIEW
 REPO = REPO_ROOT
+missing_context = [p for p in (f'{D}/frag/context/nodes.json', f'{D}/frag/context/edges.json') if not _os.path.isfile(p)]
+if missing_context:
+    names = ', '.join(_os.path.relpath(p, D) for p in missing_context)
+    raise SystemExit(
+        'Cannot rebuild Zarathustra objects: exact review context is missing '
+        f'({names}). Restore the original context inputs; do not synthesize replacements.'
+    )
 f = json.load(open(f'{D}/rewrite/final.json'))
 nodes = json.load(open(f'{D}/frag/context/nodes.json'))
 edges = json.load(open(f'{D}/frag/context/edges.json'))

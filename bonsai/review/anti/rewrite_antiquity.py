@@ -5,25 +5,56 @@ Writes anti/rewrite/new-collection.json, new-first-branches.json, edits.json, li
 import os as _os
 # The review folder (bonsai/review) and the repository root; TOS_REVIEW and TOS_REPO override them.
 REVIEW = _os.environ.get('TOS_REVIEW') or _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-REPO_ROOT = _os.environ.get('TOS_REPO') or _os.path.dirname(_os.path.dirname(REVIEW))
-import json, glob, re, sys, os, collections, subprocess
+import json, glob, re, sys, os, collections
 S = REVIEW
 sys.path.insert(0, f'{S}/frag')
 from corpus import version_units
 import zc
-REPO = REPO_ROOT
 OUT = f'{S}/anti/rewrite'
 os.makedirs(OUT, exist_ok=True)
-git = lambda path: json.loads(subprocess.check_output(['git', '-C', REPO, 'show', f'HEAD:{path}']))
-data = {'collection': git('bonsai/antiquity/collection.json'), 'first-branches': git('bonsai/antiquity/first-branches.json')}
-identities = json.load(open(f'{REPO}/bonsai/antiquity/identities.json'))
+original = json.load(open(f'{S}/anti/original.json'))
+data = {'collection': original['collection'], 'first-branches': original['first-branches']}
+identities = original['identities']
 work_key = {v['tree']: k for k, v in identities['works'].items()}
 rows, also = [], {}
 for f in sorted(glob.glob(f'{S}/anti/out/a*.jsonl')):
     name = os.path.basename(f)[:-6]
-    for item in json.load(open(f'{S}/anti/slices/{name}.json')): also[item['path']] = item.get('also', [])
     for line in open(f):
         r = json.loads(line); r['_slice'] = name; rows.append(r)
+
+# The original classification slices were not retained. Reconstruct their `also`
+# paths from the pinned source snapshot: an alias is another authored form with
+# exactly the same RU and EN text, as defined by anti/BRIEF.md. Near-duplicate
+# flags are separate review judgments and are not used to infer aliases.
+FORM_FIELDS = {'body', 'reading', 'summary'}
+forms_by_path, paths_by_text = {}, collections.defaultdict(list)
+def index_forms(value, path):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f'{path}.{key}' if path else key
+            if key in FORM_FIELDS and isinstance(child, dict) and isinstance(child.get('ru'), str) and isinstance(child.get('en'), str):
+                forms_by_path[child_path] = child
+                paths_by_text[(child['ru'], child['en'])].append(child_path)
+            index_forms(child, child_path)
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            index_forms(child, f'{path}[{index}]')
+
+for module_name, module in data.items():
+    index_forms(module, module_name)
+row_paths = {row['path'] for row in rows}
+missing_paths = sorted(row_paths - forms_by_path.keys())
+if missing_paths:
+    raise SystemExit(f'classification paths missing from pinned original: {missing_paths[:5]}')
+for row in rows:
+    value = forms_by_path[row['path']]
+    aliases = sorted(path for path in paths_by_text[(value['ru'], value['en'])] if path != row['path'])
+    if any(path in row_paths for path in aliases):
+        raise SystemExit(f'{row["path"]}: an exact-text alias is also classified as a separate row')
+    also[row['path']] = aliases
+alias_rows = sum(bool(paths) for paths in also.values())
+alias_paths = sum(len(paths) for paths in also.values())
+
 norm = lambda s: re.sub(r'\s+', ' ', s).strip()
 units_cache = {}
 def unit_of(doc_id, lang, uid):
@@ -144,11 +175,27 @@ for r in rows:
                       'original': {'ru': ' '.join(s['ru'] for s in r['sentences']), 'en': ' '.join(s['en'] for s in r['sentences'])},
                       'sentences': [{'class': s['class'], 'ru': s['ru'], 'en': s['en'], 'note': s.get('note', '')} for s in r['sentences']],
                       'kept': parent[key] if r['verdict'] != 'replace' else None, 'cite': retold, 'flags': r.get('flags') or []})
+applied_forms = report['replace'] + report['trim'] + report['keep']
+expected_forms = len(rows) + alias_paths
+if not problems and applied_forms != expected_forms:
+    raise SystemExit(f'alias coverage mismatch: applied {applied_forms} of {expected_forms} forms')
+json.dump({'source_revision': original['provenance']['source_revision'],
+           'rule': 'exact RU and EN equality for body, reading, and summary forms',
+           'forms': [{'path': row['path'], 'also': also[row['path']]} for row in rows],
+           'forms_with_aliases': alias_rows, 'alias_paths': alias_paths},
+          open(f'{OUT}/also.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(data['collection'], open(f'{OUT}/new-collection.json', 'w'), ensure_ascii=False)
 json.dump(data['first-branches'], open(f'{OUT}/new-first-branches.json', 'w'), ensure_ascii=False)
 json.dump(edits, open(f'{OUT}/edits.json', 'w'), ensure_ascii=False, indent=1)
 json.dump(links, open(f'{OUT}/links.json', 'w'), ensure_ascii=False, indent=1)
 flagged = [{'path': r['path'], 'flags': r['flags']} for r in rows if r.get('flags')]
-json.dump({'counts': report, 'problems': problems, 'flags': flagged}, open(f'{OUT}/report.json', 'w'), ensure_ascii=False, indent=1)
-print(dict(report), 'edits', len(edits), 'links', len(links), 'problems', len(problems))
+json.dump({'counts': report, 'problems': problems, 'flags': flagged,
+           'also_reconstruction': {'source_revision': original['provenance']['source_revision'],
+                                   'classified_forms': len(rows), 'forms_with_aliases': alias_rows,
+                                   'alias_paths': alias_paths, 'applied_forms': applied_forms,
+                                   'expected_forms': expected_forms}},
+          open(f'{OUT}/report.json', 'w'), ensure_ascii=False, indent=1)
+print(dict(report), 'edits', len(edits), 'links', len(links), 'problems', len(problems),
+      'also forms', alias_rows, 'also paths', alias_paths,
+      'source', original['provenance']['source_revision'])
 print(collections.Counter(re.sub(r':.*', '', p) for _, p in problems).most_common(8))
