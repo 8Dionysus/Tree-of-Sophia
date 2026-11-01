@@ -20,6 +20,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--work', required=True)
 ap.add_argument('--corpus', required=True)
 ap.add_argument('--tos', required=True)
+ap.add_argument('--registry', help='the semantic-interchange folder, when --tos is not a Tree checkout')
 ap.add_argument('--maker-date', default='2026-10-31')
 ap.add_argument('--review-date', default='2026-11-01')
 args = ap.parse_args()
@@ -73,6 +74,9 @@ for chapter, segments in speakers.items():
     out = []
     for s in segments:
         seg = {'u': [unit_at(chapter, s['from'], False), unit_at(chapter, s['to'], True)]}
+        a, b = (pos.get(u, (None, None))[1] for u in seg['u'])
+        if a is None or b is None or a > b:
+            continue  # rows without German text (a table of contents) carry no voice of their own
         for k in ('speaker', 'addressee', 'mode', 'layer', 'via', 'actors'):
             if s.get(k) is not None:
                 seg[k] = s[k]
@@ -111,6 +115,10 @@ def verdicts(kind):
             {f['id']: f for f in doc.get('formulas', [])}, inp)
 
 REVIEWER = 'terra-verify'
+# English for revised verbs and senses: english.json maps "<claim id>|verb" or "|sense" to the English; what is
+# still missing is written to english-input.json in the work folder for the next pass.
+english = load(W / 'english.json') if (W / 'english.json').exists() else {}
+wanted = {}
 def assessment(v):
     if not v:
         return {'verdict': 'undecided'}
@@ -131,7 +139,12 @@ def admit(claim, v, fields=('verb', 'sense', 'grounds')):
                 continue
             new = v[f]
             if f in ('verb', 'sense') and isinstance(new, str):
-                new = {'ru': new}  # the reviewer writes Russian; the English follows in a separate pass
+                new = {'ru': new}  # the reviewer writes Russian; the English comes from english.json, written in a separate pass
+                key = f"{claim.get('id') or claim.get('_key')}|{f}"
+                if key in english:
+                    new['en'] = english[key]
+                else:
+                    wanted[key] = {'ru': new['ru'], 'maker': (claim.get(f) or {}).get('en') if isinstance(claim.get(f), dict) else None}
             if f == 'grounds':
                 new = clean(new)
                 if 'cite' in claim and 'grounds' not in claim:  # a chain step keeps one place and the rest beside it
@@ -171,6 +184,31 @@ def formula_of(node, fv):
         formula['assessment'] = {'verdict': 'undecided'}
     return formula
 
+# Types in the Tree's entity registry: a concept node is the work's conception, an image node an image
+# of thought, a figure of the work's world an image of thought (bonsai/CORE.md, open question 1).
+IMAGES = {'lion', 'child', 'wheel', 'ring', 'gateway', 'two-paths', 'bite', 'dance', 'circle'}
+registry_dir = pathlib.Path(args.registry or pathlib.Path(args.tos) / 'ToS/doctrine/semantic-interchange')
+entity_parents = {t['type_id']: t.get('parent_type_ids', []) for t in load(registry_dir / 'entity-types.v1.json')['types']}
+registry = {r['relation_type_id']: r for r in load(registry_dir / 'relation-types.v1.json')['relations']}
+def lineage(t):
+    seen, stack = set(), [t]
+    while stack:
+        x = stack.pop()
+        if x and x not in seen:
+            seen.add(x); stack.extend(entity_parents.get(x, []))
+    return seen
+node_type = {}
+for path in sorted((W / 'concepts').glob('*.json')):
+    node_type[path.stem] = 'tos.entity.thought-image' if path.stem in IMAGES else 'tos.entity.conception'
+for path in sorted((W / 'characters').glob('*.json')):
+    node_type[path.stem] = 'tos.entity.thought-image'
+def relation_fits(rel, a, b):
+    r = registry.get(rel)
+    if not r or r.get('abstract') or a not in node_type or b not in node_type:
+        return False
+    within = lambda t, allowed: bool(lineage(t) & set(allowed or []))
+    return within(node_type[a], r.get('domain_type_ids')) and within(node_type[b], r.get('range_type_ids'))
+
 links, chains, concepts, figures = [], [], [], []
 counts = {'links': {}, 'chains': {}, 'formulas': {}}
 def tally(kind, verdict):
@@ -189,6 +227,10 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
             assert given and given['to'] == link['to'] and given['verb'] == link['verb']['ru'], (card, given and given['to'], link['to'])
             claim = clean({k: link[k] for k in ('to', 'verb', 'relation', 'label', 'sense', 'grounds', 'order', 'path', 'status', 'question', 'answer', 'relation_note') if k in link})
             claim = {'id': link.get('id') or f'{nid}:link:{i:02d}:{link["to"]}', 'from': nid, **claim, 'maker': 'sol-run2', 'card': card}
+            # A registry relation stands only where its domain and range take both ends; otherwise it stays the maker's proposal.
+            rel = claim.get('relation') or ''
+            if rel.startswith('tos.relation.') and not relation_fits(rel, nid, link['to']):
+                claim['relation_proposed'] = claim.pop('relation')
             links.append(admit(claim, cards.get(card)))
             tally('links', claim['assessment']['verdict'])
         for i, chain in enumerate(node.get('chains', [])):
@@ -197,8 +239,10 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
             steps = clean(chain.get('steps', []))
             step_verdicts = {s['step']: s for s in (v or {}).get('steps', []) if isinstance(s.get('step'), int)}
             for j, step in enumerate(steps):
+                step['_key'] = f"{chain.get('id') or f'{nid}:chain:{i}'}#{j}"
                 admit(step, step_verdicts.get(j), fields=('verb', 'sense', 'grounds'))
                 step.pop('admission', None)
+                step.pop('_key', None)
             claim = {'id': chain.get('id') or f'{nid}:chain:{i}', 'from': nid, 'title': chain.get('title'),
                      **({'states': clean(chain['states'])} if chain.get('states') else {}),
                      'steps': steps, 'status': chain.get('status'), 'maker': 'sol-run2', 'card': card}
@@ -227,7 +271,7 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
                 out.append({k: x for k, x in item.items() if x not in (None, [])})
             (OUT / 'occurrences' / f'{nid}.json').write_text(json.dumps({'concept': nid, 'groups': groups, 'occurrences': out}, ensure_ascii=False, separators=(',', ':')) + '\n')
             concepts.append({
-                'id': nid, 'title': node['title'], 'wave': node.get('wave'),
+                'id': nid, 'type': node_type[nid], 'title': node['title'], 'wave': node.get('wave'),
                 'question': essence.pop('question', None),
                 'conception': essence,
                 'counter_voices': [dict(clean(cv), voice=voice_at(cv.get('cite'))) for cv in node.get('counter_voices', [])],
@@ -242,7 +286,7 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
             })
         else:
             figures.append({
-                'id': nid, 'title': node['title'], 'existence': 'work-world',
+                'id': nid, 'type': node_type[nid], 'title': node['title'], 'existence': 'work-world',
                 'names': clean(node.get('names')),
                 'appearances': clean(node.get('appearances', [])),
                 'voice': clean(node.get('voice', [])),
@@ -263,6 +307,16 @@ write('concepts.json', concepts)
 write('figures.json', figures)
 write('links.json', links)
 write('chains.json', chains)
+# Objects the grown nodes propose and the links already name: kept with the node that proposes them.
+proposed = {}
+for node in concepts + figures:
+    for item in node.get('proposed') or []:
+        if isinstance(item, dict) and item.get('id') and item['id'] not in node_type:
+            proposed.setdefault(item['id'], {'id': item['id'], 'title': item.get('title'), 'proposed_by': []})['proposed_by'].append(node['id'])
+named = {l['to'] for l in links} | {p.get('id') for l in links for p in (l.get('path') or []) if isinstance(p, dict) and p.get('id')}
+for x in sorted(named - set(node_type) - set(proposed)):
+    proposed[x] = {'id': x, 'title': None, 'proposed_by': sorted({l['from'] for l in links if l['to'] == x or any(isinstance(p, dict) and p.get('id') == x for p in (l.get('path') or []))})}
+write('proposed.json', sorted(proposed.values(), key=lambda x: x['id']))
 admitted = lambda items: {s: sum(1 for x in items if x.get('admission') == s) for s in ('map', 'held', 'rejected')}
 core = {
     'schema': 'tos.bonsai.core.v1',
@@ -276,10 +330,12 @@ core = {
     'reviewers': [{'id': REVIEWER, 'model': 'gpt-6.1-terra', 'effort': 'xhigh', 'date': args.review_date,
                    'method': 'bonsai/review/zarathustra-graph/graph-words/verify-batch.py',
                    'reads': 'the cards and the places of the book, without the maker\'s reasoning'}],
-    'files': ['voices.json', 'concepts.json', 'figures.json', 'links.json', 'chains.json', 'occurrences/<concept>.json', 'control.json'],
+    'files': ['voices.json', 'concepts.json', 'figures.json', 'links.json', 'chains.json', 'proposed.json', 'occurrences/<concept>.json', 'control.json'],
     'counts': {'voices': sum(len(v) for v in voices.values()), 'chapters': len(voices), 'concepts': len(concepts), 'figures': len(figures),
-               'links': len(links), 'chains': len(chains), 'occurrences': sum(1 for p in (OUT / 'occurrences').glob('*.json') for _ in load(p)['occurrences']),
+               'links': len(links), 'chains': len(chains), 'proposed': len(proposed), 'occurrences': sum(1 for p in (OUT / 'occurrences').glob('*.json') for _ in load(p)['occurrences']),
                'verdicts': counts, 'admission': {'links': admitted(links), 'chains': admitted(chains)}},
 }
+(W / 'english-input.json').write_text(json.dumps(wanted, ensure_ascii=False, indent=1) + '\n')
+core['counts']['english_missing'] = len(wanted)
 (OUT / 'core.json').write_text(json.dumps(core, ensure_ascii=False, indent=1) + '\n')
 print(json.dumps(core['counts'], ensure_ascii=False))
