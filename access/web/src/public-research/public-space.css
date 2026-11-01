@@ -450,7 +450,7 @@
   #tree .ps-footer .footer-tools :is([data-tool=routes],[data-tool=research]){display:flex;align-items:center;gap:6px;width:auto;padding:0 12px}
   #tree .ps-footer .ps-tool-label{display:inline;font:12px/1.3 var(--ps-sans);white-space:nowrap}
   /* reading sheet: its top bar always in reach above the tool bar */
-  #tree.pr-public-space .ps-column{top:auto;left:8px;right:8px;bottom:60px;width:auto;min-height:0;max-height:min(56dvh,520px);border-radius:10px 10px 7px 7px;box-shadow:0 -14px 50px #0209138c}
+  #tree.pr-public-space .ps-column{top:auto;left:8px;right:8px;bottom:60px;width:auto;min-height:0;max-height:min(44dvh,420px);border-radius:10px 10px 7px 7px;box-shadow:0 -14px 50px #0209138c}
   #tree .ps-column>.reading-top{padding:4px 6px 4px 16px;border-radius:10px 10px 0 0}
   #tree .ps-column-title{flex:1;display:flex;align-items:center;gap:8px;min-height:40px;cursor:pointer}
   #tree .ps-column-title::after{content:'▴';margin-left:auto;padding-right:6px;color:#8fa1b4;font-size:12px;letter-spacing:0}
@@ -478,7 +478,9 @@
   #tree .ps-relations .relation-chip{min-height:32px}
   #tree .ps-map-tools{top:auto;right:10px;bottom:150px;grid-auto-flow:column}
   #tree .ps-map-tools .icon{width:38px;height:36px}
-  #tree.pr-public-space[data-sheet=open] :is(.ps-map-tools,.ps-relations){visibility:hidden}
+  /* An open card leaves the upper part of the map in view, and the map's tools stand just above the card. */
+  #tree.pr-public-space[data-sheet=open] .ps-relations{visibility:hidden}
+  #tree.pr-public-space[data-sheet=open] .ps-map-tools{bottom:calc(68px + min(44dvh,420px))}
   #tree .ps-column-tab{display:none}
   #tree .ps-compare-bar{left:10px;right:10px;top:200px;max-height:48dvh;padding:12px}
   #tree .ps-compare-columns{grid-template-columns:1fr;gap:7px}

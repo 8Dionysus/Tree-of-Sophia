@@ -269,7 +269,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const first=w===1;w=Math.max(1,root.clientWidth);h=Math.max(1,root.clientHeight);dpr=Math.min(devicePixelRatio||1,softwareRenderer?1:1.25);
     const cw=Math.round(w*dpr),ch=Math.round(h*dpr);if(canvas.width!==cw)canvas.width=cw;if(canvas.height!==ch)canvas.height=ch;
     const desktop=w>760,cinema=root.dataset.cinema==='true',reading=!cinema&&root.dataset.reading==='true',deck=!cinema&&root.dataset.deck==='true',journey=!cinema&&root.dataset.journey==='true';
-    targetViewport={left:desktop?166:24,right:w-(desktop?(reading?350:30):24),top:desktop?185:145,bottom:h-(desktop?(journey?260:deck?225:90):(reading?Math.max(180,h*.48):deck?150:65))};
+    targetViewport={left:desktop?166:24,right:w-(desktop?(reading?350:30):24),top:desktop?185:145,bottom:h-(desktop?(journey?260:deck?225:90):(reading?Math.max(180,Math.min(h*.44,420)+112):deck?150:65))};
     targetViewport.right=Math.max(targetViewport.left+120,targetViewport.right);targetViewport.bottom=Math.max(targetViewport.top+130,targetViewport.bottom);
     const bounds=root.getBoundingClientRect();uiObstacles=[];
     for(const el of root.querySelectorAll('.view-heading,.header,.lens-rail,.collection-deck,.relation-bar,.footer,.reading,.journey-dock,.ps-map-tools,.ps-column-tab,.ps-search-results')){const style=getComputedStyle(el),rect=el.getBoundingClientRect();if(el.hidden||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0||!rect.width||!rect.height)continue;uiObstacles.push({left:rect.left-bounds.left,top:rect.top-bounds.top,right:rect.right-bounds.left,bottom:rect.bottom-bounds.top});}
@@ -401,11 +401,12 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // A box moved the least way into the free area.
   const intoView=r=>{const width=r.right-r.left,height=r.bottom-r.top,v=targetViewport;return box(clamp(r.left,v.left,Math.max(v.left,v.right-width)),clamp(r.top,v.top,Math.max(v.top,v.bottom-height)),width,height);};
   // Of the given places, the first clear one; else the one that covers the least of what is already named, never a panel.
-  function placeAlways(possibilities,occupied,stars,ownId=null){
+  function placeAlways(possibilities,occupied,stars,ownId=null,guarded=[]){
     const within=possibilities.map(intoView),clear=within.find(rect=>!occupied.some(o=>overlaps(rect,o))&&!stars.some(o=>o.id!==ownId&&overlaps(rect,o,2)));
     if(clear)return {area:clear,clear:true};
     let best=null,cost=Infinity;
-    for(const rect of within){const covered=occupied.reduce((sum,o)=>sum+overlapArea(rect,o),0)+uiObstacles.reduce((sum,o)=>sum+overlapArea(rect,o)*20,0)+stars.reduce((sum,o)=>sum+(o.id===ownId?0:overlapArea(rect,o)*.3),0);if(covered<cost){best=rect;cost=covered;}}
+    // The chosen star's own name is guarded: covering it costs as much as covering a panel.
+    for(const rect of within){const covered=occupied.reduce((sum,o)=>sum+overlapArea(rect,o),0)+uiObstacles.reduce((sum,o)=>sum+overlapArea(rect,o)*20,0)+guarded.reduce((sum,o)=>sum+overlapArea(rect,o)*20,0)+stars.reduce((sum,o)=>sum+(o.id===ownId?0:overlapArea(rect,o)*.3),0);if(covered<cost){best=rect;cost=covered;}}
     return best?{area:best,clear:false}:null;
   }
   function labelsForScene(near,focusEdges,kept=new Set(),keptEdges=new Set()){
@@ -523,8 +524,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const along=(width,height)=>{const list=[];for(const offset of [0,16,-16,32,-32,48,-48,64,-64])for(const t of [.5,.38,.62,.26,.74,.15,.85]){const cx=a.x+dx*t-dy/length*offset,cy=a.y+dy*t+dx/length*offset;list.push(box(cx-width/2,cy-height/2,width,height));}return list;};
       // Where links crowd round the chosen star and no free place is left for a whole name, a free place for the link's
       // kind is better than names laid over one another; the whole name stays in its title.
-      let spot=placeAlways(along(e.labelWidth,e.labelHeight),occupied,nodeObstacles),compact=false;
-      if(spot&&!spot.clear&&e.tag&&e.compactWidth){const brief=placeAlways(along(e.compactWidth,e.compactHeight),occupied,nodeObstacles);if(brief?.clear){spot=brief;compact=true;}}
+      const guarded=[nodes.find(n=>n.id===selectedId)?.labelBox].filter(Boolean);
+      let spot=placeAlways(along(e.labelWidth,e.labelHeight),occupied,nodeObstacles,null,guarded),compact=false;
+      // With no free place for either, the smaller kind-only label covers the least.
+      if(spot&&!spot.clear&&e.tag&&e.compactWidth){const brief=placeAlways(along(e.compactWidth,e.compactHeight),occupied,nodeObstacles,null,guarded);if(brief){spot=brief;compact=true;}}
       if(spot)showEdge(e,spot.area,compact,hot);
     }
     for(const n of ordered){
@@ -725,7 +728,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(dx||dy){tpan={x:tpan.x+dx,y:tpan.y+dy};kick();}
   }
   // A chosen star's neighbours are brought into the free area with it, so that every name of its neighbourhood can show:
-  // the camera pans the shortest way, never turns, and draws back only when the neighbourhood is wider than the area.
+  // the camera pans the shortest way and never turns; it draws back when the neighbourhood is wider than the area and
+  // closer when its names would crowd.
   function revealNeighbourhood(){
     const id=neighbourhoodPending;neighbourhoodPending=null;if(measured||!id)return;
     const ids=new Set([id]);for(const e of edges)if(!e.muted&&(e.from===id||e.to===id)){ids.add(e.from);ids.add(e.to);}
@@ -736,8 +740,15 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     let span=extent(points);
     const roomX=Math.max(40,area.right-area.left-2*mx),roomY=Math.max(40,area.bottom-area.top-2*my);
     const back=Math.min(1,roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top));
-    if(back<1){
-      const before=tzoom;zoomTo(tzoom*back);const ratio=tzoom/before;
+    // A crowded neighbourhood is drawn closer, so that its names have room to stand apart: the room its names need is
+    // set against the room around its stars, never past what the free area holds or twice the present zoom.
+    const near=edges.filter(e=>!e.muted&&(e.from===id||e.to===id));
+    const demand=nodes.filter(n=>ids.has(n.id)).reduce((sum,n)=>sum+(n.fullWidth??n.labelWidth??120)*(n.fullHeight??n.labelHeight??18),0)+near.reduce((sum,e)=>sum+(e.labelWidth??120)*(e.labelHeight??30),0);
+    const around=(span.right-span.left+120)*(span.bottom-span.top+120);
+    const grow=back<1?1:Math.min(Math.sqrt(demand*2.4/Math.max(1,around)),roomX/Math.max(1,span.right-span.left),roomY/Math.max(1,span.bottom-span.top),2);
+    const factor=back<1?back:grow>1.15?grow:1;
+    if(factor!==1){
+      const before=tzoom;zoomTo(tzoom*factor);const ratio=tzoom/before;
       span=extent(points.map(p=>({x:cx+(p.x-cx-tpan.x)*ratio+tpan.x,y:cy+(p.y-cy-tpan.y)*ratio+tpan.y})));
     }
     const shift=(low,high,from,to)=>high-low>to-from?(from+to)/2-(low+high)/2:low<from?from-low:high>to?to-high:0;

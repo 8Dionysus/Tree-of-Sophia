@@ -557,6 +557,19 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A route keeps showing the reader's own records about its stars, including one just written on a step.
     const measuredView=measuredLens(lens),routePath=interaction||!compareBar.hidden?null:routeWithRecords(route?.path??null,current);
     const projected=makeLensView(current,library,{lens:measuredView?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
+    // A chosen star brings its whole neighbourhood into a lens that groups: the links and stars the lens leaves out are
+    // added where the tree has them, so the map never shows less of the star than its card does.
+    if(selected&&!measuredView&&!routePath&&lens!=='tree'&&projected.nodes.some(node=>node.id===selected)){
+      const whole=makeLensView(current,library,{lens:'tree',enabled:enabled.size===relationKinds.length?null:enabled});
+      const have=new Set(projected.nodes.map(node=>node.id)),linked=new Set(projected.edges.map(edge=>edge.id));
+      for(const edge of whole.edges){
+        if(linked.has(edge.id)||(edge.from!==selected&&edge.to!==selected))continue;
+        const missing=[edge.from,edge.to].filter(id=>!have.has(id)).map(id=>whole.nodes.find(node=>node.id===id));
+        if(missing.some(node=>!node))continue;
+        projected.nodes.push(...missing);for(const node of missing)have.add(node.id);
+        projected.edges.push(edge);linked.add(edge.id);
+      }
+    }
     const clusterNames=profile==='antiquity'?{routes:{title:{ru:'Ветви',en:'Branches'},subtitle:{ru:'Вопросы, с которых начинается исследование',en:'Questions where an inquiry begins'}}}:{};
     projected.clusters=(projected.clusters??[]).map(cluster=>({...cluster,title:tr(clusterNames[cluster.id]?.title??cluster.title,locale()),subtitle:tr(clusterNames[cluster.id]?.subtitle??cluster.subtitle,locale())}));
     projected.edges=projected.edges.map(edge=>{
@@ -1157,7 +1170,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function previewMaterial(materialId){measureOpen=false;const id=graphIdForMaterial(materialId);selected=id;selectedEdge=null;browsingRoutes=false;searchValue='';search.value='';searchResults.hidden=true;search.blur();personal.hidden=true;columnOpen=true;sky?.selectEdge(null);if(graphState().nodes.some(item=>item.id===id)){sky?.select(id);sky?.reveal(id);}reflect();sky?.refresh();}
   // Choosing a star on the map leaves the map where it is. Choosing it from a list,
   // a link or a step brings it into view only if it would otherwise stay hidden.
-  function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(id);sky?.selectEdge(null);renderColumn();
+  function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
+    // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
+    if(changed&&lens!=='tree'&&!measuredLens(lens))refreshSky();
+    sky?.select(id);sky?.selectEdge(null);renderColumn();
     // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
     if(changed){reading.scrollTop=0;panelContent.scrollTop=0;}
     renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
@@ -1205,9 +1221,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(mode==='measure')return t('measureAction');
     return `${t('routes')} · ${routes.length}`;
   }
+  let columnSubject='';
   function renderColumn(){
     if(destroyed)return;
     const mode=columnMode(),wide=desktop();shell.dataset.column=mode;reading.dataset.mode=mode;
+    // A card for another star or link opens at its top, however it was chosen: from the map, a search, a route or a card.
+    const subject=mode==='node'?`node:${selected}`:mode==='edge'?`edge:${selectedEdge}`:mode;
+    if(subject!==columnSubject){const fresh=columnSubject&&(mode==='node'||mode==='edge');columnSubject=subject;if(fresh){reading.scrollTop=0;requestAnimationFrame(()=>{if(columnSubject===subject)reading.scrollTop=0;});}}
     if(mode==='personal'){reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
     // A wide screen shows the column or a tab to reopen it; a narrow screen always keeps the sheet's top bar.
     reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;
@@ -1606,6 +1626,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const edge=shownView?.edges?.find(item=>item.id===id);if(!edge||edge.proposalId)return null;
     const meaning=styleOf(edge.kind)?.hint?tr(styleOf(edge.kind).hint,locale()):'';if(!meaning)return null;
     const word=isBasedOn(edge)?relationName(edge):relationWord(edge.kind);
+    // A link drawn by its kind alone names itself in its hint; the kind's meaning follows.
+    const compact=shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`)?.dataset.compact==='true';
+    if(compact&&edge.label&&edge.label!==word)return {text:word?`${word}: ${edge.label}`:edge.label,keys:[],note:meaning};
     return {text:word?`${word}: ${meaning}`:meaning,keys:[],note:''};
   }
   hints=mountHints(shell,{
