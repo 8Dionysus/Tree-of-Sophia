@@ -155,6 +155,10 @@ come from those references. These mechanics cannot decide whether the passages
 warrant the interpretation; that requires the review recorded in
 `SEMANTIC_REVIEW.md`.
 
+`atlas-held.mjs` keeps, whole, what the strict rebuild of 1 November 2026 took
+off the map — readings, comparisons and the links that rest on another book —
+until they are grown together with it; nothing there is shown or bound.
+
 `inquiry-foundation.mjs` supplies the central investigation and six lens
 methods, including what each method leaves out. Open **How to investigate this
 question** below the current view's title. In a walk this opens its starting

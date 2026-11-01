@@ -1,6 +1,6 @@
 import {PUBLIC_LOCALES,LOCALE_NAMES,resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 import {mountConstructorSky} from '../../constructor/sky.mjs';
-import {LENSES, RELATIONS, makeLensView, shortestPath} from '../../constructor/atlas-view.mjs';
+import {LENSES, RELATIONS, lensHasStars, makeLensView, shortestPath} from '../../constructor/atlas-view.mjs';
 import {createConstructorModel} from '../../constructor/model.mjs';
 import {INQUIRY_FOUNDATION, LENS_INQUIRY} from '../../constructor/inquiry-foundation.mjs';
 import {mountCollectionView} from './collection-view.mjs';
@@ -20,8 +20,10 @@ import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mj
 import {depthLayout} from './space-depth.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
-import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark} from './space-play.mjs';
+import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
 import {citesOf,createFragments} from './fragments.mjs';
+import {coreContext} from './core-projection.mjs';
+import {createCoreView} from './core-view.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -50,8 +52,8 @@ Object.assign(extraTranslations.ru,{dating_medium:'опора — обзор и�
 Object.assign(extraTranslations.en,{dating_medium:'rests on a summary of scholarship',dating_low:'rests on a source that cites no study',lifeLine:'Author’s years',journeys:'Reading routes',researchActions:'Research',orientation:'Where you are in the tree',mapTools:'Map controls',openColumn:'Panel',collapseColumn:'Collapse panel',toOverview:'To the whole space',backToRoute:'back to the route',onMap:'On the map',selectedLink:'Selected link',lensWord:'lens',statusTitle:'Status',formSource:'Source',formSourceHint:'A work, passage, author or tradition: what readings rest on',formProposal:'Reading',formProposalHint:'An authored reading, concept, question or branch: proposed for inquiry, not canon',formPersonal:'Personal',formPersonalHint:'Your own thought or link, saved in this browser',
   ladderLabel:'Step of interpretation',ladderHint:'The tree tells a source, its reading and a comparison of readings apart; each step returns to the source.',rung_source:'Source',rung_reading:'Reading',rung_comparison:'Comparison',rungPersonal:'Personal record',ownPlaceholder:'How do you read it? One line',ownWrite:'Write it down',ownMine:'Your reading',ownAround:'Readings nearby',ownNearest:'Nearest to yours',ownNone:'None of them',ownRestsOn:'Rests on',ownDisputed:'Disputed by',ownWritten:'Your reading has taken its place in the space',threadNote:'not yet in the space',threadAdded:'The star has entered the space',
   basisContains:'Structure: a part and its whole.',basisGround:'The reading rests on this place in the source.',basisEditorial:'An editorial comparison of two readings · proposed, not canon · not a claim of historical influence.',basisProposed:'A relation proposed for inquiry · not canon · similarity is not influence.',basisPersonal:'A personal link from your research.'});
-Object.assign(extraTranslations.ru,{fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
-Object.assign(extraTranslations.en,{fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',refBook:'Book {n}',refChapter:'Chapter {n}',refSection:'Section {n}',refFragment:'Fragment {n}',refLines:'Lines from {n}',refArrian:'Arrian’s preface',fragmentQuoted:'Where the quotation is taken from',fragmentBook:'About the book’s edition',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
+Object.assign(extraTranslations.ru,{modernSpelling:'в современной орфографии',fragmentOriginal:'Оригинал',fragmentTranslation:'Перевод',fragmentWhole:'Читать в целом произведении',refBook:'Книга {n}',refChapter:'Глава {n}',refSection:'Раздел {n}',refFragment:'Фрагмент {n}',refLines:'Строки от {n}',refArrian:'Предисловие Арриана',fragmentQuoted:'Откуда взята цитата',fragmentBook:'Об издании книги',fragmentEdition:'Открыть в читателе',fragmentOmitted:'В этом издании перевода места нет',fragmentUnavailable:'Текст этого места сейчас недоступен',parallelPrevious:'Предыдущая глава',parallelNext:'Следующая глава'});
+Object.assign(extraTranslations.en,{modernSpelling:'in modern spelling',fragmentOriginal:'Original',fragmentTranslation:'Translation',fragmentWhole:'Read in the whole work',refBook:'Book {n}',refChapter:'Chapter {n}',refSection:'Section {n}',refFragment:'Fragment {n}',refLines:'Lines from {n}',refArrian:'Arrian’s preface',fragmentQuoted:'Where the quotation is taken from',fragmentBook:'About the book’s edition',fragmentEdition:'Open in the reader',fragmentOmitted:'This edition of the translation lacks the place',fragmentUnavailable:'The text of this place is unavailable now',parallelPrevious:'Previous chapter',parallelNext:'Next chapter'});
 Object.assign(extraTranslations.en,{excerpt:'Excerpt',proposalGrounds:'Grounds of this proposal',manualOrigin:'Manual entry',agentOrigin:'External agent response',personalOrigin:'Personal proposal',pending:'Pending review',notCanon:'Not canon',postureShort:'Readings · not canon'});
 // The measuring lenses and the measure panel speak in few words; the map shows the rest.
 Object.assign(extraTranslations.ru,{"traceTitle": "Понятие во времени", "traceLink": "след понятия", "traceLabel": "Понятие", "nearTitle": "Близость по", "nearIsCenter": "центр", "nearClosest": "ближе всех", "nearFrom": "от", "nearNotMeasured": "не измеряется", "nearSharedConcepts": "общих понятий", "nearSharedGrounds": "общих оснований", "dateUnknown": "дата неизвестна", "duringLifeShort": "в пределах жизни автора", "duringActivityShort": "в годы деятельности автора", "placeUnknown": "место не установлено", "placeActivityShort": "здесь жил автор", "certainty_exact": "точно", "certainty_approximate": "приблизительно", "certainty_uncertain": "под вопросом", "certainty_unknown": "неизвестно", "certainty_none": "без датировки", "measureKind_date-assertion": "своя дата", "measureKind_interval-assertion": "свой интервал", "measureKind_relative-phase": "внутри периода", "measureKind_relative-life": "в пределах жизни автора", "measureKind_relative-activity": "в годы деятельности автора", "measureKind_relative-order": "относительно другого события", "measureKind_unknown-date": "дата неизвестна", "measureKind_none": "без датировки", "footing_high": "исследование", "footing_medium": "обзор исследований", "footing_low": "без ссылок на исследования", "placeBasis_composition": "место написания", "placeBasis_event": "место события", "placeBasis_activity": "место жизни автора", "placeBasis_unknown": "не установлено", "measureAction": "Мера и полнота", "measureDating": "Датировки", "measureCertainty": "Точность", "measureFooting": "Опора", "measurePlaces": "Места", "measureEras": "Эпохи", "measureConcepts": "Понятия", "measureBranches": "Ветви во времени", "measureLifeOnly": "Без собственной датировки", "measurePlaceless": "Без места", "measureGrounding": "Опора звёзд", "measureInBook": "главы книги", "measureOutside": "другие тексты", "measureChapters": "Главы", "measureOutsideTexts": "Тексты вне книги", "measureRoutes": "Маршруты по книге"});
@@ -73,6 +75,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The work's own text in place of a retelling: cited places, opened in the whole work.
   const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell});
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
+  const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,onNode:id=>previewMaterial(id),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
@@ -117,7 +120,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
   const spaceLens=geography?{id:'space',icon:'⌖',title:{ru:'Пространство',en:'Space'},description:{ru:'Где написан текст или где жил его автор',en:'Where the text was written, or where its author lived'}}:null;
   const proximityLens=starIds.length&&criteria.length?{id:'proximity',icon:'⊙',title:{ru:'Близость',en:'Proximity'},description:{ru:'Расстояние от выбранной звезды',en:'Distance from the chosen star'}}:null;
-  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
+  // A lens with no stars of its own in this library is not offered.
+  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
   // A measuring lens lays the stars out itself; the others keep the map's own arrangement.
   const measuredLens=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
@@ -125,7 +129,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const styleOf=key=>relationStyle(profile,key,RELATIONS[key]??{});
   // Atlas edge ids may carry the 'atlas:' prefix once in the library and again in the graph copy.
   const bareEdgeId=id=>String(id??'').replace(/^(?:atlas:)+/,'');
-  const atlasEdgeById=new Map((atlas.edges??[]).map(edge=>[bareEdgeId(edge.id),edge]));
+  const atlasEdgeById=new Map([...(atlas.edges??[]),...(core?.edges??[])].map(edge=>[bareEdgeId(edge.id),edge]));
   const atlasEdgeFor=id=>atlasEdgeById.get(bareEdgeId(id));
   const moveIds=new Set(routes.flatMap(item=>(item.steps??[]).map(step=>step.nodeId??step.graphNodeId)).filter(Boolean));
   const relationWord=key=>tr(styleOf(key),locale());
@@ -274,6 +278,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     turnGlobe.meridian.setAttribute('rx',Math.max(.7,Math.abs(Math.sin(yaw))*9).toFixed(2));
     turnGlobe.equator.setAttribute('ry',Math.max(.7,Math.abs(Math.sin(pitch))*9).toFixed(2));
     turnGlobe.front.setAttribute('cx',(Math.sin(yaw)*7.6).toFixed(2));turnGlobe.front.setAttribute('cy',(-Math.sin(pitch)*7.6).toFixed(2));
+    // The space turns all the way round: a front turned away is drawn hollow, on the far side of the globe.
+    const behind=Math.cos(yaw)<0;turnGlobe.front.setAttribute('fill',behind?'none':'currentColor');turnGlobe.front.setAttribute('stroke',behind?'currentColor':'none');turnGlobe.front.setAttribute('stroke-width',behind?'.9':'0');
   }
   function paintTool({button:b,key,label}){
     // The globe is named by what pressing it does; its title says how the space turns.
@@ -432,7 +438,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const sectionEntry=source=>!source?.exact&&!!source?.binding?.unitId;
   function sourceActionLabel(source){return source.containerTitle?`${t('readWithin')} ${tr(source.containerTitle,locale())} · ${tr(source.containerLocator,locale())}`:t(source.exact?'openExact':sectionEntry(source)?'openSection':'openWork');}
   function isBasedOn(edge){return String(edge.id).startsWith('atlas:antiquity:reading-source:')&&edge.kind==='supports'&&String(edge.from).includes('antiquity:reading:')&&String(edge.to).includes('antiquity:source:');}
-  function relationName(edge,inverse=false){if(edge.proposalId)return tr(edge.label,locale());return isBasedOn(edge)?t(inverse?'groundsFor':'basedOn'):relationWord(edge.kind)||t('relation');}
+  function relationName(edge,inverse=false){if(edge.proposalId||edge.coreRecord)return tr(edge.label,locale());return isBasedOn(edge)?t(inverse?'groundsFor':'basedOn'):relationWord(edge.kind)||t('relation');}
   function personalProposals(ownerId){
     if(!ownerId)return [];
     return (workspace?.getState?.()?.proposals??personalState?.proposals??[]).filter(item=>item.parentHypothesisId===ownerId||item.targetId===ownerId||item.fromId===ownerId||item.toId===ownerId);
@@ -535,13 +541,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const base=structuredClone(state),owner=liveWorkspaceNodes(),byId=new Map(base.nodes.map(n=>[n.id,n]));
     // An open branch and the scale of time both read prepared material the saved graph may not hold yet.
     const context=[];
+    const coreViewContext=coreContext(core,{materialId:selected?.replace(/^material:/,''),edgeId:selectedEdge,chainId:routes.find(item=>item.id===route?.id)?.coreChainId});
+    context.push(...coreViewContext.materialIds);
     if(route?.source==='atlas')for(const step of routes.find(item=>item.id===route.id)?.steps??[])context.push(step.nodeId??step.graphNodeId);
     if(measuredLens(lens))context.push(...starIds);
     if(context.length){
       for(const materialId of context){const material=materials.get(materialId),id=graphIdForMaterial(materialId);if(!material||byId.has(id))continue;
         const node={id,materialId,kind:material.kind,title:tr(material.title,locale()),body:tr(material.body,locale()),position:material.position??[0,0,0],sourceIds:[],routeContext:true};base.nodes.push(node);byId.set(id,node);}
       const existing=new Set(base.edges.map(edge=>edge.id));
-      for(const edge of atlas.edges??[]){const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to),id=`atlas:${edge.id}`;if(existing.has(id)||!byId.has(from)||!byId.has(to))continue;base.edges.push({...edge,id,from,to});existing.add(id);}
+      for(const edge of [...(atlas.edges??[]),...coreViewContext.edges]){const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to),id=`atlas:${edge.id}`;if(existing.has(id)||!byId.has(from)||!byId.has(to))continue;base.edges.push({...edge,id,from,to});existing.add(id);}
     }
     for(const n of owner.nodes){if(byId.has(n.id))Object.assign(byId.get(n.id),n);else{base.nodes.push(n);byId.set(n.id,n);}}
     const existingEdges=new Set(base.edges.map(e=>e.id));
@@ -555,11 +563,27 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A route keeps showing the reader's own records about its stars, including one just written on a step.
     const measuredView=measuredLens(lens),routePath=interaction||!compareBar.hidden?null:routeWithRecords(route?.path??null,current);
     const projected=makeLensView(current,library,{lens:measuredView?'tree':lens,enabled:enabled.size===relationKinds.length?null:enabled,path:routePath});
+    // A chosen star brings its whole neighbourhood into a lens that groups: the links and stars the lens leaves out are
+    // added where the tree has them, so the map never shows less of the star than its card does.
+    if(selected&&!measuredView&&!routePath&&lens!=='tree'&&projected.nodes.some(node=>node.id===selected)){
+      const whole=makeLensView(current,library,{lens:'tree',enabled:enabled.size===relationKinds.length?null:enabled});
+      const have=new Set(projected.nodes.map(node=>node.id)),linked=new Set(projected.edges.map(edge=>edge.id));
+      for(const edge of whole.edges){
+        if(linked.has(edge.id)||(edge.from!==selected&&edge.to!==selected))continue;
+        const missing=[edge.from,edge.to].filter(id=>!have.has(id)).map(id=>whole.nodes.find(node=>node.id===id));
+        if(missing.some(node=>!node))continue;
+        projected.nodes.push(...missing);for(const node of missing)have.add(node.id);
+        projected.edges.push(edge);linked.add(edge.id);
+      }
+    }
     const clusterNames=profile==='antiquity'?{routes:{title:{ru:'Ветви',en:'Branches'},subtitle:{ru:'Вопросы, с которых начинается исследование',en:'Questions where an inquiry begins'}}}:{};
     projected.clusters=(projected.clusters??[]).map(cluster=>({...cluster,title:tr(clusterNames[cluster.id]?.title??cluster.title,locale()),subtitle:tr(clusterNames[cluster.id]?.subtitle??cluster.subtitle,locale())}));
     projected.edges=projected.edges.map(edge=>{
       const next={...edge,label:isBasedOn(edge)?relationName(edge):humanEdgeLabel(edge)||humanEdgeLabel(atlasEdgeFor(edge.id))||relationName(edge)};
       const style=styleOf(edge.kind),word=relationWord(edge.kind);
+      // Core verbs are the authored relation. A neutral visual family must
+      // not replace them with a generic tag when the map compacts labels.
+      if(edge.coreRecord)return {...next,dash:style.dash,weight:style.weight??1,tag:''};
       if(profile!=='antiquity'){
         // Every authored link names its kind on the map; its line and weight follow the kind's family.
         const tagged=!edge.ownerType&&edge.kind!=='contains'&&!!word&&next.label!==word;
@@ -856,6 +880,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       b.addEventListener('click',event=>{lens=item.id;const refocus=event.detail===0||lensList.contains(document.activeElement);
       // An open branch reads on the tree, on the scale of time and on the map of places; other lenses look at the whole space.
       if(route&&!['tree','time','space'].includes(lens)){route=null;routeStepNode=null;shell.dataset.journey='false';}browsingRoutes=false;persistView();paintLenses();reflect();frameSky();
+      // A chosen star the new lens does not show is let go, so its card does not speak of a star that is gone;
+      // one it shows is brought into the free area.
+      if(selected&&!shownView?.nodes?.some(node=>node.id===selected))closePanel();else if(selected)sky?.reveal(selected);
       // The lenses are drawn again; the keyboard stays on the one it chose.
       if(refocus)lensList.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});});lensList.append(b);}
     // On a phone the lenses scroll in one row; the chosen one stays in sight, also when a link opened it.
@@ -957,7 +984,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function appendProximityControls(parent){
     const item=nearCriterion(),box=el('section','ps-near');box.append(el('h2','minor-title',t('nearTitle')));
     const chips=el('div','ps-chip-row');chips.setAttribute('role','radiogroup');chips.setAttribute('aria-label',t('nearTitle'));
-    for(const value of criteria){const chip=button(tr(value.label,locale()),'ps-near-chip');chip.setAttribute('role','radio');chip.setAttribute('aria-checked',String(value.id===item?.id));chip.setAttribute('aria-pressed',String(value.id===item?.id));setHint(chip,tr(value.measure,locale()));chip.addEventListener('click',()=>{criterion=value.id;persistView();reflect();});chips.append(chip);}
+    for(const value of criteria){const chip=button(tr(value.label,locale()),'ps-near-chip');chip.setAttribute('role','radio');chip.setAttribute('aria-checked',String(value.id===item?.id));chip.setAttribute('aria-pressed',String(value.id===item?.id));setHint(chip,tr(value.measure,locale()));chip.addEventListener('click',()=>{criterion=value.id;persistView();reflect();
+      // Another criterion lays the stars out anew, so the map is framed again around what it now shows.
+      frameSky();if(selected)sky?.reveal(selected);});chips.append(chip);}
     box.append(chips);parent.append(box);
   }
   function ladderLine(rung){
@@ -1057,6 +1086,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(ownerHyp?.targetId)panelContent.append(el('p','muted',`${t('related')}: ${ownerHyp.targetId}`));
       const proposals=personalProposals(ownerHyp?.id??node.workspaceHypothesisId);
       appendPersonalProposals(panelContent,proposals);
+    }else if(material?.coreId&&coreView){
+      coreView.node(panelContent,material.coreId);
     }else if(material){
       const source=sourceForMaterial(material,node);
       if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
@@ -1106,6 +1137,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     const edge=findEdge(id);if(!edge)return dropEdge();
     panelContent.replaceChildren();
+    if(edge.coreRecord&&coreView){coreView.link(panelContent,edge.coreRecord);return;}
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.
     const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge);
@@ -1150,7 +1182,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function previewMaterial(materialId){measureOpen=false;const id=graphIdForMaterial(materialId);selected=id;selectedEdge=null;browsingRoutes=false;searchValue='';search.value='';searchResults.hidden=true;search.blur();personal.hidden=true;columnOpen=true;sky?.selectEdge(null);if(graphState().nodes.some(item=>item.id===id)){sky?.select(id);sky?.reveal(id);}reflect();sky?.refresh();}
   // Choosing a star on the map leaves the map where it is. Choosing it from a list,
   // a link or a step brings it into view only if it would otherwise stay hidden.
-  function selectActual(id,{reveal=false}={}){measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(id);sky?.selectEdge(null);renderColumn();renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
+  function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
+    // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
+    if(changed&&!measuredLens(lens)&&(core||lens!=='tree'))refreshSky();
+    sky?.select(id);sky?.selectEdge(null);renderColumn();
+    // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
+    if(changed){reading.scrollTop=0;panelContent.scrollTop=0;}
+    renderOrientation();sky?.refresh();if(reveal||!desktop())sky?.reveal(id);}
   function selectEdge(id){measureOpen=false;selectedEdge=id;selected=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;sky?.select(null);sky?.selectEdge(id);renderColumn();renderOrientation();sky?.refresh();}
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
   function closePanel(){selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);if(!desktop())columnOpen=false;reflect();sky?.refresh();}
@@ -1193,11 +1231,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(mode==='node')return t('selected');
     if(mode==='edge')return t('selectedLink');
     if(mode==='measure')return t('measureAction');
-    return `${t('routes')} · ${routes.length}`;
+    return `${t('routes')} · ${routes.filter(item=>!item.coreChainId||item.featured).length}`;
   }
+  let columnSubject='';
   function renderColumn(){
     if(destroyed)return;
     const mode=columnMode(),wide=desktop();shell.dataset.column=mode;reading.dataset.mode=mode;
+    // A card for another star or link opens at its top, however it was chosen: from the map, a search, a route or a card.
+    const subject=mode==='node'?`node:${selected}`:mode==='edge'?`edge:${selectedEdge}`:mode;
+    if(subject!==columnSubject){const fresh=columnSubject&&(mode==='node'||mode==='edge');columnSubject=subject;if(fresh){reading.scrollTop=0;requestAnimationFrame(()=>{if(columnSubject===subject)reading.scrollTop=0;});}}
     if(mode==='personal'){reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
     // A wide screen shows the column or a tab to reopen it; a narrow screen always keeps the sheet's top bar.
     reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;
@@ -1270,7 +1312,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A route may walk an atlas link against its direction, so the line states the link as authored.
     const link=transition.kind?null:atlasEdgeFor(transition.edgeId),kind=transition.kind??link?.kind;
     const course=link?`${label(materials.get(link.from))||link.from} → ${label(materials.get(link.to))||link.to}`:[tr(transition.label,locale()),tr(next.title,locale())].filter(Boolean).join(' → ');
-    return {kind,course,body:transition.body,link};
+    return current.coreChainId?{kind:null,course:tr(transition.label,locale()),body:transition.body,link}:{kind,course,body:transition.body,link};
   }
   function turnRow(turn,expanded){
     const row=el('div','ps-turn');
@@ -1314,7 +1356,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function renderRouteList(){
     // Authored branches or routes first; reading routes from the corpus manifest follow as their own group.
-    const groups=[[t('routes'),routeItems().filter(item=>item.source==='atlas')],[t('journeys'),routeItems().filter(item=>item.source==='manifest')]];
+    const groups=[[t('routes'),routeItems().filter(item=>item.source==='atlas'&&(!item.coreChainId||item.featured))],[t('journeys'),routeItems().filter(item=>item.source==='manifest')]];
     groups.forEach(([title,items],index)=>{if(!items.length&&index)return;if(index)deck.append(el('h2','minor-title ps-list-title',`${title} · ${items.length}`));renderRouteCards(items);});
   }
   function renderRouteCards(items){
@@ -1408,16 +1450,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(Boolean);
       const materialIds=ids.map(id=>materials.has(id)?id:id.replace(/^material:/,''));
       const current=graphState(),nodeIds=materialIds.map(graphIdForMaterial).filter(id=>current.nodes.some(node=>node.id===id));
-      route.path=pathThrough(nodeIds,current);if(nodeIds[0]){selected=nodeIds[0];routeStepNode=nodeIds[0];sky?.select(nodeIds[0]);}
+      route.path=item.coreChainId?{nodeIds,edgeIds:item.transitions.map(turn=>`atlas:${turn.edgeId}`),restrictEdges:true}:pathThrough(nodeIds,current,shortestPath);if(nodeIds[0]){selected=nodeIds[0];routeStepNode=nodeIds[0];sky?.select(nodeIds[0]);}
     }
     shell.dataset.journey='true';refreshSky();
     if(item.source==='manifest')goJourneyStep(0,false);else if(item.steps?.[0])goRouteStep(0);else reflect();
     reading.scrollTop=0;frameSky();
-  }
-  function pathThrough(nodeIds,value){
-    if(nodeIds.length<2)return {nodeIds,edgeIds:[]};const out=[nodeIds[0]],edgeIds=[];
-    for(let i=1;i<nodeIds.length;i++){const partial=shortestPath(value,nodeIds[i-1],nodeIds[i]);if(!partial)continue;edgeIds.push(...partial.edgeIds);out.push(...partial.nodeIds.slice(1));}
-    return {nodeIds:out,edgeIds:[...new Set(edgeIds)],restrictEdges:true};
   }
   function goRouteStep(index){
     const moveFocus=!!document.activeElement?.closest('.ps-route-dock');browsingRoutes=false;
@@ -1596,6 +1633,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const edge=shownView?.edges?.find(item=>item.id===id);if(!edge||edge.proposalId)return null;
     const meaning=styleOf(edge.kind)?.hint?tr(styleOf(edge.kind).hint,locale()):'';if(!meaning)return null;
     const word=isBasedOn(edge)?relationName(edge):relationWord(edge.kind);
+    // A link drawn by its kind alone names itself in its hint; the kind's meaning follows.
+    const compact=shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`)?.dataset.compact==='true';
+    if(compact&&edge.label&&edge.label!==word)return {text:word?`${word}: ${edge.label}`:edge.label,keys:[],note:meaning};
     return {text:word?`${word}: ${meaning}`:meaning,keys:[],note:''};
   }
   hints=mountHints(shell,{
@@ -1641,8 +1681,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const firstTurn=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?400:2700;
   controlsTimer=setTimeout(openControlsOnce,firstTurn);
   // On the scale of time a row's name opens its branch.
-  const openLane=event=>{const lane=event.target.closest?.('.tree-cluster[data-ref]');if(!lane||!(lens==='time'&&timeline))return;const item=routeItems().find(entry=>entry.source==='atlas'&&entry.id===lane.dataset.ref);if(!item)return;event.stopPropagation();startRoute(item);};
-  shell.addEventListener('click',openLane);
+  const openLane=event=>{
+    const lane=event.target.closest?.('.tree-cluster[data-ref]');if(!lane)return;
+    if(lens==='space'&&geography){
+      const ids=geography.members(lane.dataset.ref);if(!ids.length)return;event.stopPropagation();
+      if(dialog.open)dialog.close();dialog.replaceChildren();const content=makeDialog(lane.querySelector('.cluster-title')?.textContent??t('placeUnknown'));
+      for(const id of ids){const material=previewMaterials.get(id),open=button(label(material),'connection-target');open.addEventListener('click',()=>{dialog.close();previewMaterial(id);});content.append(open);}dialog.showModal();return;
+    }
+    if(!(lens==='time'&&timeline))return;const item=routeItems().find(entry=>entry.source==='atlas'&&entry.id===lane.dataset.ref);if(!item)return;event.stopPropagation();startRoute(item);
+  };
+  const openLaneByKey=event=>{if((event.key==='Enter'||event.key===' ')&&event.target.closest?.('.tree-cluster[data-ref]')){event.preventDefault();openLane(event);}};
+  shell.addEventListener('click',openLane);shell.addEventListener('keydown',openLaneByKey);
   let refitFrame=0;const refitScale=()=>{placeControls();if(!measuredLens(lens))return;cancelAnimationFrame(refitFrame);refitFrame=requestAnimationFrame(frameSky);};
   window.addEventListener('resize',refitScale);
   const viewParams=new URLSearchParams(location.search),savedRoute=viewParams.get('treeRoute'),savedStep=Number(viewParams.get('treeStep'));
@@ -1655,5 +1704,5 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   if(upgradeError)notify(copyLocale(locale)==='en'?localeText('The saved graph could not be upgraded. Its original copy is preserved.',locale):'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   return {root:shell,pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
+    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
 }

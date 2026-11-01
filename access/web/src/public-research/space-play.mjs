@@ -21,6 +21,18 @@ const ORDER={interprets:0,develops:1,supports:2,questions:3,contrasts:3,compares
 
 const ends=(edge,id)=>edge.from===id?edge.to:edge.to===id?edge.from:null;
 
+/** Keep every authored stop even where the graph has no connecting edge. */
+export function pathThrough(nodeIds,value,findPath){
+  if(nodeIds.length<2)return {nodeIds,edgeIds:[]};
+  const out=[nodeIds[0]],edgeIds=[];
+  for(let i=1;i<nodeIds.length;i++){
+    const partial=findPath(value,nodeIds[i-1],nodeIds[i]);
+    if(!partial){out.push(nodeIds[i]);continue;}
+    edgeIds.push(...partial.edgeIds);out.push(...partial.nodeIds.slice(1));
+  }
+  return {nodeIds:[...new Set(out)],edgeIds:[...new Set(edgeIds)],restrictEdges:true};
+}
+
 /**
  * The readings around a target: the stars linked to it whose step of
  * interpretation is a reading or a comparison, nearest kinds first, each once.

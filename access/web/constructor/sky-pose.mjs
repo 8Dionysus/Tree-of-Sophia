@@ -5,6 +5,6 @@ export function validateSkyPose(value){
   const vector=(v,length)=>{if(!Array.isArray(v)||v.length!==length)fail();return v.map(n=>number(n));};
   if(value?.v!==1)fail();
   const zoom=number(value.zoom),fit=number(value.fit);
-  if(zoom<.65||zoom>2.2||fit<=0||fit>10)fail();
+  if(zoom<.5||zoom>4||fit<=0||fit>10)fail();
   return {v:1,yaw:number(value.yaw,1e6),pitch:number(value.pitch,Math.PI),zoom,pan:vector(value.pan,2),center:vector(value.center,3),fit};
 }

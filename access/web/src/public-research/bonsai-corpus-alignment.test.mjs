@@ -9,10 +9,20 @@ import * as relationInquiry from '../../constructor/relation-inquiry.mjs';
 import * as sourcesConcepts from '../../constructor/inquiry-sources-concepts.mjs';
 import * as readingsEchoes from '../../constructor/inquiry-readings-echoes.mjs';
 import * as foundation from '../../constructor/inquiry-foundation.mjs';
+import * as atlasData from '../../constructor/atlas-data.mjs';
+import * as sourceReferences from '../../constructor/source-references.mjs';
+import * as closeReading from '../../constructor/close-reading-guides.mjs';
+import {loadBonsai} from '../../../../bonsai/lib/graft.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
 const read=corpusReader(join(root,'access','web','public','public-corpus'));
 const json=path=>JSON.parse(readFileSync(join(root,path),'utf8'));
+// What the stand cites, as the bonsai's own mechanism reads it: the modules it borrows and its own modules.
+function zarathustraContent(){
+  const {manifest,modules}=loadBonsai(root,'zarathustra');
+  const borrowed=[atlasContent,atlasData,atlasRoutes,relationInquiry,sourcesConcepts,readingsEchoes,foundation,sourceReferences,closeReading].map(module=>Object.values(module));
+  return [...borrowed,...(manifest.modules??[]).filter(item=>!item.borrowed&&item.id!=='alignment'&&modules[item.id]).map(item=>modules[item.id])];
+}
 const worksOf=stand=>Object.fromEntries(Object.entries(json(`bonsai/${stand}/identities.json`).works).map(([key,value])=>[key,value.tree]));
 
 describe('the corpus alignment of the stands',()=>{
@@ -21,14 +31,14 @@ describe('the corpus alignment of the stands',()=>{
     expect(textEnd('Text without notes.')).toBe(19);
   });
   it('is, for Zarathustra, what the mechanism gives from the stand\'s own citations',()=>{
-    const content=[atlasContent,atlasRoutes,relationInquiry,sourcesConcepts,readingsEchoes,foundation].map(module=>Object.values(module));
+    const content=zarathustraContent();
     const works=worksOf('zarathustra'),stored=readFileSync(join(root,'bonsai','zarathustra','alignment.json'),'utf8');
     expect(formatAlignment(alignCorpus(citedUnits(content,works,read),works,read))).toBe(stored);
   },120000);
   for(const stand of ['zarathustra','antiquity'])it(`${stand}: holds every cited unit of a work the corpus translates`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     expect(corpusAlignmentIssues(module)).toEqual([]);
-    const content=stand==='antiquity'?[json('bonsai/antiquity/collection.json'),json('bonsai/antiquity/first-branches.json')]:[atlasContent,atlasRoutes,relationInquiry,sourcesConcepts,readingsEchoes,foundation].map(item=>Object.values(item));
+    const content=stand==='antiquity'?[json('bonsai/antiquity/collection.json'),json('bonsai/antiquity/first-branches.json')]:zarathustraContent();
     for(const [key,{units}] of citedUnits(content,works,read)){
       const work=module.works[key];
       if(!work?.translations?.length)continue;

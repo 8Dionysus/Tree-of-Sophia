@@ -166,6 +166,17 @@
       "identities": "objects name the atlas’s material IDs and the forms of its modules; saved graphs do not depend on this module"
     },
     {
+      "id": "core",
+      "path": "core/core.json",
+      "format": "tos.bonsai.core.v1",
+      "spec": "bonsai/CORE.md",
+      "role": {
+        "ru": "Философское ядро книги: карта голосов — кто говорит, поёт, рассказывает и видит во сне в каждом абзаце; фигуры мира книги с их именами и появлениями; понятия — вопрос Древа, формула книги в голосе, который её произносит, тезис, ответ, измерения, развитие и голоса против; связи и цепочки, названные глаголами книги, с местами на обоих концах, решением независимого проверяющего и допуском стенда; предложенные новые узлы; употребления слов; контрольные случаи.",
+        "en": "The book’s philosophical core: the voice map — who speaks, sings, narrates and dreams in each paragraph; the figures of the book’s world with their names and appearances; concepts — the Tree’s question, the book’s formula in the voice that says it, the thesis, the answer, dimensions, development and the voices against; links and chains named by the book’s verbs, with places at both ends, the independent reviewer’s verdict and the stand’s admission; proposed new nodes; occurrences of words; control cases."
+      },
+      "identities": "objects are keyed by the core's own ids (concepts, figures, link and chain ids); the voice map keys chapters and units of the witnesses"
+    },
+    {
       "id": "identities",
       "path": "identities.json",
       "role": {

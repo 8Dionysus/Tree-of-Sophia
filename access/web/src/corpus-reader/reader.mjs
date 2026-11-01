@@ -20,6 +20,7 @@ import {editionRepresentationKind,groupEditionRepresentations} from './edition-g
 import {readableUnitLocator} from './location-label.mjs';
 import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
 import {selectedSourceContext} from './source-context.mjs';
+import {isPreReform,respell} from '../public-research/orthography.mjs';
 import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
 import variants from '../../../public-corpus/reader-textual-variants.v1.json' with {type:'json'};
 
@@ -603,9 +604,11 @@ export function mountCorpusReader({
     const pane = row.closest('.cr-pane');
     const unit = row.__readerUnit;
     if (!pane || !unit) return null;
-    const start = selectedOffsets(row, range.startContainer, range.startOffset);
-    const end = selectedOffsets(row, range.endContainer, range.endOffset);
-    const quote = range.toString().slice(0, READER_LIMITS.quote);
+    let start = selectedOffsets(row, range.startContainer, range.startOffset);
+    let end = selectedOffsets(row, range.endContainer, range.endOffset);
+    let quote = range.toString().slice(0, READER_LIMITS.quote);
+    // A unit shown in today's spelling is selected in it, but a selection names the source's own characters and quotes them.
+    if (row.__toSource && start !== null && end !== null) { start = row.__toSource[start] ?? start; end = row.__toSource[end] ?? end; quote = unit.text.slice(start, end).slice(0, READER_LIMITS.quote); }
     if (start === null || end === null || !quote) return null;
     return {unit, versionId: pane.dataset.versionId, quote, start, end};
   }
@@ -1038,12 +1041,18 @@ export function mountCorpusReader({
       : null;
     const intervals = philologyMarkIntervals(codePoints,matches,selectedSpan,Boolean(searchQuery));
     const editorial=editorialRanges(version,unit);
+    // Respell complete words before splitting highlights; each boundary still
+    // names the source's code points, and the row keeps the reverse mapping.
+    const spelling=(version?.language??unit.language)==='ru'&&isPreReform(unit.text)?respell(unit.text):null;
+    const offsets=spelling?[0]:null;
+    if(offsets)for(const character of unit.text)offsets.push(offsets.at(-1)+character.length);
     const boundaries=[...new Set([0,codePoints,...intervals.flatMap(value=>[value.start,value.end]),...editorial.flatMap(value=>[value.start,value.end])])].sort((a,b)=>a-b);
     for(let index=0;index<boundaries.length-1;index++){
       const start=boundaries[index],end=boundaries[index+1];if(end<=start)continue;
       const selectedMark=intervals.find(value=>value.start<=start&&value.end>=end);
       const annotation=editorial.find(value=>value.start<=start&&value.end>=end);
-      let piece=document.createTextNode(codePointSlice(unit.text,start,end));
+      const shownText=spelling?spelling.text.slice(spelling.toDisplay[offsets[start]],spelling.toDisplay[offsets[end]]):codePointSlice(unit.text,start,end);
+      let piece=document.createTextNode(shownText);
       if(selectedMark){const mark=element('mark',selectedMark.selected?'cr-selected-occurrence':'');
         if(selectedMark.selected)mark.dataset.selectedOccurrence='true';mark.append(piece);piece=mark;}
       if(annotation){const span=element('span',`cr-editorial-${annotation.kind}${start===annotation.start?' cr-editorial-start':''}`);
@@ -1052,6 +1061,7 @@ export function mountCorpusReader({
         span.append(piece);piece=span;}
       content.append(piece);
     }
+    if(spelling)row.__toSource=spelling.toSource;
     row.append(marker, content);
     const kinds=[...new Set(editorial.map(value=>value.kind))];
     const wholeLayer=sourceLayerKind(version,unit);

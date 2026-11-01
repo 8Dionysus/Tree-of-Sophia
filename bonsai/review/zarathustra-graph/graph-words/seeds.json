@@ -1,0 +1,984 @@
+{
+ "about": {
+  "ru": "Списки для наращивания связей в «Так говорил Заратустра» от слов. id общие для агентов понятий и персонажей; новое понятие или персонаж получает свой id и запись в new_concepts / new_characters. Нумерация глав корпуса: в первой части I.01 — Предисловие, I.02 — «О трёх превращениях» и далее на единицу больше обычного счёта речей; названия глав — corpus/chapters.json."
+ },
+ "concepts": [
+  {
+   "id": "fate",
+   "kind": "concept",
+   "title": {
+    "ru": "Судьба",
+    "en": "Fate"
+   },
+   "de_seeds": [
+    "Schicksal",
+    "Loos",
+    "Verhängniss",
+    "Nothwendigkeit",
+    "Wende der Noth",
+    "So wollte ich es"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "overman",
+   "kind": "concept",
+   "title": {
+    "ru": "Сверхчеловек",
+    "en": "Overman"
+   },
+   "de_seeds": [
+    "Übermensch",
+    "übermenschlich"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "recurrence",
+   "kind": "concept",
+   "title": {
+    "ru": "Вечное возвращение",
+    "en": "Eternal recurrence"
+   },
+   "de_seeds": [
+    "Wiederkunft",
+    "wiederkehren",
+    "wiederkommen",
+    "ewig wieder",
+    "Ring der Wiederkunft"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "great-noon",
+   "kind": "concept",
+   "title": {
+    "ru": "Великий полдень",
+    "en": "Great noon"
+   },
+   "de_seeds": [
+    "grosse Mittag",
+    "Mittag",
+    "mittags"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "child",
+   "kind": "Дитя трёх превращений (I.01), дитя с зеркалом (II.01), дети как надежда; образ и понятие",
+   "title": {
+    "ru": "Дитя",
+    "en": "Child"
+   },
+   "de_seeds": [
+    "Kind",
+    "Kindlein",
+    "kindlich",
+    "Unschuld"
+   ],
+   "wave": 1,
+   "note": "Дитя трёх превращений (I.02), дитя с зеркалом (II.01), дети как надежда; образ и понятие"
+  },
+  {
+   "id": "courage",
+   "kind": "concept",
+   "title": {
+    "ru": "Мужество",
+    "en": "Courage"
+   },
+   "de_seeds": [
+    "Muth",
+    "muthig",
+    "Tapferkeit",
+    "tapfer"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "will-to-power",
+   "kind": "concept",
+   "title": {
+    "ru": "Воля к власти",
+    "en": "Will to power"
+   },
+   "de_seeds": [
+    "Wille zur Macht"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "will",
+   "kind": "частое слово: все места в occurrences, строки первого порядка — где воля несёт мысль",
+   "title": {
+    "ru": "Воля",
+    "en": "Will"
+   },
+   "de_seeds": [
+    "Wille",
+    "wollen",
+    "Wollen"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "lion",
+   "kind": "лев трёх превращений (I.01) и смеющийся лев (IV.20); образ и понятие",
+   "title": {
+    "ru": "Лев",
+    "en": "Lion"
+   },
+   "de_seeds": [
+    "Löwe",
+    "Löwen"
+   ],
+   "wave": 1,
+   "note": "лев трёх превращений (I.02) и смеющийся лев (IV.20); образ и понятие"
+  },
+  {
+   "id": "bestowing-virtue",
+   "kind": "concept",
+   "title": {
+    "ru": "Дарящая добродетель",
+    "en": "Bestowing virtue"
+   },
+   "de_seeds": [
+    "schenkende Tugend",
+    "schenken",
+    "Schenkende"
+   ],
+   "wave": 1
+  },
+  {
+   "id": "becoming",
+   "kind": "concept",
+   "title": {
+    "ru": "Становление",
+    "en": "Becoming"
+   },
+   "de_seeds": [
+    "Werden",
+    "werden"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "present",
+   "kind": "concept",
+   "title": {
+    "ru": "Настоящий миг",
+    "en": "The moment"
+   },
+   "de_seeds": [
+    "Augenblick"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "affirmation",
+   "kind": "concept",
+   "title": {
+    "ru": "Утверждение жизни",
+    "en": "Affirmation"
+   },
+   "de_seeds": [
+    "Ja",
+    "Ja-sagen",
+    "Amen",
+    "segnen",
+    "Segnende"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "identity",
+   "kind": "concept",
+   "title": {
+    "ru": "Та же самая жизнь",
+    "en": "The same life"
+   },
+   "de_seeds": [
+    "dasselbe",
+    "selbig",
+    "gleich",
+    "dieses selbe Leben"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "necessity",
+   "kind": "concept",
+   "title": {
+    "ru": "Необходимость",
+    "en": "Necessity"
+   },
+   "de_seeds": [
+    "Nothwendigkeit",
+    "Noth",
+    "nothwendig"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "creation",
+   "kind": "concept",
+   "title": {
+    "ru": "Созидание",
+    "en": "Creation"
+   },
+   "de_seeds": [
+    "schaffen",
+    "Schaffende",
+    "Schöpfer",
+    "Schöpfung"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "memory",
+   "kind": "concept",
+   "title": {
+    "ru": "Память",
+    "en": "Memory"
+   },
+   "de_seeds": [
+    "Erinnerung",
+    "erinnern",
+    "vergessen",
+    "Vergessen"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "difference",
+   "kind": "concept",
+   "title": {
+    "ru": "Различие",
+    "en": "Difference"
+   },
+   "de_seeds": [
+    "Unterschied",
+    "anders",
+    "verschieden"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "counterfactual",
+   "kind": "в книге — «Es war» и «So wollte ich es» (II.20)",
+   "title": {
+    "ru": "«Я мог бы иначе»",
+    "en": "\"I could have done otherwise\""
+   },
+   "de_seeds": [
+    "es war",
+    "So wollte ich es",
+    "zurückwollen"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "agency",
+   "kind": "concept",
+   "title": {
+    "ru": "Способность действовать",
+    "en": "Agency"
+   },
+   "de_seeds": [
+    "That",
+    "thun",
+    "handeln"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "attention",
+   "kind": "concept",
+   "title": {
+    "ru": "Внимание меняет встречу",
+    "en": "Attention"
+   },
+   "de_seeds": [
+    "Gieb Acht",
+    "horchen",
+    "hören"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "gateway",
+   "kind": "image",
+   "title": {
+    "ru": "Ворота «Мгновенье»",
+    "en": "Gateway \"Moment\""
+   },
+   "de_seeds": [
+    "Thorweg",
+    "Augenblick"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "two-paths",
+   "kind": "image",
+   "title": {
+    "ru": "Две дороги",
+    "en": "Two paths"
+   },
+   "de_seeds": [
+    "zwei Wege",
+    "Gasse"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "circle",
+   "kind": "image",
+   "title": {
+    "ru": "Круг времени",
+    "en": "Circle"
+   },
+   "de_seeds": [
+    "Kreis",
+    "krumm"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "wheel",
+   "kind": "image",
+   "title": {
+    "ru": "Колесо",
+    "en": "Wheel"
+   },
+   "de_seeds": [
+    "Rad",
+    "rollen"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "nausea",
+   "kind": "image",
+   "title": {
+    "ru": "Отвращение",
+    "en": "Nausea"
+   },
+   "de_seeds": [
+    "Ekel"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "bite",
+   "kind": "image",
+   "title": {
+    "ru": "Укус",
+    "en": "Bite"
+   },
+   "de_seeds": [
+    "beissen",
+    "Biss"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "laughter",
+   "kind": "image",
+   "title": {
+    "ru": "Преображённый смех",
+    "en": "Laughter"
+   },
+   "de_seeds": [
+    "lachen",
+    "Gelächter"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "ring",
+   "kind": "image",
+   "title": {
+    "ru": "Кольцо",
+    "en": "Ring"
+   },
+   "de_seeds": [
+    "Ring"
+   ],
+   "wave": 2
+  },
+  {
+   "id": "dance",
+   "kind": "image",
+   "title": {
+    "ru": "Танец",
+    "en": "Dance"
+   },
+   "de_seeds": [
+    "Tanz",
+    "tanzen",
+    "Tänzer"
+   ],
+   "wave": 2
+  }
+ ],
+ "concepts_later": [
+  {
+   "id": "amor-fati",
+   "title": {
+    "ru": "Amor fati · любовь к судьбе",
+    "en": "Amor fati"
+   },
+   "where": "Ницше: Весёлая наука §276, Ecce Homo; в «Заратустре» формулы нет — ищи близкие места для связи с fate, сам разбор — на следующем этапе"
+  },
+  {
+   "id": "providence",
+   "title": {
+    "ru": "Промысл и порядок",
+    "en": "Providence and order"
+   },
+   "where": "стоики, Лейбниц — межавторский этап"
+  },
+  {
+   "id": "conatus",
+   "title": {
+    "ru": "Conatus · стремление существовать",
+    "en": "Conatus"
+   },
+   "where": "Спиноза — межавторский этап"
+  },
+  {
+   "id": "possible-worlds",
+   "title": {
+    "ru": "Другие возможные миры",
+    "en": "Possible worlds"
+   },
+   "where": "Лейбниц — межавторский этап"
+  },
+  {
+   "id": "repetition",
+   "title": {
+    "ru": "Повторение и возобновление",
+    "en": "Repetition"
+   },
+   "where": "Кьеркегор — межавторский этап"
+  },
+  {
+   "id": "sisyphus",
+   "title": {
+    "ru": "Камень Сизифа",
+    "en": "Sisyphus"
+   },
+   "where": "Камю — межавторский этап"
+  }
+ ],
+ "concepts_wave3_link_targets": [
+  "death-of-god (Gott ist todt)",
+  "last-man (der letzte Mensch)",
+  "spirit-of-gravity (Geist der Schwere)",
+  "redemption (Erlösung)",
+  "revenge (Rache, Geist der Rache)",
+  "self-overcoming (Selbst-Überwindung)",
+  "body-self (Leib, Selbst)",
+  "three-metamorphoses / camel (Kameel)",
+  "eternity (Ewigkeit, Lust will Ewigkeit)",
+  "joy-lust (Lust)",
+  "going-under (Untergang)",
+  "rope-bridge (Seil, Brücke)",
+  "earth (Treue der Erde)",
+  "innocence-play (Unschuld, Spiel, aus sich rollendes Rad)",
+  "tablets-values (Tafeln, Werthe)",
+  "loneliness (Einsamkeit)",
+  "love-of-the-farthest (Fernsten-Liebe)"
+ ],
+ "characters": [
+  {
+   "id": "zarathustra",
+   "title": {
+    "ru": "Заратустра",
+    "en": "Zarathustra"
+   },
+   "de_seeds": [
+    "Zarathustra"
+   ]
+  },
+  {
+   "id": "saint",
+   "title": {
+    "ru": "Святой старец в лесу",
+    "en": "The saint in the forest"
+   },
+   "de_seeds": [
+    "Heilige",
+    "Greis"
+   ],
+   "note": "пролог 2"
+  },
+  {
+   "id": "tightrope-walker",
+   "title": {
+    "ru": "Канатный плясун",
+    "en": "The tightrope walker"
+   },
+   "de_seeds": [
+    "Seiltänzer"
+   ]
+  },
+  {
+   "id": "jester",
+   "title": {
+    "ru": "Паяц",
+    "en": "The jester"
+   },
+   "de_seeds": [
+    "Possenreisser"
+   ]
+  },
+  {
+   "id": "people",
+   "title": {
+    "ru": "Народ на рынке",
+    "en": "The people in the market"
+   },
+   "de_seeds": [
+    "Volk",
+    "Markt"
+   ]
+  },
+  {
+   "id": "animals",
+   "title": {
+    "ru": "Звери Заратустры: орёл и змея",
+    "en": "Zarathustra's animals: eagle and serpent"
+   },
+   "de_seeds": [
+    "Thiere",
+    "Adler",
+    "Schlange"
+   ],
+   "note": "существующий узел стенда"
+  },
+  {
+   "id": "disciples",
+   "title": {
+    "ru": "Ученики",
+    "en": "The disciples"
+   },
+   "de_seeds": [
+    "Jünger",
+    "Jüngern"
+   ]
+  },
+  {
+   "id": "pale-criminal",
+   "title": {
+    "ru": "Бледный преступник",
+    "en": "The pale criminal"
+   },
+   "de_seeds": [
+    "bleiche Verbrecher"
+   ],
+   "note": "I.07"
+  },
+  {
+   "id": "youth",
+   "title": {
+    "ru": "Юноша у дерева",
+    "en": "The youth by the tree"
+   },
+   "de_seeds": [
+    "Jüngling"
+   ],
+   "note": "I.09"
+  },
+  {
+   "id": "old-woman",
+   "title": {
+    "ru": "Старушка",
+    "en": "The old woman"
+   },
+   "de_seeds": [
+    "altes Weiblein"
+   ],
+   "note": "I.19"
+  },
+  {
+   "id": "child-mirror",
+   "title": {
+    "ru": "Дитя с зеркалом",
+    "en": "The child with the mirror"
+   },
+   "de_seeds": [
+    "Kind",
+    "Spiegel"
+   ],
+   "note": "II.01"
+  },
+  {
+   "id": "tarantulas",
+   "title": {
+    "ru": "Тарантулы",
+    "en": "The tarantulas"
+   },
+   "de_seeds": [
+    "Tarantel"
+   ],
+   "note": "II.07"
+  },
+  {
+   "id": "life",
+   "title": {
+    "ru": "Жизнь",
+    "en": "Life"
+   },
+   "de_seeds": [
+    "das Leben"
+   ],
+   "note": "олицетворённая: II.10, III.15"
+  },
+  {
+   "id": "wisdom",
+   "title": {
+    "ru": "Мудрость",
+    "en": "Wisdom"
+   },
+   "de_seeds": [
+    "Weisheit"
+   ],
+   "note": "олицетворённая: II.10"
+  },
+  {
+   "id": "fire-dog",
+   "title": {
+    "ru": "Огненный пёс",
+    "en": "The fire dog"
+   },
+   "de_seeds": [
+    "Feuerhund"
+   ],
+   "note": "II.18"
+  },
+  {
+   "id": "soothsayer",
+   "title": {
+    "ru": "Прорицатель",
+    "en": "The soothsayer"
+   },
+   "de_seeds": [
+    "Wahrsager"
+   ],
+   "note": "II.19, IV"
+  },
+  {
+   "id": "hunchback",
+   "title": {
+    "ru": "Горбун",
+    "en": "The hunchback"
+   },
+   "de_seeds": [
+    "Bucklichte",
+    "Bucklige"
+   ],
+   "note": "II.20"
+  },
+  {
+   "id": "sailors",
+   "title": {
+    "ru": "Моряки",
+    "en": "The sailors"
+   },
+   "de_seeds": [
+    "Schiffsleute"
+   ],
+   "note": "III.02"
+  },
+  {
+   "id": "dwarf",
+   "title": {
+    "ru": "Карлик · дух тяжести",
+    "en": "The dwarf, spirit of gravity"
+   },
+   "de_seeds": [
+    "Zwerg",
+    "Geist der Schwere"
+   ],
+   "note": "существующий узел стенда"
+  },
+  {
+   "id": "shepherd",
+   "title": {
+    "ru": "Пастух и змея",
+    "en": "The shepherd and the snake"
+   },
+   "de_seeds": [
+    "Hirt",
+    "Schlange"
+   ],
+   "note": "существующий узел стенда; III.02"
+  },
+  {
+   "id": "fool",
+   "title": {
+    "ru": "Пенящийся шут, «обезьяна Заратустры»",
+    "en": "The foaming fool, \"Zarathustra's ape\""
+   },
+   "de_seeds": [
+    "Narr",
+    "Affe"
+   ],
+   "note": "III.07"
+  },
+  {
+   "id": "higher-men",
+   "title": {
+    "ru": "Высшие люди",
+    "en": "The higher men"
+   },
+   "de_seeds": [
+    "höhere Menschen",
+    "höheren Menschen"
+   ],
+   "note": "IV"
+  },
+  {
+   "id": "kings",
+   "title": {
+    "ru": "Два короля и осёл",
+    "en": "The two kings and the ass"
+   },
+   "de_seeds": [
+    "Könige",
+    "Esel"
+   ],
+   "note": "IV.03"
+  },
+  {
+   "id": "conscientious",
+   "title": {
+    "ru": "Совестливый духом",
+    "en": "The conscientious in spirit"
+   },
+   "de_seeds": [
+    "Gewissenhafte des Geistes",
+    "Blutegel"
+   ],
+   "note": "IV.04"
+  },
+  {
+   "id": "magician",
+   "title": {
+    "ru": "Чародей",
+    "en": "The magician"
+   },
+   "de_seeds": [
+    "Zauberer"
+   ],
+   "note": "IV.05"
+  },
+  {
+   "id": "last-pope",
+   "title": {
+    "ru": "Последний папа",
+    "en": "The last pope"
+   },
+   "de_seeds": [
+    "Papst"
+   ],
+   "note": "IV.06"
+  },
+  {
+   "id": "ugliest-man",
+   "title": {
+    "ru": "Самый безобразный человек",
+    "en": "The ugliest man"
+   },
+   "de_seeds": [
+    "hässlichste Mensch",
+    "Mörder Gottes"
+   ],
+   "note": "IV.07"
+  },
+  {
+   "id": "beggar",
+   "title": {
+    "ru": "Добровольный нищий",
+    "en": "The voluntary beggar"
+   },
+   "de_seeds": [
+    "freiwillige Bettler"
+   ],
+   "note": "IV.08"
+  },
+  {
+   "id": "shadow",
+   "title": {
+    "ru": "Тень",
+    "en": "The shadow"
+   },
+   "de_seeds": [
+    "Schatten"
+   ],
+   "note": "IV.09"
+  },
+  {
+   "id": "daughters",
+   "title": {
+    "ru": "Дочери пустыни",
+    "en": "The daughters of the desert"
+   },
+   "de_seeds": [
+    "Töchter der Wüste"
+   ],
+   "note": "IV.16"
+  },
+  {
+   "id": "ass",
+   "title": {
+    "ru": "Осёл",
+    "en": "The ass"
+   },
+   "de_seeds": [
+    "Esel",
+    "I-A"
+   ],
+   "note": "IV.17–18"
+  },
+  {
+   "id": "laughing-lion",
+   "title": {
+    "ru": "Смеющийся лев и голуби",
+    "en": "The laughing lion and the doves"
+   },
+   "de_seeds": [
+    "lachende Löwe",
+    "Tauben"
+   ],
+   "note": "IV.20; связан с понятием lion"
+  },
+  {
+   "id": "god",
+   "title": {
+    "ru": "Бог · старый и мёртвый",
+    "en": "God, the old and the dead"
+   },
+   "de_seeds": [
+    "Gott",
+    "Gott ist todt"
+   ],
+   "note": "как фигура рассказа: IV.06, IV.07; учение «Бог мёртв» — понятие death-of-god"
+  }
+ ],
+ "questions": [
+  {
+   "id": "fatalism",
+   "question": {
+    "ru": "Принятие — это бездействие?",
+    "en": "Is acceptance inaction?"
+   }
+  },
+  {
+   "id": "same-new",
+   "question": {
+    "ru": "Как возможно новое?",
+    "en": "How is the new possible?"
+   }
+  },
+  {
+   "id": "circle-change",
+   "question": {
+    "ru": "Круг отменяет изменение?",
+    "en": "Does the circle cancel change?"
+   }
+  },
+  {
+   "id": "free-necessary",
+   "question": {
+    "ru": "Свобода внутри необходимости",
+    "en": "Freedom within necessity"
+   }
+  },
+  {
+   "id": "joy-pain",
+   "question": {
+    "ru": "Можно ли принять целое с болью?",
+    "en": "Can the whole be accepted with its pain?"
+   }
+  },
+  {
+   "id": "teach-live",
+   "question": {
+    "ru": "Сказать или выдержать?",
+    "en": "To say it or to bear it?"
+   }
+  },
+  {
+   "id": "human-overcoming",
+   "question": {
+    "ru": "Что значит преодолеть человека?",
+    "en": "What does it mean to overcome the human?"
+   }
+  },
+  {
+   "id": "proposition-poem",
+   "question": {
+    "ru": "Тезис или поэма?",
+    "en": "Thesis or poem?"
+   }
+  },
+  {
+   "id": "character-author",
+   "question": {
+    "ru": "Персонаж говорит за автора?",
+    "en": "Does the character speak for the author?"
+   }
+  },
+  {
+   "id": "again-memory",
+   "question": {
+    "ru": "Кто узнает возвращение?",
+    "en": "Who recognizes the return?"
+   }
+  },
+  {
+   "id": "whole-part",
+   "question": {
+    "ru": "Целое и выбранный миг",
+    "en": "The whole and the chosen moment"
+   }
+  },
+  {
+   "id": "decision",
+   "question": {
+    "ru": "Решение внутри заданного",
+    "en": "Decision within the given"
+   }
+  },
+  {
+   "id": "responsibility",
+   "question": {
+    "ru": "Ответственность за ответ",
+    "en": "Responsibility for the answer"
+   }
+  },
+  {
+   "id": "body-resistance",
+   "question": {
+    "ru": "Тело не согласно",
+    "en": "The body resists"
+   }
+  },
+  {
+   "id": "remembered-return",
+   "question": {
+    "ru": "Повтор или узнавание?",
+    "en": "Repetition or recognition?"
+   }
+  },
+  {
+   "id": "shared-world",
+   "question": {
+    "ru": "Чья жизнь входит в целое?",
+    "en": "Whose life belongs to the whole?"
+   }
+  }
+ ]
+}

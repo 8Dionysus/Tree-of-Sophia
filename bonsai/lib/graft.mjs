@@ -16,6 +16,7 @@ import {placesIssues} from './places.mjs';
 import {createValidator} from './schema.mjs';
 import {corpusAlignmentIssues,externalPlacesIssues} from './fragments.mjs';
 import {objectsIssues,semanticRegistry} from './objects.mjs';
+import {coreIssues,loadCore} from './core.mjs';
 import {citeIssues,readChapter,witnessesIssues} from './witnesses.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
@@ -121,10 +122,12 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   if(modules.witnesses)problems.push(...witnessesIssues(modules.witnesses,chapters).map(issue=>`witnesses: ${issue}`));
   if(modules.fragments)problems.push(...externalPlacesIssues(modules.fragments).map(issue=>`fragments: ${issue}`));
   if(modules.alignment)problems.push(...corpusAlignmentIssues(modules.alignment).map(issue=>`alignment: ${issue}`));
-  if(modules.objects){
-    let registry=null;try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}
-    if(registry)problems.push(...objectsIssues(modules.objects,registry,placeChecker(chapters,modules.fragments??null)).map(issue=>`objects: ${issue}`));
-  }
+  let registry=null;
+  if(modules.objects||modules.core){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
+  if(modules.objects&&registry)problems.push(...objectsIssues(modules.objects,registry,placeChecker(chapters,modules.fragments??null)).map(issue=>`objects: ${issue}`));
+  // The philosophical core (bonsai/CORE.md): its places, claims, registry relations and control vectors.
+  const coreModule=(manifest.modules??[]).find(module=>module.id==='core');
+  if(coreModule)problems.push(...coreIssues(loadCore(join(home,dirname(coreModule.path))),chapters,registry).map(issue=>`core: ${issue}`));
   for(const module of manifest.modules??[])if(module.borrowed){for(const path of [].concat(module.borrowed))if(!existsSync(join(root,path)))problems.push(`borrowed module ${module.id}: ${path} is missing`);}
   let packet=null;
   if(modules.chronology){
