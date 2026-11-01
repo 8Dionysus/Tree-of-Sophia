@@ -278,7 +278,7 @@ export async function createPublicSpace({profile, provider} = {}) {
     // Record the actual prior namespace before adding the core, so personal
     // graphs retain their stable material IDs and their original backup.
     prepared.graphPredecessors??=[];
-    prepared.graphPredecessors.push({fingerprint:prepared.library.fingerprint,materialIds:prepared.library.nodes.map(node=>node.id)});
+    prepared.graphPredecessors.unshift({fingerprint:prepared.library.fingerprint,materialIds:prepared.library.nodes.map(node=>node.id)});
     attachCore(prepared.library,(await loadBonsai(profile)).core);
     prepared.library.fingerprint=await digest({...prepared.library,fingerprint:undefined});
   }
