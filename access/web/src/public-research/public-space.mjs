@@ -1,6 +1,6 @@
 import {PUBLIC_LOCALES,LOCALE_NAMES,resolveLocale,copyLocale,localeText,localeValue} from './locale.mjs';
 import {mountConstructorSky} from '../../constructor/sky.mjs';
-import {LENSES, RELATIONS, makeLensView, shortestPath} from '../../constructor/atlas-view.mjs';
+import {LENSES, RELATIONS, lensHasStars, makeLensView, shortestPath} from '../../constructor/atlas-view.mjs';
 import {createConstructorModel} from '../../constructor/model.mjs';
 import {INQUIRY_FOUNDATION, LENS_INQUIRY} from '../../constructor/inquiry-foundation.mjs';
 import {mountCollectionView} from './collection-view.mjs';
@@ -117,7 +117,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
   const spaceLens=geography?{id:'space',icon:'⌖',title:{ru:'Пространство',en:'Space'},description:{ru:'Где написан текст или где жил его автор',en:'Where the text was written, or where its author lived'}}:null;
   const proximityLens=starIds.length&&criteria.length?{id:'proximity',icon:'⊙',title:{ru:'Близость',en:'Proximity'},description:{ru:'Расстояние от выбранной звезды',en:'Distance from the chosen star'}}:null;
-  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
+  // A lens with no stars of its own in this library is not offered.
+  const lenses=[...(Array.isArray(library.space?.lenses)?library.space.lenses:LENSES.filter(item=>lensHasStars(library,item.id))),...[timeLens,spaceLens,proximityLens].filter(Boolean)].map(item=>({...item,positions:lensPositions(profile,item.id)}));
   // A measuring lens lays the stars out itself; the others keep the map's own arrangement.
   const measuredLens=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
   const relationKinds=[...new Set([...(Array.isArray(library.space?.relationKinds)?library.space.relationKinds:Object.keys(RELATIONS)),'relates'])].filter(key=>RELATIONS[key]);
