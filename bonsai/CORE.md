@@ -85,6 +85,11 @@ witness at the cited place.
 | Chain | title, steps `{from, verb, to, cite}`, status | a place at every step; a chain composes only through objects it names | path of claims |
 | Assessment | target, maker, reviewer, verdict, reason, revised fields, counter-reading, attention | the reviewer reads the places, not the maker's reasoning | assessment |
 
+A concept node is the work's conception of its subject; where the subject is an
+image of the work — the lion, the child, the wheel, the ring, the gateway, the two
+paths, the bite, the dance, the circle — the node is an image of thought, and the
+conceptions it presents are joined to it by `image-presents-conception`.
+
 ## Subject, claim and representation
 
 - **The place** is what the work says: the witness's text at a stable address.
@@ -145,13 +150,16 @@ The check (`node bonsai/lib/cli.mjs check`) reads the core and fails when:
 
 - a citation does not resolve in the witnesses, or its units are out of sequence;
 - a `q` is not found in the cited German units;
-- a link lacks a verb, a status or grounds; an order-1 link's grounds do not cover
-  a place of each end; a `path` names an unknown object;
-- a chain step lacks a place;
+- a link lacks a verb, grounds or a known status; an end or a step of its `path`
+  names an object the core neither holds nor proposes;
+- a chain step lacks a place or a verb;
 - a registry relation is unknown or outside its domain and range;
-- a voice segment overlaps another primary segment of its chapter, or a figure
-  speaks where the voice map gives another speaker;
-- an admitted claim has no verdict, or a `map` claim's verdict is `rejected`;
+- a German unit of a chapter lies in no primary voice segment or in more than
+  one, or an embedded voice names no carrier;
+- a concept or a figure has no formula, or its formula names no voice;
+- a claim's admission disagrees with its verdict (`map` with `confirmed`,
+  `reconstruction` or `revise`; `held` with `undecided`; `rejected` with
+  `rejected`);
 - a control vector fails.
 
 ## Control vectors
@@ -195,12 +203,16 @@ The core is accepted for the stand when:
 
 | Stage | State on 2026-11-01 |
 | --- | --- |
-| voice map | 81 chapters, 781 segments (maker: GPT-6.1 Sol Max) |
+| voice map | 81 chapters, 775 segments; every German unit in one primary segment (maker: GPT-6.1 Sol Max) |
 | figures | 33 (Sol Max) |
-| concepts | 30 (Sol Max): 188 links, 60 chains, 30 formulas |
-| verification | independent (GPT-6.1 Terra xhigh), batched per node; in progress |
-| assembly | `bonsai/review/zarathustra-graph/core.mjs`, from proposals and verdicts |
-| stand | node tabs read the core; routes walk admitted links |
+| concepts | 30 (Sol Max): 21 conceptions, 9 images of thought; 3100 occurrences of their words |
+| links | 400: 227 confirmed, 47 reconstructions, 123 revised, 3 rejected; 218 with a counter-reading |
+| chains | 97: 7 confirmed, 27 reconstructions, 63 revised |
+| formulas | 63: 34 kept, 29 replaced by a stronger sentence of the work |
+| proposed nodes | 28 (the earth, redemption, the spirit of gravity, the last man, …) |
+| verification | independent (GPT-6.1 Terra xhigh), per node, without the maker's reasoning; complete |
+| assembly | `review/zarathustra-graph/graph-words/assemble.py`; the English of revised wording from a separate pass |
+| stand | node tabs read the core; routes walk admitted links — next |
 | other works | Nietzsche's other works after *Zarathustra* |
 
 ## Open questions
