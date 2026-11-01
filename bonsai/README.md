@@ -7,6 +7,11 @@ every finding stays ready to hand to the Tree. The Tree itself grows
 independently; a bonsai records where it was grafted from and reports how far
 the Tree has moved since.
 
+The [full-kernel implementation plan](IMPLEMENTATION_PLAN.md) connects the
+existing philosophical core, reader, research workspace, references and three
+experience modes, with preservation, implementation order and working acceptance
+routes.
+
 | Bonsai | Stand | Holds |
 | --- | --- | --- |
 | [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map |
