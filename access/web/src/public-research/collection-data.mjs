@@ -83,7 +83,10 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     let pending=null;
     library.space.loadCollection=()=>pending??=antiquityEntries(context).then(items=>{shelf.push(...items.filter(item=>!shelf.some(held=>(held.materialId??held.id)===item.materialId)));return items;}).catch(error=>{pending=null;throw error;});
     // The atlas before its retellings gave way to the work's own text: the same materials, other words.
-    prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'c2a23454c06995f9912a95216bdf4428e8ab444b6029f48a4817a58edcfd83c4',materialIds:library.nodes.map(node=>node.id)}];
+    // The atlas before the strict rebuild (f7162d1b…) held readings and comparisons that now wait in
+    // atlas-held.mjs: a saved graph made only of the stars still on the map moves over; one that holds a
+    // star now held keeps its original copy, and the stand says so.
+    prepared.graphPredecessors=[{fingerprint:'4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'c2a23454c06995f9912a95216bdf4428e8ab444b6029f48a4817a58edcfd83c4',materialIds:library.nodes.map(node=>node.id)},{fingerprint:'f7162d1b4c2ce1285b480819ef9395e61b3310e2d5b468013af4a620b8087e86',materialIds:library.nodes.map(node=>node.id)}];
     return prepared;
   }
   const items=await antiquityEntries(context),byId=new Map(library.nodes.map(node=>[node.id,node]));

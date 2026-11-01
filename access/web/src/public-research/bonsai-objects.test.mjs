@@ -61,10 +61,10 @@ describe('the typed objects of the Zarathustra stand',()=>{
     expect(formsOf('tos.entity.argument')).toHaveLength(Object.values(INQUIRY_SOURCES_CONCEPTS).concat(Object.values(INQUIRY_READINGS_ECHOES)).filter(inquiry=>inquiry.argument).length);
   });
   it('type a tension as a problem articulated by its question, and its perspectives as positions that address it',()=>{
-    const problem=module.objects.find(object=>object.id==='za:demo:fatalism');
+    const problem=module.objects.find(object=>object.id==='za:demo:circle-change');
     expect(problem.type).toBe('tos.entity.problem');
-    expect(module.relations).toContainEqual({type:'tos.relation.problem-has-question',from:'za:demo:fatalism',to:'za:demo:fatalism/question',basis:'NODE_CONTENT.demo:fatalism.question'});
-    expect(module.relations.filter(relation=>relation.to==='za:demo:fatalism'&&relation.type==='tos.relation.position-addresses-problem')).toHaveLength(NODE_CONTENT['demo:fatalism'].perspectives.length);
+    expect(module.relations).toContainEqual({type:'tos.relation.problem-has-question',from:'za:demo:circle-change',to:'za:demo:circle-change/question',basis:'NODE_CONTENT.demo:circle-change.question'});
+    expect(module.relations.filter(relation=>relation.to==='za:demo:circle-change'&&relation.type==='tos.relation.position-addresses-problem')).toHaveLength(NODE_CONTENT['demo:circle-change'].perspectives.length);
   });
   it('keep every link between two places of the text with both places shown beside its words',()=>{
     expect(module.links.length).toBeGreaterThan(0);

@@ -1,3 +1,36 @@
+# The strict rebuild — 2026-11-01
+
+The map now begins with what the book itself joins. Dionysus chose the strict
+path: a link stays on the map when the book makes it at a named place, and the
+questions those places raise stand beside it with the answers the book gives.
+Terra read every one of the 128 earlier links against the German first editions
+(`bonsai/review/zarathustra-graph/out`: the places of each concept, the audit of
+every link, the plan). Fourteen earlier links rest on a place that joins their
+two ends; the evidence passes found thirty-one more. The map keeps 38 stars —
+the work, five of its places and 32 prepared stars (ten concepts, nine images,
+three characters, two excerpts and the eight questions the places raise) — and
+45 links, each with the place that joins it.
+
+Readings, comparisons with other thinkers and the links that rest on another
+book or on a reader's argument — 48 stars and 114 links — wait in
+`atlas-held.mjs`, whole: their rows, texts, verdicts, reasons and places, with
+the earlier texts of what stays. They are grown together with the map later;
+the stand neither shows nor binds them.
+
+**Writing.** Terra wrote the stars' and links' texts by the plan
+(`out/write-A…D.json`) and then rewrote them as affirmations: each sentence says
+what a place affirms, does and opens, and where it leads. Negation stands where
+the book speaks it — Zarathustra's objection to the dwarf, his own refusals —
+in the book's words. All 416 citations check against the German text.
+
+**Tools.** `integrate.mjs` rebuilds the authored modules from the plan and the
+texts; `objects.mjs` types the stand's words again in
+`bonsai/zarathustra/objects.json`; each route step opens, in the published
+editions, the place its first citation names (`zarathustra-ground-targets.mjs`).
+A saved graph from the earlier atlas moves over when every star in it is still
+on the map, and otherwise keeps its original copy. The next step grows links
+from the book's own words (`graph-words/`).
+
 # Fragments instead of retellings — 2026-10-29
 
 The atlas no longer retells *Thus Spoke Zarathustra* or the works it is read

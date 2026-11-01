@@ -17,6 +17,20 @@ const read=name=>JSON.parse(fs.readFileSync(new URL(name,HERE),'utf8'));
 const plan=read('out/plan.json');
 const parts=['A','B','C'].map(x=>read(`out/write-${x}.json`));
 const routing=read('out/write-D.json');
+// A source is named once among a reading's grounds; its places are gathered under it.
+const gather=grounds=>{
+  if(!Array.isArray(grounds))return grounds;
+  const byRef=new Map();
+  for(const ground of grounds){
+    const kept=byRef.get(ground.ref);
+    if(!kept){byRef.set(ground.ref,{...ground,cite:[...(ground.cite??[])]});continue;}
+    for(const cite of ground.cite??[])if(!kept.cite.some(other=>JSON.stringify(other)===JSON.stringify(cite)))kept.cite.push(cite);
+    if(ground.focus)kept.focus=kept.focus?{ru:kept.focus.ru+' '+ground.focus.ru,en:kept.focus.en+' '+ground.focus.en}:ground.focus;
+  }
+  return [...byRef.values()];
+};
+for(const route of routing.routes){route.grounds=gather(route.grounds);for(const step of route.steps)step.grounds=gather(step.grounds);}
+for(const part of parts)for(const layer of [part.inquiry,part.relations])for(const value of Object.values(layer??{}))value.grounds=gather(value.grounds);
 
 const {NODE_CONTENT}=await import(C+'atlas-content.mjs');
 const {INQUIRY_SOURCES_CONCEPTS}=await import(C+'inquiry-sources-concepts.mjs');

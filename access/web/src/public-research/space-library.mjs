@@ -17,7 +17,6 @@ const SOURCE_ROOT = Object.freeze({
   moment: {ru: 'Образ мгновения', en: 'The image of the moment'},
   'all-things': {ru: 'Песня зверей о целом', en: 'The animals’ song of the whole'},
   'same-life': {ru: 'Та же самая жизнь', en: 'The very same life'},
-  dossier: {ru: 'Сопоставленные источники', en: 'Sources brought together'},
 });
 const bi = (ru, en) => ({ru, en});
 const text = value => typeof value === 'string' ? value : '';
@@ -99,7 +98,7 @@ async function makeZarathustra(sources, structure) {
   if (!item) throw new Error('The Zarathustra public source is not selected.');
   const version = preferredVersion(item.document, 'de');
   const nodes = [{...publicWorkNode(item.listed, version, 'work'), id: 'work'}];
-  const ids = ['chapter-p3.r2', 'moment', 'chapter-p3.r13', 'all-things', 'same-life', 'dossier'];
+  const ids = ['chapter-p3.r2', 'moment', 'chapter-p3.r13', 'all-things', 'same-life'];
   const bindings = new Map();
   const documentBindings = new Map([['work', {documentId: id, versionId: version.id}]]);
   for (const sourceId of ids) {
@@ -107,14 +106,14 @@ async function makeZarathustra(sources, structure) {
     const isChapter = sourceId === 'chapter-p3.r2' || sourceId === 'chapter-p3.r13';
     const matched = isChapter ? structure.find(item => item.label === label.label) : null;
     const node = {
-      id: sourceId, kind: sourceId === 'dossier' ? 'dossier' : isChapter ? 'chapter' : 'fragment', parentId: 'work',
+      id: sourceId, kind: isChapter ? 'chapter' : 'fragment', parentId: 'work',
       title: bi(label.ru, label.en), sourceRefs: [sourceRef(bi(item.listed.title, item.listed.title), id)],
       publicDocumentId: id, publicVersionId: version.id,
       sourceAccess: matched ? 'public-exact-unit' : 'metadata-only',
       sourcePosture: matched ? 'exact public structural unit' : 'metadata or interpretation; no exact text anchor',
     };
     nodes.push(node);
-    if (sourceId !== 'dossier') documentBindings.set(sourceId, {documentId: id, versionId: version.id});
+    documentBindings.set(sourceId, {documentId: id, versionId: version.id});
     if (matched) bindings.set(sourceId, {documentId: id, versionId: version.id, unitId: matched.unitId});
   }
   const sourceLibrary = {schema: 'tos_constructor_library_v1', rootId: 'work', fingerprint: '0'.repeat(64), nodes};

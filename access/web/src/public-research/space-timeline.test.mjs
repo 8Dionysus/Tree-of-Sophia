@@ -200,12 +200,13 @@ describe('Zarathustra on the order of the book',()=>{
   });
   it('places each grounded star at the first chapter it rests on, and the rest outside the scale',()=>{
     const inquiry={...INQUIRY_SOURCES_CONCEPTS,...INQUIRY_READINGS_ECHOES};
-    const materials=Object.entries(inquiry).map(([id,value],index)=>({id,cluster:['sources','images','concepts'][index%3],inquiry:value}));
+    // The map now rests on the book alone; a star grounded in another book stands for the readings held for later.
+    const materials=[...Object.entries(inquiry).map(([id,value],index)=>({id,cluster:['sources','images','concepts'][index%3],inquiry:value})),{id:'demo:elsewhere',cluster:'concepts',inquiry:{grounds:[{ref:'gs341'}]}}];
     const timeline=zarathustraTimeline({materials,references:PRIMARY_SOURCES,clusters:[{id:'sources',title:{ru:'Источники'}},{id:'images',title:{ru:'Образы'}},{id:'concepts',title:{ru:'Понятия'}}]});
     expect(timeline.positions.size).toBe(materials.length);
     expect(timeline.placeOf('demo:fate')).toEqual({part:2,chapter:24});
-    expect(timeline.isOutside('demo:spinoza')).toBe(true);
-    expect(timeline.xOf('demo:spinoza')).toBeGreaterThan(timeline.xOf('demo:fate'));
+    expect(timeline.isOutside('demo:elsewhere')).toBe(true);
+    expect(timeline.xOf('demo:elsewhere')).toBeGreaterThan(timeline.xOf('demo:fate'));
     const labels=timeline.labels('ru');
     expect(labels.some(label=>label.title==='вне книги'&&label.variant==='side')).toBe(true);
     expect(timeline.labels('en').find(label=>label.id==='time:outside').title).toBe('other texts');
@@ -220,7 +221,7 @@ describe('Zarathustra on the order of the book',()=>{
     // A part spans the chapters the map cites from it; the texts outside the book stand past a strong rule.
     const part=labels.find(label=>label.id==='time:part2');expect(part.span[0]).toBeLessThanOrEqual(timeline.xOf('demo:fate'));expect(part.span[1]).toBeGreaterThanOrEqual(timeline.xOf('demo:fate'));
     const outside=labels.find(label=>label.id==='time:rule:outside');expect(outside.tone).toBe('strong');
-    expect(outside.center[0]).toBeLessThan(timeline.xOf('demo:spinoza'));expect(outside.center[0]).toBeGreaterThan(Math.max(...[...timeline.positions.entries()].filter(([id])=>!timeline.isOutside(id)).map(([,[x]])=>x)));
+    expect(outside.center[0]).toBeLessThan(timeline.xOf('demo:elsewhere'));expect(outside.center[0]).toBeGreaterThan(Math.max(...[...timeline.positions.entries()].filter(([id])=>!timeline.isOutside(id)).map(([,[x]])=>x)));
   });
 });
 
@@ -238,7 +239,7 @@ describe('one row on one line',()=>{
 
 describe('an open route on the same scale',()=>{
   it('keeps each step at its time and reads the steps top to bottom',()=>{
-    const route=RESEARCH_ROUTES[0],ids=route.steps.map(step=>step.nodeId),xOf=id=>ids.indexOf(id)*10;
+    const route=RESEARCH_ROUTES.find(item=>item.steps.length>=3),ids=route.steps.map(step=>step.nodeId),xOf=id=>ids.indexOf(id)*10;
     const positions=stepTimeline(ids,xOf);
     expect([...positions.keys()]).toEqual(ids);
     const ys=ids.map(id=>positions.get(id)[1]);expect([...ys].sort((a,b)=>a-b)).toEqual(ys);
