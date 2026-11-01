@@ -27,7 +27,14 @@ Russian and English text equality in `body`, `reading`, and `summary` forms;
 near-duplicate flags do not determine aliases. Replay emits the full path map
 to `anti/rewrite/also.json` and reports the applied-form coverage. The
 `original.json` file records the immutable pre-pass commit and source-file
-digests. The Zarathustra object
+digests. The current records reproduce the intermediate rewrite and merge, but
+equivalence to the landed Antiquity modules is not established: compared with
+the PR base `main` at `32033d8`, a scratch merge differed from the collection in
+5,199 structural locations (4,276 values, 409 key-presence, 514 list-length)
+and from first-branches in 336 (286 values, 23 key-presence, 27 list-length).
+Most differences were citation unit ranges; their cause has not been
+determined. Treat replay as an auditable intermediate result, not proof that
+the final modules can be reproduced exactly. The Zarathustra object
 builder also needs `frag/context/nodes.json` and `edges.json`; those exact
 context inputs are absent from this record set, so `rewrite/objects.py` fails
 closed until they are restored. It must not synthesize them.

@@ -4,6 +4,7 @@ formatting. Material IDs and the shape of every module stay as they were; only f
 import os as _os
 # The review folder (bonsai/review) and the repository root; TOS_REVIEW and TOS_REPO override them.
 REVIEW = _os.environ.get('TOS_REVIEW') or _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+REPO = _os.environ.get('TOS_REPO') or _os.path.dirname(_os.path.dirname(REVIEW))
 import json, glob, re, collections, sys, os
 S = REVIEW + '/anti'
 original = json.load(open(f'{S}/original.json'))
