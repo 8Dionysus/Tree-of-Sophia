@@ -2,6 +2,7 @@ import {corpusWorkTitle} from '../observatory/human-presentation.mjs';
 import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from './zarathustra-ground-targets.mjs';
 import {extendPublicCollection} from './collection-data.mjs';
 import {loadBonsai} from './bonsai.mjs';
+import {attachCore} from './core-projection.mjs';
 
 const PUBLIC_PROFILE_IDS = Object.freeze({
   zarathustra: 'tos.work.friedrich-nietzsche.also-sprach-zarathustra',
@@ -273,5 +274,13 @@ export async function createPublicSpace({profile, provider} = {}) {
     ? await makeZarathustra(sources, structures.get(PUBLIC_PROFILE_IDS.zarathustra) ?? [])
     : await makeAntiquity(sources, structures);
   await extendPublicCollection(prepared,{profile,sources,provider,structures,loadStructure:(document,version)=>exactStructure(provider,document,version)});
+  if(profile==='zarathustra'){
+    // Record the actual prior namespace before adding the core, so personal
+    // graphs retain their stable material IDs and their original backup.
+    prepared.graphPredecessors??=[];
+    prepared.graphPredecessors.push({fingerprint:prepared.library.fingerprint,materialIds:prepared.library.nodes.map(node=>node.id)});
+    attachCore(prepared.library,(await loadBonsai(profile)).core);
+    prepared.library.fingerprint=await digest({...prepared.library,fingerprint:undefined});
+  }
   return {...prepared, profile, provider, sourceRevision: sources.manifest.revision};
 }

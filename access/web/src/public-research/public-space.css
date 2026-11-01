@@ -641,3 +641,21 @@
   .ps-parallel-credit{flex-basis:100%}
   .ps-fragment-text{font-size:14.5px}
 }
+/* The core's five reading depths share the existing source-first column. */
+.ps-core-card{margin-top:1rem}
+.ps-core-formula{padding:0 0 1rem;border-bottom:1px solid #879eb62b}
+.ps-core-voice{font-size:.78rem;color:#d6b37a;letter-spacing:.025em}
+.ps-core-status{display:block;margin:.25rem 0 .8rem;color:#94a7bd;font-size:.72rem}
+.ps-core-tabs{display:flex;flex-wrap:wrap;gap:.3rem;margin:1rem 0;border-bottom:1px solid #879eb62b;padding-bottom:.6rem}
+.ps-core-tabs button{border:1px solid transparent;border-radius:.4rem;padding:.45rem .55rem;background:transparent;color:var(--muted,#a5b7cf);font:inherit;font-size:.78rem;cursor:pointer}
+.ps-core-tabs button[aria-selected=true]{border-color:#d6b37a70;color:#e9d5b3;background:#d6b37a0d}
+.ps-core-tabs button:focus-visible{outline:2px solid #d6b37a;outline-offset:2px}
+.ps-core-section{margin:1rem 0 1.4rem}
+.ps-core-fold{margin:.6rem 0;border-bottom:1px solid #879eb622;padding:.45rem 0}
+.ps-core-fold>summary{cursor:pointer;line-height:1.55;font-size:.86rem;color:#c2cfe1}
+.ps-core-fold>div{padding:.65rem 0}
+.ps-core-link .edge-endpoints{flex-wrap:wrap}
+.ps-core-pane>.connection-target{width:100%;margin:.5rem 0}
+.tree-cluster[data-variant=place][data-ref]{cursor:pointer}
+.tree-cluster[data-variant=place][data-ref]:hover .cluster-title{text-decoration:underline;text-underline-offset:.25em}
+.tree-cluster[data-ref]:focus-visible{outline:2px solid #d6b37a;outline-offset:4px}

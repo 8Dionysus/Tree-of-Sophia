@@ -20,8 +20,10 @@ import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mj
 import {depthLayout} from './space-depth.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
 import {controlsDismissed,controlsShouldOpen,mountControls} from './space-controls.mjs';
-import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark} from './space-play.mjs';
+import {besidePosition,disputes,ownTitle,readingsAround,restsOn,routeStars,routeWithRecords,threadsIntoDark,pathThrough} from './space-play.mjs';
 import {citesOf,createFragments} from './fragments.mjs';
+import {coreContext} from './core-projection.mjs';
+import {createCoreView} from './core-view.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 
@@ -73,6 +75,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The work's own text in place of a retelling: cited places, opened in the whole work.
   const fragments=createFragments({profile,locale,t:key=>t(key),provider:api.provider,openAddress:openPublicAddress,hint:(element,text)=>setHint(element,text),onError:()=>notify(t('unavailable')),host:()=>shell});
   const materials=materialMap(library),atlas=library.atlas??{},routes=library.space?.routes??atlas.routes??[];
+  const core=library.space?.core,coreView=core?createCoreView({core,locale,fragments,onNode:id=>previewMaterial(id),onRoute:id=>{const item=routeItems().find(item=>item.id===id);if(item)startRoute(item);}}):null;
   const collectionMaterials=new Map((library.space?.collection??[]).map(item=>[item.materialId??item.id,{...item,id:item.materialId??item.id,kind:({author:'figure',school:'tradition'})[item.kind]??item.kind}]));
   const previewMaterials=new Map([...collectionMaterials,...materials]);
   const entryByLegacyId=new Map([...previewMaterials.values()].map(item=>[item.legacyId??item.id,item]));
@@ -126,7 +129,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const styleOf=key=>relationStyle(profile,key,RELATIONS[key]??{});
   // Atlas edge ids may carry the 'atlas:' prefix once in the library and again in the graph copy.
   const bareEdgeId=id=>String(id??'').replace(/^(?:atlas:)+/,'');
-  const atlasEdgeById=new Map((atlas.edges??[]).map(edge=>[bareEdgeId(edge.id),edge]));
+  const atlasEdgeById=new Map([...(atlas.edges??[]),...(core?.edges??[])].map(edge=>[bareEdgeId(edge.id),edge]));
   const atlasEdgeFor=id=>atlasEdgeById.get(bareEdgeId(id));
   const moveIds=new Set(routes.flatMap(item=>(item.steps??[]).map(step=>step.nodeId??step.graphNodeId)).filter(Boolean));
   const relationWord=key=>tr(styleOf(key),locale());
@@ -435,7 +438,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const sectionEntry=source=>!source?.exact&&!!source?.binding?.unitId;
   function sourceActionLabel(source){return source.containerTitle?`${t('readWithin')} ${tr(source.containerTitle,locale())} · ${tr(source.containerLocator,locale())}`:t(source.exact?'openExact':sectionEntry(source)?'openSection':'openWork');}
   function isBasedOn(edge){return String(edge.id).startsWith('atlas:antiquity:reading-source:')&&edge.kind==='supports'&&String(edge.from).includes('antiquity:reading:')&&String(edge.to).includes('antiquity:source:');}
-  function relationName(edge,inverse=false){if(edge.proposalId)return tr(edge.label,locale());return isBasedOn(edge)?t(inverse?'groundsFor':'basedOn'):relationWord(edge.kind)||t('relation');}
+  function relationName(edge,inverse=false){if(edge.proposalId||edge.coreRecord)return tr(edge.label,locale());return isBasedOn(edge)?t(inverse?'groundsFor':'basedOn'):relationWord(edge.kind)||t('relation');}
   function personalProposals(ownerId){
     if(!ownerId)return [];
     return (workspace?.getState?.()?.proposals??personalState?.proposals??[]).filter(item=>item.parentHypothesisId===ownerId||item.targetId===ownerId||item.fromId===ownerId||item.toId===ownerId);
@@ -538,13 +541,15 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const base=structuredClone(state),owner=liveWorkspaceNodes(),byId=new Map(base.nodes.map(n=>[n.id,n]));
     // An open branch and the scale of time both read prepared material the saved graph may not hold yet.
     const context=[];
+    const coreViewContext=coreContext(core,{materialId:selected?.replace(/^material:/,''),edgeId:selectedEdge,chainId:routes.find(item=>item.id===route?.id)?.coreChainId});
+    context.push(...coreViewContext.materialIds);
     if(route?.source==='atlas')for(const step of routes.find(item=>item.id===route.id)?.steps??[])context.push(step.nodeId??step.graphNodeId);
     if(measuredLens(lens))context.push(...starIds);
     if(context.length){
       for(const materialId of context){const material=materials.get(materialId),id=graphIdForMaterial(materialId);if(!material||byId.has(id))continue;
         const node={id,materialId,kind:material.kind,title:tr(material.title,locale()),body:tr(material.body,locale()),position:material.position??[0,0,0],sourceIds:[],routeContext:true};base.nodes.push(node);byId.set(id,node);}
       const existing=new Set(base.edges.map(edge=>edge.id));
-      for(const edge of atlas.edges??[]){const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to),id=`atlas:${edge.id}`;if(existing.has(id)||!byId.has(from)||!byId.has(to))continue;base.edges.push({...edge,id,from,to});existing.add(id);}
+      for(const edge of [...(atlas.edges??[]),...coreViewContext.edges]){const from=graphIdForMaterial(edge.from),to=graphIdForMaterial(edge.to),id=`atlas:${edge.id}`;if(existing.has(id)||!byId.has(from)||!byId.has(to))continue;base.edges.push({...edge,id,from,to});existing.add(id);}
     }
     for(const n of owner.nodes){if(byId.has(n.id))Object.assign(byId.get(n.id),n);else{base.nodes.push(n);byId.set(n.id,n);}}
     const existingEdges=new Set(base.edges.map(e=>e.id));
@@ -576,6 +581,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     projected.edges=projected.edges.map(edge=>{
       const next={...edge,label:isBasedOn(edge)?relationName(edge):humanEdgeLabel(edge)||humanEdgeLabel(atlasEdgeFor(edge.id))||relationName(edge)};
       const style=styleOf(edge.kind),word=relationWord(edge.kind);
+      // Core verbs are the authored relation. A neutral visual family must
+      // not replace them with a generic tag when the map compacts labels.
+      if(edge.coreRecord)return {...next,dash:style.dash,weight:style.weight??1,tag:''};
       if(profile!=='antiquity'){
         // Every authored link names its kind on the map; its line and weight follow the kind's family.
         const tagged=!edge.ownerType&&edge.kind!=='contains'&&!!word&&next.label!==word;
@@ -1078,6 +1086,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(ownerHyp?.targetId)panelContent.append(el('p','muted',`${t('related')}: ${ownerHyp.targetId}`));
       const proposals=personalProposals(ownerHyp?.id??node.workspaceHypothesisId);
       appendPersonalProposals(panelContent,proposals);
+    }else if(material?.coreId&&coreView){
+      coreView.node(panelContent,material.coreId);
     }else if(material){
       const source=sourceForMaterial(material,node);
       if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));panelContent.append(open);}
@@ -1127,6 +1137,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     const edge=findEdge(id);if(!edge)return dropEdge();
     panelContent.replaceChildren();
+    if(edge.coreRecord&&coreView){coreView.link(panelContent,edge.coreRecord);return;}
     const from=graphState().nodes.find(node=>node.id===edge.from),to=graphState().nodes.find(node=>node.id===edge.to),atlasEdge=(atlas.edges??[]).find(item=>`atlas:${item.id}`===id||item.id===id);
     // The graph copy of an atlas edge may carry only an id; the authored label lives on the atlas edge.
     const relationLabel=relationName(edge),edgeLabel=humanEdgeLabel(edge)||humanEdgeLabel(atlasEdge);
@@ -1173,7 +1184,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // a link or a step brings it into view only if it would otherwise stay hidden.
   function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
     // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
-    if(changed&&lens!=='tree'&&!measuredLens(lens))refreshSky();
+    if(changed&&!measuredLens(lens)&&(core||lens!=='tree'))refreshSky();
     sky?.select(id);sky?.selectEdge(null);renderColumn();
     // A newly chosen star's card opens at its beginning, not where the previous card was scrolled to.
     if(changed){reading.scrollTop=0;panelContent.scrollTop=0;}
@@ -1220,7 +1231,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(mode==='node')return t('selected');
     if(mode==='edge')return t('selectedLink');
     if(mode==='measure')return t('measureAction');
-    return `${t('routes')} · ${routes.length}`;
+    return `${t('routes')} · ${routes.filter(item=>!item.coreChainId||item.featured).length}`;
   }
   let columnSubject='';
   function renderColumn(){
@@ -1301,7 +1312,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A route may walk an atlas link against its direction, so the line states the link as authored.
     const link=transition.kind?null:atlasEdgeFor(transition.edgeId),kind=transition.kind??link?.kind;
     const course=link?`${label(materials.get(link.from))||link.from} → ${label(materials.get(link.to))||link.to}`:[tr(transition.label,locale()),tr(next.title,locale())].filter(Boolean).join(' → ');
-    return {kind,course,body:transition.body,link};
+    return current.coreChainId?{kind:null,course:tr(transition.label,locale()),body:transition.body,link}:{kind,course,body:transition.body,link};
   }
   function turnRow(turn,expanded){
     const row=el('div','ps-turn');
@@ -1345,7 +1356,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function renderRouteList(){
     // Authored branches or routes first; reading routes from the corpus manifest follow as their own group.
-    const groups=[[t('routes'),routeItems().filter(item=>item.source==='atlas')],[t('journeys'),routeItems().filter(item=>item.source==='manifest')]];
+    const groups=[[t('routes'),routeItems().filter(item=>item.source==='atlas'&&(!item.coreChainId||item.featured))],[t('journeys'),routeItems().filter(item=>item.source==='manifest')]];
     groups.forEach(([title,items],index)=>{if(!items.length&&index)return;if(index)deck.append(el('h2','minor-title ps-list-title',`${title} · ${items.length}`));renderRouteCards(items);});
   }
   function renderRouteCards(items){
@@ -1439,16 +1450,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(Boolean);
       const materialIds=ids.map(id=>materials.has(id)?id:id.replace(/^material:/,''));
       const current=graphState(),nodeIds=materialIds.map(graphIdForMaterial).filter(id=>current.nodes.some(node=>node.id===id));
-      route.path=pathThrough(nodeIds,current);if(nodeIds[0]){selected=nodeIds[0];routeStepNode=nodeIds[0];sky?.select(nodeIds[0]);}
+      route.path=item.coreChainId?{nodeIds,edgeIds:item.transitions.map(turn=>`atlas:${turn.edgeId}`),restrictEdges:true}:pathThrough(nodeIds,current,shortestPath);if(nodeIds[0]){selected=nodeIds[0];routeStepNode=nodeIds[0];sky?.select(nodeIds[0]);}
     }
     shell.dataset.journey='true';refreshSky();
     if(item.source==='manifest')goJourneyStep(0,false);else if(item.steps?.[0])goRouteStep(0);else reflect();
     reading.scrollTop=0;frameSky();
-  }
-  function pathThrough(nodeIds,value){
-    if(nodeIds.length<2)return {nodeIds,edgeIds:[]};const out=[nodeIds[0]],edgeIds=[];
-    for(let i=1;i<nodeIds.length;i++){const partial=shortestPath(value,nodeIds[i-1],nodeIds[i]);if(!partial)continue;edgeIds.push(...partial.edgeIds);out.push(...partial.nodeIds.slice(1));}
-    return {nodeIds:out,edgeIds:[...new Set(edgeIds)],restrictEdges:true};
   }
   function goRouteStep(index){
     const moveFocus=!!document.activeElement?.closest('.ps-route-dock');browsingRoutes=false;
@@ -1675,8 +1681,17 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const firstTurn=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?400:2700;
   controlsTimer=setTimeout(openControlsOnce,firstTurn);
   // On the scale of time a row's name opens its branch.
-  const openLane=event=>{const lane=event.target.closest?.('.tree-cluster[data-ref]');if(!lane||!(lens==='time'&&timeline))return;const item=routeItems().find(entry=>entry.source==='atlas'&&entry.id===lane.dataset.ref);if(!item)return;event.stopPropagation();startRoute(item);};
-  shell.addEventListener('click',openLane);
+  const openLane=event=>{
+    const lane=event.target.closest?.('.tree-cluster[data-ref]');if(!lane)return;
+    if(lens==='space'&&geography){
+      const ids=geography.members(lane.dataset.ref);if(!ids.length)return;event.stopPropagation();
+      if(dialog.open)dialog.close();dialog.replaceChildren();const content=makeDialog(lane.querySelector('.cluster-title')?.textContent??t('placeUnknown'));
+      for(const id of ids){const material=previewMaterials.get(id),open=button(label(material),'connection-target');open.addEventListener('click',()=>{dialog.close();previewMaterial(id);});content.append(open);}dialog.showModal();return;
+    }
+    if(!(lens==='time'&&timeline))return;const item=routeItems().find(entry=>entry.source==='atlas'&&entry.id===lane.dataset.ref);if(!item)return;event.stopPropagation();startRoute(item);
+  };
+  const openLaneByKey=event=>{if((event.key==='Enter'||event.key===' ')&&event.target.closest?.('.tree-cluster[data-ref]')){event.preventDefault();openLane(event);}};
+  shell.addEventListener('click',openLane);shell.addEventListener('keydown',openLaneByKey);
   let refitFrame=0;const refitScale=()=>{placeControls();if(!measuredLens(lens))return;cancelAnimationFrame(refitFrame);refitFrame=requestAnimationFrame(frameSky);};
   window.addEventListener('resize',refitScale);
   const viewParams=new URLSearchParams(location.search),savedRoute=viewParams.get('treeRoute'),savedStep=Number(viewParams.get('treeStep'));
@@ -1689,5 +1704,5 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   if(upgradeError)notify(copyLocale(locale)==='en'?localeText('The saved graph could not be upgraded. Its original copy is preserved.',locale):'Не удалось перенести сохранённый граф. Исходная копия сохранена.');
   const localeEvent=event=>{if(event.detail?.locale&&event.detail.locale!==locale()){};refreshLocale();};header?.addEventListener('public-space-locale',localeEvent);
   return {root:shell,pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
+    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);sky?.dispose();model.dispose();shell.remove();}};
 }
