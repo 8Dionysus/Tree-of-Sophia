@@ -1,0 +1,208 @@
+[
+  {
+    "from": "gateway",
+    "to": "two-paths",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-38b6718fc95c36a467127712c215fff0",
+      "tos.text-unit.sid-7b662f8453b880f152323256b23c2409",
+      "tos.text-unit.sid-36a3c9915901a496c64276fe2da78079"
+    ],
+    "what": "Заратустра показывает ворота, где сходятся две уходящие в вечность дороги."
+  },
+  {
+    "from": "dwarf",
+    "to": "gateway",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-317301cd82d35cd0e2d4362b72783488",
+      "tos.text-unit.sid-dff926efa83f3da3ee1d67d9a3e0538b",
+      "tos.text-unit.sid-38b6718fc95c36a467127712c215fff0"
+    ],
+    "what": "Карлик спрыгивает с плеча и садится перед воротами, на которые указывает Заратустра."
+  },
+  {
+    "from": "gateway",
+    "to": "recurrence",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-e060da93a6971669a066b72b51ff92bf",
+      "tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d",
+      "tos.text-unit.sid-aa80ebe6fb9de20b613cb4f53ed7e855",
+      "tos.text-unit.sid-55f238a2f371dd7f806cdad1f08bc576",
+      "tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"
+    ],
+    "what": "От вопроса, было ли уже само Мгновение, Заратустра доходит до вопроса о вечном возвращении их обоих."
+  },
+  {
+    "from": "two-paths",
+    "to": "circle",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-36a3c9915901a496c64276fe2da78079",
+      "tos.text-unit.sid-f7d33d4582dcede3074569cda4da793d",
+      "tos.text-unit.sid-40ae6f1839d679c4a2bfd41534583aa6"
+    ],
+    "what": "На вопрос о дальнейшем противоречии двух дорог карлик отвечает, что само время — круг."
+  },
+  {
+    "from": "shepherd",
+    "to": "laughter",
+    "kind": "develops",
+    "places": [
+      "tos.text-unit.sid-86f0bdcb39af8bf302dbd2e4ed48b554",
+      "tos.text-unit.sid-e66b64066560dd30bcae8af64e9f5193",
+      "tos.text-unit.sid-764c1b2fd96faebc6df31914cb7f0851"
+    ],
+    "what": "Пастух откусывает голову змее и предстаёт преображённым, смеющимся существом."
+  },
+  {
+    "from": "animals",
+    "to": "wheel",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c",
+      "tos.text-unit.sid-c7a842d1445462c0d0df8eafd83efd39"
+    ],
+    "what": "Звери поют, что всё возвращается и колесо бытия вечно катится."
+  },
+  {
+    "from": "animals",
+    "to": "recurrence",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e",
+      "tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c",
+      "tos.text-unit.sid-20f9857d42ebc6a252b6b3b83551b13e"
+    ],
+    "what": "Звери называют Заратустру учителем вечного возвращения и формулируют эту мысль."
+  },
+  {
+    "from": "animals",
+    "to": "ring",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-f4bcee757dd64a17da7a137d3e99cd4c",
+      "tos.text-unit.sid-f6f69805abb8029bbedef25eeb121721"
+    ],
+    "what": "В песне зверей кольцо бытия вечно верно себе, пока всё расходится и вновь встречается."
+  },
+  {
+    "from": "ring",
+    "to": "recurrence",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-5af9e1110a7579a7427c94403f629e85",
+      "tos.text-unit.sid-a71211ffc3b2ed2d7ebfc9f5b5285bf2"
+    ],
+    "what": "Говорящий называет желанное обручальное кольцо кольцом возвращения и обращается к любимой вечности."
+  },
+  {
+    "from": "nausea",
+    "to": "recurrence",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-352c1b76dce5bcda6be0af9c5a63dbc7",
+      "tos.text-unit.sid-c43345c83250f9dce7b12398075b6e70",
+      "tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7",
+      "tos.text-unit.sid-9f1471144e729291311298ed75a2a53b"
+    ],
+    "what": "Заратустра прямо связывает отвращение ко всему существованию с вечным возвращением даже самого малого человека."
+  },
+  {
+    "from": "recurrence",
+    "to": "identity",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-f4d37d7f5099fd59dc5807052b311239",
+      "tos.text-unit.sid-53a3c22e0089643fdc72c205f18814c7",
+      "tos.text-unit.sid-ce045055585467cfc09217fef32bfa81"
+    ],
+    "what": "Звери воображают, как Заратустра говорит о вечном возвращении именно к той же жизни."
+  },
+  {
+    "from": "recurrence",
+    "to": "fate",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e",
+      "tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c",
+      "tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"
+    ],
+    "what": "Звери называют судьбой Заратустры обязанность учить вечному возвращению и связывают её с опасностью и болезнью."
+  },
+  {
+    "from": "fate",
+    "to": "task",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-c673610b053fce15cebb48c6d3dce05e",
+      "tos.text-unit.sid-f25baa4e2fb13c32304bd277818b128c",
+      "tos.text-unit.sid-58fe19ce9170db311f80286870f4b7ee"
+    ],
+    "what": "Звери прямо называют его судьбой быть первым учителем вечного возвращения."
+  },
+  {
+    "from": "creation",
+    "to": "becoming",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-d9b7662287eb462c792ecb8350732485",
+      "tos.text-unit.sid-dd4549d204c95af0458c76a477cfa443",
+      "tos.text-unit.sid-b598d0c42acbbba2285ff06b8cc555b8",
+      "tos.text-unit.sid-8633a4e29cd08c654ad688a5aef20edc"
+    ],
+    "what": "Речь о времени и становлении переходит к созиданию, которому нужны страдание и превращение."
+  },
+  {
+    "from": "affirmation",
+    "to": "recurrence",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-2a8aada5d848098eed8b2b160fafa871",
+      "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+      "tos.text-unit.sid-9a3da971437436d2ef97a5e5de89a4b2",
+      "tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495",
+      "tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"
+    ],
+    "what": "Песня связывает «да» радости и горю с желанием повторения и вечности всех вещей."
+  },
+  {
+    "from": "present",
+    "to": "recurrence",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-e060da93a6971669a066b72b51ff92bf",
+      "tos.text-unit.sid-3254efddd6ccc24efe6bbe5313e7f98d",
+      "tos.text-unit.sid-aa80ebe6fb9de20b613cb4f53ed7e855",
+      "tos.text-unit.sid-55f238a2f371dd7f806cdad1f08bc576",
+      "tos.text-unit.sid-03e021d5617af0fc46e337d494c7436d"
+    ],
+    "what": "Заратустра спрашивает, было ли уже само Мгновение и должны ли он и карлик вечно возвращаться."
+  },
+  {
+    "from": "joy-pain",
+    "to": "recurrence",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-2a8aada5d848098eed8b2b160fafa871",
+      "tos.text-unit.sid-ea9d997ac39761114127a6c0b1800565",
+      "tos.text-unit.sid-9a3da971437436d2ef97a5e5de89a4b2",
+      "tos.text-unit.sid-ad061883f3b347a6a9f5b29dba107495",
+      "tos.text-unit.sid-ae02bb0c97b4ccccfef8c26220bd3b00"
+    ],
+    "what": "Радость желает вечного возвращения, а согласие с одной радостью включает согласие со всем горем."
+  },
+  {
+    "from": "dance",
+    "to": "ring",
+    "kind": "supports",
+    "places": [
+      "tos.text-unit.sid-fa02b841750993c61618111d272a18aa",
+      "tos.text-unit.sid-0558fcf18d5f2fb45a06dcde87d9b53c",
+      "tos.text-unit.sid-187d71e13bc9881187035bebd261de0c",
+      "tos.text-unit.sid-745a62dbd7262ad9b8c0aa47c1262130"
+    ],
+    "what": "Условие о добродетели танцора и лёгкости тяжёлого ведёт к припеву о кольце возвращения."
+  }
+]
