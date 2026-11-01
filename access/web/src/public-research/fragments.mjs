@@ -10,6 +10,7 @@
 
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
+import {modernRussian,isPreReform} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
 import {copyLocale,localeValue,resolveLocale} from './locale.mjs';
 
@@ -61,10 +62,13 @@ export function chapterTitle(chapter,language){
 }
 
 /** Text of a fragment in one witness: the cited part of each unit, verse keeping its lines. */
-function fragmentNodes(fragment){
+// What a reader sees of a text in a language: Russian printed before 1918 in today's spelling. The place is cut
+// from the source first, so citation offsets keep counting the source's own characters.
+const shownIn=(language,text)=>language==='ru'?modernRussian(text):text;
+function fragmentNodes(fragment,language){
   const nodes=[];
   for(const unit of fragment.units){
-    const text=unit.text.slice(unit.from,unit.to).trim();
+    const text=shownIn(language,unit.text.slice(unit.from,unit.to).trim());
     if(text)nodes.push(el('p',unit.kind==='v'?'ps-fragment-line is-verse':'ps-fragment-line',text));
   }
   return nodes;
@@ -155,8 +159,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         for(const index of indexes){
           const unit=data.units[language][index],shown=displayText(unit.raw,unit.kind),p=el('p',unit.kind==='v'?'is-verse':'');
           const span=cited.get(`${language}:${index}`);
-          if(span&&span[1]>span[0]){p.append(shown.text.slice(0,span[0]));const mark=el('mark','',shown.text.slice(span[0],span[1]));p.append(mark,shown.text.slice(span[1]));line.classList.add('is-cited');first??=line;}
-          else p.textContent=shown.text;
+          if(span&&span[1]>span[0]){p.append(shownIn(language,shown.text.slice(0,span[0])));const mark=el('mark','',shownIn(language,shown.text.slice(span[0],span[1])));p.append(mark,shownIn(language,shown.text.slice(span[1])));line.classList.add('is-cited');first??=line;}
+          else p.textContent=shownIn(language,shown.text);
           cell.append(p);
         }
         line.append(cell);
@@ -204,7 +208,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       for(const language of showing){
         const fragment=fragmentOf(cite,data,language);if(!fragment)continue;
         const quote=el('blockquote','ps-fragment-text');quote.lang=language;
-        const {nodes}=clip(fragmentNodes(fragment));quote.append(...nodes);
+        const {nodes}=clip(fragmentNodes(fragment,language));quote.append(...nodes);
         const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',captionFor(data,language,info)));
         figure.append(quote,caption);
       }
@@ -238,13 +242,13 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(!showing.length){const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label)].filter(Boolean).join(' · ')));figure.append(caption);}
       for(const language of showing){
         const text=place.texts[language];
-        const narrowed=language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text;
+        const narrowed=shownIn(language,language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text);
         const quote=el('blockquote','ps-fragment-text');quote.lang=language==='zh-Hans'?'zh':language;
         const {nodes}=clip(narrowed.split(/\n{2,}/).map(part=>el('p','ps-fragment-line',part.trim())).filter(node=>node.textContent));
         quote.append(...nodes);
         const witness=witnessOf(language);
         const caption=el('figcaption','ps-fragment-cite');
-        caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short)].filter(Boolean).join(' · ')));
+        caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short),language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
       const tools=el('div','ps-fragment-tools');
@@ -314,7 +318,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const value=[];
       for(const [id,range] of wanted){
         const [unit]=await unitsFrom(work,version,id);if(!unit)continue;
-        const chars=Array.from(unit.text);value.push({id,reference:unit.reference,text:(range?chars.slice(range[0],range[1]):chars).join('').trim()});
+        const chars=Array.from(unit.text),source=(range?chars.slice(range[0],range[1]):chars).join('').trim();value.push({id,reference:unit.reference,text:shownIn(language,source),respelled:language==='ru'&&isPreReform(source)});
       }
       texts.set(language,value);return value;
     }
@@ -332,7 +336,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         quote.append(...nodes);
         const references=[...new Set(value.map(item=>placeName(item.reference)).filter(Boolean))];
         const caption=el('figcaption','ps-fragment-cite');
-        caption.append(el('span','ps-fragment-source',[version?.label,references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):''].filter(Boolean).join(' · ')));
+        caption.append(el('span','ps-fragment-source',[version?.label,references.length?references[0]+(references.length>1?`–${references.at(-1)}`:''):'',value.some(item=>item.respelled)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
       const tools=el('div','ps-fragment-tools');
