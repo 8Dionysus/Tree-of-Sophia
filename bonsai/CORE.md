@@ -212,7 +212,7 @@ The core is accepted for the stand when:
 | proposed nodes | 28 (the earth, redemption, the spirit of gravity, the last man, …) |
 | verification | independent (GPT-6.1 Terra xhigh), per node, without the maker's reasoning; complete |
 | assembly | `review/zarathustra-graph/graph-words/assemble.py`; the English of revised wording from a separate pass |
-| stand | node tabs read the core; routes walk admitted links — next |
+| stand | node tabs read the core; routes walk admitted chains, with their cited steps and authored verbs |
 | other works | Nietzsche's other works after *Zarathustra* |
 
 ## Open questions

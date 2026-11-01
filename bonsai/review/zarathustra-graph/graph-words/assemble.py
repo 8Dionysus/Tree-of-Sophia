@@ -278,7 +278,8 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
                 'development': clean(node.get('development')),
                 'dimensions': clean(node.get('dimensions', [])),
                 'questions': clean(node.get('questions', [])),
-                'lexicon': {lang: [{k: f[k] for k in ('form', 'count', 'chapters') if k in f} for f in forms] for lang, forms in node.get('lexicon', {}).items()},
+                'lexicon': {lang: [{k: f[k] for k in ('form', 'count', 'chapters') if k in f} for f in forms]
+                            for lang, forms in node.get('lexicon', {}).items() if lang in ('de', 'ru', 'en') and isinstance(forms, list)},
                 'uses': groups,
                 'occurrences': f'occurrences/{nid}.json',
                 'beyond': clean(node.get('beyond', [])),
@@ -287,7 +288,8 @@ for kind, folder in (('concepts', 'concepts'), ('characters', 'characters')):
         else:
             figures.append({
                 'id': nid, 'type': node_type[nid], 'title': node['title'], 'existence': 'work-world',
-                'names': clean(node.get('names')),
+                'names': {lang: clean(forms) for lang, forms in (node.get('names') or {}).items()
+                          if lang in ('de', 'ru', 'en') and isinstance(forms, list)},
                 'appearances': clean(node.get('appearances', [])),
                 'voice': clean(node.get('voice', [])),
                 'essence': essence,

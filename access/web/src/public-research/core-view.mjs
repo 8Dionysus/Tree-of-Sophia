@@ -79,7 +79,7 @@ export function createCoreView({core,locale,fragments,onNode,onRoute}){
     for(const item of record.conception?.formulas??[])fold(parent,`${item.cite.c} · ${tr(item.why)}`,box=>formula(box,item));
     for(const item of record.questions??[])fold(parent,tr(item.question),box=>{form(box,item.answer);status(box,item.status);});
     const names=record.lexicon??record.names;
-    if(names)fold(parent,t('names'),box=>{for(const [language,items]of Object.entries(names)){box.append(el('h3','minor-title',language.toUpperCase()));box.append(el('p','',items.map(item=>`${item.form} (${item.count})`).join(' · ')));}});
+    if(names)fold(parent,t('names'),box=>{for(const [language,items]of Object.entries(names)){if(!['de','ru','en'].includes(language)||!Array.isArray(items))continue;box.append(el('h3','minor-title',language.toUpperCase()));box.append(el('p','',items.filter(item=>typeof item?.form==='string').map(item=>`${item.form} (${item.count})`).join(' · ')));}});
     if(record.uses?.length)fold(parent,t('uses'),box=>{for(const item of record.uses)box.append(el('p','',`${tr(item.name)} · ${item.count}`));});
     if(record.beyond?.length)fold(parent,t('beyond'),box=>{for(const item of record.beyond){const entry=el('section','ps-core-section');entry.append(el('h3','minor-title',[item.work,item.place].filter(Boolean).join(' · ')));form(entry,item.note);status(entry,item.status);box.append(entry);}});
     const loader=occurrenceFiles[`../../../../bonsai/zarathustra/core/occurrences/${record.id}.json`];

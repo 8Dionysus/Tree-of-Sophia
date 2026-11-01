@@ -21,6 +21,15 @@ describe('the philosophical core of the Zarathustra bonsai',()=>{
     for(const node of [...core.concepts.map(item=>item.conception),...core.figures.map(item=>item.essence)])expect(node.formula.voice.speaker).toBeTruthy();
   });
 
+  it('keeps German figure names and only word forms in the three witness lexicons',()=>{
+    const core=fresh();
+    for(const figure of core.figures)expect(figure.names.de.some(item=>typeof item.form==='string')).toBe(true);
+    for(const node of core.concepts){
+      expect(Object.keys(node.lexicon).sort()).toEqual(['de','en','ru']);
+      for(const forms of Object.values(node.lexicon))expect(forms.every(item=>typeof item.form==='string'&&Number.isFinite(item.count))).toBe(true);
+    }
+  });
+
   it('admits a claim only as its verdict allows and keeps the maker’s wording beside a revision',()=>{
     const core=fresh();
     for(const link of core.links){
