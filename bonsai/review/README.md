@@ -11,7 +11,7 @@ derived data. The modules they produced live in `bonsai/zarathustra/`,
 | Folder | What it holds |
 | --- | --- |
 | `frag/` | Zarathustra. Every authored sentence classed against the German first editions and the other originals: retelling, navigation, interpretation, link, question, method, context, term. Each sentence names the places it rests on (`out/*.jsonl`); `BRIEF.md` is the instruction. |
-| `align/` | The Zarathustra anchors converted to DTA witness units (`anchors.dta.json`). |
+| `align/` | The Zarathustra anchors converted to DTA witness units (`anchors.dta.json`) by `convert_anchors.py`. |
 | `rewrite/` | Zarathustra. The mechanical rewrite and merge, the edit pass on the own words that remained (`edit-out/`, `EDIT-BRIEF.md`) and the links between places (`links.json`). `original.json` is the content before the pass. |
 | `anti/` | Antiquity. Classification (`out/`, `BRIEF.md`), the pre-pass source snapshot (`original.json`), the rewrite and edit pass (`edit-out/`, `EDIT-BRIEF.md`), and links (`rewrite/links.json`). |
 | `ext/`, `ext2/` | The places of other works, as gathered and read against the page images (`external-fragments.json`, `antiquity-fragments.json`). The builders turn them into each stand's `fragments.json`. |
@@ -38,6 +38,29 @@ the final modules can be reproduced exactly. The Zarathustra object
 builder also needs `frag/context/nodes.json` and `edges.json`; those exact
 context inputs are absent from this record set, so `rewrite/objects.py` fails
 closed until they are restored. It must not synthesize them.
+
+The original alignment helper (`witnesses.py`) and its
+`alignment.de-deg.json` input were not archived. `align/convert_anchors.py`
+now derives the same mapping from the tracked DTA witness records in
+`bonsai/zarathustra/witnesses/*.json`: `units.de[*][2]` holds the raw text and
+`units.de[*][4]` the aligned Gutenberg unit IDs. In this checkout, rebuilding
+`anchors.dta.json` produced the same 3,246 records byte for byte.
+
+The Antiquity edit context is generated rather than stored. The retained
+`alignx/cited.mjs` reads the checked-in public corpus (manifest revision
+`5519804c4505022b9083de8b43aa53db0fdae45482884810472fb0fa82f0c8dd`) and the
+classification anchors. First run `node bonsai/review/anti/alignx/cited.mjs`,
+then generate the edit slices: `ae1` from `a1,a2`; `ae2` from `a3,a4`; and
+`ae3`–`ae6` from `a5`–`a8` respectively. Check each generated slice with
+`python3 -B bonsai/review/anti/context.py <ae-name> <a-slice>...`, then
+`python3 -B bonsai/review/anti/check_edits.py <ae-name>`. The historical
+`alignment.current.json` is not retained for exact comparison. A local
+regeneration attempt did not finish within seven minutes, so the generated
+alignment and Antiquity edit checks remain unverified here.
+Zarathustra `rewrite/edit-slices/*.json` are also absent, and no exact
+generator for those edit inputs is archived. `rewrite/check_edits.py` therefore
+fails closed when one is missing; the recorded `edit-out/*.jsonl` remain
+available, but their original context cannot be independently rechecked.
 
 ## Tools and their order
 

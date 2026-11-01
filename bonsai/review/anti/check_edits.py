@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 """Checks an edit output against its slice: one line per item, same paths, both languages present or both empty."""
-import json, sys
+import json, os, sys
+S = os.path.dirname(os.path.abspath(__file__))
 name = sys.argv[1]
-items = json.load(open(f'edit-slices/{name}.json'))
-out = [json.loads(l) for l in open(f'edit-out/{name}.jsonl') if l.strip()]
+items_path = f'{S}/edit-slices/{name}.json'
+out_path = f'{S}/edit-out/{name}.jsonl'
+if not os.path.isfile(items_path):
+    raise SystemExit(
+        f'Cannot check Antiquity edit output: {items_path} is missing. '
+        f'Rebuild its context with `python3 -B bonsai/review/anti/context.py {name} <classification-slice>...` '
+        'after generating anti/alignment.current.json.'
+    )
+if not os.path.isfile(out_path):
+    raise SystemExit(f'Cannot check Antiquity edit output: {out_path} is missing.')
+items = json.load(open(items_path))
+out = [json.loads(l) for l in open(out_path) if l.strip()]
 problems = []
 if len(out) != len(items): problems.append(f'{len(out)} lines for {len(items)} items')
 for i, (a, b) in enumerate(zip(items, out)):

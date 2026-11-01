@@ -11,8 +11,20 @@ from corpus import version_units, document
 import zc
 identities = json.load(open(REPO_ROOT + '/bonsai/antiquity/identities.json'))
 doc_of = {k: v['tree'] for k, v in identities['works'].items()}
-align = json.load(open(f'{S}/anti/alignment.current.json'))
-edits = json.load(open(f'{S}/anti/rewrite/edits.json'))
+alignment_path = f'{S}/anti/alignment.current.json'
+edits_path = f'{S}/anti/rewrite/edits.json'
+if not os.path.isfile(alignment_path):
+    raise SystemExit(
+        'Cannot build Antiquity edit context: anti/alignment.current.json is missing. '
+        'Regenerate it with `node bonsai/review/anti/alignx/cited.mjs` from the repository root.'
+    )
+if not os.path.isfile(edits_path):
+    raise SystemExit(
+        'Cannot build Antiquity edit context: anti/rewrite/edits.json is missing. '
+        'Regenerate it with `python3 -B bonsai/review/anti/rewrite_antiquity.py` from the repository root.'
+    )
+align = json.load(open(alignment_path))
+edits = json.load(open(edits_path))
 name, wanted = sys.argv[1], set(sys.argv[2:])
 cache = {}
 def units(doc_id, version_id):

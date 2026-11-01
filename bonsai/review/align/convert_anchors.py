@@ -5,17 +5,28 @@ import os as _os
 # The review folder (bonsai/review) and the repository root; TOS_REVIEW and TOS_REPO override them.
 REVIEW = _os.environ.get('TOS_REVIEW') or _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 REPO_ROOT = _os.environ.get('TOS_REPO') or _os.path.dirname(_os.path.dirname(REVIEW))
-import json, glob, re, sys, collections, difflib
-sys.path.insert(0, '.')
-import witnesses
-W = witnesses.load_all()
-dta_raw = {b['id']: b['raw'] for ch in W['de'].values() for b in ch['blocks']}
-dta_chapter = {b['id']: k for k, ch in W['de'].items() for b in ch['blocks']}
-order = {b['id']: i for i, b in enumerate(b for ch in W['de'].values() for b in ch['blocks'])}
+import json, glob, re, collections, difflib
+
+# The original session helper and its German/Gutenberg alignment file were not
+# retained. The published DTA witness records preserve both the raw unit text
+# and its Gutenberg source-unit IDs in units.de[][2] and units.de[][4].
+witness_files = sorted(glob.glob(f'{REPO_ROOT}/bonsai/zarathustra/witnesses/*.json'))
+if not witness_files:
+    raise SystemExit('Cannot rebuild align/anchors.dta.json: no retained DTA witness files found under bonsai/zarathustra/witnesses/.')
+dta_raw, dta_chapter, order = {}, {}, {}
 g2d = collections.defaultdict(list)
-for ch in json.load(open('alignment.de-deg.json'))['chapters'].values():
-    for b in ch['beads']:
-        for g in b['t']: g2d[g] += b['s']
+for path in witness_files:
+    witness = json.load(open(path))
+    chapter = witness['chapter']
+    for unit in witness['units']['de']:
+        if len(unit) < 5:
+            raise SystemExit(f'{path}: DTA unit lacks its retained Gutenberg source-unit mapping.')
+        unit_id, raw = unit[0], unit[2]
+        dta_raw[unit_id] = raw
+        dta_chapter[unit_id] = chapter
+        order[unit_id] = len(order)
+        for gutenberg_id in unit[4] or []:
+            g2d[gutenberg_id].append(unit_id)
 
 def letters(raw):
     """Letters of the text with their offsets in the raw text (hyphenation joins are skipped)."""
@@ -65,5 +76,5 @@ for f in sorted(glob.glob(REVIEW + '/frag/out/*.jsonl')):
                     rec['external'] = a; stats['external' if 'work' in a else f"corpus-{a.get('doc')}"] += 1
                 if s.get('link'): rec['link'] = s['link']
                 out.append(rec)
-json.dump(out, open('anchors.dta.json', 'w'), ensure_ascii=False)
+json.dump(out, open(f'{REVIEW}/align/anchors.dta.json', 'w'), ensure_ascii=False)
 print(dict(stats), len(out))
