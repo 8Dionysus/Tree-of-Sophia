@@ -26,6 +26,35 @@ const MAX_PRIVATE_PACKAGE_FILES: usize = 12;
 const MAX_PRIVATE_PACKAGE_BYTES: usize = 12 * 1024 * 1024;
 const MAX_HELD_OWNER_READS: usize = 256;
 
+fn private_identity_limit_allowed(limit: usize) -> bool {
+    (257..=4096).contains(&limit)
+}
+
+fn verify_private_identity_selection(
+    grant: &JsonValue,
+    selected: Option<usize>,
+    pg: bool,
+) -> SourceCommandResult<()> {
+    let requested = if grant.object_get("max_held_identity_files").is_some() {
+        let limit = usize::try_from(cmd::integer(grant, "max_held_identity_files")?)
+            .map_err(|_| SourceCommandError::Invalid("private identity selected file budget"))?;
+        if !private_identity_limit_allowed(limit) {
+            return Err(SourceCommandError::Invalid(
+                "private identity selected file budget",
+            ));
+        }
+        Some(limit)
+    } else {
+        None
+    };
+    if requested != selected || (pg && requested.is_some()) {
+        return Err(SourceCommandError::Denied(
+            "private identity file budget is not selected by this owner",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn normalized_absolute(value: &str) -> SourceCommandResult<PathBuf> {
     let path = Path::new(value);
     if !path.is_absolute()
@@ -422,8 +451,11 @@ pub(crate) struct OwnerTextContext {
     private_identity: (u64, u64, u32, u32),
     uid: u32,
     held_reads: RefCell<BTreeMap<PathBuf, HeldOwnerFile>>,
+    private_identity_limit: std::cell::Cell<Option<usize>>,
     // Explicit exact legacy body aliases; installed only by a private grant.
     legacy_dta: RefCell<Option<BTreeMap<String, (PathBuf, String)>>>,
+    independent_text_selection:
+        RefCell<Option<crate::source_native_text_read::LocalTextReadSelection>>,
     /// Exact selected source bytes supplied by a fenced PG read session. When
     /// present this map is authoritative and a missing member fails closed;
     /// it never falls back to either filesystem root.
@@ -1926,13 +1958,86 @@ impl OwnerTextContext {
                 private_identity,
                 uid,
                 held_reads: RefCell::new(BTreeMap::new()),
+                private_identity_limit: std::cell::Cell::new(None),
                 legacy_dta: RefCell::new(None),
+                independent_text_selection: RefCell::new(None),
                 pg_selected_members: RefCell::new(None),
                 pg_publication: RefCell::new(None),
                 pg_identity_snapshot: RefCell::new(None),
             },
             config,
         ))
+    }
+
+    /// Only the protected private Profile/Claim invocation selects this budget.
+    /// The same value limits all held files (identity and dependencies); it is
+    /// not a source grant. Every selected descriptor retains the normal lease.
+    pub(crate) fn select_private_identity_limit(&self, limit: usize) -> SourceCommandResult<()> {
+        if !private_identity_limit_allowed(limit) || self.private_identity_limit.get().is_some() {
+            return Err(SourceCommandError::Invalid(
+                "private identity selected file budget",
+            ));
+        }
+        self.private_identity_limit.set(Some(limit));
+        Ok(())
+    }
+    pub(crate) fn identity_file_limit(&self) -> usize {
+        self.private_identity_limit.get().unwrap_or(2048)
+    }
+    pub(crate) fn verify_private_identity_limit(
+        &self,
+        grant: &JsonValue,
+    ) -> SourceCommandResult<()> {
+        verify_private_identity_selection(
+            grant,
+            self.private_identity_limit.get(),
+            self.has_pg_selected_members()?,
+        )
+    }
+    fn held_file_limit(&self) -> usize {
+        self.private_identity_limit
+            .get()
+            .unwrap_or(MAX_HELD_OWNER_READS)
+    }
+
+    pub(crate) fn attach_independent_text_selection(
+        &self,
+        selection: crate::source_native_text_read::LocalTextReadSelection,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        selection.verify(deadline, cancelled)?;
+        let selected_context = cmd::field(selection.config(), "owner_context")?;
+        if normalized_absolute(cmd::text(selected_context, "path")?)? != self.configuration_path
+            || cmd::text(selected_context, "sha256")?
+                != self.configuration_sha256(deadline, cancelled)?
+            || normalized_absolute(cmd::text(selection.config(), "source_root")?)?
+                != self.public_root
+        {
+            return Err(SourceCommandError::Denied(
+                "independent text grant context or root differs",
+            ));
+        }
+        let mut stored = self
+            .independent_text_selection
+            .try_borrow_mut()
+            .map_err(|_| SourceCommandError::Invalid("independent private selection state"))?;
+        if stored.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "independent private selection already installed",
+            ));
+        }
+        *stored = Some(selection);
+        Ok(())
+    }
+    pub(crate) fn independent_text_selection(
+        &self,
+    ) -> SourceCommandResult<
+        std::cell::Ref<'_, Option<crate::source_native_text_read::LocalTextReadSelection>>,
+    > {
+        self.independent_text_selection
+            .try_borrow()
+            .map_err(|_| SourceCommandError::Invalid("independent private selection state"))
     }
 
     /// Install an exact private mapping selected by a protected read grant.
@@ -2084,7 +2189,7 @@ impl OwnerTextContext {
                     ));
                 }
             } else {
-                if reads.len() >= MAX_HELD_OWNER_READS {
+                if reads.len() >= self.held_file_limit() {
                     return Err(SourceCommandError::Unsupported(
                         "owner-local held source file-count budget",
                     ));
@@ -2372,12 +2477,16 @@ impl OwnerTextContext {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Digest256> {
         self.verify_context_base(deadline, cancelled)?;
+        let selection = self.independent_text_selection()?;
+        if let Some(selection) = selection.as_ref() {
+            selection.verify(deadline, cancelled)?;
+        }
         {
             let reads = self
                 .held_reads
                 .try_borrow()
                 .map_err(|_| SourceCommandError::Invalid("owner-local read lease state"))?;
-            if reads.len() > MAX_HELD_OWNER_READS {
+            if reads.len() > self.held_file_limit() {
                 return Err(SourceCommandError::Unsupported(
                     "owner-local held source file-count budget",
                 ));
@@ -2396,7 +2505,7 @@ impl OwnerTextContext {
         };
         // Same exact context-snapshot fields as the maintained source owner.
         // The digest remains transport evidence, never a read/write grant.
-        let binding = cmd::object(vec![
+        let mut binding = cmd::object(vec![
             (
                 "schema_version",
                 cmd::string("tos_owner_local_source_context_v1"),
@@ -2447,6 +2556,18 @@ impl OwnerTextContext {
                 ]),
             ),
         ]);
+        if let Some(selection) = selection.as_ref() {
+            cmd::set(
+                &mut binding,
+                "independent_text_selection_sha256",
+                cmd::string(&selection.protected_selection_digest()),
+            )?;
+            cmd::set(
+                &mut binding,
+                "independent_text_selection_schema_sha256",
+                cmd::string(&selection.protected_selection_schema_digest()),
+            )?;
+        }
         Ok(Digest256::of_bytes(&cmd::canonical(&binding)?))
     }
 
@@ -2605,6 +2726,36 @@ mod legacy_dta_custody_tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
     use std::time::Duration;
+
+    #[test]
+    fn selected_private_identity_limit_has_a_strict_ceiling() {
+        assert!(!private_identity_limit_allowed(0));
+        assert!(!private_identity_limit_allowed(256));
+        assert!(private_identity_limit_allowed(257));
+        assert!(private_identity_limit_allowed(4096));
+        assert!(!private_identity_limit_allowed(4097));
+    }
+
+    #[test]
+    fn private_identity_grant_cannot_be_ignored_or_change_transport() {
+        let grant = cmd::parse(br#"{"max_held_identity_files":4096}"#).unwrap();
+        assert!(verify_private_identity_selection(&grant, Some(4096), false).is_ok());
+        assert!(verify_private_identity_selection(&grant, None, false).is_err());
+        assert!(verify_private_identity_selection(&grant, Some(257), false).is_err());
+        assert!(verify_private_identity_selection(&grant, Some(4096), true).is_err());
+        for raw in [
+            br#"{"max_held_identity_files":"bad"}"#.as_slice(),
+            br#"{"max_held_identity_files":4097}"#,
+        ] {
+            assert!(
+                verify_private_identity_selection(&cmd::parse(raw).unwrap(), None, true).is_err()
+            );
+        }
+        let absent = cmd::parse(b"{}").unwrap();
+        assert!(verify_private_identity_selection(&absent, None, false).is_ok());
+        assert!(verify_private_identity_selection(&absent, None, true).is_ok());
+        assert!(verify_private_identity_selection(&absent, Some(4096), false).is_err());
+    }
 
     #[test]
     fn held_private_file_rejects_currentness_change() {

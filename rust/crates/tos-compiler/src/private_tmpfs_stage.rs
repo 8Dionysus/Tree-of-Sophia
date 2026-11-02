@@ -62,6 +62,14 @@ fn bounded_env(name: &'static [u8], cap: usize) -> Result<std::ffi::OsString> {
     Err(Error::Budget("private stage environment byte cap"))
 }
 
+fn contain_inherited_ticket(raw: i32) -> Result<()> {
+    let flags = unsafe { libc::fcntl(raw, libc::F_GETFD) };
+    if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFD, flags | libc::FD_CLOEXEC) } < 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    Ok(())
+}
+
 fn open_store(path: &Path) -> Result<File> {
     let text = path
         .to_str()
@@ -356,6 +364,10 @@ impl PrivateTmpfsStageIsolation {
             search_cache_custody,
         };
         result.verify_kernel()?;
+        // The issuer must pass the ticket through the consumer's first exec.
+        // Once authenticated, retain it for later same-process selections but
+        // do not pass its writable memfd to Git or other exec'd descendants.
+        contain_inherited_ticket(raw)?;
         Ok(result)
     }
     /// Select the actual issuer ticket as the normal native session's resource
@@ -887,6 +899,42 @@ impl StageIsolation for PrivateTmpfsStageIsolation {
 #[cfg(test)]
 mod persistent_boundary_controls {
     use super::*;
+
+    #[test]
+    fn authenticated_ticket_remains_readable_without_exec_inheritance() {
+        let raw = unsafe {
+            libc::memfd_create(c"tos-ticket-exec-control".as_ptr(), libc::MFD_ALLOW_SEALING)
+        };
+        assert!(raw >= 0);
+        let original = unsafe { File::from_raw_fd(raw) };
+        original.write_all_at(b"retained ticket", 0).unwrap();
+        let seals =
+            libc::F_SEAL_SEAL | libc::F_SEAL_WRITE | libc::F_SEAL_GROW | libc::F_SEAL_SHRINK;
+        assert_eq!(unsafe { libc::fcntl(raw, libc::F_ADD_SEALS, seals) }, 0);
+        // Keep the observed descriptor clear of the child's ordinary startup FDs.
+        let inherited = unsafe { libc::fcntl(raw, libc::F_DUPFD, 128) };
+        assert!(inherited >= 128);
+        let held = unsafe { File::from_raw_fd(inherited) };
+        assert_eq!(
+            unsafe { libc::fcntl(inherited, libc::F_GETFD) } & libc::FD_CLOEXEC,
+            0
+        );
+        contain_inherited_ticket(inherited).unwrap();
+        contain_inherited_ticket(inherited).unwrap();
+        let mut retained = [0; 15];
+        held.read_exact_at(&mut retained, 0).unwrap();
+        assert_eq!(&retained, b"retained ticket");
+        let child = std::process::Command::new("/usr/bin/readlink")
+            .arg(format!("/proc/self/fd/{inherited}"))
+            .output()
+            .unwrap();
+        assert!(
+            !child.status.success(),
+            "authenticated ticket survived exec"
+        );
+        held.read_exact_at(&mut retained, 0).unwrap();
+        assert_eq!(&retained, b"retained ticket");
+    }
 
     // Mechanical refusal fixtures only. No manufactured positive kernel,
     // admission, accepted source, or persistent-write authority is asserted.

@@ -3007,6 +3007,83 @@ pub(crate) fn resolve_owner_profile_binding<R: SignNativeRead + ?Sized>(
     ))
 }
 
+/// Exact private read observation for a private Profile creator. The grant is
+/// independent of the writer grant, and rights precede every content read.
+pub(crate) fn resolve_owner_profile_binding_selected<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut dyn CutSchemaExecutor,
+    binding: &JsonValue,
+    selection: &crate::source_native_text_read::LocalTextReadSelection,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(ResolvedSignBinding, Vec<NativeInput>)> {
+    selection.selected_binding(binding, None, deadline, cancelled)?;
+    let legacy = selection.selected_legacy_dta(binding, deadline, cancelled)?;
+    let mut native = Native {
+        reader,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+        legacy_dta: legacy,
+    };
+    let (_, layer, _) = native.resolve_member(binding, NativeReadScope::MetadataOnly, false)?;
+    let rep = cmd::field(&layer, "representation")?;
+    if !native.owner_local_transport(rep)? {
+        return Err(SourceCommandError::Denied(
+            "private profile requires owner-local transport",
+        ));
+    }
+    selection.selected_binding(
+        binding,
+        Some(cmd::field(rep, "rights_record_refs")?),
+        deadline,
+        cancelled,
+    )?;
+    let mut rights = Vec::new();
+    for row in cmd::array(rep, "rights_record_refs")? {
+        rights.push(
+            native
+                .record(cmd::text(row, "ref")?, Some(cmd::text(row, "sha256")?))?
+                .0,
+        );
+    }
+    native.local_research_rights(&layer, &rights)?;
+    selection.verify(deadline, cancelled)?;
+    native.snapshot()?;
+    let metadata_inputs = selected_inputs(&native);
+    let (packet, layer, summary) =
+        native.resolve_member(binding, NativeReadScope::ExactOwnerLocal, false)?;
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    native.check_selected_member_bytes()?;
+    selection.selected_binding(
+        binding,
+        Some(cmd::field(
+            cmd::field(&layer, "representation")?,
+            "rights_record_refs",
+        )?),
+        deadline,
+        cancelled,
+    )?;
+    native.reader.verify_current(deadline, cancelled)?;
+    Ok((
+        ResolvedSignBinding {
+            packet,
+            layer,
+            summary,
+            inputs,
+            input_snapshot,
+            schema_digests: native.schemas,
+        },
+        metadata_inputs,
+    ))
+}
+
 /// Metadata Profile and Claim owners select this transport only after their
 /// protected scoped grant and OwnerTextContext checks. This is the existing
 /// owner-local read route; it does not translate or grant Sign authority.

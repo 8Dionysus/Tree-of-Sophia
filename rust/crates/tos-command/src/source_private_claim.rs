@@ -49,7 +49,6 @@ const MAX_NATIVE_BINDINGS: usize = 8;
 const MAX_PG_SCHEMA_CLOSURE: usize = 128;
 const MAX_EVIDENCE_REFS: usize = 64;
 const MAX_INVENTORY_ENTRIES: usize = 32_768;
-const MAX_INVENTORY_FILES: usize = 2_048;
 const MAX_INVENTORY_BYTES: usize = 67_108_864;
 const MAX_INVENTORY_FILE_BYTES: usize = 8_388_608;
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -801,7 +800,11 @@ fn validate_grant(
     if version == ConfigVersion::V2 {
         keys.push("allowed_object_values");
     }
+    if value.object_get("max_held_identity_files").is_some() {
+        keys.push("max_held_identity_files");
+    }
     cmd::exact_keys(&value, &keys)?;
+    owner.verify_private_identity_limit(&value)?;
     if cmd::integer(&value, "uid")? != ctx.effective_uid
         || !cmd::nonblank(cmd::text(&value, "principal_id")?)
         || !cmd::nonblank(cmd::text(&value, "authority_ref")?)
@@ -2119,7 +2122,7 @@ fn identity_inventory(
         {
             continue;
         }
-        if selected.len() >= MAX_INVENTORY_FILES {
+        if selected.len() >= owner.identity_file_limit() {
             return Err(SourceCommandError::Invalid(
                 "private Claim identity file budget",
             ));
@@ -2137,7 +2140,7 @@ fn identity_inventory(
         selected.insert(reference, raw);
     }
     for (reference, raw) in &private_inputs.files {
-        if selected.len() >= MAX_INVENTORY_FILES && !selected.contains_key(reference) {
+        if selected.len() >= owner.identity_file_limit() && !selected.contains_key(reference) {
             return Err(SourceCommandError::Invalid(
                 "private Claim identity file budget",
             ));

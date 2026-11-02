@@ -261,6 +261,13 @@ impl LocalTextReadSelection {
     pub(crate) fn config(&self) -> &JsonValue {
         &self.config
     }
+    pub(crate) fn protected_selection_digest(&self) -> String {
+        Digest256::of_bytes(&self.raw).to_hex()
+    }
+    pub(crate) fn protected_selection_schema_digest(&self) -> String {
+        Digest256::of_bytes(&self.schema_raw).to_hex()
+    }
+
     pub(crate) fn selected_legacy_dta(
         &self,
         binding: &JsonValue,
@@ -554,6 +561,14 @@ impl PrivateTextReadSelection {
         let result = Self { grant, context };
         result.verify(deadline, cancelled)?;
         Ok(result)
+    }
+    pub(crate) fn into_owner_parts(
+        self,
+    ) -> (
+        LocalTextReadSelection,
+        crate::source_text_owner::OwnerTextContext,
+    ) {
+        (self.grant, self.context)
     }
     pub fn verify(&self, deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
         self.grant.verify(deadline, cancelled)?;
