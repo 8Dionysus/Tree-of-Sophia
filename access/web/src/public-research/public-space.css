@@ -404,6 +404,7 @@
 #tree .edge-label .edge-tag{display:block;font:600 10px/1.5 var(--ps-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--edge-color)}
 #tree .edge-label .edge-tag+span{display:block;color:#dfe7ef}
 #tree .edge-label[data-compact=true]{padding:2px 8px;border-radius:999px;background:#08111ef2}
+#tree .edge-label[data-one-line=true]{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #tree .edge-label[data-compact=true] .edge-tag{line-height:15px}
 #tree .edge-label[data-compact=true] .edge-tag+span{display:none}
 #tree .tree-star .star-title{font-weight:inherit;overflow:hidden}

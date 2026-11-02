@@ -615,9 +615,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     aspect=null;
     if(!measuredView&&!routePath&&!interaction&&compareBar.hidden&&(selected||selectedEdge)){
       // A free area too narrow for rows on both sides of the star holds the aspect in one column.
-      // Rows past what its height holds close into their families.
-      let narrow=false,budget=Infinity;try{const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});narrow=area.right-area.left<Math.max(1000,(area.bottom-area.top)*1.2);budget=Math.max(5,Math.floor((area.bottom-area.top-60)/28));}catch{}
-      const turned=aspectLayout(projected,{nodeId:selected,edgeId:selectedEdge,open:aspectOpen,narrow,budget,label:value=>tr(value,locale())});
+      // Rows past what its height holds close into their families; a column, whose names take two lines, keeps wider rows.
+      let narrow=false,budget=Infinity,width=Infinity;try{const area=freeArea({width:shell.clientWidth,height:shell.clientHeight});width=area.right-area.left;narrow=width<Math.max(1000,(area.bottom-area.top)*1.2);budget=narrow?Math.max(3,Math.floor((area.bottom-area.top-90)/40)):Math.max(5,Math.floor((area.bottom-area.top-60)/28));}catch{}
+      const turned=aspectLayout(projected,{nodeId:selected,edgeId:selectedEdge,open:aspectOpen,narrow,budget,width,label:value=>tr(value,locale())});
       if(turned.aspect){Object.assign(projected,turned);aspect=turned.aspect;}
     }
     // A new record rises out of what it is about, and a star a thread brings in out of the star it was followed from.
@@ -1305,7 +1305,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(subject!==columnSubject){const fresh=columnSubject&&(mode==='node'||mode==='edge');columnSubject=subject;if(fresh){reading.scrollTop=0;requestAnimationFrame(()=>{if(columnSubject===subject)reading.scrollTop=0;});}}
     if(mode==='personal'){reading.hidden=true;columnTab.hidden=true;shell.dataset.reading='true';shell.dataset.columnOpen='true';return;}
     // A wide screen shows the column or a tab to reopen it; a narrow screen always keeps the sheet's top bar.
-    reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;columnTab.firstChild.textContent=`‹ ${columnCaption(mode)}`;
+    const wasShown=!reading.hidden;
+    reading.hidden=wide&&!columnOpen;columnTab.hidden=!wide||columnOpen;
+    // A column that comes or goes on a wide screen changes the map's room: an aspect shown in it is laid out and framed again.
+    if(wide&&wasShown===reading.hidden&&(selected||selectedEdge))requestAnimationFrame(()=>{if(aspect&&!destroyed){refreshSky();frameSky();}});columnTab.firstChild.textContent=`‹ ${columnCaption(mode)}`;
     if(!columnOpen||subjectChanged)sheetFull=false;
     shell.dataset.columnOpen=String(columnOpen);shell.dataset.sheet=wide?'':columnOpen?(sheetFull?'full':'open'):'peek';shell.dataset.reading=String(columnOpen);
     panelTitle.textContent=columnCaption(mode);panelTitle.setAttribute('aria-expanded',String(columnOpen));

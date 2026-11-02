@@ -109,7 +109,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!previous){el.type='button';el.className='edge-label';el.dataset.edge=item.id;Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'auto'});edgeLayer.append(el);el.addEventListener('click',e=>{e.stopPropagation();onEdgeSelect(item.id);});el.addEventListener('pointerenter',()=>{hoverEdge=item.id;kick();});el.addEventListener('pointerleave',()=>{hoverEdge=null;kick();});el.addEventListener('focus',()=>{hoverEdge=item.id;kick();});el.addEventListener('blur',()=>{hoverEdge=null;kick();});}
       const title=typeof item.label==='string'?item.label:item.kind,tag=typeof item.tag==='string'&&item.tag?item.tag:'';
       if(tag){const word=document.createElement('b'),text=document.createElement('span');word.className='edge-tag';word.textContent=tag;text.textContent=title;el.replaceChildren(word,text);}else el.textContent=title;
-      el.setAttribute('aria-label',`${labels[item.from]??item.from} → ${tag?tag+': ':''}${title} → ${labels[item.to]??item.to}`);el.hidden=true;
+      el.setAttribute('aria-label',`${labels[item.from]??item.from} → ${tag?tag+': ':''}${title} → ${labels[item.to]??item.to}`);el.hidden=true;el.dataset.oneLine=String(Boolean(item.labelOneLine&&!tag));
       return {...item,el,color:hex(item.color,relationColors[item.kind]??relationColors.relates)};
     });oldEdges.forEach(e=>e.el.remove());
     if('selectedEdgeId' in state)selectedEdgeId=state.selectedEdgeId;
@@ -375,6 +375,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     for(const e of edges){
       const style=getComputedStyle(e.el),lineHeight=parseFloat(style.lineHeight)||16;ng.font=style.font||'11px sans-serif';
       // A name given a narrower measure wraps within it, and is as tall as its lines.
+      // A verb kept to one line (where rows are close) ends in an ellipsis; its whole text is in its hint and its card.
+      if(!e.tag&&e.labelOneLine){const text=ng.measureText(e.el.textContent).width,limit=Number.isFinite(e.labelMax)?e.labelMax:190;e.labelWidth=Math.min(limit,Math.max(56,text+20));e.labelHeight=Math.max(22,lineHeight+8);continue;}
       if(!e.tag){const text=ng.measureText(e.el.textContent).width,limit=Number.isFinite(e.labelMax)?e.labelMax:190;e.labelWidth=Math.min(limit,Math.max(56,text+20));e.labelHeight=Math.max(24,lineHeight*Math.max(1,Math.min(3,lineCount(e.el.textContent,e.labelWidth-18)))+10);continue;}
       // A typed link shows its kind on its own line above the authored label.
       const text=ng.measureText(typeof e.label==='string'?e.label:'').width,word=ng.measureText(e.tag).width;
@@ -808,17 +810,21 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const points=nodes.filter(n=>ids.has(n.id)).map(n=>({n,p:projectSettled(n.target)}));if(points.length<2)return;
     const area=targetViewport,pad=24,my=Math.min(56,(area.bottom-area.top)*.12);
     const xs=points.map(({p})=>p.x),ys=points.map(({p})=>p.y),left=Math.min(...xs),right=Math.max(...xs),top=Math.min(...ys),bottom=Math.max(...ys);
-    const name=n=>n.quiet?0:(n.fullWidth??n.labelWidth??120)+22;
-    const overLeft=Math.max(0,...points.filter(({n,p})=>n.labelSide==='left'&&p.x-left<4).map(({n})=>name(n)));
-    const overRight=Math.max(0,...points.filter(({n,p})=>n.labelSide==='right'&&right-p.x<4).map(({n})=>name(n)));
+    const name=n=>n.quiet?0:(n.fullWidth??n.labelWidth??120)+22,centred=n=>n.labelSide==='above'||n.labelSide==='below';
+    // A name beside a star at an edge of the set reaches past it; a name above or below reaches half its width each way.
+    const overLeft=Math.max(0,...points.filter(({n,p})=>p.x-left<4&&(n.labelSide==='left'||centred(n))).map(({n})=>centred(n)?name(n)/2:name(n)));
+    const overRight=Math.max(0,...points.filter(({n,p})=>right-p.x<4&&(n.labelSide==='right'||centred(n))).map(({n})=>centred(n)?name(n)/2:name(n)));
     const roomX=Math.max(40,area.right-area.left-2*pad-overLeft-overRight),roomY=Math.max(40,area.bottom-area.top-2*my);
-    const before=tzoom;zoomTo(tzoom*Math.min(roomX/Math.max(1,right-left),roomY/Math.max(1,bottom-top),2.4));const ratio=tzoom/before;
+    // An aspect is laid out in units meant to be read as pixels: the view comes no nearer than that natural size.
+    const probe=points[0].n.target,near0=projectSettled(probe),near1=projectSettled([probe[0]+100,probe[1],probe[2]]),natural=100/Math.max(1,Math.hypot(near1.x-near0.x,near1.y-near0.y));
+    const before=tzoom;zoomTo(tzoom*Math.min(roomX/Math.max(1,right-left),roomY/Math.max(1,bottom-top),natural),16);const ratio=tzoom/before;
     const cx=(area.left+area.right)/2,cy=(area.top+area.bottom)/2,at=(v,c,shift)=>c+(v-c-shift)*ratio+shift;
     const l=at(left,cx,tpan.x)-overLeft,r=at(right,cx,tpan.x)+overRight,t=at(top,cy,tpan.y),b=at(bottom,cy,tpan.y);
     tpan={x:tpan.x+(cx-(l+r)/2),y:tpan.y+(cy-(t+b)/2)};kick();
   }
   // A turning space can be drawn close enough to open a crowded part, or far enough to see it whole.
-  const zoomTo=value=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,4);kick();};
+  // A framing may come nearer than the reader's own zoom goes (`max`); from there the reader's zoom only moves back.
+  const zoomTo=(value,max=4)=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,Math.max(max,Math.min(tzoom,16)));kick();};
   const wheel=e=>{
     e.preventDefault();const before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012));
     // On a measured scale the moment under the pointer stays under it.
