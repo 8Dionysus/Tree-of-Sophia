@@ -1,6 +1,6 @@
 # Version and legacy retirement conditions
 
-This inventory records removal gates under [TOS-D-0069](decisions/TOS-D-0069-rust-execution-foundation.md), not approval to remove data. The baseline is `3574eb128b89d9d43d4e67c80fd493de3b0dcea5`. Counts are tracked files or matching lines, as stated; binary contents, generated stores and operator data require separate inventories. A name or a zero text-match count does not establish that a format is unused. Writers and readers below name principal owners, not an exhaustive call graph.
+This inventory records removal gates under [TOS-D-0069](decisions/TOS-D-0069-rust-execution-foundation.md). The baseline is `3574eb128b89d9d43d4e67c80fd493de3b0dcea5`. Counts describe tracked files or matching lines; usage, including for zero text matches, requires a separate inventory of binary contents, generated stores and operator data. Names identify candidates for inspection. Writers and readers name principal owners.
 
 For each package, inventory installed versions, deployments, selected publications, backups and all consumers with the operator. Inspect service arguments and configuration without exposing credentials; inspect store manifests, SQLite metadata, D1 publication metadata and PostgreSQL version/profile and consumer metadata through authorized read-only access. Record counts, retention policy and the exact selected revisions. Exercise old and replacement software/data pairs, restoration, rollback, authorization and rights; retain exact bytes, IDs, references and historical locators. Establish target-capacity and recovery evidence before a large cutover or final legacy retirement. Each gate below adds to these shared conditions. Unknown external counts remain open until this inventory is complete.
 
@@ -12,7 +12,7 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Source store V2 and physical revisions
 
-`tos-source-store/src/native_v2/` writes and reads V2 roots and commits, including physical and revision variants through V4; `tos-command/src/source_admission_spooled_candidate.rs` builds initial, successor and V1 migration roots, and `tos-reader --format v2` reads them. A search of tracked JSON/JSONL for selected native root/commit identifiers found zero matching lines; this is not a store count. Inspect V2 current pointers, retained roots, commit variants, backups and reader configuration outside Git.
+`tos-source-store/src/native_v2/` writes and reads V2 roots and commits, including physical and revision variants through V4; `tos-command/src/source_admission_spooled_candidate.rs` builds initial, successor and V1 migration roots, and `tos-reader --format v2` reads them. A search of tracked JSON/JSONL for selected native root/commit identifiers found zero matching lines. Inspect V2 current pointers, retained roots, commit variants, backups and reader configuration outside Git.
 
 **Removal condition:** For each retired variant, an inventoried, resumable migration preserves exact members, locators and history; restore and read both versions, switch all selected pointers and consumers, and satisfy retention policy. **Package:** Source-store migration tooling and a subsequent per-variant retirement. V2 remains an active target until its own gate is met.
 
@@ -24,7 +24,7 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Indexed search V2
 
-`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; `tos-access/src/prepared_local.rs` and `indexed_cursor.rs` serve indexed readers, while the Worker calls `knowledgeSearchD1Indexed`. Prepared/D1 publishers supply indexed data. Three tracked JSON files mention `tos_knowledge_search_indexed_v2`; they are contract descriptions, not an inventory of pages. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
+`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; `tos-access/src/prepared_local.rs` and `indexed_cursor.rs` serve indexed readers, while the Worker calls `knowledgeSearchD1Indexed`. Prepared/D1 publishers supply indexed data. Three tracked JSON contract files mention `tos_knowledge_search_indexed_v2`. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
 
 **Removal condition:** A selected API implements accepted indexed semantics and rights, all clients and publications switch, and old cursor lifetimes expire or are migrated with tested continuation and rollback. **Package:** Offline export and consumer cutover; retain reusable V2 semantics in the chosen owner.
 
@@ -42,7 +42,7 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Source-text search
 
-`tos-query/src/source_text_search.rs` defines query rules; `tos-command/src/durable_source_text_search.rs` reads the selected private PostgreSQL projection. Native CLI, HTTP and MCP consume it, and `access/deploy/cloudflare-worker/src/source-text-gateway.ts` can forward authenticated requests. Three tracked JSON files mention `tos_source_text_search_v1`; they describe contracts, not stored search data. Inspect configured PostgreSQL consumers and gateway/client configuration without exposing secrets.
+`tos-query/src/source_text_search.rs` defines query rules; `tos-command/src/durable_source_text_search.rs` reads the selected private PostgreSQL projection. Native CLI, HTTP and MCP consume it, and `access/deploy/cloudflare-worker/src/source-text-gateway.ts` can forward authenticated requests. Three tracked JSON contract files mention `tos_source_text_search_v1`. Inspect configured PostgreSQL consumers and gateway/client configuration without exposing secrets.
 
 **Removal condition:** An accepted successor covers every selected field, rights decision, currentness fence, cursor and recovery behavior, and all consumers and outstanding continuations migrate. **Package:** Central search completion and a separately reviewed API cutover. This path is the current central foundation and is retained until its gate passes.
 
@@ -78,7 +78,7 @@ A basename search finds 100 tracked files containing `legacy` or `historical`, i
 
 ## Python value and compact JSON codecs
 
-`tos-foundation/src/python_value.rs` implements Python-compatible value behavior; `json.rs` owns `emit_python_compact_json`. Command and access code emit packets and stored values, while native/Worker consumers read them through foundation and WASM bindings in `access/shared/native-semantics.ts`. Zero tracked JSON/JSONL files mention the emitter function name; that does not count its emitted bytes. Inspect external receipts, cached packets, content digests, wire consumers and saved inputs.
+`tos-foundation/src/python_value.rs` implements Python-compatible value behavior; `json.rs` owns `emit_python_compact_json`. Command and access code emit packets and stored values, while native/Worker consumers read them through foundation and WASM bindings in `access/shared/native-semantics.ts`. Zero tracked JSON/JSONL files mention the emitter function name. Inspect external receipts, cached packets, content digests, wire consumers and saved inputs.
 
 **Removal condition:** Independent vectors cover numeric, container, string, serialization and error semantics; every retained byte-sensitive artifact remains verifiable and all supported producers and readers adopt an explicit successor. **Package:** Python-value and wire-codec migration, followed by compatibility cleanup.
 
