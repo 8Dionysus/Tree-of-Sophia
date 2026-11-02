@@ -7,8 +7,8 @@ generation, offline SQLite import, and the selected local verifier. Cloudflare
 credentials, production publication, ToS meaning, review, rights and canon have
 their own owners.
 
-The public route is configured in [`wrangler.jsonc`](wrangler.jsonc); that file
-does not prove a current remote deployment or its dashboard build settings.
+The public route is configured in [`wrangler.jsonc`](wrangler.jsonc). Verify the
+current remote deployment and dashboard build settings independently.
 The Worker can serve the browser and projections without an always-on origin
 machine. The older [Tunnel profile](../cloudflare-tunnel/README.md) is for local
 preview or recovery.
@@ -139,8 +139,7 @@ invents that owner selection. The exact fixture provenance route is
 Green local checks, CI or a successful Workers Build are separate evidence.
 Public acceptance requires external checks of the apex health response, HTML
 and static assets, representative corpus and philosophy queries, and the `www`
-redirect. A dry run is not a deployment, and a deployed Worker does not prove
-semantic acceptance.
+redirect. Semantic acceptance follows its source-owner review.
 
 ## Resumable exploration storage
 

@@ -93,8 +93,8 @@ changed epoch returns 409 even if the final digest matches the prior value;
 expired or evicted state returns 410; oversized state returns 413; missing
 migration/metadata or damaged required carriers return 503. Ordinary traversal
 excludes edges with absent endpoints, while required origin/result closure
-fails closed. Positive row checks do not prove a completely hidden index entry
-is absent or establish whole-corpus completeness.
+fails closed. Absence of hidden index entries and whole-corpus completeness
+require evidence beyond positive row checks.
 
 ## Bounds and refusal behavior
 
