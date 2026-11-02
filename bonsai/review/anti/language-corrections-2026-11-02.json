@@ -1,0 +1,1531 @@
+{
+  "schema": "tos.bonsai.language-corrections.v1",
+  "date": "2026-11-02",
+  "reviewer": "Codex",
+  "basis": "Antiquity stand reader texts and their cited works; quotations excluded.",
+  "corrections": [
+    {
+      "path": "bonsai/antiquity/collection.json:passages[8].readingSteps[0].question",
+      "also": [],
+      "ru": [
+        "Что делает такую беседу исследованием, а не простым повторением мнений?",
+        "Что делает такую беседу исследованием мнений?"
+      ],
+      "en": [
+        "What makes such a conversation an inquiry rather than a mere repetition of opinions?",
+        "What makes such a conversation an inquiry into opinions?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[87].argument.readings[1].body",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[1].nodes[6].argument.readings[1].body"
+      ],
+      "ru": [
+        "Поэтому схема выступает основанием дальнейшей проверки, а не заранее доказанной полнотой.",
+        "Поэтому схема служит основанием дальнейшей проверки."
+      ],
+      "en": [
+        "The framework is therefore a basis for further examination, not a completeness already proved in advance.",
+        "The framework therefore provides a basis for further examination."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[112].argument.readings[1].title",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[6].nodes[3].argument.readings[1].title"
+      ],
+      "ru": [
+        "Тезис задаёт предел, а не перечень различий",
+        "Тезис задаёт предел"
+      ],
+      "en": [
+        "The Thesis Sets a Limit, Not a List of Differences",
+        "The Thesis Sets a Limit"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[180].argument.readings[1].body",
+      "also": [],
+      "ru": [
+        "Можно признать описание переживания и отдельно исследовать, требует ли оно именно двух сил. Расхождение с обсуждаемым учением касается не только этого перехода, но и самого описания переживания.",
+        "Можно признать описание переживания и отдельно исследовать, требует ли оно именно двух сил. Расхождение с обсуждаемым учением касается этого перехода и самого описания переживания."
+      ],
+      "en": [
+        "One can accept the description of the experience and separately ask whether it requires exactly two powers. The divergence from the view under discussion concerns not only this step but the description of the experience itself.",
+        "One can accept the description of the experience and separately ask whether it requires exactly two powers. The divergence from the view under discussion concerns both this step and the description of the experience itself."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[226].argument.readings[1].body",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[2].nodes[3].argument.readings[1].body"
+      ],
+      "ru": [
+        "Это делает описание богаче, но оставляет дальнейший вопрос: как эти отношения связаны с бытием, а не только с самими собой.",
+        "Это делает описание богаче, но оставляет дальнейший вопрос: как эти отношения связаны друг с другом и с бытием."
+      ],
+      "en": [
+        "This enriches the account but leaves a further question: how are these relations connected with being, rather than only with one another?",
+        "This enriches the account but leaves a further question: how are these relations connected with one another and with being?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[259].argument.readings[0].body",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[2].nodes[0].argument.readings[0].body"
+      ],
+      "ru": [
+        "Так классификация должна прояснять, о чём идёт речь, а не соединять несходное одним именем.",
+        "Так классификация должна прояснять, о чём идёт речь, различая несходное."
+      ],
+      "en": [
+        "Classification should clarify what is under discussion, not combine unlike things under one name.",
+        "Classification should clarify what is under discussion by distinguishing unlike things."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[277].argument.readings[1].body",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[3].nodes[5].argument.readings[1].body"
+      ],
+      "ru": [
+        "Предпочтение убедительного невозможного относится к устройству повествования, а не к знанию о действительности. Проверка более разумного способа представить событие сохраняет требование к самой композиции.",
+        "Предпочтение убедительного невозможного относится к устройству повествования. Проверка более разумного способа представить событие сохраняет требование к самой композиции."
+      ],
+      "en": [
+        "Preferring a persuasive impossibility concerns how a narrative is constructed, not knowledge of reality. Asking whether the event could be represented more plausibly keeps the standard within the composition itself.",
+        "Preferring a persuasive impossibility concerns how a narrative is constructed. Asking whether the event could be represented more plausibly keeps the standard within the composition itself."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[290].body",
+      "also": [],
+      "ru": [
+        "Метафора предлагает разные действия, а не один готовый образец.",
+        "Метафора предлагает разные действия."
+      ],
+      "en": [
+        "The metaphor offers distinct actions rather than a single finished model.",
+        "The metaphor offers distinct actions."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].nodes[1].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].nodes[1].reading"
+      ],
+      "ru": [
+        "Это затруднение, а не готовое опровержение поиска.",
+        "Это затруднение для поиска."
+      ],
+      "en": [
+        "This is a difficulty, not a ready-made refutation of inquiry.",
+        "This is a difficulty for inquiry."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].nodes[7].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].nodes[7].reading"
+      ],
+      "ru": [
+        "Это предложение для проверки, а не завершённый итог.",
+        "Это предложение для проверки."
+      ],
+      "en": [
+        "This is a proposal to test, not a completed result.",
+        "This is a proposal to test."
+      ],
+      "kinds": [
+        "contrast",
+        "filler"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].nodes[8].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].nodes[8].reading"
+      ],
+      "ru": [
+        "Незавершённость здесь — отдельная исследовательская позиция, а не случайная пауза.",
+        "Незавершённость здесь — отдельная исследовательская позиция."
+      ],
+      "en": [
+        "Here incompleteness is a distinct investigative stance, not an accidental pause.",
+        "Here incompleteness is a distinct investigative stance."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].edges[7].body",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].edges[7].body"
+      ],
+      "ru": [
+        "Сходство касается открытой познавательной позиции, а не исторической передачи идеи.",
+        "Сходство касается открытой познавательной позиции."
+      ],
+      "en": [
+        "The similarity concerns an open epistemic stance, not the historical transmission of an idea.",
+        "The similarity concerns an open epistemic stance."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[1].nodes[1].reading",
+      "also": [],
+      "ru": [
+        "Традиция здесь служит условием нового поиска, а не заменой проверки.",
+        "Традиция здесь служит условием нового поиска."
+      ],
+      "en": [
+        "Tradition here enables a new search rather than replacing examination.",
+        "Tradition here enables a new search."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[1].nodes[4].reading",
+      "also": [],
+      "ru": [
+        "Это аргумент текста, а не нейтральное описание религиозных практик.",
+        "Это аргумент текста о религиозных практиках."
+      ],
+      "en": [
+        "This is the text's argument, not a neutral description of religious practices.",
+        "This is the text’s argument about religious practices."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[2].nodes[0].reading",
+      "also": [],
+      "ru": [
+        "Это методологический якорь ветви: различие должно прояснять предмет, а не ломать его произвольными границами.",
+        "Различие должно прояснять предмет; его границы должны быть обоснованными."
+      ],
+      "en": [
+        "This is the branch's methodological anchor: a distinction should clarify the subject, not break it up with arbitrary boundaries.",
+        "A distinction should clarify the subject and draw boundaries grounded in it."
+      ],
+      "kinds": [
+        "contrast",
+        "filler"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[2].nodes[3].reading",
+      "also": [],
+      "ru": [
+        "Различение здесь требует учитывать отношения между классами, а не только присваивать имена поодиночке.",
+        "Различение требует учитывать отношения между классами и присваивать имена."
+      ],
+      "en": [
+        "The distinction requires attention to relations among classes, not merely assigning names to them one by one.",
+        "The distinction requires attention to relations among classes as well as the assignment of names."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[3].nodes[5].reading",
+      "also": [],
+      "ru": [
+        "Это критерий устройства рассказа, а не разрешение выдавать вымысел за знание о действительности.",
+        "Это критерий устройства рассказа."
+      ],
+      "en": [
+        "This is a criterion for constructing a plot, not permission to pass fiction off as knowledge of reality.",
+        "This is a criterion for constructing a plot."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[4].nodes[1].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[1].nodes[1].reading"
+      ],
+      "ru": [
+        "Решение описано как процесс, а не просто как удачный результат.",
+        "Решение описано как процесс."
+      ],
+      "en": [
+        "Decision is described as a process, not simply a successful outcome.",
+        "Decision is described as a process."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[4].nodes[6].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[1].nodes[6].question"
+      ],
+      "ru": [
+        "Объясняет ли отклонение не только начало движения, но и разумное содержание выбора?",
+        "Объясняет ли отклонение и начало движения, и разумное содержание выбора?"
+      ],
+      "en": [
+        "Does the deviation explain not only the beginning of movement but also the rational content of choice?",
+        "Does the deviation explain both the beginning of movement and the rational content of choice?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[5].edges[2].body",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[2].edges[2].body"
+      ],
+      "ru": [
+        "Различаются не только ответы, но и способ постановки вопроса.",
+        "Различаются ответы и способ постановки вопроса."
+      ],
+      "en": [
+        "They differ not only in their answers, but also in how they frame the question.",
+        "They differ in their answers and in how they frame the question."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[7].nodes[1].reading",
+      "also": [],
+      "ru": [
+        "Это один образ любви среди речей пира, а не единое определение.",
+        "Это один образ любви среди речей пира."
+      ],
+      "en": [
+        "This is one image of love among the speeches at the banquet, not a single definition.",
+        "This is one image of love among the speeches at the banquet."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[7].edges[3].body",
+      "also": [],
+      "ru": [
+        "Это развитие речи Диотимы, а не универсальная схема для всех других текстов.",
+        "Это развитие речи Диотимы."
+      ],
+      "en": [
+        "This is a development within Diotima's speech, not a universal scheme for all other texts.",
+        "This is a development within Diotima’s speech."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[8].nodes[3].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[3].nodes[3].question"
+      ],
+      "ru": [
+        "Какой довод покажет, что душа переживёт не только многие тела, но и последнее?",
+        "Какой довод покажет, что душа переживёт и последнее тело?"
+      ],
+      "en": [
+        "What argument could show that the soul will outlive not just many bodies but the last one as well?",
+        "What argument could show that the soul will outlive the last body as well?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[9].nodes[2].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[4].nodes[2].reading"
+      ],
+      "ru": [
+        "Это перечень вариантов для исследования, а не готовая теория того, как развивается мышление.",
+        "Это перечень вариантов для исследования развития мышления."
+      ],
+      "en": [
+        "This is a set of possibilities to investigate, not a ready-made theory of how thinking develops.",
+        "These are possibilities for an inquiry into how thinking develops."
+      ],
+      "kinds": [
+        "contrast",
+        "filler"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[9].nodes[4].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[4].nodes[4].reading"
+      ],
+      "ru": [
+        "Перенаправление способности познавать — цель философского обучения, а не описанная здесь универсальная техника.",
+        "Перенаправление способности познавать — цель философского обучения."
+      ],
+      "en": [
+        "Redirecting the capacity to know is a goal of philosophical education, not a universal technique described here.",
+        "Redirecting the capacity to know is a goal of philosophical education."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[9].nodes[8].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[4].nodes[8].reading"
+      ],
+      "ru": [
+        "Это гражданская цель платоновского проекта, а не нейтральное определение самостоятельного мышления.",
+        "Это гражданская цель платоновского проекта."
+      ],
+      "en": [
+        "This is the civic aim of Plato's project, not a neutral definition of independent thought.",
+        "This is the civic aim of Plato’s project."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[9].edges[10].body",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[4].edges[10].body"
+      ],
+      "ru": [
+        "Аристотель предлагает иной разбор этих вариантов, а не продолжает разговор Платона.",
+        "Аристотель предлагает иной разбор этих вариантов."
+      ],
+      "en": [
+        "Aristotle offers a different analysis of these options; he is not continuing Plato's conversation.",
+        "Aristotle offers a different analysis of these options."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[10].nodes[4].reading",
+      "also": [],
+      "ru": [
+        "Это полемическое свидетельство Сенеки, а не полный доклад об эпикурейской позиции.",
+        "Это полемическое свидетельство Сенеки об эпикурейской позиции."
+      ],
+      "en": [
+        "This is Seneca’s polemical testimony, not a complete account of the Epicurean position.",
+        "This is Seneca’s polemical testimony about the Epicurean position."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[10].edges[3].body",
+      "also": [],
+      "ru": [
+        "Сенека полемизирует с приписанной Эпикуру формулой, поэтому это не полное противопоставление двух школ.",
+        "Сенека полемизирует с приписанной Эпикуру формулой."
+      ],
+      "en": [
+        "Seneca polemicizes against a formula attributed to Epicurus, so this is not a complete opposition between the two schools.",
+        "Seneca polemicizes against a formula attributed to Epicurus."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].nodes[1].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].nodes[1].reading"
+      ],
+      "ru": [
+        "Это различие формы, а не гарантия справедливости.",
+        "Это различие касается формы правления."
+      ],
+      "en": [
+        "This distinction concerns form, not a guarantee of justice.",
+        "This distinction concerns the form of government."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].nodes[5].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].nodes[5].reading"
+      ],
+      "ru": [
+        "Это конкретное ограничение одной должности в описанном устройстве, а не универсальное правило древних городов.",
+        "Это конкретное ограничение одной должности в описанном устройстве."
+      ],
+      "en": [
+        "This is a specific limit on one office in the described system, not a universal rule for ancient cities.",
+        "This is a specific limit on one office in the described system."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].nodes[6].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].nodes[6].reading"
+      ],
+      "ru": [
+        "Это пример личного отказа под угрозой наказания, а не готовая схема государственного контроля.",
+        "Это пример личного отказа под угрозой наказания."
+      ],
+      "en": [
+        "This is an instance of personal refusal under threat of punishment, not a ready-made system of state oversight.",
+        "This is an instance of personal refusal under threat of punishment."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].nodes[7].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].nodes[7].reading"
+      ],
+      "ru": [
+        "Это нравственный совет правителю, а не описание правового ограничения.",
+        "Это нравственный совет правителю."
+      ],
+      "en": [
+        "This is moral advice to a ruler, not a description of a legal constraint.",
+        "This is moral advice to a ruler."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].nodes[9].reading",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].nodes[9].reading"
+      ],
+      "ru": [
+        "Это практический довод об устойчивости власти, а не доказательство равноправия подданных.",
+        "Это практический довод об устойчивости власти."
+      ],
+      "en": [
+        "This is a practical argument about the durability of power, not proof that subjects are political equals.",
+        "This is a practical argument about the durability of power."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].edges[1].body",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].edges[1].body"
+      ],
+      "ru": [
+        "Следующий критерий касается цели власти, а не только её формы.",
+        "Следующий критерий касается также цели власти."
+      ],
+      "en": [
+        "The next criterion concerns the purpose of power, not only its form.",
+        "The next criterion also concerns the purpose of power."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].edges[10].body",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].edges[10].body"
+      ],
+      "ru": [
+        "Это сопоставление понятия с конкретным устройством, а не утверждение о едином политическом строе.",
+        "Здесь понятие сопоставляется с конкретным устройством."
+      ],
+      "en": [
+        "This compares a concept with a specific institutional arrangement; it does not claim that they belong to one political system.",
+        "This compares a concept with a specific institutional arrangement."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].summary",
+      "also": [],
+      "ru": [
+        "Какие различения позволяют осмысленно говорить о сущем, становлении и небытии? Ходы в «Тимее», «Пармениде», «Софисте» и «Метафизике» задают разные основания, а не одну общую теорию.",
+        "Какие различения позволяют осмысленно говорить о сущем, становлении и небытии? Ходы в «Тимее», «Пармениде», «Софисте» и «Метафизике» задают разные основания."
+      ],
+      "en": [
+        "What distinctions let us speak coherently about being, becoming, and nonbeing? The moves in the Timaeus, the Parmenides, the Sophist and the Metaphysics set out different grounds, not one general theory.",
+        "What distinctions let us speak coherently about being, becoming, and nonbeing? The moves in the Timaeus, the Parmenides, the Sophist and the Metaphysics set out different grounds."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].nodes[0].reading",
+      "also": [],
+      "ru": [
+        "Это исходная схема космологического рассказа, а не исчерпывающий ответ о каждом смысле бытия.",
+        "Это исходная схема космологического рассказа."
+      ],
+      "en": [
+        "This is the starting framework of the cosmological account, not an exhaustive answer to every sense of being.",
+        "This is the starting framework of the cosmological account."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].nodes[2].reading",
+      "also": [],
+      "ru": [
+        "Возражение испытывает способ обосновать единство, а не доказывает, что общих идей нет.",
+        "Возражение испытывает способ обосновать единство."
+      ],
+      "en": [
+        "The objection tests how unity is grounded; it does not prove that Forms do not exist.",
+        "The objection tests how unity is grounded."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].nodes[4].reading",
+      "also": [],
+      "ru": [
+        "Это цитата внутри платоновского диалога и часть его аргумента, а не независимое свидетельство о позиции исторического Парменида.",
+        "Это цитата внутри платоновского диалога и часть его аргумента."
+      ],
+      "en": [
+        "This is a quotation within Plato’s dialogue and part of its argument, not independent evidence for the historical Parmenides’ position.",
+        "This is a quotation within Plato’s dialogue and part of its argument."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].nodes[5].reading",
+      "also": [],
+      "ru": [
+        "Это рабочий критерий в поиске общего определения, а не окончательное утверждение, что всякое существующее сводится к воздействию.",
+        "Это рабочий критерий в поиске общего определения."
+      ],
+      "en": [
+        "This is a working criterion in the search for a general definition, not a final claim that everything that exists is reducible to being affected.",
+        "This is a working criterion in the search for a general definition."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].edges[0].body",
+      "also": [],
+      "ru": [
+        "Оба места затрагивают отношение одного ко многому, но предлагают разные постановки, а не общий вывод.",
+        "Оба места затрагивают отношение одного ко многому, но предлагают разные постановки."
+      ],
+      "en": [
+        "Both passages address the relation between one and many, but pose different problems rather than offering one conclusion.",
+        "Both passages address the relation between one and many, but pose different problems."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].edges[2].body",
+      "also": [],
+      "ru": [
+        "Это требование продолжать испытание понятий, а не доказательство их безошибочности.",
+        "Это требование продолжать испытание понятий."
+      ],
+      "en": [
+        "This calls for continued examination of concepts, not proof that Forms are error-free.",
+        "This calls for continued examination of concepts."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].edges[3].body",
+      "also": [],
+      "ru": [
+        "Схема «Тимея» не является решением задачи, поставленной в «Софисте».",
+        "Задача «Софиста» остаётся открытой при обращении к схеме «Тимея»."
+      ],
+      "en": [
+        "The framework of the Timaeus does not solve the problem posed in the Sophist.",
+        "The problem posed in the Sophist remains open when considered through the framework of the Timaeus."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].edges[8].body",
+      "also": [],
+      "ru": [
+        "Второй шаг сужает исследовательскую задачу, а не отменяет её исходную широту.",
+        "Второй шаг сужает исследовательскую задачу."
+      ],
+      "en": [
+        "The second step narrows the inquiry; it does not cancel its original breadth.",
+        "The second step narrows the inquiry."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[12].edges[9].body",
+      "also": [],
+      "ru": [
+        "Это условие исследования, а не полный ответ на вопрос о сущности.",
+        "Это условие исследования сущности."
+      ],
+      "en": [
+        "This is a condition of inquiry, not a complete answer to the question of substance.",
+        "This is a condition of inquiry into substance."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[13].nodes[0].reading",
+      "also": [],
+      "ru": [
+        "Это определение связывает жизнь с устроенной телесной способностью; оно не является доказательством посмертной судьбы души.",
+        "Это определение связывает жизнь с устроенной телесной способностью."
+      ],
+      "en": [
+        "This definition ties life to an organized bodily capacity; it is not a proof of the soul’s postmortem fate.",
+        "This definition ties life to an organized bodily capacity."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[13].nodes[4].reading",
+      "also": [],
+      "ru": [
+        "Это уточнение относится к космогонии, а не к механизму жизни отдельного тела.",
+        "Это уточнение относится к космогонии."
+      ],
+      "en": [
+        "This qualification concerns cosmogony, not the mechanism of life in an individual body.",
+        "This qualification concerns cosmogony."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[13].nodes[5].reading",
+      "also": [],
+      "ru": [
+        "Это наставление о человеческой жизни и её направлении, а не биологическое объяснение возникновения живого тела.",
+        "Это наставление о человеческой жизни и её направлении."
+      ],
+      "en": [
+        "This is guidance about human life and its direction, not a biological explanation of how a living body comes to be.",
+        "This is guidance about human life and its direction."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[13].edges[2].body",
+      "also": [],
+      "ru": [
+        "Сравниваются масштабы объяснения, а не тождественные определения.",
+        "Сопоставляются объяснения разного масштаба."
+      ],
+      "en": [
+        "These explanations are compared at different scales; their definitions are not identical.",
+        "These explanations are compared at different scales."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[13].edges[5].body",
+      "also": [],
+      "ru": [
+        "Второй текст рассматривает агентность, а не предлагает альтернативное определение души.",
+        "Второй текст рассматривает способность действовать."
+      ],
+      "en": [
+        "The second text considers agency; it does not offer an alternative definition of the soul.",
+        "The second text considers agency."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].summary",
+      "also": [],
+      "ru": [
+        "Что образ пробуждает в смотрящем: удовольствие узнавания, страх ошибки или влечение к прекрасному? В «Поэтике», «Ионе», «Государстве» и «Федре» — разные объяснения, а не единая теория искусства или утверждение влияния.",
+        "Что образ пробуждает в смотрящем: удовольствие узнавания, страх ошибки или влечение к прекрасному? В «Поэтике», «Ионе», «Государстве» и «Федре» предлагаются разные объяснения."
+      ],
+      "en": [
+        "What does an image awaken in its viewer: the pleasure of recognition, fear of error, or attraction to beauty? The Poetics, the Ion, the Republic and the Phaedrus offer different explanations, not one theory of art or a claim of influence.",
+        "What does an image awaken in its viewer: the pleasure of recognition, fear of error, or attraction to beauty? The Poetics, the Ion, the Republic and the Phaedrus offer different explanations."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].nodes[1].reading",
+      "also": [],
+      "ru": [
+        "Это тезис о познавательном предмете поэзии, а не основание считать вымышленные события историческими фактами.",
+        "Это тезис о познавательном предмете поэзии."
+      ],
+      "en": [
+        "This is a claim about poetry’s object of knowledge, not a reason to treat invented events as historical facts.",
+        "This is a claim about poetry’s object of knowledge."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].nodes[3].reading",
+      "also": [],
+      "ru": [
+        "Особенно действенным узнавание становится при совпадении с поворотом сюжета; пример Эдипа служит анализом построения трагедии, а не общим правилом любой встречи с образом.",
+        "Особенно действенным узнавание становится при совпадении с поворотом сюжета; пример Эдипа служит анализом построения трагедии."
+      ],
+      "en": [
+        "Recognition is especially effective when it coincides with a reversal in the plot; the example of Oedipus analyzes tragic construction, not a general rule for every encounter with an image.",
+        "Recognition is especially effective when it coincides with a reversal in the plot; the example of Oedipus analyzes tragic construction."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].nodes[3].question",
+      "also": [],
+      "ru": [
+        "Какая новая информация меняет не только мнение героя, но и его отношения с другими?",
+        "Какая новая информация меняет мнение героя и его отношения с другими?"
+      ],
+      "en": [
+        "What new information changes not only the hero’s view, but also their relations with others?",
+        "What new information changes the hero’s view and their relations with others?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].nodes[5].reading",
+      "also": [],
+      "ru": [
+        "Это позиция, разыгрываемая в платоновском диалоге, а не нейтральный вывод о каждом поэте и любом искусстве.",
+        "Это позиция, разыгрываемая в платоновском диалоге."
+      ],
+      "en": [
+        "This is a position dramatized in Plato’s dialogue, not a neutral conclusion about every poet or all art.",
+        "This is a position dramatized in Plato’s dialogue."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].nodes[8].reading",
+      "also": [],
+      "ru": [
+        "Место из «Федра» — мифологическое объяснение эроса и припоминания; оно не тождественно аристотелевскому узнаванию изображённой вещи.",
+        "Место из «Федра» — мифологическое объяснение эроса и припоминания."
+      ],
+      "en": [
+        "The Phaedrus passage is a mythic account of eros and recollection; it is not the same as Aristotle’s recognition of a depicted object.",
+        "The Phaedrus passage is a mythic account of eros and recollection."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].edges[2].body",
+      "also": [],
+      "ru": [
+        "Второй фрагмент даёт пример связной части, а не шаблон для всех сюжетов.",
+        "Второй фрагмент даёт пример связной части сюжета."
+      ],
+      "en": [
+        "The second passage gives an example of an integrated part, not a template for every plot.",
+        "The second passage gives an example of an integrated part of a plot."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].edges[5].body",
+      "also": [],
+      "ru": [
+        "Это различные объяснения воздействия, а не согласованные этапы одной теории.",
+        "Это различные объяснения воздействия поэзии."
+      ],
+      "en": [
+        "These are different explanations of poetic effect, not coordinated stages of one theory.",
+        "These are different explanations of poetic effect."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[14].edges[8].body",
+      "also": [],
+      "ru": [
+        "В обоих случаях зрение ведёт дальше поверхности, но узнавание предмета и припоминание прекрасного не тождественны.",
+        "В обоих случаях зрение ведёт дальше поверхности: к узнаванию предмета и к припоминанию прекрасного."
+      ],
+      "en": [
+        "In both cases sight leads beyond the surface, but recognition of an object and recollection of beauty are not identical.",
+        "In both cases sight leads beyond the surface: to recognition of an object and to recollection of beauty."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the reading affirmatively and remove an unsupported contrast."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[5].nodes[6].title",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[2].nodes[6].title"
+      ],
+      "en": [
+        "Prudence in a Pleasant Life",
+        "Practical Wisdom in a Pleasant Life"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use practical wisdom for phronesis, as elsewhere in the stand."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[5].edges[6].label",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[2].edges[6].label"
+      ],
+      "en": [
+        "Pleasure Requires Prudence",
+        "Pleasure Requires Practical Wisdom"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use practical wisdom for phronesis, as elsewhere in the stand."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[1].nodes[8].question",
+      "also": [],
+      "ru": [
+        "Как понять, что рассказ правдоподобен в меру предмета, а не уклоняется от проверки?",
+        "Как оценить правдоподобие рассказа в соответствии с его предметом и проверить его?"
+      ],
+      "en": [
+        "How can we tell that an account is plausibly suited to its subject rather than evading examination?",
+        "How can we assess an account’s plausibility in relation to its subject and examine it?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[3].nodes[0].question",
+      "also": [],
+      "ru": [
+        "Если слушатель убеждён, по какому признаку он узнает, что получил знание, а не веру?",
+        "Как слушателю отличить полученное знание от веры, если он убеждён?"
+      ],
+      "en": [
+        "If the listener is persuaded, by what sign can they know they have gained knowledge rather than belief?",
+        "If the listener is persuaded, how can they distinguish knowledge from belief?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[4].nodes[4].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[1].nodes[4].question"
+      ],
+      "ru": [
+        "Как узнать, что внутренняя причина действительно главная, а не только ещё одно звено?",
+        "По каким признакам внутренняя причина главная в цепи причин?"
+      ],
+      "en": [
+        "How can we tell that the internal cause is truly primary, rather than just another link in the chain?",
+        "By what signs is the internal cause primary in the chain of causes?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[7].nodes[3].question",
+      "also": [],
+      "ru": [
+        "Что превращает ощущение нехватки в устойчивый поиск, а не в любое другое желание?",
+        "Что превращает ощущение нехватки в устойчивый поиск?"
+      ],
+      "en": [
+        "What turns an awareness of lack into an enduring search rather than just another desire?",
+        "What turns an awareness of lack into an enduring search?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[8].nodes[1].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[3].nodes[1].question"
+      ],
+      "ru": [
+        "Что подтвердит, что отделённая душа сохраняется, а не исчезает вместе с телом?",
+        "Что подтвердит сохранение отделённой души после гибели тела?"
+      ],
+      "en": [
+        "What would confirm that the separated soul persists rather than disappearing with the body?",
+        "What would confirm that the separated soul persists after the body perishes?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[8].nodes[7].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[3].nodes[7].question"
+      ],
+      "ru": [
+        "Как проверить тезис о смертности души, а не только вывод об отсутствии ощущения?",
+        "Как проверить тезис о смертности души?"
+      ],
+      "en": [
+        "How can the soul's mortality be tested, rather than only the conclusion that sensation is absent?",
+        "How can the soul’s mortality be tested?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[10].nodes[4].question",
+      "also": [],
+      "ru": [
+        "Может ли помощь другу быть целью, а не платой за помощь в будущем?",
+        "Может ли помощь другу быть самостоятельной целью?"
+      ],
+      "en": [
+        "Can helping a friend be an end in itself rather than payment for help in the future?",
+        "Can helping a friend be an end in itself?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[11].nodes[7].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[5].nodes[7].question"
+      ],
+      "ru": [
+        "Как установить, что решение спасает, а не только укрепляет положение правителя?",
+        "Как установить, что решение спасает жизнь?"
+      ],
+      "en": [
+        "How can we establish that a decision preserves life rather than merely strengthening the ruler's position?",
+        "How can we establish that a decision preserves life?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[13].nodes[3].question",
+      "also": [],
+      "ru": [
+        "На каком основании упорядоченное целое названо живым, а не только устроенным?",
+        "На каком основании упорядоченное целое названо живым?"
+      ],
+      "en": [
+        "On what basis is an ordered whole called living rather than merely organized?",
+        "On what basis is an ordered whole called living?"
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "Ask the substantive question directly."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[279].readingSteps[0].body",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[1].nodes[1].readingSteps[0].body"
+      ],
+      "ru": [
+        "Наследование метода не тождественно повторению готового ответа.",
+        "Наследование метода отличается от повторения готового ответа."
+      ],
+      "en": [
+        "Inheriting a method does not amount to repeating an answer.",
+        "Inheriting a method differs from repeating a ready-made answer."
+      ],
+      "kinds": [
+        "contrast"
+      ],
+      "why": "State the distinction directly without a negated identity."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:entities[2].workMap.question",
+      "also": [],
+      "en": [
+        "What distinguishes knowledge from perception and true belief?",
+        "What distinguishes knowledge from perception and true opinion?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:entities[2].workMap.returns[2].title",
+      "also": [],
+      "en": [
+        "What is required beyond true belief?",
+        "What is required beyond true opinion?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[83].title",
+      "also": [],
+      "en": [
+        "Hold on to true belief",
+        "Hold on to true opinion"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[83].readingSteps[0].question",
+      "also": [
+        "bonsai/antiquity/collection.json:passages[83].argument.steps[0].question",
+        "bonsai/antiquity/collection.json:branches[0].nodes[5].readingSteps[0].question",
+        "bonsai/antiquity/collection.json:branches[0].nodes[5].argument.steps[0].question"
+      ],
+      "en": [
+        "Why might a true belief stop guiding action?",
+        "Why might a true opinion stop guiding action?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage.",
+      "ru": [
+        "Из-за чего верное убеждение может перестать направлять поступок?",
+        "Из-за чего верное мнение может перестать направлять поступок?"
+      ]
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[83].argument.readings[0].body",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[0].nodes[5].argument.readings[0].body"
+      ],
+      "en": [
+        "To connect something is to be able to explain why a belief is true.",
+        "To connect something is to be able to explain why an opinion is true."
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[242].title",
+      "also": [],
+      "en": [
+        "Knowledge as true belief",
+        "Knowledge as true opinion"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[242].readingSteps[0].title",
+      "also": [],
+      "en": [
+        "Distinguish beliefs",
+        "Distinguish opinions"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[242].readingSteps[0].question",
+      "also": [],
+      "en": [
+        "If we remove false beliefs, is that enough to leave only knowledge?",
+        "If we remove false opinions, is that enough to leave only knowledge?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[243].readingSteps[0].question",
+      "also": [],
+      "en": [
+        "Which questions remain hidden behind a belief that is already settled?",
+        "Which questions remain hidden behind an opinion that is already settled?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage.",
+      "ru": [
+        "Какие вопросы остаются скрытыми за уже готовым убеждением?",
+        "Какие вопросы остаются скрытыми за уже готовым мнением?"
+      ]
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[243].readingSteps[1].body",
+      "also": [],
+      "en": [
+        "Whether the belief is true still needs to be tested.",
+        "Whether the opinion is true still needs to be tested."
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[244].title",
+      "also": [],
+      "en": [
+        "True belief with an account",
+        "True opinion with an account"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[244].readingSteps[0].title",
+      "also": [
+        "bonsai/antiquity/collection.json:passages[244].argument.steps[0].title",
+        "bonsai/antiquity/collection.json:branches[0].nodes[7].readingSteps[0].title",
+        "bonsai/antiquity/collection.json:branches[0].nodes[7].argument.steps[0].title",
+        "bonsai/antiquity/collection.json:branches[3].nodes[7].readingSteps[0].title",
+        "bonsai/antiquity/collection.json:branches[3].nodes[7].argument.steps[0].title"
+      ],
+      "en": [
+        "What has been added to belief?",
+        "What has been added to opinion?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[244].argument.readings[0].title",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[0].nodes[7].argument.readings[0].title",
+        "bonsai/antiquity/collection.json:branches[3].nodes[7].argument.readings[0].title"
+      ],
+      "en": [
+        "Explain one's true belief",
+        "Explain one's true opinion"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:passages[244].argument.readings[0].body",
+      "also": [
+        "bonsai/antiquity/collection.json:branches[0].nodes[7].argument.readings[0].body",
+        "bonsai/antiquity/collection.json:branches[3].nodes[7].argument.readings[0].body"
+      ],
+      "en": [
+        "The addition concerns the knower: they must have an account of their belief.",
+        "The addition concerns the knower: they must have an account of their opinion."
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].nodes[3].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].nodes[3].question"
+      ],
+      "en": [
+        "What does knowledge add if true belief can also lead to right action?",
+        "What does knowledge add if true opinion can also lead to right action?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].nodes[4].title",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].nodes[4].title"
+      ],
+      "en": [
+        "True belief guides the way",
+        "True opinion guides the way"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].nodes[4].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].nodes[4].question"
+      ],
+      "en": [
+        "What holds a correct belief in place and distinguishes it from knowledge?",
+        "What holds a correct opinion in place and distinguishes it from knowledge?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].nodes[6].question",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].nodes[6].question"
+      ],
+      "en": [
+        "Is true belief with an explanation enough, or must the explanation disclose the cause?",
+        "Is true opinion with an explanation enough, or must the explanation disclose the cause?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].edges[3].body",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].edges[3].body"
+      ],
+      "en": [
+        "Meno, 87b–c provisionally connects virtue's teachability with knowledge; Meno, 97a–c complicates that connection with an example of true belief that also guides someone to a goal.",
+        "Meno, 87b–c provisionally connects virtue's teachability with knowledge; Meno, 97a–c complicates that connection with an example of true opinion that also guides someone to a goal."
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[0].edges[4].body",
+      "also": [
+        "bonsai/antiquity/first-branches.json:branches[0].edges[4].body"
+      ],
+      "en": [
+        "In Meno, 97a–c, true belief is enough to guide someone along the right path; Meno, 97e–98a adds the question of why such belief remains stable and becomes knowledge.",
+        "In Meno, 97a–c, true opinion is enough to guide someone along the right path; Meno, 97e–98a adds the question of why such opinion remains stable and becomes knowledge."
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:branches[3].edges[8].body",
+      "also": [],
+      "en": [
+        "The direct comparison asks whether adding an explanation to true belief is enough.",
+        "The direct comparison asks whether adding an explanation to true opinion is enough."
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:questions[25].positions[0].title",
+      "also": [],
+      "en": [
+        "Distinguish true belief from false belief",
+        "Distinguish true opinion from false opinion"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    },
+    {
+      "path": "bonsai/antiquity/collection.json:terms[39].question",
+      "also": [],
+      "en": [
+        "What role does recollection play in inquiry and in securing a belief that is already correct?",
+        "What role does recollection play in inquiry and in securing an opinion that is already correct?"
+      ],
+      "kinds": [
+        "term"
+      ],
+      "why": "Use opinion for doxa in the Platonic passage."
+    }
+  ]
+}
