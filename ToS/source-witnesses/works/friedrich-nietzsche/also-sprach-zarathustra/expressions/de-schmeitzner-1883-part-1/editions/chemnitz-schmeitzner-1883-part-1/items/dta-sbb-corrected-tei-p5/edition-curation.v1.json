@@ -88,7 +88,8 @@
           "ref": "scripts/prepare_zarathustra_word_analysis_v1.py",
           "sha256": "fba47c5368663fe6877b725174ee80b9118294b8af89a78ed2ca041d9839f9fb"
         }
-      ]
+      ],
+      "event_id_prefix": "tos.event.zarathustra-concept-workbench-v1.build.sid-"
     },
     {
       "stage": "concept-candidate",
@@ -156,6 +157,10 @@
           "role": "manifest",
           "filename": "manifest.v1.json"
         }
+      ],
+      "historical_event_ids": [
+        "tos.event.zarathustra-eternal-return-concept-candidate-v1.plan",
+        "tos.event.zarathustra-eternal-return-concept-candidate-v1.build"
       ]
     },
     {
@@ -212,7 +217,12 @@
           "role": "manifest",
           "filename": "manifest.v1.json"
         }
-      ]
+      ],
+      "historical_event_ids": [
+        "tos.event.zarathustra-eternal-return-review-preparation-v1.build"
+      ],
+      "related_text_unit_ref": "tos.text-unit.sid-d523bc897647d01030f767c2faf5266b",
+      "related_text_sha256": "0627928ac02cab8159b250950b4a9b23088c9fe5886ebedf86634be3488da558"
     },
     {
       "stage": "paragraph-alignment",
