@@ -33,11 +33,12 @@ pub struct SelectedDocument<'a> {
     pub raw: &'a [u8],
 }
 
-/// A referenced curation and the item manifest selected alongside it.
+/// A referenced curation and the item and edition records selected alongside it.
 #[derive(Clone, Copy)]
 pub struct SelectedCuration<'a> {
     pub curation: SelectedDocument<'a>,
     pub manifest: SelectedDocument<'a>,
+    pub edition: SelectedDocument<'a>,
 }
 
 /// Validate exact curation JSON using the caller's selected schema resources.
@@ -63,6 +64,7 @@ fn document(raw: &[u8], schema: &SchemaBackendProbe) -> Result<Value, EditionCur
 pub fn validate_bindings(
     current: SelectedDocument<'_>,
     manifest: SelectedDocument<'_>,
+    edition: SelectedDocument<'_>,
     references: &[SelectedCuration<'_>],
     schema: &SchemaBackendProbe,
 ) -> Result<(), EditionCurationError> {
@@ -75,31 +77,48 @@ pub fn validate_bindings(
         current: SelectedDocument<'_>,
         selected: &Value,
         manifest: SelectedDocument<'_>,
+        edition: SelectedDocument<'_>,
     ) -> Result<(), EditionCurationError> {
         path(current.reference)?;
         path(manifest.reference)?;
+        path(edition.reference)?;
         let manifest_relative = selected["manifest"]
             .as_str()
             .ok_or(EditionCurationError::InvalidSchema)?;
         path(manifest_relative)?;
-        let (parent, _) = current
+        let (parent, name) = current
             .reference
             .rsplit_once('/')
             .ok_or(EditionCurationError::UnsafePath)?;
-        if manifest.reference != format!("{parent}/{manifest_relative}") {
+        if name != "edition-curation.v1.json"
+            || manifest.reference != format!("{parent}/{manifest_relative}")
+        {
+            return Err(EditionCurationError::BindingMismatch);
+        }
+        let (items, _) = parent
+            .rsplit_once('/')
+            .ok_or(EditionCurationError::UnsafePath)?;
+        let (edition_dir, items_name) = items
+            .rsplit_once('/')
+            .ok_or(EditionCurationError::UnsafePath)?;
+        if items_name != "items" || edition.reference != format!("{edition_dir}/edition.json") {
             return Err(EditionCurationError::BindingMismatch);
         }
         let item = published_value(manifest.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
             .map_err(EditionCurationError::Schema)?;
+        let edition = published_value(edition.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
         if item["item_id"] != selected["owner_item_ref"]
             || item["embodiment_ref"] != selected["edition_ref"]
+            || edition["record_type"] != "edition"
+            || edition["record_id"] != selected["edition_ref"]
         {
             return Err(EditionCurationError::BindingMismatch);
         }
         Ok(())
     }
     let selected = document(current.raw, schema)?;
-    bind_manifest(current, &selected, manifest)?;
+    bind_manifest(current, &selected, manifest, edition)?;
     let mut ids = BTreeSet::new();
     ids.insert(
         selected["curation_id"]
@@ -115,7 +134,7 @@ pub fn validate_bindings(
             return Err(EditionCurationError::Duplicate("curation reference"));
         }
         let value = document(reference.raw, schema)?;
-        bind_manifest(reference, &value, binding.manifest)?;
+        bind_manifest(reference, &value, binding.manifest, binding.edition)?;
         let id = value["curation_id"]
             .as_str()
             .ok_or(EditionCurationError::InvalidSchema)?;

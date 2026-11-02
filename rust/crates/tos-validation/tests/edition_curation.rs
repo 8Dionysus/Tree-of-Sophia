@@ -9,6 +9,13 @@ use tos_validation::{
     },
 };
 
+fn edition_reference(curation: &str) -> String {
+    format!(
+        "{}/edition.json",
+        curation.rsplit_once("/items/").unwrap().0
+    )
+}
+
 #[test]
 fn edition_curation_checks_schema_and_cross_field_rules() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
@@ -138,12 +145,20 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         reference: &manifest_path,
         raw: &part2_manifest,
     };
+    let edition_path = edition_reference(part2_path);
+    let edition_raw = fs::read(root.join(&edition_path)).unwrap();
+    let edition = SelectedDocument {
+        reference: &edition_path,
+        raw: &edition_raw,
+    };
     let owner_manifest_path = dta_path
         .strip_suffix("edition-curation.v1.json")
         .unwrap()
         .to_owned()
         + "item.manifest.json";
     let owner_manifest_raw = fs::read(root.join(&owner_manifest_path)).unwrap();
+    let owner_edition_path = edition_reference(dta_path);
+    let owner_edition_raw = fs::read(root.join(&owner_edition_path)).unwrap();
     let owner = SelectedCuration {
         curation: SelectedDocument {
             reference: dta_path,
@@ -153,17 +168,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
             reference: &owner_manifest_path,
             raw: &owner_manifest_raw,
         },
+        edition: SelectedDocument {
+            reference: &owner_edition_path,
+            raw: &owner_edition_raw,
+        },
     };
     assert_eq!(
-        validate_bindings(current, manifest, &[owner], &schema),
+        validate_bindings(current, manifest, edition, &[owner], &schema),
         Ok(())
     );
     assert_eq!(
-        validate_bindings(current, manifest, &[], &schema),
+        validate_bindings(current, manifest, edition, &[], &schema),
         Err(EditionCurationError::MissingReference)
     );
     assert_eq!(
-        validate_bindings(current, manifest, &[owner, owner], &schema),
+        validate_bindings(current, manifest, edition, &[owner, owner], &schema),
         Err(EditionCurationError::Duplicate("curation reference"))
     );
     let wrong_manifest = SelectedDocument {
@@ -171,7 +190,29 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         raw: &raw,
     };
     assert_eq!(
-        validate_bindings(current, wrong_manifest, &[owner], &schema),
+        validate_bindings(current, wrong_manifest, edition, &[owner], &schema),
+        Err(EditionCurationError::BindingMismatch)
+    );
+    let wrong_edition = SelectedDocument {
+        reference: &edition_path,
+        raw: &owner_edition_raw,
+    };
+    assert_eq!(
+        validate_bindings(current, manifest, wrong_edition, &[owner], &schema),
+        Err(EditionCurationError::BindingMismatch)
+    );
+    let other_name = part2_path.replace("edition-curation.v1.json", "other.json");
+    assert_eq!(
+        validate_bindings(
+            SelectedDocument {
+                reference: &other_name,
+                raw: &part2
+            },
+            manifest,
+            edition,
+            &[owner],
+            &schema,
+        ),
         Err(EditionCurationError::BindingMismatch)
     );
     let mut duplicate_owner: Value = serde_json::from_slice(&dta_raw).unwrap();
@@ -184,9 +225,16 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
             raw: &duplicate_bytes,
         },
         manifest: owner.manifest,
+        edition: owner.edition,
     };
     assert_eq!(
-        validate_bindings(current, manifest, &[duplicate_recipe_owner], &schema),
+        validate_bindings(
+            current,
+            manifest,
+            edition,
+            &[duplicate_recipe_owner],
+            &schema
+        ),
         Err(EditionCurationError::AmbiguousReference)
     );
     let mut unrelated_owner: Value = serde_json::from_slice(&dta_raw).unwrap();
@@ -201,9 +249,10 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
             raw: &unrelated_bytes,
         },
         manifest: owner.manifest,
+        edition: owner.edition,
     };
     assert_eq!(
-        validate_bindings(current, manifest, &[unrelated], &schema),
+        validate_bindings(current, manifest, edition, &[unrelated], &schema),
         Err(EditionCurationError::BindingMismatch)
     );
     let invalid_owner = SelectedCuration {
@@ -212,9 +261,10 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
             reference: &owner_manifest_path,
             raw: &part2_manifest,
         },
+        edition: owner.edition,
     };
     assert_eq!(
-        validate_bindings(current, manifest, &[invalid_owner], &schema),
+        validate_bindings(current, manifest, edition, &[invalid_owner], &schema),
         Err(EditionCurationError::BindingMismatch)
     );
     let unsafe_manifest = SelectedDocument {
@@ -222,7 +272,7 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         raw: &part2_manifest,
     };
     assert_eq!(
-        validate_bindings(current, unsafe_manifest, &[owner], &schema),
+        validate_bindings(current, unsafe_manifest, edition, &[owner], &schema),
         Err(EditionCurationError::UnsafePath)
     );
     let target_path = "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/edition-curation.v1.json";
@@ -306,6 +356,8 @@ fn authored_edition_curations_bind_to_their_selected_items() {
             value["manifest"].as_str().unwrap()
         );
         let manifest_raw = fs::read(root.join(&manifest_ref)).unwrap();
+        let edition_ref = edition_reference(reference);
+        let edition_raw = fs::read(root.join(&edition_ref)).unwrap();
         let mut references = std::collections::BTreeMap::new();
         for recipe in value["recipes"].as_array().unwrap() {
             if recipe["stage"] == "recipe-reference" {
@@ -318,21 +370,35 @@ fn authored_edition_curations_bind_to_their_selected_items() {
                     target_value["manifest"].as_str().unwrap()
                 );
                 let target_manifest_raw = fs::read(root.join(&target_manifest)).unwrap();
+                let target_edition = edition_reference(target);
+                let target_edition_raw = fs::read(root.join(&target_edition)).unwrap();
                 references.insert(
                     target.to_owned(),
-                    (target_raw, target_manifest, target_manifest_raw),
+                    (
+                        target_raw,
+                        target_manifest,
+                        target_manifest_raw,
+                        target_edition,
+                        target_edition_raw,
+                    ),
                 );
             }
         }
         let selected: Vec<_> = references
             .iter()
             .map(
-                |(reference, (raw, manifest, manifest_raw))| SelectedCuration {
-                    curation: SelectedDocument { reference, raw },
-                    manifest: SelectedDocument {
-                        reference: manifest,
-                        raw: manifest_raw,
-                    },
+                |(reference, (raw, manifest, manifest_raw, edition, edition_raw))| {
+                    SelectedCuration {
+                        curation: SelectedDocument { reference, raw },
+                        manifest: SelectedDocument {
+                            reference: manifest,
+                            raw: manifest_raw,
+                        },
+                        edition: SelectedDocument {
+                            reference: edition,
+                            raw: edition_raw,
+                        },
+                    }
                 },
             )
             .collect();
@@ -344,6 +410,10 @@ fn authored_edition_curations_bind_to_their_selected_items() {
             SelectedDocument {
                 reference: &manifest_ref,
                 raw: &manifest_raw,
+            },
+            SelectedDocument {
+                reference: &edition_ref,
+                raw: &edition_raw,
             },
             &selected,
             &schema,
