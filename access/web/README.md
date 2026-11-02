@@ -49,60 +49,50 @@ same reading actions. Extending the Antiquity graph copies its explicitly
 compatible predecessor through the current Rust validator and retains the
 original namespace; browsing a route does not fill the personal graph.
 
-The space follows the tree's own rule: tree for orientation, graph for
-relation, source for authority. The left rail holds lenses and research actions;
-a path line above the map names where the reader stands (space › branch or
-route › move or step › chosen star) and each level climbs back up; the reading
-column on the right holds the space's overview with its branches, an open branch
-read top to bottom, or the chosen star or link. On a narrow screen the column is
-a sheet over a tool bar. Map controls sit at the map's corner; the camera never
-turns or refits on a selection and pans only to bring a hidden star into view.
+The left rail holds lenses and research actions. A path above the map shows
+space › branch or route › move or step › chosen star and lets the reader ascend.
+The right column shows the space overview, an open branch top to bottom, or the
+chosen star or link; on narrow screens it becomes a sheet over a toolbar. Map
+controls sit at the corner. Selection keeps camera orientation and scale; the
+camera pans only to reveal a hidden star.
 
-Both spaces name what their data already says, without adding relations or
-sources ([`space-legibility.mjs`](src/public-research/space-legibility.mjs)).
-A link's kind is a word, a line pattern and a weight, not a hue alone; the
-legend lists the kinds, filters by them and says what a star's form means: a
-disc for a source or its context, a ring for an authored proposal, a broken
-ring for a personal record. The panel places each star on the ladder of
-interpretation (source, reading, comparison) and says on what footing a link
-stands; star positions group material and measure nothing, except in the
-measuring lenses below. Antiquity restores its four authored transitions (continuation,
-qualification, contrast, analogy) and walks branches by moves, each named by
-author, work and place. Zarathustra
-walks routes by steps; a step names the places of its own grounds, since its
-node is a concept or thinker shared by other routes. A route that walks an
-atlas link against its direction states the link as authored. Search finds
-branches, routes and steps by their own names before their prose.
+Both spaces use their existing relations and sources
+([`space-legibility.mjs`](src/public-research/space-legibility.mjs)). Link kind
+uses a word, line pattern and weight; the legend filters kinds and identifies
+the disc for source or context, ring for authored proposal and broken ring for
+personal record. The panel places stars on the source, reading and comparison
+ladder and states each link's footing. Positions group material except in the
+measuring lenses. Antiquity's transitions are continuation, qualification,
+contrast and analogy; each branch move names its author, work and place.
+Zarathustra route steps name their grounds because nodes may belong to multiple
+routes. Reverse traversal states atlas links as authored. Search finds branch,
+route and step names before prose.
 
-Each stand reads its own bonsai — the mini-Tree under [`bonsai/`](../../bonsai/README.md)
-that keeps its chronology, places and lens settings in the Tree's shapes —
-through [`bonsai.mjs`](src/public-research/bonsai.mjs). The rail sets the lenses
-that measure apart from those that group: Time, Space and Proximity place a star
-only by a value its bonsai states, with that value's source.
+Each stand reads its own [`bonsai/`](../../bonsai/README.md) chronology, places
+and lens settings through [`bonsai.mjs`](src/public-research/bonsai.mjs). The
+rail separates grouping from Time, Space and Proximity: these measuring lenses
+place stars by sourced values in the bonsai.
 
-Time ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)) is a scale
-of years in Antiquity. A move stands within the span its bonsai dates the
-writing of its passage or work — a date, an interval, a phase of a life, or the
-author's life or years of activity where no source dates it closer — each a
-Tree `historicalDate` with its source and footing. Moves sharing one span in a
-branch spread over it in step order; each branch is a row whose name opens it;
-an era's bracket spans its authors' lives. A concept chosen above the panel is
-traced through the stars that carry it in the order of the scale; a star off
-the scale carries it without joining the line. In Zarathustra the horizontal is the
-order of the book's chapters: a star stands at the first chapter it rests on,
-each part names the years it was written, and stars grounded only in other texts
-stand outside the scale.
+Time ([`space-timeline.mjs`](src/public-research/space-timeline.mjs)) scales
+Antiquity by years. A move uses its passage or work's `historicalDate`, source
+and footing:
+a date, interval, life phase, or the author's life or years of activity when
+the source gives no closer date. Moves sharing a span spread in step order;
+each branch is an openable row and each era bracket spans its authors' lives.
+The chosen concept traces its stars in scale order; off-scale stars retain the
+concept without joining the line. Zarathustra instead orders chapters: a star
+uses the first chapter it rests on, each part names its writing years, and stars
+grounded only in other texts stay off-scale.
 
-Space ([`space-geography.mjs`](src/public-research/space-geography.mjs)) is a map:
-a star stands where its bonsai says its text was written, or where its author
-lived in the dated span, at the gazetteer's representative point (Pleiades,
-Wikidata), over Natural Earth coastlines; stars at one place gather round it,
-and a star whose place the sources leave open stands apart past the map's edge.
+Space ([`space-geography.mjs`](src/public-research/space-geography.mjs)) maps
+the bonsai's writing place or the author's home during the dated span, using
+Pleiades or Wikidata representative points over Natural Earth coastlines.
+Stars gather around shared places; a star with unknown place stays beyond the
+map edge.
 Proximity ([`space-proximity.mjs`](src/public-research/space-proximity.mjs))
-measures from the chosen star by one criterion the bonsai names — shared
-concepts or grounds, steps along links, years, chapters or kilometres — in
-rings that carry the scale; the direction groups by branch or circle, and the
-centre lists its nearest stars.
+measures from the chosen star by a bonsai criterion: shared concepts or grounds,
+link steps, years, chapters or kilometres. Rings carry the scale, direction
+groups by branch or circle, and the centre lists the nearest stars.
 
 The grouping lenses show depth ([`space-depth.mjs`](src/public-research/space-depth.mjs)):
 source, reading, comparison and personal record from deepest to nearest. A drag

@@ -17,8 +17,9 @@ profiles, and native software/data builders.
   search and exploration semantics. `rust/crates/tos-access/` owns source-read,
   managed-release, transport and installed-product integration. The Python
   `src/tos_access/core.py` surface is a thin imported SDK bridge to the
-  installed native product. Installed CLI, HTTP, MCP and browser actions route
-  to the native owner.
+  installed native product; query, HTTP and source-reading engines reside in
+  native crates. Installed CLI, HTTP, MCP and browser actions route to the
+  native owner.
 - `contracts/` and `profiles/` own the portable consumer-facing ABI.
 - `packaging/` contains explicit data-generation/validation tools only; the
   native software archive owner assembles software subjects.
