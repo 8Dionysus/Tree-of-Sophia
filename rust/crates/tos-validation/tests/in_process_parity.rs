@@ -360,24 +360,18 @@ fn cut_adapter_binds_source_and_candidate_separately() {
     let digest = Digest256::of_bytes(&schema[0].raw);
     let contracts = BTreeMap::from([("contract".into(), (ROOT.into(), digest))]);
     let revision = SourceRevision(Digest256::of_bytes(b"source revision"));
-    let mut cut = InProcessCutSchemaExecutor::<String>::new(
-        InProcessCutIdentity::Source(revision),
-        contracts.clone(),
-        schema.clone(),
-        FormatProfile::AssertedSourceCandidateV1,
-        InputMode::PublishedStrict,
-    )
-    .unwrap();
+    assert!(
+        InProcessCutSchemaExecutor::<String>::new(
+            InProcessCutIdentity::Source(revision),
+            contracts.clone(),
+            schema.clone(),
+            FormatProfile::AssertedSourceCandidateV1,
+            InputMode::PublishedStrict,
+        )
+        .is_err()
+    );
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(30);
-    assert_eq!(cut.selected_source_revision(), Some(revision));
-    assert!(
-        matches!(cut.schema_execution_binding(), Some(tos_foundation::SchemaExecutionBinding::InProcessV1(binding)) if binding.engine == tos_validation::in_process::ENGINE_ID)
-    );
-    assert!(
-        cut.check("row", br#"{"value":3}"#, "contract", deadline, &cancelled)
-            .unwrap()
-    );
     let mut candidate = InProcessCutSchemaExecutor::new(
         InProcessCutIdentity::Candidate("candidate".to_owned()),
         contracts,
@@ -387,6 +381,14 @@ fn cut_adapter_binds_source_and_candidate_separately() {
     )
     .unwrap();
     assert_eq!(candidate.selected_source_revision(), None);
+    assert!(
+        matches!(candidate.schema_execution_binding(), Some(tos_foundation::SchemaExecutionBinding::InProcessV1(binding)) if binding.engine == tos_validation::in_process::ENGINE_ID)
+    );
+    assert!(
+        candidate
+            .check("row", br#"{"value":3}"#, "contract", deadline, &cancelled)
+            .unwrap()
+    );
     let evidence = candidate
         .diagnostic_for(
             "row",

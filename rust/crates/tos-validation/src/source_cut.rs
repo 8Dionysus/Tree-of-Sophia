@@ -5022,7 +5022,7 @@ impl InProcessCutSchemaExecutor<()> {
             return Err(crate::item_budget_origin!());
         }
         check(deadline, cancelled)?;
-        let executor = Self::new(
+        let executor = Self::new_selected(
             InProcessCutIdentity::Source(revision),
             contracts,
             resources,
@@ -5037,6 +5037,21 @@ impl InProcessCutSchemaExecutor<()> {
 
 impl<I> InProcessCutSchemaExecutor<I> {
     pub fn new(
+        identity: InProcessCutIdentity<I>,
+        contracts: BTreeMap<String, (String, Digest256)>,
+        resources: Vec<SchemaResource>,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+    ) -> Result<Self, crate::SchemaProbeError> {
+        if matches!(identity, InProcessCutIdentity::Source(_)) {
+            return Err(crate::SchemaProbeError::Backend(
+                "source revision requires an exact source cut".into(),
+            ));
+        }
+        Self::new_selected(identity, contracts, resources, profile, input_mode)
+    }
+
+    fn new_selected(
         identity: InProcessCutIdentity<I>,
         contracts: BTreeMap<String, (String, Digest256)>,
         resources: Vec<SchemaResource>,
