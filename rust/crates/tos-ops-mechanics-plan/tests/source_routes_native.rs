@@ -172,7 +172,10 @@ fn philosophy_fixture() -> (Fixture, Value, Value) {
         "ToS/research-packets/deep-research/philosophy/research.manifest.json",
         &packet.to_string(),
     );
-    f.write("ToS/philosophy/trunk/branch.manifest.json",&json!({"path":"ToS/philosophy/trunk","branch_id":"philosophy.trunk","role":"fixture trunk"}).to_string());
+    f.write(
+        "ToS/philosophy/trunk/branch.manifest.json",
+        &json!({"branch_id":"philosophy.trunk","role":"fixture trunk"}).to_string(),
+    );
     let out = invoke(&f.0, "--philosophy-topology");
     assert!(out.status.success(), "{}", text(&out));
     (f, manifest, packet)
@@ -226,7 +229,10 @@ fn philosophy_routes_preserve_branch_counts_metadata_names_and_path_boundaries()
             .unwrap()
             .push(json!(path));
         f.write(manifest_path, &changed.to_string());
-        f.write(&path,&json!({"path":format!("ToS/philosophy/eras/{name}"),"branch_id":format!("philosophy.{name}"),"role":"fixture"}).to_string());
+        f.write(
+            &path,
+            &json!({"branch_id":format!("philosophy.{name}"),"role":"fixture"}).to_string(),
+        );
         let out = invoke(&f.0, "--philosophy-topology");
         assert_eq!(out.status.code(), Some(1));
         assert!(
@@ -249,19 +255,17 @@ fn philosophy_routes_preserve_branch_counts_metadata_names_and_path_boundaries()
     );
     fs::remove_dir_all(f.0.join("ToS/rogue")).unwrap();
     let reference = "ToS/philosophy/trunk/sources/plantings/stale/source-planting.json";
-    f.write("ToS/philosophy/trunk/branch.manifest.json",&json!({"path":"ToS/philosophy/trunk","branch_id":"philosophy.trunk","role":"fixture trunk","source_planting_refs":[reference],"source_planting_count":1}).to_string());
+    f.write("ToS/philosophy/trunk/branch.manifest.json",&json!({"branch_id":"philosophy.trunk","role":"fixture trunk","source_planting_refs":[reference]}).to_string());
     f.write(
         "ToS/philosophy/trunk/sources/branch.manifest.json",
-        &json!({"planting_refs":[reference],"planting_count":1}).to_string(),
+        &json!({"planting_refs":[reference]}).to_string(),
     );
     let out = invoke(&f.0, "--philosophy-topology");
     let t = text(&out);
     assert_eq!(out.status.code(), Some(1));
     for needle in [
         "source_planting_refs differs from exact planting files",
-        "source_planting_count differs from exact planting count",
         "planting_refs differs from exact planting files",
-        "planting_count differs from exact planting count",
     ] {
         assert!(t.contains(needle), "{t}");
     }
