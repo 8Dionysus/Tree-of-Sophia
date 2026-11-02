@@ -91,5 +91,4 @@ Original rights, metadata, original File identity, retained image identity,
 grants and disclosure scope are rechecked through the snapshot and at the
 journal return/commit edge. No retry executes OCR or rendering. Public graph
 and Sign consumers continue to reject confidential v4/v5/v6 configurations
-before private context I/O. Tests use synthetic fixtures and cannot grant
-real source access, model competence or historical acceptance.
+before private context I/O.

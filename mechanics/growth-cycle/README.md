@@ -210,7 +210,6 @@ source root, and select a `tos_source_occurrence_motif_claim_v1` Claim with
 assessment under the source-owned policy. Exact native reading and all member
 dependencies are required. Inline targets and owner-local v4 configurations
 cannot be used to publish a Sign description through this public adapter.
-This restriction does not grant permission to disclose protected material.
 
 `describe` returns the shared operation/field catalog plus `promotion.eligible`,
 current admission and, when eligible, `promotion.basis`. Copy this exact basis
@@ -412,9 +411,6 @@ Unix locking serializes writers with a bounded wait (five seconds by default);
 publication; interrupted unreferenced blobs are not active history and are not
 silently deleted. Missing/corrupt committed data fails closed. Committed
 supersession stays effective even after the old grant expires or is revoked.
-Tests cover journal mechanics with synthetic records. Hardware durability,
-runtime identity, semantic quality and deployed operation require evidence
-from their respective owners.
 
 Materialization currently bounds one history at 1,024 assessment events and
 each batch at 1 MiB; it refuses truncation. Larger histories need a source-owned checkpoint/archive reader that retains
@@ -427,8 +423,8 @@ remain foundation work; the journal provides the assessment-history component of
 Owned Journal commands use the protected native invocation selected by the
 command issuer. Public owner versions v1–v3 retain their inline, source-bound
 and native TextUnit inputs respectively; confidential versions retain their
-separate owner-local selection. Installing a product does not select or
-authorize this invocation. See the [local invocation release route](../../docs/RELEASING.md).
+separate owner-local selection. See the
+[local invocation release route](../../docs/RELEASING.md).
 
 ```bash
 /absolute/installed-prefix/bin/tos-native-owner-command source-commands \
@@ -436,8 +432,7 @@ authorize this invocation. See the [local invocation release route](../../docs/R
 ```
 
 The installed command uses the protected invocation to bind the selected owner
-configuration, native image, source and worker. The former Python journal
-entrypoint is retired. Historical comparison outputs remain test data.
+configuration, native image, source and worker.
 
 This is an explicit local owner operation, never part of read-only `access`.
 The operator/command issuer selects the configuration independently of incoming
@@ -599,8 +594,7 @@ old ready packet, govern each invocation.
 
 This joins the local source/journal command to human-form output. The local
 graph route below carries the result into the common reader; public snapshot
-publication and runtime connection remain separate integration work. Synthetic admitted cases test the contract’s behavior. Actual corpus admission
-depends on a real source-visible review and its competence evidence.
+publication and runtime connection remain separate integration work.
 
 ### Local assessed graph candidates
 
@@ -649,7 +643,7 @@ ordinary source-parity query reader intentionally does not load candidates as
 standard exports. The route preserves the existing 64 KiB per-form materialized
 packet ceiling, 256 KiB complete form-set limit, 1 MiB request limit, and 16 MiB
 native assessment reply limit; narrow larger selections rather than truncating
-them. `check` does not turn a local candidate into an authority source.
+them.
 
 ### Source-bound configuration v2
 
@@ -925,9 +919,8 @@ including metadata-only representations that name a private content locator.
 Any consumed private route sets an owner-local disclosure ceiling even when
 the underlying layer is otherwise public. `owner_local_transport` reports
 that boundary without exposing paths; exact private content still needs its
-separate read selection. Context use does not grant source writing, reviewer
-competence, assessment, publication or canon. The explicit native and private
-profile writers below use this transport interface; v1-v3 assessment command configurations and
+separate read selection. The explicit native and private profile writers below
+use this transport interface; v1-v3 assessment command configurations and
 public source/Claim/form commands do not implicitly acquire private-source
 support. Each future writer/consumer needs its own explicit adapter.
 
