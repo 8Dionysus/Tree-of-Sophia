@@ -195,7 +195,8 @@
         "anchor_suffix": ".pdf-start-page",
         "passage_prefix": "tos.passage.friedrich-nietzsche.jenseits-von-gut-und-boese.ru-polilov-mysl-1996.unit-",
         "passage_suffix": "",
-        "native_generation_separator": ".native-"
+        "native_generation_separator": ".native-",
+        "structural_scheme": "jgb-target-numbered-unit-start-v1"
       },
       "ocr_disambiguation_keys": [
         "6"
@@ -736,7 +737,22 @@
           }
         ],
         "x_bounds": "closed"
-      }
+      },
+      "structural_selector_scheme": "transfer-target-layer-exact-numbered-unit-v1",
+      "nonintersecting_routes": [
+        {
+          "frozen_page_candidate_id": "tos-target-candidate-jenseits-p0399-random",
+          "qualified_unit_key": "284"
+        },
+        {
+          "frozen_page_candidate_id": "tos-target-candidate-jenseits-p0279-hard",
+          "qualified_unit_key": "46"
+        },
+        {
+          "frozen_page_candidate_id": "tos-target-candidate-antichrist-p0661-hard",
+          "qualified_unit_key": "main:35"
+        }
+      ]
     },
     {
       "stage": "transfer-candidates",

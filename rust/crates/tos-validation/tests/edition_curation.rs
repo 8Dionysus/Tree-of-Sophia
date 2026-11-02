@@ -408,6 +408,20 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
         validate(&serde_json::to_vec(&missing_normalizer).unwrap(), &schema),
         Err(EditionCurationError::MissingReference)
     );
+    let mut duplicate_route: Value =
+        serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
+    let target = duplicate_route["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "target-passages")
+        .unwrap();
+    let routes = target["nonintersecting_routes"].as_array_mut().unwrap();
+    routes.push(routes[0].clone());
+    assert_eq!(
+        validate(&serde_json::to_vec(&duplicate_route).unwrap(), &schema),
+        Err(EditionCurationError::Duplicate("nonintersecting route"))
+    );
     let mut duplicate_target: Value =
         serde_json::from_slice(&fs::read(root.join(target_path)).unwrap()).unwrap();
     let target = duplicate_target["recipes"]

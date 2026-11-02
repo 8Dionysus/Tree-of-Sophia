@@ -1322,6 +1322,23 @@ fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
                     return Err(EditionCurationError::InvalidRange("candidate_profile"));
                 }
             }
+            if let Some(routes) = object.get("nonintersecting_routes") {
+                let mut seen = BTreeSet::new();
+                for route in routes
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?
+                {
+                    let candidate = route["frozen_page_candidate_id"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    let unit = route["qualified_unit_key"]
+                        .as_str()
+                        .ok_or(EditionCurationError::InvalidSchema)?;
+                    if !seen.insert((candidate, unit)) {
+                        return Err(EditionCurationError::Duplicate("nonintersecting route"));
+                    }
+                }
+            }
             if let Some(rules) = object.get("posture_rules") {
                 let rules = rules
                     .as_array()
