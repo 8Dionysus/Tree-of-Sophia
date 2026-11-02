@@ -6,6 +6,7 @@ use tos_validation::{
     edition_curation::{
         EditionCurationError, SCHEMA_URI, SelectedCuration, SelectedDocument,
         select_historical_field, validate, validate_bindings, validate_recipe_plan,
+        validate_recipe_template,
     },
 };
 
@@ -81,6 +82,41 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let review = dta_value["recipes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|recipe| recipe["stage"] == "concept-review")
+        .unwrap();
+    let template_ref = review["historical_templates"][0]["ref"].as_str().unwrap();
+    let template_raw = fs::read(root.join(template_ref)).unwrap();
+    let template = SelectedDocument {
+        reference: template_ref,
+        raw: &template_raw,
+    };
+    assert_eq!(
+        validate_recipe_template(
+            &dta_raw,
+            "concept-review",
+            "legacy-output-template",
+            template,
+            &schema
+        ),
+        Ok(())
+    );
+    assert_eq!(
+        validate_recipe_template(
+            &dta_raw,
+            "concept-review",
+            "legacy-output-template",
+            SelectedDocument {
+                reference: template_ref,
+                raw: b"changed"
+            },
+            &schema
+        ),
+        Err(EditionCurationError::DigestMismatch)
+    );
     let mut invalid_correspondence = dta_value.clone();
     let correspondence = invalid_correspondence["recipes"]
         .as_array_mut()

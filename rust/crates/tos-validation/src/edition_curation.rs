@@ -68,9 +68,6 @@ pub fn validate_recipe_plan(
             })
         })
         .ok_or(EditionCurationError::MissingReference)?;
-    if reference != plan.reference {
-        return Err(EditionCurationError::BindingMismatch);
-    }
     let current = recipe["plan_sha256"].as_str();
     let historical = recipe["historical_plan_sha256"].as_str();
     if matches!((current, historical), (Some(a), Some(b)) if a != b) {
@@ -79,10 +76,32 @@ pub fn validate_recipe_plan(
     let expected = current
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
-    if tos_foundation::Digest256::of_bytes(plan.raw).to_hex() != expected {
-        return Err(EditionCurationError::DigestMismatch);
-    }
-    Ok(())
+    verify_selected_bytes(plan, reference, expected)
+}
+
+/// Check a selected stage template against its curation-owned path and digest.
+pub fn validate_recipe_template(
+    raw: &[u8],
+    stage: &str,
+    role: &str,
+    template: SelectedDocument<'_>,
+    schema: &SchemaBackendProbe,
+) -> Result<(), EditionCurationError> {
+    let value = document(raw, schema)?;
+    let recipe = selected_recipe(&value, stage)?;
+    let entry = recipe["historical_templates"]
+        .as_array()
+        .ok_or(EditionCurationError::MissingReference)?
+        .iter()
+        .find(|entry| entry["role"] == role)
+        .ok_or(EditionCurationError::MissingReference)?;
+    let reference = entry["ref"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let digest = entry["sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    verify_selected_bytes(template, reference, digest)
 }
 
 /// Select a historical JSON field from exact, curation-bound output bytes.
@@ -109,18 +128,13 @@ pub fn select_historical_field(
         .iter()
         .find(|output| output["role"] == field["output_role"])
         .ok_or(EditionCurationError::MissingReference)?;
-    if output["repository_path"] != selected.reference {
-        return Err(EditionCurationError::BindingMismatch);
-    }
-    if output["expected_sha256"].as_str()
-        != Some(
-            tos_foundation::Digest256::of_bytes(selected.raw)
-                .to_hex()
-                .as_str(),
-        )
-    {
-        return Err(EditionCurationError::DigestMismatch);
-    }
+    let reference = output["repository_path"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    let digest = output["expected_sha256"]
+        .as_str()
+        .ok_or(EditionCurationError::InvalidSchema)?;
+    verify_selected_bytes(selected, reference, digest)?;
     let historical = published_value(selected.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
         .map_err(EditionCurationError::Schema)?;
     if historical["schema_version"] != output["schema_version"] {
@@ -133,6 +147,22 @@ pub fn select_historical_field(
         .pointer(pointer)
         .cloned()
         .ok_or(EditionCurationError::MissingReference)
+}
+
+fn verify_selected_bytes(
+    selected: SelectedDocument<'_>,
+    reference: &str,
+    digest: &str,
+) -> Result<(), EditionCurationError> {
+    tos_foundation::RelativePath::parse(selected.reference)
+        .map_err(|_| EditionCurationError::UnsafePath)?;
+    if selected.reference != reference {
+        return Err(EditionCurationError::BindingMismatch);
+    }
+    if tos_foundation::Digest256::of_bytes(selected.raw).to_hex() != digest {
+        return Err(EditionCurationError::DigestMismatch);
+    }
+    Ok(())
 }
 
 fn selected_recipe<'a>(value: &'a Value, stage: &str) -> Result<&'a Value, EditionCurationError> {
