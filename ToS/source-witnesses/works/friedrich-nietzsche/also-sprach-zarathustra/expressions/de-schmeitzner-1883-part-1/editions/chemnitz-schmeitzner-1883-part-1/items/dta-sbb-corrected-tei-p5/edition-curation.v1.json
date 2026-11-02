@@ -367,6 +367,162 @@
         "source_database_sha256",
         "authority"
       ]
+    },
+    {
+      "stage": "morphology-context",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+      "plan_sha256": "73a88433cda008de222f288027d4ac2fc1a97357a47a5a0e99d9e67f95a34785",
+      "event_id": "tos.event.annotation.zarathustra-morphology-context-b-v1.2026-08-10",
+      "historical_authority": "This output-blind private raw-TEI context packet supports the selected machine disambiguation proposal B.",
+      "operator_artifact_ref": "owner-local-artifacts/tree-of-sophia-foundation-lab/tos-historical-german-morphology-v1/zarathustra-dwdsmor-a-20260730t0009z/variant-A/raw-output/dwdsmor-census.jsonl",
+      "retained_artifacts": [
+        {
+          "role": "receipt",
+          "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f"
+        },
+        {
+          "role": "event",
+          "sha256": "b1d7e32b50d2d542807db610afb899fa503c718fa598135580e0362b97aff13c"
+        }
+      ]
+    },
+    {
+      "stage": "semantic-recurrence",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/semantic-source-recurrence-plan.v1.json",
+      "plan_sha256": "fdf60ad0469da5f9ecb94782bd2446d79cfe75169e4d0dbceb925991eeaf7669",
+      "event_id": "tos.event.annotation.zarathustra-semantic-source-recurrence-v1.2026-08-10",
+      "historical_authority": "This bundle returns the complete private witness context for one preselected exact-form hash and records aggregate recurrence observations.",
+      "retained_artifacts": [
+        {
+          "role": "receipt",
+          "sha256": "b50417321708d85ee6ec1dfc2225fe6e2206cd590fd043516a7d894843da438f"
+        },
+        {
+          "role": "event",
+          "sha256": "b56a8a6cbdeab1fa6d6c971dea6e6419582de0b16629d65b981e6f5835f310af"
+        },
+        {
+          "role": "bundle",
+          "sha256": "f18515cd36f6b6dd5b68c37b6fbebd8a7b3309cef8b6d1aa6c58f2e5f339d763"
+        }
+      ]
+    },
+    {
+      "stage": "morphology-result",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-evaluation-plan.v1.json",
+      "plan_sha256": "6075b2926b49c4b79b0a186e5338eaa7dd33e847ea1b38b322ef3403dcfcd4c5",
+      "receipt_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-census-result.a-dwdsmor-open-0.18.0.v1.json",
+      "experiment_id": "tos-historical-german-morphology-v1",
+      "retained_artifacts": [
+        {
+          "role": "input",
+          "sha256": "1c734e6f8371e28b863d58e216b7a649aa6d603192f1f7310056e8caa022eb9a"
+        },
+        {
+          "role": "previous-receipt",
+          "sha256": "9dbf0733e48164e25c19aceb26cf678a006fa376fd1c828f848352080482301f"
+        }
+      ]
+    },
+    {
+      "stage": "morphology-context-result",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/morphology-contextual-episode.selected-form-b.v1.json",
+      "plan_sha256": "73a88433cda008de222f288027d4ac2fc1a97357a47a5a0e99d9e67f95a34785",
+      "base_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/",
+      "run_id": "zarathustra-zdl-b-20260812t1354z",
+      "event_id": "tos.event.annotation.zarathustra-morphology-context-b-result.2026-08-12",
+      "provider_commit": "7eabc17097a3ea39f5cc9c030a605ff7edc20ae4",
+      "retained_artifacts": [
+        {
+          "role": "previous-receipt",
+          "sha256": "ff401fe42c3f2c8a496f6b944e85d348e2e952017ebe38cb3604b69cb62346ba"
+        },
+        {
+          "role": "previous-event",
+          "sha256": "b6d3fdcd174881bd7e22c255a312755eef7416c4d9c8be34613505c5f2c73be8"
+        },
+        {
+          "role": "context",
+          "sha256": "0baff212b114ae9d0781ad0e26cf93a25066ad42f371252dc8106d89440d936f"
+        },
+        {
+          "role": "packet",
+          "sha256": "d82a2d81b370f3131fb56e0b1328866120cb3313903ffdf115debb4f0e34aa66"
+        },
+        {
+          "role": "form",
+          "sha256": "0007489cd4b0a84b926a341d3540ae1e8a2ff9cfc2062069dbf5a4e994f6ef37"
+        },
+        {
+          "role": "runner",
+          "sha256": "e86c0cafe281e73832a9475b5a54e4a12d75f26b8e8389a73e4595b9d6ffb672"
+        },
+        {
+          "role": "runtime",
+          "sha256": "89c8a70b779c3782cfdf5b10bdd7963736c181afa86918a92d4d967aebdc820c"
+        },
+        {
+          "role": "artifact-set",
+          "sha256": "591824890eefdbc9f2d79897640a47fdd5c128b87f7eb29e70203f5dda97f561"
+        },
+        {
+          "role": "wheel",
+          "sha256": "9d35263ac80e80e9730ee21830ffdbe96cf256b72c71e30326ae5865456ade9a"
+        }
+      ],
+      "digest_identities": [
+        {
+          "role": "record",
+          "ref": "sha256:d6356a650a3f033469759a380264cbe00c1401b5713f90b97df674e04363a80b"
+        },
+        {
+          "role": "subject",
+          "ref": "sha256:9768ec14c9f4e0115bf285b7e50f24521cecbd7533c20fb00e0bb7204aba9ff4"
+        },
+        {
+          "role": "subjects",
+          "ref": "sha256:df79c75c0e521bc5f1b379d7b06f27d7d433b5b8bac048fa5ed0ff088d48eed2"
+        }
+      ],
+      "control_names": [
+        "abi_signature",
+        "sbom",
+        "ml_bom",
+        "slsa_in_toto",
+        "sigstore_cosign"
+      ],
+      "pipeline_components": [
+        "tok2vec",
+        "tagger",
+        "morphologizer",
+        "parser",
+        "ner",
+        "trainable_lemmatizer"
+      ]
     }
   ]
 }
