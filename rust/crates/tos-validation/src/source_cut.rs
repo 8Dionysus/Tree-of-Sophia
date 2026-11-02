@@ -1750,53 +1750,7 @@ impl CutWorkerSchemaExecutor {
             return Err(crate::item_budget_origin!());
         }
         let revision = cut.current().revision();
-        let mut resources = Vec::new();
-        let mut contracts = BTreeMap::new();
-        let mut total_bytes = 0usize;
-        // Derive schema membership from the exact anchored manifest and read
-        // only those selected bytes. A narrow retirement must not scan an
-        // unrelated surviving raw source while compiling its schema closure.
-        for metadata in cut.current().members() {
-            check(deadline, cancelled)?;
-            let path = metadata.path.as_str();
-            if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
-                continue;
-            }
-            let member = cut
-                .read_member(
-                    revision,
-                    &metadata.path,
-                    SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(store_error)?;
-            total_bytes = total_bytes
-                .checked_add(member.raw.len())
-                .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
-                .ok_or(crate::item_budget_origin!())?;
-            if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
-                || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
-            {
-                return Err(crate::item_budget_origin!());
-            }
-            let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
-                .map_err(|error| {
-                    ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}"))
-                })?;
-            let uri = value["$id"]
-                .as_str()
-                .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
-                .to_owned();
-            contracts.insert(
-                path.to_owned(),
-                (uri.clone(), Digest256::of_bytes(&member.raw)),
-            );
-            resources.push(SchemaResource {
-                uri,
-                raw: member.raw,
-            });
-        }
+        let (contracts, resources) = selected_cut_schema_resources(cut, deadline, cancelled)?;
         Self::prepare_selected_resources(
             Some(revision),
             contracts,
@@ -4974,6 +4928,61 @@ pub fn cut_schema_preparation_state_upper_bound(
         .ok_or(crate::item_budget_origin!())
 }
 
+fn selected_cut_schema_resources(
+    cut: &CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<(BTreeMap<String, (String, Digest256)>, Vec<SchemaResource>), ItemRefusal> {
+    let revision = cut.current().revision();
+    let mut resources = Vec::new();
+    let mut contracts = BTreeMap::new();
+    let mut total_bytes = 0usize;
+    // Derive schema membership from the exact anchored manifest and read
+    // only those selected bytes. A narrow retirement must not scan an
+    // unrelated surviving raw source while compiling its schema closure.
+    for metadata in cut.current().members() {
+        check(deadline, cancelled)?;
+        let path = metadata.path.as_str();
+        if !path.starts_with("ToS/contracts/") || !path.ends_with(".schema.json") {
+            continue;
+        }
+        let member = cut
+            .read_member(
+                revision,
+                &metadata.path,
+                SchemaBackendProbe::MAX_RESOURCE_BYTES as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(store_error)?;
+        total_bytes = total_bytes
+            .checked_add(member.raw.len())
+            .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+            .ok_or(crate::item_budget_origin!())?;
+        if resources.len() >= SchemaBackendProbe::MAX_RESOURCES
+            || member.raw.len() > SchemaBackendProbe::MAX_RESOURCE_BYTES
+        {
+            return Err(crate::item_budget_origin!());
+        }
+        let value = published_value(&member.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES).map_err(
+            |error| ItemRefusal::Unsupported(format!("schema resource {path}: {error:?}")),
+        )?;
+        let uri = value["$id"]
+            .as_str()
+            .ok_or_else(|| ItemRefusal::Unsupported("schema resource ID".into()))?
+            .to_owned();
+        contracts.insert(
+            path.to_owned(),
+            (uri.clone(), Digest256::of_bytes(&member.raw)),
+        );
+        resources.push(SchemaResource {
+            uri,
+            raw: member.raw,
+        });
+    }
+    Ok((contracts, resources))
+}
+
 /// A source revision and a candidate fence remain distinct execution identities.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InProcessCutIdentity<I> {
@@ -4997,6 +5006,35 @@ pub struct InProcessCutSchemaExecutor<I> {
     engine: crate::in_process::InProcessSchemaEngine,
     profile: FormatProfile,
     input_mode: crate::in_process::InputMode,
+}
+
+impl InProcessCutSchemaExecutor<()> {
+    /// Prepare from the exact schemas in an immutable source cut.
+    pub fn from_cut(
+        cut: &CorpusCutReader,
+        profile: FormatProfile,
+        input_mode: crate::in_process::InputMode,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        check(deadline, cancelled)?;
+        let revision = cut.current().revision();
+        let (contracts, resources) = selected_cut_schema_resources(cut, deadline, cancelled)?;
+        if resources.is_empty() {
+            return Err(crate::item_budget_origin!());
+        }
+        check(deadline, cancelled)?;
+        let executor = Self::new(
+            InProcessCutIdentity::Source(revision),
+            contracts,
+            resources,
+            profile,
+            input_mode,
+        )
+        .map_err(|error| ItemRefusal::Unsupported(format!("schema preparation: {error:?}")))?;
+        check(deadline, cancelled)?;
+        Ok(executor)
+    }
 }
 
 impl<I> InProcessCutSchemaExecutor<I> {

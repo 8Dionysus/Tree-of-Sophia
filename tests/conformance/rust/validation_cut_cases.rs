@@ -1993,6 +1993,33 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
             .unwrap(),
         vec![true, false, true, true]
     );
+    let mut in_process = tos_validation::source_cut::InProcessCutSchemaExecutor::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        tos_validation::in_process::InputMode::PublishedStrict,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(in_process.selected_source_revision(), Some(revision));
+    assert_eq!(
+        in_process.binding().schema_set_sha256,
+        binding.schema_set_sha256
+    );
+    for (input, expected) in inputs.iter().zip([true, false, true, true]) {
+        assert_eq!(
+            in_process
+                .check(
+                    &input.path,
+                    &input.raw,
+                    &input.contract,
+                    deadline,
+                    &cancelled
+                )
+                .unwrap(),
+            expected
+        );
+    }
     assert_eq!(schemas.receipts().len(), inputs.len());
     let checkpoint = schemas.receipts()[0].batch.unwrap().checkpoint;
     assert_eq!(checkpoint.completed_count, inputs.len() as u64);
