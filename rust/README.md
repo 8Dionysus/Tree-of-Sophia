@@ -160,4 +160,4 @@ The installed `tos-ops-mechanics-plan --repo-root /absolute/Tree-of-Sophia
 --tree-node-validate` checks canonical node schemas, exact numeric input,
 identity uniqueness and shared language-witness spines. Its cross-field rules
 are shared with the canon compiler. The selected schema remains source-owned;
-structural success does not grant canon admission.
+canon admission follows its source review.

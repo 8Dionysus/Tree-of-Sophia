@@ -547,8 +547,8 @@ The transport selects PostgreSQL 16 through the existing private NoTls
 numeric-loopback profile and `TOS_SOURCE_PG_URL`. Deploy this private
 coordinator in a dedicated database whose ordinary query roles cannot bypass
 adapter rights, write coordinator tables or alter DDL and audit triggers. The
-database owner remains trusted; schema setup alone does not prove those live
-role grants or runtime behavior.
+database owner remains trusted; verify live role grants and runtime behavior
+independently of schema setup.
 
 Provide a nonempty `TOS_CMD_POSTGRES_URL` for a dedicated isolated PostgreSQL instance and run `cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture` from the OPS-integrated workspace. Explicit PG target execution fails closed without the URL. Destructive child/restore probes remain explicitly ignored and are not part of ordinary CI execution. Tests establish bounded mechanical behavior, not source or rights admission.
 
