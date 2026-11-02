@@ -863,7 +863,29 @@
           "schema_version": "tos_zarathustra_concept_workbench_manifest_v1",
           "expected_sha256": "312a808288743451520028a0a82119b9c8ce143e9cf8d681b382bf8f4b941d40"
         }
-      ]
+      ],
+      "legacy_work_scope": {
+        "primary_work_ref": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
+        "outside_work_ref": "tos.work.friedrich-nietzsche.dionysos-dithyramben",
+        "outside_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5",
+        "outside_language": "de",
+        "outside_part": 4,
+        "outside_tei_path_prefix": "TEI/text[1]/body[1]/div[21]/",
+        "outside_scope_reason": "appended_separate_work_part4_div21",
+        "outside_control_code": "outside_zarathustra_work_scope",
+        "expected_census": {
+          "de_exact_occurrences": 86287,
+          "ru_exact_occurrences": 93643,
+          "de_exact_forms": 11352,
+          "de_analysis_forms": 10113,
+          "de_work_scope_occurrences": 84491,
+          "de_work_scope_exact_forms": 11118,
+          "de_work_scope_analysis_forms": 9909,
+          "ru_exact_forms": 17443,
+          "ru_normalized_forms": 16240,
+          "ru_analysis_forms": 15152
+        }
+      }
     },
     {
       "stage": "concept-candidate",

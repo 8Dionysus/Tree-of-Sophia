@@ -784,6 +784,29 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(scope) = object.get("legacy_work_scope") {
+                let sources = object["source_item_refs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if !sources.contains(&scope["outside_item_ref"])
+                    || scope["primary_work_ref"] == scope["outside_work_ref"]
+                {
+                    return Err(EditionCurationError::MissingReference);
+                }
+                let census = &scope["expected_census"];
+                for (subset, total) in [
+                    ("de_work_scope_occurrences", "de_exact_occurrences"),
+                    ("de_work_scope_exact_forms", "de_exact_forms"),
+                    ("de_work_scope_analysis_forms", "de_analysis_forms"),
+                ] {
+                    if !matches!(
+                        compare_numbers(&census[subset], &census[total]),
+                        Some(Ordering::Less | Ordering::Equal)
+                    ) {
+                        return Err(EditionCurationError::InvalidRange("expected_census"));
+                    }
+                }
+            }
             if let Some(routes) = object.get("work_routes") {
                 let routes = routes
                     .as_array()
