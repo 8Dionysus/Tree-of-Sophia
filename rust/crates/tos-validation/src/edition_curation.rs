@@ -77,6 +77,27 @@ pub fn validate_recipe_plan(
         .or(historical)
         .ok_or(EditionCurationError::MissingReference)?;
     verify_selected_bytes(plan, reference, expected)?;
+    if let Some(settings) = recipe.get("evidence_settings") {
+        let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
+            .map_err(EditionCurationError::Schema)?;
+        let status = settings["positive_status_plan_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        let minimum = settings["minimum_universe_support_plan_pointer"]
+            .as_str()
+            .ok_or(EditionCurationError::InvalidSchema)?;
+        if selected_plan
+            .pointer(status)
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+            || selected_plan
+                .pointer(minimum)
+                .and_then(Value::as_u64)
+                .is_none()
+        {
+            return Err(EditionCurationError::MissingReference);
+        }
+    }
     if let Some(settings) = recipe.get("keyword_settings") {
         let selected_plan = published_value(plan.raw, SchemaBackendProbe::MAX_INSTANCE_BYTES)
             .map_err(EditionCurationError::Schema)?;

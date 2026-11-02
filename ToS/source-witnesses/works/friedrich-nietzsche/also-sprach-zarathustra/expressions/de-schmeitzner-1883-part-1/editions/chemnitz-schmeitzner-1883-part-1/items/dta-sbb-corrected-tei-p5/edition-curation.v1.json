@@ -2328,6 +2328,14 @@
         "part_salience_smoothing": 0.5,
         "part_salience_decimal_places": 6,
         "scaled_output_factor": 1000000
+      },
+      "evidence_settings": {
+        "positive_status_plan_pointer": "/scope/cross_language_positive_evidence_status/0",
+        "minimum_universe_support_plan_pointer": "/candidate_thresholds/association_minimum_support",
+        "risk_status_relation": "not-positive-status",
+        "strict_shape": "one_to_one",
+        "strict_reason_contains": "agrees across",
+        "minimum_content_token_characters": 3
       }
     },
     {
