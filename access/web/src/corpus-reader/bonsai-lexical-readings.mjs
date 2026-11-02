@@ -1,24 +1,9 @@
-// Source-visible research notes for six bounded occurrences, not automatic
-// lemma selection. Dictionary links are references, not copied entries.
-const readings={
- 'tos.text-unit.sid-23adf687a84b3225f8781f8fc5aeb845':{form:'Brüder',lemma:'Bruder',ru:'Обращение к слушателям: «мои братья» связано с призывом оставаться верными земле. Родство здесь названо речью Заратустры; буквальное родство слушателей не установлено.',en:'An address to listeners: “my brothers” accompanies the call to remain faithful to the earth. Literal kinship is not established.'},
- 'tos.text-unit.sid-1af39a4d5256f672c2e64f1b997143f0':{form:'schenken',lemma:'schenken',ru:'Инфинитив после um zu называет цель прихода; святой сомневается, поверят ли люди в намерение дарить.',en:'The infinitive after um zu expresses the purpose of coming; the saint doubts whether people will believe the intention to give.'},
- 'tos.text-unit.sid-2a1b29f9c62115040c9a0330cad6d16e':{form:'Gold',lemma:'Gold',ru:'Подлежащее вопроса о высшей ценности. В следующем предложении золото описано как то, что постоянно дарит себя; это образ внутри речи, а не словарное определение.',en:'The subject of the question about highest value. The next sentence describes gold as continually giving itself: an image in the speech, not a dictionary definition.'},
- 'tos.text-unit.sid-d6865418b07f56913de980a0830ccd5c':{form:'Segen',lemma:'Segen',ru:'Именная группа стоит рядом с Gefahr: поток, уподобленный полному сердцу, назван одновременно благословением и опасностью для живущих рядом.',en:'The noun stands beside Gefahr: the stream, likened to the full heart, is called both a blessing and a danger to those nearby.'},
- 'tos.text-unit.sid-497b8b73e66daea4df60db1300f77372':{form:'untergehen',lemma:'untergehen',ru:'Инфинитив зависит от muss. Сравнение с солнцем и пояснение «как называют это люди» связывают заход с движением Заратустры вниз к людям; прочтение «гибель» сохраняется как вопрос перевода.',en:'The infinitive depends on muss. The comparison with the sun and “as the people call it” relate setting to Zarathustra’s descent to people; “perishing” remains a translation question.'},
- 'tos.text-unit.sid-876a89578dd162d1c3de206ed35206a7':{form:'Wiederkunft',lemma:'Wiederkunft',ru:'Существительное с определением ewige относится и к «самому малому»: в этом месте возвращение названо предметом отвращения к существованию.',en:'The noun, modified by ewige, includes “the smallest”: here recurrence is named as a cause of weariness with existence.'},
-};
-// Historical lexicography is attributed separately from the passage reading.
-const history={
- Bruder:{ru:'Древневерхненемецкое bruoder и средневерхненемецкое bruoder; словарь фиксирует также переносные обозначения близкого или единоверца.',en:'Old and Middle High German bruoder; the dictionary also records extended senses for a close person or fellow believer.',label:'Etymologisches Wörterbuch des Althochdeutschen II (1998), bruoder',url:'https://ewa.saw-leipzig.de/articles/22840/de'},
- schenken:{ru:'Древневерхненемецкое scenken связано с более ранним значением «давать пить»; это история слова, а не обязательный смысл данного места.',en:'Old High German scenken is connected with the earlier sense of giving someone a drink; this history does not prescribe the sense here.',label:'Duden, schenken (accessed 2026-11-01)',url:'https://www.duden.de/sprachwissen/sprachratgeber/schenken'},
- Gold:{ru:'Древневерхненемецкое gold засвидетельствовано с VIII века; средневерхненемецкая форма — golt. История названия металла не определяет образ у Ницше.',en:'Old High German gold is attested from the eighth century; Middle High German has golt. This history does not determine Nietzsche’s image.',label:'Etymologisches Wörterbuch des Althochdeutschen IV (2009), gold',url:'https://ewa.saw-leipzig.de/articles/63700/en'},
- Segen:{ru:'Университетский словарь связывает древневерхненемецкое segan с segnen и латинским signare; религиозное употребление не тождественно этому образу.',en:'The university dictionary connects Old High German segan with segnen and Latin signare; religious usage is not automatically identical to this image.',label:'Universität Graz, Deutsche WortSchätze: Segen (accessed 2026-11-01)',url:'https://wortschaetze.uni-graz.at/de/wortschaetze/wortschaetze-nach-themen/belegdatenbank-religion/s/segen/'},
- untergehen:{ru:'Duden приводит древневерхненемецкие untargān, untargēn и средневерхненемецкие undergān, undergēn. В современном словаре различаются заход светила и гибель.',en:'Duden records Old High German untargān, untargēn and Middle High German undergān, undergēn. Its contemporary senses distinguish a celestial body setting and perishing.',label:'Duden, untergehen (accessed 2026-11-01)',url:'https://www.duden.de/rechtschreibung/untergehen'},
- Wiederkunft:{ru:'В немецко-итальянском словаре Франческо Валентини, изданном в 1831–1836 годах, Wiederkunft передано как ritorno («возвращение»); пример glückliche Wiederkunft — как «счастливое возвращение». Этот словарный факт предшествует книге Ницше и не устанавливает этимологию слова или его смысл в данном месте.',en:'Francesco Valentini’s German–Italian dictionary, published in 1831–1836, gives ritorno (“return”) for Wiederkunft and a corresponding example of a happy return. This predates Nietzsche’s book but does not establish the word’s etymology or its meaning in this passage.',label:'Francesco Valentini, Wörterbuch, vol. II, Leipzig: Barth, 1831–1836, p. 1343 (ETH Zürich)',url:'https://www.e-rara.ch/download/pdf/26365914.pdf#page=54'},
-};
+// Read the stand's unit-scoped proposals and lexical references.
+import uses from '../../../../bonsai/zarathustra/core/semantic-uses.json' with {type:'json'};
+
+const readings=new Map(uses.terms.flatMap(term=>term.occurrences.filter(use=>use.reader_reading).map(use=>[use.cite.u[0],{form:use.form,lemma:use.reader_reading.lemma,ru:use.reader_reading.ru,en:use.reader_reading.en,history:use.reader_reading.history}])));
 export function lexicalReading(reference,form){
-  if(reference?.versionId!=='dta-first-editions-de')return null;
-  const entry=readings[reference.unitId];
-  return entry?.form===form?{...entry,history:history[entry.lemma]}:null;
+  if(reference?.versionId!==uses.witness)return null;
+  const entry=readings.get(reference.unitId);
+  return entry?.form===form?{...entry}:null;
 }
