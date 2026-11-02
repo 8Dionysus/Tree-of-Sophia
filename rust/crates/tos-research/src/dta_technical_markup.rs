@@ -1,10 +1,8 @@
 //! Exact, source-owned DTA TEI technical structure. Text stays in explicitly
 //! selected private storage; observed markup confers no textual authority.
 use crate::{
-    research_execution::ResearchExecution,
-    source_text_foundation::{
-        Node, Part, ensure, private_boundary, s, sha, utc_now, xml_with_doctype,
-    },
+    navigation_xml::{Node, Part, xml_with_doctype},
+    research_support::{ensure, private_boundary, s, sha, utc_now},
 };
 use serde_json::{Value, json};
 use std::{
@@ -13,11 +11,12 @@ use std::{
     path::Path,
 };
 use tos_foundation::{JsonLimits, JsonMode, RelativePath};
+use tos_source_store::execution::Execution as ResearchExecution;
 #[path = "dta_technical_markup/records.rs"]
 mod records;
 type Result<T> = std::result::Result<T, String>;
 pub const PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/plan.v1.json";
-const BUILDER: &str = "rust/crates/tos-compiler/src/dta_technical_markup.rs";
+const BUILDER: &str = "rust/crates/tos-research/src/dta_technical_markup.rs";
 const LEGACY_BUILDER: &str = "scripts/build_zarathustra_technical_markup.py";
 const LEGACY_EVENT: &str = "tos.event.segmentation.zarathustra-dta-technical-markup-v1.2026-09-01";
 const LEGACY_EVENT_SHA: &str = "16a93b52ee7a86b72bd4ad1a8bb4e0f245c2eab95f447a9f600faf04890fdd17";
@@ -719,7 +718,7 @@ fn validate_packet(
     p: &Value,
     text: Option<(&str, &[usize])>,
 ) -> Result<()> {
-    crate::source_text_foundation::unit_packet_schema(ctx, p)?;
+    crate::research_support::unit_packet_schema(ctx, p)?;
     let mut units = BTreeMap::new();
     let mut anchors = BTreeMap::new();
     for u in array(&p["units"])? {
@@ -810,7 +809,7 @@ fn summary(plan: &Value, parts: &[ObservedPart], citations: &[Value]) -> Result<
     Ok(value)
 }
 fn schema(ctx: &ResearchExecution, path: &str, value: &Value) -> Result<()> {
-    crate::source_text_foundation::schema(ctx, path, value)
+    crate::research_support::schema(ctx, path, value)
 }
 fn current_plan(ctx: &ResearchExecution, reference: &str) -> Result<(Vec<u8>, Value)> {
     let (raw, plan) = load(ctx, reference)?;
@@ -1354,14 +1353,14 @@ pub fn run(ctx: &ResearchExecution, opts: Options<'_>) -> Result<Value> {
     let mut write_tracked = Vec::new();
     let mut write_private = Vec::new();
     for (r, raw) in &tracked {
-        let missing = crate::source_text_foundation::fresh_or_matching_limit(ctx, r, raw, CAP)?;
+        let missing = crate::research_support::fresh_or_matching_limit(ctx, r, raw, CAP)?;
         ensure(build || !missing, "tracked output absent")?;
         if missing {
             write_tracked.push(r);
         }
     }
     for (r, raw) in &private {
-        let missing = crate::source_text_foundation::fresh_or_matching_limit(&output, r, raw, CAP)?;
+        let missing = crate::research_support::fresh_or_matching_limit(&output, r, raw, CAP)?;
         ensure(build || !missing, "private output absent")?;
         if missing {
             write_private.push(r);

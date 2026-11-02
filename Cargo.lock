@@ -1940,9 +1940,11 @@ name = "tos-research"
 version = "0.6.0"
 dependencies = [
  "flate2",
+ "libc",
  "quick-xml",
  "serde",
  "serde_json",
+ "tempfile",
  "tos-command",
  "tos-compiler",
  "tos-fd-open",

@@ -12,6 +12,7 @@ default = ["research-tools"]
 research-tools = []
 
 [dependencies]
+libc = "0.2"
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 quick-xml = "=0.41.0"
 serde = { version = "1", features = ["derive"] }
@@ -27,3 +28,6 @@ tos-validation = { path = "../tos-validation" }
 name = "tos-research"
 path = "src/main.rs"
 required-features = ["research-tools"]
+
+[dev-dependencies]
+tempfile = "=3.27.0"

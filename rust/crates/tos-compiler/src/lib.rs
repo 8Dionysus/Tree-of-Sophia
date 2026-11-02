@@ -828,8 +828,6 @@ mod zarathustra_lexical_morphology_validate;
 mod zarathustra_lexical_usage_validate;
 
 #[cfg(feature = "research")]
-pub mod dta_technical_markup;
-#[cfg(feature = "research")]
 pub mod opening_sentence_alignment;
 #[cfg(feature = "research")]
 pub mod research_concept_workbench;
