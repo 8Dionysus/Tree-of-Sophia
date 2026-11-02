@@ -120,8 +120,8 @@ work limits.
 Source navigation provides `tos.source.descend` and `tos.dossier.inspect` on
 the native source-navigation product (or the explicitly supported legacy
 carrier). A dossier can include the connected bibliographic chain, observed
-links, scoped rights records, gaps and source references. A downloadable URL
-is technical access only; it does not establish legal openness. A prepared
+links, scoped rights records, gaps and source references. Check the rights record
+before using a downloadable URL. A prepared
 reader without its declared navigation and rights companions is unavailable
 for dossiers rather than permission to consult another index.
 
@@ -195,8 +195,7 @@ separate rendering boundary.
 
 Exploration is a bounded query over the selected snapshot. By default its
 checkpoint is process-local. A caller may explicitly select a separate private
-checkpoint store for restart survival; the store is not a source database and
-does not grant source or publication authority. Replays recheck the selected
+checkpoint store for restart survival. Replays recheck the selected
 binding and execution configuration. Incompatible or corrupt checkpoint state
 fails closed without automatic reset or migration.
 
@@ -204,9 +203,8 @@ For the local prepared reader, provide the checkpoint path with
 `--exploration-checkpoints /absolute/private/continuations.sqlite`; the parent
 directory must already exist. Native limits, storage bounds, and transport
 fences are maintained by the Rust access owner and summarized in its
-[runtime guide](../rust/crates/tos-access/README.md). The selected capability
-reports configured availability; it does not prove real-corpus performance or
-deployment.
+[runtime guide](../rust/crates/tos-access/README.md). Measure real-corpus
+performance on the selected deployment.
 
 ## Explicit prepared local reader
 
@@ -337,8 +335,7 @@ extensions and padding. Keep capture and destination under exclusive owner
 control and reserve disk allocation separately. Restore verifies archive and
 member digests, Git blob identities, paths and modes. It refuses an existing
 output directory; failure may leave partial output for caller-owned cleanup.
-Restore does not admit sources, select data for readers, change rights, or
-publish a dataset. Production, verification and corpus import belong to the
+Production, verification and corpus import follow the
 [source-witness owner route](../ToS/source-witnesses/README.md).
 
 Offline edge capture is also explicit and emits unapplied local artifacts:
