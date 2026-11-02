@@ -17,35 +17,112 @@
 #tree.pr-public-space[data-column=personal]{--ps-map-right:calc(var(--ps-personal-w) + 16px + 28px)}
 #tree :is(button,a,input,textarea,select):focus-visible,.ps-dialog :is(button,a,input,textarea,select):focus-visible{outline:2px solid #e4cb8b;outline-offset:2px}
 
-/* ── header: the tree's name, its spaces, one search, the library, the language ── */
-#tree.pr-public-space .ps-header{position:absolute;z-index:9;top:14px;left:var(--ps-edge);right:16px;height:52px;min-height:0;display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-start;gap:18px;padding:0;border:0}
-#tree .ps-header .pr-wordmark{display:flex;flex:none;align-items:center;gap:10px;color:#dfe3e7;text-decoration:none;white-space:nowrap;letter-spacing:.15em;font:500 11px/1.2 var(--ps-sans);text-transform:uppercase}
-#tree .ps-header .pr-wordmark::before{content:'✧';color:#dfc492;font:34px/1 Georgia,serif;letter-spacing:0}
-#tree .ps-header .pr-wordmark:hover{text-decoration:none;color:#f1e3c3}
-#tree .ps-header .main-tools{margin-left:auto;display:flex;align-items:center;gap:14px}
-#tree .ps-search-box{position:relative;flex:0 1 380px;min-width:200px;margin-left:10px}
-#tree .ps-search{width:100%;height:38px;padding:0 36px 0 14px;border:1px solid #8196b32b;border-radius:5px;background:#0a1324b8;backdrop-filter:blur(12px);color:#d8e2ef;font:13px/1.4 var(--ps-sans)}
-#tree .ps-search::placeholder{color:#7d91a8}
-#tree .ps-search-key{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0 6px;border:1px solid #8196b33a;border-radius:3px;color:#7187a1;font:10px/16px var(--ps-sans);pointer-events:none}
-#tree .ps-search-box:focus-within .ps-search-key{opacity:0}
-#tree .ps-search-results{position:absolute;z-index:12;top:calc(100% + 6px);left:0;width:max(100%,440px);max-height:min(64vh,560px);overflow:auto;padding:8px;border:1px solid #8196b334;border-radius:5px;background:#08111fee;backdrop-filter:blur(18px);box-shadow:0 20px 60px #0008}
-#tree .ps-result{display:grid;width:100%;gap:4px;padding:10px 12px;border-bottom:1px solid #8da5c018;text-align:left}
-#tree .ps-result:hover,#tree .ps-result:focus-visible{background:#c9b27d12}
-#tree .ps-result small{color:#a99a77;font:10px/1.5 var(--ps-sans);letter-spacing:.1em;text-transform:uppercase}
-#tree .ps-result strong{font:15px/1.4 var(--ps-serif);font-weight:400;color:#dfe5ee}
-#tree .ps-result span{max-height:36px;overflow:hidden;color:#8ea2b9;font:12px/1.5 var(--ps-sans)}
-#tree .ps-no-results{padding:12px;color:#9aa8ba;font:13px/1.6 var(--ps-sans)}
-#tree .ps-search-scope{margin:8px 12px;color:#8fa1b4;font:12px/1.5 var(--ps-sans)}
+/* ── the bar: one for every mode. The tree's name, the three modes, one search, the stands, the library, the language,
+   the history; what is used seldom waits under "more". It stands over the space and lives beside it, so it is styled here by its id. ── */
+#public-reader-host{--rb-h:64px}
+#research-bar{
+  --ps-gold:#dcc690;--ps-gold-soft:#d6c59c;--ps-ink:#e4e6ea;--ps-text:#b9c6d5;--ps-muted:#93a5b9;--ps-line:#8296b22b;--ps-line-strong:#8aa0b84a;
+  --ps-glass:linear-gradient(170deg,#0a1526f7,#070f1bfa);
+  --ps-serif:Sophia,Georgia,'Times New Roman',serif;--ps-sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+  position:fixed;z-index:40;top:0;left:0;right:0;box-sizing:border-box;height:var(--rb-h);min-height:0;display:flex;flex-wrap:nowrap;align-items:center;gap:14px;margin:0;padding:0 16px 0 20px;border:0;
+  background:linear-gradient(180deg,#04070ef5 0%,#04070ec4 64%,#04070e00 100%);color:var(--ps-ink);font-family:var(--ps-sans)}
+#research-bar:not([data-mode=original]){background:#060c17f7;border-bottom:1px solid var(--ps-line);backdrop-filter:blur(14px)}
+:root:lang(zh-Hans) #research-bar{--ps-serif:'Noto Serif CJK SC','Songti SC',SimSun,serif;--ps-sans:'Noto Sans CJK SC','Microsoft YaHei',system-ui,sans-serif}
+#research-bar :is(button,a,input,select):focus-visible{outline:2px solid #e4cb8b;outline-offset:2px}
+#research-bar .pr-wordmark{display:flex;flex:none;align-items:center;gap:10px;color:#dfe3e7;text-decoration:none;white-space:nowrap;letter-spacing:.15em;font:500 11px/1.2 var(--ps-sans);text-transform:uppercase}
+#research-bar .pr-wordmark::before{content:'✧';color:#dfc492;font:32px/1 Georgia,serif;letter-spacing:0}
+#research-bar .pr-wordmark:hover{text-decoration:none;color:#f1e3c3}
+/* The modes are the bar's main road: words with a gold line under the one you are in. */
+#research-bar .experience-toolbar{position:relative;z-index:auto;display:flex;flex:none;align-items:center;gap:0;width:auto;margin:0;padding:0 0 0 14px;border:0;border-left:1px solid var(--ps-line);background:none;font-family:var(--ps-sans)}
+#research-bar .experience-modes{display:flex;align-items:center;gap:2px;margin:0}
+#research-bar .experience-modes .experience-button{position:relative;flex:none;min-height:36px;padding:0 11px;border:0;border-radius:5px;background:none;color:#a3b1c3;font:500 13px/1 var(--ps-sans);cursor:pointer}
+#research-bar .experience-modes .experience-button:hover{color:#eef0f3;background:#8aa0b814}
+#research-bar .experience-modes .experience-button[aria-pressed=true]{color:#f3e6c6;background:none}
+#research-bar .experience-modes .experience-button[aria-pressed=true]::after{content:'';position:absolute;left:11px;right:11px;bottom:2px;height:2px;border-radius:1px;background:var(--ps-gold)}
+#research-bar .rb-mode-note,#research-bar .rb-mode-current{display:none}
+#research-bar .ps-search-box{position:relative;flex:0 1 340px;min-width:150px;margin-left:4px}
+#research-bar:not([data-mode=original]) .ps-search-box{display:none}
+#research-bar .ps-search{box-sizing:border-box;width:100%;height:38px;padding:0 36px 0 14px;border:1px solid #8196b32b;border-radius:6px;background:#0a1324b8;backdrop-filter:blur(12px);color:#d8e2ef;font:13px/1.4 var(--ps-sans)}
+#research-bar .ps-search::placeholder{color:#7d91a8}
+#research-bar .ps-search-key{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0 6px;border:1px solid #8196b33a;border-radius:3px;color:#7187a1;font:10px/16px var(--ps-sans);pointer-events:none}
+#research-bar .ps-search-box:focus-within .ps-search-key{opacity:0}
+#research-bar .ps-search-results{position:absolute;z-index:12;top:calc(100% + 6px);left:0;width:max(100%,440px);max-height:min(64vh,560px);overflow:auto;padding:8px;border:1px solid #8196b334;border-radius:6px;background:#08111ff2;backdrop-filter:blur(18px);box-shadow:0 20px 60px #0008}
+#research-bar .ps-result{display:grid;width:100%;gap:4px;padding:10px 12px;border:0;border-bottom:1px solid #8da5c018;background:none;color:inherit;text-align:left;cursor:pointer}
+#research-bar .ps-result:hover,#research-bar .ps-result:focus-visible{background:#c9b27d12}
+#research-bar .ps-result small{color:#a99a77;font:10px/1.5 var(--ps-sans);letter-spacing:.1em;text-transform:uppercase}
+#research-bar .ps-result strong{font:15px/1.4 var(--ps-serif);font-weight:400;color:#dfe5ee;overflow-wrap:anywhere;hyphens:auto}
+#research-bar .ps-result span{max-height:36px;overflow:hidden;color:#8ea2b9;font:12px/1.5 var(--ps-sans)}
+#research-bar .ps-no-results{padding:12px;color:#9aa8ba;font:13px/1.6 var(--ps-sans)}
+#research-bar .ps-search-scope{margin:8px 12px;color:#8fa1b4;font:12px/1.5 var(--ps-sans)}
+#research-bar .pr-toolbar{display:flex;align-items:center;gap:10px;margin-left:auto}
 /* The two spaces sit side by side; the current one is marked, the other is a link. */
-#tree .pr-spaces{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #8296ad3a;border-radius:999px;background:#08132166}
-#tree .pr-spaces>*{display:inline-flex;align-items:center;min-height:30px;padding:0 14px;border:0;border-radius:999px;font:12px/1 var(--ps-sans);text-decoration:none;white-space:nowrap}
-#tree .pr-spaces .pr-space-current{color:#f0e2c2;background:#d9bf8624;box-shadow:inset 0 0 0 1px #d9bf8645}
-#tree .pr-spaces .pr-switch{min-height:30px;color:#a9b6c8;background:transparent}
-#tree .pr-spaces .pr-switch:hover{color:#f0dfb8;text-decoration:none}
-#tree .ps-header .corpus-open{min-height:36px;padding:0 16px;font:600 12px/1 var(--ps-sans)}
-#tree .ps-language{display:flex;gap:10px;margin-left:2px}
-#tree .ps-language button{min-height:32px;padding:6px 0;color:#7287a0;font:11px/1 var(--ps-sans);letter-spacing:.08em}
-#tree .ps-language button[aria-pressed=true]{color:#e1c697;border-bottom:1px solid #a58c5c}
+#research-bar .pr-spaces{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #8296ad3a;border-radius:999px;background:#08132166}
+#research-bar .pr-spaces>*{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 13px;border:0;border-radius:999px;font:12px/1 var(--ps-sans);text-decoration:none;white-space:nowrap}
+#research-bar .pr-spaces .pr-space-current{color:#f0e2c2;background:#d9bf8624;box-shadow:inset 0 0 0 1px #d9bf8645}
+#research-bar .pr-spaces .pr-switch{color:#a9b6c8;background:transparent}
+#research-bar .pr-spaces .pr-switch:hover{color:#f0dfb8;text-decoration:none}
+#research-bar .corpus-open{min-height:34px;padding:0 15px;border:1px solid #b79b60;border-radius:999px;background:#b79b601a;color:#f0e6cd;font:600 12px/1 var(--ps-sans);white-space:nowrap;cursor:pointer}
+#research-bar .corpus-open:hover{background:#b79b6033}
+#research-bar .ps-language{display:flex}
+#research-bar .ps-locale-select{max-width:120px;min-height:34px;padding:5px 22px 5px 9px;border:1px solid #8296ad3a;border-radius:6px;background:#0a1324;color:#e1c697;font:12px/1.4 var(--ps-sans)}
+/* The history steps are two quiet arrows; their names are read by a screen reader and shown in the narrow menu. */
+#research-bar .experience-tools{display:flex;flex-wrap:nowrap;align-items:center;gap:2px;margin:0}
+#research-bar .rb-step{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:32px;height:32px;min-height:0;padding:0;border:0;border-radius:50%;background:none;color:#a9b6c8;font:15px/1 var(--ps-sans);cursor:pointer}
+#research-bar .rb-step:hover:not(:disabled){background:#8aa0b81f;color:#eef0f3}
+#research-bar .rb-step:disabled{opacity:.32;cursor:default}
+#research-bar .rb-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#research-bar .rb-more{flex:none;display:inline-grid;place-items:center;width:36px;height:36px;padding:0 0 4px;border:1px solid var(--ps-line-strong);border-radius:50%;background:#0a1324b8;color:#d6dfeb;font:700 17px/1 var(--ps-sans);letter-spacing:.04em;cursor:pointer}
+#research-bar .rb-more:hover,#research-bar .rb-more[aria-expanded=true]{border-color:#c9ad7380;color:#f0dfb8}
+#research-bar .rb-menu{position:absolute;top:calc(100% - 6px);right:16px;z-index:2;display:none;min-width:230px;padding:6px;border:1px solid var(--ps-line-strong);border-radius:8px;background:var(--ps-glass);backdrop-filter:blur(18px);box-shadow:0 18px 50px #000b}
+#research-bar[data-menu=open] .rb-menu{display:grid;gap:2px}
+#research-bar :is(.rb-menu,.pr-toolbar) .experience-button:not(.rb-step){display:flex;align-items:center;width:100%;min-height:38px;padding:0 12px;border:0;border-radius:5px;background:none;color:#d6dfeb;font:13px/1.2 var(--ps-sans);text-align:left;cursor:pointer}
+#research-bar :is(.rb-menu,.pr-toolbar) .experience-button:not(.rb-step):hover:not(:disabled){background:#8aa0b81f}
+#research-bar :is(.rb-menu,.pr-toolbar) .experience-button[aria-pressed=true]{color:#f0dfb8}
+#research-bar :is(.rb-menu,.pr-toolbar) .experience-button:disabled{opacity:.4;cursor:default}
+
+/* Below a wide desktop the name keeps its star; below 1100px the modes fold into one button that opens them with a line on each. */
+@media(max-width:1280px){
+  #research-bar .pr-wordmark{font-size:0;gap:0}
+}
+@media(max-width:1100px){
+  #research-bar{gap:10px}
+  #research-bar .experience-toolbar{padding-left:10px}
+  #research-bar .rb-mode-current{display:inline-flex;align-items:center;gap:9px;min-height:34px;padding:0 11px 0 12px;border:1px solid var(--ps-line-strong);border-radius:6px;background:#0a1324b8;color:#f3e6c6;font:500 13px/1 var(--ps-sans);white-space:nowrap;cursor:pointer}
+  #research-bar .rb-mode-current::after{content:'';width:6px;height:6px;margin-top:-4px;border-right:1.5px solid #a9b6c8;border-bottom:1.5px solid #a9b6c8;transform:rotate(45deg)}
+  #research-bar .rb-mode-current[aria-expanded=true]{border-color:#c9ad7380}
+  #research-bar .experience-modes{position:absolute;top:calc(100% + 8px);left:10px;z-index:3;display:none;flex-direction:column;align-items:stretch;gap:2px;width:min(320px,calc(100vw - 20px));padding:6px;border:1px solid var(--ps-line-strong);border-radius:8px;background:var(--ps-glass);backdrop-filter:blur(18px);box-shadow:0 18px 50px #000b}
+  #research-bar[data-modes=open] .experience-modes{display:flex}
+  #research-bar .experience-modes .experience-button{display:grid;gap:4px;justify-items:start;min-height:0;padding:10px 12px 10px 14px;text-align:left}
+  #research-bar .experience-modes .experience-button[aria-pressed=true]{background:#d0b77b12}
+  #research-bar .experience-modes .experience-button[aria-pressed=true]::after{left:0;right:auto;top:10px;bottom:10px;width:2px;height:auto}
+  #research-bar .rb-mode-name{font:500 14px/1.2 var(--ps-sans)}
+  #research-bar .rb-mode-note{display:block;color:#8ea2ba;font:12px/1.4 var(--ps-sans);white-space:normal}
+  #research-bar .pr-spaces>*{padding:0 10px}
+}
+/* A narrow bar keeps the name, the mode, the search and "more"; the stands, the library, the language and the history open under "more". */
+@media(max-width:900px){
+  #public-reader-host{--rb-h:56px}
+  #research-bar{gap:8px;padding:0 10px}
+  #research-bar .pr-wordmark::before{font-size:28px}
+  #research-bar .experience-toolbar{padding:0;border:0}
+  #research-bar .experience-modes{left:0}
+  #research-bar .ps-search-box{flex:1 1 auto;min-width:0;margin:0}
+  #research-bar .ps-search{height:38px;padding-right:12px;font-size:14px}
+  #research-bar .ps-search-key{display:none}
+  #research-bar .ps-search-results{position:fixed;top:calc(var(--rb-h) - 2px);left:8px;right:8px;width:auto;max-height:min(62dvh,560px)}
+  #research-bar .pr-toolbar{position:absolute;top:calc(100% - 2px);right:10px;z-index:3;display:none;flex-direction:column;align-items:stretch;gap:10px;width:min(300px,calc(100vw - 20px));margin:0;padding:12px;border:1px solid var(--ps-line-strong);border-radius:10px;background:var(--ps-glass);backdrop-filter:blur(18px);box-shadow:0 18px 50px #000b}
+  #research-bar[data-menu=open] .pr-toolbar{display:flex}
+  #research-bar .rb-more{margin-left:auto}
+  #research-bar .pr-spaces{display:flex}
+  #research-bar .pr-spaces>*{flex:1;min-height:34px}
+  #research-bar .corpus-open{min-height:40px}
+  #research-bar .ps-language{width:100%;margin:0}
+  #research-bar .ps-locale-select{width:100%;max-width:none;min-height:38px}
+  #research-bar .experience-tools{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding-top:10px;border-top:1px solid var(--ps-line)}
+  #research-bar .rb-step{width:auto;height:38px;border:1px solid var(--ps-line);border-radius:6px;font-size:14px}
+  #research-bar .rb-label{position:static;width:auto;height:auto;overflow:visible;clip-path:none;font:13px/1 var(--ps-sans)}
+  #research-bar .rb-menu{position:static;grid-column:1/-1;display:grid;gap:2px;min-width:0;padding:0;border:0;background:none;box-shadow:none;backdrop-filter:none}
+}
 
 /* ── left rail: lenses (how to look) and research (what to do) ── */
 #tree.pr-public-space .ps-lens-rail{position:absolute;z-index:5;left:var(--ps-edge);top:84px;bottom:52px;width:var(--ps-rail-w);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
@@ -388,9 +465,6 @@
 @media(min-width:761px) and (max-width:1180px){
   #tree.pr-public-space{--ps-rail-w:160px;--ps-column-w:clamp(320px,33vw,380px)}
   #tree .ps-top-action{font-size:12px}
-  #tree .ps-search-box{flex-basis:260px;min-width:160px}
-  #tree .ps-header .main-tools{gap:10px}
-  #tree .pr-spaces>*{padding:0 10px}
 }
 @media(min-width:761px) and (max-width:980px){
   /* Lenses and actions keep their icons and tooltips; the map keeps its width. */
@@ -398,8 +472,6 @@
   #tree .ps-rail-title{visibility:hidden;height:4px;margin:0;padding:0}
   #tree .ps-lens-rail .lens>span:not(.lens-icon),#tree .ps-action-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   #tree .ps-lens-rail .lens,#tree .ps-top-action{justify-content:center;padding:8px 0}
-  #tree .ps-header .pr-wordmark{font-size:0;gap:0}
-  #tree .ps-header .pr-wordmark::before{font-size:30px}
 }
 @media(min-width:761px) and (max-height:820px){
   #tree.pr-public-space .ps-lens-rail .lens{min-height:32px;padding:5px 10px}
@@ -411,27 +483,14 @@
 /* ── narrow screens: header, lens chips, map, a reading sheet over a tool bar ── */
 @media(max-width:760px){
   #tree.pr-public-space{--ps-edge:12px;min-height:0}
-  #tree.pr-public-space .ps-header{top:8px;left:12px;right:12px;height:auto;flex-wrap:wrap;gap:8px 8px}
-  #tree .ps-header .pr-wordmark{font-size:0;gap:0}
-  #tree .ps-header .pr-wordmark::before{font-size:28px}
-  #tree .ps-header .main-tools{order:2;gap:6px;min-width:0}
-  #tree .ps-search-box{order:3;flex:1 0 100%;min-width:0;margin:0}
-  #tree .ps-search{height:40px;font-size:14px}
-  #tree .ps-search-key{display:none}
-  #tree .ps-search-results{width:100%;max-height:55dvh}
-  #tree .ps-result strong{font-size:15px}
-  #tree .pr-spaces>*{min-height:34px;padding:0 10px;font-size:12px}
-  #tree .ps-header .corpus-open{min-height:36px;padding:0 10px;font-size:11px}
-  #tree .ps-language{gap:7px}
-  #tree .ps-language button{min-height:36px;font-size:11px}
-  #tree.pr-public-space .ps-lens-rail{top:106px;left:8px;right:8px;bottom:auto;width:auto;overflow:visible}
+  #tree.pr-public-space .ps-lens-rail{top:calc(var(--rb-h,56px) + 4px);left:8px;right:8px;bottom:auto;width:auto;overflow:visible}
   #tree .ps-rail-title,#tree .ps-main-actions{display:none}
-  #tree .ps-lens-rail .lens-list{display:flex;gap:2px;margin:0;overflow-x:auto;scrollbar-width:none;overscroll-behavior-inline:contain}
+  #tree .ps-lens-rail .lens-list{display:flex;gap:2px;margin:0;overflow-x:auto;scrollbar-width:none;overscroll-behavior-inline:contain;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
   #tree .ps-lens-rail .lens{flex:1 0 auto;flex-direction:column;justify-content:center;gap:2px;min-width:58px;min-height:52px;padding:4px 6px;font-size:11px;white-space:nowrap;border-left:0;border-bottom:1px solid transparent;border-radius:4px 4px 0 0}
   #tree .ps-lens-rail .lens[aria-pressed=true]{border-bottom-color:#c6ae7c;background:linear-gradient(0deg,#d0b77b13,transparent)}
   #tree .ps-lens-rail .lens-icon{font-size:18px;line-height:20px}
   #tree .ps-lens-divider{flex:none;width:1px;height:auto;margin:10px 3px;background:#8ea2ba38}
-  #tree.pr-public-space .ps-orientation{top:168px;left:16px;right:16px}
+  #tree.pr-public-space .ps-orientation{top:calc(var(--rb-h,56px) + 64px);left:16px;right:16px}
   #tree.pr-public-space .ps-orientation .ps-space-title{flex:0 1 auto;min-width:0;overflow:hidden;font-size:21px;white-space:nowrap;text-overflow:ellipsis}
   #tree .ps-crumb.ps-crumb-root{display:block;max-width:none;font:inherit;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   #tree .ps-orientation .view-kicker{font-size:9px;margin-bottom:4px}
@@ -482,9 +541,9 @@
   #tree.pr-public-space[data-sheet=open] .ps-relations{visibility:hidden}
   #tree.pr-public-space[data-sheet=open] .ps-map-tools{bottom:calc(68px + min(44dvh,420px))}
   #tree .ps-column-tab{display:none}
-  #tree .ps-compare-bar{left:10px;right:10px;top:200px;max-height:48dvh;padding:12px}
+  #tree .ps-compare-bar{left:10px;right:10px;top:calc(var(--rb-h,56px) + 100px);max-height:48dvh;padding:12px}
   #tree .ps-compare-columns{grid-template-columns:1fr;gap:7px}
-  #tree .ps-pick-mode{top:200px;left:12px;right:12px;width:auto;justify-content:space-between}
+  #tree .ps-pick-mode{top:calc(var(--rb-h,56px) + 100px);left:12px;right:12px;width:auto;justify-content:space-between}
   .ps-dialog{max-height:calc(100dvh - 24px);margin:auto}
   .ps-dialog .dialog-top{padding:10px 16px}
   .ps-dialog .dialog-content{max-height:calc(100dvh - 100px);padding:16px;overflow:auto}
@@ -493,10 +552,6 @@
   .ps-dialog .dialog-content.ps-collection{max-height:calc(100dvh - 105px)}
   .ps-collection-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
   #tree .tree-star .star-sub{font-size:10px}
-}
-@media(max-width:380px){
-  #tree .pr-spaces>*{padding:0 8px;font-size:11px}
-  #tree .ps-header .corpus-open{padding:0 8px}
 }
 
 /* One native language control stays usable when translated names grow. */
@@ -534,30 +589,26 @@
 @keyframes ps-hint-in{from{opacity:0;translate:0 2px}to{opacity:1;translate:0 0}}
 @media (prefers-reduced-motion:reduce){#tree .ps-hint{animation:none}}
 
-/* ── the controls window: the gestures of the space, once, like a game's controls ── */
-#tree .ps-controls{position:absolute;z-index:30;left:50%;top:50%;width:min(420px,calc(100vw - 24px));overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:18px 20px 16px;border:1px solid #c9ad7355;border-radius:8px;background:linear-gradient(170deg,#0b1729f5,#070f1bfa);box-shadow:0 24px 80px #000c,0 0 0 1px #0006;color:#d6dfeb;animation:ps-controls-in .35s ease-out}
+/* ── the controls card: the gestures of the space, once, like a game's controls, in a corner of the map ── */
+#tree .ps-controls{position:absolute;z-index:30;left:20px;top:auto;bottom:120px;box-sizing:border-box;width:min(440px,calc(100% - 16px));overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:12px 14px 14px;border:1px solid #c9ad7347;border-radius:9px;background:linear-gradient(170deg,#0b1729f2,#070f1bf7);backdrop-filter:blur(14px);box-shadow:0 18px 52px #000b,0 0 0 1px #0006;color:#d6dfeb;animation:ps-controls-in .35s ease-out}
 #tree .ps-controls[hidden]{display:none}
-#tree .ps-controls:not([style*="left"]){translate:-50% -50%}
-#tree .ps-controls-title{margin:0 0 12px;color:var(--ps-gold);font:600 10px/1.4 var(--ps-sans);letter-spacing:.16em;text-transform:uppercase}
-#tree .ps-controls-list{display:grid;gap:8px;margin:0 0 16px;padding:0;list-style:none}
-#tree .ps-controls-row{display:grid;grid-template-columns:34px minmax(0,11ch) 1fr;align-items:center;gap:10px}
-#tree .ps-controls-sign{display:grid;place-items:center;width:34px;height:34px;border:1px solid #8aa0b833;border-radius:6px;color:#e3cf9e;background:#0d1b2e}
-#tree .ps-controls-sign svg{width:26px;height:26px}
-#tree .ps-controls-gesture{color:#eef0f3;font:500 12.5px/1.3 var(--ps-sans)}
-#tree .ps-controls-action{color:#b9c6d5;font:12.5px/1.4 var(--ps-sans)}
-#tree .ps-controls-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid #8296b22b}
-#tree .ps-controls-never{display:flex;align-items:center;gap:8px;color:#b9c6d5;font:12px/1.3 var(--ps-sans);cursor:pointer}
-#tree .ps-controls-never input{width:16px;height:16px;margin:0;accent-color:#d0b77b}
-#tree .ps-controls-close{min-height:34px;padding:0 16px;border:1px solid #c9ad7380;border-radius:5px;background:#d0b77b1f;color:#f0dfb8;font:600 12px/1 var(--ps-sans);letter-spacing:.04em;cursor:pointer}
+#tree .ps-controls-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 11px}
+#tree .ps-controls-title{margin:0;color:var(--ps-gold);font:600 10px/1.4 var(--ps-sans);letter-spacing:.16em;text-transform:uppercase}
+#tree .ps-controls-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 16px;margin:0;padding:0;list-style:none}
+#tree .ps-controls-row{display:grid;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto;align-content:start;column-gap:10px;row-gap:1px;align-items:start}
+#tree .ps-controls-sign{grid-row:1/3;display:grid;place-items:center;width:30px;height:30px;border:1px solid #8aa0b833;border-radius:6px;color:#e3cf9e;background:#0d1b2e}
+#tree .ps-controls-sign svg{width:23px;height:23px}
+#tree .ps-controls-gesture{color:#eef0f3;font:500 12px/1.3 var(--ps-sans)}
+#tree .ps-controls-action{color:#a9b8c9;font:11.5px/1.35 var(--ps-sans)}
+#tree .ps-controls-close{flex:none;min-height:28px;padding:0 13px;border:1px solid #c9ad7370;border-radius:5px;background:#d0b77b1c;color:#f0dfb8;font:600 11.5px/1 var(--ps-sans);letter-spacing:.03em;cursor:pointer}
 #tree .ps-controls-close:hover{background:#d0b77b33}
 #tree .ps-map-tools .ps-controls-tool svg{width:20px;height:20px}
 #tree .ps-map-tools .ps-controls-tool[hidden]{display:none}
 @keyframes ps-controls-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#tree .ps-controls{animation:none}}
 @media(max-width:760px){
-  #tree .ps-controls{padding:16px 16px 14px}
-  #tree .ps-controls-row{grid-template-columns:32px minmax(0,13ch) 1fr;gap:8px}
-  #tree .ps-controls-foot{flex-wrap:wrap}
+  #tree .ps-controls{padding:11px 12px 12px}
+  #tree .ps-controls-list{gap:9px 12px}
 }
 
 /* ── the play of knowing: your own line first, then your place among the readings ── */
