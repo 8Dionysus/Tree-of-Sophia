@@ -37,7 +37,9 @@ authored control file and is not emitted by this assembler.
 the language-review ledgers in application order, with the original
 [`language-corrections-2026-11-02.json`](assembly-inputs/language-corrections-2026-11-02.json)
 first, followed by
-[`term-corrections-2026-11-02.json`](assembly-inputs/term-corrections-2026-11-02.json).
+[`term-corrections-2026-11-02.json`](assembly-inputs/term-corrections-2026-11-02.json)
+and [`owner-terms-2026-11-02.json`](assembly-inputs/owner-terms-2026-11-02.json),
+which applies the owner's English choices and aligns figure and concept titles.
 Each entry replaces a whole reader-text wording in the assembled core;
 paired Russian and English entries stay linked to their matching Russian text,
 while an English-only entry applies to every exact matching English reader

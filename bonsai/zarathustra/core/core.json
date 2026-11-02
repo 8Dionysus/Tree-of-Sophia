@@ -51,6 +51,13 @@
    "reviewer": "Codex, term consistency review",
    "reads": "Use the registered Tree words, keeping Antonovsky’s term in Russian and the Tree’s selected English term; retain each whole reader wording and its sense.",
    "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/term-corrections-2026-11-02.json"
+  },
+  {
+   "id": "language-review-owner-terms-2026-11-02",
+   "date": "2026-11-02",
+   "reviewer": "Codex, owner term and title alignment",
+   "reads": "Align Tree reader wording and titles with the owner’s English terms and the registered Antonovsky Russian terms; retain witness readings separately.",
+   "corrections": "bonsai/review/zarathustra-graph/graph-words/assembly-inputs/owner-terms-2026-11-02.json"
   }
  ],
  "files": [
@@ -108,18 +115,18 @@
   "semantic_uses_unknown": 214,
   "place_relations": 7,
   "language_corrections": {
-   "admitted": 1629,
-   "applied": 1629,
+   "admitted": 1636,
+   "applied": 1636,
    "unmatched": 0,
    "by_language": {
     "ru": {
-     "admitted": 1629,
-     "applied": 1629,
+     "admitted": 1636,
+     "applied": 1636,
      "unmatched": 0
     },
     "en": {
-     "admitted": 500,
-     "applied": 500,
+     "admitted": 640,
+     "applied": 640,
      "unmatched": 0
     }
    },
@@ -147,6 +154,19 @@
      "en": {
       "admitted": 96,
       "applied": 96,
+      "unmatched": 0
+     }
+    },
+    {
+     "ledger": "owner-terms-2026-11-02.json",
+     "ru": {
+      "admitted": 7,
+      "applied": 7,
+      "unmatched": 0
+     },
+     "en": {
+      "admitted": 140,
+      "applied": 140,
       "unmatched": 0
      }
     }
