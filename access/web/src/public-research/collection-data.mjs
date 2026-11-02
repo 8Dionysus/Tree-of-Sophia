@@ -85,7 +85,7 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     // Newest first: migrations retain their originals, so several namespaces can
     // coexist. The newest one must win without overwriting any older copy.
     // The atlas before the strict rebuild (f7162d1b…) held readings and comparisons that now wait in
-    // atlas-held.mjs: a saved graph made only of the stars still on the map moves over; one that holds a
+    // bonsai/zarathustra/held.json: a saved graph made only of the stars still on the map moves over; one that holds a
     // star now held keeps its original copy, and the stand says so.
     prepared.graphPredecessors=['f7162d1b4c2ce1285b480819ef9395e61b3310e2d5b468013af4a620b8087e86','c2a23454c06995f9912a95216bdf4428e8ab444b6029f48a4817a58edcfd83c4','4b22f93a83c77eee4cc264b490548792ea122186712ae8a47b16b9c1a6240d1e'].map(fingerprint=>({fingerprint,materialIds:library.nodes.map(node=>node.id)}));
     return prepared;
