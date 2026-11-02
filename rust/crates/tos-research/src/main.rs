@@ -11,6 +11,9 @@ mod lexical_derivatives_command;
 mod lexical_index_command;
 mod morphology_result_command;
 mod nietzsche_transfer_routes_command;
+// Source-passage migration consolidates this parser with its former compiler owner.
+#[allow(dead_code)]
+mod navigation_xml;
 // The numbered builder adopts this matching core when source navigation moves here.
 #[allow(dead_code)]
 mod numbered_matching;

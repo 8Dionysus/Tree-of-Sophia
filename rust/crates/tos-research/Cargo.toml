@@ -12,6 +12,8 @@ default = ["research-tools"]
 research-tools = []
 
 [dependencies]
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+quick-xml = "=0.41.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 tos-command = { path = "../tos-command", features = ["research"] }

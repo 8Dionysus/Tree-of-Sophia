@@ -40,6 +40,128 @@ fn float(value: &Value, name: &str) -> Result<f64, String> {
         .ok_or_else(|| format!("{name} must be a nonnegative finite number"))
 }
 
+/// Read bounded OCR navigation candidates using the selected page and text rules.
+pub fn abbyy_candidates(
+    ctx: &Execution,
+    recipe: &Value,
+    compressed: &[u8],
+) -> Result<Vec<Candidate>, String> {
+    let profile = &recipe["candidate_profile"];
+    if profile["kind"] != "abbyy" {
+        return Err("OCR navigation profile required".into());
+    }
+    let expected = usize::try_from(unsigned(
+        &profile["source_page_count"],
+        "source page count",
+    )?)
+    .map_err(|_| "source page count overflow")?;
+    let first = usize::try_from(unsigned(&profile["first_page"], "first page")?)
+        .map_err(|_| "first page overflow")?;
+    let last = usize::try_from(unsigned(&profile["last_page"], "last page")?)
+        .map_err(|_| "last page overflow")?;
+    if first == 0 || first > last || last > expected {
+        return Err("invalid OCR page range".into());
+    }
+    let count = last
+        .checked_sub(first)
+        .and_then(|n| n.checked_add(1))
+        .ok_or("OCR page range overflow")?;
+    let budget = ctx.budget_report();
+    let max_work = unsigned(&budget["work_units_max"], "work limit")?;
+    let used = unsigned(&budget["charged_work_units"], "charged work")?;
+    if u64::try_from(count).map_err(|_| "OCR page range overflow")? > max_work.saturating_sub(used)
+    {
+        return Err("OCR page range exceeds remaining work".into());
+    }
+    let wanted = (first..=last).collect::<BTreeSet<_>>();
+    let min_top = i64::try_from(unsigned(&profile["minimum_top"], "minimum top")?)
+        .map_err(|_| "minimum top overflow")?;
+    let max_top = i64::try_from(unsigned(&profile["maximum_top"], "maximum top")?)
+        .map_err(|_| "maximum top overflow")?;
+    let min_chars = usize::try_from(unsigned(
+        &profile["minimum_characters"],
+        "minimum characters",
+    )?)
+    .map_err(|_| "minimum characters overflow")?;
+    let max_chars = usize::try_from(unsigned(
+        &profile["maximum_characters"],
+        "maximum characters",
+    )?)
+    .map_err(|_| "maximum characters overflow")?;
+    if min_top > max_top || min_chars > max_chars {
+        return Err("invalid OCR candidate bounds".into());
+    }
+    let allowed = string(&recipe["ocr_allowed_characters"], "OCR alphabet")?;
+    let aliases = string(&profile["digit_aliases"], "digit aliases")?;
+    let extra = string(
+        &profile["extra_compact_characters"],
+        "extra compact characters",
+    )?;
+    let mut out = Vec::new();
+    crate::navigation_xml::visit_xml_pages(
+        ctx,
+        flate2::read::MultiGzDecoder::new(std::io::Cursor::new(compressed)),
+        true,
+        expected,
+        &wanted,
+        |page, node| {
+            let mut paragraphs = Vec::new();
+            crate::navigation_xml::descendants(node, "par", &mut paragraphs);
+            for paragraph in paragraphs {
+                ctx.tick(1)?;
+                let mut chars = Vec::new();
+                crate::navigation_xml::descendants(paragraph, "charParams", &mut chars);
+                let source = chars
+                    .into_iter()
+                    .map(crate::navigation_xml::node_text)
+                    .collect::<String>();
+                let source = source.trim();
+                let mut lines = Vec::new();
+                crate::navigation_xml::descendants(paragraph, "line", &mut lines);
+                let mut top = None;
+                for line in lines {
+                    let value = line
+                        .attrs
+                        .get("t")
+                        .map(String::as_str)
+                        .unwrap_or("99999")
+                        .parse::<i64>()
+                        .map_err(|_| "OCR line coordinate invalid")?;
+                    top = Some(top.map_or(value, |old: i64| old.min(value)));
+                }
+                let top = top.unwrap_or(-1);
+                let size = source.chars().count();
+                if !(min_top..=max_top).contains(&top)
+                    || !(min_chars..=max_chars).contains(&size)
+                    || !source.chars().all(|c| allowed.contains(c))
+                    || !source
+                        .chars()
+                        .any(|c| c.is_ascii_digit() || aliases.contains(c))
+                {
+                    continue;
+                }
+                let token = source
+                    .chars()
+                    .filter(|c| c.is_alphanumeric() || extra.contains(*c))
+                    .flat_map(char::to_lowercase)
+                    .collect::<String>();
+                if !token.is_empty() {
+                    out.push(Candidate {
+                        page: page as u64,
+                        token,
+                        raw: source.to_owned(),
+                    });
+                    if out.len() > EXISTING_CANDIDATE_LIMIT {
+                        return Err("OCR candidate count bound".into());
+                    }
+                }
+            }
+            Ok(())
+        },
+    )?;
+    Ok(out)
+}
+
 fn distance(expected: &str, observed: &str, substitutions: &[(char, String)], cost: f64) -> f64 {
     let observed = observed.chars().collect::<Vec<_>>();
     let mut previous = (0..=observed.len()).map(|n| n as f64).collect::<Vec<_>>();
@@ -345,6 +467,33 @@ pub fn apply_overrides(
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn bounded_ocr_navigation_selects_pages_and_refuses_namespace_drift() {
+        use std::io::Write;
+        let ctx = Execution::new(&std::env::current_dir().unwrap(), 30).unwrap();
+        let recipe = json!({"candidate_profile":{"kind":"abbyy","source_page_count":3,"first_page":2,"last_page":3,"minimum_top":400,"maximum_top":3500,"minimum_characters":1,"maximum_characters":14,"digit_aliases":"il","extra_compact_characters":"»"},"ocr_allowed_characters":" 0123456789il»"});
+        let xml = r#"<document xmlns="http://www.abbyy.com/FineReader_xml/FineReader6-schema-v1.xml"><page/><page><par><line t="500"><charParams> 1 </charParams></line></par><par><line t="20"><charParams>2</charParams></line></par></page><page><par><line t="600"><charParams>3</charParams></line></par></page></document>"#;
+        let compress = |value: &str| {
+            let mut out = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+            out.write_all(value.as_bytes()).unwrap();
+            out.finish().unwrap()
+        };
+        let got = abbyy_candidates(&ctx, &recipe, &compress(xml)).unwrap();
+        assert_eq!(
+            got.iter()
+                .map(|c| (c.page, c.token.as_str()))
+                .collect::<Vec<_>>(),
+            [(2, "1"), (3, "3")]
+        );
+        assert!(
+            abbyy_candidates(
+                &ctx,
+                &recipe,
+                &compress(&xml.replace("FineReader6-schema-v1.xml", "wrong"))
+            )
+            .is_err()
+        );
+    }
     #[test]
     fn weighted_alignment_retains_repeated_keys_and_requires_reviewed_gaps() {
         let root = std::env::current_dir().unwrap();

@@ -1939,6 +1939,8 @@ dependencies = [
 name = "tos-research"
 version = "0.6.0"
 dependencies = [
+ "flate2",
+ "quick-xml",
  "serde",
  "serde_json",
  "tos-command",
