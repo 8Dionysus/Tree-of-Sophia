@@ -432,6 +432,54 @@
       "schema_ref": "https://tree-of-sophia.local/ToS/contracts/transfer-source-passage-candidate-set.schema.json",
       "legacy_event_sha256": "fff2ce883dbe9db7148e5b0ab873a9e6d5a38445f7ed1f029a165f766dd54119",
       "legacy_builder_sha256": "f7fc1d941ea8a6fb7331c7a2ac9b85af7902fe3aa600d129450e7bc2cb4d6898"
+    },
+    {
+      "stage": "numbered-label-correspondence",
+      "work_ref": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+      "source_item_ref": "tos.item.friedrich-nietzsche.jenseits-von-gut-und-boese.de-naumann-1886.internet-archive-google-harvard-scan-pdf",
+      "target_item_ref": "tos.item.friedrich-nietzsche.works-in-two-volumes-volume-2-mysl-1996.operator-pdf",
+      "locators": [
+        {
+          "role": "source_map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/structure/numbered-unit-page-map.json"
+        },
+        {
+          "role": "target_map",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json"
+        },
+        {
+          "role": "source_rights",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json"
+        },
+        {
+          "role": "target_rights",
+          "repository_path": "ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json"
+        },
+        {
+          "role": "output",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/provenance.numbered-unit-label-correspondence.jsonl"
+        },
+        {
+          "role": "output_directory",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996"
+        }
+      ],
+      "map_id": "tos.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.naumann-1886-to-polilov-mysl-1996",
+      "event_id": "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.layered-rights-refresh.2026-08-02",
+      "prior_event_id": "tos.event.parallel-numbered-unit-label-map.friedrich-nietzsche.jenseits-von-gut-und-boese.rights-refresh.2026-08-01",
+      "expected_source_count": 299,
+      "expected_target_count": 298,
+      "expected_shared_count": 298,
+      "source_only_keys": [
+        "237a"
+      ],
+      "target_only_keys": [],
+      "map_version": 3,
+      "event_version": 2
     }
   ]
 }
