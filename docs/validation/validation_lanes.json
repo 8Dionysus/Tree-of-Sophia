@@ -173,15 +173,15 @@
       "label": "local KAG provider",
       "layer": "local-kag-provider",
       "mode": "blocking",
-      "owner_surface": "kag/AGENTS.md",
+      "owner_surface": "kag/README.md",
       "purpose": "Verify a selected immutable ToS source-return export. Full KAG family integrity and admission belong to its explicitly selected downstream consumer.",
-      "failure_route": "kag/AGENTS.md",
+      "failure_route": "kag/README.md",
       "does_not_own": [
         "aoa-kag shared schema law",
         "runtime graph storage",
         "MCP service implementation"
       ],
-      "focused_target": "kag/VALIDATION.md"
+      "focused_target": "kag/README.md"
     },
     "local_stats_port": {
       "label": "local stats port",
@@ -189,22 +189,22 @@
       "mode": "blocking",
       "owner_surface": "stats/port.manifest.json",
       "purpose": "Validate the ToS-owned measurement export and exact reference-packet bindings without a consumer checkout.",
-      "failure_route": "stats/AGENTS.md",
+      "failure_route": "stats/README.md",
       "does_not_own": [
         "philosophical meaning",
         "graph review readiness",
         "canon or eval verdicts"
       ],
-      "focused_target": "stats/VALIDATION.md"
+      "focused_target": "stats/README.md"
     },
     "eval_port": {
       "label": "eval port",
       "layer": "local-eval-port",
       "mode": "advisory",
-      "owner_surface": "evals/AGENTS.md",
+      "owner_surface": "evals/README.md",
       "purpose": "Keep ToS-local eval pressure visible while central verdict and scoring authority stay with aoa-evals.",
-      "focused_target": "evals/PORT.yaml and packet evidence via evals/VALIDATION.md; consumer-side compatibility and admission",
-      "failure_route": "evals/AGENTS.md",
+      "focused_target": "evals/PORT.yaml and packet evidence via evals/README.md; consumer-side compatibility and admission",
+      "failure_route": "evals/README.md",
       "does_not_own": [
         "central eval verdicts",
         "proof doctrine",

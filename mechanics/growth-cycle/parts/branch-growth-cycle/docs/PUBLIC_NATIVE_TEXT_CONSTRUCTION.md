@@ -72,8 +72,8 @@ top-level fields are `schema_version`, `owner_config`, `native_executable`,
 `native_executable_sha256`, `source_selection`, `software_capture`,
 `software_restored_root`, `software_selection`, `software_components`,
 `schema_worker`, and `budgets`. The invocation and create-request shapes are
-captured in
-[`rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1`](../../../../../rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1/).
+captured in the [invocation](../../../../../rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1/invocation.example.json)
+and [create request](../../../../../rust/crates/tos-command/tests/fixtures/source-public-text-pg-v1/create.request.example.json) examples.
 The zero digests and absolute paths in those examples are placeholders; select
 the actual executable, capture, worker, source contract, store and current job
 lease. Keep the invocation and protected owner configuration readable only by
@@ -99,8 +99,7 @@ Send a `tos_local_source_command_v1` request on stdin. `describe` and
 `command_id`, the exact `expected_configuration` and `expected_dependencies`
 returned by `prepare-create`, and null `expected_source` and
 `expected_revision`. `inspect-recovery` accepts only an exact retained command
-ID. The PG writer commits all twelve package members as one source revision;
-it does not grant semantic admission, alter rights, or authorize publication.
+ID. The PG writer commits all twelve package members as one source revision.
 See the `tos-command` crate README for the CLI entry and fixture test.
 
 ## Verification boundary
