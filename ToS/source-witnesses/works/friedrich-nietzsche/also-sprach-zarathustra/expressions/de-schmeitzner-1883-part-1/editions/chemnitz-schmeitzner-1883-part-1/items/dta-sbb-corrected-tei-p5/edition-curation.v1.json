@@ -2829,7 +2829,27 @@
         ],
         "expected_paragraphs": 12,
         "line_join_marker": "¬"
-      }
+      },
+      "output_naming": {
+        "packet_stem": "german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1",
+        "provenance_stem": "provenance.german-source-triangulation",
+        "initial_generation": "v1",
+        "initial_provenance_omits_generation": true
+      },
+      "frozen_outputs": [
+        {
+          "role": "packet",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/german-source-triangulation.ekgwb-dta-naumann.za-i-vorrede-1.v1.json",
+          "schema_version": "tos_german_source_triangulation_v1",
+          "expected_sha256": "e98d28af59363bd73152cb42608b21caa6cb92aa1181fa90ba18a675f64fdbd9"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.german-source-triangulation.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "c208ef326cf3de4252e15ed869e7534defab351d47eaf4379ba8f0752577d251"
+        }
+      ]
     },
     {
       "stage": "bounded-translation-input",
@@ -2853,6 +2873,27 @@
         {
           "kind": "event",
           "prefix": "tos.event.segmentation.zarathustra-bounded-translation-input.za-i-vorrede-1-opening-sentence."
+        }
+      ],
+      "output_naming": {
+        "packet_stem": "bounded-translation-research-input.za-i-vorrede-1-opening-sentence",
+        "provenance_stem": "provenance.bounded-translation-research-input",
+        "initial_generation": "v1",
+        "initial_provenance_omits_generation": true,
+        "private_stem": "local-content/translation/research-inputs/za-i-vorrede-1-opening-sentence"
+      },
+      "frozen_outputs": [
+        {
+          "role": "packet",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/bounded-translation-research-input.za-i-vorrede-1-opening-sentence.v1.json",
+          "schema_version": "tos_bounded_translation_research_input_v1",
+          "expected_sha256": "ce7c3305cbd68c114aad9a95345a1322390dfbac774c614c47ecacbb7e704987"
+        },
+        {
+          "role": "provenance",
+          "repository_path": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.bounded-translation-research-input.jsonl",
+          "schema_version": "tos_provenance_event_v1",
+          "expected_sha256": "63b5fe8f3d42c38f7cde28b34a0058e831a73ca6212b407d6895eb6abd767e1f"
         }
       ]
     },

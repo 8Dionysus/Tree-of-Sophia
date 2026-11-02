@@ -679,6 +679,44 @@ fn check_replacements(value: &Value) -> Result<(), EditionCurationError> {
 fn check_rules(value: &Value) -> Result<(), EditionCurationError> {
     match value {
         Value::Object(object) => {
+            if let Some(naming) = object.get("output_naming") {
+                let base = object["base_ref"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let generation = naming["initial_generation"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let packet = naming["packet_stem"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let provenance = naming["provenance_stem"]
+                    .as_str()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let include_generation = !naming["initial_provenance_omits_generation"]
+                    .as_bool()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                let suffix = if include_generation {
+                    format!(".{generation}")
+                } else {
+                    String::new()
+                };
+                let expected = [
+                    ("packet", format!("{base}/{packet}.{generation}.json")),
+                    ("provenance", format!("{base}/{provenance}{suffix}.jsonl")),
+                ];
+                let frozen = object["frozen_outputs"]
+                    .as_array()
+                    .ok_or(EditionCurationError::InvalidSchema)?;
+                if frozen.len() != expected.len()
+                    || expected.iter().any(|(role, path)| {
+                        !frozen.iter().any(|entry| {
+                            entry["role"] == *role && entry["repository_path"] == *path
+                        })
+                    })
+                {
+                    return Err(EditionCurationError::BindingMismatch);
+                }
+            }
             if let Some(manifest) = object.get("frozen_manifest") {
                 let route = object["route"]
                     .as_str()

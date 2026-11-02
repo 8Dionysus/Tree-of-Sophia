@@ -83,6 +83,21 @@ fn edition_curation_checks_schema_and_cross_field_rules() {
     let dta_raw = fs::read(root.join(dta_path)).unwrap();
     assert_eq!(validate(&dta_raw, &schema), Ok(()));
     let dta_value: Value = serde_json::from_slice(&dta_raw).unwrap();
+    let mut invalid_comparison_output = dta_value.clone();
+    let comparison = invalid_comparison_output["recipes"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|recipe| recipe["stage"] == "witness-triangulation")
+        .unwrap();
+    comparison["output_naming"]["initial_generation"] = json!("v2");
+    assert_eq!(
+        validate(
+            &serde_json::to_vec(&invalid_comparison_output).unwrap(),
+            &schema
+        ),
+        Err(EditionCurationError::BindingMismatch)
+    );
     let alignment = dta_value["recipes"]
         .as_array()
         .unwrap()
