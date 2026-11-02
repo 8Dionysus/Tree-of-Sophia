@@ -1,0 +1,27 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/edition-curation.v1.schema.json",
+  "schema_version": "tos_edition_curation_v1",
+  "curation_id": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5.edition-curation.v1",
+  "version": 1,
+  "status": "historical-constants",
+  "owner_item_ref": "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+  "edition_ref": "tos.edition.friedrich-nietzsche.also-sprach-zarathustra.chemnitz-schmeitzner-1883-part-1",
+  "manifest": "item.manifest.json",
+  "recipes": [
+    {
+      "stage": "tei-technical-markup",
+      "plan_ref": "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/dta-first-editions-parts-1-4-v1/plan.v1.json",
+      "source_item_refs": [
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-1.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1883-part-2.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-schmeitzner-1884-part-3.dta-sbb-corrected-tei-p5",
+        "tos.item.friedrich-nietzsche.also-sprach-zarathustra.de-naumann-1891-part-4.dta-sub-goettingen-corrected-tei-p5"
+      ],
+      "legacy_builder_ref": "scripts/build_zarathustra_technical_markup.py",
+      "legacy_event_id": "tos.event.segmentation.zarathustra-dta-technical-markup-v1.2026-09-01",
+      "legacy_event_sha256": "16a93b52ee7a86b72bd4ad1a8bb4e0f245c2eab95f447a9f600faf04890fdd17",
+      "identity_namespace": "tos-zarathustra-dta-technical-markup-v1-opaque-issuance",
+      "legacy_unit_reason": "The unit records only a boundary explicitly present in the exact selected DTA TEI representation; this is not accepted German, editorial hierarchy, linguistic analysis, translation, or semantics."
+    }
+  ]
+}
