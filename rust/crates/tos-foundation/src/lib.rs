@@ -4,6 +4,7 @@
 
 mod capability;
 mod coordinates;
+pub mod deployment_profile;
 mod digest;
 mod error;
 mod hex;

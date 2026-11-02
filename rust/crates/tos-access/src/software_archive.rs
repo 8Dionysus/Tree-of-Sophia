@@ -50,7 +50,7 @@ const SCHEMA: &str = "tos_software_bundle_manifest_v1";
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 const SOURCE_FILES: [&str; 1] = ["access/README.md"];
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
-const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; invoke its absolute path explicitly.\nAn optional verified command cohort installs selected verified PREFIX/bin command links.\nOwner command execution still requires a protected explicit invocation and grants.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nPython callers use the source-importable SDK bridge and must select this native\nproduct explicitly. No Python wheel, runtime fallback or corpus data is installed.\n";
+const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the deployment profile or explicit archive budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; invoke its absolute path explicitly.\nAn optional verified command cohort installs selected verified PREFIX/bin command links.\nOwner command execution still requires a protected explicit invocation and grants.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nPython callers use the source-importable SDK bridge and must select this native\nproduct explicitly. No Python wheel, runtime fallback or corpus data is installed.\n";
 type Result<T> = std::result::Result<T, String>;
 trait Checked<T> {
     fn checked(self) -> Result<T>;
@@ -1682,6 +1682,7 @@ impl VerifiedArchive {
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub fn run_if_requested(
     args: &[String],
+    profile: &tos_foundation::deployment_profile::ArchiveInstallProfile,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
 ) -> Option<i32> {
@@ -1710,10 +1711,24 @@ pub fn run_if_requested(
                 .cloned()
                 .ok_or_else(|| format!("required software option --{name}"))
         };
-        let total = required("max-total-bytes")?.parse::<u64>().checked()?;
-        let archive = required("max-archive-bytes")?.parse::<u64>().checked()?;
-        let members = required("max-members")?.parse::<usize>().checked()?;
-        let metadata = required("max-metadata-bytes")?.parse::<usize>().checked()?;
+        let limit = |name: &str, fallback: Option<u64>| -> Result<u64> {
+            if let Some(value) = options.get(name) {
+                return value.parse::<u64>().checked();
+            }
+            if action == "install" {
+                if let Some(value) = fallback {
+                    return Ok(value);
+                }
+            }
+            Err(format!(
+                "required software option --{name} or install profile value"
+            ))
+        };
+        let total = limit("max-total-bytes", profile.max_total_bytes)?;
+        let archive = limit("max-archive-bytes", profile.max_archive_bytes)?;
+        let members = usize::try_from(limit("max-members", profile.max_members)?).checked()?;
+        let metadata =
+            usize::try_from(limit("max-metadata-bytes", profile.max_metadata_bytes)?).checked()?;
         let limits = ArchiveLimits {
             max_total_bytes: total,
             max_archive_bytes: archive,

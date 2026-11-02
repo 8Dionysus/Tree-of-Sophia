@@ -69,5 +69,9 @@
       "tos_semantic_relation_type_registry_v1"
     ]
   },
-  "authority_limit": "Access packets and runtime behavior do not author ToS meaning, review, rights, or canon."
+  "authority_limit": "Access packets and runtime behavior do not author ToS meaning, review, rights, or canon.",
+  "deployment_profile": {
+    "schema": "access/contracts/deployment-profile.v1.schema.json",
+    "default": "access/profiles/deployment-profile.default.v1.json"
+  }
 }

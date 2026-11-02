@@ -485,7 +485,7 @@ jobs:
             exit 1
           fi
           "$native" software verify --archive "$archive" "${limits[@]}"
-          "$native" software install --archive "$archive" --prefix "$RUNNER_TEMP/tos-native-install" "${limits[@]}"
+          env -u TOS_DEPLOYMENT_PROFILE "$native" software install --archive "$archive" --prefix "$RUNNER_TEMP/tos-native-install"
           env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --help
           env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --version
           for role in tos-native-owner-command tos-schema-worker tos-validation-lanes tos-release-check tos-software-ci tos-ops-mechanics-plan tos-constructor-library tos-constructor-fragments tos-reader tos-kag-release tos-stats-release tos-unicode-tables tos-constructor-desktop tos-source-registry tos-open-work-queue tos-research; do
