@@ -5684,6 +5684,7 @@ pub struct CurrentArtifactInvalidSchemaProofs<'cut> {
     candidate_records_sha256: Digest256,
     target_diagnostic_count: usize,
     target_diagnostics_sha256: Digest256,
+    artifact_route_schema_set: Option<Digest256>,
     cost: CurrentArtifactInvalidSchemaProofCost,
 }
 
@@ -5891,6 +5892,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             &mut diagnostic_hasher,
             "tos-current-artifact-schema-proof-diagnostics-v1",
         )?;
+        let mut artifact_route_schema_set = None;
         for (index, diagnostic) in report.schema_diagnostics.iter().enumerate() {
             if index % 128 == 0 {
                 check_active()?;
@@ -5903,7 +5905,15 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
                 crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::InProcess(row) => {
                     if row.report.root_uri != V2_ARTIFACT_SCHEMA { continue; }
                     let Some(proof) = entries.get_mut(row.path.as_str()) else { continue; };
-                    let invalid = current_in_process_artifact_invalid(row, source_revision, proof.member_sha256, proof.member_size_bytes)?;
+                    let route_set = match artifact_route_schema_set {
+                        Some(digest) => digest,
+                        None => {
+                            let digest = exact_cut_artifact_route_schema_set(cut)?;
+                            artifact_route_schema_set = Some(digest);
+                            digest
+                        }
+                    };
+                    let invalid = current_in_process_artifact_invalid(row, source_revision, proof.member_sha256, proof.member_size_bytes, route_set)?;
                     let work = in_process_diagnostic_work_upper_bound(row)?;
                     target_schema_validation_work = target_schema_validation_work.checked_add(work).ok_or(crate::item_budget_origin!())?;
                     preparation_scan_work_upper_bound = preparation_scan_work_upper_bound.checked_add(work).ok_or(crate::item_budget_origin!())?;
@@ -5943,12 +5953,21 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
                 .target_diagnostic_count
                 .checked_add(1)
                 .ok_or(crate::item_budget_origin!())?;
-            let invalid = complete_invalid_artifact_schema_diagnostic(
-                diagnostic,
-                diagnostic.path.as_str(),
-                proof.member_sha256,
-                proof.member_size_bytes,
-            );
+            let route_set = match artifact_route_schema_set {
+                Some(digest) => digest,
+                None => {
+                    let digest = exact_cut_artifact_route_schema_set(cut)?;
+                    artifact_route_schema_set = Some(digest);
+                    digest
+                }
+            };
+            let invalid = diagnostic.verdict.schema_set_digest == route_set
+                && complete_invalid_artifact_schema_diagnostic(
+                    diagnostic,
+                    diagnostic.path.as_str(),
+                    proof.member_sha256,
+                    proof.member_size_bytes,
+                );
             proof.invalid = proof.target_diagnostic_count == 1 && invalid;
             if proof.target_diagnostic_count == 1 {
                 proof.diagnostic_unit_sha256 = Some(diagnostic.unit.unit_sha256);
@@ -5982,6 +6001,7 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             candidate_records_sha256,
             target_diagnostic_count,
             target_diagnostics_sha256: diagnostic_hasher.finalize(),
+            artifact_route_schema_set,
             cost: CurrentArtifactInvalidSchemaProofCost {
                 retained_state_bytes,
                 preparation_scan_work_upper_bound,
@@ -6025,6 +6045,14 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
             return Err(ItemRefusal::Source(
                 "source-foundation Artifact proof differs from the exact source cut".into(),
             ));
+        }
+
+        if let Some(expected) = self.artifact_route_schema_set {
+            if exact_cut_artifact_route_schema_set(cut)? != expected {
+                return Err(ItemRefusal::Source(
+                    "Artifact route schema binding differs".into(),
+                ));
+            }
         }
 
         let mut candidate_count = 0usize;
@@ -6095,7 +6123,8 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
                 crate::source_foundation_records::SourceFoundationStoredSchemaDiagnostic::InProcess(row) => {
                     if row.report.root_uri != V2_ARTIFACT_SCHEMA { continue; }
                     let Some(proof) = self.entries.get(row.path.as_str()) else { continue; };
-                    let invalid = current_in_process_artifact_invalid(row, revision, proof.member_sha256, proof.member_size_bytes)?;
+                    let route_set = self.artifact_route_schema_set.ok_or_else(|| ItemRefusal::Source("Artifact route schema binding absent".into()))?;
+                    let invalid = current_in_process_artifact_invalid(row, revision, proof.member_sha256, proof.member_size_bytes, route_set)?;
                     let (unit, report, _) = update_in_process_diagnostic_fingerprint(&mut diagnostic_hasher, row)?;
                     if proof.target_diagnostic_count == 1
                         && (proof.diagnostic_unit_sha256 != Some(unit)
@@ -6125,12 +6154,16 @@ impl<'cut> CurrentArtifactInvalidSchemaProofs<'cut> {
                     ));
                 }
                 check_active()?;
-                let invalid = complete_invalid_artifact_schema_diagnostic(
-                    diagnostic,
-                    diagnostic.path.as_str(),
-                    proof.member_sha256,
-                    proof.member_size_bytes,
-                );
+                let route_set = self.artifact_route_schema_set.ok_or_else(|| {
+                    ItemRefusal::Source("Artifact route schema binding absent".into())
+                })?;
+                let invalid = diagnostic.verdict.schema_set_digest == route_set
+                    && complete_invalid_artifact_schema_diagnostic(
+                        diagnostic,
+                        diagnostic.path.as_str(),
+                        proof.member_sha256,
+                        proof.member_size_bytes,
+                    );
                 if proof.invalid != invalid {
                     return Err(ItemRefusal::Source(
                         "source-foundation Artifact proof does not bind the Records report".into(),
@@ -6270,11 +6303,26 @@ fn in_process_artifact_complete_invalid(
         && u64::try_from(report.issues.len()).ok() == Some(report.total_issue_count)
 }
 
+fn exact_cut_artifact_route_schema_set(cut: &CorpusCutReader) -> Result<Digest256, ItemRefusal> {
+    let path = RelativePath::parse(ARTIFACT_V2_SCHEMA)
+        .map_err(|_| ItemRefusal::Source("Artifact route schema path invalid".into()))?;
+    let member = cut.current().member(&path).ok_or_else(|| {
+        ItemRefusal::Source("Artifact route schema absent from source cut".into())
+    })?;
+    Ok(
+        crate::source_foundation_schema::single_schema_resource_set_digest_from_digest(
+            V2_ARTIFACT_SCHEMA,
+            member.sha256,
+        ),
+    )
+}
+
 fn current_in_process_artifact_invalid(
     diagnostic: &crate::source_cut::InProcessCutDiagnostic<Value>,
     revision: SourceRevision,
     member_sha256: Digest256,
     member_size_bytes: u64,
+    route_schema_set: Digest256,
 ) -> Result<bool, ItemRefusal> {
     use crate::source_cut::{InProcessCutIdentity, InProcessSelectorKind};
     let report = &diagnostic.report;
@@ -6288,6 +6336,7 @@ fn current_in_process_artifact_invalid(
         ));
     }
     Ok(in_process_artifact_complete_invalid(diagnostic)
+        && report.schema_set_sha256 == route_schema_set
         && report.input_sha256 == member_sha256
         && diagnostic.input_size_bytes == Some(member_size_bytes))
 }
@@ -6606,7 +6655,8 @@ mod in_process_artifact_evidence_tests {
                 &diagnostic,
                 revision,
                 Digest256::of_bytes(b"{}"),
-                2
+                2,
+                binding.schema_set_sha256()
             )
             .unwrap()
         );
@@ -6615,7 +6665,8 @@ mod in_process_artifact_evidence_tests {
                 &diagnostic,
                 revision,
                 Digest256::of_bytes(b"other"),
-                2
+                2,
+                binding.schema_set_sha256()
             )
             .unwrap()
         );
@@ -6624,9 +6675,20 @@ mod in_process_artifact_evidence_tests {
                 &diagnostic,
                 SourceRevision(Digest256::of_bytes(b"other revision")),
                 Digest256::of_bytes(b"{}"),
-                2
+                2,
+                binding.schema_set_sha256()
             )
             .is_err()
+        );
+        assert!(
+            !current_in_process_artifact_invalid(
+                &diagnostic,
+                revision,
+                Digest256::of_bytes(b"{}"),
+                2,
+                Digest256::of_bytes(b"wrong schema")
+            )
+            .unwrap()
         );
         diagnostic.report.issues[0].schema_keyword = "incorrect".into();
         assert!(!diagnostic.report.is_well_formed());

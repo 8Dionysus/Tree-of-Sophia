@@ -2052,8 +2052,15 @@ fn append_schema_set_member(hash: &mut Digest256Hasher, uri: &str, digest: Diges
 }
 
 pub(crate) fn single_schema_resource_set_digest(uri: &str, raw: &[u8]) -> Digest256 {
+    single_schema_resource_set_digest_from_digest(uri, Digest256::of_bytes(raw))
+}
+
+pub(crate) fn single_schema_resource_set_digest_from_digest(
+    uri: &str,
+    digest: Digest256,
+) -> Digest256 {
     let mut hash = schema_set_hasher();
-    append_schema_set_member(&mut hash, uri, Digest256::of_bytes(raw));
+    append_schema_set_member(&mut hash, uri, digest);
     hash.finalize()
 }
 

@@ -1963,7 +1963,7 @@ fn in_process_resident_records_bind_current_and_historical_evidence() {
         512,
     )
     .unwrap();
-    let report = inspect_records_from_cut(&cut, limits, &cancelled, &mut executor).unwrap();
+    let mut report = inspect_records_from_cut(&cut, limits, &cancelled, &mut executor).unwrap();
     executor.finish(deadline, &cancelled).unwrap();
     assert!(!report.schema_diagnostics.is_empty());
     for row in &report.schema_diagnostics {
@@ -2004,6 +2004,39 @@ fn in_process_resident_records_bind_current_and_historical_evidence() {
         revision,
         report.current_membership,
         Digest256::of_bytes(b"different"),
+        artifact_raw.len() as u64
+    ));
+    drop(proofs);
+    let diagnostic = report
+        .schema_diagnostics
+        .iter_mut()
+        .find_map(|row| match row {
+            SourceFoundationStoredSchemaDiagnostic::InProcess(row)
+                if row.path == artifact_path
+                    && row
+                        .report
+                        .root_uri
+                        .ends_with("/artifact-source-witness-v2.schema.json") =>
+            {
+                Some(row)
+            }
+            _ => None,
+        })
+        .unwrap();
+    diagnostic.report.schema_set_sha256 = Digest256::of_bytes(b"different schema");
+    let changed = CurrentArtifactInvalidSchemaProofs::prepare(
+        &cut,
+        &report,
+        limits.max_state_bytes,
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
+    assert!(!changed.proves_invalid(
+        artifact_path,
+        revision,
+        report.current_membership,
+        Digest256::of_bytes(&artifact_raw),
         artifact_raw.len() as u64
     ));
 }
